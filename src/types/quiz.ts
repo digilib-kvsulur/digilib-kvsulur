@@ -1,0 +1,45 @@
+
+export interface Quiz {
+  id: string;
+  title: string;
+  description: string;
+  subject: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  questions: Question[];
+  timeLimit: number; // in minutes
+  pointsReward: number;
+  isActive: boolean;
+  createdAt: string;
+  createdBy: string;
+}
+
+export interface Question {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: number; // index of correct option
+  explanation?: string;
+  points: number;
+}
+
+export interface QuizAttempt {
+  id: string;
+  quizId: string;
+  studentId: string;
+  answers: number[];
+  score: number;
+  totalPoints: number;
+  completedAt: string;
+  timeSpent: number; // in seconds
+}
+
+export interface QuizResult {
+  quizId: string;
+  quizTitle: string;
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  pointsEarned: number;
+  completedAt: string;
+  timeSpent: number;
+}
