@@ -7,7 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Star, Calendar, TrendingUp, User, Search, Trophy, Clock, Award } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Quiz, QuizResult } from "@/types/quiz";
+import { Achievement, LeaderboardEntry, ReadingChallenge, UserStats } from "@/types/rewards";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
+import Achievements from "@/components/rewards/Achievements";
+import Leaderboard from "@/components/rewards/Leaderboard";
+import ReadingChallenges from "@/components/rewards/ReadingChallenges";
 
 const StudentDashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -38,7 +42,7 @@ const StudentDashboard = () => {
     setSelectedQuiz(null);
   };
 
-  // Mock quiz data
+  // Mock data
   const availableQuizzes: Quiz[] = [
     {
       id: "1",
@@ -93,7 +97,6 @@ const StudentDashboard = () => {
     }
   ];
 
-  // Mock data for the dashboard
   const currentBooks = [
     {
       id: 1,
@@ -119,7 +122,106 @@ const StudentDashboard = () => {
     { title: "Mathematics for Class X", completedDate: "2024-05-10", rating: 3, points: 15 }
   ];
 
-  const userPoints = 180 + quizResults.reduce((total, result) => total + result.pointsEarned, 0);
+  // New reward system data
+  const userStats: UserStats = {
+    totalPoints: 180 + quizResults.reduce((total, result) => total + result.pointsEarned, 0),
+    booksRead: 8,
+    quizzesCompleted: quizResults.length,
+    averageQuizScore: quizResults.length > 0 ? 
+      quizResults.reduce((total, result) => total + result.score, 0) / quizResults.length : 0,
+    consecutiveDays: 5,
+    achievements: [],
+    currentChallenges: []
+  };
+
+  const achievements: Achievement[] = [
+    {
+      id: "1",
+      title: "Quiz Master",
+      description: "Complete 5 quizzes with 80% or higher score",
+      icon: "trophy",
+      points: 100,
+      condition: { type: 'quizzes_completed', value: 5, comparison: 'gte' },
+      isUnlocked: userStats.quizzesCompleted >= 5,
+      unlockedAt: userStats.quizzesCompleted >= 5 ? "2024-06-17" : undefined
+    },
+    {
+      id: "2",
+      title: "Bookworm",
+      description: "Read 10 books this semester",
+      icon: "book",
+      points: 150,
+      condition: { type: 'books_read', value: 10, comparison: 'gte' },
+      isUnlocked: userStats.booksRead >= 10,
+    },
+    {
+      id: "3",
+      title: "Point Collector",
+      description: "Earn 500 total points",
+      icon: "zap",
+      points: 200,
+      condition: { type: 'total_points', value: 500, comparison: 'gte' },
+      isUnlocked: userStats.totalPoints >= 500,
+    }
+  ];
+
+  const leaderboardEntries: LeaderboardEntry[] = [
+    {
+      id: "1",
+      studentId: user?.id || "current",
+      studentName: user?.firstName + " " + user?.lastName || "You",
+      studentClass: user?.studentClass || "10A",
+      totalPoints: userStats.totalPoints,
+      rank: 3,
+      recentActivity: "Completed Science Quiz"
+    },
+    {
+      id: "2",
+      studentId: "student1",
+      studentName: "Arjun Sharma",
+      studentClass: "10A",
+      totalPoints: 450,
+      rank: 1,
+      recentActivity: "Completed Math Challenge"
+    },
+    {
+      id: "3",
+      studentId: "student2",
+      studentName: "Priya Patel",
+      studentClass: "10B",
+      totalPoints: 380,
+      rank: 2,
+      recentActivity: "Read 'The Alchemist'"
+    }
+  ].sort((a, b) => b.totalPoints - a.totalPoints).map((entry, index) => ({ ...entry, rank: index + 1 }));
+
+  const readingChallenges: ReadingChallenge[] = [
+    {
+      id: "1",
+      title: "Summer Reading Sprint",
+      description: "Read 5 books before the end of summer break",
+      targetValue: 5,
+      currentProgress: userStats.booksRead >= 5 ? 5 : userStats.booksRead,
+      type: "books_read",
+      reward: { points: 200 },
+      deadline: "2024-07-31",
+      isCompleted: userStats.booksRead >= 5,
+      completedAt: userStats.booksRead >= 5 ? "2024-06-15" : undefined
+    },
+    {
+      id: "2",
+      title: "Quiz Champion",
+      description: "Complete 10 quizzes this month",
+      targetValue: 10,
+      currentProgress: userStats.quizzesCompleted,
+      type: "quiz_completed",
+      reward: { points: 150 },
+      deadline: "2024-06-30",
+      isCompleted: userStats.quizzesCompleted >= 10,
+    }
+  ];
+
+  const userPoints = userStats.totalPoints;
   const nextLevelPoints = 200;
   const pointsProgress = (userPoints / nextLevelPoints) * 100;
 
@@ -232,16 +334,19 @@ const StudentDashboard = () => {
               <User className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">#3</div>
+              <div className="text-2xl font-bold">#{leaderboardEntries.find(e => e.studentId === user?.id)?.rank || 'N/A'}</div>
               <p className="text-xs text-gray-600">In {user.studentClass} class</p>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
+            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+            <TabsTrigger value="challenges">Challenges</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
           </TabsList>
 
@@ -417,6 +522,21 @@ const StudentDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="achievements">
+            <Achievements achievements={achievements} userStats={userStats} />
+          </TabsContent>
+
+          <TabsContent value="leaderboard">
+            <Leaderboard entries={leaderboardEntries} currentUserId={user?.id} />
+          </TabsContent>
+
+          <TabsContent value="challenges">
+            <ReadingChallenges 
+              challenges={readingChallenges}
+              onJoinChallenge={(challengeId) => console.log('Joining challenge:', challengeId)}
+            />
           </TabsContent>
 
           <TabsContent value="progress" className="space-y-6">
