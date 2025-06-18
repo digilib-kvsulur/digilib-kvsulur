@@ -42,4 +42,5 @@ export interface QuizResult {
   pointsEarned: number;
   completedAt: string;
   timeSpent: number;
+  answers: number[];
 }

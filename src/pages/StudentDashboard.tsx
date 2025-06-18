@@ -138,7 +138,8 @@ const StudentDashboard = () => {
       correctAnswers: Math.floor((result.score / 100) * (Array.isArray(result.answers) ? result.answers.length : 0)),
       pointsEarned: result.points_earned,
       completedAt: result.completed_at || new Date().toISOString(),
-      answers: result.answers as any[]
+      timeSpent: 0, // Default to 0 since we don't have this data yet
+      answers: result.answers as number[]
     }));
 
     setQuizResults(transformedResults);
