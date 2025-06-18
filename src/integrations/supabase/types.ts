@@ -9,7 +9,205 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      book_issues: {
+        Row: {
+          book_id: string
+          created_at: string | null
+          due_date: string
+          id: string
+          issue_date: string
+          return_date: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string | null
+          due_date: string
+          id?: string
+          issue_date?: string
+          return_date?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          issue_date?: string
+          return_date?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_issues_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      books: {
+        Row: {
+          author: string
+          available_copies: number | null
+          category: string | null
+          cover_url: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          isbn: string | null
+          title: string
+          total_copies: number | null
+        }
+        Insert: {
+          author: string
+          available_copies?: number | null
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          isbn?: string | null
+          title: string
+          total_copies?: number | null
+        }
+        Update: {
+          author?: string
+          available_copies?: number | null
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          isbn?: string | null
+          title?: string
+          total_copies?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          points: number | null
+          role: string
+          roll_number: string | null
+          student_class: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          points?: number | null
+          role: string
+          roll_number?: string | null
+          student_class?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          points?: number | null
+          role?: string
+          roll_number?: string | null
+          student_class?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      quiz_results: {
+        Row: {
+          answers: Json
+          completed_at: string | null
+          id: string
+          points_earned: number
+          quiz_id: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          answers: Json
+          completed_at?: string | null
+          id?: string
+          points_earned: number
+          quiz_id: string
+          score: number
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string | null
+          id?: string
+          points_earned?: number
+          quiz_id?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_results_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quizzes: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          difficulty: string
+          id: string
+          is_active: boolean | null
+          points_reward: number
+          questions: Json
+          subject: string
+          time_limit: number
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          difficulty: string
+          id?: string
+          is_active?: boolean | null
+          points_reward: number
+          questions: Json
+          subject: string
+          time_limit: number
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          difficulty?: string
+          id?: string
+          is_active?: boolean | null
+          points_reward?: number
+          questions?: Json
+          subject?: string
+          time_limit?: number
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -4,7 +4,15 @@ import { BookOpen, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface StudentHeaderProps {
-  user: any;
+  user: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    role: string;
+    student_class?: string;
+    roll_number?: string;
+    points?: number;
+  };
   onLogout: () => void;
 }
 
@@ -21,7 +29,7 @@ const StudentHeader = ({ user, onLogout }: StudentHeaderProps) => {
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900">Student Dashboard</h1>
-              <p className="text-sm text-gray-600">Welcome, {user.firstName}!</p>
+              <p className="text-sm text-gray-600">Welcome, {user.first_name}!</p>
             </div>
           </div>
           <div className="flex items-center space-x-4">
