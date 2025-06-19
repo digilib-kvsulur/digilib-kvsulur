@@ -4,16 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, Users, BarChart3, User, Settings, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-
 const Index = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({
+      data: {
+        session
+      }
+    }) => {
       setUser(session?.user || null);
       if (session?.user) {
         loadUserProfile(session.user.id);
@@ -23,7 +25,11 @@ const Index = () => {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: {
+        subscription
+      }
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
       if (session?.user) {
         loadUserProfile(session.user.id);
@@ -32,18 +38,14 @@ const Index = () => {
         setLoading(false);
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
-
   const loadUserProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('profiles').select('*').eq('id', userId).single();
       if (error) {
         console.error('Error loading profile:', error);
       } else {
@@ -55,13 +57,11 @@ const Index = () => {
       setLoading(false);
     }
   };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
   };
-
   const navigateToDashboard = () => {
     if (profile?.role === 'admin') {
       navigate('/admin-dashboard');
@@ -71,9 +71,7 @@ const Index = () => {
       navigate('/student-dashboard');
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+  return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -83,15 +81,12 @@ const Index = () => {
                 <BookOpen className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">PM SHRI KV Sulur</h1>
-                <p className="text-sm text-gray-600">Digital Library</p>
+                <h1 className="text-xl font-bold text-gray-900">Digital Library</h1>
+                <p className="text-sm text-gray-600">PM SHRI KV AFS SULUR</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {loading ? (
-                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              ) : user && profile ? (
-                <>
+              {loading ? <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div> : user && profile ? <>
                   <span className="text-sm text-gray-600">
                     Welcome, {profile.first_name}!
                   </span>
@@ -102,17 +97,14 @@ const Index = () => {
                   <Button onClick={handleLogout} variant="outline">
                     Logout
                   </Button>
-                </>
-              ) : (
-                <>
+                </> : <>
                   <Button onClick={() => navigate('/login')} variant="outline">
                     Login
                   </Button>
                   <Button onClick={() => navigate('/login')} className="bg-blue-600 hover:bg-blue-700">
                     Register
                   </Button>
-                </>
-              )}
+                </>}
             </div>
           </div>
         </div>
@@ -121,48 +113,28 @@ const Index = () => {
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome to PM SHRI KV Sulur's Digital Library!
-          </h2>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">PM SHRI KV Sulur's Digital Library!</h2>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Discover, learn, and grow with our comprehensive digital library management system. 
             Access thousands of books, track your reading progress, and earn points for your achievements.
           </p>
-          {!user && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                onClick={() => navigate('/login')} 
-                className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-3"
-              >
+          {!user && <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={() => navigate('/login')} className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-3">
                 Get Started
               </Button>
-              <Button 
-                onClick={() => navigate('/catalog')} 
-                variant="outline" 
-                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3"
-              >
+              <Button onClick={() => navigate('/catalog')} variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3">
                 Browse Books
               </Button>
-            </div>
-          )}
-          {user && profile && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                onClick={navigateToDashboard} 
-                className="bg-blue-600 hover:bg-blue-700 font-semibold px-8 py-3"
-              >
+            </div>}
+          {user && profile && <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={navigateToDashboard} className="bg-blue-600 hover:bg-blue-700 font-semibold px-8 py-3">
                 <LayoutDashboard className="h-5 w-5 mr-2" />
                 Go to Dashboard
               </Button>
-              <Button 
-                onClick={() => navigate('/catalog')} 
-                variant="outline" 
-                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3"
-              >
+              <Button onClick={() => navigate('/catalog')} variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3">
                 Browse Books
               </Button>
-            </div>
-          )}
+            </div>}
         </div>
 
         {/* Features Grid */}
@@ -239,13 +211,9 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-gray-400">
-            © 2024 PM SHRI KV Sulur Digital Library. Empowering minds through reading.
-          </p>
+          <p className="text-gray-400">© 2025 PM SHRI KV Sulur Digital Library. Empowering minds through reading.</p>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
