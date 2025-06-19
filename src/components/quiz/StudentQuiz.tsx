@@ -75,7 +75,8 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
       correctAnswers,
       pointsEarned,
       completedAt: new Date().toISOString(),
-      timeSpent
+      timeSpent,
+      answers: [...answers] // Add the missing answers property
     };
   };
 

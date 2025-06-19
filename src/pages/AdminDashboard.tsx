@@ -1,36 +1,81 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Users, BarChart3, Settings, Trophy } from "lucide-react";
+import { BookOpen, Users, BarChart3, Settings, Trophy, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import QuizManager from "@/components/quiz/QuizManager";
+import UserApproval from "@/components/admin/UserApproval";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      if (parsedUser.role !== 'admin') {
+    // Check authentication and get user data
+    const checkAuth = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) {
         navigate("/login");
         return;
       }
-      setUser(parsedUser);
-    } else {
-      navigate("/login");
-    }
+
+      setUser(user);
+      
+      // Get user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        navigate("/login");
+        return;
+      }
+
+      // Check if user is admin
+      if (profileData.role !== 'admin') {
+        navigate("/login");
+        return;
+      }
+
+      setProfile(profileData);
+      setLoading(false);
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        navigate("/login");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate("/");
   };
 
-  if (!user) return null;
+  if (loading || !user || !profile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -48,6 +93,9 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Welcome, {profile.first_name} {profile.last_name}
+              </span>
               <Button onClick={handleLogout} variant="outline">
                 Logout
               </Button>
@@ -105,11 +153,12 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="users">User Approval</TabsTrigger>
             <TabsTrigger value="books">Books</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -189,6 +238,10 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="users" className="space-y-6">
+            <UserApproval />
+          </TabsContent>
+
           <TabsContent value="books" className="space-y-6">
             <Card>
               <CardHeader>
@@ -201,20 +254,20 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Manage students and teachers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">User management features will be implemented in the next phase.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="quizzes" className="space-y-6">
             <QuizManager />
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Settings</CardTitle>
+                <CardDescription>Manage system settings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Settings management features will be implemented in the next phase.</p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>

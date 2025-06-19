@@ -5,19 +5,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen } from "lucide-react";
+import { BookOpen, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState(""); // Can be email, username, or phone
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [role, setRole] = useState("");
   const [studentClass, setStudentClass] = useState("");
   const [rollNumber, setRollNumber] = useState("");
+  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -27,7 +30,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    if (!email || !password) {
+    if (!identifier || !password) {
       toast({
         title: "Missing Information",
         description: "Please fill in all fields",
@@ -38,15 +41,44 @@ const Login = () => {
     }
 
     try {
+      // First, find the user by identifier (email, username, or phone)
+      const { data: userData, error: userError } = await supabase.rpc('find_user_by_identifier', {
+        identifier: identifier
+      });
+
+      if (userError || !userData || userData.length === 0) {
+        toast({
+          title: "Login Failed",
+          description: "Invalid credentials. Please check your email/username/phone and password.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      const user = userData[0];
+
+      // Check if user is approved
+      if (!user.is_approved) {
+        toast({
+          title: "Account Not Approved",
+          description: "Your account is pending admin approval. Please contact the administrator.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Attempt to sign in with email (since Supabase auth requires email)
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: user.email,
         password,
       });
 
       if (error) {
         toast({
           title: "Login Failed",
-          description: error.message,
+          description: "Invalid password. Please try again.",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -95,7 +127,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    if (!email || !password || !firstName || !lastName || !role) {
+    if (!identifier || !password || !firstName || !lastName || !role) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -105,9 +137,21 @@ const Login = () => {
       return;
     }
 
+    // Validate email format for signup (since we need an email for Supabase auth)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(identifier)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address for signup",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signUp({
-        email,
+        email: identifier,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
@@ -117,6 +161,8 @@ const Login = () => {
             role: role,
             student_class: studentClass,
             roll_number: rollNumber,
+            username: username,
+            phone: phone,
           }
         }
       });
@@ -133,7 +179,7 @@ const Login = () => {
 
       toast({
         title: "Sign Up Successful",
-        description: "Please check your email to confirm your account",
+        description: "Please check your email to confirm your account. Your account will need admin approval before you can log in.",
       });
 
       setIsSignUp(false);
@@ -165,6 +211,15 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {!isSignUp && (
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                You can login using your email, username, or phone number
+              </AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="space-y-4">
             {isSignUp && (
               <>
@@ -207,6 +262,28 @@ const Login = () => {
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username (Optional)</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="john_doe"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone (Optional)</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+91 9876543210"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+
                 {role === 'student' && (
                   <>
                     <div className="space-y-2">
@@ -235,13 +312,15 @@ const Login = () => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">
+                {isSignUp ? 'Email' : 'Email / Username / Phone'}
+              </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="your.email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type={isSignUp ? "email" : "text"}
+                placeholder={isSignUp ? "your.email@example.com" : "Email, username, or phone"}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
               />
             </div>
@@ -257,6 +336,15 @@ const Login = () => {
                 required
               />
             </div>
+
+            {isSignUp && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Your account will require admin approval before you can log in
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
               {isLoading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Login')}

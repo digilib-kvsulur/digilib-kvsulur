@@ -91,40 +91,55 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string | null
           email: string
           first_name: string
           id: string
+          is_approved: boolean | null
           last_name: string
+          phone: string | null
           points: number | null
           role: string
           roll_number: string | null
           student_class: string | null
           updated_at: string | null
+          username: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           email: string
           first_name: string
           id: string
+          is_approved?: boolean | null
           last_name: string
+          phone?: string | null
           points?: number | null
           role: string
           roll_number?: string | null
           student_class?: string | null
           updated_at?: string | null
+          username?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           email?: string
           first_name?: string
           id?: string
+          is_approved?: boolean | null
           last_name?: string
+          phone?: string | null
           points?: number | null
           role?: string
           roll_number?: string | null
           student_class?: string | null
           updated_at?: string | null
+          username?: string | null
         }
         Relationships: []
       }
@@ -213,7 +228,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      find_user_by_identifier: {
+        Args: { identifier: string }
+        Returns: {
+          user_id: string
+          email: string
+          username: string
+          phone: string
+          is_approved: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
