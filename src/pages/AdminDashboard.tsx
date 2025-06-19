@@ -35,18 +35,22 @@ const AdminDashboard = () => {
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error || !user) {
+        console.error('No authenticated user found:', error);
         navigate("/login");
         return;
       }
 
       setUser(user);
+      console.log('Authenticated user:', user.id);
       
-      // Get user profile with simplified query
+      // Get user profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, email, role, is_approved')
         .eq('id', user.id)
         .maybeSingle();
+
+      console.log('Profile query result:', { profileData, profileError });
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
@@ -60,6 +64,7 @@ const AdminDashboard = () => {
       }
 
       if (!profileData) {
+        console.error('No profile found for user');
         toast({
           title: "Profile Not Found",
           description: "User profile not found. Please contact support.",
@@ -71,6 +76,7 @@ const AdminDashboard = () => {
 
       // Check if user is approved
       if (!profileData.is_approved) {
+        console.log('User not approved:', profileData.is_approved);
         toast({
           title: "Account Not Approved",
           description: "Your account is pending admin approval. Please contact the administrator.",
@@ -83,10 +89,17 @@ const AdminDashboard = () => {
 
       // Check if user is admin
       if (profileData.role !== 'admin') {
+        console.log('User is not admin:', profileData.role);
+        toast({
+          title: "Access Denied",
+          description: "You don't have admin access to this dashboard.",
+          variant: "destructive",
+        });
         navigate("/login");
         return;
       }
 
+      console.log('User approved and is admin, setting profile:', profileData);
       setProfile(profileData);
       setLoading(false);
     } catch (error) {
