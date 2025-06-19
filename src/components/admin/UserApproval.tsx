@@ -20,6 +20,7 @@ interface PendingUser {
   phone?: string;
   created_at: string;
   is_approved: boolean;
+  approved_at?: string;
 }
 
 const UserApproval = () => {
