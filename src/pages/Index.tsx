@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, BarChart3, User, Settings, Dashboard } from "lucide-react";
+import { BookOpen, Users, BarChart3, User, Settings, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -97,7 +96,7 @@ const Index = () => {
                     Welcome, {profile.first_name}!
                   </span>
                   <Button onClick={navigateToDashboard} className="bg-blue-600 hover:bg-blue-700">
-                    <Dashboard className="h-4 w-4 mr-2" />
+                    <LayoutDashboard className="h-4 w-4 mr-2" />
                     Dashboard
                   </Button>
                   <Button onClick={handleLogout} variant="outline">
@@ -152,7 +151,7 @@ const Index = () => {
                 onClick={navigateToDashboard} 
                 className="bg-blue-600 hover:bg-blue-700 font-semibold px-8 py-3"
               >
-                <Dashboard className="h-5 w-5 mr-2" />
+                <LayoutDashboard className="h-5 w-5 mr-2" />
                 Go to Dashboard
               </Button>
               <Button 
