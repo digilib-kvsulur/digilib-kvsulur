@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,16 +8,30 @@ import { useNavigate } from "react-router-dom";
 import QuizManager from "@/components/quiz/QuizManager";
 import UserApproval from "@/components/admin/UserApproval";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminDashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Check authentication and get user data
-    const checkAuth = async () => {
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        navigate("/login");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const checkAuth = async () => {
+    try {
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error || !user) {
@@ -26,15 +41,42 @@ const AdminDashboard = () => {
 
       setUser(user);
       
-      // Get user profile
+      // Get user profile with simplified query
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, first_name, last_name, email, role, is_approved')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
+        toast({
+          title: "Error",
+          description: "Failed to load user profile. Please try logging in again.",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+
+      if (!profileData) {
+        toast({
+          title: "Profile Not Found",
+          description: "User profile not found. Please contact support.",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+
+      // Check if user is approved
+      if (!profileData.is_approved) {
+        toast({
+          title: "Account Not Approved",
+          description: "Your account is pending admin approval. Please contact the administrator.",
+          variant: "destructive",
+        });
+        await supabase.auth.signOut();
         navigate("/login");
         return;
       }
@@ -47,19 +89,16 @@ const AdminDashboard = () => {
 
       setProfile(profileData);
       setLoading(false);
-    };
-
-    checkAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
-        navigate("/login");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    } catch (error) {
+      console.error('Auth check error:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while loading the dashboard",
+        variant: "destructive",
+      });
+      navigate("/login");
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

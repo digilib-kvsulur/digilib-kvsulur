@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
@@ -30,48 +29,6 @@ const StudentDashboard = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check authentication and get user data
-    const checkAuth = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (error || !user) {
-        navigate("/login");
-        return;
-      }
-
-      setUser(user);
-      
-      // Get user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        toast({
-          title: "Error",
-          description: "Failed to load user profile",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setProfile(profileData);
-
-      // Load quizzes
-      await loadQuizzes();
-      
-      // Load quiz results
-      await loadQuizResults(user.id);
-      
-      // Load current books
-      await loadCurrentBooks(user.id);
-      
-      setLoading(false);
-    };
-
     checkAuth();
 
     // Listen for auth changes
@@ -82,7 +39,85 @@ const StudentDashboard = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, toast]);
+  }, [navigate]);
+
+  const checkAuth = async () => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) {
+        navigate("/login");
+        return;
+      }
+
+      setUser(user);
+      
+      // Get user profile with simplified query
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email, role, student_class, roll_number, points, is_approved')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        toast({
+          title: "Error",
+          description: "Failed to load user profile. Please try logging in again.",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+
+      if (!profileData) {
+        toast({
+          title: "Profile Not Found",
+          description: "User profile not found. Please contact support.",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+
+      // Check if user is approved
+      if (!profileData.is_approved) {
+        toast({
+          title: "Account Not Approved",
+          description: "Your account is pending admin approval. Please contact the administrator.",
+          variant: "destructive",
+        });
+        await supabase.auth.signOut();
+        navigate("/login");
+        return;
+      }
+
+      // Check if user has student role
+      if (profileData.role !== 'student') {
+        navigate("/login");
+        return;
+      }
+
+      setProfile(profileData);
+
+      // Load other data
+      await Promise.all([
+        loadQuizzes(),
+        loadQuizResults(user.id),
+        loadCurrentBooks(user.id)
+      ]);
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Auth check error:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while loading the dashboard",
+        variant: "destructive",
+      });
+      navigate("/login");
+    }
+  };
 
   const loadQuizzes = async () => {
     const { data, error } = await supabase

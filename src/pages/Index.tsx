@@ -1,12 +1,77 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, BarChart3, User } from "lucide-react";
+import { BookOpen, Users, BarChart3, User, Settings, Dashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error loading profile:', error);
+      } else {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+  };
+
+  const navigateToDashboard = () => {
+    if (profile?.role === 'admin') {
+      navigate('/admin-dashboard');
+    } else if (profile?.role === 'teacher') {
+      navigate('/teacher-dashboard');
+    } else {
+      navigate('/student-dashboard');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -23,9 +88,33 @@ const Index = () => {
                 <p className="text-sm text-gray-600">Digital Library</p>
               </div>
             </div>
-            <Button onClick={() => navigate('/login')} className="bg-blue-600 hover:bg-blue-700">
-              Login
-            </Button>
+            <div className="flex items-center space-x-4">
+              {loading ? (
+                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              ) : user && profile ? (
+                <>
+                  <span className="text-sm text-gray-600">
+                    Welcome, {profile.first_name}!
+                  </span>
+                  <Button onClick={navigateToDashboard} className="bg-blue-600 hover:bg-blue-700">
+                    <Dashboard className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Button>
+                  <Button onClick={handleLogout} variant="outline">
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={() => navigate('/login')} variant="outline">
+                    Login
+                  </Button>
+                  <Button onClick={() => navigate('/login')} className="bg-blue-600 hover:bg-blue-700">
+                    Register
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -40,21 +129,41 @@ const Index = () => {
             Discover, learn, and grow with our comprehensive digital library management system. 
             Access thousands of books, track your reading progress, and earn points for your achievements.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              onClick={() => navigate('/register')} 
-              className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-3"
-            >
-              Get Started
-            </Button>
-            <Button 
-              onClick={() => navigate('/catalog')} 
-              variant="outline" 
-              className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3"
-            >
-              Browse Books
-            </Button>
-          </div>
+          {!user && (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                onClick={() => navigate('/login')} 
+                className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-3"
+              >
+                Get Started
+              </Button>
+              <Button 
+                onClick={() => navigate('/catalog')} 
+                variant="outline" 
+                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3"
+              >
+                Browse Books
+              </Button>
+            </div>
+          )}
+          {user && profile && (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                onClick={navigateToDashboard} 
+                className="bg-blue-600 hover:bg-blue-700 font-semibold px-8 py-3"
+              >
+                <Dashboard className="h-5 w-5 mr-2" />
+                Go to Dashboard
+              </Button>
+              <Button 
+                onClick={() => navigate('/catalog')} 
+                variant="outline" 
+                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3"
+              >
+                Browse Books
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Features Grid */}
