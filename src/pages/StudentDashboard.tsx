@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +25,8 @@ const StudentDashboard = () => {
   const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
   const [availableQuizzes, setAvailableQuizzes] = useState<Quiz[]>([]);
   const [currentBooks, setCurrentBooks] = useState<any[]>([]);
+  const [challenges, setChallenges] = useState<ReadingChallenge[]>([]);
+  const [classRank, setClassRank] = useState<number>(1);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -117,7 +120,9 @@ const StudentDashboard = () => {
       await Promise.all([
         loadQuizzes(),
         loadQuizResults(user.id),
-        loadCurrentBooks(user.id)
+        loadCurrentBooks(user.id),
+        loadChallenges(user.id),
+        loadClassRank(profileData.student_class, profileData.points || 0)
       ]);
       
       setLoading(false);
@@ -222,6 +227,70 @@ const StudentDashboard = () => {
     setCurrentBooks(transformedBooks);
   };
 
+  const loadChallenges = async (userId: string) => {
+    try {
+      // Get active challenges with user progress
+      const { data: challengesData, error: challengesError } = await supabase
+        .from('challenges')
+        .select(`
+          *,
+          challenge_progress(current_progress, is_completed, completed_at)
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (challengesError) {
+        console.error('Error loading challenges:', challengesError);
+        return;
+      }
+
+      // Transform challenges data
+      const transformedChallenges: ReadingChallenge[] = challengesData.map(challenge => {
+        const userProgress = challenge.challenge_progress?.[0];
+        
+        return {
+          id: challenge.id,
+          title: challenge.title,
+          description: challenge.description,
+          targetValue: challenge.target_value,
+          currentProgress: userProgress?.current_progress || 0,
+          type: challenge.type as 'books_read' | 'quiz_completed' | 'points_earned',
+          reward: {
+            points: challenge.reward_points
+          },
+          deadline: challenge.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 30 days from now
+          isCompleted: userProgress?.is_completed || false,
+          completedAt: userProgress?.completed_at || undefined
+        };
+      });
+
+      setChallenges(transformedChallenges);
+    } catch (error) {
+      console.error('Error loading challenges:', error);
+    }
+  };
+
+  const loadClassRank = async (studentClass: string, userPoints: number) => {
+    try {
+      if (!studentClass) return;
+      
+      const { data: rank, error } = await supabase
+        .rpc('get_user_class_rank', {
+          user_class: studentClass,
+          user_points: userPoints
+        });
+
+      if (error) {
+        console.error('Error loading class rank:', error);
+        return;
+      }
+
+      setClassRank(rank || 1);
+    } catch (error) {
+      console.error('Error loading class rank:', error);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -265,6 +334,16 @@ const StudentDashboard = () => {
         }
       }
 
+      // Update challenge progress for quiz completion
+      await supabase.rpc('update_challenge_progress', {
+        p_user_id: user.id,
+        p_challenge_type: 'quiz_completed',
+        p_increment: 1
+      });
+
+      // Reload challenges to show updated progress
+      await loadChallenges(user.id);
+
       setSelectedQuiz(null);
       
       toast({
@@ -297,10 +376,10 @@ const StudentDashboard = () => {
       quizResults.reduce((total, result) => total + result.score, 0) / quizResults.length : 0,
     consecutiveDays: 5,
     achievements: [],
-    currentChallenges: []
+    currentChallenges: challenges
   };
 
-  // Mock achievements and challenges (these would be calculated based on user stats)
+  // Mock achievements (these would be calculated based on user stats)
   const achievements: Achievement[] = [
     {
       id: "1",
@@ -339,7 +418,7 @@ const StudentDashboard = () => {
       studentName: profile ? `${profile.first_name} ${profile.last_name}` : "You",
       studentClass: profile?.student_class || "Unknown",
       totalPoints: userStats.totalPoints,
-      rank: 3,
+      rank: classRank,
       recentActivity: "Completed Science Quiz"
     },
     {
@@ -361,32 +440,6 @@ const StudentDashboard = () => {
       recentActivity: "Read 'The Alchemist'"
     }
   ].sort((a, b) => b.totalPoints - a.totalPoints).map((entry, index) => ({ ...entry, rank: index + 1 }));
-
-  const readingChallenges: ReadingChallenge[] = [
-    {
-      id: "1",
-      title: "Summer Reading Sprint",
-      description: "Read 5 books before the end of summer break",
-      targetValue: 5,
-      currentProgress: userStats.booksRead >= 5 ? 5 : userStats.booksRead,
-      type: "books_read",
-      reward: { points: 200 },
-      deadline: "2024-07-31",
-      isCompleted: userStats.booksRead >= 5,
-      completedAt: userStats.booksRead >= 5 ? "2024-06-15" : undefined
-    },
-    {
-      id: "2",
-      title: "Quiz Champion",
-      description: "Complete 10 quizzes this month",
-      targetValue: 10,
-      currentProgress: userStats.quizzesCompleted,
-      type: "quiz_completed",
-      reward: { points: 150 },
-      deadline: "2024-06-30",
-      isCompleted: userStats.quizzesCompleted >= 10,
-    }
-  ];
 
   const userPoints = userStats.totalPoints;
   const nextLevelPoints = 200;
@@ -427,7 +480,7 @@ const StudentDashboard = () => {
           nextLevelPoints={nextLevelPoints}
           currentBooksCount={currentBooks.length}
           quizResultsCount={quizResults.length}
-          classRank={leaderboardEntries.find(e => e.studentId === user?.id)?.rank || 'N/A'}
+          classRank={classRank}
           userClass={profile.student_class || 'Unknown'}
         />
 
@@ -465,7 +518,7 @@ const StudentDashboard = () => {
 
           <TabsContent value="challenges">
             <ReadingChallenges 
-              challenges={readingChallenges}
+              challenges={challenges}
               onJoinChallenge={(challengeId) => console.log('Joining challenge:', challengeId)}
             />
           </TabsContent>

@@ -4,11 +4,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, Users, BarChart3, User, Settings, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+
+interface Statistics {
+  totalBooks: number;
+  activeUsers: number;
+  booksIssued: number;
+}
+
 const Index = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [statistics, setStatistics] = useState<Statistics>({
+    totalBooks: 5000,
+    activeUsers: 1200,
+    booksIssued: 25000
+  });
   const navigate = useNavigate();
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({
@@ -38,8 +51,13 @@ const Index = () => {
         setLoading(false);
       }
     });
+
+    // Load statistics regardless of auth status
+    loadStatistics();
+
     return () => subscription.unsubscribe();
   }, []);
+
   const loadUserProfile = async (userId: string) => {
     try {
       const {
@@ -57,11 +75,33 @@ const Index = () => {
       setLoading(false);
     }
   };
+
+  const loadStatistics = async () => {
+    try {
+      // Load statistics using the database functions
+      const [totalBooksResult, activeUsersResult, booksIssuedResult] = await Promise.all([
+        supabase.rpc('get_total_books_count'),
+        supabase.rpc('get_active_users_count'),
+        supabase.rpc('get_books_issued_count')
+      ]);
+
+      setStatistics({
+        totalBooks: totalBooksResult.data || 5000,
+        activeUsers: activeUsersResult.data || 1200,
+        booksIssued: booksIssuedResult.data || 25000
+      });
+    } catch (error) {
+      console.error('Error loading statistics:', error);
+      // Keep default values if database query fails
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
   };
+
   const navigateToDashboard = () => {
     if (profile?.role === 'admin') {
       navigate('/admin-dashboard');
@@ -71,6 +111,7 @@ const Index = () => {
       navigate('/student-dashboard');
     }
   };
+
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <header className="bg-white shadow-sm">
@@ -193,15 +234,15 @@ const Index = () => {
           <h3 className="text-2xl font-bold text-center text-gray-900 mb-8">Library Statistics</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">5,000+</div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">{statistics.totalBooks.toLocaleString()}+</div>
               <div className="text-gray-600">Books Available</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600 mb-2">1,200+</div>
+              <div className="text-3xl font-bold text-green-600 mb-2">{statistics.activeUsers.toLocaleString()}+</div>
               <div className="text-gray-600">Active Readers</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-2">25,000+</div>
+              <div className="text-3xl font-bold text-purple-600 mb-2">{statistics.booksIssued.toLocaleString()}+</div>
               <div className="text-gray-600">Books Issued</div>
             </div>
           </div>
@@ -216,4 +257,5 @@ const Index = () => {
       </footer>
     </div>;
 };
+
 export default Index;

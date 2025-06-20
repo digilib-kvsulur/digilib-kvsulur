@@ -89,6 +89,83 @@ export type Database = {
         }
         Relationships: []
       }
+      challenge_progress: {
+        Row: {
+          challenge_id: string
+          completed_at: string | null
+          created_at: string | null
+          current_progress: number | null
+          id: string
+          is_completed: boolean | null
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_progress?: number | null
+          id?: string
+          is_completed?: boolean | null
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_progress?: number | null
+          id?: string
+          is_completed?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          deadline: string | null
+          description: string
+          id: string
+          is_active: boolean | null
+          reward_points: number
+          target_value: number
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          deadline?: string | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          reward_points: number
+          target_value: number
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          reward_points?: number
+          target_value?: number
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           approved_at: string | null
@@ -238,9 +315,37 @@ export type Database = {
           is_approved: boolean
         }[]
       }
+      get_active_quizzes_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_active_users_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_books_issued_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_total_books_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_user_class_rank: {
+        Args: { user_class: string; user_points: number }
+        Returns: number
+      }
+      update_challenge_progress: {
+        Args: {
+          p_user_id: string
+          p_challenge_type: string
+          p_increment?: number
+        }
+        Returns: undefined
       }
     }
     Enums: {
