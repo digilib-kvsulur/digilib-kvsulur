@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -135,7 +134,7 @@ const QuizManager = () => {
         difficulty: quiz.difficulty,
         time_limit: quiz.timeLimit,
         points_reward: quiz.pointsReward,
-        questions: quiz.questions,
+        questions: quiz.questions as any, // Cast to Json type
         is_active: quiz.isActive,
         created_by: user.id
       };
