@@ -1,54 +1,64 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Play, Pause } from "lucide-react";
-import { Quiz, Question } from "@/types/quiz";
+import { Quiz } from "@/types/quiz";
 import { QuizForm } from "./QuizForm";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const QuizManager = () => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [showQuizForm, setShowQuizForm] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Mock data for demonstration
-  const mockQuizzes: Quiz[] = [
-    {
-      id: "1",
-      title: "General Science Quiz",
-      description: "Test your knowledge of basic scientific concepts",
-      subject: "Science",
-      difficulty: "medium",
-      questions: [],
-      timeLimit: 30,
-      pointsReward: 50,
-      isActive: true,
-      createdAt: "2024-06-15",
-      createdBy: "admin"
-    },
-    {
-      id: "2",
-      title: "Mathematics Fundamentals",
-      description: "Basic mathematics quiz for Class 10",
-      subject: "Mathematics",
-      difficulty: "easy",
-      questions: [],
-      timeLimit: 45,
-      pointsReward: 40,
-      isActive: false,
-      createdAt: "2024-06-14",
-      createdBy: "admin"
+  useEffect(() => {
+    loadQuizzes();
+  }, []);
+
+  const loadQuizzes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading quizzes:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load quizzes",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Transform data to match Quiz interface
+      const transformedQuizzes: Quiz[] = (data || []).map(quiz => ({
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description || '',
+        subject: quiz.subject,
+        difficulty: quiz.difficulty as 'easy' | 'medium' | 'hard',
+        questions: quiz.questions as any[],
+        timeLimit: quiz.time_limit,
+        pointsReward: quiz.points_reward,
+        isActive: quiz.is_active || false,
+        createdAt: quiz.created_at || new Date().toISOString(),
+        createdBy: quiz.created_by
+      }));
+
+      setQuizzes(transformedQuizzes);
+    } catch (error) {
+      console.error('Error loading quizzes:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
-
-  useState(() => {
-    setQuizzes(mockQuizzes);
-  });
+  };
 
   const handleCreateQuiz = () => {
     setEditingQuiz(null);
@@ -60,25 +70,121 @@ const QuizManager = () => {
     setShowQuizForm(true);
   };
 
-  const handleDeleteQuiz = (quizId: string) => {
-    setQuizzes(prev => prev.filter(q => q.id !== quizId));
-  };
+  const handleDeleteQuiz = async (quizId: string) => {
+    try {
+      const { error } = await supabase
+        .from('quizzes')
+        .delete()
+        .eq('id', quizId);
 
-  const handleToggleQuizStatus = (quizId: string) => {
-    setQuizzes(prev => prev.map(q => 
-      q.id === quizId ? { ...q, isActive: !q.isActive } : q
-    ));
-  };
+      if (error) throw error;
 
-  const handleQuizSaved = (quiz: Quiz) => {
-    if (editingQuiz) {
-      setQuizzes(prev => prev.map(q => q.id === quiz.id ? quiz : q));
-    } else {
-      setQuizzes(prev => [...prev, { ...quiz, id: Date.now().toString() }]);
+      toast({
+        title: "Success",
+        description: "Quiz deleted successfully",
+      });
+
+      loadQuizzes();
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete quiz",
+        variant: "destructive",
+      });
     }
-    setShowQuizForm(false);
-    setEditingQuiz(null);
   };
+
+  const handleToggleQuizStatus = async (quizId: string) => {
+    try {
+      const quiz = quizzes.find(q => q.id === quizId);
+      if (!quiz) return;
+
+      const { error } = await supabase
+        .from('quizzes')
+        .update({ is_active: !quiz.isActive })
+        .eq('id', quizId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Quiz ${!quiz.isActive ? 'activated' : 'deactivated'}`,
+      });
+
+      loadQuizzes();
+    } catch (error) {
+      console.error('Error toggling quiz status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update quiz status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleQuizSaved = async (quiz: Quiz) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const quizData = {
+        title: quiz.title,
+        description: quiz.description,
+        subject: quiz.subject,
+        difficulty: quiz.difficulty,
+        time_limit: quiz.timeLimit,
+        points_reward: quiz.pointsReward,
+        questions: quiz.questions,
+        is_active: quiz.isActive,
+        created_by: user.id
+      };
+
+      if (editingQuiz) {
+        const { error } = await supabase
+          .from('quizzes')
+          .update(quizData)
+          .eq('id', editingQuiz.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Quiz updated successfully",
+        });
+      } else {
+        const { error } = await supabase
+          .from('quizzes')
+          .insert(quizData);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Quiz created successfully",
+        });
+      }
+
+      setShowQuizForm(false);
+      setEditingQuiz(null);
+      loadQuizzes();
+    } catch (error) {
+      console.error('Error saving quiz:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save quiz",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   if (showQuizForm) {
     return (

@@ -1,12 +1,13 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Users, BarChart3, Settings, Trophy, UserCheck } from "lucide-react";
+import { BookOpen, Users, BarChart3, Settings, Trophy, UserCheck, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import QuizManager from "@/components/quiz/QuizManager";
 import UserApproval from "@/components/admin/UserApproval";
+import ChallengeManager from "@/components/admin/ChallengeManager";
+import SettingsManager from "@/components/admin/SettingsManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -196,7 +197,7 @@ const AdminDashboard = () => {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                Welcome, {profile.first_name} {profile.last_name}
+                Welcome, {profile?.first_name} {profile?.last_name}
               </span>
               <Button onClick={handleLogout} variant="outline">
                 Logout
@@ -255,11 +256,12 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">User Approval</TabsTrigger>
             <TabsTrigger value="books">Books</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
+            <TabsTrigger value="challenges">Challenges</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -360,16 +362,12 @@ const AdminDashboard = () => {
             <QuizManager />
           </TabsContent>
 
+          <TabsContent value="challenges" className="space-y-6">
+            <ChallengeManager />
+          </TabsContent>
+
           <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Settings</CardTitle>
-                <CardDescription>Manage system settings</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">Settings management features will be implemented in the next phase.</p>
-              </CardContent>
-            </Card>
+            <SettingsManager />
           </TabsContent>
         </Tabs>
       </main>

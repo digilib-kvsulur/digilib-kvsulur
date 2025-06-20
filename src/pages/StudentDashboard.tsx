@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +26,7 @@ const StudentDashboard = () => {
   const [currentBooks, setCurrentBooks] = useState<any[]>([]);
   const [challenges, setChallenges] = useState<ReadingChallenge[]>([]);
   const [classRank, setClassRank] = useState<number>(1);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -122,7 +122,8 @@ const StudentDashboard = () => {
         loadQuizResults(user.id),
         loadCurrentBooks(user.id),
         loadChallenges(user.id),
-        loadClassRank(profileData.student_class, profileData.points || 0)
+        loadClassRank(profileData.student_class, profileData.points || 0),
+        loadLeaderboard(profileData.student_class)
       ]);
       
       setLoading(false);
@@ -291,6 +292,40 @@ const StudentDashboard = () => {
     }
   };
 
+  const loadLeaderboard = async (studentClass: string) => {
+    try {
+      if (!studentClass) return;
+
+      const { data: classmates, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, student_class, points')
+        .eq('student_class', studentClass)
+        .eq('is_approved', true)
+        .eq('role', 'student')
+        .order('points', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Error loading leaderboard:', error);
+        return;
+      }
+
+      const transformedEntries: LeaderboardEntry[] = (classmates || []).map((student, index) => ({
+        id: student.id,
+        studentId: student.id,
+        studentName: `${student.first_name} ${student.last_name}`,
+        studentClass: student.student_class,
+        totalPoints: student.points || 0,
+        rank: index + 1,
+        recentActivity: "Active in library system"
+      }));
+
+      setLeaderboardEntries(transformedEntries);
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -410,36 +445,6 @@ const StudentDashboard = () => {
       isUnlocked: userStats.totalPoints >= 500,
     }
   ];
-
-  const leaderboardEntries: LeaderboardEntry[] = [
-    {
-      id: "1",
-      studentId: user?.id || "current",
-      studentName: profile ? `${profile.first_name} ${profile.last_name}` : "You",
-      studentClass: profile?.student_class || "Unknown",
-      totalPoints: userStats.totalPoints,
-      rank: classRank,
-      recentActivity: "Completed Science Quiz"
-    },
-    {
-      id: "2",
-      studentId: "student1",
-      studentName: "Arjun Sharma",
-      studentClass: "10A",
-      totalPoints: 450,
-      rank: 1,
-      recentActivity: "Completed Math Challenge"
-    },
-    {
-      id: "3",
-      studentId: "student2",
-      studentName: "Priya Patel",
-      studentClass: "10B",
-      totalPoints: 380,
-      rank: 2,
-      recentActivity: "Read 'The Alchemist'"
-    }
-  ].sort((a, b) => b.totalPoints - a.totalPoints).map((entry, index) => ({ ...entry, rank: index + 1 }));
 
   const userPoints = userStats.totalPoints;
   const nextLevelPoints = 200;
