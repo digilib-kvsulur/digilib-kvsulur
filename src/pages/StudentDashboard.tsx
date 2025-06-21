@@ -10,12 +10,12 @@ import ReadingChallenges from "@/components/rewards/ReadingChallenges";
 import StudentHeader from "@/components/dashboard/StudentHeader";
 import StatsCards from "@/components/dashboard/StatsCards";
 import CurrentBooks from "@/components/dashboard/CurrentBooks";
-import ReadingHistory from "@/components/dashboard/ReadingHistory";
 import AvailableQuizzes from "@/components/dashboard/AvailableQuizzes";
 import QuizResults from "@/components/dashboard/QuizResults";
 import PointsBreakdown from "@/components/dashboard/PointsBreakdown";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
 import StudentProfile from "@/components/dashboard/StudentProfile";
+import RealReadingHistory from "@/components/dashboard/RealReadingHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -62,7 +62,7 @@ const StudentDashboard = () => {
       // Get user profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, role, student_class, roll_number, points, is_approved')
+        .select('id, first_name, last_name, email, role, student_class, roll_number, points, is_approved, username')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -415,13 +415,6 @@ const StudentDashboard = () => {
     }
   };
 
-  // Mock data for features not yet connected to database
-  const readingHistory = [
-    { title: "To Kill a Mockingbird", completedDate: "2024-06-01", rating: 5, points: 25 },
-    { title: "The Science of Everything", completedDate: "2024-05-20", rating: 4, points: 20 },
-    { title: "Mathematics for Class X", completedDate: "2024-05-10", rating: 3, points: 15 }
-  ];
-
   // Calculate user stats
   const userStats: UserStats = {
     totalPoints: profile?.points || 0,
@@ -490,8 +483,9 @@ const StudentDashboard = () => {
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <CurrentBooks books={currentBooks} />
-              <ReadingHistory books={readingHistory} />
+              <RealReadingHistory />
             </div>
+            <PointsBreakdown quizResults={quizResults} />
           </TabsContent>
 
           <TabsContent value="quizzes" className="space-y-6">
@@ -499,7 +493,6 @@ const StudentDashboard = () => {
               <AvailableQuizzes quizzes={availableQuizzes} onSelectQuiz={setSelectedQuiz} />
               <QuizResults results={quizResults} />
             </div>
-            <PointsBreakdown quizResults={quizResults} />
           </TabsContent>
 
           <TabsContent value="achievements">

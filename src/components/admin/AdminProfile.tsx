@@ -8,12 +8,12 @@ import { User, Edit, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface StudentProfileProps {
+interface AdminProfileProps {
   user: any;
   onProfileUpdate?: () => void;
 }
 
-const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
+const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -21,8 +21,6 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
     last_name: user?.last_name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    student_class: user?.student_class || '',
-    roll_number: user?.roll_number || '',
     username: user?.username || ''
   });
   const { toast } = useToast();
@@ -34,8 +32,6 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
         last_name: user.last_name || '',
         email: user.email || '',
         phone: user.phone || '',
-        student_class: user.student_class || '',
-        roll_number: user.roll_number || '',
         username: user.username || ''
       });
     }
@@ -51,8 +47,6 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
           first_name: formData.first_name,
           last_name: formData.last_name,
           phone: formData.phone,
-          student_class: formData.student_class,
-          roll_number: formData.roll_number,
           username: formData.username,
           updated_at: new Date().toISOString()
         })
@@ -85,8 +79,6 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       last_name: user?.last_name || '',
       email: user?.email || '',
       phone: user?.phone || '',
-      student_class: user?.student_class || '',
-      roll_number: user?.roll_number || '',
       username: user?.username || ''
     });
     setIsEditing(false);
@@ -99,9 +91,9 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
           <div>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              My Profile
+              Admin Profile
             </CardTitle>
-            <CardDescription>Manage your personal information and login credentials</CardDescription>
+            <CardDescription>Manage your administrator account information</CardDescription>
           </div>
           {!isEditing ? (
             <Button onClick={() => setIsEditing(true)} variant="outline">
@@ -167,27 +159,6 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
           <p className="text-xs text-gray-500 mt-1">You can use username or email to login</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="student_class">Class</Label>
-            <Input
-              id="student_class"
-              value={formData.student_class}
-              onChange={(e) => setFormData(prev => ({ ...prev, student_class: e.target.value }))}
-              disabled={!isEditing}
-            />
-          </div>
-          <div>
-            <Label htmlFor="roll_number">Roll Number</Label>
-            <Input
-              id="roll_number"
-              value={formData.roll_number}
-              onChange={(e) => setFormData(prev => ({ ...prev, roll_number: e.target.value }))}
-              disabled={!isEditing}
-            />
-          </div>
-        </div>
-
         <div>
           <Label htmlFor="phone">Phone Number</Label>
           <Input
@@ -201,14 +172,12 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
         <div className="pt-4 border-t">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <span className="font-medium text-gray-700">Total Points:</span>
-              <p className="text-2xl font-bold text-blue-600">{user?.points || 0}</p>
+              <span className="font-medium text-gray-700">Role:</span>
+              <p className="text-lg font-bold text-blue-600">Administrator</p>
             </div>
             <div>
               <span className="font-medium text-gray-700">Account Status:</span>
-              <p className={`font-medium ${user?.is_approved ? 'text-green-600' : 'text-orange-600'}`}>
-                {user?.is_approved ? 'Approved' : 'Pending Approval'}
-              </p>
+              <p className="font-medium text-green-600">Active</p>
             </div>
             <div>
               <span className="font-medium text-gray-700">Member Since:</span>
@@ -221,4 +190,4 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
   );
 };
 
-export default StudentProfile;
+export default AdminProfile;

@@ -35,7 +35,6 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
     book_author: '',
     completed_date: '',
     rating: 5,
-    points_earned: 20,
     notes: ''
   });
   const { toast } = useToast();
@@ -76,9 +75,13 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Fixed points calculation based on rating
+      const pointsEarned = formData.rating * 5; // 1 star = 5 points, 5 stars = 25 points
+
       const entryData = {
         ...formData,
         user_id: user.id,
+        points_earned: pointsEarned,
         completed_date: formData.completed_date || new Date().toISOString().split('T')[0]
       };
 
@@ -103,7 +106,7 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
 
         toast({
           title: "Success",
-          description: `Book added! You earned ${formData.points_earned} points!`,
+          description: `Book added! You earned ${pointsEarned} points!`,
         });
       }
 
@@ -114,7 +117,6 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
         book_author: '',
         completed_date: '',
         rating: 5,
-        points_earned: 20,
         notes: ''
       });
       loadReadingHistory();
@@ -136,7 +138,6 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
       book_author: entry.book_author,
       completed_date: entry.completed_date,
       rating: entry.rating || 5,
-      points_earned: entry.points_earned,
       notes: entry.notes || ''
     });
     setShowAddDialog(true);
@@ -183,7 +184,7 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
             <BookOpen className="h-5 w-5" />
             My Reading History
           </h3>
-          <p className="text-sm text-gray-600">Track books you've completed and earn points</p>
+          <p className="text-sm text-gray-600">Track books you've completed and earn points based on your rating</p>
         </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
@@ -194,7 +195,6 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
                 book_author: '',
                 completed_date: '',
                 rating: 5,
-                points_earned: 20,
                 notes: ''
               });
             }}>
@@ -206,7 +206,7 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
             <DialogHeader>
               <DialogTitle>{editingEntry ? 'Edit' : 'Add'} Reading Entry</DialogTitle>
               <DialogDescription>
-                {editingEntry ? 'Update your reading entry' : 'Add a book you\'ve completed to earn points'}
+                {editingEntry ? 'Update your reading entry' : 'Add a book you\'ve completed. Points are awarded based on your rating (1-5 stars = 5-25 points)'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -248,17 +248,7 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
                   value={formData.rating}
                   onChange={(e) => setFormData(prev => ({ ...prev, rating: Number(e.target.value) }))}
                 />
-              </div>
-              <div>
-                <Label htmlFor="points_earned">Points Earned</Label>
-                <Input
-                  id="points_earned"
-                  type="number"
-                  min="1"
-                  value={formData.points_earned}
-                  onChange={(e) => setFormData(prev => ({ ...prev, points_earned: Number(e.target.value) }))}
-                  required
-                />
+                <p className="text-xs text-gray-500 mt-1">Points earned: {formData.rating * 5} points</p>
               </div>
               <div>
                 <Label htmlFor="notes">Notes (Optional)</Label>

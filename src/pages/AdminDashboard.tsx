@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Users, BarChart3, Settings, Trophy, UserCheck, Target } from "lucide-react";
+import { BookOpen, Users, BarChart3, Settings, Trophy, UserCheck, Target, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import QuizManager from "@/components/quiz/QuizManager";
 import UserApproval from "@/components/admin/UserApproval";
 import ChallengeManager from "@/components/admin/ChallengeManager";
-import SettingsManager from "@/components/admin/SettingsManager";
+import AdminProfile from "@/components/admin/AdminProfile";
+import ClassAnalytics from "@/components/admin/ClassAnalytics";
+import FunctionalSettings from "@/components/admin/FunctionalSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -60,7 +62,7 @@ const AdminDashboard = () => {
       // Get user profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, role, is_approved')
+        .select('id, first_name, last_name, email, role, is_approved, username')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -256,12 +258,14 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">User Approval</TabsTrigger>
             <TabsTrigger value="books">Books</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
             <TabsTrigger value="challenges">Challenges</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -366,8 +370,16 @@ const AdminDashboard = () => {
             <ChallengeManager />
           </TabsContent>
 
+          <TabsContent value="analytics" className="space-y-6">
+            <ClassAnalytics />
+          </TabsContent>
+
+          <TabsContent value="profile" className="space-y-6">
+            <AdminProfile user={profile} onProfileUpdate={checkAuth} />
+          </TabsContent>
+
           <TabsContent value="settings" className="space-y-6">
-            <SettingsManager />
+            <FunctionalSettings />
           </TabsContent>
         </Tabs>
       </main>
