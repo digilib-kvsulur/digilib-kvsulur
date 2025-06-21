@@ -2,31 +2,35 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Star } from "lucide-react";
 import { QuizResult } from "@/types/quiz";
+import { ReadingChallenge } from "@/types/rewards";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PointsBreakdownProps {
   quizResults: QuizResult[];
+  challenges: ReadingChallenge[];
 }
 
 interface PointsData {
   booksCompleted: number;
   timelyReturns: number;
-  bookReviews: number;
+  readingHistory: number;
   quizPoints: number;
+  challengePoints: number;
 }
 
-const PointsBreakdown = ({ quizResults }: PointsBreakdownProps) => {
+const PointsBreakdown = ({ quizResults, challenges }: PointsBreakdownProps) => {
   const [pointsData, setPointsData] = useState<PointsData>({
     booksCompleted: 0,
     timelyReturns: 0,
-    bookReviews: 0,
-    quizPoints: 0
+    readingHistory: 0,
+    quizPoints: 0,
+    challengePoints: 0
   });
 
   useEffect(() => {
     loadPointsData();
-  }, [quizResults]);
+  }, [quizResults, challenges]);
 
   const loadPointsData = async () => {
     try {
@@ -35,6 +39,11 @@ const PointsBreakdown = ({ quizResults }: PointsBreakdownProps) => {
 
       // Calculate quiz points from quiz results
       const quizPoints = quizResults.reduce((total, result) => total + result.pointsEarned, 0);
+
+      // Calculate challenge points from completed challenges
+      const challengePoints = challenges
+        .filter(challenge => challenge.isCompleted)
+        .reduce((total, challenge) => total + challenge.reward.points, 0);
 
       // Get completed books count (returned books)
       const { data: completedBooks, error: booksError } = await supabase
@@ -56,11 +65,20 @@ const PointsBreakdown = ({ quizResults }: PointsBreakdownProps) => {
         new Date(book.return_date) <= new Date(book.due_date)
       ).length || 0;
 
+      // Get reading history points
+      const { data: readingHistory, error: readingError } = await supabase
+        .from('reading_history')
+        .select('points_earned')
+        .eq('user_id', user.id);
+
+      const readingHistoryPoints = readingHistory?.reduce((total, entry) => total + (entry.points_earned || 0), 0) || 0;
+
       setPointsData({
         booksCompleted: completedBooks?.length || 0,
         timelyReturns: timelyReturnsCount,
-        bookReviews: 0, // This would be implemented when book review feature is added
-        quizPoints
+        readingHistory: readingHistoryPoints,
+        quizPoints,
+        challengePoints
       });
     } catch (error) {
       console.error('Error loading points data:', error);
@@ -77,7 +95,7 @@ const PointsBreakdown = ({ quizResults }: PointsBreakdownProps) => {
         <CardDescription>How you've earned your library points</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
               {pointsData.booksCompleted * 25}
@@ -94,21 +112,26 @@ const PointsBreakdown = ({ quizResults }: PointsBreakdownProps) => {
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-purple-600">
-              {pointsData.bookReviews * 15}
+              {pointsData.readingHistory}
             </div>
-            <p className="text-sm text-gray-600">Book Reviews</p>
-            <p className="text-xs text-gray-500">({pointsData.bookReviews} reviews × 15 pts)</p>
+            <p className="text-sm text-gray-600">Reading History</p>
+            <p className="text-xs text-gray-500">(Manual entries)</p>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-600">{pointsData.quizPoints}</div>
             <p className="text-sm text-gray-600">Quiz Points</p>
             <p className="text-xs text-gray-500">({quizResults.length} quizzes completed)</p>
           </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-red-600">{pointsData.challengePoints}</div>
+            <p className="text-sm text-gray-600">Achievements</p>
+            <p className="text-xs text-gray-500">(Challenge rewards)</p>
+          </div>
         </div>
         <div className="mt-6 pt-4 border-t">
           <div className="text-center">
             <div className="text-3xl font-bold text-blue-600">
-              {pointsData.booksCompleted * 25 + pointsData.timelyReturns * 10 + pointsData.bookReviews * 15 + pointsData.quizPoints}
+              {pointsData.booksCompleted * 25 + pointsData.timelyReturns * 10 + pointsData.readingHistory + pointsData.quizPoints + pointsData.challengePoints}
             </div>
             <p className="text-sm text-gray-600">Total Points Earned</p>
           </div>

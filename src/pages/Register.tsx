@@ -19,6 +19,7 @@ const Register = () => {
     role: "",
     studentClass: "",
     rollNumber: "",
+    admissionNumber: "",
   });
   
   const navigate = useNavigate();
@@ -152,31 +153,42 @@ const Register = () => {
             </div>
 
             {formData.role === "student" && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="studentClass">Class</Label>
-                  <Select value={formData.studentClass} onValueChange={(value) => handleInputChange("studentClass", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="6th">6th</SelectItem>
-                      <SelectItem value="7th">7th</SelectItem>
-                      <SelectItem value="8th">8th</SelectItem>
-                      <SelectItem value="9th">9th</SelectItem>
-                      <SelectItem value="10th">10th</SelectItem>
-                      <SelectItem value="11th">11th</SelectItem>
-                      <SelectItem value="12th">12th</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="studentClass">Class</Label>
+                    <Select value={formData.studentClass} onValueChange={(value) => handleInputChange("studentClass", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="6th">6th</SelectItem>
+                        <SelectItem value="7th">7th</SelectItem>
+                        <SelectItem value="8th">8th</SelectItem>
+                        <SelectItem value="9th">9th</SelectItem>
+                        <SelectItem value="10th">10th</SelectItem>
+                        <SelectItem value="11th">11th</SelectItem>
+                        <SelectItem value="12th">12th</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rollNumber">Roll Number</Label>
+                    <Input
+                      id="rollNumber"
+                      placeholder="001"
+                      value={formData.rollNumber}
+                      onChange={(e) => handleInputChange("rollNumber", e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="rollNumber">Roll Number</Label>
+                  <Label htmlFor="admissionNumber">Admission Number</Label>
                   <Input
-                    id="rollNumber"
-                    placeholder="001"
-                    value={formData.rollNumber}
-                    onChange={(e) => handleInputChange("rollNumber", e.target.value)}
+                    id="admissionNumber"
+                    placeholder="Enter admission number"
+                    value={formData.admissionNumber}
+                    onChange={(e) => handleInputChange("admissionNumber", e.target.value)}
                   />
                 </div>
               </div>

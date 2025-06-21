@@ -415,6 +415,20 @@ const StudentDashboard = () => {
     }
   };
 
+  // Calculate user level
+  const calculateUserLevel = (points: number) => {
+    // Level system: 100 points per level
+    const level = Math.floor(points / 100) + 1;
+    const pointsToNextLevel = ((level) * 100) - points;
+    const levelProgress = ((points % 100) / 100) * 100;
+    
+    return {
+      currentLevel: level,
+      pointsToNext: pointsToNextLevel,
+      progressPercent: levelProgress
+    };
+  };
+
   // Calculate user stats
   const userStats: UserStats = {
     totalPoints: profile?.points || 0,
@@ -440,6 +454,8 @@ const StudentDashboard = () => {
       </div>
     );
   }
+
+  const levelInfo = calculateUserLevel(userPoints);
 
   if (selectedQuiz) {
     return (
@@ -468,6 +484,7 @@ const StudentDashboard = () => {
           quizResultsCount={quizResults.length}
           classRank={classRank}
           userClass={profile.student_class || 'Unknown'}
+          levelInfo={levelInfo}
         />
 
         <Tabs defaultValue="overview" className="space-y-6">
@@ -482,10 +499,10 @@ const StudentDashboard = () => {
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <CurrentBooks books={currentBooks} />
+              <AvailableQuizzes quizzes={availableQuizzes.slice(0, 3)} onSelectQuiz={setSelectedQuiz} />
               <RealReadingHistory />
             </div>
-            <PointsBreakdown quizResults={quizResults} />
+            <PointsBreakdown quizResults={quizResults} challenges={challenges} />
           </TabsContent>
 
           <TabsContent value="quizzes" className="space-y-6">
