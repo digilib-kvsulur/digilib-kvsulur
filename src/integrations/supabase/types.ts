@@ -97,6 +97,7 @@ export type Database = {
           current_progress: number | null
           id: string
           is_completed: boolean | null
+          points_earned: number | null
           user_id: string
         }
         Insert: {
@@ -106,6 +107,7 @@ export type Database = {
           current_progress?: number | null
           id?: string
           is_completed?: boolean | null
+          points_earned?: number | null
           user_id: string
         }
         Update: {
@@ -115,6 +117,7 @@ export type Database = {
           current_progress?: number | null
           id?: string
           is_completed?: boolean | null
+          points_earned?: number | null
           user_id?: string
         }
         Relationships: [
@@ -297,6 +300,42 @@ export type Database = {
           subject?: string
           time_limit?: number
           title?: string
+        }
+        Relationships: []
+      }
+      reading_history: {
+        Row: {
+          book_author: string
+          book_title: string
+          completed_date: string
+          created_at: string
+          id: string
+          notes: string | null
+          points_earned: number
+          rating: number | null
+          user_id: string
+        }
+        Insert: {
+          book_author: string
+          book_title: string
+          completed_date: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          points_earned?: number
+          rating?: number | null
+          user_id: string
+        }
+        Update: {
+          book_author?: string
+          book_title?: string
+          completed_date?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          points_earned?: number
+          rating?: number | null
+          user_id?: string
         }
         Relationships: []
       }

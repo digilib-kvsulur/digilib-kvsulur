@@ -14,6 +14,8 @@ import ReadingHistory from "@/components/dashboard/ReadingHistory";
 import AvailableQuizzes from "@/components/dashboard/AvailableQuizzes";
 import QuizResults from "@/components/dashboard/QuizResults";
 import PointsBreakdown from "@/components/dashboard/PointsBreakdown";
+import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
+import StudentProfile from "@/components/dashboard/StudentProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -395,6 +397,24 @@ const StudentDashboard = () => {
     }
   };
 
+  const handlePointsUpdate = async () => {
+    // Reload user profile to get updated points
+    if (user) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (profileData) {
+        setProfile(profileData);
+      }
+      
+      // Reload challenges to show updated progress
+      await loadChallenges(user.id);
+    }
+  };
+
   // Mock data for features not yet connected to database
   const readingHistory = [
     { title: "To Kill a Mockingbird", completedDate: "2024-06-01", rating: 5, points: 25 },
@@ -413,38 +433,6 @@ const StudentDashboard = () => {
     achievements: [],
     currentChallenges: challenges
   };
-
-  // Mock achievements (these would be calculated based on user stats)
-  const achievements: Achievement[] = [
-    {
-      id: "1",
-      title: "Quiz Master",
-      description: "Complete 5 quizzes with 80% or higher score",
-      icon: "trophy",
-      points: 100,
-      condition: { type: 'quizzes_completed', value: 5, comparison: 'gte' },
-      isUnlocked: userStats.quizzesCompleted >= 5,
-      unlockedAt: userStats.quizzesCompleted >= 5 ? "2024-06-17" : undefined
-    },
-    {
-      id: "2",
-      title: "Bookworm",
-      description: "Read 10 books this semester",
-      icon: "book",
-      points: 150,
-      condition: { type: 'books_read', value: 10, comparison: 'gte' },
-      isUnlocked: userStats.booksRead >= 10,
-    },
-    {
-      id: "3",
-      title: "Point Collector",
-      description: "Earn 500 total points",
-      icon: "zap",
-      points: 200,
-      condition: { type: 'total_points', value: 500, comparison: 'gte' },
-      isUnlocked: userStats.totalPoints >= 500,
-    }
-  ];
 
   const userPoints = userStats.totalPoints;
   const nextLevelPoints = 200;
@@ -495,8 +483,8 @@ const StudentDashboard = () => {
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
             <TabsTrigger value="achievements">Achievements</TabsTrigger>
             <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-            <TabsTrigger value="challenges">Challenges</TabsTrigger>
-            <TabsTrigger value="progress">Progress</TabsTrigger>
+            <TabsTrigger value="reading">Reading</TabsTrigger>
+            <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -511,25 +499,26 @@ const StudentDashboard = () => {
               <AvailableQuizzes quizzes={availableQuizzes} onSelectQuiz={setSelectedQuiz} />
               <QuizResults results={quizResults} />
             </div>
+            <PointsBreakdown quizResults={quizResults} />
           </TabsContent>
 
           <TabsContent value="achievements">
-            <Achievements achievements={achievements} userStats={userStats} />
-          </TabsContent>
-
-          <TabsContent value="leaderboard">
-            <Leaderboard entries={leaderboardEntries} currentUserId={user?.id} />
-          </TabsContent>
-
-          <TabsContent value="challenges">
             <ReadingChallenges 
               challenges={challenges}
               onJoinChallenge={(challengeId) => console.log('Joining challenge:', challengeId)}
             />
           </TabsContent>
 
-          <TabsContent value="progress" className="space-y-6">
-            <PointsBreakdown quizResults={quizResults} />
+          <TabsContent value="leaderboard">
+            <Leaderboard entries={leaderboardEntries} currentUserId={user?.id} />
+          </TabsContent>
+
+          <TabsContent value="reading">
+            <ReadingHistoryManager onPointsUpdate={handlePointsUpdate} />
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <StudentProfile user={profile} onProfileUpdate={checkAuth} />
           </TabsContent>
         </Tabs>
       </main>
