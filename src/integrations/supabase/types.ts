@@ -171,6 +171,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          admission_number: string | null
           approved_at: string | null
           approved_by: string | null
           created_at: string | null
@@ -188,6 +189,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          admission_number?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string | null
@@ -205,6 +207,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          admission_number?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string | null

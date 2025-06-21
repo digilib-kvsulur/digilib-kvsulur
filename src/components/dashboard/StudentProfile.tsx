@@ -23,6 +23,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
     phone: user?.phone || '',
     student_class: user?.student_class || '',
     roll_number: user?.roll_number || '',
+    admission_number: user?.admission_number || '',
     username: user?.username || ''
   });
   const { toast } = useToast();
@@ -36,6 +37,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
         phone: user.phone || '',
         student_class: user.student_class || '',
         roll_number: user.roll_number || '',
+        admission_number: user.admission_number || '',
         username: user.username || ''
       });
     }
@@ -53,6 +55,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
           phone: formData.phone,
           student_class: formData.student_class,
           roll_number: formData.roll_number,
+          admission_number: formData.admission_number,
           username: formData.username,
           updated_at: new Date().toISOString()
         })
@@ -87,6 +90,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       phone: user?.phone || '',
       student_class: user?.student_class || '',
       roll_number: user?.roll_number || '',
+      admission_number: user?.admission_number || '',
       username: user?.username || ''
     });
     setIsEditing(false);
@@ -167,7 +171,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
           <p className="text-xs text-gray-500 mt-1">You can use username or email to login</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="student_class">Class</Label>
             <Input
@@ -184,6 +188,16 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
               value={formData.roll_number}
               onChange={(e) => setFormData(prev => ({ ...prev, roll_number: e.target.value }))}
               disabled={!isEditing}
+            />
+          </div>
+          <div>
+            <Label htmlFor="admission_number">Admission Number</Label>
+            <Input
+              id="admission_number"
+              value={formData.admission_number}
+              onChange={(e) => setFormData(prev => ({ ...prev, admission_number: e.target.value }))}
+              disabled={!isEditing}
+              placeholder="Enter admission number"
             />
           </div>
         </div>

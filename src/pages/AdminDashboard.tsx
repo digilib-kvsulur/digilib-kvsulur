@@ -59,10 +59,10 @@ const AdminDashboard = () => {
       setUser(user);
       console.log('Authenticated user:', user.id);
       
-      // Get user profile
+      // Get user profile with admission_number
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, role, is_approved, username')
+        .select('id, first_name, last_name, email, role, is_approved, username, admission_number')
         .eq('id', user.id)
         .maybeSingle();
 
