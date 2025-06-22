@@ -38,8 +38,9 @@ const BookIssueRequests = () => {
 
   const loadRequests = async () => {
     try {
+      // Query the book_requests table with joins to books and profiles
       const { data, error } = await supabase
-        .from('book_requests')
+        .from('book_requests' as any)
         .select(`
           *,
           books:book_id (title, author, available_copies),
@@ -48,7 +49,15 @@ const BookIssueRequests = () => {
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
-      setRequests(data || []);
+      
+      // Transform the data to match our interface
+      const transformedData = data?.map((item: any) => ({
+        ...item,
+        book: Array.isArray(item.books) ? item.books[0] : item.books,
+        user: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
+      })) || [];
+
+      setRequests(transformedData);
     } catch (error) {
       console.error('Error loading requests:', error);
       toast({
@@ -106,7 +115,7 @@ const BookIssueRequests = () => {
 
       // Update request status
       const { error: updateRequestError } = await supabase
-        .from('book_requests')
+        .from('book_requests' as any)
         .update({ 
           status: 'approved',
           admin_notes: 'Request approved and book issued'
@@ -134,7 +143,7 @@ const BookIssueRequests = () => {
   const handleRejectRequest = async (requestId: string, reason?: string) => {
     try {
       const { error } = await supabase
-        .from('book_requests')
+        .from('book_requests' as any)
         .update({ 
           status: 'rejected',
           admin_notes: reason || 'Request rejected by admin'
@@ -212,9 +221,9 @@ const BookIssueRequests = () => {
                   <TableCell>{new Date(request.requested_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge 
-                      variant={request.book?.available_copies > 0 ? 'default' : 'destructive'}
+                      variant={request.book?.available_copies && request.book.available_copies > 0 ? 'default' : 'destructive'}
                     >
-                      {request.book?.available_copies} available
+                      {request.book?.available_copies || 0} available
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -222,7 +231,7 @@ const BookIssueRequests = () => {
                       <Button
                         size="sm"
                         onClick={() => handleApproveRequest(request.id, request.book_id, request.user_id)}
-                        disabled={request.book?.available_copies <= 0}
+                        disabled={!request.book?.available_copies || request.book.available_copies <= 0}
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Approve
