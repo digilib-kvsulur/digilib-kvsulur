@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Users, BarChart3, Settings, Trophy, UserCheck, Target, User } from "lucide-react";
+import { BookOpen, Users, BarChart3, Settings, Trophy, UserCheck, Target, User, FileText, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import QuizManager from "@/components/quiz/QuizManager";
 import UserApproval from "@/components/admin/UserApproval";
@@ -10,6 +11,10 @@ import ChallengeManager from "@/components/admin/ChallengeManager";
 import AdminProfile from "@/components/admin/AdminProfile";
 import ClassAnalytics from "@/components/admin/ClassAnalytics";
 import FunctionalSettings from "@/components/admin/FunctionalSettings";
+import BookIssueRegister from "@/components/admin/BookIssueRegister";
+import BookIssueRequests from "@/components/admin/BookIssueRequests";
+import QuizParticipants from "@/components/admin/QuizParticipants";
+import ChallengeParticipants from "@/components/admin/ChallengeParticipants";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -258,16 +263,22 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">User Approval</TabsTrigger>
-            <TabsTrigger value="books">Books</TabsTrigger>
-            <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
-            <TabsTrigger value="challenges">Challenges</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-max min-w-full">
+              <TabsTrigger value="overview" className="whitespace-nowrap">Overview</TabsTrigger>
+              <TabsTrigger value="users" className="whitespace-nowrap">User Approval</TabsTrigger>
+              <TabsTrigger value="books" className="whitespace-nowrap">Books</TabsTrigger>
+              <TabsTrigger value="book-issues" className="whitespace-nowrap">Book Issues</TabsTrigger>
+              <TabsTrigger value="book-requests" className="whitespace-nowrap">Issue Requests</TabsTrigger>
+              <TabsTrigger value="quizzes" className="whitespace-nowrap">Quizzes</TabsTrigger>
+              <TabsTrigger value="quiz-participants" className="whitespace-nowrap">Quiz Participants</TabsTrigger>
+              <TabsTrigger value="challenges" className="whitespace-nowrap">Challenges</TabsTrigger>
+              <TabsTrigger value="challenge-participants" className="whitespace-nowrap">Challenge Participants</TabsTrigger>
+              <TabsTrigger value="analytics" className="whitespace-nowrap">Analytics</TabsTrigger>
+              <TabsTrigger value="profile" className="whitespace-nowrap">Profile</TabsTrigger>
+              <TabsTrigger value="settings" className="whitespace-nowrap">Settings</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -362,12 +373,28 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="book-issues" className="space-y-6">
+            <BookIssueRegister />
+          </TabsContent>
+
+          <TabsContent value="book-requests" className="space-y-6">
+            <BookIssueRequests />
+          </TabsContent>
+
           <TabsContent value="quizzes" className="space-y-6">
             <QuizManager />
           </TabsContent>
 
+          <TabsContent value="quiz-participants" className="space-y-6">
+            <QuizParticipants />
+          </TabsContent>
+
           <TabsContent value="challenges" className="space-y-6">
             <ChallengeManager />
+          </TabsContent>
+
+          <TabsContent value="challenge-participants" className="space-y-6">
+            <ChallengeParticipants />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
