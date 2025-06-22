@@ -1,101 +1,148 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, BookOpen, User } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Search, BookOpen, User, Plus, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import BookRequestForm from "@/components/BookRequestForm";
 
-// Mock book data
-const mockBooks = [
-  {
-    id: 1,
-    title: "The Alchemist",
-    author: "Paulo Coelho",
-    genre: "Fiction",
-    isbn: "978-0061122415",
-    available: true,
-    description: "A mystical story about a young shepherd's journey to find treasure.",
-    coverUrl: "/placeholder.svg"
-  },
-  {
-    id: 2,
-    title: "To Kill a Mockingbird",
-    author: "Harper Lee",
-    genre: "Classic Literature",
-    isbn: "978-0446310789",
-    available: true,
-    description: "A gripping tale of racial injustice and childhood innocence.",
-    coverUrl: "/placeholder.svg"
-  },
-  {
-    id: 3,
-    title: "The Science of Everything",
-    author: "Dr. Sarah Johnson",
-    genre: "Science",
-    isbn: "978-1234567890",
-    available: false,
-    description: "An comprehensive guide to understanding the natural world.",
-    coverUrl: "/placeholder.svg"
-  },
-  {
-    id: 4,
-    title: "Mathematics for Class X",
-    author: "R.D. Sharma",
-    genre: "Academic",
-    isbn: "978-9876543210",
-    available: true,
-    description: "Complete mathematics textbook for class 10 students.",
-    coverUrl: "/placeholder.svg"
-  },
-  {
-    id: 5,
-    title: "Harry Potter and the Philosopher's Stone",
-    author: "J.K. Rowling",
-    genre: "Fantasy",
-    isbn: "978-0747532699",
-    available: true,
-    description: "The magical story of a young wizard's adventures.",
-    coverUrl: "/placeholder.svg"
-  },
-  {
-    id: 6,
-    title: "A Brief History of Time",
-    author: "Stephen Hawking",
-    genre: "Science",
-    isbn: "978-0553380163",
-    available: true,
-    description: "Exploring the mysteries of the universe in simple terms.",
-    coverUrl: "/placeholder.svg"
-  }
-];
+interface Book {
+  id: string;
+  title: string;
+  author: string;
+  category: string;
+  isbn: string;
+  available_copies: number;
+  total_copies: number;
+  description: string;
+}
 
 const Catalog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const genres = ["all", ...Array.from(new Set(mockBooks.map(book => book.genre)))];
+  useEffect(() => {
+    checkAuth();
+    loadBooks();
+  }, []);
 
-  const filteredBooks = mockBooks.filter(book => {
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+  };
+
+  const loadBooks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('books')
+        .select('*')
+        .gt('total_copies', 0) // Only show books that are actually in the library
+        .order('title');
+
+      if (error) throw error;
+      setBooks(data || []);
+    } catch (error) {
+      console.error('Error loading books:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load books catalog",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const genres = ["all", ...Array.from(new Set(books.map(book => book.category).filter(Boolean)))];
+
+  const filteredBooks = books.filter(book => {
     const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.isbn.includes(searchTerm);
-    const matchesGenre = selectedGenre === "all" || book.genre === selectedGenre;
-    const matchesAvailability = !showAvailableOnly || book.available;
+                         (book.isbn && book.isbn.includes(searchTerm));
+    const matchesGenre = selectedGenre === "all" || book.category === selectedGenre;
+    const matchesAvailability = !showAvailableOnly || book.available_copies > 0;
     
     return matchesSearch && matchesGenre && matchesAvailability;
   });
 
-  const handleBookRequest = (bookId: number) => {
-    // Mock book request - in real app, this would connect to Firebase
-    console.log("Requesting book:", bookId);
-    // For now, just navigate to login if not authenticated
-    navigate("/login");
+  const handleBookRequest = async (bookId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to request books.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    try {
+      // Check if user already has a pending request for this book
+      const { data: existingRequest } = await supabase
+        .from('book_requests')
+        .select('id')
+        .eq('book_id', bookId)
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (existingRequest) {
+        toast({
+          title: "Request Already Exists",
+          description: "You already have a pending request for this book.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create new book request
+      const { error } = await supabase
+        .from('book_requests')
+        .insert({
+          book_id: bookId,
+          user_id: user.id
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Request Submitted",
+        description: "Your book request has been submitted successfully.",
+      });
+
+    } catch (error) {
+      console.error('Error requesting book:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit book request. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading catalog...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -112,9 +159,29 @@ const Catalog = () => {
                 <p className="text-sm text-gray-600">Book Catalog</p>
               </div>
             </div>
-            <Button onClick={() => navigate('/')} variant="outline">
-              Home
-            </Button>
+            <div className="flex items-center gap-3">
+              <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Request New Book
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Request a New Book</DialogTitle>
+                  </DialogHeader>
+                  <BookRequestForm 
+                    onClose={() => setShowRequestDialog(false)}
+                    onSuccess={() => setShowRequestDialog(false)}
+                  />
+                </DialogContent>
+              </Dialog>
+              
+              <Button onClick={() => navigate('/')} variant="outline">
+                Home
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -178,33 +245,37 @@ const Catalog = () => {
                       by {book.author}
                     </CardDescription>
                   </div>
-                  <Badge variant={book.available ? "default" : "secondary"}>
-                    {book.available ? "Available" : "Issued"}
+                  <Badge variant={book.available_copies > 0 ? "default" : "secondary"}>
+                    {book.available_copies > 0 ? `${book.available_copies} Available` : "Not Available"}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Genre:</span>
-                    <Badge variant="outline">{book.genre}</Badge>
+                    <span className="text-gray-600">Category:</span>
+                    <Badge variant="outline">{book.category || 'Uncategorized'}</Badge>
                   </div>
                   
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">ISBN:</span>
-                    <span className="font-mono text-xs">{book.isbn}</span>
-                  </div>
+                  {book.isbn && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">ISBN:</span>
+                      <span className="font-mono text-xs">{book.isbn}</span>
+                    </div>
+                  )}
                   
-                  <p className="text-sm text-gray-600 line-clamp-2">
-                    {book.description}
-                  </p>
+                  {book.description && (
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {book.description}
+                    </p>
+                  )}
                   
                   <Button 
                     className="w-full" 
-                    disabled={!book.available}
+                    disabled={book.available_copies <= 0}
                     onClick={() => handleBookRequest(book.id)}
                   >
-                    {book.available ? "Request Book" : "Currently Issued"}
+                    {book.available_copies > 0 ? "Request Book" : "Currently Not Available"}
                   </Button>
                 </div>
               </CardContent>
@@ -216,7 +287,24 @@ const Catalog = () => {
           <div className="text-center py-12">
             <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No books found</h3>
-            <p className="text-gray-600">Try adjusting your search terms or filters.</p>
+            <p className="text-gray-600 mb-4">Try adjusting your search terms or filters.</p>
+            <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Request a New Book
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Request a New Book</DialogTitle>
+                </DialogHeader>
+                <BookRequestForm 
+                  onClose={() => setShowRequestDialog(false)}
+                  onSuccess={() => setShowRequestDialog(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </main>

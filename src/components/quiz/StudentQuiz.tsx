@@ -4,8 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Clock, Award, BookOpen, CheckCircle } from "lucide-react";
+import { Clock, Award, BookOpen, CheckCircle, AlertCircle } from "lucide-react";
 import { Quiz, Question, QuizAttempt, QuizResult } from "@/types/quiz";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface StudentQuizProps {
   quiz: Quiz;
@@ -19,23 +21,65 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
   const [timeRemaining, setTimeRemaining] = useState(quiz.timeLimit * 60); // Convert minutes to seconds
   const [isCompleted, setIsCompleted] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [alreadyTaken, setAlreadyTaken] = useState(false);
+  const [checkingAttempt, setCheckingAttempt] = useState(true);
+  const { toast } = useToast();
+
+  // Check if user has already taken this quiz
+  useEffect(() => {
+    checkPreviousAttempt();
+  }, [quiz.id]);
+
+  const checkPreviousAttempt = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: existingResult, error } = await supabase
+        .from('quiz_results')
+        .select('id')
+        .eq('quiz_id', quiz.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking previous attempt:', error);
+        return;
+      }
+
+      if (existingResult) {
+        setAlreadyTaken(true);
+        toast({
+          title: "Quiz Already Taken",
+          description: "You have already completed this quiz. Each quiz can only be taken once.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error checking quiz attempt:', error);
+    } finally {
+      setCheckingAttempt(false);
+    }
+  };
 
   // Timer effect
   useEffect(() => {
-    if (timeRemaining > 0 && !isCompleted) {
+    if (timeRemaining > 0 && !isCompleted && !alreadyTaken) {
       const timer = setTimeout(() => {
         setTimeRemaining(prev => prev - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (timeRemaining === 0 && !isCompleted) {
+    } else if (timeRemaining === 0 && !isCompleted && !alreadyTaken) {
       handleSubmitQuiz();
     }
-  }, [timeRemaining, isCompleted]);
+  }, [timeRemaining, isCompleted, alreadyTaken]);
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
 
   const handleAnswerSelect = (optionIndex: number) => {
+    if (alreadyTaken) return;
+    
     const newAnswers = [...answers];
     newAnswers[currentQuestionIndex] = optionIndex;
     setAnswers(newAnswers);
@@ -76,22 +120,68 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
       pointsEarned,
       completedAt: new Date().toISOString(),
       timeSpent,
-      answers: [...answers] // Add the missing answers property
+      answers: [...answers]
     };
   };
 
-  const handleSubmitQuiz = () => {
+  const handleSubmitQuiz = async () => {
+    if (alreadyTaken) return;
+
     setIsCompleted(true);
     const result = calculateResult();
-    setShowResult(true);
     
-    // Save to localStorage (in real app, this would be saved to database)
-    const existingResults = JSON.parse(localStorage.getItem('quizResults') || '[]');
-    localStorage.setItem('quizResults', JSON.stringify([...existingResults, result]));
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Save quiz result to database
+      const { error: insertError } = await supabase
+        .from('quiz_results')
+        .insert({
+          quiz_id: quiz.id,
+          user_id: user.id,
+          score: result.score,
+          points_earned: result.pointsEarned,
+          answers: answers
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      // Update user points
+      const { error: pointsError } = await supabase
+        .from('profiles')
+        .update({
+          points: supabase.raw(`COALESCE(points, 0) + ${result.pointsEarned}`)
+        })
+        .eq('id', user.id);
+
+      if (pointsError) {
+        console.error('Error updating user points:', pointsError);
+      }
+
+      toast({
+        title: "Quiz Completed!",
+        description: `You scored ${result.score}% and earned ${result.pointsEarned} points!`,
+      });
+
+    } catch (error) {
+      console.error('Error saving quiz result:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save quiz result. Please try again.",
+        variant: "destructive",
+      });
+    }
+
+    setShowResult(true);
     
     setTimeout(() => {
       onComplete(result);
-    }, 3000); // Show result for 3 seconds
+    }, 3000);
   };
 
   const formatTime = (seconds: number) => {
@@ -99,6 +189,45 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
+
+  if (checkingAttempt) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Checking quiz availability...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (alreadyTaken) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-10 w-10 text-orange-600" />
+            </div>
+            <CardTitle className="text-2xl">Quiz Already Completed</CardTitle>
+            <CardDescription>You have already taken this quiz and cannot retake it</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-gray-600 mb-6">
+              Each quiz can only be attempted once. You have already completed "{quiz.title}".
+            </p>
+            <Button onClick={onBack}>
+              Back to Quizzes
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (showResult) {
     const result = calculateResult();

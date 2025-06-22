@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Users, BarChart3, Settings, Trophy, UserCheck, Target, User, FileText, Calendar } from "lucide-react";
+import { BookOpen, Users, BarChart3, Settings, Trophy, UserCheck, Target, User, FileText, Calendar, Clock, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import QuizManager from "@/components/quiz/QuizManager";
 import UserApproval from "@/components/admin/UserApproval";
@@ -25,10 +25,19 @@ interface Statistics {
   activeQuizzes: number;
 }
 
+interface RecentActivity {
+  id: string;
+  type: 'book_request' | 'quiz_completion' | 'book_issue' | 'user_signup';
+  message: string;
+  timestamp: string;
+  user?: string;
+}
+
 const AdminDashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [statistics, setStatistics] = useState<Statistics>({
     totalBooks: 0,
     activeUsers: 0,
@@ -123,8 +132,8 @@ const AdminDashboard = () => {
       console.log('User approved and is admin, setting profile:', profileData);
       setProfile(profileData);
       
-      // Load statistics
-      await loadStatistics();
+      // Load statistics and activities
+      await Promise.all([loadStatistics(), loadRecentActivities()]);
       
       setLoading(false);
     } catch (error) {
@@ -171,9 +180,111 @@ const AdminDashboard = () => {
     }
   };
 
+  const loadRecentActivities = async () => {
+    try {
+      const activities: RecentActivity[] = [];
+
+      // Get recent book requests
+      const { data: bookRequests } = await supabase
+        .from('book_requests')
+        .select(`
+          id,
+          requested_at,
+          status,
+          books:book_id (title),
+          profiles:user_id (first_name, last_name)
+        `)
+        .order('requested_at', { ascending: false })
+        .limit(3);
+
+      bookRequests?.forEach(request => {
+        activities.push({
+          id: `book_request_${request.id}`,
+          type: 'book_request',
+          message: `${request.profiles?.first_name} ${request.profiles?.last_name} requested "${request.books?.title}"`,
+          timestamp: request.requested_at,
+          user: `${request.profiles?.first_name} ${request.profiles?.last_name}`
+        });
+      });
+
+      // Get recent quiz completions
+      const { data: quizResults } = await supabase
+        .from('quiz_results')
+        .select(`
+          id,
+          completed_at,
+          score,
+          quizzes:quiz_id (title),
+          profiles:user_id (first_name, last_name)
+        `)
+        .order('completed_at', { ascending: false })
+        .limit(3);
+
+      quizResults?.forEach(result => {
+        activities.push({
+          id: `quiz_${result.id}`,
+          type: 'quiz_completion',
+          message: `${result.profiles?.first_name} ${result.profiles?.last_name} completed "${result.quizzes?.title}" with ${result.score}% score`,
+          timestamp: result.completed_at,
+          user: `${result.profiles?.first_name} ${result.profiles?.last_name}`
+        });
+      });
+
+      // Get recent user signups
+      const { data: newUsers } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, created_at, is_approved')
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      newUsers?.forEach(user => {
+        activities.push({
+          id: `user_${user.id}`,
+          type: 'user_signup',
+          message: `${user.first_name} ${user.last_name} ${user.is_approved ? 'joined' : 'signed up (pending approval)'}`,
+          timestamp: user.created_at,
+          user: `${user.first_name} ${user.last_name}`
+        });
+      });
+
+      // Sort all activities by timestamp and take the most recent 5
+      activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setRecentActivities(activities.slice(0, 5));
+
+    } catch (error) {
+      console.error('Error loading recent activities:', error);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
+  };
+
+  const getActivityIcon = (type: RecentActivity['type']) => {
+    switch (type) {
+      case 'book_request':
+        return <BookOpen className="h-4 w-4 text-blue-500" />;
+      case 'quiz_completion':
+        return <Trophy className="h-4 w-4 text-yellow-500" />;
+      case 'book_issue':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'user_signup':
+        return <User className="h-4 w-4 text-purple-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffInMinutes = Math.floor((now.getTime() - past.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
   if (loading || !user || !profile) {
@@ -267,13 +378,9 @@ const AdminDashboard = () => {
             <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-max min-w-full">
               <TabsTrigger value="overview" className="whitespace-nowrap">Overview</TabsTrigger>
               <TabsTrigger value="users" className="whitespace-nowrap">User Approval</TabsTrigger>
-              <TabsTrigger value="books" className="whitespace-nowrap">Books</TabsTrigger>
-              <TabsTrigger value="book-issues" className="whitespace-nowrap">Book Issues</TabsTrigger>
-              <TabsTrigger value="book-requests" className="whitespace-nowrap">Issue Requests</TabsTrigger>
-              <TabsTrigger value="quizzes" className="whitespace-nowrap">Quizzes</TabsTrigger>
-              <TabsTrigger value="quiz-participants" className="whitespace-nowrap">Quiz Participants</TabsTrigger>
-              <TabsTrigger value="challenges" className="whitespace-nowrap">Challenges</TabsTrigger>
-              <TabsTrigger value="challenge-participants" className="whitespace-nowrap">Challenge Participants</TabsTrigger>
+              <TabsTrigger value="books" className="whitespace-nowrap">Books & Issues</TabsTrigger>
+              <TabsTrigger value="quizzes" className="whitespace-nowrap">Quizzes & Results</TabsTrigger>
+              <TabsTrigger value="challenges" className="whitespace-nowrap">Challenges & Progress</TabsTrigger>
               <TabsTrigger value="analytics" className="whitespace-nowrap">Analytics</TabsTrigger>
               <TabsTrigger value="profile" className="whitespace-nowrap">Profile</TabsTrigger>
               <TabsTrigger value="settings" className="whitespace-nowrap">Settings</TabsTrigger>
@@ -289,27 +396,21 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Database structure updated</p>
-                        <p className="text-xs text-gray-500">Challenges and RLS policies implemented</p>
+                    {recentActivities.length > 0 ? (
+                      recentActivities.map((activity) => (
+                        <div key={activity.id} className="flex items-center gap-3">
+                          {getActivityIcon(activity.type)}
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{activity.message}</p>
+                            <p className="text-xs text-gray-500">{formatTimeAgo(activity.timestamp)}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-gray-500 text-sm">No recent activities</p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Statistics system activated</p>
-                        <p className="text-xs text-gray-500">Real-time data from database</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Challenge system ready</p>
-                        <p className="text-xs text-gray-500">Students can now participate in challenges</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -343,12 +444,12 @@ const AdminDashboard = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium">Challenge System</p>
-                        <p className="text-sm text-gray-600">Ready for student engagement</p>
+                        <p className="font-medium">Library System</p>
+                        <p className="text-sm text-gray-600">{statistics.totalBooks} books, {statistics.booksIssued} issued</p>
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-green-600">✓ Ready</p>
-                        <p className="text-xs text-gray-500">Automated tracking</p>
+                        <p className="text-xs text-gray-500">Fully operational</p>
                       </div>
                     </div>
                   </div>
@@ -362,39 +463,67 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="books" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Book Management</CardTitle>
-                <CardDescription>Manage your library collection</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">Book management features will be implemented in the next phase.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="book-issues" className="space-y-6">
-            <BookIssueRegister />
-          </TabsContent>
-
-          <TabsContent value="book-requests" className="space-y-6">
-            <BookIssueRequests />
+            <Tabs defaultValue="manage" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="manage">Manage Books</TabsTrigger>
+                <TabsTrigger value="issues">Book Issues</TabsTrigger>
+                <TabsTrigger value="requests">Issue Requests</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="manage">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Book Management</CardTitle>
+                    <CardDescription>Manage your library collection</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600">Book management features will be implemented in the next phase.</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="issues">
+                <BookIssueRegister />
+              </TabsContent>
+              
+              <TabsContent value="requests">
+                <BookIssueRequests />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="quizzes" className="space-y-6">
-            <QuizManager />
-          </TabsContent>
-
-          <TabsContent value="quiz-participants" className="space-y-6">
-            <QuizParticipants />
+            <Tabs defaultValue="manage" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="manage">Manage Quizzes</TabsTrigger>
+                <TabsTrigger value="participants">Quiz Results</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="manage">
+                <QuizManager />
+              </TabsContent>
+              
+              <TabsContent value="participants">
+                <QuizParticipants />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="challenges" className="space-y-6">
-            <ChallengeManager />
-          </TabsContent>
-
-          <TabsContent value="challenge-participants" className="space-y-6">
-            <ChallengeParticipants />
+            <Tabs defaultValue="manage" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="manage">Manage Challenges</TabsTrigger>
+                <TabsTrigger value="participants">Challenge Progress</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="manage">
+                <ChallengeManager />
+              </TabsContent>
+              
+              <TabsContent value="participants">
+                <ChallengeParticipants />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
