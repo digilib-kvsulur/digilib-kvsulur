@@ -151,16 +151,25 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
         throw insertError;
       }
 
-      // Update user points
-      const { error: pointsError } = await supabase
+      // Update user points using proper SQL syntax
+      const { data: currentUser, error: fetchError } = await supabase
         .from('profiles')
-        .update({
-          points: supabase.raw(`COALESCE(points, 0) + ${result.pointsEarned}`)
-        })
-        .eq('id', user.id);
+        .select('points')
+        .eq('id', user.id)
+        .single();
 
-      if (pointsError) {
-        console.error('Error updating user points:', pointsError);
+      if (fetchError) {
+        console.error('Error fetching current points:', fetchError);
+      } else {
+        const newPoints = (currentUser.points || 0) + result.pointsEarned;
+        const { error: pointsError } = await supabase
+          .from('profiles')
+          .update({ points: newPoints })
+          .eq('id', user.id);
+
+        if (pointsError) {
+          console.error('Error updating user points:', pointsError);
+        }
       }
 
       toast({
