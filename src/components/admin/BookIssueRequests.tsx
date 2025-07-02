@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ const BookIssueRequests = () => {
 
   const loadRequests = async () => {
     try {
-      // Updated query to properly join with profiles table using user_id
       const { data, error } = await supabase
         .from('book_requests')
         .select(`
@@ -76,7 +74,11 @@ const BookIssueRequests = () => {
 
             return {
               ...request,
-              profiles: profileData || undefined
+              profiles: profileData ? {
+                first_name: profileData.first_name || '',
+                last_name: profileData.last_name || '',
+                admission_number: profileData.admission_number || ''
+              } : undefined
             };
           })
         );
@@ -241,9 +243,9 @@ const BookIssueRequests = () => {
                   <TableCell>
                     <div>
                       <p className="font-medium">
-                        {request.profiles?.first_name} {request.profiles?.last_name}
+                        {request.profiles?.first_name || 'Unknown'} {request.profiles?.last_name || 'User'}
                       </p>
-                      <p className="text-sm text-gray-600">{request.profiles?.admission_number}</p>
+                      <p className="text-sm text-gray-600">{request.profiles?.admission_number || 'N/A'}</p>
                     </div>
                   </TableCell>
                   <TableCell>{new Date(request.requested_at).toLocaleDateString()}</TableCell>
@@ -320,9 +322,9 @@ const BookIssueRequests = () => {
                   <TableCell>
                     <div>
                       <p className="font-medium">
-                        {request.profiles?.first_name} {request.profiles?.last_name}
+                        {request.profiles?.first_name || 'Unknown'} {request.profiles?.last_name || 'User'}
                       </p>
-                      <p className="text-sm text-gray-600">{request.profiles?.admission_number}</p>
+                      <p className="text-sm text-gray-600">{request.profiles?.admission_number || 'N/A'}</p>
                     </div>
                   </TableCell>
                   <TableCell>{new Date(request.requested_at).toLocaleDateString()}</TableCell>

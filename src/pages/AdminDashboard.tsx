@@ -10,15 +10,12 @@ import {
   Users, 
   Trophy, 
   BarChart3, 
-  Settings, 
   LogOut,
   Clock,
-  CheckCircle,
-  XCircle,
   FileText,
   UserCheck,
   Target,
-  TrendingUp
+  User
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -26,12 +23,10 @@ import { useToast } from "@/hooks/use-toast";
 // Import admin components
 import BookIssueRequests from "@/components/admin/BookIssueRequests";
 import QuizManager from "@/components/quiz/QuizManager";
-import SettingsManager from "@/components/admin/SettingsManager";
 import UserApproval from "@/components/admin/UserApproval";
 import ChallengeManager from "@/components/admin/ChallengeManager";
 import ClassAnalytics from "@/components/admin/ClassAnalytics";
-import QuizParticipants from "@/components/admin/QuizParticipants";
-import ChallengeParticipants from "@/components/admin/ChallengeParticipants";
+import AdminProfile from "@/components/admin/AdminProfile";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -141,6 +136,11 @@ const AdminDashboard = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
+  };
+
+  const handleProfileUpdate = () => {
+    // Reload user data after profile update
+    checkAuth();
   };
 
   if (loading) {
@@ -312,9 +312,9 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Admin Tabs - Updated with new tabs */}
+        {/* Admin Tabs - Updated without Settings tab */}
         <Tabs defaultValue="requests" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Book Requests
@@ -323,17 +323,9 @@ const AdminDashboard = () => {
               <Trophy className="h-4 w-4" />
               Quiz Management
             </TabsTrigger>
-            <TabsTrigger value="quiz-participants" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Quiz Results
-            </TabsTrigger>
             <TabsTrigger value="challenges" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
               Challenges
-            </TabsTrigger>
-            <TabsTrigger value="challenge-participants" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Challenge Progress
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -343,9 +335,9 @@ const AdminDashboard = () => {
               <UserCheck className="h-4 w-4" />
               User Approval
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Settings
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Profile
             </TabsTrigger>
           </TabsList>
 
@@ -357,16 +349,8 @@ const AdminDashboard = () => {
             <QuizManager />
           </TabsContent>
 
-          <TabsContent value="quiz-participants">
-            <QuizParticipants />
-          </TabsContent>
-
           <TabsContent value="challenges">
             <ChallengeManager />
-          </TabsContent>
-
-          <TabsContent value="challenge-participants">
-            <ChallengeParticipants />
           </TabsContent>
 
           <TabsContent value="analytics">
@@ -377,8 +361,8 @@ const AdminDashboard = () => {
             <UserApproval />
           </TabsContent>
 
-          <TabsContent value="settings">
-            <SettingsManager />
+          <TabsContent value="profile">
+            <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />
           </TabsContent>
         </Tabs>
       </main>
