@@ -348,7 +348,7 @@ const BookIssueRequests = () => {
                     No processed requests
                   </TableCell>
                 </TableRow>
-                )}
+              )}
             </TableBody>
           </Table>
         </CardContent>
