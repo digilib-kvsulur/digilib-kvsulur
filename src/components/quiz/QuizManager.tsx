@@ -90,8 +90,7 @@ const QuizManager = () => {
         .from('quiz_results')
         .select(`
           *,
-          quizzes (title, subject),
-          profiles!quiz_results_user_id_fkey (first_name, last_name, admission_number, student_class)
+          quizzes (title, subject)
         `)
         .order('completed_at', { ascending: false });
 
@@ -105,7 +104,32 @@ const QuizManager = () => {
         return;
       }
 
-      setQuizResults(data || []);
+      // Manually fetch profile data for each result
+      const resultsWithProfiles = await Promise.all(
+        (data || []).map(async (result) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, admission_number, student_class')
+            .eq('id', result.user_id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+          }
+
+          return {
+            ...result,
+            profiles: profileData ? {
+              first_name: profileData.first_name || '',
+              last_name: profileData.last_name || '',
+              admission_number: profileData.admission_number || '',
+              student_class: profileData.student_class || ''
+            } : undefined
+          };
+        })
+      );
+
+      setQuizResults(resultsWithProfiles);
     } catch (error) {
       console.error('Error loading quiz results:', error);
     } finally {
@@ -388,15 +412,15 @@ const QuizManager = () => {
                         <TableCell>
                           <div>
                             <p className="font-medium">
-                              {result.profiles?.first_name} {result.profiles?.last_name}
+                              {result.profiles?.first_name || 'Unknown'} {result.profiles?.last_name || 'User'}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {result.profiles?.admission_number} - {result.profiles?.student_class}
+                              {result.profiles?.admission_number || 'N/A'} - {result.profiles?.student_class || 'N/A'}
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">{result.quizzes?.title}</TableCell>
-                        <TableCell>{result.quizzes?.subject}</TableCell>
+                        <TableCell className="font-medium">{result.quizzes?.title || 'Unknown Quiz'}</TableCell>
+                        <TableCell>{result.quizzes?.subject || 'Unknown Subject'}</TableCell>
                         <TableCell>
                           <Badge 
                             variant={result.score >= 80 ? 'default' : result.score >= 60 ? 'secondary' : 'destructive'}

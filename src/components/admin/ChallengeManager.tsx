@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,13 +96,38 @@ const ChallengeManager = () => {
         .from('challenge_progress')
         .select(`
           *,
-          challenges (title, target_value, reward_points),
-          profiles!challenge_progress_user_id_fkey (first_name, last_name, admission_number, student_class)
+          challenges (title, target_value, reward_points)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setChallengeProgress(data || []);
+
+      // Manually fetch profile data for each progress entry
+      const progressWithProfiles = await Promise.all(
+        (data || []).map(async (progress) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, admission_number, student_class')
+            .eq('id', progress.user_id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+          }
+
+          return {
+            ...progress,
+            profiles: profileData ? {
+              first_name: profileData.first_name || '',
+              last_name: profileData.last_name || '',
+              admission_number: profileData.admission_number || '',
+              student_class: profileData.student_class || ''
+            } : undefined
+          };
+        })
+      );
+
+      setChallengeProgress(progressWithProfiles);
     } catch (error) {
       console.error('Error loading challenge progress:', error);
       toast({
@@ -499,18 +523,18 @@ const ChallengeManager = () => {
                         <TableCell>
                           <div>
                             <p className="font-medium">
-                              {progress.profiles?.first_name} {progress.profiles?.last_name}
+                              {progress.profiles?.first_name || 'Unknown'} {progress.profiles?.last_name || 'User'}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {progress.profiles?.admission_number} - {progress.profiles?.student_class}
+                              {progress.profiles?.admission_number || 'N/A'} - {progress.profiles?.student_class || 'N/A'}
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">{progress.challenges?.title}</TableCell>
+                        <TableCell className="font-medium">{progress.challenges?.title || 'Unknown Challenge'}</TableCell>
                         <TableCell>
                           <div className="space-y-1">
                             <div className="flex justify-between text-sm">
-                              <span>{progress.current_progress} / {progress.challenges?.target_value}</span>
+                              <span>{progress.current_progress} / {progress.challenges?.target_value || 0}</span>
                               <span>{Math.round((progress.current_progress / (progress.challenges?.target_value || 1)) * 100)}%</span>
                             </div>
                             <Progress 

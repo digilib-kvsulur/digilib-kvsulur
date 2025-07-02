@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,53 +42,41 @@ const BookIssueRequests = () => {
         .from('book_requests')
         .select(`
           *,
-          books (title, author, available_copies),
-          profiles!book_requests_user_id_fkey (first_name, last_name, admission_number)
+          books (title, author, available_copies)
         `)
         .order('requested_at', { ascending: false });
 
       if (error) {
         console.error('Supabase error:', error);
-        // If the foreign key relationship fails, try a manual approach
-        const { data: requestsData, error: requestsError } = await supabase
-          .from('book_requests')
-          .select(`
-            *,
-            books (title, author, available_copies)
-          `)
-          .order('requested_at', { ascending: false });
-
-        if (requestsError) throw requestsError;
-
-        // Manually fetch profile data for each request
-        const requestsWithProfiles = await Promise.all(
-          (requestsData || []).map(async (request) => {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('first_name, last_name, admission_number')
-              .eq('id', request.user_id)
-              .maybeSingle();
-
-            if (profileError) {
-              console.error('Error fetching profile:', profileError);
-            }
-
-            return {
-              ...request,
-              profiles: profileData ? {
-                first_name: profileData.first_name || '',
-                last_name: profileData.last_name || '',
-                admission_number: profileData.admission_number || ''
-              } : undefined
-            };
-          })
-        );
-
-        setRequests(requestsWithProfiles);
-      } else {
-        console.log('Book requests loaded:', data);
-        setRequests(data || []);
+        throw error;
       }
+
+      // Manually fetch profile data for each request
+      const requestsWithProfiles = await Promise.all(
+        (data || []).map(async (request) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, admission_number')
+            .eq('id', request.user_id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+          }
+
+          return {
+            ...request,
+            profiles: profileData ? {
+              first_name: profileData.first_name || '',
+              last_name: profileData.last_name || '',
+              admission_number: profileData.admission_number || ''
+            } : undefined
+          };
+        })
+      );
+
+      console.log('Book requests loaded:', requestsWithProfiles);
+      setRequests(requestsWithProfiles);
     } catch (error) {
       console.error('Error loading requests:', error);
       toast({
