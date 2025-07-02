@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,7 @@ const BookIssueRequests = () => {
 
   const loadRequests = async () => {
     try {
-      // Fixed query - removed incorrect table casting
+      // Updated query to properly join with profiles table using user_id
       const { data, error } = await supabase
         .from('book_requests')
         .select(`
@@ -50,11 +49,38 @@ const BookIssueRequests = () => {
 
       if (error) {
         console.error('Supabase error:', error);
-        throw error;
+        // If the foreign key relationship fails, try a manual approach
+        const { data: requestsData, error: requestsError } = await supabase
+          .from('book_requests')
+          .select(`
+            *,
+            books (title, author, available_copies)
+          `)
+          .order('requested_at', { ascending: false });
+
+        if (requestsError) throw requestsError;
+
+        // Manually fetch profile data for each request
+        const requestsWithProfiles = await Promise.all(
+          (requestsData || []).map(async (request) => {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('first_name, last_name, admission_number')
+              .eq('id', request.user_id)
+              .single();
+
+            return {
+              ...request,
+              profiles: profileData
+            };
+          })
+        );
+
+        setRequests(requestsWithProfiles);
+      } else {
+        console.log('Book requests loaded:', data);
+        setRequests(data || []);
       }
-      
-      console.log('Book requests loaded:', data);
-      setRequests(data || []);
     } catch (error) {
       console.error('Error loading requests:', error);
       toast({
@@ -110,7 +136,7 @@ const BookIssueRequests = () => {
 
       if (updateBookError) throw updateBookError;
 
-      // Update request status - Fixed query
+      // Update request status
       const { error: updateRequestError } = await supabase
         .from('book_requests')
         .update({ 
@@ -139,7 +165,6 @@ const BookIssueRequests = () => {
 
   const handleRejectRequest = async (requestId: string, reason?: string) => {
     try {
-      // Fixed query - removed incorrect table casting
       const { error } = await supabase
         .from('book_requests')
         .update({ 
