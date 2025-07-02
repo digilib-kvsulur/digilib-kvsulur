@@ -16,7 +16,9 @@ import {
   CheckCircle,
   XCircle,
   FileText,
-  UserCheck
+  UserCheck,
+  Target,
+  TrendingUp
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +28,10 @@ import BookIssueRequests from "@/components/admin/BookIssueRequests";
 import QuizManager from "@/components/quiz/QuizManager";
 import SettingsManager from "@/components/admin/SettingsManager";
 import UserApproval from "@/components/admin/UserApproval";
+import ChallengeManager from "@/components/admin/ChallengeManager";
+import ClassAnalytics from "@/components/admin/ClassAnalytics";
+import QuizParticipants from "@/components/admin/QuizParticipants";
+import ChallengeParticipants from "@/components/admin/ChallengeParticipants";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -94,7 +100,7 @@ const AdminDashboard = () => {
         booksIssued: booksIssued || 0
       });
 
-      // Load recent book requests with proper joins
+      // Load recent book requests with proper joins - Fixed query
       const { data: requests } = await supabase
         .from('book_requests')
         .select(`
@@ -107,7 +113,7 @@ const AdminDashboard = () => {
 
       setRecentRequests(requests || []);
 
-      // Load recent quiz results with proper joins  
+      // Load recent quiz results with proper joins - Fixed query
       const { data: quizResults } = await supabase
         .from('quiz_results')
         .select(`
@@ -248,7 +254,7 @@ const AdminDashboard = () => {
                         by {request.profiles?.first_name} {request.profiles?.last_name}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {request.profiles?.first_name} {request.profiles?.last_name} - {request.profiles?.admission_number}
+                        {request.profiles?.admission_number}
                       </p>
                     </div>
                     <Badge 
@@ -289,7 +295,7 @@ const AdminDashboard = () => {
                         {result.profiles?.first_name} {result.profiles?.last_name}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {result.profiles?.first_name} {result.profiles?.last_name} - {result.profiles?.admission_number}
+                        {result.profiles?.admission_number}
                       </p>
                     </div>
                     <div className="text-right">
@@ -306,9 +312,9 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Admin Tabs */}
+        {/* Admin Tabs - Updated with new tabs */}
         <Tabs defaultValue="requests" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Book Requests
@@ -316,6 +322,22 @@ const AdminDashboard = () => {
             <TabsTrigger value="quizzes" className="flex items-center gap-2">
               <Trophy className="h-4 w-4" />
               Quiz Management
+            </TabsTrigger>
+            <TabsTrigger value="quiz-participants" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Quiz Results
+            </TabsTrigger>
+            <TabsTrigger value="challenges" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Challenges
+            </TabsTrigger>
+            <TabsTrigger value="challenge-participants" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Challenge Progress
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Class Analytics
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <UserCheck className="h-4 w-4" />
@@ -333,6 +355,22 @@ const AdminDashboard = () => {
 
           <TabsContent value="quizzes">
             <QuizManager />
+          </TabsContent>
+
+          <TabsContent value="quiz-participants">
+            <QuizParticipants />
+          </TabsContent>
+
+          <TabsContent value="challenges">
+            <ChallengeManager />
+          </TabsContent>
+
+          <TabsContent value="challenge-participants">
+            <ChallengeParticipants />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <ClassAnalytics />
           </TabsContent>
 
           <TabsContent value="users">

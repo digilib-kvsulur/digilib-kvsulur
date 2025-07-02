@@ -15,12 +15,12 @@ interface BookRequest {
   requested_at: string;
   status: string;
   admin_notes?: string;
-  book?: {
+  books?: {
     title: string;
     author: string;
     available_copies: number;
   };
-  user?: {
+  profiles?: {
     first_name: string;
     last_name: string;
     admission_number: string;
@@ -38,26 +38,23 @@ const BookIssueRequests = () => {
 
   const loadRequests = async () => {
     try {
-      // Query the book_requests table with joins to books and profiles
+      // Fixed query - removed incorrect table casting
       const { data, error } = await supabase
-        .from('book_requests' as any)
+        .from('book_requests')
         .select(`
           *,
-          books:book_id (title, author, available_copies),
-          profiles:user_id (first_name, last_name, admission_number)
+          books (title, author, available_copies),
+          profiles!book_requests_user_id_fkey (first_name, last_name, admission_number)
         `)
         .order('requested_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       
-      // Transform the data to match our interface
-      const transformedData = data?.map((item: any) => ({
-        ...item,
-        book: Array.isArray(item.books) ? item.books[0] : item.books,
-        user: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
-      })) || [];
-
-      setRequests(transformedData);
+      console.log('Book requests loaded:', data);
+      setRequests(data || []);
     } catch (error) {
       console.error('Error loading requests:', error);
       toast({
@@ -113,9 +110,9 @@ const BookIssueRequests = () => {
 
       if (updateBookError) throw updateBookError;
 
-      // Update request status
+      // Update request status - Fixed query
       const { error: updateRequestError } = await supabase
-        .from('book_requests' as any)
+        .from('book_requests')
         .update({ 
           status: 'approved',
           admin_notes: 'Request approved and book issued'
@@ -142,8 +139,9 @@ const BookIssueRequests = () => {
 
   const handleRejectRequest = async (requestId: string, reason?: string) => {
     try {
+      // Fixed query - removed incorrect table casting
       const { error } = await supabase
-        .from('book_requests' as any)
+        .from('book_requests')
         .update({ 
           status: 'rejected',
           admin_notes: reason || 'Request rejected by admin'
@@ -206,24 +204,24 @@ const BookIssueRequests = () => {
                 <TableRow key={request.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{request.book?.title}</p>
-                      <p className="text-sm text-gray-600">{request.book?.author}</p>
+                      <p className="font-medium">{request.books?.title || 'Unknown Book'}</p>
+                      <p className="text-sm text-gray-600">{request.books?.author || 'Unknown Author'}</p>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div>
                       <p className="font-medium">
-                        {request.user?.first_name} {request.user?.last_name}
+                        {request.profiles?.first_name} {request.profiles?.last_name}
                       </p>
-                      <p className="text-sm text-gray-600">{request.user?.admission_number}</p>
+                      <p className="text-sm text-gray-600">{request.profiles?.admission_number}</p>
                     </div>
                   </TableCell>
                   <TableCell>{new Date(request.requested_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge 
-                      variant={request.book?.available_copies && request.book.available_copies > 0 ? 'default' : 'destructive'}
+                      variant={request.books?.available_copies && request.books.available_copies > 0 ? 'default' : 'destructive'}
                     >
-                      {request.book?.available_copies || 0} available
+                      {request.books?.available_copies || 0} available
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -231,7 +229,7 @@ const BookIssueRequests = () => {
                       <Button
                         size="sm"
                         onClick={() => handleApproveRequest(request.id, request.book_id, request.user_id)}
-                        disabled={!request.book?.available_copies || request.book.available_copies <= 0}
+                        disabled={!request.books?.available_copies || request.books.available_copies <= 0}
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Approve
@@ -285,16 +283,16 @@ const BookIssueRequests = () => {
                 <TableRow key={request.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{request.book?.title}</p>
-                      <p className="text-sm text-gray-600">{request.book?.author}</p>
+                      <p className="font-medium">{request.books?.title || 'Unknown Book'}</p>
+                      <p className="text-sm text-gray-600">{request.books?.author || 'Unknown Author'}</p>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div>
                       <p className="font-medium">
-                        {request.user?.first_name} {request.user?.last_name}
+                        {request.profiles?.first_name} {request.profiles?.last_name}
                       </p>
-                      <p className="text-sm text-gray-600">{request.user?.admission_number}</p>
+                      <p className="text-sm text-gray-600">{request.profiles?.admission_number}</p>
                     </div>
                   </TableCell>
                   <TableCell>{new Date(request.requested_at).toLocaleDateString()}</TableCell>
