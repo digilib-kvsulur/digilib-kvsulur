@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +14,8 @@ import {
   FileText,
   UserCheck,
   Target,
-  User
+  User,
+  Database
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,8 @@ import UserApproval from "@/components/admin/UserApproval";
 import ChallengeManager from "@/components/admin/ChallengeManager";
 import ClassAnalytics from "@/components/admin/ClassAnalytics";
 import AdminProfile from "@/components/admin/AdminProfile";
+import BookManager from "@/components/admin/BookManager";
+import DataManagement from "@/components/admin/DataManagement";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -95,7 +97,7 @@ const AdminDashboard = () => {
         booksIssued: booksIssued || 0
       });
 
-      // Load recent book requests with proper joins - Fixed query
+      // Load recent book requests with proper joins - Updated to show quiz names even if inactive
       const { data: requests } = await supabase
         .from('book_requests')
         .select(`
@@ -108,12 +110,12 @@ const AdminDashboard = () => {
 
       setRecentRequests(requests || []);
 
-      // Load recent quiz results with proper joins - Fixed query
+      // Load recent quiz results with quiz names (active or inactive)
       const { data: quizResults } = await supabase
         .from('quiz_results')
         .select(`
           *,
-          quizzes (title),
+          quizzes (title, subject, is_active),
           profiles!quiz_results_user_id_fkey (first_name, last_name, admission_number)
         `)
         .order('completed_at', { ascending: false })
@@ -277,7 +279,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Recent Quiz Results */}
+          {/* Recent Quiz Results - Updated to show quiz names even if inactive */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -290,12 +292,19 @@ const AdminDashboard = () => {
                 {recentQuizResults.map((result) => (
                   <div key={result.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium">{result.quizzes?.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{result.quizzes?.title || 'Unknown Quiz'}</p>
+                        {!result.quizzes?.is_active && (
+                          <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                            Inactive
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600">
-                        {result.profiles?.first_name} {result.profiles?.last_name}
+                        {result.profiles?.first_name || 'Unknown'} {result.profiles?.last_name || 'User'}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {result.profiles?.admission_number}
+                        {result.profiles?.admission_number || 'N/A'}
                       </p>
                     </div>
                     <div className="text-right">
@@ -312,12 +321,16 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Admin Tabs - Updated without Settings tab */}
+        {/* Admin Tabs - Updated to include Books and Data Management */}
         <Tabs defaultValue="requests" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Book Requests
+            </TabsTrigger>
+            <TabsTrigger value="books" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              Books
             </TabsTrigger>
             <TabsTrigger value="quizzes" className="flex items-center gap-2">
               <Trophy className="h-4 w-4" />
@@ -335,6 +348,10 @@ const AdminDashboard = () => {
               <UserCheck className="h-4 w-4" />
               User Approval
             </TabsTrigger>
+            <TabsTrigger value="data" className="flex items-center gap-2">
+              <Database className="h-4 w-4" />
+              Data Management
+            </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Profile
@@ -343,6 +360,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="requests">
             <BookIssueRequests />
+          </TabsContent>
+
+          <TabsContent value="books">
+            <BookManager />
           </TabsContent>
 
           <TabsContent value="quizzes">
@@ -359,6 +380,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="users">
             <UserApproval />
+          </TabsContent>
+
+          <TabsContent value="data">
+            <DataManagement />
           </TabsContent>
 
           <TabsContent value="profile">

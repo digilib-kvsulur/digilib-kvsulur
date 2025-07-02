@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,7 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
   const [checkingAttempt, setCheckingAttempt] = useState(true);
   const { toast } = useToast();
 
-  // Check if user has already taken this quiz
+  // Check if user has already taken this quiz - Enhanced check
   useEffect(() => {
     checkPreviousAttempt();
   }, [quiz.id]);
@@ -37,7 +36,7 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
 
       const { data: existingResult, error } = await supabase
         .from('quiz_results')
-        .select('id')
+        .select('id, completed_at, score')
         .eq('quiz_id', quiz.id)
         .eq('user_id', user.id)
         .maybeSingle();
@@ -50,8 +49,8 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
       if (existingResult) {
         setAlreadyTaken(true);
         toast({
-          title: "Quiz Already Taken",
-          description: "You have already completed this quiz. Each quiz can only be taken once.",
+          title: "Quiz Already Completed",
+          description: `You completed this quiz on ${new Date(existingResult.completed_at).toLocaleDateString()} with a score of ${existingResult.score}%. Each quiz can only be taken once.`,
           variant: "destructive",
         });
       }
@@ -136,6 +135,24 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
         throw new Error('User not authenticated');
       }
 
+      // Double-check that user hasn't taken this quiz (race condition protection)
+      const { data: doubleCheck } = await supabase
+        .from('quiz_results')
+        .select('id')
+        .eq('quiz_id', quiz.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (doubleCheck) {
+        toast({
+          title: "Quiz Already Completed",
+          description: "You have already completed this quiz.",
+          variant: "destructive",
+        });
+        setAlreadyTaken(true);
+        return;
+      }
+
       // Save quiz result to database
       const { error: insertError } = await supabase
         .from('quiz_results')
@@ -184,6 +201,8 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
         description: "Failed to save quiz result. Please try again.",
         variant: "destructive",
       });
+      setIsCompleted(false);
+      return;
     }
 
     setShowResult(true);
