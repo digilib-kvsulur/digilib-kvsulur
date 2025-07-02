@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,15 +64,19 @@ const BookIssueRequests = () => {
         // Manually fetch profile data for each request
         const requestsWithProfiles = await Promise.all(
           (requestsData || []).map(async (request) => {
-            const { data: profileData } = await supabase
+            const { data: profileData, error: profileError } = await supabase
               .from('profiles')
               .select('first_name, last_name, admission_number')
               .eq('id', request.user_id)
-              .single();
+              .maybeSingle();
+
+            if (profileError) {
+              console.error('Error fetching profile:', profileError);
+            }
 
             return {
               ...request,
-              profiles: profileData
+              profiles: profileData || undefined
             };
           })
         );
@@ -343,7 +348,7 @@ const BookIssueRequests = () => {
                     No processed requests
                   </TableCell>
                 </TableRow>
-              )}
+                )}
             </TableBody>
           </Table>
         </CardContent>
