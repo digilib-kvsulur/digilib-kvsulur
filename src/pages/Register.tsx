@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -20,8 +21,11 @@ const Register = () => {
     studentClass: "",
     rollNumber: "",
     admissionNumber: "",
+    username: "",
+    phone: "",
   });
   
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -29,7 +33,7 @@ const Register = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.role) {
@@ -50,42 +54,65 @@ const Register = () => {
       return;
     }
 
-    if (formData.role === "student" && (!formData.studentClass || !formData.rollNumber)) {
+    if (formData.role === "student" && (!formData.studentClass || !formData.rollNumber || !formData.admissionNumber)) {
       toast({
         title: "Missing Student Information",
-        description: "Please provide class and roll number",
+        description: "Please provide class, roll number, and admission number",
         variant: "destructive",
       });
       return;
     }
 
-    // Mock registration - in real app, this would connect to Firebase
-    const userData = {
-      ...formData,
-      points: formData.role === "student" ? 0 : undefined,
-      joinDate: new Date().toISOString(),
-    };
-    
-    localStorage.setItem("user", JSON.stringify(userData));
-    
-    toast({
-      title: "Registration Successful",
-      description: "Welcome to PM SHRI KV Sulur Digital Library!",
-    });
+    setLoading(true);
 
-    // Navigate based on role
-    switch (formData.role) {
-      case "admin":
-        navigate("/admin-dashboard");
-        break;
-      case "teacher":
-        navigate("/teacher-dashboard");
-        break;
-      case "student":
-        navigate("/student-dashboard");
-        break;
-      default:
-        navigate("/");
+    try {
+      // Sign up the user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            role: formData.role,
+            student_class: formData.studentClass,
+            roll_number: formData.rollNumber,
+            admission_number: formData.admissionNumber,
+            username: formData.username,
+            phone: formData.phone,
+          }
+        }
+      });
+
+      if (authError) {
+        console.error('Auth error:', authError);
+        toast({
+          title: "Registration Failed",
+          description: authError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (authData.user) {
+        toast({
+          title: "Registration Successful",
+          description: "Your account has been created and is pending admin approval.",
+        });
+
+        // Navigate to login page
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast({
+        title: "Registration Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,7 +132,7 @@ const Register = () => {
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName">First Name *</Label>
                 <Input
                   id="firstName"
                   placeholder="John"
@@ -115,7 +142,7 @@ const Register = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName">Last Name *</Label>
                 <Input
                   id="lastName"
                   placeholder="Doe"
@@ -127,7 +154,7 @@ const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
@@ -139,7 +166,28 @@ const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                placeholder="Enter username (optional)"
+                value={formData.username}
+                onChange={(e) => handleInputChange("username", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="Enter phone number (optional)"
+                value={formData.phone}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role *</Label>
               <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select your role" />
@@ -156,7 +204,7 @@ const Register = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="studentClass">Class</Label>
+                    <Label htmlFor="studentClass">Class *</Label>
                     <Select value={formData.studentClass} onValueChange={(value) => handleInputChange("studentClass", value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Class" />
@@ -173,7 +221,7 @@ const Register = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="rollNumber">Roll Number</Label>
+                    <Label htmlFor="rollNumber">Roll Number *</Label>
                     <Input
                       id="rollNumber"
                       placeholder="001"
@@ -183,7 +231,7 @@ const Register = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="admissionNumber">Admission Number</Label>
+                  <Label htmlFor="admissionNumber">Admission Number *</Label>
                   <Input
                     id="admissionNumber"
                     placeholder="Enter admission number"
@@ -195,7 +243,7 @@ const Register = () => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password *</Label>
               <Input
                 id="password"
                 type="password"
@@ -207,7 +255,7 @@ const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirm Password *</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -218,8 +266,12 @@ const Register = () => {
               />
             </div>
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-              Create Account
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              {loading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
 
