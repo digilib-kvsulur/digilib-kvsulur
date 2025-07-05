@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 // Import components
+import Overview from "@/components/dashboard/Overview";
 import StatsCards from "@/components/dashboard/StatsCards";
 import CurrentBooks from "@/components/dashboard/CurrentBooks";
 import AvailableQuizzes from "@/components/dashboard/AvailableQuizzes";
@@ -27,6 +28,7 @@ const StudentDashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showBookRequest, setShowBookRequest] = useState(false);
+  const [classRank, setClassRank] = useState<number | string>("N/A");
 
   useEffect(() => {
     checkAuth();
@@ -71,6 +73,23 @@ const StudentDashboard = () => {
       }
 
       setUser(profile);
+      
+      // Fetch class rank
+      if (profile.student_class && profile.points !== null) {
+        try {
+          const { data: rankData, error: rankError } = await supabase
+            .rpc('get_user_class_rank', {
+              user_class: profile.student_class,
+              user_points: profile.points
+            });
+
+          if (!rankError && rankData) {
+            setClassRank(rankData);
+          }
+        } catch (error) {
+          console.error('Error fetching class rank:', error);
+        }
+      }
     } catch (error) {
       console.error('Authentication error:', error);
       navigate('/login');
@@ -161,7 +180,7 @@ const StudentDashboard = () => {
             nextLevelPoints={100}
             currentBooksCount={0}
             quizResultsCount={0}
-            classRank="N/A"
+            classRank={classRank}
             userClass={user?.student_class || ""}
             levelInfo={{
               currentLevel: Math.floor((user?.points || 0) / 100) + 1,
@@ -190,8 +209,9 @@ const StudentDashboard = () => {
         </div>
 
         {/* Main Tabs */}
-        <Tabs defaultValue="books" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7">
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-8">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="books">My Books</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
             <TabsTrigger value="results">Quiz Results</TabsTrigger>
@@ -200,6 +220,20 @@ const StudentDashboard = () => {
             <TabsTrigger value="school-leaderboard">School Rank</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="overview">
+            <Overview 
+              user={user}
+              currentBooksCount={0}
+              quizResultsCount={0}
+              classRank={classRank}
+              levelInfo={{
+                currentLevel: Math.floor((user?.points || 0) / 100) + 1,
+                pointsToNext: 100 - ((user?.points || 0) % 100),
+                progressPercent: ((user?.points || 0) % 100)
+              }}
+            />
+          </TabsContent>
 
           <TabsContent value="books" className="space-y-6">
             <CurrentBooks books={[]} />
