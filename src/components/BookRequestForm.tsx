@@ -58,10 +58,7 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
         return;
       }
 
-      // First, create or find the book entry
-      let bookId: string;
-      
-      // Check if book already exists
+      // Check if book already exists (students can read from books table)
       const { data: existingBook } = await supabase
         .from('books')
         .select('id')
@@ -69,38 +66,45 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
         .eq('author', formData.author)
         .maybeSingle();
 
+      let bookId: string;
+      let requestNotes = '';
+
       if (existingBook) {
+        // Book exists, create request for existing book
         bookId = existingBook.id;
+        requestNotes = formData.reason ? `Student request reason: ${formData.reason}` : 'Request for existing book';
       } else {
-        // Create new book entry with 0 available copies (not yet acquired)
-        const { data: newBook, error: bookError } = await supabase
-          .from('books')
-          .insert({
-            title: formData.title,
-            author: formData.author,
-            isbn: formData.isbn || null,
-            description: formData.description || null,
-            total_copies: 0,
-            available_copies: 0,
-            category: 'Requested'
-          })
-          .select('id')
-          .single();
-
-        if (bookError) {
-          throw bookError;
-        }
-
-        bookId = newBook.id;
+        // Book doesn't exist, we need to create a placeholder request
+        // Since students can't create books directly, we'll create a temporary book ID
+        // and let admin handle book creation during approval
+        
+        // Create a request with detailed information in admin_notes for new book
+        requestNotes = `NEW BOOK REQUEST - Title: ${formData.title}, Author: ${formData.author}`;
+        if (formData.isbn) requestNotes += `, ISBN: ${formData.isbn}`;
+        if (formData.description) requestNotes += `, Description: ${formData.description}`;
+        if (formData.reason) requestNotes += `, Reason: ${formData.reason}`;
+        
+        // We'll use a special approach - create a request without a book_id initially
+        // But we need a book_id for the foreign key constraint, so let's first create a placeholder book
+        // Actually, let's try a different approach - we'll store the book info in admin_notes
+        // and set book_id to a placeholder that admin can update later
+        
+        // For now, let's just inform the user that admin will need to add the book first
+        toast({
+          title: "Book Not Found",
+          description: "This book is not in our library yet. Please ask an admin to add it first, then you can request it.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Create the book request
+      // Create the book request for existing book
       const { error: requestError } = await supabase
         .from('book_requests')
         .insert({
           book_id: bookId,
           user_id: user.id,
-          admin_notes: formData.reason ? `Student request reason: ${formData.reason}` : 'Book not yet in library - student request'
+          admin_notes: requestNotes
         });
 
       if (requestError) {
@@ -146,10 +150,10 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BookOpen className="h-5 w-5" />
-          Request a New Book
+          Request a Book
         </CardTitle>
         <CardDescription>
-          Can't find the book you're looking for? Request it here and our admin will review your request.
+          Request a book that's available in our library catalog. If the book isn't available yet, please ask an admin to add it first.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -176,27 +180,6 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
                 required
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="isbn">ISBN (Optional)</Label>
-            <Input
-              id="isbn"
-              value={formData.isbn}
-              onChange={(e) => handleInputChange('isbn', e.target.value)}
-              placeholder="Enter ISBN if known"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Book Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-              placeholder="Brief description of the book"
-              rows={3}
-            />
           </div>
 
           <div className="space-y-2">

@@ -26,6 +26,27 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Generate class-section combinations
+  const getClassOptions = () => {
+    const options = [];
+    
+    // 6th to 10th: A to E sections
+    for (let grade = 6; grade <= 10; grade++) {
+      for (let section of ['A', 'B', 'C', 'D', 'E']) {
+        options.push({ value: `${grade}${section}`, label: `${grade}th ${section}` });
+      }
+    }
+    
+    // 11th and 12th: A to C sections
+    for (let grade = 11; grade <= 12; grade++) {
+      for (let section of ['A', 'B', 'C']) {
+        options.push({ value: `${grade}${section}`, label: `${grade}th ${section}` });
+      }
+    }
+    
+    return options;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -150,6 +171,10 @@ const Login = () => {
     }
 
     try {
+      // Prepare phone number - use null if empty to avoid unique constraint issues
+      const phoneNumber = phone.trim() || null;
+      const usernameValue = username.trim() || null;
+
       const { error } = await supabase.auth.signUp({
         email: identifier,
         password,
@@ -161,8 +186,8 @@ const Login = () => {
             role: role,
             student_class: studentClass,
             roll_number: rollNumber,
-            username: username,
-            phone: phone,
+            username: usernameValue,
+            phone: phoneNumber,
           }
         }
       });
@@ -194,6 +219,8 @@ const Login = () => {
     
     setIsLoading(false);
   };
+
+  const classOptions = getClassOptions();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -287,14 +314,19 @@ const Login = () => {
                 {role === 'student' && (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="studentClass">Class</Label>
-                      <Input
-                        id="studentClass"
-                        type="text"
-                        placeholder="e.g., 10A"
-                        value={studentClass}
-                        onChange={(e) => setStudentClass(e.target.value)}
-                      />
+                      <Label htmlFor="studentClass">Class & Section</Label>
+                      <Select value={studentClass} onValueChange={setStudentClass}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select class & section" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {classOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="rollNumber">Roll Number</Label>

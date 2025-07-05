@@ -29,6 +29,27 @@ const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Generate class-section combinations
+  const getClassOptions = () => {
+    const options = [];
+    
+    // 6th to 10th: A to E sections
+    for (let grade = 6; grade <= 10; grade++) {
+      for (let section of ['A', 'B', 'C', 'D', 'E']) {
+        options.push({ value: `${grade}${section}`, label: `${grade}th ${section}` });
+      }
+    }
+    
+    // 11th and 12th: A to C sections
+    for (let grade = 11; grade <= 12; grade++) {
+      for (let section of ['A', 'B', 'C']) {
+        options.push({ value: `${grade}${section}`, label: `${grade}th ${section}` });
+      }
+    }
+    
+    return options;
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -66,6 +87,10 @@ const Register = () => {
     setLoading(true);
 
     try {
+      // Prepare phone number - use null if empty to avoid unique constraint issues
+      const phoneNumber = formData.phone.trim() || null;
+      const usernameValue = formData.username.trim() || null;
+
       // Sign up the user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -79,8 +104,8 @@ const Register = () => {
             student_class: formData.studentClass,
             roll_number: formData.rollNumber,
             admission_number: formData.admissionNumber,
-            username: formData.username,
-            phone: formData.phone,
+            username: usernameValue,
+            phone: phoneNumber,
           }
         }
       });
@@ -115,6 +140,8 @@ const Register = () => {
       setLoading(false);
     }
   };
+
+  const classOptions = getClassOptions();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -204,19 +231,17 @@ const Register = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="studentClass">Class *</Label>
+                    <Label htmlFor="studentClass">Class & Section *</Label>
                     <Select value={formData.studentClass} onValueChange={(value) => handleInputChange("studentClass", value)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Class" />
+                        <SelectValue placeholder="Select class" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="6th">6th</SelectItem>
-                        <SelectItem value="7th">7th</SelectItem>
-                        <SelectItem value="8th">8th</SelectItem>
-                        <SelectItem value="9th">9th</SelectItem>
-                        <SelectItem value="10th">10th</SelectItem>
-                        <SelectItem value="11th">11th</SelectItem>
-                        <SelectItem value="12th">12th</SelectItem>
+                        {classOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
