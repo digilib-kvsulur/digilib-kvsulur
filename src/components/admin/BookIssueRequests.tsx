@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Clock, FileText } from "lucide-react";
+import { CheckCircle, XCircle, Clock, FileText, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +30,7 @@ interface BookRequest {
 const BookIssueRequests = () => {
   const [requests, setRequests] = useState<BookRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -187,6 +188,43 @@ const BookIssueRequests = () => {
     }
   };
 
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!confirm('Are you sure you want to delete this processed request? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingIds(prev => new Set(prev).add(requestId));
+      
+      const { error } = await supabase
+        .from('book_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Request deleted successfully",
+      });
+
+      loadRequests();
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete request",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(requestId);
+        return newSet;
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -297,6 +335,7 @@ const BookIssueRequests = () => {
                 <TableHead>Requested Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Admin Notes</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -331,11 +370,25 @@ const BookIssueRequests = () => {
                   <TableCell>
                     <p className="text-sm text-gray-600">{request.admin_notes || "-"}</p>
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteRequest(request.id)}
+                      disabled={deletingIds.has(request.id)}
+                    >
+                      {deletingIds.has(request.id) ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {processedRequests.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-4 text-gray-500">
                     No processed requests
                   </TableCell>
                 </TableRow>

@@ -1,450 +1,94 @@
+
 import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
-import { Quiz, QuizResult } from "@/types/quiz";
-import { Achievement, LeaderboardEntry, ReadingChallenge, UserStats } from "@/types/rewards";
-import { StudentQuiz } from "@/components/quiz/StudentQuiz";
-import Achievements from "@/components/rewards/Achievements";
-import Leaderboard from "@/components/rewards/Leaderboard";
-import ReadingChallenges from "@/components/rewards/ReadingChallenges";
-import StudentHeader from "@/components/dashboard/StudentHeader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { BookOpen, LogOut, Trophy, Target, User, Users, Award } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+// Import components
 import StatsCards from "@/components/dashboard/StatsCards";
 import CurrentBooks from "@/components/dashboard/CurrentBooks";
 import AvailableQuizzes from "@/components/dashboard/AvailableQuizzes";
 import QuizResults from "@/components/dashboard/QuizResults";
-import PointsBreakdown from "@/components/dashboard/PointsBreakdown";
-import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
+import ReadingChallenges from "@/components/rewards/ReadingChallenges";
+import Achievements from "@/components/rewards/Achievements";
+import Leaderboard from "@/components/rewards/Leaderboard";
+import SchoolLeaderboard from "@/components/rewards/SchoolLeaderboard";
 import StudentProfile from "@/components/dashboard/StudentProfile";
-import RealReadingHistory from "@/components/dashboard/RealReadingHistory";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import BookRequestForm from "@/components/BookRequestForm";
+import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
 
 const StudentDashboard = () => {
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
-  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
-  const [availableQuizzes, setAvailableQuizzes] = useState<Quiz[]>([]);
-  const [currentBooks, setCurrentBooks] = useState<any[]>([]);
-  const [challenges, setChallenges] = useState<ReadingChallenge[]>([]);
-  const [classRank, setClassRank] = useState<number>(1);
-  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showBookRequest, setShowBookRequest] = useState(false);
 
   useEffect(() => {
     checkAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
-        navigate("/login");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const checkAuth = async () => {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (error || !user) {
-        console.error('No authenticated user found:', error);
-        navigate("/login");
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        navigate('/login');
         return;
       }
 
-      setUser(user);
-      console.log('Authenticated user:', user.id);
-      
-      // Get user profile with admission_number
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, role, student_class, roll_number, points, is_approved, username, admission_number')
-        .eq('id', user.id)
-        .maybeSingle();
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
 
-      console.log('Profile query result:', { profileData, profileError });
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        toast({
-          title: "Error",
-          description: "Failed to load user profile. Please try logging in again.",
-          variant: "destructive",
-        });
-        navigate("/login");
+      if (error) {
+        console.error('Error fetching profile:', error);
+        navigate('/login');
         return;
       }
 
-      if (!profileData) {
-        console.error('No profile found for user');
-        toast({
-          title: "Profile Not Found",
-          description: "User profile not found. Please contact support.",
-          variant: "destructive",
-        });
-        navigate("/login");
-        return;
-      }
-
-      // Check if user is approved
-      if (!profileData.is_approved) {
-        console.log('User not approved:', profileData.is_approved);
-        toast({
-          title: "Account Not Approved",
-          description: "Your account is pending admin approval. Please contact the administrator.",
-          variant: "destructive",
-        });
-        await supabase.auth.signOut();
-        navigate("/login");
-        return;
-      }
-
-      // Check if user has student role
-      if (profileData.role !== 'student') {
-        console.log('User is not a student:', profileData.role);
+      if (!profile || profile.role !== 'student') {
         toast({
           title: "Access Denied",
-          description: "You don't have student access to this dashboard.",
+          description: "You don't have permission to access this page.",
           variant: "destructive",
         });
-        navigate("/login");
+        navigate('/');
         return;
       }
 
-      console.log('User approved and is student, setting profile:', profileData);
-      setProfile(profileData);
-
-      // Load other data
-      await Promise.all([
-        loadQuizzes(),
-        loadQuizResults(user.id),
-        loadCurrentBooks(user.id),
-        loadChallenges(user.id),
-        loadClassRank(profileData.student_class, profileData.points || 0),
-        loadLeaderboard(profileData.student_class)
-      ]);
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Auth check error:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred while loading the dashboard",
-        variant: "destructive",
-      });
-      navigate("/login");
-    }
-  };
-
-  const loadQuizzes = async () => {
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading quizzes:', error);
-      return;
-    }
-
-    // Transform data to match Quiz interface
-    const transformedQuizzes: Quiz[] = data.map(quiz => ({
-      id: quiz.id,
-      title: quiz.title,
-      description: quiz.description || '',
-      subject: quiz.subject,
-      difficulty: quiz.difficulty as 'easy' | 'medium' | 'hard',
-      questions: quiz.questions as any[],
-      timeLimit: quiz.time_limit,
-      pointsReward: quiz.points_reward,
-      isActive: quiz.is_active || false,
-      createdAt: quiz.created_at || new Date().toISOString(),
-      createdBy: quiz.created_by
-    }));
-
-    setAvailableQuizzes(transformedQuizzes);
-  };
-
-  const loadQuizResults = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('quiz_results')
-      .select(`
-        *,
-        quizzes(title)
-      `)
-      .eq('user_id', userId)
-      .order('completed_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading quiz results:', error);
-      return;
-    }
-
-    // Transform data to match QuizResult interface
-    const transformedResults: QuizResult[] = data.map(result => ({
-      quizId: result.quiz_id,
-      quizTitle: result.quizzes?.title || 'Unknown Quiz',
-      score: result.score,
-      totalQuestions: Array.isArray(result.answers) ? result.answers.length : 0,
-      correctAnswers: Math.floor((result.score / 100) * (Array.isArray(result.answers) ? result.answers.length : 0)),
-      pointsEarned: result.points_earned,
-      completedAt: result.completed_at || new Date().toISOString(),
-      timeSpent: 0, // Default to 0 since we don't have this data yet
-      answers: result.answers as number[]
-    }));
-
-    setQuizResults(transformedResults);
-  };
-
-  const loadCurrentBooks = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('book_issues')
-      .select(`
-        *,
-        books(title, author)
-      `)
-      .eq('user_id', userId)
-      .eq('status', 'issued')
-      .order('issue_date', { ascending: false });
-
-    if (error) {
-      console.error('Error loading current books:', error);
-      return;
-    }
-
-    // Transform data
-    const transformedBooks = data.map(issue => ({
-      id: issue.id,
-      title: issue.books?.title || 'Unknown Title',
-      author: issue.books?.author || 'Unknown Author',
-      issueDate: issue.issue_date,
-      dueDate: issue.due_date,
-      daysLeft: Math.ceil((new Date(issue.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    }));
-
-    setCurrentBooks(transformedBooks);
-  };
-
-  const loadChallenges = async (userId: string) => {
-    try {
-      // Get active challenges with user progress
-      const { data: challengesData, error: challengesError } = await supabase
-        .from('challenges')
-        .select(`
-          *,
-          challenge_progress(current_progress, is_completed, completed_at)
-        `)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (challengesError) {
-        console.error('Error loading challenges:', challengesError);
-        return;
-      }
-
-      // Transform challenges data
-      const transformedChallenges: ReadingChallenge[] = challengesData.map(challenge => {
-        const userProgress = challenge.challenge_progress?.[0];
-        
-        return {
-          id: challenge.id,
-          title: challenge.title,
-          description: challenge.description,
-          targetValue: challenge.target_value,
-          currentProgress: userProgress?.current_progress || 0,
-          type: challenge.type as 'books_read' | 'quiz_completed' | 'points_earned',
-          reward: {
-            points: challenge.reward_points
-          },
-          deadline: challenge.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 30 days from now
-          isCompleted: userProgress?.is_completed || false,
-          completedAt: userProgress?.completed_at || undefined
-        };
-      });
-
-      setChallenges(transformedChallenges);
-    } catch (error) {
-      console.error('Error loading challenges:', error);
-    }
-  };
-
-  const loadClassRank = async (studentClass: string, userPoints: number) => {
-    try {
-      if (!studentClass) return;
-      
-      const { data: rank, error } = await supabase
-        .rpc('get_user_class_rank', {
-          user_class: studentClass,
-          user_points: userPoints
+      if (!profile.is_approved) {
+        toast({
+          title: "Account Pending",
+          description: "Your account is pending approval from an administrator.",
+          variant: "destructive",
         });
-
-      if (error) {
-        console.error('Error loading class rank:', error);
-        return;
       }
 
-      setClassRank(rank || 1);
+      setUser(profile);
     } catch (error) {
-      console.error('Error loading class rank:', error);
-    }
-  };
-
-  const loadLeaderboard = async (studentClass: string) => {
-    try {
-      if (!studentClass) return;
-
-      const { data: classmates, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, student_class, points')
-        .eq('student_class', studentClass)
-        .eq('is_approved', true)
-        .eq('role', 'student')
-        .order('points', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        console.error('Error loading leaderboard:', error);
-        return;
-      }
-
-      const transformedEntries: LeaderboardEntry[] = (classmates || []).map((student, index) => ({
-        id: student.id,
-        studentId: student.id,
-        studentName: `${student.first_name} ${student.last_name}`,
-        studentClass: student.student_class,
-        totalPoints: student.points || 0,
-        rank: index + 1,
-        recentActivity: "Active in library system"
-      }));
-
-      setLeaderboardEntries(transformedEntries);
-    } catch (error) {
-      console.error('Error loading leaderboard:', error);
+      console.error('Authentication error:', error);
+      navigate('/login');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/");
+    navigate('/');
   };
 
-  const handleQuizComplete = async (result: QuizResult) => {
-    try {
-      // Save to database
-      const { error } = await supabase
-        .from('quiz_results')
-        .insert({
-          user_id: user.id,
-          quiz_id: result.quizId,
-          score: result.score,
-          points_earned: result.pointsEarned,
-          answers: result.answers
-        });
-
-      if (error) {
-        console.error('Error saving quiz result:', error);
-        toast({
-          title: "Error",
-          description: "Failed to save quiz result",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Update local state
-      setQuizResults(prev => [...prev, result]);
-      
-      // Update user points
-      if (profile) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ points: (profile.points || 0) + result.pointsEarned })
-          .eq('id', user.id);
-
-        if (!updateError) {
-          setProfile(prev => ({ ...prev, points: (prev.points || 0) + result.pointsEarned }));
-        }
-      }
-
-      // Update challenge progress for quiz completion
-      await supabase.rpc('update_challenge_progress', {
-        p_user_id: user.id,
-        p_challenge_type: 'quiz_completed',
-        p_increment: 1
-      });
-
-      // Reload challenges to show updated progress
-      await loadChallenges(user.id);
-
-      setSelectedQuiz(null);
-      
-      toast({
-        title: "Quiz Completed!",
-        description: `You earned ${result.pointsEarned} points!`,
-      });
-    } catch (error) {
-      console.error('Error completing quiz:', error);
-      toast({
-        title: "Error",
-        description: "Failed to complete quiz",
-        variant: "destructive",
-      });
-    }
+  const handleProfileUpdate = () => {
+    checkAuth();
   };
 
-  const handlePointsUpdate = async () => {
-    // Reload user profile to get updated points
-    if (user) {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-      
-      if (profileData) {
-        setProfile(profileData);
-      }
-      
-      // Reload challenges to show updated progress
-      await loadChallenges(user.id);
-    }
-  };
-
-  // Calculate user level
-  const calculateUserLevel = (points: number) => {
-    // Level system: 100 points per level
-    const level = Math.floor(points / 100) + 1;
-    const pointsToNextLevel = ((level) * 100) - points;
-    const levelProgress = ((points % 100) / 100) * 100;
-    
-    return {
-      currentLevel: level,
-      pointsToNext: pointsToNextLevel,
-      progressPercent: levelProgress
-    };
-  };
-
-  // Calculate user stats
-  const userStats: UserStats = {
-    totalPoints: profile?.points || 0,
-    booksRead: 8, // This would come from completed book issues
-    quizzesCompleted: quizResults.length,
-    averageQuizScore: quizResults.length > 0 ? 
-      quizResults.reduce((total, result) => total + result.score, 0) / quizResults.length : 0,
-    consecutiveDays: 5,
-    achievements: [],
-    currentChallenges: challenges
-  };
-
-  const userPoints = userStats.totalPoints;
-  const nextLevelPoints = 200;
-
-  if (loading || !user || !profile) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -455,83 +99,161 @@ const StudentDashboard = () => {
     );
   }
 
-  const levelInfo = calculateUserLevel(userPoints);
-
-  if (selectedQuiz) {
+  if (!user?.is_approved) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <StudentHeader user={profile} onLogout={() => setSelectedQuiz(null)} />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <StudentQuiz 
-            quiz={selectedQuiz} 
-            onComplete={handleQuizComplete}
-            onBack={() => setSelectedQuiz(null)}
-          />
-        </main>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Account Pending Approval</CardTitle>
+            <CardDescription>
+              Your account is waiting for administrator approval. Please wait for an admin to approve your account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleLogout} variant="outline" className="w-full">
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <StudentHeader user={profile} onLogout={handleLogout} />
+      {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">Digital Library</h1>
+                <p className="text-sm text-gray-600">Student Dashboard</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">
+                  {user?.first_name} {user?.last_name}
+                </p>
+                <p className="text-xs text-gray-600">
+                  {user?.points || 0} points • Class {user?.student_class}
+                </p>
+              </div>
+              <Button onClick={handleLogout} variant="outline" size="sm">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <StatsCards 
-          userPoints={userPoints}
-          nextLevelPoints={nextLevelPoints}
-          currentBooksCount={currentBooks.length}
-          quizResultsCount={quizResults.length}
-          classRank={classRank}
-          userClass={profile.student_class || 'Unknown'}
-          levelInfo={levelInfo}
-        />
+        {/* Stats Overview */}
+        <div className="mb-8">
+          <StatsCards userId={user?.id} />
+        </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common tasks and shortcuts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4 flex-wrap">
+                <Button onClick={() => setShowBookRequest(true)}>
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Request a Book
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Tabs */}
+        <Tabs defaultValue="books" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="books">My Books</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
-            <TabsTrigger value="achievements">Achievements</TabsTrigger>
-            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-            <TabsTrigger value="reading">Reading</TabsTrigger>
+            <TabsTrigger value="results">Quiz Results</TabsTrigger>
+            <TabsTrigger value="challenges">Challenges</TabsTrigger>
+            <TabsTrigger value="leaderboard">Class Rank</TabsTrigger>
+            <TabsTrigger value="school-leaderboard">School Rank</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <AvailableQuizzes quizzes={availableQuizzes.slice(0, 3)} onSelectQuiz={setSelectedQuiz} />
-              <RealReadingHistory />
-            </div>
-            <PointsBreakdown quizResults={quizResults} challenges={challenges} />
+          <TabsContent value="books" className="space-y-6">
+            <CurrentBooks userId={user?.id} />
+            <ReadingHistoryManager userId={user?.id} />
           </TabsContent>
 
-          <TabsContent value="quizzes" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <AvailableQuizzes quizzes={availableQuizzes} onSelectQuiz={setSelectedQuiz} />
-              <QuizResults results={quizResults} />
-            </div>
+          <TabsContent value="quizzes">
+            <AvailableQuizzes userId={user?.id} />
           </TabsContent>
 
-          <TabsContent value="achievements">
-            <ReadingChallenges 
-              challenges={challenges}
-              onJoinChallenge={(challengeId) => console.log('Joining challenge:', challengeId)}
-            />
+          <TabsContent value="results">
+            <QuizResults userId={user?.id} />
+          </TabsContent>
+
+          <TabsContent value="challenges" className="space-y-6">
+            <ReadingChallenges userId={user?.id} />
+            <Achievements userId={user?.id} />
           </TabsContent>
 
           <TabsContent value="leaderboard">
-            <Leaderboard entries={leaderboardEntries} currentUserId={user?.id} />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5" />
+                  Class Leaderboard - {user?.student_class}
+                </CardTitle>
+                <CardDescription>Your ranking within your class</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Leaderboard entries={[]} currentUserId={user?.id} />
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          <TabsContent value="reading">
-            <ReadingHistoryManager onPointsUpdate={handlePointsUpdate} />
+          <TabsContent value="school-leaderboard">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5" />
+                  School Leaderboard
+                </CardTitle>
+                <CardDescription>Your ranking across the entire school</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SchoolLeaderboard currentUserId={user?.id} />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="profile">
-            <StudentProfile user={profile} onProfileUpdate={checkAuth} />
+            <StudentProfile user={user} onProfileUpdate={handleProfileUpdate} />
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Book Request Dialog */}
+      {showBookRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <BookRequestForm 
+              onClose={() => setShowBookRequest(false)}
+              onSuccess={() => setShowBookRequest(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
