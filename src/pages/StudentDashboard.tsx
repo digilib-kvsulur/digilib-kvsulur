@@ -215,7 +215,7 @@ const StudentDashboard = () => {
           </TabsContent>
 
           <TabsContent value="challenges" className="space-y-6">
-            <ReadingChallenges />
+            <ReadingChallenges challenges={[]} />
             <Achievements achievements={[]} userStats={{
               totalPoints: user?.points || 0,
               booksRead: 0,
