@@ -156,7 +156,19 @@ const StudentDashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Overview */}
         <div className="mb-8">
-          <StatsCards userId={user?.id} />
+          <StatsCards 
+            userPoints={user?.points || 0}
+            nextLevelPoints={100}
+            currentBooksCount={0}
+            quizResultsCount={0}
+            classRank="N/A"
+            userClass={user?.student_class || ""}
+            levelInfo={{
+              currentLevel: Math.floor((user?.points || 0) / 100) + 1,
+              pointsToNext: 100 - ((user?.points || 0) % 100),
+              progressPercent: ((user?.points || 0) % 100)
+            }}
+          />
         </div>
 
         {/* Quick Actions */}
@@ -190,21 +202,26 @@ const StudentDashboard = () => {
           </TabsList>
 
           <TabsContent value="books" className="space-y-6">
-            <CurrentBooks userId={user?.id} />
-            <ReadingHistoryManager userId={user?.id} />
+            <CurrentBooks books={[]} />
+            <ReadingHistoryManager />
           </TabsContent>
 
           <TabsContent value="quizzes">
-            <AvailableQuizzes userId={user?.id} />
+            <AvailableQuizzes quizzes={[]} onSelectQuiz={() => {}} />
           </TabsContent>
 
           <TabsContent value="results">
-            <QuizResults userId={user?.id} />
+            <QuizResults results={[]} />
           </TabsContent>
 
           <TabsContent value="challenges" className="space-y-6">
-            <ReadingChallenges userId={user?.id} />
-            <Achievements userId={user?.id} />
+            <ReadingChallenges />
+            <Achievements achievements={[]} userStats={{
+              totalPoints: user?.points || 0,
+              booksRead: 0,
+              quizzesCompleted: 0,
+              averageQuizScore: 0
+            }} />
           </TabsContent>
 
           <TabsContent value="leaderboard">
