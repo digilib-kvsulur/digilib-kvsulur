@@ -1,7 +1,9 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Star, BookOpen, Trophy, Target, TrendingUp, Calendar } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import QuizOverview from "./QuizOverview";
 
 interface OverviewProps {
@@ -16,6 +18,14 @@ interface OverviewProps {
   };
 }
 
+interface RecentActivity {
+  type: 'book' | 'quiz' | 'points' | 'reading';
+  title: string;
+  time: string;
+  score?: number;
+  points?: number;
+}
+
 const Overview = ({ 
   user, 
   currentBooksCount, 
@@ -23,11 +33,200 @@ const Overview = ({
   classRank,
   levelInfo 
 }: OverviewProps) => {
-  const recentActivities = [
-    { type: "book", title: "Started reading 'The Great Adventure'", time: "2 hours ago" },
-    { type: "quiz", title: "Completed Math Quiz - Level 1", time: "1 day ago", score: 85 },
-    { type: "points", title: "Earned 25 points from reading activity", time: "2 days ago" },
-  ];
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [monthlyBooksRead, setMonthlyBooksRead] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchRecentActivities();
+      fetchMonthlyBooksRead();
+      fetchStreak();
+    }
+  }, [user?.id]);
+
+  const fetchRecentActivities = async () => {
+    try {
+      const activities: RecentActivity[] = [];
+      
+      // Fetch recent book issues
+      const { data: bookIssues } = await supabase
+        .from('book_issues')
+        .select(`
+          *,
+          books (title)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (bookIssues) {
+        bookIssues.forEach(issue => {
+          activities.push({
+            type: 'book',
+            title: `Started reading '${issue.books?.title || 'Unknown Book'}'`,
+            time: getTimeAgo(issue.created_at)
+          });
+        });
+      }
+
+      // Fetch recent quiz results
+      const { data: quizResults } = await supabase
+        .from('quiz_results')
+        .select(`
+          *,
+          quizzes (title)
+        `)
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false })
+        .limit(3);
+
+      if (quizResults) {
+        quizResults.forEach(result => {
+          activities.push({
+            type: 'quiz',
+            title: `Completed ${result.quizzes?.title || 'Quiz'}`,
+            time: getTimeAgo(result.completed_at),
+            score: result.score
+          });
+        });
+      }
+
+      // Fetch recent reading history
+      const { data: readingHistory } = await supabase
+        .from('reading_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('completed_date', { ascending: false })
+        .limit(2);
+
+      if (readingHistory) {
+        readingHistory.forEach(entry => {
+          activities.push({
+            type: 'reading',
+            title: `Finished reading '${entry.book_title}'`,
+            time: getTimeAgo(entry.completed_date),
+            points: entry.points_earned
+          });
+        });
+      }
+
+      // Sort all activities by time and take the most recent 5
+      activities.sort((a, b) => {
+        const timeA = getTimeValue(a.time);
+        const timeB = getTimeValue(b.time);
+        return timeA - timeB;
+      });
+
+      setRecentActivities(activities.slice(0, 5));
+    } catch (error) {
+      console.error('Error fetching recent activities:', error);
+    }
+  };
+
+  const fetchMonthlyBooksRead = async () => {
+    try {
+      const currentMonth = new Date();
+      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      
+      const { data, error } = await supabase
+        .from('reading_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('completed_date', startOfMonth.toISOString().split('T')[0]);
+
+      if (!error && data) {
+        setMonthlyBooksRead(data.length);
+      }
+    } catch (error) {
+      console.error('Error fetching monthly books read:', error);
+    }
+  };
+
+  const fetchStreak = async () => {
+    try {
+      // Calculate streak based on reading history and quiz completions
+      const { data: readingData } = await supabase
+        .from('reading_history')
+        .select('completed_date')
+        .eq('user_id', user.id)
+        .order('completed_date', { ascending: false });
+
+      const { data: quizData } = await supabase
+        .from('quiz_results')
+        .select('completed_at')
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false });
+
+      // Combine and sort all activity dates
+      const allDates = [
+        ...(readingData || []).map(item => new Date(item.completed_date)),
+        ...(quizData || []).map(item => new Date(item.completed_at))
+      ].sort((a, b) => b.getTime() - a.getTime());
+
+      // Calculate consecutive days
+      let currentStreak = 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      for (let i = 0; i < allDates.length; i++) {
+        const activityDate = new Date(allDates[i]);
+        activityDate.setHours(0, 0, 0, 0);
+        
+        const daysDiff = Math.floor((today.getTime() - activityDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff === currentStreak || (currentStreak === 0 && daysDiff <= 1)) {
+          currentStreak = daysDiff + 1;
+        } else {
+          break;
+        }
+      }
+
+      setStreak(Math.max(currentStreak, 1));
+    } catch (error) {
+      console.error('Error calculating streak:', error);
+      setStreak(1); // Default to 1 day
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    return `${Math.floor(diffInSeconds / 2592000)} months ago`;
+  };
+
+  const getTimeValue = (timeString: string): number => {
+    if (timeString.includes('Just now')) return 0;
+    if (timeString.includes('minutes ago')) return parseInt(timeString) * 60;
+    if (timeString.includes('hours ago')) return parseInt(timeString) * 3600;
+    if (timeString.includes('days ago')) return parseInt(timeString) * 86400;
+    if (timeString.includes('months ago')) return parseInt(timeString) * 2592000;
+    return 0;
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -72,7 +271,7 @@ const Overview = ({
                 <Target className="h-8 w-8 text-green-600" />
               </div>
               <h3 className="font-semibold text-lg">Monthly Goal</h3>
-              <p className="text-2xl font-bold text-green-600">3/5</p>
+              <p className="text-2xl font-bold text-green-600">{monthlyBooksRead}/5</p>
               <p className="text-xs text-gray-500">books read</p>
             </div>
           </div>
@@ -109,7 +308,7 @@ const Overview = ({
             <TrendingUp className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">7</div>
+            <div className="text-2xl font-bold">{streak}</div>
             <p className="text-xs text-gray-600">days active</p>
           </CardContent>
         </Card>
@@ -126,21 +325,33 @@ const Overview = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentActivities.map((activity, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  activity.type === 'book' ? 'bg-blue-500' :
-                  activity.type === 'quiz' ? 'bg-green-500' : 'bg-yellow-500'
-                }`} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{activity.title}</p>
-                  <p className="text-xs text-gray-500">{activity.time}</p>
-                  {activity.score && (
-                    <p className="text-xs text-green-600 font-medium">Score: {activity.score}%</p>
-                  )}
+            {recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${
+                    activity.type === 'book' ? 'bg-blue-500' :
+                    activity.type === 'quiz' ? 'bg-green-500' : 
+                    activity.type === 'reading' ? 'bg-purple-500' : 'bg-yellow-500'
+                  }`} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{activity.title}</p>
+                    <p className="text-xs text-gray-500">{activity.time}</p>
+                    {activity.score && (
+                      <p className="text-xs text-green-600 font-medium">Score: {activity.score}%</p>
+                    )}
+                    {activity.points && (
+                      <p className="text-xs text-yellow-600 font-medium">+{activity.points} points</p>
+                    )}
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">No recent activity yet</p>
+                <p className="text-xs">Start reading books or taking quizzes to see your activity here!</p>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>

@@ -29,10 +29,45 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showBookRequest, setShowBookRequest] = useState(false);
   const [classRank, setClassRank] = useState<number | string>("N/A");
+  const [currentBooksCount, setCurrentBooksCount] = useState(0);
+  const [quizResultsCount, setQuizResultsCount] = useState(0);
 
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchDashboardData();
+    }
+  }, [user?.id]);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch current books count
+      const { data: bookIssues } = await supabase
+        .from('book_issues')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'issued');
+
+      setCurrentBooksCount(bookIssues?.length || 0);
+
+      // Fetch quiz results count for current month
+      const currentMonth = new Date();
+      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      
+      const { data: quizResults } = await supabase
+        .from('quiz_results')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('completed_at', startOfMonth.toISOString());
+
+      setQuizResultsCount(quizResults?.length || 0);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  };
 
   const checkAuth = async () => {
     try {
@@ -139,6 +174,12 @@ const StudentDashboard = () => {
     );
   }
 
+  const levelInfo = {
+    currentLevel: Math.floor((user?.points || 0) / 100) + 1,
+    pointsToNext: 100 - ((user?.points || 0) % 100),
+    progressPercent: ((user?.points || 0) % 100)
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -178,15 +219,11 @@ const StudentDashboard = () => {
           <StatsCards 
             userPoints={user?.points || 0}
             nextLevelPoints={100}
-            currentBooksCount={0}
-            quizResultsCount={0}
+            currentBooksCount={currentBooksCount}
+            quizResultsCount={quizResultsCount}
             classRank={classRank}
             userClass={user?.student_class || ""}
-            levelInfo={{
-              currentLevel: Math.floor((user?.points || 0) / 100) + 1,
-              pointsToNext: 100 - ((user?.points || 0) % 100),
-              progressPercent: ((user?.points || 0) % 100)
-            }}
+            levelInfo={levelInfo}
           />
         </div>
 
@@ -224,14 +261,10 @@ const StudentDashboard = () => {
           <TabsContent value="overview">
             <Overview 
               user={user}
-              currentBooksCount={0}
-              quizResultsCount={0}
+              currentBooksCount={currentBooksCount}
+              quizResultsCount={quizResultsCount}
               classRank={classRank}
-              levelInfo={{
-                currentLevel: Math.floor((user?.points || 0) / 100) + 1,
-                pointsToNext: 100 - ((user?.points || 0) % 100),
-                progressPercent: ((user?.points || 0) % 100)
-              }}
+              levelInfo={levelInfo}
             />
           </TabsContent>
 
