@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { BookOpen, LogOut, Trophy, Target, User, Users, Award } from "lucide-react";
+import { BookOpen, LogOut, Trophy, Target, User, Users, Award, BookPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -396,8 +395,8 @@ const StudentDashboard = () => {
             <CardContent>
               <div className="flex gap-4 flex-wrap">
                 <Button onClick={() => setShowBookRequest(true)}>
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Request a Book
+                  <BookPlus className="h-4 w-4 mr-2" />
+                  Request New Book for Library
                 </Button>
               </div>
             </CardContent>

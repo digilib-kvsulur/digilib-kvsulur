@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Clock, Award, TrendingUp, Star } from "lucide-react";
+import { Trophy, Clock, Award, TrendingUp, Star, Play } from "lucide-react";
 import { Quiz, QuizResult } from "@/types/quiz";
+import { useToast } from "@/hooks/use-toast";
 
 interface QuizPageProps {
   quizzes: Quiz[];
@@ -13,6 +14,36 @@ interface QuizPageProps {
 }
 
 const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
+  const { toast } = useToast();
+
+  const handleStartQuiz = (quiz: Quiz) => {
+    try {
+      console.log('Starting quiz:', quiz);
+      
+      // Show toast notification
+      toast({
+        title: "Starting Quiz",
+        description: `Starting "${quiz.title}" - Good luck!`,
+      });
+      
+      // For now, we'll just show a message until quiz taking is implemented
+      toast({
+        title: "Quiz Feature",
+        description: "Quiz taking functionality will be implemented soon!",
+        variant: "default",
+      });
+      
+      onSelectQuiz(quiz);
+    } catch (error) {
+      console.error('Error starting quiz:', error);
+      toast({
+        title: "Error",
+        description: "Unable to start quiz. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Tabs defaultValue="available" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
@@ -67,9 +98,10 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
                     </div>
 
                     <Button 
-                      onClick={() => onSelectQuiz(quiz)}
+                      onClick={() => handleStartQuiz(quiz)}
                       className="w-full bg-blue-600 hover:bg-blue-700"
                     >
+                      <Play className="h-4 w-4 mr-2" />
                       Start Quiz
                     </Button>
                   </div>

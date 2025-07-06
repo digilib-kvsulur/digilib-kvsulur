@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -37,14 +36,43 @@ const Overview = ({
   const [monthlyBooksRead, setMonthlyBooksRead] = useState(0);
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
 
   useEffect(() => {
     if (user?.id) {
       fetchRecentActivities();
       fetchMonthlyBooksRead();
       fetchStreak();
+      fetchAvailableQuizzes();
     }
   }, [user?.id]);
+
+  const fetchAvailableQuizzes = async () => {
+    try {
+      const { data: quizzes, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+
+      const formattedQuizzes = quizzes?.map(quiz => ({
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description || '',
+        difficulty: quiz.difficulty,
+        timeLimit: quiz.time_limit,
+        pointsReward: quiz.points_reward,
+        questions: Array.isArray(quiz.questions) ? quiz.questions : []
+      })) || [];
+
+      setAvailableQuizzes(formattedQuizzes);
+    } catch (error) {
+      console.error('Error fetching available quizzes:', error);
+    }
+  };
 
   const fetchRecentActivities = async () => {
     try {
@@ -213,6 +241,15 @@ const Overview = ({
     return 0;
   };
 
+  const handleViewAllQuizzes = () => {
+    // This will be handled by the parent component
+    console.log('Navigate to quizzes tab');
+  };
+
+  const handleSelectQuiz = (quiz: any) => {
+    console.log('Selected quiz from overview:', quiz);
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -358,9 +395,9 @@ const Overview = ({
 
       {/* Quick Quiz Access */}
       <QuizOverview 
-        quizzes={[]} 
-        onSelectQuiz={() => {}} 
-        onViewAll={() => {}}
+        quizzes={availableQuizzes} 
+        onSelectQuiz={handleSelectQuiz} 
+        onViewAll={handleViewAllQuizzes}
       />
     </div>
   );

@@ -4,7 +4,19 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Target, Clock, Trophy, CheckCircle } from "lucide-react";
-import { ReadingChallenge } from "@/types/rewards";
+
+interface ReadingChallenge {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  targetValue: number;
+  rewardPoints: number;
+  deadline: string;
+  progress: number;
+  isCompleted: boolean;
+  completedAt?: string;
+}
 
 interface ReadingChallengesProps {
   challenges: ReadingChallenge[];
@@ -61,7 +73,7 @@ const ReadingChallenges = ({ challenges, onJoinChallenge }: ReadingChallengesPro
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeChallenges.map((challenge) => {
               const IconComponent = getChallengeIcon(challenge.type);
-              const progress = (challenge.currentProgress / challenge.targetValue) * 100;
+              const progress = (challenge.progress / challenge.targetValue) * 100;
               const daysRemaining = getDaysRemaining(challenge.deadline);
               
               return (
@@ -78,7 +90,7 @@ const ReadingChallenges = ({ challenges, onJoinChallenge }: ReadingChallengesPro
                         </div>
                       </div>
                       <Badge variant="outline" className="border-blue-500 text-blue-700">
-                        +{challenge.reward.points} pts
+                        +{challenge.rewardPoints} pts
                       </Badge>
                     </div>
                   </CardHeader>
@@ -87,7 +99,7 @@ const ReadingChallenges = ({ challenges, onJoinChallenge }: ReadingChallengesPro
                       <div>
                         <div className="flex justify-between text-sm mb-2">
                           <span>{getChallengeTypeLabel(challenge.type)}</span>
-                          <span>{challenge.currentProgress}/{challenge.targetValue}</span>
+                          <span>{challenge.progress}/{challenge.targetValue}</span>
                         </div>
                         <Progress value={progress} className="h-3" />
                       </div>
@@ -146,7 +158,7 @@ const ReadingChallenges = ({ challenges, onJoinChallenge }: ReadingChallengesPro
                         </div>
                       </div>
                       <Badge className="bg-green-600">
-                        +{challenge.reward.points} pts
+                        +{challenge.rewardPoints} pts
                       </Badge>
                     </div>
                   </CardHeader>

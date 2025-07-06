@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, Send } from "lucide-react";
+import { BookPlus, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -51,60 +51,51 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
       
       if (!user) {
         toast({
-          title: "Authentication Error",
+          title: "Authentication Error", 
           description: "Please log in to request books.",
           variant: "destructive",
         });
         return;
       }
 
-      // Check if book already exists (students can read from books table)
-      const { data: existingBook } = await supabase
+      // Create a book request record with book information in admin_notes
+      // This is a request for the library to purchase a new book
+      const requestNotes = `NEW BOOK PURCHASE REQUEST - Title: ${formData.title}, Author: ${formData.author}`;
+      const additionalInfo = [];
+      
+      if (formData.isbn) additionalInfo.push(`ISBN: ${formData.isbn}`);
+      if (formData.description) additionalInfo.push(`Description: ${formData.description}`);
+      if (formData.reason) additionalInfo.push(`Reason for request: ${formData.reason}`);
+      
+      const finalNotes = additionalInfo.length > 0 
+        ? `${requestNotes}, ${additionalInfo.join(', ')}`
+        : requestNotes;
+
+      // We'll create a temporary book entry that admin can approve and finalize
+      const { data: tempBook, error: bookError } = await supabase
         .from('books')
-        .select('id')
-        .eq('title', formData.title)
-        .eq('author', formData.author)
-        .maybeSingle();
+        .insert({
+          title: `[PENDING PURCHASE] ${formData.title}`,
+          author: formData.author,
+          isbn: formData.isbn || null,
+          description: formData.description || null,
+          total_copies: 0,
+          available_copies: 0,
+        })
+        .select()
+        .single();
 
-      let bookId: string;
-      let requestNotes = '';
-
-      if (existingBook) {
-        // Book exists, create request for existing book
-        bookId = existingBook.id;
-        requestNotes = formData.reason ? `Student request reason: ${formData.reason}` : 'Request for existing book';
-      } else {
-        // Book doesn't exist, we need to create a placeholder request
-        // Since students can't create books directly, we'll create a temporary book ID
-        // and let admin handle book creation during approval
-        
-        // Create a request with detailed information in admin_notes for new book
-        requestNotes = `NEW BOOK REQUEST - Title: ${formData.title}, Author: ${formData.author}`;
-        if (formData.isbn) requestNotes += `, ISBN: ${formData.isbn}`;
-        if (formData.description) requestNotes += `, Description: ${formData.description}`;
-        if (formData.reason) requestNotes += `, Reason: ${formData.reason}`;
-        
-        // We'll use a special approach - create a request without a book_id initially
-        // But we need a book_id for the foreign key constraint, so let's first create a placeholder book
-        // Actually, let's try a different approach - we'll store the book info in admin_notes
-        // and set book_id to a placeholder that admin can update later
-        
-        // For now, let's just inform the user that admin will need to add the book first
-        toast({
-          title: "Book Not Found",
-          description: "This book is not in our library yet. Please ask an admin to add it first, then you can request it.",
-          variant: "destructive",
-        });
-        return;
+      if (bookError) {
+        throw bookError;
       }
 
-      // Create the book request for existing book
+      // Create the book request
       const { error: requestError } = await supabase
         .from('book_requests')
         .insert({
-          book_id: bookId,
+          book_id: tempBook.id,
           user_id: user.id,
-          admin_notes: requestNotes
+          admin_notes: finalNotes
         });
 
       if (requestError) {
@@ -113,7 +104,7 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
 
       toast({
         title: "Request Submitted",
-        description: "Your book request has been submitted successfully. Admin will review it soon.",
+        description: "Your book purchase request has been submitted. Admin will review it for library acquisition.",
       });
 
       // Reset form
@@ -137,7 +128,7 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
       console.error('Error submitting book request:', error);
       toast({
         title: "Error",
-        description: "Failed to submit book request. Please try again.",
+        description: "Failed to submit book purchase request. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -149,11 +140,11 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5" />
-          Request a Book
+          <BookPlus className="h-5 w-5" />
+          Request New Book for Library
         </CardTitle>
         <CardDescription>
-          Request a book that's available in our library catalog. If the book isn't available yet, please ask an admin to add it first.
+          Request a new book to be purchased for the library. Admin will review your request and consider adding it to the collection.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -182,21 +173,45 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="isbn">ISBN (Optional)</Label>
+              <Input
+                id="isbn"
+                value={formData.isbn}
+                onChange={(e) => handleInputChange('isbn', e.target.value)}
+                placeholder="Enter ISBN if known"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="reason">Why do you want this book? (Optional)</Label>
+            <Label htmlFor="description">Book Description (Optional)</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              placeholder="Brief description of the book"
+              rows={2}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reason">Why should the library buy this book? *</Label>
             <Textarea
               id="reason"
               value={formData.reason}
               onChange={(e) => handleInputChange('reason', e.target.value)}
-              placeholder="Tell us why you're interested in this book"
-              rows={2}
+              placeholder="Explain why this book would be a valuable addition to the library"
+              rows={3}
+              required
             />
           </div>
 
           <div className="flex gap-3 pt-4">
             <Button
               type="submit"
-              disabled={loading || !formData.title || !formData.author}
+              disabled={loading || !formData.title || !formData.author || !formData.reason}
               className="flex-1"
             >
               {loading ? (
@@ -207,7 +222,7 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
               ) : (
                 <div className="flex items-center gap-2">
                   <Send className="h-4 w-4" />
-                  Submit Request
+                  Submit Purchase Request
                 </div>
               )}
             </Button>
