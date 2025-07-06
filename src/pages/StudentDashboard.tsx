@@ -19,6 +19,7 @@ import SchoolLeaderboard from "@/components/rewards/SchoolLeaderboard";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import BookRequestForm from "@/components/BookRequestForm";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
+import { StudentQuiz } from "@/components/quiz/StudentQuiz";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ const StudentDashboard = () => {
   const [classRank, setClassRank] = useState<number | string>("N/A");
   const [currentBooksCount, setCurrentBooksCount] = useState(0);
   const [quizResultsCount, setQuizResultsCount] = useState(0);
+  const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
   
   // New state for real data
   const [currentBooks, setCurrentBooks] = useState<any[]>([]);
@@ -296,8 +298,24 @@ const StudentDashboard = () => {
   };
 
   const handleSelectQuiz = (quiz: any) => {
-    // TODO: Navigate to quiz taking page
-    console.log('Selected quiz:', quiz);
+    console.log('Selected quiz for taking:', quiz);
+    setSelectedQuiz(quiz);
+  };
+
+  const handleQuizComplete = (result: any) => {
+    console.log('Quiz completed with result:', result);
+    setSelectedQuiz(null);
+    // Refresh quiz results and user data
+    fetchQuizResults();
+    checkAuth();
+    toast({
+      title: "Quiz Completed!",
+      description: `You scored ${result.score}% and earned ${result.pointsEarned} points!`,
+    });
+  };
+
+  const handleBackFromQuiz = () => {
+    setSelectedQuiz(null);
   };
 
   if (loading) {
@@ -328,6 +346,46 @@ const StudentDashboard = () => {
             </Button>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Show quiz taking interface when a quiz is selected
+  if (selectedQuiz) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <BookOpen className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-gray-900">Digital Library</h1>
+                  <p className="text-sm text-gray-600">Quiz - {selectedQuiz.title}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">
+                    {user?.first_name} {user?.last_name}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {user?.points || 0} points • Class {user?.student_class}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <StudentQuiz 
+            quiz={selectedQuiz}
+            onComplete={handleQuizComplete}
+            onBack={handleBackFromQuiz}
+          />
+        </main>
       </div>
     );
   }

@@ -174,7 +174,7 @@ const Overview = ({
 
   const fetchStreak = async () => {
     try {
-      // Calculate streak based on reading history and quiz completions
+      // Get all activity dates from reading history and quiz results
       const { data: readingData } = await supabase
         .from('reading_history')
         .select('completed_date')
@@ -187,34 +187,52 @@ const Overview = ({
         .eq('user_id', user.id)
         .order('completed_at', { ascending: false });
 
-      // Combine and sort all activity dates
+      // Combine all activity dates and convert to date strings (YYYY-MM-DD format)
       const allDates = [
-        ...(readingData || []).map(item => new Date(item.completed_date)),
-        ...(quizData || []).map(item => new Date(item.completed_at))
-      ].sort((a, b) => b.getTime() - a.getTime());
+        ...(readingData || []).map(item => item.completed_date),
+        ...(quizData || []).map(item => new Date(item.completed_at).toISOString().split('T')[0])
+      ];
 
-      // Calculate consecutive days
+      // Remove duplicates and sort in descending order
+      const uniqueDates = Array.from(new Set(allDates)).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+      console.log('Activity dates for streak calculation:', uniqueDates);
+
+      if (uniqueDates.length === 0) {
+        setStreak(0);
+        return;
+      }
+
+      // Calculate streak
       let currentStreak = 0;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      for (let i = 0; i < allDates.length; i++) {
-        const activityDate = new Date(allDates[i]);
+      for (let i = 0; i < uniqueDates.length; i++) {
+        const activityDate = new Date(uniqueDates[i]);
         activityDate.setHours(0, 0, 0, 0);
         
         const daysDiff = Math.floor((today.getTime() - activityDate.getTime()) / (1000 * 60 * 60 * 24));
         
-        if (daysDiff === currentStreak || (currentStreak === 0 && daysDiff <= 1)) {
-          currentStreak = daysDiff + 1;
+        console.log(`Checking date ${uniqueDates[i]}, days diff: ${daysDiff}, current streak: ${currentStreak}`);
+        
+        if (daysDiff === currentStreak) {
+          // This date is consecutive
+          currentStreak++;
+        } else if (daysDiff === currentStreak + 1 && currentStreak === 0) {
+          // Yesterday's activity counts as start of streak
+          currentStreak = 1;
         } else {
+          // Gap in streak, stop counting
           break;
         }
       }
 
-      setStreak(Math.max(currentStreak, 1));
+      console.log('Final calculated streak:', currentStreak);
+      setStreak(currentStreak);
     } catch (error) {
       console.error('Error calculating streak:', error);
-      setStreak(1); // Default to 1 day
+      setStreak(0);
     } finally {
       setLoading(false);
     }

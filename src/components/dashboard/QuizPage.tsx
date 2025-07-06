@@ -26,13 +26,7 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
         description: `Starting "${quiz.title}" - Good luck!`,
       });
       
-      // For now, we'll just show a message until quiz taking is implemented
-      toast({
-        title: "Quiz Feature",
-        description: "Quiz taking functionality will be implemented soon!",
-        variant: "default",
-      });
-      
+      // Pass the quiz to the parent component for navigation
       onSelectQuiz(quiz);
     } catch (error) {
       console.error('Error starting quiz:', error);
