@@ -31,6 +31,13 @@ const StudentDashboard = () => {
   const [classRank, setClassRank] = useState<number | string>("N/A");
   const [currentBooksCount, setCurrentBooksCount] = useState(0);
   const [quizResultsCount, setQuizResultsCount] = useState(0);
+  
+  // New state for real data
+  const [currentBooks, setCurrentBooks] = useState<any[]>([]);
+  const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
+  const [quizResults, setQuizResults] = useState<any[]>([]);
+  const [challenges, setChallenges] = useState<any[]>([]);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<any[]>([]);
 
   useEffect(() => {
     checkAuth();
@@ -44,28 +51,173 @@ const StudentDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch current books count
-      const { data: bookIssues } = await supabase
+      await Promise.all([
+        fetchCurrentBooks(),
+        fetchAvailableQuizzes(),
+        fetchQuizResults(),
+        fetchChallenges(),
+        fetchClassLeaderboard()
+      ]);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  };
+
+  const fetchCurrentBooks = async () => {
+    try {
+      const { data: bookIssues, error } = await supabase
         .from('book_issues')
-        .select('*')
+        .select(`
+          *,
+          books (title, author)
+        `)
         .eq('user_id', user.id)
         .eq('status', 'issued');
 
-      setCurrentBooksCount(bookIssues?.length || 0);
+      if (error) throw error;
 
-      // Fetch quiz results count for current month
+      const formattedBooks = bookIssues?.map(issue => ({
+        id: issue.id,
+        title: issue.books?.title || 'Unknown Title',
+        author: issue.books?.author || 'Unknown Author',
+        issueDate: issue.issue_date,
+        dueDate: issue.due_date,
+        daysLeft: Math.ceil((new Date(issue.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      })) || [];
+
+      setCurrentBooks(formattedBooks);
+      setCurrentBooksCount(formattedBooks.length);
+    } catch (error) {
+      console.error('Error fetching current books:', error);
+    }
+  };
+
+  const fetchAvailableQuizzes = async () => {
+    try {
+      const { data: quizzes, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      const formattedQuizzes = quizzes?.map(quiz => ({
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description || '',
+        difficulty: quiz.difficulty,
+        timeLimit: quiz.time_limit,
+        pointsReward: quiz.points_reward,
+        questions: Array.isArray(quiz.questions) ? quiz.questions : []
+      })) || [];
+
+      setAvailableQuizzes(formattedQuizzes);
+    } catch (error) {
+      console.error('Error fetching available quizzes:', error);
+    }
+  };
+
+  const fetchQuizResults = async () => {
+    try {
+      const { data: results, error } = await supabase
+        .from('quiz_results')
+        .select(`
+          *,
+          quizzes (title)
+        `)
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      const formattedResults = results?.map(result => ({
+        id: result.id,
+        quizTitle: result.quizzes?.title || 'Unknown Quiz',
+        score: result.score,
+        pointsEarned: result.points_earned,
+        completedAt: result.completed_at,
+        correctAnswers: Math.round((result.score / 100) * (Array.isArray(result.answers) ? result.answers.length : 10)),
+        totalQuestions: Array.isArray(result.answers) ? result.answers.length : 10
+      })) || [];
+
+      setQuizResults(formattedResults);
+      
+      // Count current month results
       const currentMonth = new Date();
       const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      
-      const { data: quizResults } = await supabase
-        .from('quiz_results')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('completed_at', startOfMonth.toISOString());
-
-      setQuizResultsCount(quizResults?.length || 0);
+      const monthlyResults = results?.filter(result => 
+        new Date(result.completed_at) >= startOfMonth
+      ) || [];
+      setQuizResultsCount(monthlyResults.length);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('Error fetching quiz results:', error);
+    }
+  };
+
+  const fetchChallenges = async () => {
+    try {
+      const { data: challengesData, error } = await supabase
+        .from('challenges')
+        .select(`
+          *,
+          challenge_progress (
+            current_progress,
+            is_completed,
+            completed_at
+          )
+        `)
+        .eq('is_active', true)
+        .eq('challenge_progress.user_id', user.id);
+
+      if (error) throw error;
+
+      const formattedChallenges = challengesData?.map(challenge => ({
+        id: challenge.id,
+        title: challenge.title,
+        description: challenge.description,
+        type: challenge.type,
+        targetValue: challenge.target_value,
+        rewardPoints: challenge.reward_points,
+        deadline: challenge.deadline,
+        progress: challenge.challenge_progress?.[0]?.current_progress || 0,
+        isCompleted: challenge.challenge_progress?.[0]?.is_completed || false,
+        completedAt: challenge.challenge_progress?.[0]?.completed_at
+      })) || [];
+
+      setChallenges(formattedChallenges);
+    } catch (error) {
+      console.error('Error fetching challenges:', error);
+    }
+  };
+
+  const fetchClassLeaderboard = async () => {
+    try {
+      if (!user?.student_class) return;
+
+      const { data: classmates, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, points')
+        .eq('student_class', user.student_class)
+        .eq('is_approved', true)
+        .eq('role', 'student')
+        .order('points', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      const formattedEntries = classmates?.map((student, index) => ({
+        id: student.id,
+        name: `${student.first_name} ${student.last_name}`,
+        points: student.points || 0,
+        rank: index + 1
+      })) || [];
+
+      setLeaderboardEntries(formattedEntries);
+    } catch (error) {
+      console.error('Error fetching class leaderboard:', error);
     }
   };
 
@@ -140,6 +292,11 @@ const StudentDashboard = () => {
 
   const handleProfileUpdate = () => {
     checkAuth();
+  };
+
+  const handleSelectQuiz = (quiz: any) => {
+    // TODO: Navigate to quiz taking page
+    console.log('Selected quiz:', quiz);
   };
 
   if (loading) {
@@ -269,25 +426,27 @@ const StudentDashboard = () => {
           </TabsContent>
 
           <TabsContent value="books" className="space-y-6">
-            <CurrentBooks books={[]} />
+            <CurrentBooks books={currentBooks} />
             <ReadingHistoryManager />
           </TabsContent>
 
           <TabsContent value="quizzes">
-            <AvailableQuizzes quizzes={[]} onSelectQuiz={() => {}} />
+            <AvailableQuizzes quizzes={availableQuizzes} onSelectQuiz={handleSelectQuiz} />
           </TabsContent>
 
           <TabsContent value="results">
-            <QuizResults results={[]} />
+            <QuizResults results={quizResults} />
           </TabsContent>
 
           <TabsContent value="challenges" className="space-y-6">
-            <ReadingChallenges challenges={[]} />
+            <ReadingChallenges challenges={challenges} />
             <Achievements achievements={[]} userStats={{
               totalPoints: user?.points || 0,
               booksRead: 0,
-              quizzesCompleted: 0,
-              averageQuizScore: 0
+              quizzesCompleted: quizResults.length,
+              averageQuizScore: quizResults.length > 0 
+                ? Math.round(quizResults.reduce((sum, result) => sum + result.score, 0) / quizResults.length)
+                : 0
             }} />
           </TabsContent>
 
@@ -301,7 +460,7 @@ const StudentDashboard = () => {
                 <CardDescription>Your ranking within your class</CardDescription>
               </CardHeader>
               <CardContent>
-                <Leaderboard entries={[]} currentUserId={user?.id} />
+                <Leaderboard entries={leaderboardEntries} currentUserId={user?.id} />
               </CardContent>
             </Card>
           </TabsContent>
