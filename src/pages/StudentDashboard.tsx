@@ -12,8 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import Overview from "@/components/dashboard/Overview";
 import StatsCards from "@/components/dashboard/StatsCards";
 import CurrentBooks from "@/components/dashboard/CurrentBooks";
-import AvailableQuizzes from "@/components/dashboard/AvailableQuizzes";
-import QuizResults from "@/components/dashboard/QuizResults";
+import QuizPage from "@/components/dashboard/QuizPage";
 import ReadingChallenges from "@/components/rewards/ReadingChallenges";
 import Achievements from "@/components/rewards/Achievements";
 import Leaderboard from "@/components/rewards/Leaderboard";
@@ -37,7 +36,7 @@ const StudentDashboard = () => {
   const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
   const [quizResults, setQuizResults] = useState<any[]>([]);
   const [challenges, setChallenges] = useState<any[]>([]);
-  const [leaderboardEntries, setLeaderboardEntries] = useState<any[]>([]);
+  const [classLeaderboardEntries, setClassLeaderboardEntries] = useState<any[]>([]);
 
   useEffect(() => {
     checkAuth();
@@ -210,12 +209,15 @@ const StudentDashboard = () => {
 
       const formattedEntries = classmates?.map((student, index) => ({
         id: student.id,
-        name: `${student.first_name} ${student.last_name}`,
-        points: student.points || 0,
-        rank: index + 1
+        studentId: student.id,
+        studentName: `${student.first_name} ${student.last_name}`,
+        studentClass: user.student_class,
+        totalPoints: student.points || 0,
+        rank: index + 1,
+        recentActivity: 'Active this week'
       })) || [];
 
-      setLeaderboardEntries(formattedEntries);
+      setClassLeaderboardEntries(formattedEntries);
     } catch (error) {
       console.error('Error fetching class leaderboard:', error);
     }
@@ -404,14 +406,13 @@ const StudentDashboard = () => {
 
         {/* Main Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="books">My Books</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
-            <TabsTrigger value="results">Quiz Results</TabsTrigger>
             <TabsTrigger value="challenges">Challenges</TabsTrigger>
-            <TabsTrigger value="leaderboard">Class Rank</TabsTrigger>
-            <TabsTrigger value="school-leaderboard">School Rank</TabsTrigger>
+            <TabsTrigger value="class-rank">Class Rank</TabsTrigger>
+            <TabsTrigger value="school-rank">School Rank</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
 
@@ -431,11 +432,11 @@ const StudentDashboard = () => {
           </TabsContent>
 
           <TabsContent value="quizzes">
-            <AvailableQuizzes quizzes={availableQuizzes} onSelectQuiz={handleSelectQuiz} />
-          </TabsContent>
-
-          <TabsContent value="results">
-            <QuizResults results={quizResults} />
+            <QuizPage 
+              quizzes={availableQuizzes} 
+              results={quizResults} 
+              onSelectQuiz={handleSelectQuiz} 
+            />
           </TabsContent>
 
           <TabsContent value="challenges" className="space-y-6">
@@ -450,7 +451,7 @@ const StudentDashboard = () => {
             }} />
           </TabsContent>
 
-          <TabsContent value="leaderboard">
+          <TabsContent value="class-rank">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -460,12 +461,12 @@ const StudentDashboard = () => {
                 <CardDescription>Your ranking within your class</CardDescription>
               </CardHeader>
               <CardContent>
-                <Leaderboard entries={leaderboardEntries} currentUserId={user?.id} />
+                <Leaderboard entries={classLeaderboardEntries} currentUserId={user?.id} />
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="school-leaderboard">
+          <TabsContent value="school-rank">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
