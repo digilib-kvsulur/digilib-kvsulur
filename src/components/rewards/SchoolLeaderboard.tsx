@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,14 +25,21 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
   const [entries, setEntries] = useState<SchoolLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
+  const [schoolStats, setSchoolStats] = useState({
+    totalStudents: 0,
+    totalPoints: 0,
+    averagePoints: 0
+  });
   const { toast } = useToast();
 
   useEffect(() => {
     loadLeaderboard();
-  }, []);
+  }, [currentUserId]);
 
   const loadLeaderboard = async () => {
     try {
+      console.log('Loading school leaderboard...');
+      
       // Get all approved students with points, ordered by points
       const { data: students, error } = await supabase
         .from('profiles')
@@ -44,6 +52,8 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
 
       if (error) throw error;
 
+      console.log('Raw school leaderboard data:', students);
+
       // Add rank to each entry
       const rankedEntries: SchoolLeaderboardEntry[] = (students || []).map((student, index) => ({
         ...student,
@@ -51,12 +61,28 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
         rank: index + 1
       }));
 
+      console.log('Ranked school leaderboard entries:', rankedEntries);
       setEntries(rankedEntries);
+
+      // Calculate school statistics
+      const totalStudents = rankedEntries.length;
+      const totalPoints = rankedEntries.reduce((sum, entry) => sum + entry.points, 0);
+      const averagePoints = totalStudents > 0 ? Math.round(totalPoints / totalStudents) : 0;
+
+      setSchoolStats({
+        totalStudents,
+        totalPoints,
+        averagePoints
+      });
+
+      console.log('School statistics:', { totalStudents, totalPoints, averagePoints });
 
       // Find current user's rank
       if (currentUserId) {
         const userEntry = rankedEntries.find(entry => entry.id === currentUserId);
-        setCurrentUserRank(userEntry?.rank || null);
+        const userRank = userEntry?.rank || null;
+        console.log('Current user rank:', userRank);
+        setCurrentUserRank(userRank);
       }
 
     } catch (error) {
@@ -122,13 +148,13 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
           <CardContent>
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 mb-2">#{currentUserRank}</div>
-              <p className="text-blue-700">out of {entries.length} students</p>
+              <p className="text-blue-700">out of {schoolStats.totalStudents} students</p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Overall Statistics */}
+      {/* School Statistics */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -139,19 +165,15 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-blue-600">{entries.length}</div>
+              <div className="text-2xl font-bold text-blue-600">{schoolStats.totalStudents}</div>
               <p className="text-sm text-gray-600">Active Students</p>
             </div>
             <div>
-              <div className="text-2xl font-bold text-green-600">
-                {entries.reduce((sum, entry) => sum + entry.points, 0)}
-              </div>
+              <div className="text-2xl font-bold text-green-600">{schoolStats.totalPoints}</div>
               <p className="text-sm text-gray-600">Total Points Earned</p>
             </div>
             <div>
-              <div className="text-2xl font-bold text-purple-600">
-                {entries.length > 0 ? Math.round(entries.reduce((sum, entry) => sum + entry.points, 0) / entries.length) : 0}
-              </div>
+              <div className="text-2xl font-bold text-purple-600">{schoolStats.averagePoints}</div>
               <p className="text-sm text-gray-600">Average Points</p>
             </div>
           </div>

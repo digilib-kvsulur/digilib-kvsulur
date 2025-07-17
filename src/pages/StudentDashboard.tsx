@@ -197,16 +197,21 @@ const StudentDashboard = () => {
     try {
       if (!user?.student_class) return;
 
+      console.log('Fetching class leaderboard for class:', user.student_class);
+
       const { data: classmates, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, points')
+        .select('id, first_name, last_name, points, admission_number')
         .eq('student_class', user.student_class)
         .eq('is_approved', true)
         .eq('role', 'student')
+        .not('points', 'is', null)
         .order('points', { ascending: false })
-        .limit(10);
+        .order('first_name', { ascending: true });
 
       if (error) throw error;
+
+      console.log('Class leaderboard raw data:', classmates);
 
       const formattedEntries = classmates?.map((student, index) => ({
         id: student.id,
@@ -215,9 +220,11 @@ const StudentDashboard = () => {
         studentClass: user.student_class,
         totalPoints: student.points || 0,
         rank: index + 1,
-        recentActivity: 'Active this week'
+        recentActivity: student.points > 0 ? 'Active this week' : 'Getting started',
+        admissionNumber: student.admission_number
       })) || [];
 
+      console.log('Formatted class leaderboard entries:', formattedEntries);
       setClassLeaderboardEntries(formattedEntries);
     } catch (error) {
       console.error('Error fetching class leaderboard:', error);
@@ -264,7 +271,7 @@ const StudentDashboard = () => {
 
       setUser(profile);
       
-      // Fetch class rank
+      // Fetch class rank using the database function
       if (profile.student_class && profile.points !== null) {
         try {
           const { data: rankData, error: rankError } = await supabase
@@ -273,7 +280,8 @@ const StudentDashboard = () => {
               user_points: profile.points
             });
 
-          if (!rankError && rankData) {
+          console.log('Class rank result:', rankData);
+          if (!rankError && rankData !== null) {
             setClassRank(rankData);
           }
         } catch (error) {
