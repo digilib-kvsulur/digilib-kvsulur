@@ -38,35 +38,51 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
 
   const loadLeaderboard = async () => {
     try {
-      console.log('Loading school leaderboard...');
+      console.log('Loading school leaderboard for user:', currentUserId);
       
-      // Get all approved students with points, ordered by points
+      // Get all approved students with points, ordered by points (highest first)
       const { data: students, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, student_class, admission_number, points')
         .eq('role', 'student')
         .eq('is_approved', true)
-        .gte('points', 0) // Only include students with points >= 0
+        .not('points', 'is', null)
         .order('points', { ascending: false })
         .order('first_name', { ascending: true }); // Secondary sort by name for ties
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('Supabase error loading school leaderboard:', error);
         throw error;
       }
 
       console.log('Raw school leaderboard data:', students);
 
-      // Filter out students with null points and add rank to each entry
+      // Filter and rank students
       const validStudents = (students || []).filter(student => 
-        student.points !== null && student.points !== undefined
+        student.points !== null && 
+        student.points !== undefined &&
+        student.first_name &&
+        student.last_name
       );
 
-      const rankedEntries: SchoolLeaderboardEntry[] = validStudents.map((student, index) => ({
-        ...student,
-        points: student.points || 0,
-        rank: index + 1
-      }));
+      console.log('Valid students for school leaderboard:', validStudents);
+
+      // Add proper ranking - students with same points get same rank
+      const rankedEntries: SchoolLeaderboardEntry[] = [];
+      let currentRank = 1;
+      
+      validStudents.forEach((student, index) => {
+        // If this student has different points than previous, update rank
+        if (index > 0 && student.points !== validStudents[index - 1].points) {
+          currentRank = index + 1;
+        }
+        
+        rankedEntries.push({
+          ...student,
+          points: student.points || 0,
+          rank: currentRank
+        });
+      });
 
       console.log('Ranked school leaderboard entries:', rankedEntries);
       setEntries(rankedEntries);
@@ -82,13 +98,13 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
         averagePoints
       });
 
-      console.log('School statistics:', { totalStudents, totalPoints, averagePoints });
+      console.log('School statistics calculated:', { totalStudents, totalPoints, averagePoints });
 
       // Find current user's rank
       if (currentUserId) {
         const userEntry = rankedEntries.find(entry => entry.id === currentUserId);
         const userRank = userEntry?.rank || null;
-        console.log('Current user rank:', userRank);
+        console.log('Current user school rank:', userRank, 'for user:', currentUserId);
         setCurrentUserRank(userRank);
       }
 

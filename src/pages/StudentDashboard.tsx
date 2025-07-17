@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -235,6 +234,7 @@ const StudentDashboard = () => {
         .eq('student_class', user.student_class)
         .eq('is_approved', true)
         .eq('role', 'student')
+        .not('points', 'is', null)
         .order('points', { ascending: false })
         .order('first_name', { ascending: true });
 
@@ -245,16 +245,34 @@ const StudentDashboard = () => {
 
       console.log('Class leaderboard raw data:', classmates);
 
-      const formattedEntries = classmates?.map((student, index) => ({
-        id: student.id,
-        studentId: student.id,
-        studentName: `${student.first_name} ${student.last_name}`,
-        studentClass: student.student_class,
-        totalPoints: student.points || 0,
-        rank: index + 1,
-        recentActivity: student.points > 0 ? 'Active this week' : 'Getting started',
-        admissionNumber: student.admission_number
-      })) || [];
+      // Filter valid students and add proper ranking
+      const validStudents = (classmates || []).filter(student => 
+        student.points !== null && 
+        student.points !== undefined &&
+        student.first_name &&
+        student.last_name
+      );
+
+      const formattedEntries = [];
+      let currentRank = 1;
+      
+      validStudents.forEach((student, index) => {
+        // If this student has different points than previous, update rank
+        if (index > 0 && student.points !== validStudents[index - 1].points) {
+          currentRank = index + 1;
+        }
+        
+        formattedEntries.push({
+          id: student.id,
+          studentId: student.id,
+          studentName: `${student.first_name} ${student.last_name}`,
+          studentClass: student.student_class,
+          totalPoints: student.points || 0,
+          rank: currentRank,
+          recentActivity: student.points > 0 ? 'Active this week' : 'Getting started',
+          admissionNumber: student.admission_number
+        });
+      });
 
       console.log('Formatted class leaderboard entries:', formattedEntries);
       setClassLeaderboardEntries(formattedEntries);
@@ -304,10 +322,10 @@ const StudentDashboard = () => {
       console.log('User profile loaded:', profile);
       setUser(profile);
       
-      // Calculate class rank properly
+      // Calculate class rank using proper database function
       if (profile.student_class && profile.points !== null) {
         try {
-          console.log('Calculating class rank for:', profile.student_class, profile.points);
+          console.log('Calculating class rank for class:', profile.student_class, 'points:', profile.points);
           
           const { data: rankData, error: rankError } = await supabase
             .rpc('get_user_class_rank', {
@@ -315,12 +333,25 @@ const StudentDashboard = () => {
               user_points: profile.points || 0
             });
 
-          console.log('Class rank result:', rankData);
+          console.log('Class rank result from RPC:', rankData);
           if (!rankError && rankData !== null) {
             setClassRank(rankData);
           } else {
             console.error('Error getting class rank:', rankError);
-            setClassRank("N/A");
+            // Fallback: calculate manually
+            const { data: classmatesCount, error: countError } = await supabase
+              .from('profiles')
+              .select('points')
+              .eq('student_class', profile.student_class)
+              .eq('is_approved', true)
+              .eq('role', 'student')
+              .gt('points', profile.points || 0);
+            
+            if (!countError) {
+              setClassRank((classmatesCount?.length || 0) + 1);
+            } else {
+              setClassRank("N/A");
+            }
           }
         } catch (error) {
           console.error('Error fetching class rank:', error);
