@@ -212,6 +212,45 @@ export type Database = {
         }
         Relationships: []
       }
+      levels: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          icon_name: string
+          id: string
+          level_number: number
+          max_points: number | null
+          min_points: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon_name?: string
+          id?: string
+          level_number: number
+          max_points?: number | null
+          min_points: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon_name?: string
+          id?: string
+          level_number?: number
+          max_points?: number | null
+          min_points?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           admission_number: string | null
@@ -423,6 +462,20 @@ export type Database = {
       get_user_class_rank: {
         Args: { user_class: string; user_points: number }
         Returns: number
+      }
+      get_user_level: {
+        Args: { user_points: number }
+        Returns: {
+          level_number: number
+          name: string
+          min_points: number
+          max_points: number
+          icon_name: string
+          color: string
+          description: string
+          progress_to_next: number
+          points_to_next: number
+        }[]
       }
       update_challenge_progress: {
         Args: {

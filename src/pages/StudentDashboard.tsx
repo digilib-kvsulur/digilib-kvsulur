@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, LogOut, Trophy, Target, User, Users, Award, BookPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import UserLevel from "@/components/UserLevel";
 
 // Import components
 import Overview from "@/components/dashboard/Overview";
@@ -456,9 +457,7 @@ const StudentDashboard = () => {
                   <p className="text-sm font-medium text-gray-900">
                     {user?.first_name} {user?.last_name}
                   </p>
-                  <p className="text-xs text-gray-600">
-                    {user?.points || 0} points • Class {user?.student_class}
-                  </p>
+                  <UserLevel userPoints={user?.points || 0} showDetails={false} />
                 </div>
               </div>
             </div>
@@ -501,9 +500,7 @@ const StudentDashboard = () => {
                 <p className="text-sm font-medium text-gray-900">
                   {user?.first_name} {user?.last_name}
                 </p>
-                <p className="text-xs text-gray-600">
-                  {user?.points || 0} points • Class {user?.student_class}
-                </p>
+                <UserLevel userPoints={user?.points || 0} showDetails={false} />
               </div>
               <Button onClick={handleLogout} variant="outline" size="sm">
                 <LogOut className="h-4 w-4 mr-2" />
@@ -526,6 +523,19 @@ const StudentDashboard = () => {
             userClass={user?.student_class || ""}
             levelInfo={levelInfo}
           />
+        </div>
+
+        {/* User Level Card */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Progress</CardTitle>
+              <CardDescription>Track your reading level and achievements</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <UserLevel userPoints={user?.points || 0} showDetails={true} />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Quick Actions */}
