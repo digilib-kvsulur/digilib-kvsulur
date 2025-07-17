@@ -50,10 +50,17 @@ const getChallengeTypeLabel = (type: string) => {
 };
 
 const ReadingChallenges = ({ challenges, onJoinChallenge }: ReadingChallengesProps) => {
+  console.log('ReadingChallenges received challenges:', challenges);
+
   const activeChallenges = challenges.filter(c => !c.isCompleted);
   const completedChallenges = challenges.filter(c => c.isCompleted);
 
+  console.log('Active challenges:', activeChallenges);
+  console.log('Completed challenges:', completedChallenges);
+
   const getDaysRemaining = (deadline: string) => {
+    if (!deadline) return 'No deadline';
+    
     const today = new Date();
     const deadlineDate = new Date(deadline);
     const diffTime = deadlineDate.getTime() - today.getTime();
@@ -73,7 +80,7 @@ const ReadingChallenges = ({ challenges, onJoinChallenge }: ReadingChallengesPro
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeChallenges.map((challenge) => {
               const IconComponent = getChallengeIcon(challenge.type);
-              const progress = (challenge.progress / challenge.targetValue) * 100;
+              const progress = Math.min((challenge.progress / challenge.targetValue) * 100, 100);
               const daysRemaining = getDaysRemaining(challenge.deadline);
               
               return (
@@ -108,7 +115,10 @@ const ReadingChallenges = ({ challenges, onJoinChallenge }: ReadingChallengesPro
                         <div className="flex items-center gap-1 text-sm text-gray-600">
                           <Clock className="h-4 w-4" />
                           <span>
-                            {daysRemaining > 0 ? `${daysRemaining} days left` : 'Expires today'}
+                            {typeof daysRemaining === 'number' 
+                              ? (daysRemaining > 0 ? `${daysRemaining} days left` : 'Expires today')
+                              : daysRemaining
+                            }
                           </span>
                         </div>
                         {progress < 100 && onJoinChallenge && (

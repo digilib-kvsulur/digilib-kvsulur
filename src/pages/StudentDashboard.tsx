@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,34 +160,60 @@ const StudentDashboard = () => {
 
   const fetchChallenges = async () => {
     try {
-      const { data: challengesData, error } = await supabase
+      console.log('Fetching challenges for user:', user.id);
+      
+      // First get all active challenges
+      const { data: challengesData, error: challengesError } = await supabase
         .from('challenges')
-        .select(`
-          *,
-          challenge_progress (
-            current_progress,
-            is_completed,
-            completed_at
-          )
-        `)
-        .eq('is_active', true)
-        .eq('challenge_progress.user_id', user.id);
+        .select('*')
+        .eq('is_active', true);
 
-      if (error) throw error;
+      if (challengesError) {
+        console.error('Error fetching challenges:', challengesError);
+        return;
+      }
 
-      const formattedChallenges = challengesData?.map(challenge => ({
-        id: challenge.id,
-        title: challenge.title,
-        description: challenge.description,
-        type: challenge.type,
-        targetValue: challenge.target_value,
-        rewardPoints: challenge.reward_points,
-        deadline: challenge.deadline,
-        progress: challenge.challenge_progress?.[0]?.current_progress || 0,
-        isCompleted: challenge.challenge_progress?.[0]?.is_completed || false,
-        completedAt: challenge.challenge_progress?.[0]?.completed_at
-      })) || [];
+      console.log('Active challenges:', challengesData);
 
+      // Then get user's progress for these challenges
+      const challengeIds = challengesData?.map(c => c.id) || [];
+      
+      let progressData = [];
+      if (challengeIds.length > 0) {
+        const { data: progress, error: progressError } = await supabase
+          .from('challenge_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .in('challenge_id', challengeIds);
+
+        if (progressError) {
+          console.error('Error fetching challenge progress:', progressError);
+        } else {
+          progressData = progress || [];
+        }
+      }
+
+      console.log('User challenge progress:', progressData);
+
+      // Combine challenges with progress
+      const formattedChallenges = challengesData?.map(challenge => {
+        const userProgress = progressData.find(p => p.challenge_id === challenge.id);
+        
+        return {
+          id: challenge.id,
+          title: challenge.title,
+          description: challenge.description,
+          type: challenge.type,
+          targetValue: challenge.target_value,
+          rewardPoints: challenge.reward_points,
+          deadline: challenge.deadline,
+          progress: userProgress?.current_progress || 0,
+          isCompleted: userProgress?.is_completed || false,
+          completedAt: userProgress?.completed_at
+        };
+      }) || [];
+
+      console.log('Formatted challenges:', formattedChallenges);
       setChallenges(formattedChallenges);
     } catch (error) {
       console.error('Error fetching challenges:', error);
@@ -195,21 +222,26 @@ const StudentDashboard = () => {
 
   const fetchClassLeaderboard = async () => {
     try {
-      if (!user?.student_class) return;
+      if (!user?.student_class) {
+        console.log('No student class found for user');
+        return;
+      }
 
       console.log('Fetching class leaderboard for class:', user.student_class);
 
       const { data: classmates, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, points, admission_number')
+        .select('id, first_name, last_name, points, admission_number, student_class')
         .eq('student_class', user.student_class)
         .eq('is_approved', true)
         .eq('role', 'student')
-        .not('points', 'is', null)
         .order('points', { ascending: false })
         .order('first_name', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching class leaderboard:', error);
+        return;
+      }
 
       console.log('Class leaderboard raw data:', classmates);
 
@@ -217,7 +249,7 @@ const StudentDashboard = () => {
         id: student.id,
         studentId: student.id,
         studentName: `${student.first_name} ${student.last_name}`,
-        studentClass: user.student_class,
+        studentClass: student.student_class,
         totalPoints: student.points || 0,
         rank: index + 1,
         recentActivity: student.points > 0 ? 'Active this week' : 'Getting started',
@@ -269,23 +301,30 @@ const StudentDashboard = () => {
         });
       }
 
+      console.log('User profile loaded:', profile);
       setUser(profile);
       
-      // Fetch class rank using the database function
+      // Calculate class rank properly
       if (profile.student_class && profile.points !== null) {
         try {
+          console.log('Calculating class rank for:', profile.student_class, profile.points);
+          
           const { data: rankData, error: rankError } = await supabase
             .rpc('get_user_class_rank', {
               user_class: profile.student_class,
-              user_points: profile.points
+              user_points: profile.points || 0
             });
 
           console.log('Class rank result:', rankData);
           if (!rankError && rankData !== null) {
             setClassRank(rankData);
+          } else {
+            console.error('Error getting class rank:', rankError);
+            setClassRank("N/A");
           }
         } catch (error) {
           console.error('Error fetching class rank:', error);
+          setClassRank("N/A");
         }
       }
     } catch (error) {
@@ -303,6 +342,7 @@ const StudentDashboard = () => {
 
   const handleProfileUpdate = () => {
     checkAuth();
+    fetchDashboardData();
   };
 
   const handleSelectQuiz = (quiz: any) => {
@@ -310,12 +350,18 @@ const StudentDashboard = () => {
     setSelectedQuiz(quiz);
   };
 
-  const handleQuizComplete = (result: any) => {
+  const handleQuizComplete = async (result: any) => {
     console.log('Quiz completed with result:', result);
     setSelectedQuiz(null);
-    // Refresh quiz results and user data
-    fetchQuizResults();
-    checkAuth();
+    
+    // Refresh all data after quiz completion
+    await Promise.all([
+      fetchQuizResults(),
+      checkAuth(), // This will refresh user points and class rank
+      fetchChallenges(), // Refresh challenges as quiz completion might update progress
+      fetchClassLeaderboard() // Refresh leaderboard
+    ]);
+    
     toast({
       title: "Quiz Completed!",
       description: `You scored ${result.score}% and earned ${result.pointsEarned} points!`,

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -36,8 +37,21 @@ const getRankColor = (rank: number) => {
 };
 
 const Leaderboard = ({ entries, currentUserId }: LeaderboardProps) => {
-  const topThree = entries.slice(0, 3);
-  const others = entries.slice(3);
+  console.log('Leaderboard entries:', entries);
+  console.log('Current user ID:', currentUserId);
+
+  // Filter out entries with invalid data
+  const validEntries = entries.filter(entry => 
+    entry && 
+    entry.studentName && 
+    typeof entry.totalPoints === 'number' &&
+    entry.totalPoints >= 0
+  );
+
+  console.log('Valid leaderboard entries:', validEntries);
+
+  const topThree = validEntries.slice(0, 3);
+  const others = validEntries.slice(3);
 
   return (
     <div className="space-y-6">
@@ -51,7 +65,7 @@ const Leaderboard = ({ entries, currentUserId }: LeaderboardProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {topThree.map((entry) => (
               <Card 
-                key={entry.id} 
+                key={entry.id || entry.studentId} 
                 className={`${getRankColor(entry.rank)} ${
                   entry.studentId === currentUserId ? 'ring-2 ring-blue-500' : ''
                 }`}
@@ -63,7 +77,7 @@ const Leaderboard = ({ entries, currentUserId }: LeaderboardProps) => {
                   <div className="flex justify-center mb-3">
                     <Avatar className="h-16 w-16">
                       <AvatarFallback className="bg-blue-100 text-blue-600 text-lg font-semibold">
-                        {entry.studentName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        {entry.studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                   </div>
@@ -75,6 +89,9 @@ const Leaderboard = ({ entries, currentUserId }: LeaderboardProps) => {
                     {entry.totalPoints}
                   </div>
                   <p className="text-sm text-gray-600">points</p>
+                  {entry.studentId === currentUserId && (
+                    <Badge variant="secondary" className="mt-2">You</Badge>
+                  )}
                   <p className="text-xs text-gray-500 mt-2">
                     {entry.recentActivity}
                   </p>
@@ -94,7 +111,7 @@ const Leaderboard = ({ entries, currentUserId }: LeaderboardProps) => {
               <div className="divide-y">
                 {others.map((entry) => (
                   <div 
-                    key={entry.id} 
+                    key={entry.id || entry.studentId} 
                     className={`p-4 flex items-center gap-4 ${
                       entry.studentId === currentUserId ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                     }`}
@@ -105,7 +122,7 @@ const Leaderboard = ({ entries, currentUserId }: LeaderboardProps) => {
                     
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-gray-100 text-gray-600">
-                        {entry.studentName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        {entry.studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                     
@@ -134,7 +151,7 @@ const Leaderboard = ({ entries, currentUserId }: LeaderboardProps) => {
         </div>
       )}
 
-      {entries.length === 0 && (
+      {validEntries.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
             <User className="h-12 w-12 text-gray-300 mx-auto mb-4" />

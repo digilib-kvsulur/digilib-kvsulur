@@ -46,16 +46,23 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
         .select('id, first_name, last_name, student_class, admission_number, points')
         .eq('role', 'student')
         .eq('is_approved', true)
-        .not('points', 'is', null)
+        .gte('points', 0) // Only include students with points >= 0
         .order('points', { ascending: false })
         .order('first_name', { ascending: true }); // Secondary sort by name for ties
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       console.log('Raw school leaderboard data:', students);
 
-      // Add rank to each entry
-      const rankedEntries: SchoolLeaderboardEntry[] = (students || []).map((student, index) => ({
+      // Filter out students with null points and add rank to each entry
+      const validStudents = (students || []).filter(student => 
+        student.points !== null && student.points !== undefined
+      );
+
+      const rankedEntries: SchoolLeaderboardEntry[] = validStudents.map((student, index) => ({
         ...student,
         points: student.points || 0,
         rank: index + 1
