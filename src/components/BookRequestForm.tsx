@@ -58,44 +58,31 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
         return;
       }
 
-      // Create a book request record with book information in admin_notes
+      // Create a book request with all book information in admin_notes
       // This is a request for the library to purchase a new book
-      const requestNotes = `NEW BOOK PURCHASE REQUEST - Title: ${formData.title}, Author: ${formData.author}`;
-      const additionalInfo = [];
-      
-      if (formData.isbn) additionalInfo.push(`ISBN: ${formData.isbn}`);
-      if (formData.description) additionalInfo.push(`Description: ${formData.description}`);
-      if (formData.reason) additionalInfo.push(`Reason for request: ${formData.reason}`);
-      
-      const finalNotes = additionalInfo.length > 0 
-        ? `${requestNotes}, ${additionalInfo.join(', ')}`
-        : requestNotes;
+      const bookInfo = {
+        title: formData.title,
+        author: formData.author,
+        isbn: formData.isbn || 'Not provided',
+        description: formData.description || 'Not provided',
+        reason: formData.reason
+      };
 
-      // We'll create a temporary book entry that admin can approve and finalize
-      const { data: tempBook, error: bookError } = await supabase
-        .from('books')
-        .insert({
-          title: `[PENDING PURCHASE] ${formData.title}`,
-          author: formData.author,
-          isbn: formData.isbn || null,
-          description: formData.description || null,
-          total_copies: 0,
-          available_copies: 0,
-        })
-        .select()
-        .single();
+      const requestNotes = `NEW BOOK PURCHASE REQUEST
+Title: ${bookInfo.title}
+Author: ${bookInfo.author}
+ISBN: ${bookInfo.isbn}
+Description: ${bookInfo.description}
+Reason for request: ${bookInfo.reason}`;
 
-      if (bookError) {
-        throw bookError;
-      }
-
-      // Create the book request
+      // Create the book request without needing a book_id (students can't create books)
       const { error: requestError } = await supabase
         .from('book_requests')
         .insert({
-          book_id: tempBook.id,
+          book_id: null, // No book_id needed for purchase requests
           user_id: user.id,
-          admin_notes: finalNotes
+          admin_notes: requestNotes,
+          status: 'pending'
         });
 
       if (requestError) {
