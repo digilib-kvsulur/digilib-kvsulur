@@ -58,30 +58,17 @@ const BookRequestForm = ({ onClose, onSuccess }: BookRequestFormProps) => {
         return;
       }
 
-      // Create a book request with all book information in admin_notes
-      // This is a request for the library to purchase a new book
-      const bookInfo = {
-        title: formData.title,
-        author: formData.author,
-        isbn: formData.isbn || 'Not provided',
-        description: formData.description || 'Not provided',
-        reason: formData.reason
-      };
-
-      const requestNotes = `NEW BOOK PURCHASE REQUEST
-Title: ${bookInfo.title}
-Author: ${bookInfo.author}
-ISBN: ${bookInfo.isbn}
-Description: ${bookInfo.description}
-Reason for request: ${bookInfo.reason}`;
-
-      // Create the book request without needing a book_id (students can't create books)
+      // Create the book request with structured data in dedicated columns
       const { error: requestError } = await supabase
         .from('book_requests')
         .insert({
-          book_id: null, // No book_id needed for purchase requests
+          book_id: null, // No book_id for purchase requests
           user_id: user.id,
-          admin_notes: requestNotes,
+          requested_title: formData.title,
+          requested_author: formData.author,
+          requested_isbn: formData.isbn || null,
+          requested_description: formData.description || null,
+          admin_notes: `Reason for request: ${formData.reason}`,
           status: 'pending'
         });
 

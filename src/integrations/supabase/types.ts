@@ -58,28 +58,40 @@ export type Database = {
       book_requests: {
         Row: {
           admin_notes: string | null
-          book_id: string
+          book_id: string | null
           created_at: string | null
           id: string
           requested_at: string
+          requested_author: string | null
+          requested_description: string | null
+          requested_isbn: string | null
+          requested_title: string | null
           status: string
           user_id: string
         }
         Insert: {
           admin_notes?: string | null
-          book_id: string
+          book_id?: string | null
           created_at?: string | null
           id?: string
           requested_at?: string
+          requested_author?: string | null
+          requested_description?: string | null
+          requested_isbn?: string | null
+          requested_title?: string | null
           status?: string
           user_id: string
         }
         Update: {
           admin_notes?: string | null
-          book_id?: string
+          book_id?: string | null
           created_at?: string | null
           id?: string
           requested_at?: string
+          requested_author?: string | null
+          requested_description?: string | null
+          requested_isbn?: string | null
+          requested_title?: string | null
           status?: string
           user_id?: string
         }
