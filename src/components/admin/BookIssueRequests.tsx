@@ -10,11 +10,15 @@ import { useToast } from "@/hooks/use-toast";
 
 interface BookRequest {
   id: string;
-  book_id: string;
+  book_id: string | null;
   user_id: string;
   requested_at: string;
   status: string;
   admin_notes?: string;
+  requested_title?: string;
+  requested_author?: string;
+  requested_isbn?: string;
+  requested_description?: string;
   books?: {
     title: string;
     author: string;
@@ -263,8 +267,15 @@ const BookIssueRequests = () => {
                 <TableRow key={request.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{request.books?.title || 'Unknown Book'}</p>
-                      <p className="text-sm text-gray-600">{request.books?.author || 'Unknown Author'}</p>
+                      <p className="font-medium">
+                        {request.books?.title || request.requested_title || 'Unknown Book'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {request.books?.author || request.requested_author || 'Unknown Author'}
+                      </p>
+                      {!request.book_id && (
+                        <Badge variant="outline" className="text-xs mt-1">New Book Request</Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -277,22 +288,36 @@ const BookIssueRequests = () => {
                   </TableCell>
                   <TableCell>{new Date(request.requested_at).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <Badge 
-                      variant={request.books?.available_copies && request.books.available_copies > 0 ? 'default' : 'destructive'}
-                    >
-                      {request.books?.available_copies || 0} available
-                    </Badge>
+                    {request.book_id ? (
+                      <Badge 
+                        variant={request.books?.available_copies && request.books.available_copies > 0 ? 'default' : 'destructive'}
+                      >
+                        {request.books?.available_copies || 0} available
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">Purchase Request</Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApproveRequest(request.id, request.book_id, request.user_id)}
-                        disabled={!request.books?.available_copies || request.books.available_copies <= 0}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Approve
-                      </Button>
+                      {request.book_id ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleApproveRequest(request.id, request.book_id!, request.user_id)}
+                          disabled={!request.books?.available_copies || request.books.available_copies <= 0}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Issue Book
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRejectRequest(request.id, "Book needs to be purchased first")}
+                        >
+                          Mark for Purchase
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="destructive"
@@ -343,8 +368,15 @@ const BookIssueRequests = () => {
                 <TableRow key={request.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{request.books?.title || 'Unknown Book'}</p>
-                      <p className="text-sm text-gray-600">{request.books?.author || 'Unknown Author'}</p>
+                      <p className="font-medium">
+                        {request.books?.title || request.requested_title || 'Unknown Book'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {request.books?.author || request.requested_author || 'Unknown Author'}
+                      </p>
+                      {!request.book_id && (
+                        <Badge variant="outline" className="text-xs mt-1">New Book Request</Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>

@@ -199,7 +199,9 @@ const AdminDashboard = () => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="books">Books</TabsTrigger>
+            <TabsTrigger value="book-requests">Book Requests</TabsTrigger>
             <TabsTrigger value="book-issues">Book Issues</TabsTrigger>
+            <TabsTrigger value="points">Award Points</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
             <TabsTrigger value="challenges">Challenges</TabsTrigger>
             <TabsTrigger value="levels">Levels</TabsTrigger>
@@ -247,8 +249,16 @@ const AdminDashboard = () => {
             <BookManager />
           </TabsContent>
 
+          <TabsContent value="book-requests">
+            <BookIssueRequests />
+          </TabsContent>
+
           <TabsContent value="book-issues">
             <BookIssueRegister />
+          </TabsContent>
+
+          <TabsContent value="points">
+            <PointsManager />
           </TabsContent>
 
           <TabsContent value="quizzes">

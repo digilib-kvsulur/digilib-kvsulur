@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Calendar, BookOpen, User, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +40,10 @@ const BookIssueRegister = () => {
   const [selectedUser, setSelectedUser] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isManualEntry, setIsManualEntry] = useState(false);
+  const [manualBookTitle, setManualBookTitle] = useState("");
+  const [manualBookAuthor, setManualBookAuthor] = useState("");
+  const [libraryBookCode, setLibraryBookCode] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -52,12 +57,36 @@ const BookIssueRegister = () => {
         .from('book_issues')
         .select(`
           *,
-          books:book_id (title, author),
-          profiles:user_id (first_name, last_name, admission_number)
+          books (title, author)
         `)
         .order('issue_date', { ascending: false });
 
       if (issuesError) throw issuesError;
+
+      // Manually fetch profile data for each issue
+      const issuesWithProfiles = await Promise.all(
+        (issuesData || []).map(async (issue) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, admission_number')
+            .eq('id', issue.user_id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+          }
+
+          return {
+            ...issue,
+            user: profileData ? {
+              first_name: profileData.first_name || '',
+              last_name: profileData.last_name || '',
+              admission_number: profileData.admission_number || ''
+            } : undefined
+          };
+        })
+      );
+
 
       // Load available books
       const { data: booksData, error: booksError } = await supabase
@@ -78,7 +107,7 @@ const BookIssueRegister = () => {
 
       if (usersError) throw usersError;
 
-      setBookIssues(issuesData || []);
+      setBookIssues(issuesWithProfiles || []);
       setBooks(booksData || []);
       setUsers(usersData || []);
     } catch (error) {
@@ -94,46 +123,101 @@ const BookIssueRegister = () => {
   };
 
   const handleIssueBook = async () => {
-    if (!selectedBook || !selectedUser || !dueDate) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
+    // Validation for manual entry
+    if (isManualEntry) {
+      if (!manualBookTitle || !manualBookAuthor || !libraryBookCode || !selectedUser || !dueDate) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      if (!selectedBook || !selectedUser || !dueDate) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsSubmitting(true);
     try {
-      // Create book issue record
-      const { error: issueError } = await supabase
-        .from('book_issues')
-        .insert({
-          book_id: selectedBook,
-          user_id: selectedUser,
-          due_date: dueDate,
-          status: 'issued'
+      if (isManualEntry) {
+        // Create a temporary book entry for manual books
+        const { data: newBook, error: bookError } = await supabase
+          .from('books')
+          .insert({
+            title: manualBookTitle,
+            author: manualBookAuthor,
+            isbn: libraryBookCode,
+            description: 'Manual entry - Physical library book',
+            total_copies: 1,
+            available_copies: 0 // Set to 0 since it's being issued
+          })
+          .select()
+          .single();
+
+        if (bookError) throw bookError;
+
+        // Create book issue record with the new book
+        const { error: issueError } = await supabase
+          .from('book_issues')
+          .insert({
+            book_id: newBook.id,
+            user_id: selectedUser,
+            due_date: dueDate,
+            status: 'issued'
+          });
+
+        if (issueError) throw issueError;
+
+        toast({
+          title: "Success",
+          description: "Manual book entry created and issued successfully",
         });
 
-      if (issueError) throw issueError;
+        // Reset manual form
+        setManualBookTitle("");
+        setManualBookAuthor("");
+        setLibraryBookCode("");
+      } else {
+        // Regular book issue process
+        // Create book issue record
+        const { error: issueError } = await supabase
+          .from('book_issues')
+          .insert({
+            book_id: selectedBook,
+            user_id: selectedUser,
+            due_date: dueDate,
+            status: 'issued'
+          });
 
-      // Update book available copies
-      const { error: updateError } = await supabase
-        .from('books')
-        .update({ 
-          available_copies: books.find(b => b.id === selectedBook)?.available_copies - 1 
-        })
-        .eq('id', selectedBook);
+        if (issueError) throw issueError;
 
-      if (updateError) throw updateError;
+        // Update book available copies
+        const { error: updateError } = await supabase
+          .from('books')
+          .update({ 
+            available_copies: books.find(b => b.id === selectedBook)?.available_copies - 1 
+          })
+          .eq('id', selectedBook);
 
-      toast({
-        title: "Success",
-        description: "Book issued successfully",
-      });
+        if (updateError) throw updateError;
 
-      // Reset form and reload data
-      setSelectedBook("");
+        toast({
+          title: "Success",
+          description: "Book issued successfully",
+        });
+
+        // Reset form
+        setSelectedBook("");
+      }
+
+      // Reset common fields and reload data
       setSelectedUser("");
       setDueDate("");
       loadData();
@@ -208,58 +292,106 @@ const BookIssueRegister = () => {
           <CardDescription>Issue a book to a student</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="book-select">Select Book</Label>
-              <Select value={selectedBook} onValueChange={setSelectedBook}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a book" />
-                </SelectTrigger>
-                <SelectContent>
-                  {books.map((book) => (
-                    <SelectItem key={book.id} value={book.id}>
-                      {book.title} by {book.author} ({book.available_copies} available)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="user-select">Select Student</Label>
-              <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a student" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.first_name} {user.last_name} ({user.admission_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="due-date">Due Date</Label>
-              <Input
-                id="due-date"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+          <div className="space-y-4">
+            {/* Manual Entry Toggle */}
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="manual-entry" 
+                checked={isManualEntry} 
+                onCheckedChange={setIsManualEntry}
               />
+              <Label htmlFor="manual-entry">Manual book entry (for books not in database)</Label>
             </div>
 
-            <div className="flex items-end">
-              <Button 
-                onClick={handleIssueBook} 
-                disabled={isSubmitting}
-                className="w-full"
-              >
-                {isSubmitting ? "Issuing..." : "Issue Book"}
-              </Button>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Book Selection or Manual Entry */}
+              {isManualEntry ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-title">Book Title</Label>
+                    <Input
+                      id="manual-title"
+                      value={manualBookTitle}
+                      onChange={(e) => setManualBookTitle(e.target.value)}
+                      placeholder="Enter book title"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-author">Author</Label>
+                    <Input
+                      id="manual-author"
+                      value={manualBookAuthor}
+                      onChange={(e) => setManualBookAuthor(e.target.value)}
+                      placeholder="Enter author name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="library-code">Library Book Code</Label>
+                    <Input
+                      id="library-code"
+                      value={libraryBookCode}
+                      onChange={(e) => setLibraryBookCode(e.target.value)}
+                      placeholder="Enter library code"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="book-select">Select Book</Label>
+                  <Select value={selectedBook} onValueChange={setSelectedBook}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a book" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {books.map((book) => (
+                        <SelectItem key={book.id} value={book.id}>
+                          {book.title} by {book.author} ({book.available_copies} available)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Student Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="user-select">Select Student</Label>
+                <Select value={selectedUser} onValueChange={setSelectedUser}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a student" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.first_name} {user.last_name} ({user.admission_number})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Due Date */}
+              <div className="space-y-2">
+                <Label htmlFor="due-date">Due Date</Label>
+                <Input
+                  id="due-date"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+
+              {/* Issue Button */}
+              <div className="flex items-end">
+                <Button 
+                  onClick={handleIssueBook} 
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
+                  {isSubmitting ? "Issuing..." : "Issue Book"}
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
