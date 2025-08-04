@@ -1,16 +1,15 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Clock, FileText, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CheckCircle, XCircle, Trash2 } from "lucide-react";
 
 interface BookRequest {
   id: string;
-  book_id: string | null;
+  book_id?: string;
   user_id: string;
   requested_at: string;
   status: string;
@@ -27,8 +26,8 @@ interface BookRequest {
   profiles?: {
     first_name: string;
     last_name: string;
-    admission_number: string;
-  };
+    student_class?: string;
+  } | null;
 }
 
 const BookIssueRequests = () => {
@@ -43,50 +42,40 @@ const BookIssueRequests = () => {
 
   const loadRequests = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('book_requests')
         .select(`
           *,
-          books (title, author, available_copies)
+          books:book_id (
+            title,
+            author,
+            available_copies
+          ),
+          profiles:user_id (
+            first_name,
+            last_name,
+            student_class
+          )
         `)
         .order('requested_at', { ascending: false });
 
       if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+        console.error('Error loading requests:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load book requests.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Manually fetch profile data for each request
-      const requestsWithProfiles = await Promise.all(
-        (data || []).map(async (request) => {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, admission_number')
-            .eq('id', request.user_id)
-            .maybeSingle();
-
-          if (profileError) {
-            console.error('Error fetching profile:', profileError);
-          }
-
-          return {
-            ...request,
-            profiles: profileData ? {
-              first_name: profileData.first_name || '',
-              last_name: profileData.last_name || '',
-              admission_number: profileData.admission_number || ''
-            } : undefined
-          };
-        })
-      );
-
-      console.log('Book requests loaded:', requestsWithProfiles);
-      setRequests(requestsWithProfiles);
+      setRequests((data as any) || []);
     } catch (error) {
       console.error('Error loading requests:', error);
       toast({
         title: "Error",
-        description: "Failed to load book requests",
+        description: "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {
@@ -96,61 +85,58 @@ const BookIssueRequests = () => {
 
   const handleApproveRequest = async (requestId: string, bookId: string, userId: string) => {
     try {
-      // Check if book is still available
-      const { data: bookData, error: bookError } = await supabase
+      // Check if book is available
+      const { data: book } = await supabase
         .from('books')
         .select('available_copies')
         .eq('id', bookId)
         .single();
 
-      if (bookError) throw bookError;
-
-      if (bookData.available_copies <= 0) {
+      if (!book || book.available_copies <= 0) {
         toast({
-          title: "Book Not Available",
-          description: "This book is no longer available for issue",
+          title: "Error",
+          description: "Book is not available for issue.",
           variant: "destructive",
         });
         return;
       }
 
-      // Create book issue
+      // Create book issue record
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 14); // 2 weeks from now
+      dueDate.setDate(dueDate.getDate() + 14); // 14 days from now
 
       const { error: issueError } = await supabase
         .from('book_issues')
         .insert({
-          book_id: bookId,
           user_id: userId,
+          book_id: bookId,
           due_date: dueDate.toISOString().split('T')[0],
-          status: 'issued'
         });
 
       if (issueError) throw issueError;
 
       // Update book available copies
-      const { error: updateBookError } = await supabase
+      const { error: updateError } = await supabase
         .from('books')
-        .update({ available_copies: bookData.available_copies - 1 })
+        .update({ available_copies: book.available_copies - 1 })
         .eq('id', bookId);
 
-      if (updateBookError) throw updateBookError;
+      if (updateError) throw updateError;
 
       // Update request status
-      const { error: updateRequestError } = await supabase
+      const { error: requestError } = await supabase
         .from('book_requests')
         .update({ 
           status: 'approved',
-          admin_notes: 'Request approved and book issued'
+          admin_notes: 'Book issued successfully'
         })
         .eq('id', requestId);
 
-      if (updateRequestError) throw updateRequestError;
+      if (requestError) throw requestError;
 
       toast({
         title: "Success",
-        description: "Request approved and book issued successfully",
+        description: "Book request approved and book issued.",
       });
 
       loadRequests();
@@ -158,7 +144,7 @@ const BookIssueRequests = () => {
       console.error('Error approving request:', error);
       toast({
         title: "Error",
-        description: "Failed to approve request",
+        description: "Failed to approve request.",
         variant: "destructive",
       });
     }
@@ -178,7 +164,7 @@ const BookIssueRequests = () => {
 
       toast({
         title: "Success",
-        description: "Request rejected successfully",
+        description: "Book request rejected.",
       });
 
       loadRequests();
@@ -186,16 +172,14 @@ const BookIssueRequests = () => {
       console.error('Error rejecting request:', error);
       toast({
         title: "Error",
-        description: "Failed to reject request",
+        description: "Failed to reject request.",
         variant: "destructive",
       });
     }
   };
 
   const handleDeleteRequest = async (requestId: string) => {
-    if (!confirm('Are you sure you want to delete this processed request? This action cannot be undone.')) {
-      return;
-    }
+    if (!confirm('Are you sure you want to delete this request?')) return;
 
     try {
       setDeletingIds(prev => new Set(prev).add(requestId));
@@ -209,7 +193,7 @@ const BookIssueRequests = () => {
 
       toast({
         title: "Success",
-        description: "Request deleted successfully",
+        description: "Request deleted successfully.",
       });
 
       loadRequests();
@@ -217,7 +201,7 @@ const BookIssueRequests = () => {
       console.error('Error deleting request:', error);
       toast({
         title: "Error",
-        description: "Failed to delete request",
+        description: "Failed to delete request.",
         variant: "destructive",
       });
     } finally {
@@ -229,204 +213,179 @@ const BookIssueRequests = () => {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary">Pending</Badge>;
+      case 'approved':
+        return <Badge variant="default">Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejected</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  const pendingRequests = requests.filter(r => r.status === 'pending');
-  const processedRequests = requests.filter(r => r.status !== 'pending');
+  const pendingRequests = requests.filter(req => req.status === 'pending');
+  const processedRequests = requests.filter(req => req.status !== 'pending');
 
   return (
     <div className="space-y-6">
       {/* Pending Requests */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Pending Book Requests
-          </CardTitle>
-          <CardDescription>Book issue requests awaiting approval</CardDescription>
+          <CardTitle>Pending Book Requests</CardTitle>
+          <CardDescription>
+            Review and process pending book requests from students
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Book</TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead>Requested Date</TableHead>
-                <TableHead>Available Copies</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pendingRequests.map((request) => (
-                <TableRow key={request.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">
-                        {request.books?.title || request.requested_title || 'Unknown Book'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {request.books?.author || request.requested_author || 'Unknown Author'}
-                      </p>
-                      {!request.book_id && (
-                        <Badge variant="outline" className="text-xs mt-1">New Book Request</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">
-                        {request.profiles?.first_name || 'Unknown'} {request.profiles?.last_name || 'User'}
-                      </p>
-                      <p className="text-sm text-gray-600">{request.profiles?.admission_number || 'N/A'}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{new Date(request.requested_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    {request.book_id ? (
-                      <Badge 
-                        variant={request.books?.available_copies && request.books.available_copies > 0 ? 'default' : 'destructive'}
-                      >
-                        {request.books?.available_copies || 0} available
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Purchase Request</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {request.book_id ? (
-                        <Button
-                          size="sm"
-                          onClick={() => handleApproveRequest(request.id, request.book_id!, request.user_id)}
-                          disabled={!request.books?.available_copies || request.books.available_copies <= 0}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Issue Book
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRejectRequest(request.id, "Book needs to be purchased first")}
-                        >
-                          Mark for Purchase
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleRejectRequest(request.id)}
-                      >
-                        <XCircle className="h-4 w-4 mr-1" />
-                        Reject
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {pendingRequests.length === 0 && (
+          {pendingRequests.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No pending requests</p>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4 text-gray-500">
-                    No pending requests
-                  </TableCell>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Book</TableHead>
+                  <TableHead>Class</TableHead>
+                  <TableHead>Requested On</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {pendingRequests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell>
+                      {request.profiles?.first_name} {request.profiles?.last_name}
+                    </TableCell>
+                    <TableCell>
+                      {request.books ? (
+                        <div>
+                          <div className="font-medium">{request.books.title}</div>
+                          <div className="text-sm text-gray-500">by {request.books.author}</div>
+                          <div className="text-xs text-gray-400">
+                            Available: {request.books.available_copies}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="font-medium">{request.requested_title}</div>
+                          <div className="text-sm text-gray-500">by {request.requested_author}</div>
+                          <div className="text-xs text-gray-400">Custom Request</div>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>{request.profiles?.student_class || 'N/A'}</TableCell>
+                    <TableCell>
+                      {new Date(request.requested_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(request.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {request.book_id && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproveRequest(request.id, request.book_id!, request.user_id)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Issue Book
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRejectRequest(request.id)}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
       {/* Processed Requests */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Processed Requests
-          </CardTitle>
-          <CardDescription>Previously approved or rejected requests</CardDescription>
+          <CardTitle>Processed Requests</CardTitle>
+          <CardDescription>
+            Previously approved or rejected book requests
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Book</TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead>Requested Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Admin Notes</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {processedRequests.map((request) => (
-                <TableRow key={request.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">
-                        {request.books?.title || request.requested_title || 'Unknown Book'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {request.books?.author || request.requested_author || 'Unknown Author'}
-                      </p>
-                      {!request.book_id && (
-                        <Badge variant="outline" className="text-xs mt-1">New Book Request</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">
-                        {request.profiles?.first_name || 'Unknown'} {request.profiles?.last_name || 'User'}
-                      </p>
-                      <p className="text-sm text-gray-600">{request.profiles?.admission_number || 'N/A'}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{new Date(request.requested_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={request.status === 'approved' ? 'default' : 'destructive'}
-                      className={
-                        request.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                        'bg-red-100 text-red-800'
-                      }
-                    >
-                      {request.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <p className="text-sm text-gray-600">{request.admin_notes || "-"}</p>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteRequest(request.id)}
-                      disabled={deletingIds.has(request.id)}
-                    >
-                      {deletingIds.has(request.id) ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {processedRequests.length === 0 && (
+          {processedRequests.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No processed requests</p>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4 text-gray-500">
-                    No processed requests
-                  </TableCell>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Book</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {processedRequests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell>
+                      {request.profiles?.first_name} {request.profiles?.last_name}
+                    </TableCell>
+                    <TableCell>
+                      {request.books ? (
+                        <div>
+                          <div className="font-medium">{request.books.title}</div>
+                          <div className="text-sm text-gray-500">by {request.books.author}</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="font-medium">{request.requested_title}</div>
+                          <div className="text-sm text-gray-500">by {request.requested_author}</div>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(request.status)}</TableCell>
+                    <TableCell>
+                      {new Date(request.requested_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-gray-600">
+                        {request.admin_notes || 'No notes'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteRequest(request.id)}
+                        disabled={deletingIds.has(request.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

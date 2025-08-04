@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import UserApproval from "@/components/admin/UserApproval";
 import BookManager from "@/components/admin/BookManager";
 import BookIssueRegister from "@/components/admin/BookIssueRegister";
+import BookIssueRequests from "@/components/admin/BookIssueRequests";
+import PointsManager from "@/components/admin/PointsManager";
 import QuizManager from "@/components/quiz/QuizManager";
 import ChallengeManager from "@/components/admin/ChallengeManager";
 import AdminProfile from "@/components/admin/AdminProfile";
