@@ -43,6 +43,7 @@ const Index = () => {
         subscription
       }
     } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session?.user?.email);
       setUser(session?.user || null);
       if (session?.user) {
         loadUserProfile(session.user.id);

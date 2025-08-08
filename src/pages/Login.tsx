@@ -118,20 +118,23 @@ const Login = () => {
         description: `Welcome back!`,
       });
 
-      // Navigate based on role
-      switch (profile?.role) {
-        case "admin":
-          navigate("/admin-dashboard");
-          break;
-        case "teacher":
-          navigate("/teacher-dashboard");
-          break;
-        case "student":
-          navigate("/student-dashboard");
-          break;
-        default:
-          navigate("/");
-      }
+      // Small delay to ensure auth state is properly set before navigation
+      setTimeout(() => {
+        // Navigate based on role
+        switch (profile?.role) {
+          case "admin":
+            navigate("/admin-dashboard", { replace: true });
+            break;
+          case "teacher":
+            navigate("/teacher-dashboard", { replace: true });
+            break;
+          case "student":
+            navigate("/student-dashboard", { replace: true });
+            break;
+          default:
+            navigate("/", { replace: true });
+        }
+      }, 100);
     } catch (error) {
       console.error('Login error:', error);
       toast({
