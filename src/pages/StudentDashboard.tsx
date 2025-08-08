@@ -39,6 +39,7 @@ const StudentDashboard = () => {
   const [quizResults, setQuizResults] = useState<any[]>([]);
   const [challenges, setChallenges] = useState<any[]>([]);
   const [classLeaderboardEntries, setClassLeaderboardEntries] = useState<any[]>([]);
+  const [leaderboardKey, setLeaderboardKey] = useState(0);
 
   useEffect(() => {
     checkAuth();
@@ -52,6 +53,7 @@ const StudentDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
+      console.log('Fetching all dashboard data...');
       await Promise.all([
         fetchCurrentBooks(),
         fetchAvailableQuizzes(),
@@ -59,6 +61,7 @@ const StudentDashboard = () => {
         fetchChallenges(),
         fetchClassLeaderboard()
       ]);
+      console.log('Dashboard data fetch completed');
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     }
@@ -274,6 +277,7 @@ const StudentDashboard = () => {
 
       console.log('Formatted class leaderboard entries:', formattedEntries);
       setClassLeaderboardEntries(formattedEntries);
+      setLeaderboardKey(prev => prev + 1); // Force re-render of leaderboards
     } catch (error) {
       console.error('Error fetching class leaderboard:', error);
     }
@@ -610,7 +614,7 @@ const StudentDashboard = () => {
                 <CardDescription>Your ranking within your class</CardDescription>
               </CardHeader>
               <CardContent>
-                <Leaderboard entries={classLeaderboardEntries} currentUserId={user?.id} />
+                <Leaderboard key={`class-${leaderboardKey}`} entries={classLeaderboardEntries} currentUserId={user?.id} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -625,7 +629,7 @@ const StudentDashboard = () => {
                 <CardDescription>Your ranking across the entire school</CardDescription>
               </CardHeader>
               <CardContent>
-                <SchoolLeaderboard currentUserId={user?.id} />
+                <SchoolLeaderboard key={`school-${leaderboardKey}`} currentUserId={user?.id} />
               </CardContent>
             </Card>
           </TabsContent>
