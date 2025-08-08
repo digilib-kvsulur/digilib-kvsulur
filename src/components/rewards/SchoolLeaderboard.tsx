@@ -40,13 +40,12 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
     try {
       console.log('Loading school leaderboard for user:', currentUserId);
       
-      // Get all approved students with points, ordered by points (highest first)
+      // Get all approved students, ordered by points (highest first)
       const { data: students, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, student_class, admission_number, points')
         .eq('role', 'student')
         .eq('is_approved', true)
-        .not('points', 'is', null)
         .order('points', { ascending: false })
         .order('first_name', { ascending: true }); // Secondary sort by name for ties
 
@@ -57,10 +56,8 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
 
       console.log('Raw school leaderboard data:', students);
 
-      // Filter and rank students
+      // Filter and rank students (include those with 0 points)
       const validStudents = (students || []).filter(student => 
-        student.points !== null && 
-        student.points !== undefined &&
         student.first_name &&
         student.last_name
       );

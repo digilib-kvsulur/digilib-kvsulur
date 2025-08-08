@@ -235,7 +235,6 @@ const StudentDashboard = () => {
         .eq('student_class', user.student_class)
         .eq('is_approved', true)
         .eq('role', 'student')
-        .not('points', 'is', null)
         .order('points', { ascending: false })
         .order('first_name', { ascending: true });
 
@@ -246,10 +245,8 @@ const StudentDashboard = () => {
 
       console.log('Class leaderboard raw data:', classmates);
 
-      // Filter valid students and add proper ranking
+      // Filter valid students and add proper ranking (include those with 0 points)
       const validStudents = (classmates || []).filter(student => 
-        student.points !== null && 
-        student.points !== undefined &&
         student.first_name &&
         student.last_name
       );
