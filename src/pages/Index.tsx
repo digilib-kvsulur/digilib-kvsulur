@@ -18,7 +18,7 @@ const Index = () => {
   const [statistics, setStatistics] = useState<Statistics>({
     totalBooks: 5000,
     activeUsers: 1200,
-    booksIssued: 25000
+    booksIssued: 2500
   });
   const navigate = useNavigate();
 
