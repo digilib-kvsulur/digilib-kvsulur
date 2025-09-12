@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -444,11 +444,11 @@ export type Database = {
       find_user_by_identifier: {
         Args: { identifier: string }
         Returns: {
-          user_id: string
           email: string
-          username: string
-          phone: string
           is_approved: boolean
+          phone: string
+          user_id: string
+          username: string
         }[]
       }
       get_active_quizzes_count: {
@@ -478,22 +478,22 @@ export type Database = {
       get_user_level: {
         Args: { user_points: number }
         Returns: {
-          level_number: number
-          name: string
-          min_points: number
-          max_points: number
-          icon_name: string
           color: string
           description: string
-          progress_to_next: number
+          icon_name: string
+          level_number: number
+          max_points: number
+          min_points: number
+          name: string
           points_to_next: number
+          progress_to_next: number
         }[]
       }
       update_challenge_progress: {
         Args: {
-          p_user_id: string
           p_challenge_type: string
           p_increment?: number
+          p_user_id: string
         }
         Returns: undefined
       }
