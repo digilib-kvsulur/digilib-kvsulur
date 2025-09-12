@@ -69,6 +69,22 @@ const Index = () => {
         console.error('Error loading profile:', error);
       } else {
         setProfile(data);
+        // Auto-redirect authenticated users to their dashboard
+        if (data) {
+          setTimeout(() => {
+            switch (data.role) {
+              case "admin":
+                navigate("/admin-dashboard", { replace: true });
+                break;
+              case "teacher":
+                navigate("/teacher-dashboard", { replace: true });
+                break;
+              case "student":
+                navigate("/student-dashboard", { replace: true });
+                break;
+            }
+          }, 500);
+        }
       }
     } catch (error) {
       console.error('Error loading profile:', error);
