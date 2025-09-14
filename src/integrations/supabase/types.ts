@@ -467,6 +467,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_leaderboard_data: {
+        Args: { class_filter?: string }
+        Returns: {
+          first_name: string
+          id: string
+          points: number
+          student_class: string
+        }[]
+      }
       get_total_books_count: {
         Args: Record<PropertyKey, never>
         Returns: number

@@ -10,9 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 interface SchoolLeaderboardEntry {
   id: string;
   first_name: string;
-  last_name: string;
   student_class: string;
-  admission_number: string;
   points: number;
   rank: number;
 }
@@ -40,14 +38,9 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
     try {
       console.log('Loading school leaderboard for user:', currentUserId);
       
-      // Get all approved students, ordered by points (highest first)
+      // Get all approved students using secure function (only exposes non-sensitive data)
       const { data: students, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, student_class, admission_number, points')
-        .eq('role', 'student')
-        .eq('is_approved', true)
-        .order('points', { ascending: false })
-        .order('first_name', { ascending: true }); // Secondary sort by name for ties
+        .rpc('get_leaderboard_data');
 
       if (error) {
         console.error('Supabase error loading school leaderboard:', error);
@@ -58,8 +51,7 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
 
       // Filter and rank students (include those with 0 points)
       const validStudents = (students || []).filter(student => 
-        student.first_name &&
-        student.last_name
+        student.first_name
       );
 
       console.log('Valid students for school leaderboard:', validStudents);
@@ -222,13 +214,13 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
                   <div className="flex justify-center mb-3">
                     <Avatar className="h-16 w-16">
                       <AvatarFallback className="bg-blue-100 text-blue-600 text-lg font-semibold">
-                        {entry.first_name.charAt(0)}{entry.last_name.charAt(0)}
+                        {entry.first_name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <CardTitle className="text-lg">{entry.first_name} {entry.last_name}</CardTitle>
+                  <CardTitle className="text-lg">{entry.first_name}</CardTitle>
                   <CardDescription>
-                    Class {entry.student_class} • {entry.admission_number}
+                    Class {entry.student_class}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
@@ -266,19 +258,18 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
                     
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-gray-100 text-gray-600">
-                        {entry.first_name.charAt(0)}{entry.last_name.charAt(0)}
+                        {entry.first_name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-medium">{entry.first_name} {entry.last_name}</h4>
+                        <h4 className="font-medium">{entry.first_name}</h4>
                         {entry.id === currentUserId && (
                           <Badge variant="secondary" className="text-xs">You</Badge>
                         )}
                       </div>
                       <p className="text-sm text-gray-600">Class {entry.student_class}</p>
-                      <p className="text-xs text-gray-500">{entry.admission_number}</p>
                     </div>
                     
                     <div className="text-right">

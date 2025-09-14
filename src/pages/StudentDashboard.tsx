@@ -233,13 +233,7 @@ const StudentDashboard = () => {
       console.log('Fetching class leaderboard for class:', user.student_class);
 
       const { data: classmates, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, points, admission_number, student_class')
-        .eq('student_class', user.student_class)
-        .eq('is_approved', true)
-        .eq('role', 'student')
-        .order('points', { ascending: false })
-        .order('first_name', { ascending: true });
+        .rpc('get_leaderboard_data', { class_filter: user.student_class });
 
       if (error) {
         console.error('Error fetching class leaderboard:', error);
@@ -250,8 +244,7 @@ const StudentDashboard = () => {
 
       // Filter valid students and add proper ranking (include those with 0 points)
       const validStudents = (classmates || []).filter(student => 
-        student.first_name &&
-        student.last_name
+        student.first_name
       );
 
       const formattedEntries = [];
@@ -266,12 +259,11 @@ const StudentDashboard = () => {
         formattedEntries.push({
           id: student.id,
           studentId: student.id,
-          studentName: `${student.first_name} ${student.last_name}`,
+          studentName: student.first_name,
           studentClass: student.student_class,
           totalPoints: student.points || 0,
           rank: currentRank,
-          recentActivity: student.points > 0 ? 'Active this week' : 'Getting started',
-          admissionNumber: student.admission_number
+          recentActivity: student.points > 0 ? 'Active this week' : 'Getting started'
         });
       });
 
