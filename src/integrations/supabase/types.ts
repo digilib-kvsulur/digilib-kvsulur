@@ -441,6 +441,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_classmate: {
+        Args: { target_class: string; target_user_id: string }
+        Returns: boolean
+      }
       find_user_by_identifier: {
         Args: { identifier: string }
         Returns: {
@@ -497,6 +501,10 @@ export type Database = {
           points_to_next: number
           progress_to_next: number
         }[]
+      }
+      is_user_staff: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       update_challenge_progress: {
         Args: {
