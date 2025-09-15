@@ -18,54 +18,52 @@ import ChallengeManager from "@/components/admin/ChallengeManager";
 import AdminProfile from "@/components/admin/AdminProfile";
 import ClassAnalytics from "@/components/admin/ClassAnalytics";
 import LevelManager from "@/components/admin/LevelManager";
-
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalBooks: 0,
     booksIssued: 0,
-    activeQuizzes: 0,
+    activeQuizzes: 0
   });
-
   useEffect(() => {
     checkAuth();
     fetchStats();
   }, []);
-
   const checkAuth = async () => {
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user: authUser
+        }
+      } = await supabase.auth.getUser();
       if (!authUser) {
         navigate('/login');
         return;
       }
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
+      const {
+        data: profile,
+        error
+      } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
       if (error) {
         console.error('Error fetching profile:', error);
         navigate('/login');
         return;
       }
-
       if (!profile || profile.role !== 'admin') {
         toast({
           title: "Access Denied",
           description: "You don't have permission to access this page.",
-          variant: "destructive",
+          variant: "destructive"
         });
         navigate('/');
         return;
       }
-
       setUser(profile);
     } catch (error) {
       console.error('Authentication error:', error);
@@ -74,49 +72,35 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
-
   const fetchStats = async () => {
     try {
-      const [users, books, issued, quizzes] = await Promise.all([
-        supabase.rpc('get_active_users_count'),
-        supabase.rpc('get_total_books_count'),
-        supabase.rpc('get_books_issued_count'),
-        supabase.rpc('get_active_quizzes_count'),
-      ]);
-
+      const [users, books, issued, quizzes] = await Promise.all([supabase.rpc('get_active_users_count'), supabase.rpc('get_total_books_count'), supabase.rpc('get_books_issued_count'), supabase.rpc('get_active_quizzes_count')]);
       setStats({
         totalUsers: users.data || 0,
         totalBooks: books.data || 0,
         booksIssued: issued.data || 0,
-        activeQuizzes: quizzes.data || 0,
+        activeQuizzes: quizzes.data || 0
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
   };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
   };
-
   const handleProfileUpdate = () => {
     checkAuth();
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
+  return <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -126,7 +110,7 @@ const AdminDashboard = () => {
                 <BookOpen className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Digital Library</h1>
+                <h1 className="text-lg font-bold text-gray-900">PM SHRI KV AFS SULUR - LIBRARY</h1>
                 <p className="text-sm text-gray-600">Admin Dashboard</p>
               </div>
             </div>
@@ -284,8 +268,6 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default AdminDashboard;
