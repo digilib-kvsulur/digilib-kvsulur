@@ -4,13 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, Users, BarChart3, User, Settings, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-
 interface Statistics {
   totalBooks: number;
   activeUsers: number;
   booksIssued: number;
 }
-
 const Index = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -21,7 +19,6 @@ const Index = () => {
     booksIssued: 2500
   });
   const navigate = useNavigate();
-
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({
@@ -55,10 +52,8 @@ const Index = () => {
 
     // Load statistics regardless of auth status
     loadStatistics();
-
     return () => subscription.unsubscribe();
   }, []);
-
   const loadUserProfile = async (userId: string) => {
     try {
       const {
@@ -74,13 +69,19 @@ const Index = () => {
           setTimeout(() => {
             switch (data.role) {
               case "admin":
-                navigate("/admin-dashboard", { replace: true });
+                navigate("/admin-dashboard", {
+                  replace: true
+                });
                 break;
               case "teacher":
-                navigate("/teacher-dashboard", { replace: true });
+                navigate("/teacher-dashboard", {
+                  replace: true
+                });
                 break;
               case "student":
-                navigate("/student-dashboard", { replace: true });
+                navigate("/student-dashboard", {
+                  replace: true
+                });
                 break;
             }
           }, 500);
@@ -92,16 +93,10 @@ const Index = () => {
       setLoading(false);
     }
   };
-
   const loadStatistics = async () => {
     try {
       // Load statistics using the database functions
-      const [totalBooksResult, activeUsersResult, booksIssuedResult] = await Promise.all([
-        supabase.rpc('get_total_books_count'),
-        supabase.rpc('get_active_users_count'),
-        supabase.rpc('get_books_issued_count')
-      ]);
-
+      const [totalBooksResult, activeUsersResult, booksIssuedResult] = await Promise.all([supabase.rpc('get_total_books_count'), supabase.rpc('get_active_users_count'), supabase.rpc('get_books_issued_count')]);
       setStatistics({
         totalBooks: totalBooksResult.data || 5000,
         activeUsers: activeUsersResult.data || 1200,
@@ -112,13 +107,11 @@ const Index = () => {
       // Keep default values if database query fails
     }
   };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
   };
-
   const navigateToDashboard = () => {
     if (profile?.role === 'admin') {
       navigate('/admin-dashboard');
@@ -128,7 +121,6 @@ const Index = () => {
       navigate('/student-dashboard');
     }
   };
-
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <header className="bg-white shadow-sm">
@@ -139,8 +131,8 @@ const Index = () => {
                 <BookOpen className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Digital Library</h1>
-                <p className="text-sm text-gray-600">PM SHRI KV AFS SULUR</p>
+                <h1 className="text-xl font-bold text-gray-900">PM SHRI KV AFS SULUR</h1>
+                <p className="text-sm text-gray-600">DIGITAL LIBRARY MANAGEMENT SYSTEM</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -171,8 +163,9 @@ const Index = () => {
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">PM SHRI KV Sulur's Digital Library!</h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <h2 className="text-gray-900 mb-4 text-4xl font-semibold">Welcome to PM SHRI KV Sulur's 
+Digital Library Management System!</h2>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto font-light">
             Discover, learn, and grow with our comprehensive digital library management system. 
             Access thousands of books, track your reading progress, and earn points for your achievements.
           </p>
@@ -274,5 +267,4 @@ const Index = () => {
       </footer>
     </div>;
 };
-
 export default Index;
