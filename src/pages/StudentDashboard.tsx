@@ -173,6 +173,11 @@ const StudentDashboard = () => {
 
       if (challengesError) {
         console.error('Error fetching challenges:', challengesError);
+        toast({
+          title: "Error",
+          description: "Failed to load challenges. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -191,6 +196,11 @@ const StudentDashboard = () => {
 
         if (progressError) {
           console.error('Error fetching challenge progress:', progressError);
+          toast({
+            title: "Warning", 
+            description: "Could not load challenge progress.",
+            variant: "destructive",
+          });
         } else {
           progressData = progress || [];
         }
@@ -218,8 +228,71 @@ const StudentDashboard = () => {
 
       console.log('Formatted challenges:', formattedChallenges);
       setChallenges(formattedChallenges);
+      
+      if (formattedChallenges.length === 0) {
+        console.log('No active challenges found');
+      }
     } catch (error) {
       console.error('Error fetching challenges:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while loading challenges.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleJoinChallenge = async (challengeId: string) => {
+    try {
+      console.log('Joining challenge:', challengeId);
+      
+      // Check if user already has progress for this challenge
+      const { data: existingProgress, error: checkError } = await supabase
+        .from('challenge_progress')
+        .select('*')
+        .eq('challenge_id', challengeId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingProgress) {
+        toast({
+          title: "Already Joined",
+          description: "You've already joined this challenge!",
+          variant: "default",
+        });
+        return;
+      }
+
+      // Create initial progress record for the user
+      const { error: insertError } = await supabase
+        .from('challenge_progress')
+        .insert({
+          challenge_id: challengeId,
+          user_id: user.id,
+          current_progress: 0,
+          is_completed: false
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Success",
+        description: "Successfully joined the challenge!",
+      });
+
+      // Refresh challenges to show updated state
+      fetchChallenges();
+    } catch (error) {
+      console.error('Error joining challenge:', error);
+      toast({
+        title: "Error",
+        description: "Failed to join challenge. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -585,7 +658,7 @@ const StudentDashboard = () => {
           </TabsContent>
 
           <TabsContent value="challenges" className="space-y-6">
-            <ReadingChallenges challenges={challenges} />
+            <ReadingChallenges challenges={challenges} onJoinChallenge={handleJoinChallenge} />
             <Achievements achievements={[]} userStats={{
               totalPoints: user?.points || 0,
               booksRead: 0,
