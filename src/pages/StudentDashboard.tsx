@@ -48,6 +48,57 @@ const StudentDashboard = () => {
   useEffect(() => {
     if (user?.id) {
       fetchDashboardData();
+
+      // Set up real-time updates for challenge progress
+      const challengeChannel = supabase
+        .channel('challenge-progress-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'challenge_progress',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Challenge progress updated:', payload);
+            // Refresh challenges when progress changes
+            fetchChallenges();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'reading_history',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Reading history updated:', payload);
+            // Refresh challenges when new reading history is added
+            setTimeout(() => fetchChallenges(), 1000); // Small delay for trigger to complete
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'quiz_results',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Quiz results updated:', payload);
+            // Refresh challenges when new quiz results are added
+            setTimeout(() => fetchChallenges(), 1000); // Small delay for trigger to complete
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(challengeChannel);
+      };
     }
   }, [user?.id]);
 
@@ -211,6 +262,8 @@ const StudentDashboard = () => {
       // Combine challenges with progress
       const formattedChallenges = challengesData?.map(challenge => {
         const userProgress = progressData.find(p => p.challenge_id === challenge.id);
+        const progress = userProgress?.current_progress || 0;
+        const isCompleted = userProgress?.is_completed || (progress >= challenge.target_value);
         
         return {
           id: challenge.id,
@@ -220,8 +273,8 @@ const StudentDashboard = () => {
           targetValue: challenge.target_value,
           rewardPoints: challenge.reward_points,
           deadline: challenge.deadline,
-          progress: userProgress?.current_progress || 0,
-          isCompleted: userProgress?.is_completed || false,
+          progress: progress,
+          isCompleted: isCompleted,
           completedAt: userProgress?.completed_at
         };
       }) || [];
