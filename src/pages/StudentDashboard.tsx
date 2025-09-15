@@ -21,10 +21,11 @@ import StudentProfile from "@/components/dashboard/StudentProfile";
 import BookRequestForm from "@/components/BookRequestForm";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
-
 const StudentDashboard = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showBookRequest, setShowBookRequest] = useState(false);
@@ -32,7 +33,7 @@ const StudentDashboard = () => {
   const [currentBooksCount, setCurrentBooksCount] = useState(0);
   const [quizResultsCount, setQuizResultsCount] = useState(0);
   const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
-  
+
   // New state for real data
   const [currentBooks, setCurrentBooks] = useState<any[]>([]);
   const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
@@ -40,97 +41,66 @@ const StudentDashboard = () => {
   const [challenges, setChallenges] = useState<any[]>([]);
   const [classLeaderboardEntries, setClassLeaderboardEntries] = useState<any[]>([]);
   const [leaderboardKey, setLeaderboardKey] = useState(0);
-
   useEffect(() => {
     checkAuth();
   }, []);
-
   useEffect(() => {
     if (user?.id) {
       fetchDashboardData();
 
       // Set up real-time updates for challenge progress
-      const challengeChannel = supabase
-        .channel('challenge-progress-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'challenge_progress',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            console.log('Challenge progress updated:', payload);
-            // Refresh challenges when progress changes
-            fetchChallenges();
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'reading_history',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            console.log('Reading history updated:', payload);
-            // Refresh challenges when new reading history is added
-            setTimeout(() => fetchChallenges(), 1000); // Small delay for trigger to complete
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'quiz_results',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            console.log('Quiz results updated:', payload);
-            // Refresh challenges when new quiz results are added
-            setTimeout(() => fetchChallenges(), 1000); // Small delay for trigger to complete
-          }
-        )
-        .subscribe();
-
+      const challengeChannel = supabase.channel('challenge-progress-changes').on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'challenge_progress',
+        filter: `user_id=eq.${user.id}`
+      }, payload => {
+        console.log('Challenge progress updated:', payload);
+        // Refresh challenges when progress changes
+        fetchChallenges();
+      }).on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'reading_history',
+        filter: `user_id=eq.${user.id}`
+      }, payload => {
+        console.log('Reading history updated:', payload);
+        // Refresh challenges when new reading history is added
+        setTimeout(() => fetchChallenges(), 1000); // Small delay for trigger to complete
+      }).on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'quiz_results',
+        filter: `user_id=eq.${user.id}`
+      }, payload => {
+        console.log('Quiz results updated:', payload);
+        // Refresh challenges when new quiz results are added
+        setTimeout(() => fetchChallenges(), 1000); // Small delay for trigger to complete
+      }).subscribe();
       return () => {
         supabase.removeChannel(challengeChannel);
       };
     }
   }, [user?.id]);
-
   const fetchDashboardData = async () => {
     try {
       console.log('Fetching all dashboard data...');
-      await Promise.all([
-        fetchCurrentBooks(),
-        fetchAvailableQuizzes(),
-        fetchQuizResults(),
-        fetchChallenges(),
-        fetchClassLeaderboard()
-      ]);
+      await Promise.all([fetchCurrentBooks(), fetchAvailableQuizzes(), fetchQuizResults(), fetchChallenges(), fetchClassLeaderboard()]);
       console.log('Dashboard data fetch completed');
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     }
   };
-
   const fetchCurrentBooks = async () => {
     try {
-      const { data: bookIssues, error } = await supabase
-        .from('book_issues')
-        .select(`
+      const {
+        data: bookIssues,
+        error
+      } = await supabase.from('book_issues').select(`
           *,
           books (title, author)
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'issued');
-
+        `).eq('user_id', user.id).eq('status', 'issued');
       if (error) throw error;
-
       const formattedBooks = bookIssues?.map(issue => ({
         id: issue.id,
         title: issue.books?.title || 'Unknown Title',
@@ -139,25 +109,21 @@ const StudentDashboard = () => {
         dueDate: issue.due_date,
         daysLeft: Math.ceil((new Date(issue.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       })) || [];
-
       setCurrentBooks(formattedBooks);
       setCurrentBooksCount(formattedBooks.length);
     } catch (error) {
       console.error('Error fetching current books:', error);
     }
   };
-
   const fetchAvailableQuizzes = async () => {
     try {
-      const { data: quizzes, error } = await supabase
-        .from('quizzes')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
+      const {
+        data: quizzes,
+        error
+      } = await supabase.from('quizzes').select('*').eq('is_active', true).order('created_at', {
+        ascending: false
+      }).limit(10);
       if (error) throw error;
-
       const formattedQuizzes = quizzes?.map(quiz => ({
         id: quiz.id,
         title: quiz.title,
@@ -167,104 +133,89 @@ const StudentDashboard = () => {
         pointsReward: quiz.points_reward,
         questions: Array.isArray(quiz.questions) ? quiz.questions : []
       })) || [];
-
       setAvailableQuizzes(formattedQuizzes);
     } catch (error) {
       console.error('Error fetching available quizzes:', error);
     }
   };
-
   const fetchQuizResults = async () => {
     try {
-      const { data: results, error } = await supabase
-        .from('quiz_results')
-        .select(`
+      const {
+        data: results,
+        error
+      } = await supabase.from('quiz_results').select(`
           *,
           quizzes (title)
-        `)
-        .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(10);
-
+        `).eq('user_id', user.id).order('completed_at', {
+        ascending: false
+      }).limit(10);
       if (error) throw error;
-
       const formattedResults = results?.map(result => ({
         id: result.id,
         quizTitle: result.quizzes?.title || 'Unknown Quiz',
         score: result.score,
         pointsEarned: result.points_earned,
         completedAt: result.completed_at,
-        correctAnswers: Math.round((result.score / 100) * (Array.isArray(result.answers) ? result.answers.length : 10)),
+        correctAnswers: Math.round(result.score / 100 * (Array.isArray(result.answers) ? result.answers.length : 10)),
         totalQuestions: Array.isArray(result.answers) ? result.answers.length : 10
       })) || [];
-
       setQuizResults(formattedResults);
-      
+
       // Count current month results
       const currentMonth = new Date();
       const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      const monthlyResults = results?.filter(result => 
-        new Date(result.completed_at) >= startOfMonth
-      ) || [];
+      const monthlyResults = results?.filter(result => new Date(result.completed_at) >= startOfMonth) || [];
       setQuizResultsCount(monthlyResults.length);
     } catch (error) {
       console.error('Error fetching quiz results:', error);
     }
   };
-
   const fetchChallenges = async () => {
     try {
       console.log('Fetching challenges for user:', user.id);
-      
-      // First get all active challenges
-      const { data: challengesData, error: challengesError } = await supabase
-        .from('challenges')
-        .select('*')
-        .eq('is_active', true);
 
+      // First get all active challenges
+      const {
+        data: challengesData,
+        error: challengesError
+      } = await supabase.from('challenges').select('*').eq('is_active', true);
       if (challengesError) {
         console.error('Error fetching challenges:', challengesError);
         toast({
           title: "Error",
           description: "Failed to load challenges. Please try again.",
-          variant: "destructive",
+          variant: "destructive"
         });
         return;
       }
-
       console.log('Active challenges:', challengesData);
 
       // Then get user's progress for these challenges
       const challengeIds = challengesData?.map(c => c.id) || [];
-      
       let progressData = [];
       if (challengeIds.length > 0) {
-        const { data: progress, error: progressError } = await supabase
-          .from('challenge_progress')
-          .select('*')
-          .eq('user_id', user.id)
-          .in('challenge_id', challengeIds);
-
+        const {
+          data: progress,
+          error: progressError
+        } = await supabase.from('challenge_progress').select('*').eq('user_id', user.id).in('challenge_id', challengeIds);
         if (progressError) {
           console.error('Error fetching challenge progress:', progressError);
           toast({
-            title: "Warning", 
+            title: "Warning",
             description: "Could not load challenge progress.",
-            variant: "destructive",
+            variant: "destructive"
           });
         } else {
           progressData = progress || [];
         }
       }
-
       console.log('User challenge progress:', progressData);
 
       // Combine challenges with progress
       const formattedChallenges = challengesData?.map(challenge => {
         const userProgress = progressData.find(p => p.challenge_id === challenge.id);
         const progress = userProgress?.current_progress || 0;
-        const isCompleted = userProgress?.is_completed || (progress >= challenge.target_value);
-        
+        const isCompleted = userProgress?.is_completed || progress >= challenge.target_value;
         return {
           id: challenge.id,
           title: challenge.title,
@@ -278,10 +229,8 @@ const StudentDashboard = () => {
           completedAt: userProgress?.completed_at
         };
       }) || [];
-
       console.log('Formatted challenges:', formattedChallenges);
       setChallenges(formattedChallenges);
-      
       if (formattedChallenges.length === 0) {
         console.log('No active challenges found');
       }
@@ -290,51 +239,44 @@ const StudentDashboard = () => {
       toast({
         title: "Error",
         description: "An unexpected error occurred while loading challenges.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const handleJoinChallenge = async (challengeId: string) => {
     try {
       console.log('Joining challenge:', challengeId);
-      
-      // Check if user already has progress for this challenge
-      const { data: existingProgress, error: checkError } = await supabase
-        .from('challenge_progress')
-        .select('*')
-        .eq('challenge_id', challengeId)
-        .eq('user_id', user.id)
-        .single();
 
+      // Check if user already has progress for this challenge
+      const {
+        data: existingProgress,
+        error: checkError
+      } = await supabase.from('challenge_progress').select('*').eq('challenge_id', challengeId).eq('user_id', user.id).single();
       if (checkError && checkError.code !== 'PGRST116') {
         throw checkError;
       }
-
       if (existingProgress) {
         toast({
           title: "Already Joined",
           description: "You've already joined this challenge!",
-          variant: "default",
+          variant: "default"
         });
         return;
       }
 
       // Create initial progress record for the user
-      const { error: insertError } = await supabase
-        .from('challenge_progress')
-        .insert({
-          challenge_id: challengeId,
-          user_id: user.id,
-          current_progress: 0,
-          is_completed: false
-        });
-
+      const {
+        error: insertError
+      } = await supabase.from('challenge_progress').insert({
+        challenge_id: challengeId,
+        user_id: user.id,
+        current_progress: 0,
+        is_completed: false
+      });
       if (insertError) throw insertError;
-
       toast({
         title: "Success",
-        description: "Successfully joined the challenge!",
+        description: "Successfully joined the challenge!"
       });
 
       // Refresh challenges to show updated state
@@ -344,44 +286,38 @@ const StudentDashboard = () => {
       toast({
         title: "Error",
         description: "Failed to join challenge. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const fetchClassLeaderboard = async () => {
     try {
       if (!user?.student_class) {
         console.log('No student class found for user');
         return;
       }
-
       console.log('Fetching class leaderboard for class:', user.student_class);
-
-      const { data: classmates, error } = await supabase
-        .rpc('get_leaderboard_data', { class_filter: user.student_class });
-
+      const {
+        data: classmates,
+        error
+      } = await supabase.rpc('get_leaderboard_data', {
+        class_filter: user.student_class
+      });
       if (error) {
         console.error('Error fetching class leaderboard:', error);
         return;
       }
-
       console.log('Class leaderboard raw data:', classmates);
 
       // Filter valid students and add proper ranking (include those with 0 points)
-      const validStudents = (classmates || []).filter(student => 
-        student.first_name
-      );
-
+      const validStudents = (classmates || []).filter(student => student.first_name);
       const formattedEntries = [];
       let currentRank = 1;
-      
       validStudents.forEach((student, index) => {
         // If this student has different points than previous, update rank
         if (index > 0 && student.points !== validStudents[index - 1].points) {
           currentRank = index + 1;
         }
-        
         formattedEntries.push({
           id: student.id,
           studentId: student.id,
@@ -392,7 +328,6 @@ const StudentDashboard = () => {
           recentActivity: student.points > 0 ? 'Active this week' : 'Getting started'
         });
       });
-
       console.log('Formatted class leaderboard entries:', formattedEntries);
       setClassLeaderboardEntries(formattedEntries);
       setLeaderboardKey(prev => prev + 1); // Force re-render of leaderboards
@@ -400,73 +335,66 @@ const StudentDashboard = () => {
       console.error('Error fetching class leaderboard:', error);
     }
   };
-
   const checkAuth = async () => {
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user: authUser
+        }
+      } = await supabase.auth.getUser();
       if (!authUser) {
         navigate('/login');
         return;
       }
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
+      const {
+        data: profile,
+        error
+      } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
       if (error) {
         console.error('Error fetching profile:', error);
         navigate('/login');
         return;
       }
-
       if (!profile || profile.role !== 'student') {
         toast({
           title: "Access Denied",
           description: "You don't have permission to access this page.",
-          variant: "destructive",
+          variant: "destructive"
         });
         navigate('/');
         return;
       }
-
       if (!profile.is_approved) {
         toast({
           title: "Account Pending",
           description: "Your account is pending approval from an administrator.",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
-
       console.log('User profile loaded:', profile);
       setUser(profile);
-      
+
       // Calculate class rank using proper database function
       if (profile.student_class && profile.points !== null) {
         try {
           console.log('Calculating class rank for class:', profile.student_class, 'points:', profile.points);
-          
-          const { data: rankData, error: rankError } = await supabase
-            .rpc('get_user_class_rank', {
-              user_class: profile.student_class,
-              user_points: profile.points || 0
-            });
-
+          const {
+            data: rankData,
+            error: rankError
+          } = await supabase.rpc('get_user_class_rank', {
+            user_class: profile.student_class,
+            user_points: profile.points || 0
+          });
           console.log('Class rank result from RPC:', rankData);
           if (!rankError && rankData !== null) {
             setClassRank(rankData);
           } else {
             console.error('Error getting class rank:', rankError);
             // Fallback: calculate manually
-            const { data: classmatesCount, error: countError } = await supabase
-              .from('profiles')
-              .select('points')
-              .eq('student_class', profile.student_class)
-              .eq('is_approved', true)
-              .eq('role', 'student')
-              .gt('points', profile.points || 0);
-            
+            const {
+              data: classmatesCount,
+              error: countError
+            } = await supabase.from('profiles').select('points').eq('student_class', profile.student_class).eq('is_approved', true).eq('role', 'student').gt('points', profile.points || 0);
             if (!countError) {
               setClassRank((classmatesCount?.length || 0) + 1);
             } else {
@@ -485,58 +413,47 @@ const StudentDashboard = () => {
       setLoading(false);
     }
   };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
   };
-
   const handleProfileUpdate = () => {
     checkAuth();
     fetchDashboardData();
   };
-
   const handleSelectQuiz = (quiz: any) => {
     console.log('Selected quiz for taking:', quiz);
     setSelectedQuiz(quiz);
   };
-
   const handleQuizComplete = async (result: any) => {
     console.log('Quiz completed with result:', result);
     setSelectedQuiz(null);
-    
+
     // Refresh all data after quiz completion
-    await Promise.all([
-      fetchQuizResults(),
-      checkAuth(), // This will refresh user points and class rank
-      fetchChallenges(), // Refresh challenges as quiz completion might update progress
-      fetchClassLeaderboard() // Refresh leaderboard
+    await Promise.all([fetchQuizResults(), checkAuth(),
+    // This will refresh user points and class rank
+    fetchChallenges(),
+    // Refresh challenges as quiz completion might update progress
+    fetchClassLeaderboard() // Refresh leaderboard
     ]);
-    
     toast({
       title: "Quiz Completed!",
-      description: `You scored ${result.score}% and earned ${result.pointsEarned} points!`,
+      description: `You scored ${result.score}% and earned ${result.pointsEarned} points!`
     });
   };
-
   const handleBackFromQuiz = () => {
     setSelectedQuiz(null);
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!user?.is_approved) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Account Pending Approval</CardTitle>
@@ -551,14 +468,12 @@ const StudentDashboard = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
 
   // Show quiz taking interface when a quiz is selected
   if (selectedQuiz) {
-    return (
-      <div className="min-h-screen bg-gray-50">
+    return <div className="min-h-screen bg-gray-50">
         <header className="bg-white shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
@@ -583,24 +498,16 @@ const StudentDashboard = () => {
           </div>
         </header>
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <StudentQuiz 
-            quiz={selectedQuiz}
-            onComplete={handleQuizComplete}
-            onBack={handleBackFromQuiz}
-          />
+          <StudentQuiz quiz={selectedQuiz} onComplete={handleQuizComplete} onBack={handleBackFromQuiz} />
         </main>
-      </div>
-    );
+      </div>;
   }
-
   const levelInfo = {
     currentLevel: Math.floor((user?.points || 0) / 100) + 1,
-    pointsToNext: 100 - ((user?.points || 0) % 100),
-    progressPercent: ((user?.points || 0) % 100)
+    pointsToNext: 100 - (user?.points || 0) % 100,
+    progressPercent: (user?.points || 0) % 100
   };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
+  return <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -610,8 +517,8 @@ const StudentDashboard = () => {
                 <BookOpen className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Digital Library</h1>
-                <p className="text-sm text-gray-600">Student Dashboard</p>
+                <h1 className="text-lg font-bold text-gray-900">PM SHRI KV AFS SULUR</h1>
+                <p className="text-sm text-gray-600">Digital Library - Students Dashboard</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -633,15 +540,7 @@ const StudentDashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Overview */}
         <div className="mb-8">
-          <StatsCards 
-            userPoints={user?.points || 0}
-            nextLevelPoints={100}
-            currentBooksCount={currentBooksCount}
-            quizResultsCount={quizResultsCount}
-            classRank={classRank}
-            userClass={user?.student_class || ""}
-            levelInfo={levelInfo}
-          />
+          <StatsCards userPoints={user?.points || 0} nextLevelPoints={100} currentBooksCount={currentBooksCount} quizResultsCount={quizResultsCount} classRank={classRank} userClass={user?.student_class || ""} levelInfo={levelInfo} />
         </div>
 
         {/* User Level Card */}
@@ -688,13 +587,7 @@ const StudentDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview">
-            <Overview 
-              user={user}
-              currentBooksCount={currentBooksCount}
-              quizResultsCount={quizResultsCount}
-              classRank={classRank}
-              levelInfo={levelInfo}
-            />
+            <Overview user={user} currentBooksCount={currentBooksCount} quizResultsCount={quizResultsCount} classRank={classRank} levelInfo={levelInfo} />
           </TabsContent>
 
           <TabsContent value="books" className="space-y-6">
@@ -703,23 +596,17 @@ const StudentDashboard = () => {
           </TabsContent>
 
           <TabsContent value="quizzes">
-            <QuizPage 
-              quizzes={availableQuizzes} 
-              results={quizResults} 
-              onSelectQuiz={handleSelectQuiz} 
-            />
+            <QuizPage quizzes={availableQuizzes} results={quizResults} onSelectQuiz={handleSelectQuiz} />
           </TabsContent>
 
           <TabsContent value="challenges" className="space-y-6">
             <ReadingChallenges challenges={challenges} onJoinChallenge={handleJoinChallenge} />
             <Achievements achievements={[]} userStats={{
-              totalPoints: user?.points || 0,
-              booksRead: 0,
-              quizzesCompleted: quizResults.length,
-              averageQuizScore: quizResults.length > 0 
-                ? Math.round(quizResults.reduce((sum, result) => sum + result.score, 0) / quizResults.length)
-                : 0
-            }} />
+            totalPoints: user?.points || 0,
+            booksRead: 0,
+            quizzesCompleted: quizResults.length,
+            averageQuizScore: quizResults.length > 0 ? Math.round(quizResults.reduce((sum, result) => sum + result.score, 0) / quizResults.length) : 0
+          }} />
           </TabsContent>
 
           <TabsContent value="class-rank">
@@ -759,18 +646,11 @@ const StudentDashboard = () => {
       </main>
 
       {/* Book Request Dialog */}
-      {showBookRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      {showBookRequest && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <BookRequestForm 
-              onClose={() => setShowBookRequest(false)}
-              onSuccess={() => setShowBookRequest(false)}
-            />
+            <BookRequestForm onClose={() => setShowBookRequest(false)} onSuccess={() => setShowBookRequest(false)} />
           </div>
-        </div>
-      )}
-    </div>
-  );
+        </div>}
+    </div>;
 };
-
 export default StudentDashboard;
