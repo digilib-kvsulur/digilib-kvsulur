@@ -560,8 +560,8 @@ const StudentDashboard = () => {
         <div className="mb-8">
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks and shortcuts</CardDescription>
+              <CardTitle>Request Section</CardTitle>
+              <CardDescription>Your request will be surely processed by us.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex gap-4 flex-wrap">
