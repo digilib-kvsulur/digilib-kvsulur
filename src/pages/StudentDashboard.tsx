@@ -20,6 +20,7 @@ import SchoolLeaderboard from "@/components/rewards/SchoolLeaderboard";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import BookRequestForm from "@/components/BookRequestForm";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
+import LevelUpBanner from "@/components/rewards/LevelUpBanner";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -41,6 +42,8 @@ const StudentDashboard = () => {
   const [challenges, setChallenges] = useState<any[]>([]);
   const [classLeaderboardEntries, setClassLeaderboardEntries] = useState<any[]>([]);
   const [leaderboardKey, setLeaderboardKey] = useState(0);
+  const [previousLevel, setPreviousLevel] = useState<number | null>(null);
+  const [levelUpBanner, setLevelUpBanner] = useState<any>(null);
   useEffect(() => {
     checkAuth();
   }, []);
@@ -226,7 +229,8 @@ const StudentDashboard = () => {
           deadline: challenge.deadline,
           progress: progress,
           isCompleted: isCompleted,
-          completedAt: userProgress?.completed_at
+          completedAt: userProgress?.completed_at,
+          isClaimed: userProgress?.is_claimed || false
         };
       }) || [];
       console.log('Formatted challenges:', formattedChallenges);
@@ -289,6 +293,58 @@ const StudentDashboard = () => {
         variant: "destructive"
       });
     }
+  const handleClaimReward = async (challengeId: string) => {
+    try {
+      console.log('Claiming reward for challenge:', challengeId);
+      
+      // Get the challenge to determine reward points
+      const challenge = challenges.find(c => c.id === challengeId);
+      if (!challenge) {
+        toast({
+          title: "Error",
+          description: "Challenge not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Update challenge progress to mark as claimed
+      const { error: claimError } = await supabase
+        .from('challenge_progress')
+        .update({ is_claimed: true })
+        .eq('challenge_id', challengeId)
+        .eq('user_id', user.id);
+
+      if (claimError) throw claimError;
+
+      // Award points to user
+      const { error: pointsError } = await supabase
+        .from('profiles')
+        .update({ 
+          points: (user.points || 0) + challenge.rewardPoints 
+        })
+        .eq('id', user.id);
+
+      if (pointsError) throw pointsError;
+
+      toast({
+        title: "Reward Claimed!",
+        description: `You've earned ${challenge.rewardPoints} points!`
+      });
+
+      // Refresh data
+      await Promise.all([
+        checkAuth(), // This will refresh user points and check for level up
+        fetchChallenges()
+      ]);
+    } catch (error) {
+      console.error('Error claiming reward:', error);
+      toast({
+        title: "Error",
+        description: "Failed to claim reward. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   const fetchClassLeaderboard = async () => {
     try {
@@ -325,7 +381,8 @@ const StudentDashboard = () => {
           studentClass: student.student_class,
           totalPoints: student.points || 0,
           rank: currentRank,
-          recentActivity: student.points > 0 ? 'Active this week' : 'Getting started'
+          recentActivity: student.points > 0 ? 'Active this week' : 'Getting started',
+          username: 'student' // placeholder since we don't have username in this query
         });
       });
       console.log('Formatted class leaderboard entries:', formattedEntries);
@@ -372,6 +429,36 @@ const StudentDashboard = () => {
         });
       }
       console.log('User profile loaded:', profile);
+      
+      // Check for level up by getting current level
+      if (profile.points !== null && previousLevel !== null) {
+        try {
+          const { data: currentLevelData } = await supabase.rpc('get_user_level', {
+            user_points: profile.points
+          });
+          
+          if (currentLevelData && currentLevelData[0] && currentLevelData[0].level_number > previousLevel) {
+            setLevelUpBanner(currentLevelData[0]);
+          }
+        } catch (error) {
+          console.error('Error checking level up:', error);
+        }
+      }
+      
+      // Store current level for future comparisons
+      if (profile.points !== null) {
+        try {
+          const { data: levelData } = await supabase.rpc('get_user_level', {
+            user_points: profile.points
+          });
+          if (levelData && levelData[0]) {
+            setPreviousLevel(levelData[0].level_number);
+          }
+        } catch (error) {
+          console.error('Error getting current level:', error);
+        }
+      }
+      
       setUser(profile);
 
       // Calculate class rank using proper database function
@@ -651,6 +738,9 @@ const StudentDashboard = () => {
             <BookRequestForm onClose={() => setShowBookRequest(false)} onSuccess={() => setShowBookRequest(false)} />
           </div>
         </div>}
-    </div>;
+      </div>
+    </>
+  );
 };
+
 export default StudentDashboard;

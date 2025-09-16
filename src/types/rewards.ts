@@ -23,6 +23,7 @@ export interface LeaderboardEntry {
   rank: number;
   avatar?: string;
   recentActivity: string;
+  username?: string;
 }
 
 export interface ReadingChallenge {

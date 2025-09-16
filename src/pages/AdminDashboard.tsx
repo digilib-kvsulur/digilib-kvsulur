@@ -181,19 +181,21 @@ const AdminDashboard = () => {
 
         {/* Main Navigation Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-9">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="books">Books</TabsTrigger>
-            <TabsTrigger value="book-requests">Book Requests</TabsTrigger>
-            <TabsTrigger value="book-issues">Book Issues</TabsTrigger>
-            <TabsTrigger value="points">Award Points</TabsTrigger>
-            <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
-            <TabsTrigger value="challenges">Challenges</TabsTrigger>
-            <TabsTrigger value="levels">Levels</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground min-w-full">
+              <TabsTrigger value="overview" className="whitespace-nowrap">Overview</TabsTrigger>
+              <TabsTrigger value="users" className="whitespace-nowrap">Users</TabsTrigger>
+              <TabsTrigger value="books" className="whitespace-nowrap">Books</TabsTrigger>
+              <TabsTrigger value="book-requests" className="whitespace-nowrap">Book Requests</TabsTrigger>
+              <TabsTrigger value="book-issues" className="whitespace-nowrap">Book Issues</TabsTrigger>
+              <TabsTrigger value="points" className="whitespace-nowrap">Award Points</TabsTrigger>
+              <TabsTrigger value="quizzes" className="whitespace-nowrap">Quizzes</TabsTrigger>
+              <TabsTrigger value="challenges" className="whitespace-nowrap">Challenges</TabsTrigger>
+              <TabsTrigger value="levels" className="whitespace-nowrap">Levels</TabsTrigger>
+              <TabsTrigger value="analytics" className="whitespace-nowrap">Analytics</TabsTrigger>
+              <TabsTrigger value="profile" className="whitespace-nowrap">Profile</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

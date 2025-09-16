@@ -158,6 +158,7 @@ export type Database = {
           created_at: string | null
           current_progress: number | null
           id: string
+          is_claimed: boolean | null
           is_completed: boolean | null
           points_earned: number | null
           user_id: string
@@ -168,6 +169,7 @@ export type Database = {
           created_at?: string | null
           current_progress?: number | null
           id?: string
+          is_claimed?: boolean | null
           is_completed?: boolean | null
           points_earned?: number | null
           user_id: string
@@ -178,6 +180,7 @@ export type Database = {
           created_at?: string | null
           current_progress?: number | null
           id?: string
+          is_claimed?: boolean | null
           is_completed?: boolean | null
           points_earned?: number | null
           user_id?: string

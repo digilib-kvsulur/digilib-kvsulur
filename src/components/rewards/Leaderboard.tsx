@@ -82,7 +82,9 @@ const Leaderboard = ({ entries, currentUserId }: LeaderboardProps) => {
                     </Avatar>
                   </div>
                   <CardTitle className="text-lg">{entry.studentName}</CardTitle>
-                  <CardDescription>Class {entry.studentClass}</CardDescription>
+                  <CardDescription>
+                    Class {entry.studentClass} • @{entry.username || 'no-username'}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
                   <div className="text-2xl font-bold text-blue-600 mb-1">
@@ -127,13 +129,14 @@ const Leaderboard = ({ entries, currentUserId }: LeaderboardProps) => {
                     </Avatar>
                     
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                       <div className="flex items-center gap-2">
                         <h4 className="font-medium">{entry.studentName}</h4>
                         {entry.studentId === currentUserId && (
                           <Badge variant="secondary" className="text-xs">You</Badge>
                         )}
                       </div>
                       <p className="text-sm text-gray-600">Class {entry.studentClass}</p>
+                      <p className="text-xs text-gray-500">@{entry.username || 'no-username'}</p>
                       <p className="text-xs text-gray-500">{entry.recentActivity}</p>
                     </div>
                     

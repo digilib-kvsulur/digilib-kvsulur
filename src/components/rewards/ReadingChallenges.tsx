@@ -16,11 +16,13 @@ interface ReadingChallenge {
   progress: number;
   isCompleted: boolean;
   completedAt?: string;
+  isClaimed?: boolean;
 }
 
 interface ReadingChallengesProps {
   challenges: ReadingChallenge[];
   onJoinChallenge?: (challengeId: string) => void;
+  onClaimReward?: (challengeId: string) => void;
 }
 
 const getChallengeIcon = (type: string) => {
@@ -49,11 +51,13 @@ const getChallengeTypeLabel = (type: string) => {
   }
 };
 
-const ReadingChallenges = ({ challenges, onJoinChallenge }: ReadingChallengesProps) => {
+const ReadingChallenges = ({ challenges, onJoinChallenge, onClaimReward }: ReadingChallengesProps) => {
   console.log('ReadingChallenges received challenges:', challenges);
 
   const activeChallenges = challenges.filter(c => !c.isCompleted);
   const completedChallenges = challenges.filter(c => c.isCompleted);
+  const unclaimedChallenges = completedChallenges.filter(c => !c.isClaimed);
+  const claimedChallenges = completedChallenges.filter(c => c.isClaimed);
 
   console.log('Active challenges:', activeChallenges);
   console.log('Completed challenges:', completedChallenges);
@@ -140,15 +144,68 @@ const ReadingChallenges = ({ challenges, onJoinChallenge }: ReadingChallengesPro
         </div>
       )}
 
-      {/* Completed Challenges */}
-      {completedChallenges.length > 0 && (
+      {/* Completed Challenges Ready to Claim */}
+      {unclaimedChallenges.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-amber-600" />
+            Ready to Claim ({unclaimedChallenges.length})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {unclaimedChallenges.map((challenge) => {
+              const IconComponent = getChallengeIcon(challenge.type);
+              
+              return (
+                <Card key={challenge.id} className="border-amber-200 bg-amber-50">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                          <IconComponent className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            {challenge.title}
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                          </CardTitle>
+                          <CardDescription>{challenge.description}</CardDescription>
+                        </div>
+                      </div>
+                      <Badge className="bg-amber-600">
+                        +{challenge.rewardPoints} pts
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-amber-700 font-medium">
+                        Challenge Completed! 🎉
+                      </span>
+                      <Button 
+                        onClick={() => onClaimReward?.(challenge.id)}
+                        className="bg-amber-600 hover:bg-amber-700"
+                        size="sm"
+                      >
+                        Claim Reward
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Already Claimed Challenges */}
+      {claimedChallenges.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-600" />
-            Completed Challenges ({completedChallenges.length})
+            Claimed Rewards ({claimedChallenges.length})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {completedChallenges.map((challenge) => {
+            {claimedChallenges.map((challenge) => {
               const IconComponent = getChallengeIcon(challenge.type);
               
               return (
@@ -175,7 +232,7 @@ const ReadingChallenges = ({ challenges, onJoinChallenge }: ReadingChallengesPro
                   <CardContent>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-green-700 font-medium">
-                        Challenge Completed! 🎉
+                        Reward Claimed! ✅
                       </span>
                       {challenge.completedAt && (
                         <span className="text-xs text-gray-600">
