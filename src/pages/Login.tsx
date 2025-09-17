@@ -23,6 +23,8 @@ const Login = () => {
   const [phone, setPhone] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -223,6 +225,51 @@ const Login = () => {
     setIsLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    if (!resetEmail) {
+      toast({
+        title: "Missing Email",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        toast({
+          title: "Reset Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Reset Email Sent",
+          description: "Check your email for password reset instructions",
+        });
+        setShowForgotPassword(false);
+        setResetEmail("");
+      }
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast({
+        title: "Reset Failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+    
+    setIsLoading(false);
+  };
+
   const classOptions = getClassOptions();
 
   return (
@@ -250,7 +297,37 @@ const Login = () => {
             </Alert>
           )}
 
-          <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="space-y-4">
+          {showForgotPassword ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="resetEmail">Email Address</Label>
+                <Input
+                  id="resetEmail"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+                {isLoading ? 'Sending...' : 'Send Reset Email'}
+              </Button>
+
+              <div className="text-center">
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-blue-600"
+                  onClick={() => setShowForgotPassword(false)}
+                  type="button"
+                >
+                  ← Back to Login
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="space-y-4">
             {isSignUp && (
               <>
                 <div className="grid grid-cols-2 gap-4">
@@ -384,7 +461,21 @@ const Login = () => {
             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
               {isLoading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Login')}
             </Button>
+
+            {!isSignUp && (
+              <div className="text-center">
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-gray-500 text-sm"
+                  onClick={() => setShowForgotPassword(true)}
+                  type="button"
+                >
+                  Forgot password?
+                </Button>
+              </div>
+            )}
           </form>
+          )}
 
           <div className="text-center mt-4">
             <p className="text-sm text-gray-600">

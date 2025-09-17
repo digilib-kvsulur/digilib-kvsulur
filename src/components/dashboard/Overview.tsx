@@ -18,7 +18,7 @@ interface OverviewProps {
 }
 
 interface RecentActivity {
-  type: 'book' | 'quiz' | 'points' | 'reading';
+  type: 'book' | 'quiz' | 'points' | 'reading' | 'levelup' | 'challenge';
   title: string;
   time: string;
   score?: number;
@@ -137,6 +137,40 @@ const Overview = ({
             time: getTimeAgo(entry.completed_date),
             points: entry.points_earned
           });
+        });
+      }
+
+      // Fetch recent challenge completions
+      const { data: challengeProgress } = await supabase
+        .from('challenge_progress')
+        .select(`
+          *,
+          challenges (title, reward_points)
+        `)
+        .eq('user_id', user.id)
+        .eq('is_completed', true)
+        .order('completed_at', { ascending: false })
+        .limit(2);
+
+      if (challengeProgress) {
+        challengeProgress.forEach(progress => {
+          activities.push({
+            type: 'challenge',
+            title: `Completed challenge: ${progress.challenges?.title || 'Challenge'}`,
+            time: getTimeAgo(progress.completed_at),
+            points: progress.challenges?.reward_points || 0
+          });
+        });
+      }
+
+      // Add mock level up activities (in real app, this would come from a level_progress table)
+      // For now, we'll add it based on user points milestones
+      if (user.points >= 100) {
+        activities.push({
+          type: 'levelup',
+          title: `Reached Level ${Math.floor(user.points / 100) + 1}!`,
+          time: '2 days ago', // Mock time
+          points: 0
         });
       }
 
@@ -386,7 +420,9 @@ const Overview = ({
                   <div className={`w-2 h-2 rounded-full mt-2 ${
                     activity.type === 'book' ? 'bg-blue-500' :
                     activity.type === 'quiz' ? 'bg-green-500' : 
-                    activity.type === 'reading' ? 'bg-purple-500' : 'bg-yellow-500'
+                    activity.type === 'reading' ? 'bg-purple-500' : 
+                    activity.type === 'levelup' ? 'bg-yellow-500' :
+                    activity.type === 'challenge' ? 'bg-orange-500' : 'bg-gray-500'
                   }`} />
                   <div className="flex-1">
                     <p className="text-sm font-medium">{activity.title}</p>

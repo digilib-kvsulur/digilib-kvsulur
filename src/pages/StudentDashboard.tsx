@@ -15,12 +15,11 @@ import CurrentBooks from "@/components/dashboard/CurrentBooks";
 import QuizPage from "@/components/dashboard/QuizPage";
 import ReadingChallenges from "@/components/rewards/ReadingChallenges";
 import Achievements from "@/components/rewards/Achievements";
-import Leaderboard from "@/components/rewards/Leaderboard";
-import SchoolLeaderboard from "@/components/rewards/SchoolLeaderboard";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import BookRequestForm from "@/components/BookRequestForm";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
 import LevelUpBanner from "@/components/rewards/LevelUpBanner";
+import Rankings from "@/components/dashboard/Rankings";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
 
 const StudentDashboard = () => {
@@ -39,8 +38,6 @@ const StudentDashboard = () => {
   const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
   const [quizResults, setQuizResults] = useState<any[]>([]);
   const [challenges, setChallenges] = useState<any[]>([]);
-  const [classLeaderboardEntries, setClassLeaderboardEntries] = useState<any[]>([]);
-  const [leaderboardKey, setLeaderboardKey] = useState(0);
   const [previousLevel, setPreviousLevel] = useState<number | null>(null);
   const [levelUpBanner, setLevelUpBanner] = useState<any>(null);
 
@@ -48,466 +45,46 @@ const StudentDashboard = () => {
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchDashboardData();
-
-      // Set up real-time updates for challenge progress
-      const challengeChannel = supabase
-        .channel('challenge-progress-changes')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'challenge_progress',
-          filter: `user_id=eq.${user.id}`
-        }, payload => {
-          console.log('Challenge progress updated:', payload);
-          // Refresh challenges when progress changes
-          fetchChallenges();
-        })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'reading_history',
-          filter: `user_id=eq.${user.id}`
-        }, payload => {
-          console.log('Reading history updated:', payload);
-          // Refresh challenges when new reading history is added
-          setTimeout(() => fetchChallenges(), 1000); // Small delay for trigger to complete
-        })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'quiz_results',
-          filter: `user_id=eq.${user.id}`
-        }, payload => {
-          console.log('Quiz results updated:', payload);
-          // Refresh challenges when new quiz results are added
-          setTimeout(() => fetchChallenges(), 1000); // Small delay for trigger to complete
-        })
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(challengeChannel);
-      };
-    }
-  }, [user?.id]);
-
-  const fetchDashboardData = async () => {
-    try {
-      console.log('Fetching all dashboard data...');
-      await Promise.all([
-        fetchCurrentBooks(),
-        fetchAvailableQuizzes(),
-        fetchQuizResults(),
-        fetchChallenges(),
-        fetchClassLeaderboard()
-      ]);
-      console.log('Dashboard data fetch completed');
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    }
-  };
-
-  const fetchCurrentBooks = async () => {
-    try {
-      const { data: bookIssues, error } = await supabase
-        .from('book_issues')
-        .select(`
-          *,
-          books (title, author)
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'issued');
-
-      if (error) throw error;
-
-      const formattedBooks = bookIssues?.map(issue => ({
-        id: issue.id,
-        title: issue.books?.title || 'Unknown Title',
-        author: issue.books?.author || 'Unknown Author',
-        issueDate: issue.issue_date,
-        dueDate: issue.due_date,
-        daysLeft: Math.ceil((new Date(issue.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-      })) || [];
-
-      setCurrentBooks(formattedBooks);
-      setCurrentBooksCount(formattedBooks.length);
-    } catch (error) {
-      console.error('Error fetching current books:', error);
-    }
-  };
-
-  const fetchAvailableQuizzes = async () => {
-    try {
-      const { data: quizzes, error } = await supabase
-        .from('quizzes')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-
-      const formattedQuizzes = quizzes?.map(quiz => ({
-        id: quiz.id,
-        title: quiz.title,
-        description: quiz.description || '',
-        difficulty: quiz.difficulty,
-        timeLimit: quiz.time_limit,
-        pointsReward: quiz.points_reward,
-        questions: Array.isArray(quiz.questions) ? quiz.questions : []
-      })) || [];
-
-      setAvailableQuizzes(formattedQuizzes);
-    } catch (error) {
-      console.error('Error fetching available quizzes:', error);
-    }
-  };
-
-  const fetchQuizResults = async () => {
-    try {
-      const { data: results, error } = await supabase
-        .from('quiz_results')
-        .select(`
-          *,
-          quizzes (title)
-        `)
-        .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-
-      const formattedResults = results?.map(result => ({
-        id: result.id,
-        quizTitle: result.quizzes?.title || 'Unknown Quiz',
-        score: result.score,
-        pointsEarned: result.points_earned,
-        completedAt: result.completed_at,
-        correctAnswers: Math.round(result.score / 100 * (Array.isArray(result.answers) ? result.answers.length : 10)),
-        totalQuestions: Array.isArray(result.answers) ? result.answers.length : 10
-      })) || [];
-
-      setQuizResults(formattedResults);
-
-      // Count current month results
-      const currentMonth = new Date();
-      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      const monthlyResults = results?.filter(result => 
-        new Date(result.completed_at) >= startOfMonth
-      ) || [];
-      setQuizResultsCount(monthlyResults.length);
-    } catch (error) {
-      console.error('Error fetching quiz results:', error);
-    }
-  };
-
-  const fetchChallenges = async () => {
-    try {
-      console.log('Fetching challenges for user:', user.id);
-
-      // First get all active challenges
-      const { data: challengesData, error: challengesError } = await supabase
-        .from('challenges')
-        .select('*')
-        .eq('is_active', true);
-
-      if (challengesError) {
-        console.error('Error fetching challenges:', challengesError);
-        toast({
-          title: "Error",
-          description: "Failed to load challenges. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Active challenges:', challengesData);
-
-      // Then get user's progress for these challenges
-      const challengeIds = challengesData?.map(c => c.id) || [];
-      let progressData = [];
-
-      if (challengeIds.length > 0) {
-        const { data: progress, error: progressError } = await supabase
-          .from('challenge_progress')
-          .select('*')
-          .eq('user_id', user.id)
-          .in('challenge_id', challengeIds);
-
-        if (progressError) {
-          console.error('Error fetching challenge progress:', progressError);
-          toast({
-            title: "Warning",
-            description: "Could not load challenge progress.",
-            variant: "destructive"
-          });
-        } else {
-          progressData = progress || [];
-        }
-      }
-
-      console.log('User challenge progress:', progressData);
-
-      // Combine challenges with progress
-      const formattedChallenges = challengesData?.map(challenge => {
-        const userProgress = progressData.find(p => p.challenge_id === challenge.id);
-        const progress = userProgress?.current_progress || 0;
-        const isCompleted = userProgress?.is_completed || progress >= challenge.target_value;
-
-        return {
-          id: challenge.id,
-          title: challenge.title,
-          description: challenge.description,
-          type: challenge.type,
-          targetValue: challenge.target_value,
-          rewardPoints: challenge.reward_points,
-          deadline: challenge.deadline,
-          progress: progress,
-          isCompleted: isCompleted,
-          completedAt: userProgress?.completed_at,
-          isClaimed: userProgress?.is_claimed || false
-        };
-      }) || [];
-
-      console.log('Formatted challenges:', formattedChallenges);
-      setChallenges(formattedChallenges);
-
-      if (formattedChallenges.length === 0) {
-        console.log('No active challenges found');
-      }
-    } catch (error) {
-      console.error('Error fetching challenges:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while loading challenges.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleJoinChallenge = async (challengeId: string) => {
-    try {
-      console.log('Joining challenge:', challengeId);
-
-      // Check if user already has progress for this challenge
-      const { data: existingProgress, error: checkError } = await supabase
-        .from('challenge_progress')
-        .select('*')
-        .eq('challenge_id', challengeId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
-
-      if (existingProgress) {
-        toast({
-          title: "Already Joined",
-          description: "You've already joined this challenge!",
-          variant: "default"
-        });
-        return;
-      }
-
-      // Create initial progress record for the user
-      const { error: insertError } = await supabase
-        .from('challenge_progress')
-        .insert({
-          challenge_id: challengeId,
-          user_id: user.id,
-          current_progress: 0,
-          is_completed: false
-        });
-
-      if (insertError) throw insertError;
-
-      toast({
-        title: "Success",
-        description: "Successfully joined the challenge!"
-      });
-
-      // Refresh challenges to show updated state
-      fetchChallenges();
-    } catch (error) {
-      console.error('Error joining challenge:', error);
-      toast({
-        title: "Error",
-        description: "Failed to join challenge. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleClaimReward = async (challengeId: string) => {
-    try {
-      console.log('Claiming reward for challenge:', challengeId);
-      
-      // Get the challenge to determine reward points
-      const challenge = challenges.find(c => c.id === challengeId);
-      if (!challenge) {
-        toast({
-          title: "Error",
-          description: "Challenge not found",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Update challenge progress to mark as claimed
-      const { error: claimError } = await supabase
-        .from('challenge_progress')
-        .update({ is_claimed: true })
-        .eq('challenge_id', challengeId)
-        .eq('user_id', user.id);
-
-      if (claimError) throw claimError;
-
-      // Award points to user
-      const { error: pointsError } = await supabase
-        .from('profiles')
-        .update({ 
-          points: (user.points || 0) + challenge.rewardPoints 
-        })
-        .eq('id', user.id);
-
-      if (pointsError) throw pointsError;
-
-      toast({
-        title: "Reward Claimed!",
-        description: `You've earned ${challenge.rewardPoints} points!`
-      });
-
-      // Refresh data
-      await Promise.all([
-        checkAuth(), // This will refresh user points and check for level up
-        fetchChallenges()
-      ]);
-    } catch (error) {
-      console.error('Error claiming reward:', error);
-      toast({
-        title: "Error",
-        description: "Failed to claim reward. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const fetchClassLeaderboard = async () => {
-    try {
-      if (!user?.student_class) {
-        console.log('No student class found for user');
-        return;
-      }
-
-      console.log('Fetching class leaderboard for class:', user.student_class);
-      const { data: classmates, error } = await supabase.rpc('get_leaderboard_data', {
-        class_filter: user.student_class
-      });
-
-      if (error) {
-        console.error('Error fetching class leaderboard:', error);
-        return;
-      }
-
-      console.log('Class leaderboard raw data:', classmates);
-
-      // Filter valid students and add proper ranking (include those with 0 points)
-      const validStudents = (classmates || []).filter(student => student.first_name);
-      const formattedEntries = [];
-      let currentRank = 1;
-
-      validStudents.forEach((student, index) => {
-        // If this student has different points than previous, update rank
-        if (index > 0 && student.points !== validStudents[index - 1].points) {
-          currentRank = index + 1;
-        }
-
-        formattedEntries.push({
-          id: student.id,
-          studentId: student.id,
-          studentName: student.first_name,
-          studentClass: student.student_class,
-          totalPoints: student.points || 0,
-          rank: currentRank,
-          recentActivity: student.points > 0 ? 'Active this week' : 'Getting started',
-          username: 'student' // placeholder since we don't have username in this query
-        });
-      });
-
-      console.log('Formatted class leaderboard entries:', formattedEntries);
-      setClassLeaderboardEntries(formattedEntries);
-      setLeaderboardKey(prev => prev + 1); // Force re-render of leaderboards
-    } catch (error) {
-      console.error('Error fetching class leaderboard:', error);
-    }
-  };
-
   const checkAuth = async () => {
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!authUser) {
+      if (!session) {
         navigate('/login');
         return;
       }
 
+      // Get user profile
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', authUser.id)
+        .eq('id', session.user.id)
         .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
+      if (error || !profile) {
+        console.error('Profile error:', error);
         navigate('/login');
-        return;
-      }
-
-      if (!profile || profile.role !== 'student') {
-        toast({
-          title: "Access Denied",
-          description: "You don't have permission to access this page.",
-          variant: "destructive"
-        });
-        navigate('/');
         return;
       }
 
       if (!profile.is_approved) {
         toast({
           title: "Account Pending",
-          description: "Your account is pending approval from an administrator.",
+          description: "Your account is pending admin approval.",
           variant: "destructive"
         });
+        navigate('/login');
+        return;
       }
 
-      console.log('User profile loaded:', profile);
-      
-      // Check for level up by getting current level
-      if (profile.points !== null && previousLevel !== null) {
-        try {
-          const { data: currentLevelData } = await supabase.rpc('get_user_level', {
-            user_points: profile.points
-          });
-          
-          if (currentLevelData && currentLevelData[0] && currentLevelData[0].level_number > previousLevel) {
-            setLevelUpBanner(currentLevelData[0]);
-          }
-        } catch (error) {
-          console.error('Error checking level up:', error);
-        }
-      }
-      
-      // Store current level for future comparisons
+      // Set current level for level up tracking
       if (profile.points !== null) {
         try {
-          const { data: levelData } = await supabase.rpc('get_user_level', {
-            user_points: profile.points
+          const { data: levelData } = await supabase.rpc('get_user_level', { 
+            user_points: profile.points 
           });
-          if (levelData && levelData[0]) {
+          
+          if (levelData && levelData.length > 0) {
             setPreviousLevel(levelData[0].level_number);
           }
         } catch (error) {
@@ -520,12 +97,10 @@ const StudentDashboard = () => {
       // Calculate class rank using proper database function
       if (profile.student_class && profile.points !== null) {
         try {
-          console.log('Calculating class rank for class:', profile.student_class, 'points:', profile.points);
           const { data: rankData, error: rankError } = await supabase.rpc('get_user_class_rank', {
             user_class: profile.student_class,
             user_points: profile.points || 0
           });
-          console.log('Class rank result from RPC:', rankData);
           
           if (!rankError && rankData !== null) {
             setClassRank(rankData);
@@ -545,6 +120,41 @@ const StudentDashboard = () => {
       setLoading(false);
     }
   };
+
+  // Function to handle level up detection
+  const checkLevelUp = async (newPoints: number) => {
+    if (!user?.id || previousLevel === null) return;
+    
+    try {
+      const { data: newLevelData } = await supabase.rpc('get_user_level', { 
+        user_points: newPoints 
+      });
+      
+      if (newLevelData && newLevelData.length > 0) {
+        const newLevel = newLevelData[0].level_number;
+        
+        if (newLevel > previousLevel) {
+          setLevelUpBanner({
+            level_number: newLevel,
+            name: newLevelData[0].name,
+            icon_name: newLevelData[0].icon_name,
+            color: newLevelData[0].color
+          });
+        }
+        
+        setPreviousLevel(newLevel);
+      }
+    } catch (error) {
+      console.error('Error checking level up:', error);
+    }
+  };
+
+  // Track level changes when user points change
+  useEffect(() => {
+    if (user?.points && previousLevel !== null) {
+      checkLevelUp(user.points);
+    }
+  }, [user?.points, previousLevel]);
 
   const handleLogout = async () => {
     try {
@@ -574,114 +184,258 @@ const StudentDashboard = () => {
 
     toast({
       title: "Quiz Completed!",
-      description: `You scored ${result.score}% and earned ${result.pointsEarned} points!`
+      description: `You scored ${result.score}% and earned ${result.pointsEarned} points!`,
     });
+
+    setSelectedQuiz(null);
   };
 
-  const handleBackFromQuiz = () => {
-    setSelectedQuiz(null);
+  const fetchCurrentBooks = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('book_issues')
+        .select(`
+          *,
+          books (
+            title,
+            author,
+            isbn,
+            category,
+            description,
+            cover_url
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'issued');
+
+      if (error) throw error;
+
+      setCurrentBooks(data || []);
+      setCurrentBooksCount(data?.length || 0);
+    } catch (error) {
+      console.error('Error fetching current books:', error);
+    }
+  };
+
+  const fetchQuizResults = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('quiz_results')
+        .select(`
+          *,
+          quizzes (
+            title,
+            description,
+            subject,
+            difficulty
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false });
+
+      if (error) throw error;
+
+      setQuizResults(data || []);
+      setQuizResultsCount(data?.length || 0);
+    } catch (error) {
+      console.error('Error fetching quiz results:', error);
+    }
+  };
+
+  const fetchAvailableQuizzes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedQuizzes = data?.map(quiz => ({
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description || '',
+        difficulty: quiz.difficulty,
+        timeLimit: quiz.time_limit,
+        pointsReward: quiz.points_reward,
+        questions: Array.isArray(quiz.questions) ? quiz.questions : []
+      })) || [];
+
+      setAvailableQuizzes(formattedQuizzes);
+    } catch (error) {
+      console.error('Error fetching available quizzes:', error);
+    }
+  };
+
+  const fetchChallenges = async () => {
+    try {
+      const { data: challengeData, error: challengeError } = await supabase
+        .from('challenges')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (challengeError) throw challengeError;
+
+      if (!challengeData || challengeData.length === 0) {
+        setChallenges([]);
+        return;
+      }
+
+      // Get user's progress for these challenges
+      const challengeIds = challengeData.map(c => c.id);
+      const { data: progressData, error: progressError } = await supabase
+        .from('challenge_progress')
+        .select('*')
+        .eq('user_id', user?.id)
+        .in('challenge_id', challengeIds);
+
+      if (progressError) {
+        console.error('Error fetching progress:', progressError);
+      }
+
+      // Combine challenge data with progress
+      const formattedChallenges = challengeData.map(challenge => {
+        const userProgress = progressData?.find(p => p.challenge_id === challenge.id);
+        
+        return {
+          id: challenge.id,
+          title: challenge.title,
+          description: challenge.description,
+          targetValue: challenge.target_value,
+          currentProgress: userProgress?.current_progress || 0,
+          type: challenge.type,
+          reward: {
+            points: challenge.reward_points,
+            badge: undefined
+          },
+          deadline: challenge.deadline,
+          isCompleted: userProgress?.is_completed || false,
+          completedAt: userProgress?.completed_at,
+          isClaimed: userProgress?.is_claimed || false
+        };
+      });
+
+      setChallenges(formattedChallenges);
+    } catch (error) {
+      console.error('Error fetching challenges:', error);
+      setChallenges([]);
+    }
+  };
+
+  const handleJoinChallenge = (challengeId: string) => {
+    console.log("Joining challenge:", challengeId);
+    // The challenge joining is automatic when user performs actions
+  };
+
+  const handleClaimReward = async (challengeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('challenge_progress')
+        .update({ is_claimed: true })
+        .eq('challenge_id', challengeId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Reward Claimed!",
+        description: "Your challenge reward has been added to your account.",
+      });
+
+      // Refresh data
+      await Promise.all([
+        checkAuth(), // This will update user points
+        fetchChallenges()
+      ]);
+    } catch (error) {
+      console.error('Error claiming reward:', error);
+      toast({
+        title: "Error",
+        description: "Failed to claim reward. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Fetch all data when user is loaded
+  useEffect(() => {
+    if (user?.id) {
+      fetchCurrentBooks();
+      fetchQuizResults();
+      fetchAvailableQuizzes();
+      fetchChallenges();
+    }
+  }, [user?.id]);
+
+  // Level information for display
+  const levelInfo = {
+    currentLevel: Math.floor((user?.points || 0) / 100) + 1,
+    pointsToNext: 100 - ((user?.points || 0) % 100),
+    progressPercent: ((user?.points || 0) % 100)
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
-  if (!user?.is_approved) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Account Pending Approval</CardTitle>
-            <CardDescription>
-              Your account is waiting for administrator approval. Please wait for an admin to approve your account.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={handleLogout} variant="outline" className="w-full">
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!user) {
+    return null;
   }
 
-  // Show quiz taking interface when a quiz is selected
+  // Show selected quiz if one is selected
   if (selectedQuiz) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <BookOpen className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-gray-900">PM SHRI KV AFS SULUR</h1>
-                  <p className="text-sm text-gray-600">Digital Library - Quiz Mode</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user?.first_name} {user?.last_name}
-                  </p>
-                  <UserLevel userPoints={user?.points || 0} showDetails={false} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <StudentQuiz 
-            quiz={selectedQuiz} 
-            onComplete={handleQuizComplete} 
-            onBack={handleBackFromQuiz} 
-          />
-        </main>
-      </div>
+      <StudentQuiz 
+        quiz={selectedQuiz}
+        onComplete={handleQuizComplete}
+        onBack={() => setSelectedQuiz(null)}
+      />
     );
   }
 
-  const levelInfo = {
-    currentLevel: Math.floor((user?.points || 0) / 100) + 1,
-    pointsToNext: 100 - ((user?.points || 0) % 100),
-    progressPercent: (user?.points || 0) % 100
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">PM SHRI KV AFS SULUR</h1>
-                <p className="text-sm text-gray-600">Digital Library - Students Dashboard</p>
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <BookOpen className="h-8 w-8 text-blue-600" />
+                <h1 className="text-xl font-bold text-gray-900">
+                  PM SHRI KV Sulur Digital Library
+                </h1>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">
                   {user?.first_name} {user?.last_name}
                 </p>
-                <UserLevel userPoints={user?.points || 0} showDetails={false} />
+                <p className="text-xs text-gray-500 capitalize">
+                  {user?.role} • Class {user?.student_class}
+                </p>
               </div>
-              <Button onClick={handleLogout} variant="outline" size="sm">
-                <LogOut className="h-4 w-4 mr-2" />
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
                 Logout
               </Button>
             </div>
@@ -715,7 +469,7 @@ const StudentDashboard = () => {
         <div className="mb-8">
           <Card>
             <CardHeader>
-              <CardTitle>Your Progress</CardTitle>
+              <CardTitle>Your Level Progress</CardTitle>
               <CardDescription>Track your reading level and achievements</CardDescription>
             </CardHeader>
             <CardContent>
@@ -744,13 +498,12 @@ const StudentDashboard = () => {
 
         {/* Main Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="books">My Books</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
             <TabsTrigger value="challenges">Challenges</TabsTrigger>
-            <TabsTrigger value="rewards">Rewards</TabsTrigger>
-            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+            <TabsTrigger value="rankings">Rankings</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
 
@@ -800,26 +553,24 @@ const StudentDashboard = () => {
           </TabsContent>
 
           <TabsContent value="challenges">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Reading Challenges
-                </CardTitle>
-                <CardDescription>Join challenges to earn extra points and rewards</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ReadingChallenges 
-                  challenges={challenges}
-                  onJoinChallenge={handleJoinChallenge}
-                  onClaimReward={handleClaimReward}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="rewards">
             <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Reading Challenges
+                  </CardTitle>
+                  <CardDescription>Join challenges to earn extra points and rewards</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ReadingChallenges 
+                    challenges={challenges}
+                    onJoinChallenge={handleJoinChallenge}
+                    onClaimReward={handleClaimReward}
+                  />
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -843,36 +594,8 @@ const StudentDashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="leaderboard">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Class Leaderboard
-                </CardTitle>
-                <CardDescription>See how you rank among your classmates</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Leaderboard 
-                  key={`class-${leaderboardKey}`}
-                  entries={classLeaderboardEntries} 
-                  currentUserId={user?.id} 
-                />
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5" />
-                  School Leaderboard
-                </CardTitle>
-                <CardDescription>Your ranking across the entire school</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <SchoolLeaderboard key={`school-${leaderboardKey}`} currentUserId={user?.id} />
-              </CardContent>
-            </Card>
+          <TabsContent value="rankings">
+            <Rankings user={user} />
           </TabsContent>
 
           <TabsContent value="profile">
