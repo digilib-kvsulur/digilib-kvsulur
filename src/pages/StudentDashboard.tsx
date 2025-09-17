@@ -594,7 +594,8 @@ const StudentDashboard = () => {
     pointsToNext: 100 - (user?.points || 0) % 100,
     progressPercent: (user?.points || 0) % 100
   };
-  return <div className="min-h-screen bg-gray-50">
+  return (
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -625,6 +626,14 @@ const StudentDashboard = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Level Up Banner */}
+        {levelUpBanner && (
+          <LevelUpBanner 
+            level={levelUpBanner} 
+            onClose={() => setLevelUpBanner(null)} 
+          />
+        )}
+
         {/* Stats Overview */}
         <div className="mb-8">
           <StatsCards userPoints={user?.points || 0} nextLevelPoints={100} currentBooksCount={currentBooksCount} quizResultsCount={quizResultsCount} classRank={classRank} userClass={user?.student_class || ""} levelInfo={levelInfo} />
@@ -738,8 +747,7 @@ const StudentDashboard = () => {
             <BookRequestForm onClose={() => setShowBookRequest(false)} onSuccess={() => setShowBookRequest(false)} />
           </div>
         </div>}
-      </div>
-    </>
+    </div>
   );
 };
 
