@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 // Import components
 import Overview from "@/components/dashboard/Overview";
-import StatsCards from "@/components/dashboard/StatsCards";
+
 import LevelProgress from "@/components/dashboard/LevelProgress";
 import CurrentBooks from "@/components/dashboard/CurrentBooks";
 import QuizPage from "@/components/dashboard/QuizPage";
@@ -404,7 +404,7 @@ const StudentDashboard = () => {
 
         {/* Main Tabs - Navigation at top */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="books">My Books</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
@@ -412,16 +412,6 @@ const StudentDashboard = () => {
             <TabsTrigger value="rankings">Rankings</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
-
-          {/* Stats Overview */}
-          <div className="mb-8">
-            <StatsCards 
-              currentBooksCount={currentBooksCount} 
-              quizResultsCount={quizResultsCount} 
-              classRank={classRank} 
-              userClass={user?.student_class || ""} 
-            />
-          </div>
 
           <TabsContent value="overview">
             <Overview 
