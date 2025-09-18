@@ -11,10 +11,10 @@ import UserLevel from "@/components/UserLevel";
 // Import components
 import Overview from "@/components/dashboard/Overview";
 import StatsCards from "@/components/dashboard/StatsCards";
+import LevelProgress from "@/components/dashboard/LevelProgress";
 import CurrentBooks from "@/components/dashboard/CurrentBooks";
 import QuizPage from "@/components/dashboard/QuizPage";
 import ReadingChallenges from "@/components/rewards/ReadingChallenges";
-import Achievements from "@/components/rewards/Achievements";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import BookRequestForm from "@/components/BookRequestForm";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
@@ -403,22 +403,19 @@ const StudentDashboard = () => {
         {/* Level Up Banner */}
         {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 
-        {/* Stats Overview */}
+        {/* Level Progress */}
         <div className="mb-8">
-          <StatsCards userPoints={user?.points || 0} nextLevelPoints={100} currentBooksCount={currentBooksCount} quizResultsCount={quizResultsCount} classRank={classRank} userClass={user?.student_class || ""} levelInfo={levelInfo} />
+          <LevelProgress userPoints={user?.points || 0} />
         </div>
 
-        {/* User Level Card */}
+        {/* Stats Overview */}
         <div className="mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Level Progress</CardTitle>
-              <CardDescription>Track your reading level and achievements</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UserLevel userPoints={user?.points || 0} showDetails={true} />
-            </CardContent>
-          </Card>
+          <StatsCards 
+            currentBooksCount={currentBooksCount} 
+            quizResultsCount={quizResultsCount} 
+            classRank={classRank} 
+            userClass={user?.student_class || ""} 
+          />
         </div>
 
         {/* Quick Actions */}
@@ -441,7 +438,7 @@ const StudentDashboard = () => {
 
         {/* Main Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="books">My Books</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
@@ -486,38 +483,22 @@ const StudentDashboard = () => {
           </TabsContent>
 
           <TabsContent value="challenges">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    Reading Challenges
-                  </CardTitle>
-                  <CardDescription>Join challenges to earn extra points and rewards</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ReadingChallenges challenges={challenges} onJoinChallenge={handleJoinChallenge} onClaimReward={handleClaimReward} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="h-5 w-5" />
-                    Achievements
-                  </CardTitle>
-                  <CardDescription>Your reading milestones and accomplishments</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Achievements achievements={[]} userStats={{
-                  totalPoints: user?.points || 0,
-                  booksRead: 0,
-                  quizzesCompleted: quizResults.length,
-                  averageQuizScore: quizResults.length > 0 ? Math.round(quizResults.reduce((sum, result) => sum + result.score, 0) / quizResults.length) : 0
-                }} />
-                </CardContent>
-              </Card>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Reading Challenges & Rewards
+                </CardTitle>
+                <CardDescription>Join challenges to earn extra points and rewards</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ReadingChallenges 
+                  challenges={challenges} 
+                  onJoinChallenge={handleJoinChallenge} 
+                  onClaimReward={handleClaimReward} 
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="rankings">
