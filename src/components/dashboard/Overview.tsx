@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Star, BookOpen, Trophy, Target, TrendingUp, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import QuizOverview from "./QuizOverview";
+import LevelProgress from "./LevelProgress";
 
 interface OverviewProps {
   user: any;
@@ -15,6 +16,7 @@ interface OverviewProps {
     pointsToNext: number;
     progressPercent: number;
   };
+  userPoints: number;
 }
 
 interface RecentActivity {
@@ -30,7 +32,8 @@ const Overview = ({
   currentBooksCount, 
   quizResultsCount, 
   classRank,
-  levelInfo 
+  levelInfo,
+  userPoints
 }: OverviewProps) => {
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [monthlyBooksRead, setMonthlyBooksRead] = useState(0);
@@ -328,6 +331,19 @@ const Overview = ({
           <CardDescription>
             Here's your learning progress overview
           </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6">
+            <LevelProgress userPoints={userPoints} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Progress Overview Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Progress Overview</CardTitle>
+          <CardDescription>Your current learning statistics</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

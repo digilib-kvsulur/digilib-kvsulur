@@ -402,42 +402,9 @@ const StudentDashboard = () => {
         {/* Level Up Banner */}
         {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 
-        {/* Level Progress */}
-        <div className="mb-8">
-          <LevelProgress userPoints={user?.points || 0} />
-        </div>
-
-        {/* Stats Overview */}
-        <div className="mb-8">
-          <StatsCards 
-            currentBooksCount={currentBooksCount} 
-            quizResultsCount={quizResultsCount} 
-            classRank={classRank} 
-            userClass={user?.student_class || ""} 
-          />
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Request Section</CardTitle>
-              <CardDescription>Your request will be surely processed by us.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4 flex-wrap">
-                <Button onClick={() => setShowBookRequest(true)}>
-                  <BookPlus className="h-4 w-4 mr-2" />
-                  Request New Book for Library
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Tabs */}
+        {/* Main Tabs - Navigation at top */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="books">My Books</TabsTrigger>
             <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
@@ -446,8 +413,25 @@ const StudentDashboard = () => {
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
 
+          {/* Stats Overview */}
+          <div className="mb-8">
+            <StatsCards 
+              currentBooksCount={currentBooksCount} 
+              quizResultsCount={quizResultsCount} 
+              classRank={classRank} 
+              userClass={user?.student_class || ""} 
+            />
+          </div>
+
           <TabsContent value="overview">
-            <Overview user={user} currentBooksCount={currentBooksCount} quizResultsCount={quizResultsCount} classRank={classRank} levelInfo={levelInfo} />
+            <Overview 
+              user={user} 
+              currentBooksCount={currentBooksCount} 
+              quizResultsCount={quizResultsCount} 
+              classRank={classRank} 
+              levelInfo={levelInfo}
+              userPoints={user?.points || 0}
+            />
           </TabsContent>
 
           <TabsContent value="books">
@@ -462,6 +446,21 @@ const StudentDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <CurrentBooks books={currentBooks} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Request Section</CardTitle>
+                  <CardDescription>Your request will be surely processed by us.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-4 flex-wrap">
+                    <Button onClick={() => setShowBookRequest(true)}>
+                      <BookPlus className="h-4 w-4 mr-2" />
+                      Request New Book for Library
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
