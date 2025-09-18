@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { BookOpen, LogOut, Trophy, Target, User, Users, Award, BookPlus } from "lucide-react";
+import { BookOpen, LogOut, Trophy, Target, User, Users, BookPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import UserLevel from "@/components/UserLevel";
 
 // Import components
 import Overview from "@/components/dashboard/Overview";
