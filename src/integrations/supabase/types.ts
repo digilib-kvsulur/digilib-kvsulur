@@ -270,6 +270,7 @@ export type Database = {
         Row: {
           admission_number: string | null
           approved_at: string | null
+          approved_by: string | null
           created_at: string
           email: string | null
           first_name: string | null
@@ -287,6 +288,7 @@ export type Database = {
         Insert: {
           admission_number?: string | null
           approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
@@ -304,6 +306,7 @@ export type Database = {
         Update: {
           admission_number?: string | null
           approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
