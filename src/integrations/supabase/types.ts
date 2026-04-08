@@ -14,16 +14,501 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      book_issues: {
+        Row: {
+          book_id: string
+          created_at: string
+          due_date: string
+          id: string
+          issue_date: string
+          return_date: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          issue_date?: string
+          return_date?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          issue_date?: string
+          return_date?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_issues_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_requests: {
+        Row: {
+          admin_notes: string | null
+          book_id: string | null
+          created_at: string
+          id: string
+          requested_author: string | null
+          requested_description: string | null
+          requested_isbn: string | null
+          requested_title: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          book_id?: string | null
+          created_at?: string
+          id?: string
+          requested_author?: string | null
+          requested_description?: string | null
+          requested_isbn?: string | null
+          requested_title?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          book_id?: string | null
+          created_at?: string
+          id?: string
+          requested_author?: string | null
+          requested_description?: string | null
+          requested_isbn?: string | null
+          requested_title?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_requests_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      books: {
+        Row: {
+          author: string
+          available_copies: number
+          category: string | null
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          isbn: string | null
+          title: string
+          total_copies: number
+          updated_at: string
+        }
+        Insert: {
+          author: string
+          available_copies?: number
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          isbn?: string | null
+          title: string
+          total_copies?: number
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          available_copies?: number
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          isbn?: string | null
+          title?: string
+          total_copies?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      challenge_progress: {
+        Row: {
+          challenge_id: string
+          completed_at: string | null
+          created_at: string
+          current_progress: number
+          id: string
+          is_claimed: boolean
+          is_completed: boolean
+          points_earned: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string | null
+          created_at?: string
+          current_progress?: number
+          id?: string
+          is_claimed?: boolean
+          is_completed?: boolean
+          points_earned?: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string | null
+          created_at?: string
+          current_progress?: number
+          id?: string
+          is_claimed?: boolean
+          is_completed?: boolean
+          points_earned?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deadline: string | null
+          description: string
+          id: string
+          is_active: boolean
+          reward_points: number
+          target_value: number
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          description: string
+          id?: string
+          is_active?: boolean
+          reward_points?: number
+          target_value?: number
+          title: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean
+          reward_points?: number
+          target_value?: number
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      levels: {
+        Row: {
+          color: string
+          created_at: string
+          description: string
+          icon_name: string
+          id: string
+          level_number: number
+          max_points: number | null
+          min_points: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string
+          icon_name?: string
+          id?: string
+          level_number: number
+          max_points?: number | null
+          min_points?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string
+          icon_name?: string
+          id?: string
+          level_number?: number
+          max_points?: number | null
+          min_points?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          admission_number: string | null
+          approved_at: string | null
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          is_approved: boolean
+          last_name: string | null
+          phone: string | null
+          points: number
+          role: string
+          roll_number: string | null
+          student_class: string | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          admission_number?: string | null
+          approved_at?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id: string
+          is_approved?: boolean
+          last_name?: string | null
+          phone?: string | null
+          points?: number
+          role?: string
+          roll_number?: string | null
+          student_class?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          admission_number?: string | null
+          approved_at?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          is_approved?: boolean
+          last_name?: string | null
+          phone?: string | null
+          points?: number
+          role?: string
+          roll_number?: string | null
+          student_class?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      quiz_results: {
+        Row: {
+          answers: Json | null
+          completed_at: string
+          id: string
+          points_earned: number
+          quiz_id: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          completed_at?: string
+          id?: string
+          points_earned?: number
+          quiz_id: string
+          score?: number
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          completed_at?: string
+          id?: string
+          points_earned?: number
+          quiz_id?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_results_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quizzes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty: string
+          id: string
+          is_active: boolean
+          points_reward: number
+          questions: Json
+          subject: string
+          time_limit: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          is_active?: boolean
+          points_reward?: number
+          questions?: Json
+          subject?: string
+          time_limit?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          is_active?: boolean
+          points_reward?: number
+          questions?: Json
+          subject?: string
+          time_limit?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      reading_history: {
+        Row: {
+          book_author: string
+          book_title: string
+          completed_date: string
+          created_at: string
+          id: string
+          notes: string | null
+          points_earned: number
+          rating: number | null
+          user_id: string
+        }
+        Insert: {
+          book_author: string
+          book_title: string
+          completed_date?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          points_earned?: number
+          rating?: number | null
+          user_id: string
+        }
+        Update: {
+          book_author?: string
+          book_title?: string
+          completed_date?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          points_earned?: number
+          rating?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      find_user_by_identifier: {
+        Args: { identifier: string }
+        Returns: {
+          email: string
+          id: string
+          is_approved: boolean
+        }[]
+      }
+      get_active_quizzes_count: { Args: never; Returns: number }
+      get_active_users_count: { Args: never; Returns: number }
+      get_books_issued_count: { Args: never; Returns: number }
+      get_leaderboard_data: {
+        Args: { class_filter?: string }
+        Returns: {
+          first_name: string
+          id: string
+          points: number
+          student_class: string
+        }[]
+      }
+      get_profile_role: { Args: { _user_id: string }; Returns: string }
+      get_total_books_count: { Args: never; Returns: number }
+      get_user_class_rank: {
+        Args: { user_class: string; user_points: number }
+        Returns: number
+      }
+      get_user_level: {
+        Args: { user_points: number }
+        Returns: {
+          color: string
+          description: string
+          icon_name: string
+          level_number: number
+          max_points: number
+          min_points: number
+          name: string
+          points_to_next: number
+          progress_to_next: number
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +635,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
