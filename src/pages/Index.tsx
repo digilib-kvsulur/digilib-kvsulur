@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, BarChart3, User, Settings, LayoutDashboard } from "lucide-react";
+import { BookOpen, Users, BarChart3, User, LayoutDashboard, Star, Trophy, Target, Zap, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+
 interface Statistics {
   totalBooks: number;
   activeUsers: number;
   booksIssued: number;
 }
+
 const Index = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -16,16 +18,12 @@ const Index = () => {
   const [statistics, setStatistics] = useState<Statistics>({
     totalBooks: 5000,
     activeUsers: 1200,
-    booksIssued: 2500
+    booksIssued: 2500,
   });
   const navigate = useNavigate();
+
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({
-      data: {
-        session
-      }
-    }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
       if (session?.user) {
         loadUserProfile(session.user.id);
@@ -34,13 +32,7 @@ const Index = () => {
       }
     });
 
-    // Listen for auth changes
-    const {
-      data: {
-        subscription
-      }
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event, session?.user?.email);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
       if (session?.user) {
         loadUserProfile(session.user.id);
@@ -50,42 +42,22 @@ const Index = () => {
       }
     });
 
-    // Load statistics regardless of auth status
     loadStatistics();
     return () => subscription.unsubscribe();
   }, []);
+
   const loadUserProfile = async (userId: string) => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (error) {
-        console.error('Error loading profile:', error);
-      } else {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (!error && data) {
         setProfile(data);
-        // Auto-redirect authenticated users to their dashboard
-        if (data) {
-          setTimeout(() => {
-            switch (data.role) {
-              case "admin":
-                navigate("/admin-dashboard", {
-                  replace: true
-                });
-                break;
-              case "teacher":
-                navigate("/teacher-dashboard", {
-                  replace: true
-                });
-                break;
-              case "student":
-                navigate("/student-dashboard", {
-                  replace: true
-                });
-                break;
-            }
-          }, 500);
-        }
+        setTimeout(() => {
+          switch (data.role) {
+            case "admin": navigate("/admin-dashboard", { replace: true }); break;
+            case "teacher": navigate("/teacher-dashboard", { replace: true }); break;
+            case "student": navigate("/student-dashboard", { replace: true }); break;
+          }
+        }, 500);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -93,178 +65,205 @@ const Index = () => {
       setLoading(false);
     }
   };
+
   const loadStatistics = async () => {
     try {
-      // Load statistics using the database functions
-      const [totalBooksResult, activeUsersResult, booksIssuedResult] = await Promise.all([supabase.rpc('get_total_books_count'), supabase.rpc('get_active_users_count'), supabase.rpc('get_books_issued_count')]);
+      const [totalBooksResult, activeUsersResult, booksIssuedResult] = await Promise.all([
+        supabase.rpc('get_total_books_count'),
+        supabase.rpc('get_active_users_count'),
+        supabase.rpc('get_books_issued_count'),
+      ]);
       setStatistics({
         totalBooks: totalBooksResult.data || 5000,
         activeUsers: activeUsersResult.data || 1200,
-        booksIssued: booksIssuedResult.data || 25000
+        booksIssued: booksIssuedResult.data || 2500,
       });
     } catch (error) {
       console.error('Error loading statistics:', error);
-      // Keep default values if database query fails
     }
   };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
   };
+
   const navigateToDashboard = () => {
-    if (profile?.role === 'admin') {
-      navigate('/admin-dashboard');
-    } else if (profile?.role === 'teacher') {
-      navigate('/teacher-dashboard');
-    } else {
-      navigate('/student-dashboard');
-    }
+    if (profile?.role === 'admin') navigate('/admin-dashboard');
+    else if (profile?.role === 'teacher') navigate('/teacher-dashboard');
+    else navigate('/student-dashboard');
   };
-  return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+
+  const features = [
+    { icon: BookOpen, title: "Digital Catalog", description: "Browse our extensive collection across various genres and subjects", color: "text-primary", bg: "bg-primary/10" },
+    { icon: Trophy, title: "Gamified Learning", description: "Earn points, complete challenges, and climb the leaderboard", color: "text-warning", bg: "bg-warning/10" },
+    { icon: BarChart3, title: "Progress Tracking", description: "Monitor reading progress and earn achievements for milestones", color: "text-accent", bg: "bg-accent/10" },
+    { icon: Zap, title: "Daily Streaks", description: "Build login streaks, stay consistent, and unlock rewards", color: "text-success", bg: "bg-success/10" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="h-8 w-8 text-white" />
+              <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center shadow-md">
+                <BookOpen className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">PM SHRI KV AFS SULUR</h1>
-                <p className="text-sm text-gray-600">DIGITAL LIBRARY MANAGEMENT SYSTEM</p>
+                <h1 className="text-lg font-bold text-foreground">PM SHRI KV AFS SULUR</h1>
+                <p className="text-xs text-muted-foreground">Digital Library Management System</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              {loading ? <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div> : user && profile ? <>
-                  <span className="text-sm text-gray-600">
-                    Welcome, {profile.first_name}!
-                  </span>
-                  <Button onClick={navigateToDashboard} className="bg-blue-600 hover:bg-blue-700">
+            <div className="flex items-center space-x-3">
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              ) : user && profile ? (
+                <>
+                  <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {profile.first_name}!</span>
+                  <Button onClick={navigateToDashboard} size="sm" className="gradient-primary border-0">
                     <LayoutDashboard className="h-4 w-4 mr-2" />
                     Dashboard
                   </Button>
-                  <Button onClick={handleLogout} variant="outline">
-                    Logout
+                  <Button onClick={handleLogout} variant="outline" size="sm">Logout</Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={() => navigate('/login')} variant="ghost" size="sm">Login</Button>
+                  <Button onClick={() => navigate('/login')} size="sm" className="gradient-primary border-0">
+                    Get Started
                   </Button>
-                </> : <>
-                  <Button onClick={() => navigate('/login')} variant="outline">
-                    Login
-                  </Button>
-                  <Button onClick={() => navigate('/login')} className="bg-blue-600 hover:bg-blue-700">
-                    Register
-                  </Button>
-                </>}
+                </>
+              )}
             </div>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-16">
-          <h2 className="text-gray-900 mb-4 text-4xl font-semibold">Welcome to PM SHRI KV Sulur's 
-Digital Library Management System!</h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto font-light">
-            Discover, learn, and grow with our comprehensive digital library management system. 
-            Access thousands of books, track your reading progress, and earn points for your achievements.
-          </p>
-          {!user && <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={() => navigate('/login')} className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-3">
-                Get Started
-              </Button>
-              <Button onClick={() => navigate('/catalog')} variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3">
-                Browse Books
-              </Button>
-            </div>}
-          {user && profile && <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={navigateToDashboard} className="bg-blue-600 hover:bg-blue-700 font-semibold px-8 py-3">
-                <LayoutDashboard className="h-5 w-5 mr-2" />
-                Go to Dashboard
-              </Button>
-              <Button onClick={() => navigate('/catalog')} variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3">
-                Browse Books
-              </Button>
-            </div>}
-        </div>
-
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-          <Card className="text-center hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <BookOpen className="h-12 w-12 mx-auto text-blue-600 mb-4" />
-              <CardTitle className="text-lg">Digital Catalog</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Browse our extensive collection of books across various genres and subjects
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <Users className="h-12 w-12 mx-auto text-green-600 mb-4" />
-              <CardTitle className="text-lg">Community</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Connect with fellow readers, share reviews, and participate in reading challenges
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <BarChart3 className="h-12 w-12 mx-auto text-purple-600 mb-4" />
-              <CardTitle className="text-lg">Progress Tracking</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Monitor your reading progress and earn points for your literary achievements
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <User className="h-12 w-12 mx-auto text-orange-600 mb-4" />
-              <CardTitle className="text-lg">Personal Dashboard</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Manage your issued books, view history, and track your library points
-              </CardDescription>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Stats Section */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h3 className="text-2xl font-bold text-center text-gray-900 mb-8">Library Statistics</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">{statistics.totalBooks.toLocaleString()}+</div>
-              <div className="text-gray-600">Books Available</div>
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 gradient-primary opacity-5" />
+        <div className="absolute top-20 right-10 w-72 h-72 bg-accent/10 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-10 left-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-6 animate-fade-in">
+              <Star className="h-4 w-4" />
+              Empowering Young Minds Through Reading
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600 mb-2">{statistics.activeUsers.toLocaleString()}+</div>
-              <div className="text-gray-600">Active Readers</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-2">{statistics.booksIssued.toLocaleString()}+</div>
-              <div className="text-gray-600">Books Issued</div>
-            </div>
+            <h2 className="text-4xl lg:text-6xl font-extrabold text-foreground mb-6 leading-tight animate-fade-in" style={{ animationDelay: '0.1s' }}>
+              Welcome to Your
+              <span className="bg-clip-text text-transparent gradient-primary"> Digital Library</span>
+            </h2>
+            <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              Discover, learn, and grow with our comprehensive library system. 
+              Access books, track progress, earn points, and compete with classmates.
+            </p>
+            {!user && (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                <Button onClick={() => navigate('/login')} size="lg" className="gradient-primary border-0 text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-shadow">
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                <Button onClick={() => navigate('/catalog')} variant="outline" size="lg" className="text-lg px-8 py-6">
+                  Browse Books
+                </Button>
+              </div>
+            )}
+            {user && profile && (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                <Button onClick={navigateToDashboard} size="lg" className="gradient-primary border-0 text-lg px-8 py-6">
+                  <LayoutDashboard className="h-5 w-5 mr-2" />
+                  Go to Dashboard
+                </Button>
+                <Button onClick={() => navigate('/catalog')} variant="outline" size="lg" className="text-lg px-8 py-6">
+                  Browse Books
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* Features */}
+      <section className="py-20 bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h3 className="text-3xl font-bold text-foreground mb-3">Why Students Love It</h3>
+            <p className="text-muted-foreground max-w-xl mx-auto">Everything you need for an engaging reading experience</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {features.map((feature, index) => (
+              <Card key={index} className="hover-lift border-border/50 group cursor-default animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                <CardHeader className="pb-3">
+                  <div className={`w-12 h-12 ${feature.bg} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                    <feature.icon className={`h-6 w-6 ${feature.color}`} />
+                  </div>
+                  <CardTitle className="text-lg">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-sm">{feature.description}</CardDescription>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Card className="overflow-hidden border-0 shadow-xl">
+            <div className="gradient-primary p-1">
+              <CardContent className="bg-card rounded-[calc(var(--radius)-2px)] p-10">
+                <h3 className="text-2xl font-bold text-center text-foreground mb-8">Library at a Glance</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {[
+                    { value: statistics.totalBooks, label: "Books Available", color: "text-primary" },
+                    { value: statistics.activeUsers, label: "Active Readers", color: "text-success" },
+                    { value: statistics.booksIssued, label: "Books Issued", color: "text-accent" },
+                  ].map((stat, i) => (
+                    <div key={i} className="text-center">
+                      <div className={`text-4xl font-extrabold ${stat.color} mb-1`}>
+                        {stat.value.toLocaleString()}+
+                      </div>
+                      <div className="text-muted-foreground text-sm">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      {/* CTA */}
+      {!user && (
+        <section className="py-20 bg-card">
+          <div className="max-w-3xl mx-auto px-4 text-center">
+            <h3 className="text-3xl font-bold text-foreground mb-4">Ready to Start Your Reading Journey?</h3>
+            <p className="text-muted-foreground mb-8">Join your classmates and start earning points today!</p>
+            <Button onClick={() => navigate('/login')} size="lg" className="gradient-primary border-0 text-lg px-10 py-6 shadow-lg">
+              Create Your Account
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-16">
+      <footer className="bg-foreground text-primary-foreground py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-gray-400">© 2025 PM SHRI KV Sulur Digital Library. Empowering minds through reading.</p>
+          <p className="text-primary-foreground/60 text-sm">
+            © {new Date().getFullYear()} PM SHRI KV Sulur Digital Library. Empowering minds through reading.
+          </p>
         </div>
       </footer>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;

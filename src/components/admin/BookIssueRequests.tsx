@@ -11,7 +11,7 @@ interface BookRequest {
   id: string;
   book_id?: string;
   user_id: string;
-  requested_at: string;
+  created_at: string;
   status: string;
   admin_notes?: string;
   requested_title?: string;
@@ -58,7 +58,7 @@ const BookIssueRequests = () => {
             student_class
           )
         `)
-        .order('requested_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading requests:', error);
@@ -85,7 +85,6 @@ const BookIssueRequests = () => {
 
   const handleApproveRequest = async (requestId: string, bookId: string, userId: string) => {
     try {
-      // Check if book is available
       const { data: book } = await supabase
         .from('books')
         .select('available_copies')
@@ -101,9 +100,8 @@ const BookIssueRequests = () => {
         return;
       }
 
-      // Create book issue record
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 14); // 14 days from now
+      dueDate.setDate(dueDate.getDate() + 14);
 
       const { error: issueError } = await supabase
         .from('book_issues')
@@ -115,7 +113,6 @@ const BookIssueRequests = () => {
 
       if (issueError) throw issueError;
 
-      // Update book available copies
       const { error: updateError } = await supabase
         .from('books')
         .update({ available_copies: book.available_copies - 1 })
@@ -123,7 +120,6 @@ const BookIssueRequests = () => {
 
       if (updateError) throw updateError;
 
-      // Update request status
       const { error: requestError } = await supabase
         .from('book_requests')
         .update({ 
@@ -216,9 +212,9 @@ const BookIssueRequests = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
+        return <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/20">Pending</Badge>;
       case 'approved':
-        return <Badge variant="default">Approved</Badge>;
+        return <Badge className="bg-success/10 text-success border-success/20">Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive">Rejected</Badge>;
       default:
@@ -229,7 +225,7 @@ const BookIssueRequests = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -239,17 +235,14 @@ const BookIssueRequests = () => {
 
   return (
     <div className="space-y-6">
-      {/* Pending Requests */}
       <Card>
         <CardHeader>
           <CardTitle>Pending Book Requests</CardTitle>
-          <CardDescription>
-            Review and process pending book requests from students
-          </CardDescription>
+          <CardDescription>Review and process pending book requests from students</CardDescription>
         </CardHeader>
         <CardContent>
           {pendingRequests.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No pending requests</p>
+            <p className="text-center text-muted-foreground py-8">No pending requests</p>
           ) : (
             <Table>
               <TableHeader>
@@ -272,22 +265,22 @@ const BookIssueRequests = () => {
                       {request.books ? (
                         <div>
                           <div className="font-medium">{request.books.title}</div>
-                          <div className="text-sm text-gray-500">by {request.books.author}</div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-sm text-muted-foreground">by {request.books.author}</div>
+                          <div className="text-xs text-muted-foreground">
                             Available: {request.books.available_copies}
                           </div>
                         </div>
                       ) : (
                         <div>
                           <div className="font-medium">{request.requested_title}</div>
-                          <div className="text-sm text-gray-500">by {request.requested_author}</div>
-                          <div className="text-xs text-gray-400">Custom Request</div>
+                          <div className="text-sm text-muted-foreground">by {request.requested_author}</div>
+                          <div className="text-xs text-muted-foreground">Custom Request</div>
                         </div>
                       )}
                     </TableCell>
                     <TableCell>{request.profiles?.student_class || 'N/A'}</TableCell>
                     <TableCell>
-                      {new Date(request.requested_at).toLocaleDateString()}
+                      {new Date(request.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>{getStatusBadge(request.status)}</TableCell>
                     <TableCell>
@@ -319,17 +312,14 @@ const BookIssueRequests = () => {
         </CardContent>
       </Card>
 
-      {/* Processed Requests */}
       <Card>
         <CardHeader>
           <CardTitle>Processed Requests</CardTitle>
-          <CardDescription>
-            Previously approved or rejected book requests
-          </CardDescription>
+          <CardDescription>Previously approved or rejected book requests</CardDescription>
         </CardHeader>
         <CardContent>
           {processedRequests.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No processed requests</p>
+            <p className="text-center text-muted-foreground py-8">No processed requests</p>
           ) : (
             <Table>
               <TableHeader>
@@ -352,21 +342,21 @@ const BookIssueRequests = () => {
                       {request.books ? (
                         <div>
                           <div className="font-medium">{request.books.title}</div>
-                          <div className="text-sm text-gray-500">by {request.books.author}</div>
+                          <div className="text-sm text-muted-foreground">by {request.books.author}</div>
                         </div>
                       ) : (
                         <div>
                           <div className="font-medium">{request.requested_title}</div>
-                          <div className="text-sm text-gray-500">by {request.requested_author}</div>
+                          <div className="text-sm text-muted-foreground">by {request.requested_author}</div>
                         </div>
                       )}
                     </TableCell>
                     <TableCell>{getStatusBadge(request.status)}</TableCell>
                     <TableCell>
-                      {new Date(request.requested_at).toLocaleDateString()}
+                      {new Date(request.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-muted-foreground">
                         {request.admin_notes || 'No notes'}
                       </span>
                     </TableCell>
