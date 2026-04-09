@@ -266,6 +266,39 @@ export type Database = {
         }
         Relationships: []
       }
+      login_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_login_date: string | null
+          longest_streak: number
+          total_login_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_login_date?: string | null
+          longest_streak?: number
+          total_login_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_login_date?: string | null
+          longest_streak?: number
+          total_login_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           admission_number: string | null
@@ -508,6 +541,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      record_login_streak: {
+        Args: { p_user_id: string }
+        Returns: {
+          current_streak: number
+          longest_streak: number
+          total_login_days: number
+        }[]
       }
     }
     Enums: {
