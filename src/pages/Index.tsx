@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, BarChart3, User, LayoutDashboard, Star, Trophy, Target, Zap, ArrowRight } from "lucide-react";
+import { BookOpen, Users, BarChart3, Star, Trophy, Target, Zap, ArrowRight, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,33 +15,20 @@ const Index = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [statistics, setStatistics] = useState<Statistics>({
-    totalBooks: 5000,
-    activeUsers: 1200,
-    booksIssued: 2500,
-  });
+  const [statistics, setStatistics] = useState<Statistics>({ totalBooks: 0, activeUsers: 0, booksIssued: 0 });
   const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
+      if (session?.user) loadUserProfile(session.user.id);
+      else setLoading(false);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setLoading(false);
-      }
+      if (session?.user) loadUserProfile(session.user.id);
+      else { setProfile(null); setLoading(false); }
     });
-
     loadStatistics();
     return () => subscription.unsubscribe();
   }, []);
@@ -59,36 +46,20 @@ const Index = () => {
           }
         }, 500);
       }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error('Error loading profile:', error); }
+    finally { setLoading(false); }
   };
 
   const loadStatistics = async () => {
     try {
       const [totalBooksResult, activeUsersResult, booksIssuedResult] = await Promise.all([
-        supabase.rpc('get_total_books_count'),
-        supabase.rpc('get_active_users_count'),
-        supabase.rpc('get_books_issued_count'),
+        supabase.rpc('get_total_books_count'), supabase.rpc('get_active_users_count'), supabase.rpc('get_books_issued_count'),
       ]);
-      setStatistics({
-        totalBooks: totalBooksResult.data || 5000,
-        activeUsers: activeUsersResult.data || 1200,
-        booksIssued: booksIssuedResult.data || 2500,
-      });
-    } catch (error) {
-      console.error('Error loading statistics:', error);
-    }
+      setStatistics({ totalBooks: totalBooksResult.data || 0, activeUsers: activeUsersResult.data || 0, booksIssued: booksIssuedResult.data || 0 });
+    } catch (error) { console.error('Error loading statistics:', error); }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
-  };
-
+  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setProfile(null); };
   const navigateToDashboard = () => {
     if (profile?.role === 'admin') navigate('/admin-dashboard');
     else if (profile?.role === 'teacher') navigate('/teacher-dashboard');
@@ -113,7 +84,7 @@ const Index = () => {
                 <BookOpen className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-foreground">PM SHRI KV AFS SULUR</h1>
+                <h1 className="text-lg font-bold text-foreground leading-tight">PM SHRI KV AFS SULUR</h1>
                 <p className="text-xs text-muted-foreground">Digital Library Management System</p>
               </div>
             </div>
@@ -132,9 +103,7 @@ const Index = () => {
               ) : (
                 <>
                   <Button onClick={() => navigate('/login')} variant="ghost" size="sm">Login</Button>
-                  <Button onClick={() => navigate('/login')} size="sm" className="gradient-primary border-0">
-                    Get Started
-                  </Button>
+                  <Button onClick={() => navigate('/login')} size="sm" className="gradient-primary border-0">Get Started</Button>
                 </>
               )}
             </div>
@@ -142,44 +111,44 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Hero Section - Fixed overlap */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 gradient-primary opacity-5" />
-        <div className="absolute top-20 right-10 w-72 h-72 bg-accent/10 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-10 left-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+        <div className="absolute top-20 right-10 w-72 h-72 bg-accent/10 rounded-full blur-3xl animate-float pointer-events-none" />
+        <div className="absolute bottom-10 left-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-28">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-6 animate-fade-in">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-6">
               <Star className="h-4 w-4" />
               Empowering Young Minds Through Reading
             </div>
-            <h2 className="text-4xl lg:text-6xl font-extrabold text-foreground mb-6 leading-tight animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              Welcome to Your
-              <span className="bg-clip-text text-transparent gradient-primary"> Digital Library</span>
+            <h2 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold text-foreground mb-6 leading-tight">
+              Welcome to Your{" "}
+              <span className="bg-clip-text text-transparent gradient-primary block sm:inline">
+                Digital Library
+              </span>
             </h2>
-            <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              Discover, learn, and grow with our comprehensive library system. 
+            <p className="text-base sm:text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
+              Discover, learn, and grow with our comprehensive library system.
               Access books, track progress, earn points, and compete with classmates.
             </p>
             {!user && (
-              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                <Button onClick={() => navigate('/login')} size="lg" className="gradient-primary border-0 text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-shadow">
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button onClick={() => navigate('/login')} size="lg" className="gradient-primary border-0 text-base sm:text-lg px-8 py-5 sm:py-6 shadow-lg hover:shadow-xl transition-shadow">
+                  Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-                <Button onClick={() => navigate('/catalog')} variant="outline" size="lg" className="text-lg px-8 py-6">
+                <Button onClick={() => navigate('/catalog')} variant="outline" size="lg" className="text-base sm:text-lg px-8 py-5 sm:py-6">
                   Browse Books
                 </Button>
               </div>
             )}
             {user && profile && (
-              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                <Button onClick={navigateToDashboard} size="lg" className="gradient-primary border-0 text-lg px-8 py-6">
-                  <LayoutDashboard className="h-5 w-5 mr-2" />
-                  Go to Dashboard
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button onClick={navigateToDashboard} size="lg" className="gradient-primary border-0 text-base sm:text-lg px-8 py-5 sm:py-6">
+                  <LayoutDashboard className="h-5 w-5 mr-2" /> Go to Dashboard
                 </Button>
-                <Button onClick={() => navigate('/catalog')} variant="outline" size="lg" className="text-lg px-8 py-6">
+                <Button onClick={() => navigate('/catalog')} variant="outline" size="lg" className="text-base sm:text-lg px-8 py-5 sm:py-6">
                   Browse Books
                 </Button>
               </div>
@@ -189,15 +158,15 @@ const Index = () => {
       </section>
 
       {/* Features */}
-      <section className="py-20 bg-card">
+      <section className="py-16 sm:py-20 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-foreground mb-3">Why Students Love It</h3>
+            <h3 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Why Students Love It</h3>
             <p className="text-muted-foreground max-w-xl mx-auto">Everything you need for an engaging reading experience</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="hover-lift border-border/50 group cursor-default animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
+              <Card key={index} className="hover-lift border-border/50 group cursor-default">
                 <CardHeader className="pb-3">
                   <div className={`w-12 h-12 ${feature.bg} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
                     <feature.icon className={`h-6 w-6 ${feature.color}`} />
@@ -214,20 +183,20 @@ const Index = () => {
       </section>
 
       {/* Stats */}
-      <section className="py-20">
+      <section className="py-16 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Card className="overflow-hidden border-0 shadow-xl">
             <div className="gradient-primary p-1">
-              <CardContent className="bg-card rounded-[calc(var(--radius)-2px)] p-10">
+              <CardContent className="bg-card rounded-[calc(var(--radius)-2px)] p-8 sm:p-10">
                 <h3 className="text-2xl font-bold text-center text-foreground mb-8">Library at a Glance</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
                   {[
                     { value: statistics.totalBooks, label: "Books Available", color: "text-primary" },
                     { value: statistics.activeUsers, label: "Active Readers", color: "text-success" },
                     { value: statistics.booksIssued, label: "Books Issued", color: "text-accent" },
                   ].map((stat, i) => (
                     <div key={i} className="text-center">
-                      <div className={`text-4xl font-extrabold ${stat.color} mb-1`}>
+                      <div className={`text-3xl sm:text-4xl font-extrabold ${stat.color} mb-1`}>
                         {stat.value.toLocaleString()}+
                       </div>
                       <div className="text-muted-foreground text-sm">{stat.label}</div>
@@ -242,13 +211,12 @@ const Index = () => {
 
       {/* CTA */}
       {!user && (
-        <section className="py-20 bg-card">
+        <section className="py-16 sm:py-20 bg-card">
           <div className="max-w-3xl mx-auto px-4 text-center">
-            <h3 className="text-3xl font-bold text-foreground mb-4">Ready to Start Your Reading Journey?</h3>
+            <h3 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">Ready to Start Your Reading Journey?</h3>
             <p className="text-muted-foreground mb-8">Join your classmates and start earning points today!</p>
-            <Button onClick={() => navigate('/login')} size="lg" className="gradient-primary border-0 text-lg px-10 py-6 shadow-lg">
-              Create Your Account
-              <ArrowRight className="ml-2 h-5 w-5" />
+            <Button onClick={() => navigate('/login')} size="lg" className="gradient-primary border-0 text-base sm:text-lg px-10 py-5 sm:py-6 shadow-lg">
+              Create Your Account <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
         </section>
