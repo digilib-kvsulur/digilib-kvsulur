@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, AlertCircle, ArrowLeft, Star } from "lucide-react";
+import { BookOpen, AlertCircle, ArrowLeft, Star, Eye, EyeOff, Sparkles, Shield, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,34 +11,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const Login = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [role, setRole] = useState("");
-  const [studentClass, setStudentClass] = useState("");
-  const [rollNumber, setRollNumber] = useState("");
-  const [username, setUsername] = useState("");
-  const [phone, setPhone] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const getClassOptions = () => {
-    const options = [];
-    for (let grade = 6; grade <= 10; grade++) {
-      for (let section of ['A', 'B', 'C', 'D', 'E']) {
-        options.push({ value: `${grade}${section}`, label: `${grade}th ${section}` });
-      }
-    }
-    for (let grade = 11; grade <= 12; grade++) {
-      for (let section of ['A', 'B', 'C']) {
-        options.push({ value: `${grade}${section}`, label: `${grade}th ${section}` });
-      }
-    }
-    return options;
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,45 +62,6 @@ const Login = () => {
     setIsLoading(false);
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    if (!identifier || !password || !firstName || !lastName || !role) {
-      toast({ title: "Missing Information", description: "Please fill in all required fields", variant: "destructive" });
-      setIsLoading(false);
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(identifier)) {
-      toast({ title: "Invalid Email", description: "Please enter a valid email address for signup", variant: "destructive" });
-      setIsLoading(false);
-      return;
-    }
-    try {
-      const phoneNumber = phone.trim() || null;
-      const usernameValue = username.trim() || null;
-      const { error } = await supabase.auth.signUp({
-        email: identifier,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: { first_name: firstName, last_name: lastName, role, student_class: studentClass, roll_number: rollNumber, username: usernameValue, phone: phoneNumber }
-        }
-      });
-      if (error) {
-        toast({ title: "Sign Up Failed", description: error.message, variant: "destructive" });
-        setIsLoading(false);
-        return;
-      }
-      toast({ title: "Sign Up Successful", description: "Your account will need admin approval before you can log in." });
-      setIsSignUp(false);
-    } catch (error) {
-      console.error('Sign up error:', error);
-      toast({ title: "Sign Up Failed", description: "An unexpected error occurred", variant: "destructive" });
-    }
-    setIsLoading(false);
-  };
-
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -148,179 +85,156 @@ const Login = () => {
     setIsLoading(false);
   };
 
-  const classOptions = getClassOptions();
-
   return (
     <div className="min-h-screen flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 gradient-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10" />
-        <div className="absolute top-20 -left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 -right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
-        <div className="relative z-10 flex flex-col justify-center items-center p-12 text-primary-foreground">
-          <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mb-8 backdrop-blur-sm">
-            <BookOpen className="h-12 w-12" />
+      {/* Left Panel - Immersive Branding */}
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
+        <div className="absolute inset-0 gradient-primary" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE0VjZoLTJ2OGgtOFYyaC0ydjEyaDEwem0wIDBoLTJ2OGgtOHYtOGgtMnYxMGgxMlYxNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30" />
+        <div className="absolute top-10 -left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/5 rounded-full blur-3xl" />
+        
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/10">
+              <BookOpen className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-primary-foreground">PM SHRI KV AFS SULUR</h1>
+              <p className="text-xs text-primary-foreground/70">Digital Library</p>
+            </div>
           </div>
-          <h1 className="text-4xl font-extrabold mb-4 text-center">PM SHRI KV AFS SULUR</h1>
-          <p className="text-xl font-light mb-8 text-center opacity-90">Digital Library Management System</p>
-          <div className="space-y-4 max-w-sm">
-            {["Track your reading journey", "Earn points & climb the leaderboard", "Take quizzes & complete challenges"].map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                  <Star className="h-4 w-4" />
+          
+          <div className="flex-1 flex flex-col justify-center max-w-md">
+            <h2 className="text-4xl font-extrabold text-primary-foreground mb-4 leading-tight">
+              Your Reading<br />Adventure<br />Starts Here ✨
+            </h2>
+            <p className="text-primary-foreground/80 text-lg mb-10">
+              Track progress, earn rewards, and discover new worlds through reading.
+            </p>
+            
+            <div className="space-y-5">
+              {[
+                { icon: Sparkles, title: "Gamified Experience", desc: "Earn XP, level up, and unlock achievements" },
+                { icon: Shield, title: "Smart Tracking", desc: "AI-powered reading analytics and insights" },
+                { icon: Zap, title: "Daily Challenges", desc: "Complete missions and climb the leaderboard" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-4 group">
+                  <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/10 group-hover:bg-white/25 transition-colors shrink-0">
+                    <item.icon className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-primary-foreground">{item.title}</h3>
+                    <p className="text-xs text-primary-foreground/60">{item.desc}</p>
+                  </div>
                 </div>
-                <span className="text-sm opacity-90">{item}</span>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-6">
+            <div className="flex -space-x-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-[10px] font-bold text-primary-foreground backdrop-blur-sm">
+                  {['A', 'B', 'C', 'D'][i]}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-primary-foreground/70">Join 500+ active readers</p>
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
-        <Card className="w-full max-w-md border-border/50 shadow-xl">
-          <CardHeader className="text-center pb-2">
-            <div className="lg:hidden w-14 h-14 gradient-primary rounded-xl flex items-center justify-center mx-auto mb-4 shadow-md">
-              <BookOpen className="h-8 w-8 text-primary-foreground" />
+      {/* Right Panel - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 bg-background">
+        <div className="w-full max-w-[420px] animate-fade-in">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center shadow-lg">
+              <BookOpen className="h-7 w-7 text-primary-foreground" />
             </div>
-            <CardTitle className="text-2xl font-bold">{isSignUp ? 'Create Account' : 'Welcome Back'}</CardTitle>
-            <CardDescription>
-              {isSignUp ? 'Join the PM SHRI KV Sulur Digital Library' : 'Sign in to your library account'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!isSignUp && !showForgotPassword && (
-              <Alert className="mb-4 border-primary/20 bg-primary/5">
-                <AlertCircle className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-xs">Login with email, username, or phone number</AlertDescription>
-              </Alert>
-            )}
+            <div>
+              <h1 className="text-lg font-bold text-foreground">KV Sulur Library</h1>
+              <p className="text-xs text-muted-foreground">Digital Library System</p>
+            </div>
+          </div>
 
-            {showForgotPassword ? (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="resetEmail">Email Address</Label>
-                  <Input id="resetEmail" type="email" placeholder="Enter your email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
-                </div>
-                <Button type="submit" className="w-full gradient-primary border-0" disabled={isLoading}>
-                  {isLoading ? 'Sending...' : 'Send Reset Email'}
+          <div className="mb-8">
+            <h2 className="text-3xl font-extrabold text-foreground mb-2">Welcome back</h2>
+            <p className="text-muted-foreground">Sign in to continue your reading journey</p>
+          </div>
+
+          {showForgotPassword ? (
+            <form onSubmit={handleForgotPassword} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="resetEmail" className="text-sm font-medium">Email Address</Label>
+                <Input id="resetEmail" type="email" placeholder="Enter your email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="h-12 rounded-xl" required />
+              </div>
+              <Button type="submit" className="w-full h-12 rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg hover:shadow-xl transition-all" disabled={isLoading}>
+                {isLoading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Sending...</span> : 'Send Reset Link'}
+              </Button>
+              <div className="text-center">
+                <Button variant="link" className="p-0 h-auto text-primary text-sm" onClick={() => setShowForgotPassword(false)} type="button">
+                  <ArrowLeft className="h-3 w-3 mr-1" /> Back to Login
                 </Button>
-                <div className="text-center">
-                  <Button variant="link" className="p-0 h-auto text-primary text-sm" onClick={() => setShowForgotPassword(false)} type="button">
-                    <ArrowLeft className="h-3 w-3 mr-1" /> Back to Login
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-5">
+              <Alert className="border-primary/20 bg-primary/5 rounded-xl">
+                <AlertCircle className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-xs text-muted-foreground">Sign in with your email, username, or phone number</AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="identifier" className="text-sm font-medium">Email / Username / Phone</Label>
+                <Input
+                  id="identifier"
+                  type="text"
+                  placeholder="Enter your email, username, or phone"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  className="h-12 rounded-xl"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                  <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground hover:text-primary" onClick={() => setShowForgotPassword(true)} type="button">
+                    Forgot password?
                   </Button>
                 </div>
-              </form>
-            ) : (
-              <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="space-y-4">
-                {isSignUp && (
-                  <>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="firstName" className="text-xs">First Name</Label>
-                        <Input id="firstName" placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="lastName" className="text-xs">Last Name</Label>
-                        <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="role" className="text-xs">Role</Label>
-                      <Select value={role} onValueChange={setRole}>
-                        <SelectTrigger><SelectValue placeholder="Select your role" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="student">Student</SelectItem>
-                          <SelectItem value="teacher">Teacher</SelectItem>
-                          <SelectItem value="admin">Admin (Library In-charge)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="username" className="text-xs">Username (Optional)</Label>
-                        <Input id="username" placeholder="john_doe" value={username} onChange={(e) => setUsername(e.target.value)} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="phone" className="text-xs">Phone (Optional)</Label>
-                        <Input id="phone" type="tel" placeholder="+91 98765..." value={phone} onChange={(e) => setPhone(e.target.value)} />
-                      </div>
-                    </div>
-                    {role === 'student' && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="studentClass" className="text-xs">Class & Section</Label>
-                          <Select value={studentClass} onValueChange={setStudentClass}>
-                            <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
-                            <SelectContent>
-                              {classOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="rollNumber" className="text-xs">Roll Number</Label>
-                          <Input id="rollNumber" placeholder="e.g., 123" value={rollNumber} onChange={(e) => setRollNumber(e.target.value)} />
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="identifier" className="text-xs">{isSignUp ? 'Email' : 'Email / Username / Phone'}</Label>
-                  <Input
-                    id="identifier"
-                    type={isSignUp ? "email" : "text"}
-                    placeholder={isSignUp ? "your.email@example.com" : "Email, username, or phone"}
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    required
-                  />
+                <div className="relative">
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 rounded-xl pr-11" required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-xs">Password</Label>
-                  <Input id="password" type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                </div>
+              </div>
 
-                {isSignUp && (
-                  <Alert className="border-warning/20 bg-warning/5">
-                    <AlertCircle className="h-4 w-4 text-warning" />
-                    <AlertDescription className="text-xs">Your account will require admin approval</AlertDescription>
-                  </Alert>
-                )}
-
-                <Button type="submit" className="w-full gradient-primary border-0 shadow-md" disabled={isLoading}>
-                  {isLoading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
-                </Button>
-
-                {!isSignUp && (
-                  <div className="text-center">
-                    <Button variant="link" className="p-0 h-auto text-muted-foreground text-xs" onClick={() => setShowForgotPassword(true)} type="button">
-                      Forgot password?
-                    </Button>
-                  </div>
-                )}
-              </form>
-            )}
-
-            <div className="text-center mt-6 pt-4 border-t border-border">
-              <p className="text-sm text-muted-foreground">
-                {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-                <Button variant="link" className="p-0 h-auto text-primary font-semibold" onClick={() => setIsSignUp(!isSignUp)}>
-                  {isSignUp ? "Sign in" : "Sign up"}
-                </Button>
-              </p>
-            </div>
-
-            <div className="text-center mt-3">
-              <Button variant="link" className="p-0 h-auto text-muted-foreground text-xs" onClick={() => navigate("/")}>
-                <ArrowLeft className="h-3 w-3 mr-1" /> Back to Home
+              <Button type="submit" className="w-full h-12 rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg hover:shadow-xl transition-all" disabled={isLoading}>
+                {isLoading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Signing in...</span> : 'Sign In'}
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </form>
+          )}
+
+          <div className="mt-8 pt-6 border-t border-border text-center">
+            <p className="text-sm text-muted-foreground">
+              Don't have an account?{" "}
+              <Button variant="link" className="p-0 h-auto text-primary font-semibold" onClick={() => navigate('/register')}>
+                Create Account
+              </Button>
+            </p>
+          </div>
+
+          <div className="text-center mt-4">
+            <Button variant="link" className="p-0 h-auto text-muted-foreground text-xs" onClick={() => navigate("/")}>
+              <ArrowLeft className="h-3 w-3 mr-1" /> Back to Home
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
