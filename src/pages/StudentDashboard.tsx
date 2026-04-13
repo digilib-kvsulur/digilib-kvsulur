@@ -22,6 +22,8 @@ import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager"
 import LevelUpBanner from "@/components/rewards/LevelUpBanner";
 import Rankings from "@/components/dashboard/Rankings";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
+import DailyTip from "@/components/dashboard/DailyTip";
+import QuickBookmarks from "@/components/dashboard/QuickBookmarks";
 
 type Tab = "overview" | "books" | "quizzes" | "challenges" | "rankings" | "profile";
 
@@ -324,6 +326,12 @@ const StudentDashboard = () => {
                 ))}
               </div>
 
+              {/* Daily Tip + Quick Bookmarks */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DailyTip />
+                <QuickBookmarks currentBooks={currentBooks} monthlyBooksRead={monthlyBooksRead} totalPoints={user?.points || 0} />
+              </div>
+
               {/* Recent Activity */}
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
@@ -331,23 +339,28 @@ const StudentDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   {recentActivities.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {recentActivities.map((a, i) => (
-                        <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                          <div className={`w-2 h-2 rounded-full shrink-0 ${a.type === 'book' ? 'bg-primary' : a.type === 'quiz' ? 'bg-success' : 'bg-accent'}`} />
+                        <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/60 transition-all border border-transparent hover:border-border/50">
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${a.type === 'book' ? 'bg-primary/10' : a.type === 'quiz' ? 'bg-success/10' : 'bg-accent/10'}`}>
+                            {a.type === 'book' ? <BookOpen className="h-4 w-4 text-primary" /> : a.type === 'quiz' ? <Brain className="h-4 w-4 text-success" /> : <Star className="h-4 w-4 text-accent" />}
+                          </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{a.title}</p>
-                            {a.score && <p className="text-xs text-success">Score: {a.score}%</p>}
-                            {a.points ? <p className="text-xs text-warning">+{a.points} pts</p> : null}
+                            <div className="flex items-center gap-2">
+                              {a.score && <span className="text-xs text-success font-medium">Score: {a.score}%</span>}
+                              {a.points ? <span className="text-xs text-warning font-medium">+{a.points} pts</span> : null}
+                            </div>
                           </div>
                           <span className="text-xs text-muted-foreground shrink-0">{getTimeAgo(a.time)}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Calendar className="h-10 w-10 mx-auto mb-2 opacity-40" />
-                      <p className="text-sm">No recent activity yet</p>
+                    <div className="text-center py-10 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm font-medium">No recent activity yet</p>
+                      <p className="text-xs mt-1">Start reading to see your progress here!</p>
                     </div>
                   )}
                 </CardContent>

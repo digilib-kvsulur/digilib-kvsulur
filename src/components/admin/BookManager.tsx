@@ -194,7 +194,7 @@ const BookManager = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -202,20 +202,20 @@ const BookManager = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <BookOpen className="h-6 w-6" />
+        <h2 className="text-2xl font-bold flex items-center gap-2 text-foreground">
+          <BookOpen className="h-6 w-6 text-primary" />
           Book Management
         </h2>
-        <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={handleAddNew} className="gradient-primary border-0 shadow-md">
           <Plus className="h-4 w-4 mr-2" />
           Add Book
         </Button>
       </div>
 
-      <Card>
+      <Card className="border-border/50">
         <CardHeader>
-          <CardTitle>All Books</CardTitle>
-          <CardDescription>Manage your library collection</CardDescription>
+          <CardTitle className="text-lg">All Books</CardTitle>
+          <CardDescription>Manage your library collection ({books.length} books)</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -252,7 +252,7 @@ const BookManager = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDelete(book.id)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -262,8 +262,8 @@ const BookManager = () => {
               ))}
               {books.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
-                    No books found
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No books found. Add your first book!
                   </TableCell>
                 </TableRow>
               )}
@@ -340,7 +340,7 @@ const BookManager = () => {
               <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+              <Button type="submit" className="gradient-primary border-0">
                 {editingBook ? 'Update' : 'Add'} Book
               </Button>
             </DialogFooter>
