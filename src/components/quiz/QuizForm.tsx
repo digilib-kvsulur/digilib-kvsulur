@@ -1,13 +1,13 @@
-
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Save, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Save, ArrowLeft, GripVertical, CheckCircle2 } from "lucide-react";
 import { Quiz, Question } from "@/types/quiz";
+import { Badge } from "@/components/ui/badge";
 
 interface QuizFormProps {
   quiz?: Quiz | null;
@@ -29,122 +29,76 @@ export const QuizForm = ({ quiz, onSave, onCancel }: QuizFormProps) => {
     createdBy: quiz?.createdBy || "admin"
   });
 
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
-    question: "",
-    options: ["", "", "", ""],
-    correctAnswer: 0,
-    explanation: "",
-    points: 5
+    question: "", options: ["", "", "", ""], correctAnswer: 0, explanation: "", points: 5
   });
 
   const handleAddQuestion = () => {
-    if (currentQuestion.question && currentQuestion.options?.every(opt => opt.trim())) {
-      const newQuestion: Question = {
-        id: Date.now().toString(),
-        question: currentQuestion.question,
-        options: currentQuestion.options,
-        correctAnswer: currentQuestion.correctAnswer || 0,
-        explanation: currentQuestion.explanation,
-        points: currentQuestion.points || 5
-      };
-
-      setFormData(prev => ({
-        ...prev,
-        questions: [...(prev.questions || []), newQuestion]
-      }));
-
-      // Reset form
-      setCurrentQuestion({
-        question: "",
-        options: ["", "", "", ""],
-        correctAnswer: 0,
-        explanation: "",
-        points: 5
-      });
-    }
+    if (!currentQuestion.question?.trim() || !currentQuestion.options?.every(opt => opt.trim())) return;
+    const newQ: Question = {
+      id: Date.now().toString(),
+      question: currentQuestion.question!,
+      options: currentQuestion.options!,
+      correctAnswer: currentQuestion.correctAnswer || 0,
+      explanation: currentQuestion.explanation,
+      points: currentQuestion.points || 5
+    };
+    setFormData(prev => ({ ...prev, questions: [...(prev.questions || []), newQ] }));
+    setCurrentQuestion({ question: "", options: ["", "", "", ""], correctAnswer: 0, explanation: "", points: 5 });
+    setShowQuestionForm(false);
   };
 
-  const handleRemoveQuestion = (questionId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      questions: prev.questions?.filter(q => q.id !== questionId) || []
-    }));
+  const handleRemoveQuestion = (id: string) => {
+    setFormData(prev => ({ ...prev, questions: prev.questions?.filter(q => q.id !== id) || [] }));
   };
 
   const handleSave = () => {
-    if (formData.title && formData.description && formData.questions && formData.questions.length > 0) {
+    if (formData.title && formData.questions && formData.questions.length > 0) {
       onSave(formData as Quiz);
     }
   };
 
-  const updateQuestionOption = (index: number, value: string) => {
-    const newOptions = [...(currentQuestion.options || ["", "", "", ""])];
-    newOptions[index] = value;
-    setCurrentQuestion(prev => ({ ...prev, options: newOptions }));
+  const updateOption = (i: number, v: string) => {
+    const opts = [...(currentQuestion.options || ["", "", "", ""])];
+    opts[i] = v;
+    setCurrentQuestion(prev => ({ ...prev, options: opts }));
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={onCancel}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Quizzes
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={onCancel} className="h-9 w-9">
+          <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h2 className="text-2xl font-bold">
-          {quiz ? "Edit Quiz" : "Create New Quiz"}
-        </h2>
+        <div>
+          <h2 className="text-xl font-bold text-foreground">{quiz ? "Edit Quiz" : "Create Quiz"}</h2>
+          <p className="text-xs text-muted-foreground">Fill in details and add questions</p>
+        </div>
       </div>
 
-      {/* Quiz Basic Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quiz Information</CardTitle>
-          <CardDescription>Basic details about your quiz</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Compact quiz info */}
+      <Card className="border-border/50">
+        <CardContent className="p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="title">Quiz Title</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Enter quiz title"
-              />
+              <Label className="text-xs">Title *</Label>
+              <Input value={formData.title} onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))} placeholder="Quiz title" />
             </div>
             <div>
-              <Label htmlFor="subject">Subject</Label>
-              <Input
-                id="subject"
-                value={formData.subject}
-                onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                placeholder="e.g., Science, Mathematics"
-              />
+              <Label className="text-xs">Subject</Label>
+              <Input value={formData.subject} onChange={e => setFormData(prev => ({ ...prev, subject: e.target.value }))} placeholder="e.g., Science" />
             </div>
           </div>
-
           <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Describe what this quiz covers"
-            />
+            <Label className="text-xs">Description</Label>
+            <Input value={formData.description} onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} placeholder="Brief description" />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label htmlFor="difficulty">Difficulty</Label>
-              <Select 
-                value={formData.difficulty} 
-                onValueChange={(value: 'easy' | 'medium' | 'hard') => 
-                  setFormData(prev => ({ ...prev, difficulty: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Label className="text-xs">Difficulty</Label>
+              <Select value={formData.difficulty} onValueChange={(v: 'easy' | 'medium' | 'hard') => setFormData(prev => ({ ...prev, difficulty: v }))}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="easy">Easy</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
@@ -153,152 +107,110 @@ export const QuizForm = ({ quiz, onSave, onCancel }: QuizFormProps) => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
-              <Input
-                id="timeLimit"
-                type="number"
-                value={formData.timeLimit}
-                onChange={(e) => setFormData(prev => ({ ...prev, timeLimit: parseInt(e.target.value) }))}
-              />
+              <Label className="text-xs">Time (min)</Label>
+              <Input type="number" value={formData.timeLimit} onChange={e => setFormData(prev => ({ ...prev, timeLimit: parseInt(e.target.value) || 30 }))} className="h-9" />
             </div>
             <div>
-              <Label htmlFor="pointsReward">Points Reward</Label>
-              <Input
-                id="pointsReward"
-                type="number"
-                value={formData.pointsReward}
-                onChange={(e) => setFormData(prev => ({ ...prev, pointsReward: parseInt(e.target.value) }))}
-              />
+              <Label className="text-xs">Points</Label>
+              <Input type="number" value={formData.pointsReward} onChange={e => setFormData(prev => ({ ...prev, pointsReward: parseInt(e.target.value) || 50 }))} className="h-9" />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Add Question Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Add Question</CardTitle>
-          <CardDescription>Create a multiple choice question</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="question">Question</Label>
-            <Textarea
-              id="question"
-              value={currentQuestion.question}
-              onChange={(e) => setCurrentQuestion(prev => ({ ...prev, question: e.target.value }))}
-              placeholder="Enter your question here"
-            />
+      {/* Questions */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">Questions</h3>
+            <Badge variant="secondary" className="text-xs">{formData.questions?.length || 0}</Badge>
           </div>
+          {!showQuestionForm && (
+            <Button size="sm" onClick={() => setShowQuestionForm(true)} className="gradient-primary border-0">
+              <Plus className="h-4 w-4 mr-1" /> Add Question
+            </Button>
+          )}
+        </div>
 
-          <div className="space-y-2">
-            <Label>Answer Options</Label>
-            {currentQuestion.options?.map((option, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-medium">
-                  {String.fromCharCode(65 + index)}
-                </span>
-                <Input
-                  value={option}
-                  onChange={(e) => updateQuestionOption(index, e.target.value)}
-                  placeholder={`Option ${String.fromCharCode(65 + index)}`}
-                />
-                <input
-                  type="radio"
-                  name="correctAnswer"
-                  checked={currentQuestion.correctAnswer === index}
-                  onChange={() => setCurrentQuestion(prev => ({ ...prev, correctAnswer: index }))}
-                />
+        {/* Inline question form */}
+        {showQuestionForm && (
+          <Card className="border-primary/30 border-2">
+            <CardContent className="p-4 space-y-3">
+              <div>
+                <Label className="text-xs">Question *</Label>
+                <Textarea value={currentQuestion.question} onChange={e => setCurrentQuestion(prev => ({ ...prev, question: e.target.value }))} placeholder="Type your question" rows={2} />
               </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="explanation">Explanation (Optional)</Label>
-              <Textarea
-                id="explanation"
-                value={currentQuestion.explanation}
-                onChange={(e) => setCurrentQuestion(prev => ({ ...prev, explanation: e.target.value }))}
-                placeholder="Explain the correct answer"
-              />
-            </div>
-            <div>
-              <Label htmlFor="questionPoints">Points</Label>
-              <Input
-                id="questionPoints"
-                type="number"
-                value={currentQuestion.points}
-                onChange={(e) => setCurrentQuestion(prev => ({ ...prev, points: parseInt(e.target.value) }))}
-              />
-            </div>
-          </div>
-
-          <Button onClick={handleAddQuestion} className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Question
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Questions List */}
-      {formData.questions && formData.questions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Questions ({formData.questions.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {formData.questions.map((question, index) => (
-                <div key={question.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium mb-2">
-                        {index + 1}. {question.question}
-                      </h4>
-                      <div className="space-y-1">
-                        {question.options.map((option, optIndex) => (
-                          <div 
-                            key={optIndex} 
-                            className={`text-sm flex items-center gap-2 ${
-                              question.correctAnswer === optIndex ? 'text-green-600 font-medium' : 'text-gray-600'
-                            }`}
-                          >
-                            <span>{String.fromCharCode(65 + optIndex)}.</span>
-                            {option}
-                            {question.correctAnswer === optIndex && <span>(Correct)</span>}
-                          </div>
-                        ))}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-2">
-                        Points: {question.points}
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemoveQuestion(question.id)}
-                      className="text-red-600 hover:text-red-700"
+              <div className="space-y-2">
+                <Label className="text-xs">Options (click radio to mark correct)</Label>
+                {currentQuestion.options?.map((opt, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentQuestion(prev => ({ ...prev, correctAnswer: i }))}
+                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${currentQuestion.correctAnswer === i ? "border-success bg-success/10" : "border-border hover:border-primary"}`}
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      {currentQuestion.correctAnswer === i && <CheckCircle2 className="h-4 w-4 text-success" />}
+                      {currentQuestion.correctAnswer !== i && <span className="text-xs text-muted-foreground">{String.fromCharCode(65 + i)}</span>}
+                    </button>
+                    <Input value={opt} onChange={e => updateOption(i, e.target.value)} placeholder={`Option ${String.fromCharCode(65 + i)}`} className="h-9" />
                   </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Explanation (optional)</Label>
+                  <Input value={currentQuestion.explanation} onChange={e => setCurrentQuestion(prev => ({ ...prev, explanation: e.target.value }))} placeholder="Why is this correct?" className="h-9" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <div>
+                  <Label className="text-xs">Points</Label>
+                  <Input type="number" value={currentQuestion.points} onChange={e => setCurrentQuestion(prev => ({ ...prev, points: parseInt(e.target.value) || 5 }))} className="h-9" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleAddQuestion} size="sm" className="flex-1">
+                  <Plus className="h-4 w-4 mr-1" /> Add
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowQuestionForm(false)}>Cancel</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <Button 
-          onClick={handleSave}
-          disabled={!formData.title || !formData.description || !formData.questions?.length}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Save className="h-4 w-4 mr-2" />
-          {quiz ? "Update Quiz" : "Create Quiz"}
+        {/* Question list */}
+        {formData.questions?.map((q, idx) => (
+          <div key={q.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border/50 group">
+            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">{idx + 1}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">{q.question}</p>
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {q.options.map((opt, oi) => (
+                  <Badge key={oi} variant={q.correctAnswer === oi ? "default" : "outline"} className={`text-[10px] ${q.correctAnswer === oi ? "bg-success/15 text-success border-success/30" : ""}`}>
+                    {String.fromCharCode(65 + oi)}. {opt}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0" onClick={() => handleRemoveQuestion(q.id)}>
+              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+            </Button>
+          </div>
+        ))}
+
+        {(!formData.questions || formData.questions.length === 0) && !showQuestionForm && (
+          <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
+            <p className="text-sm text-muted-foreground mb-2">No questions added yet</p>
+            <Button variant="outline" size="sm" onClick={() => setShowQuestionForm(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Add your first question
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Save */}
+      <div className="flex gap-3 sticky bottom-4">
+        <Button variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>
+        <Button onClick={handleSave} disabled={!formData.title || !formData.questions?.length} className="flex-1 gradient-primary border-0">
+          <Save className="h-4 w-4 mr-2" /> {quiz ? "Update" : "Create"} Quiz
         </Button>
       </div>
     </div>
