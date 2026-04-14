@@ -24,6 +24,7 @@ import Rankings from "@/components/dashboard/Rankings";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
 import DailyTip from "@/components/dashboard/DailyTip";
 import QuickBookmarks from "@/components/dashboard/QuickBookmarks";
+import NotificationBell from "@/components/dashboard/NotificationBell";
 
 type Tab = "overview" | "books" | "quizzes" | "challenges" | "rankings" | "profile";
 
@@ -233,7 +234,8 @@ const StudentDashboard = () => {
             </button>
             <span className="font-bold text-sm text-foreground">KV Sulur Library</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <NotificationBell />
             <Button variant="ghost" size="sm" onClick={() => navigate('/catalog')}><Search className="h-4 w-4" /></Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>
           </div>
