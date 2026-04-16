@@ -160,23 +160,11 @@ const Catalog = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Request New Book
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Request a New Book</DialogTitle>
-                  </DialogHeader>
-                  <BookRequestForm 
-                    onClose={() => setShowRequestDialog(false)}
-                    onSuccess={() => setShowRequestDialog(false)}
-                  />
-                </DialogContent>
-              </Dialog>
+              <Button variant="outline" className="flex items-center gap-2" onClick={() => setShowRequestDialog(true)}>
+                <Plus className="h-4 w-4" />
+                Request New Book
+              </Button>
+              <BookRequestForm open={showRequestDialog} onOpenChange={setShowRequestDialog} onSuccess={() => setShowRequestDialog(false)} />
               
               <Button onClick={() => navigate('/')} variant="outline">
                 Home
