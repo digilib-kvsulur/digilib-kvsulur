@@ -276,23 +276,11 @@ const Catalog = () => {
             <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No books found</h3>
             <p className="text-gray-600 mb-4">Try adjusting your search terms or filters.</p>
-            <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Request a New Book
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Request a New Book</DialogTitle>
-                </DialogHeader>
-                <BookRequestForm 
-                  onClose={() => setShowRequestDialog(false)}
-                  onSuccess={() => setShowRequestDialog(false)}
-                />
-              </DialogContent>
-            </Dialog>
+            <Button className="flex items-center gap-2" onClick={() => setShowRequestDialog(true)}>
+              <Plus className="h-4 w-4" />
+              Request a New Book
+            </Button>
+            <BookRequestForm open={showRequestDialog} onOpenChange={setShowRequestDialog} onSuccess={() => setShowRequestDialog(false)} />
           </div>
         )}
       </main>
