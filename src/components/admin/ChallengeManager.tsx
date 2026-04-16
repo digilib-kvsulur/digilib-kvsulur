@@ -145,13 +145,20 @@ const ChallengeManager = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const insertData: any = {
+        title: formData.title,
+        description: formData.description,
+        type: formData.type,
+        target_value: formData.target_value,
+        reward_points: formData.reward_points,
+        created_by: user.id,
+        is_active: true
+      };
+      if (formData.deadline) insertData.deadline = formData.deadline;
+
       const { error } = await supabase
         .from('challenges')
-        .insert({
-          ...formData,
-          created_by: user.id,
-          is_active: true
-        });
+        .insert(insertData);
 
       if (error) throw error;
 
@@ -197,9 +204,19 @@ const ChallengeManager = () => {
     if (!editingChallenge) return;
 
     try {
+      const updateData: any = {
+        title: formData.title,
+        description: formData.description,
+        type: formData.type,
+        target_value: formData.target_value,
+        reward_points: formData.reward_points,
+      };
+      if (formData.deadline) updateData.deadline = formData.deadline;
+      else updateData.deadline = null;
+
       const { error } = await supabase
         .from('challenges')
-        .update(formData)
+        .update(updateData)
         .eq('id', editingChallenge.id);
 
       if (error) throw error;

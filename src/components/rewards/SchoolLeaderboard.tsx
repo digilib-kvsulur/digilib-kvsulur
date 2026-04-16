@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Crown, Medal, Award, Trophy, Users } from "lucide-react";
@@ -19,281 +18,153 @@ interface SchoolLeaderboardProps {
   currentUserId?: string;
 }
 
+const getRankIcon = (rank: number) => {
+  switch (rank) {
+    case 1: return <Crown className="h-5 w-5 text-yellow-500" />;
+    case 2: return <Medal className="h-5 w-5 text-gray-400" />;
+    case 3: return <Award className="h-5 w-5 text-amber-600" />;
+    default: return <span className="text-sm font-bold text-muted-foreground">#{rank}</span>;
+  }
+};
+
+const getRankBg = (rank: number) => {
+  switch (rank) {
+    case 1: return "from-yellow-50 to-amber-50 border-yellow-200 dark:from-yellow-950/20 dark:to-amber-950/20";
+    case 2: return "from-gray-50 to-slate-50 border-gray-200 dark:from-gray-950/20 dark:to-slate-950/20";
+    case 3: return "from-amber-50 to-orange-50 border-amber-200 dark:from-amber-950/20 dark:to-orange-950/20";
+    default: return "";
+  }
+};
+
 const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
   const [entries, setEntries] = useState<SchoolLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
-  const [schoolStats, setSchoolStats] = useState({
-    totalStudents: 0,
-    totalPoints: 0,
-    averagePoints: 0
-  });
+  const [schoolStats, setSchoolStats] = useState({ totalStudents: 0, totalPoints: 0, averagePoints: 0 });
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadLeaderboard();
-  }, [currentUserId]);
+  useEffect(() => { loadLeaderboard(); }, [currentUserId]);
 
   const loadLeaderboard = async () => {
     try {
-      console.log('Loading school leaderboard for user:', currentUserId);
-      
-      // Get all approved students using secure function (only exposes non-sensitive data)
-      const { data: students, error } = await supabase
-        .rpc('get_leaderboard_data');
+      const { data: students, error } = await supabase.rpc('get_leaderboard_data');
+      if (error) throw error;
 
-      if (error) {
-        console.error('Supabase error loading school leaderboard:', error);
-        throw error;
-      }
-
-      console.log('Raw school leaderboard data:', students);
-
-      // Filter and rank students (include those with 0 points)
-      const validStudents = (students || []).filter(student => 
-        student.first_name
-      );
-
-      console.log('Valid students for school leaderboard:', validStudents);
-
-      // Add proper ranking - students with same points get same rank
-      const rankedEntries: SchoolLeaderboardEntry[] = [];
+      const validStudents = (students || []).filter((s: any) => s.first_name);
+      const ranked: SchoolLeaderboardEntry[] = [];
       let currentRank = 1;
-      
-      validStudents.forEach((student, index) => {
-        // If this student has different points than previous, update rank
-        if (index > 0 && student.points !== validStudents[index - 1].points) {
-          currentRank = index + 1;
-        }
-        
-        rankedEntries.push({
-          ...student,
-          points: student.points || 0,
-          rank: currentRank
-        });
+      validStudents.forEach((student: any, index: number) => {
+        if (index > 0 && student.points !== validStudents[index - 1].points) currentRank = index + 1;
+        ranked.push({ ...student, points: student.points || 0, rank: currentRank });
       });
+      setEntries(ranked);
 
-      console.log('Ranked school leaderboard entries:', rankedEntries);
-      setEntries(rankedEntries);
+      const totalStudents = ranked.length;
+      const totalPoints = ranked.reduce((sum, e) => sum + e.points, 0);
+      setSchoolStats({ totalStudents, totalPoints, averagePoints: totalStudents > 0 ? Math.round(totalPoints / totalStudents) : 0 });
 
-      // Calculate school statistics
-      const totalStudents = rankedEntries.length;
-      const totalPoints = rankedEntries.reduce((sum, entry) => sum + entry.points, 0);
-      const averagePoints = totalStudents > 0 ? Math.round(totalPoints / totalStudents) : 0;
-
-      setSchoolStats({
-        totalStudents,
-        totalPoints,
-        averagePoints
-      });
-
-      console.log('School statistics calculated:', { totalStudents, totalPoints, averagePoints });
-
-      // Find current user's rank
       if (currentUserId) {
-        const userEntry = rankedEntries.find(entry => entry.id === currentUserId);
-        const userRank = userEntry?.rank || null;
-        console.log('Current user school rank:', userRank, 'for user:', currentUserId);
-        setCurrentUserRank(userRank);
+        const userEntry = ranked.find(e => e.id === currentUserId);
+        setCurrentUserRank(userEntry?.rank || null);
       }
-
     } catch (error) {
       console.error('Error loading school leaderboard:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load school leaderboard",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+      toast({ title: "Error", description: "Failed to load school leaderboard", variant: "destructive" });
+    } finally { setLoading(false); }
   };
 
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Crown className="h-5 w-5 text-yellow-500" />;
-      case 2:
-        return <Medal className="h-5 w-5 text-gray-400" />;
-      case 3:
-        return <Award className="h-5 w-5 text-amber-600" />;
-      default:
-        return <span className="text-lg font-bold text-gray-600">#{rank}</span>;
-    }
-  };
-
-  const getRankColor = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return "border-yellow-200 bg-yellow-50";
-      case 2:
-        return "border-gray-200 bg-gray-50";
-      case 3:
-        return "border-amber-200 bg-amber-50";
-      default:
-        return "border-gray-200";
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  if (loading) return <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
   const topThree = entries.slice(0, 3);
   const others = entries.slice(3);
 
   return (
-    <div className="space-y-6">
-      {/* Current User Rank Card */}
-      {currentUserId && currentUserRank && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800">
-              <Trophy className="h-5 w-5" />
-              Your School Rank
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">#{currentUserRank}</div>
-              <p className="text-blue-700">out of {schoolStats.totalStudents} students</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* School Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            School Statistics
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-blue-600">{schoolStats.totalStudents}</div>
-              <p className="text-sm text-gray-600">Active Students</p>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-green-600">{schoolStats.totalPoints}</div>
-              <p className="text-sm text-gray-600">Total Points Earned</p>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-purple-600">{schoolStats.averagePoints}</div>
-              <p className="text-sm text-gray-600">Average Points</p>
-            </div>
+    <div className="space-y-4">
+      {/* Your rank + stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {currentUserRank && (
+          <div className="col-span-2 sm:col-span-1 p-3 rounded-xl bg-primary/5 border border-primary/20 text-center">
+            <Trophy className="h-5 w-5 text-primary mx-auto mb-1" />
+            <p className="text-xl font-bold text-primary">#{currentUserRank}</p>
+            <p className="text-[10px] text-muted-foreground">Your Rank</p>
           </div>
-        </CardContent>
-      </Card>
+        )}
+        {[
+          { label: "Students", value: schoolStats.totalStudents, color: "text-primary" },
+          { label: "Total Points", value: schoolStats.totalPoints, color: "text-success" },
+          { label: "Average", value: schoolStats.averagePoints, color: "text-accent" },
+        ].map((stat) => (
+          <div key={stat.label} className="p-3 rounded-xl bg-muted/30 border border-border/30 text-center">
+            <p className={`text-lg font-bold ${stat.color}`}>{stat.value}</p>
+            <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+          </div>
+        ))}
+      </div>
 
-      {/* Top 3 Rankings */}
+      {/* Top 3 podium */}
       {topThree.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Crown className="h-5 w-5 text-yellow-600" />
-            Top Performers
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {topThree.map((entry) => (
-              <Card 
-                key={entry.id} 
-                className={`${getRankColor(entry.rank)} ${
-                  entry.id === currentUserId ? 'ring-2 ring-blue-500' : ''
-                }`}
-              >
-                <CardHeader className="text-center pb-2">
-                  <div className="flex justify-center mb-2">
-                    {getRankIcon(entry.rank)}
-                  </div>
-                  <div className="flex justify-center mb-3">
-                    <Avatar className="h-16 w-16">
-                      <AvatarFallback className="bg-blue-100 text-blue-600 text-lg font-semibold">
-                        {entry.first_name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <CardTitle className="text-lg">{entry.first_name}</CardTitle>
-                  <CardDescription>
-                    Class {entry.student_class}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <div className="text-2xl font-bold text-blue-600 mb-1">
-                    {entry.points}
-                  </div>
-                  <p className="text-sm text-gray-600">points</p>
-                  {entry.id === currentUserId && (
-                    <Badge variant="secondary" className="mt-2">You</Badge>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {topThree.map((entry) => (
+            <div
+              key={entry.id}
+              className={`relative p-4 rounded-xl border bg-gradient-to-b transition-all hover:shadow-md ${getRankBg(entry.rank)} ${
+                entry.id === currentUserId ? 'ring-2 ring-primary' : ''
+              }`}
+            >
+              <div className="text-center">
+                <div className="flex justify-center mb-2">{getRankIcon(entry.rank)}</div>
+                <Avatar className="h-12 w-12 mx-auto mb-2">
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                    {entry.first_name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <h4 className="font-semibold text-sm text-foreground truncate">{entry.first_name}</h4>
+                <p className="text-xs text-muted-foreground">Class {entry.student_class}</p>
+                <p className="text-xl font-bold text-primary mt-2">{entry.points}</p>
+                <p className="text-[10px] text-muted-foreground">points</p>
+                {entry.id === currentUserId && <Badge variant="secondary" className="mt-2 text-[10px]">You</Badge>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Other Rankings */}
+      {/* Others */}
       {others.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Other Rankings</h3>
-          <Card>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {others.map((entry) => (
-                  <div 
-                    key={entry.id} 
-                    className={`p-4 flex items-center gap-4 ${
-                      entry.id === currentUserId ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-center w-8">
-                      {getRankIcon(entry.rank)}
-                    </div>
-                    
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-gray-100 text-gray-600">
-                        {entry.first_name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium">{entry.first_name}</h4>
-                        {entry.id === currentUserId && (
-                          <Badge variant="secondary" className="text-xs">You</Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600">Class {entry.student_class}</p>
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-blue-600">
-                        {entry.points}
-                      </div>
-                      <p className="text-xs text-gray-500">points</p>
-                    </div>
-                  </div>
-                ))}
+        <div className="rounded-xl border border-border/50 overflow-hidden divide-y divide-border/30">
+          {others.map((entry) => (
+            <div
+              key={entry.id}
+              className={`flex items-center gap-3 px-4 py-3 transition-all hover:bg-muted/30 ${
+                entry.id === currentUserId ? 'bg-primary/5 border-l-2 border-l-primary' : ''
+              }`}
+            >
+              <div className="w-7 flex items-center justify-center shrink-0">{getRankIcon(entry.rank)}</div>
+              <Avatar className="h-8 w-8 shrink-0">
+                <AvatarFallback className="bg-muted text-muted-foreground text-xs">{entry.first_name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium text-foreground truncate">{entry.first_name}</span>
+                  {entry.id === currentUserId && <Badge variant="secondary" className="text-[10px] px-1.5">You</Badge>}
+                </div>
+                <p className="text-xs text-muted-foreground">Class {entry.student_class}</p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="text-right shrink-0">
+                <span className="text-sm font-bold text-primary">{entry.points}</span>
+                <p className="text-[10px] text-muted-foreground">pts</p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {entries.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No students found</h3>
-            <p className="text-gray-600">No approved students with points available for the leaderboard.</p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-12">
+          <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+          <h3 className="text-base font-medium text-foreground mb-1">No students found</h3>
+          <p className="text-sm text-muted-foreground">No approved students for the leaderboard yet.</p>
+        </div>
       )}
     </div>
   );

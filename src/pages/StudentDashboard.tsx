@@ -419,14 +419,8 @@ const StudentDashboard = () => {
         </div>
       </main>
 
-      {/* Book Request Modal */}
-      {showBookRequest && (
-        <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50 p-4">
-          <div className="animate-scale-in">
-            <BookRequestForm onClose={() => setShowBookRequest(false)} onSuccess={() => setShowBookRequest(false)} />
-          </div>
-        </div>
-      )}
+      {/* Book Request Dialog */}
+      <BookRequestForm open={showBookRequest} onOpenChange={setShowBookRequest} onSuccess={() => setShowBookRequest(false)} />
     </div>
   );
 };
