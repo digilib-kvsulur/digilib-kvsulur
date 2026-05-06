@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import {
   BookOpen, LogOut, Users, Target, Home, BookCheck, BookUp, Award,
-  Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell
+  Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare
 } from "lucide-react";
+import Community from "@/components/community/Community";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,7 +22,7 @@ import ClassAnalytics from "@/components/admin/ClassAnalytics";
 import LevelManager from "@/components/admin/LevelManager";
 import NotificationSender from "@/components/admin/NotificationSender";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "points" | "quizzes" | "challenges" | "levels" | "analytics" | "notifications" | "profile";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "points" | "quizzes" | "challenges" | "levels" | "analytics" | "notifications" | "community" | "profile";
 
 const navSections = [
   {
@@ -53,6 +54,7 @@ const navSections = [
       { id: "challenges" as Tab, label: "Challenges", icon: Target },
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
+      { id: "community" as Tab, label: "Community", icon: MessageSquare },
     ],
   },
   {
@@ -269,6 +271,7 @@ const AdminDashboard = () => {
           {activeTab === "levels" && <LevelManager />}
           {activeTab === "analytics" && <ClassAnalytics />}
           {activeTab === "notifications" && <NotificationSender />}
+          {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>
