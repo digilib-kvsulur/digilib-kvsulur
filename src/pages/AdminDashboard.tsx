@@ -54,6 +54,7 @@ const navSections = [
       { id: "challenges" as Tab, label: "Challenges", icon: Target },
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
+      { id: "community" as Tab, label: "Community", icon: MessageSquare },
     ],
   },
   {
@@ -270,6 +271,7 @@ const AdminDashboard = () => {
           {activeTab === "levels" && <LevelManager />}
           {activeTab === "analytics" && <ClassAnalytics />}
           {activeTab === "notifications" && <NotificationSender />}
+          {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>
