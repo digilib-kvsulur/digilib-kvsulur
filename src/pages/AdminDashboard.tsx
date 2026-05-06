@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import {
   BookOpen, LogOut, Users, Target, Home, BookCheck, BookUp, Award,
-  Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell
+  Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare
 } from "lucide-react";
+import Community from "@/components/community/Community";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
