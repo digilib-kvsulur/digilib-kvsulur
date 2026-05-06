@@ -92,19 +92,19 @@ const BookIssueRegister = () => {
           .insert({ title: manualBookTitle, author: manualBookAuthor, isbn: libraryBookCode, description: 'Manual entry - Physical library book', total_copies: 1, available_copies: 0 })
           .select().single();
         if (bookError) throw bookError;
-        const { error: issueError } = await supabase.from('book_issues').insert({ book_id: newBook.id, user_id: selectedUser, due_date: dueDate, status: 'issued' });
+        const { error: issueError } = await supabase.from('book_issues').insert({ book_id: newBook.id, user_id: selectedUser, issue_date: issueDate, due_date: dueDate, status: 'issued' });
         if (issueError) throw issueError;
         toast({ title: "Success", description: "Manual book entry created and issued successfully" });
         setManualBookTitle(""); setManualBookAuthor(""); setLibraryBookCode("");
       } else {
-        const { error: issueError } = await supabase.from('book_issues').insert({ book_id: selectedBook, user_id: selectedUser, due_date: dueDate, status: 'issued' });
+        const { error: issueError } = await supabase.from('book_issues').insert({ book_id: selectedBook, user_id: selectedUser, issue_date: issueDate, due_date: dueDate, status: 'issued' });
         if (issueError) throw issueError;
         const { error: updateError } = await supabase.from('books').update({ available_copies: books.find(b => b.id === selectedBook)?.available_copies - 1 }).eq('id', selectedBook);
         if (updateError) throw updateError;
         toast({ title: "Success", description: "Book issued successfully" });
         setSelectedBook("");
       }
-      setSelectedUser(""); setDueDate("");
+      setSelectedUser(""); setIssueDate(today); setDueDate(defaultDue);
       loadData();
     } catch (error) {
       console.error('Error issuing book:', error);
