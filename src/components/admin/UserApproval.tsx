@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { User, CheckCircle, XCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import AddUserDialog from "./AddUserDialog";
 
 interface PendingUser {
   id: string;
@@ -136,6 +137,10 @@ const UserApproval = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">User Management</h2>
+        <AddUserDialog onCreated={loadPendingUsers} />
+      </div>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
