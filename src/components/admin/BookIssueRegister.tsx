@@ -27,9 +27,12 @@ const BookIssueRegister = () => {
   const [books, setBooks] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const today = new Date().toISOString().split('T')[0];
+  const defaultDue = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
   const [selectedBook, setSelectedBook] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const [issueDate, setIssueDate] = useState(today);
+  const [dueDate, setDueDate] = useState(defaultDue);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [manualBookTitle, setManualBookTitle] = useState("");
