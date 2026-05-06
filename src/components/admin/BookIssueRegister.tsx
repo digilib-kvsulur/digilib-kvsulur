@@ -224,8 +224,13 @@ const BookIssueRegister = () => {
               </div>
 
               <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Issue Date *</Label>
+                <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="h-10 rounded-lg" />
+              </div>
+
+              <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Due Date *</Label>
-                <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="h-10 rounded-lg" />
+                <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} min={issueDate} className="h-10 rounded-lg" />
               </div>
 
               <div className="flex items-end">
