@@ -410,6 +410,9 @@ const StudentDashboard = () => {
           {/* Notes */}
           {activeTab === "notes" && user?.id && <StudentNotes userId={user.id} />}
 
+          {/* Study Materials */}
+          {activeTab === "materials" && <StudyMaterials studentClass={user?.student_class} />}
+
           {/* Community */}
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={false} />}
 
