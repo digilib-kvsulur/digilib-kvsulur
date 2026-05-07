@@ -623,6 +623,48 @@ export type Database = {
         }
         Relationships: []
       }
+      study_materials: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_name: string | null
+          file_type: string | null
+          file_url: string
+          id: string
+          student_class: string | null
+          subject: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          student_class?: string | null
+          subject?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          student_class?: string | null
+          subject?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

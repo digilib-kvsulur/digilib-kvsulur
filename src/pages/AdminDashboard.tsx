@@ -4,9 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import {
   BookOpen, LogOut, Users, Target, Home, BookCheck, BookUp, Award,
-  Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare
+  Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText
 } from "lucide-react";
 import Community from "@/components/community/Community";
+import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
+import NotificationBell from "@/components/dashboard/NotificationBell";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,7 +24,7 @@ import ClassAnalytics from "@/components/admin/ClassAnalytics";
 import LevelManager from "@/components/admin/LevelManager";
 import NotificationSender from "@/components/admin/NotificationSender";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "points" | "quizzes" | "challenges" | "levels" | "analytics" | "notifications" | "community" | "profile";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "points" | "quizzes" | "challenges" | "levels" | "analytics" | "notifications" | "community" | "materials" | "profile";
 
 const navSections = [
   {
@@ -45,6 +47,7 @@ const navSections = [
       { id: "books" as Tab, label: "Manage Books", icon: BookOpen },
       { id: "book-requests" as Tab, label: "Book Requests", icon: BookUp },
       { id: "book-issues" as Tab, label: "Book Issues", icon: BookCheck },
+      { id: "materials" as Tab, label: "Study Materials", icon: FileText },
     ],
   },
   {
@@ -173,7 +176,10 @@ const AdminDashboard = () => {
             </button>
             <span className="font-bold text-sm text-foreground">Admin Panel</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <Button variant="ghost" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>
+          </div>
         </div>
         {mobileNavOpen && (
           <div className="bg-card border-b border-border px-4 pb-3 max-h-[70vh] overflow-y-auto space-y-3">
@@ -199,9 +205,12 @@ const AdminDashboard = () => {
           {/* Overview */}
           {activeTab === "overview" && (
             <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">Dashboard Overview</h2>
-                <p className="text-muted-foreground text-sm">Welcome back, {user?.first_name}!</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">Dashboard Overview</h2>
+                  <p className="text-muted-foreground text-sm">Welcome back, {user?.first_name}!</p>
+                </div>
+                <div className="hidden lg:block"><NotificationBell /></div>
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -272,6 +281,7 @@ const AdminDashboard = () => {
           {activeTab === "analytics" && <ClassAnalytics />}
           {activeTab === "notifications" && <NotificationSender />}
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
+          {activeTab === "materials" && <StudyMaterialsManager />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>
