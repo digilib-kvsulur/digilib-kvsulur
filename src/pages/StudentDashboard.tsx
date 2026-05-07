@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
-  StickyNote, Users, GraduationCap
+  StickyNote, Users, GraduationCap, FileText
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,14 +28,16 @@ import QuickBookmarks from "@/components/dashboard/QuickBookmarks";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudentNotes from "@/components/dashboard/StudentNotes";
 import NCERTBooks from "@/components/dashboard/NCERTBooks";
+import StudyMaterials from "@/components/dashboard/StudyMaterials";
 import Community from "@/components/community/Community";
 
-type Tab = "overview" | "books" | "ncert" | "notes" | "community" | "quizzes" | "challenges" | "rankings" | "profile";
+type Tab = "overview" | "books" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "rankings" | "profile";
 
 const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
   { id: "books", label: "My Books", icon: BookOpen },
   { id: "ncert", label: "NCERT Books", icon: GraduationCap },
+  { id: "materials", label: "Study Materials", icon: FileText },
   { id: "notes", label: "My Notes", icon: StickyNote },
   { id: "community", label: "Community", icon: Users },
   { id: "quizzes", label: "Quizzes", icon: Brain },
