@@ -134,7 +134,7 @@ const Index = () => {
               </div>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mb-5 leading-tight">
                 Welcome to Your{" "}
-                <span className="bg-clip-text text-transparent gradient-primary block sm:inline">Digital Library</span>
+                <span className="bg-clip-text gradient-primary block sm:inline text-slate-800">Digital Library</span>
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground mb-8 max-w-lg">
                 Discover, learn, and grow with our comprehensive library system.
