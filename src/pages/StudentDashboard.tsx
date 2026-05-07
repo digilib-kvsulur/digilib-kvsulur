@@ -227,6 +227,7 @@ const StudentDashboard = () => {
               <p className="text-sm font-medium text-foreground truncate">{user?.first_name} {user?.last_name}</p>
               <p className="text-xs text-muted-foreground">Class {user?.student_class}</p>
             </div>
+            <NotificationBell />
           </div>
           <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" /> Logout
