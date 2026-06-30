@@ -39,6 +39,9 @@ const BookManager = () => {
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
   const [formData, setFormData] = useState<BookFormData>({
     title: '',
     author: '',
