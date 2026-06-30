@@ -1,15 +1,17 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
+import { Plus, Edit, Trash2, BookOpen, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import BulkImportBooks from "./BulkImportBooks";
 
 interface Book {
   id: string;
@@ -37,6 +39,9 @@ const BookManager = () => {
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
   const [formData, setFormData] = useState<BookFormData>({
     title: '',
     author: '',
@@ -199,25 +204,68 @@ const BookManager = () => {
     );
   }
 
+  const categories = Array.from(new Set(books.map(b => b.category).filter(Boolean))) as string[];
+  const filteredBooks = books.filter(b => {
+    if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
+    if (availabilityFilter === "available" && b.available_copies <= 0) return false;
+    if (availabilityFilter === "issued" && b.available_copies >= b.total_copies) return false;
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || (b.isbn || "").toLowerCase().includes(q);
+  });
+  const totalCopies = books.reduce((s, b) => s + b.total_copies, 0);
+  const availableCopies = books.reduce((s, b) => s + b.available_copies, 0);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold flex items-center gap-2 text-foreground">
-          <BookOpen className="h-6 w-6 text-primary" />
-          Book Management
-        </h2>
-        <Button onClick={handleAddNew} className="gradient-primary border-0 shadow-md">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Book
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center gap-2 text-foreground">
+            <BookOpen className="h-6 w-6 text-primary" />Book Management
+          </h2>
+          <p className="text-sm text-muted-foreground">{books.length} titles · {totalCopies} copies · {availableCopies} available</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <BulkImportBooks onImported={loadBooks} />
+          <Button onClick={handleAddNew} className="gradient-primary border-0 shadow-md">
+            <Plus className="h-4 w-4 mr-2" />Add Book
+          </Button>
+        </div>
       </div>
+
+      <Card className="border-border/50">
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="md:col-span-2 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search title, author, ISBN..." className="pl-9" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+              <SelectTrigger><SelectValue placeholder="Availability" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="available">Available only</SelectItem>
+                <SelectItem value="issued">Issued only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="text-lg">All Books</CardTitle>
-          <CardDescription>Manage your library collection ({books.length} books)</CardDescription>
+          <CardDescription>Showing {filteredBooks.length} of {books.length}</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -226,49 +274,43 @@ const BookManager = () => {
                 <TableHead>Category</TableHead>
                 <TableHead>ISBN</TableHead>
                 <TableHead>Copies</TableHead>
-                <TableHead>Available</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {books.map((book) => (
+              {filteredBooks.map((book) => (
                 <TableRow key={book.id}>
                   <TableCell className="font-medium">{book.title}</TableCell>
                   <TableCell>{book.author}</TableCell>
                   <TableCell>{book.category || 'N/A'}</TableCell>
-                  <TableCell>{book.isbn || 'N/A'}</TableCell>
-                  <TableCell>{book.total_copies}</TableCell>
-                  <TableCell>{book.available_copies}</TableCell>
+                  <TableCell className="text-xs font-mono">{book.isbn || '—'}</TableCell>
+                  <TableCell>{book.available_copies}/{book.total_copies}</TableCell>
+                  <TableCell>
+                    {book.available_copies === 0
+                      ? <Badge variant="destructive">Out of stock</Badge>
+                      : book.available_copies < book.total_copies
+                        ? <Badge variant="secondary">Partial</Badge>
+                        : <Badge className="bg-green-600">Available</Badge>}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(book)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(book.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(book)}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(book.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
-              {books.length === 0 && (
+              {filteredBooks.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    No books found. Add your first book!
+                    {books.length === 0 ? "No books yet. Add your first book or bulk import!" : "No books match your filters."}
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

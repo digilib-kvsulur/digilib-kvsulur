@@ -102,6 +102,47 @@ export type Database = {
           },
         ]
       }
+      book_reservations: {
+        Row: {
+          book_id: string
+          created_at: string
+          fulfilled_at: string | null
+          id: string
+          note: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_reservations_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       books: {
         Row: {
           author: string
@@ -735,6 +776,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff_or_admin: { Args: { _uid: string }; Returns: boolean }
       record_login_streak: {
         Args: { p_user_id: string }
         Returns: {
