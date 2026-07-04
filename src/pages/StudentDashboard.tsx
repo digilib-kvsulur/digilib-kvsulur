@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
-  StickyNote, Users, GraduationCap, FileText
+  StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -30,12 +30,17 @@ import StudentNotes from "@/components/dashboard/StudentNotes";
 import NCERTBooks from "@/components/dashboard/NCERTBooks";
 import StudyMaterials from "@/components/dashboard/StudyMaterials";
 import Community from "@/components/community/Community";
+import Wishlist from "@/components/dashboard/Wishlist";
+import EventsList from "@/components/dashboard/EventsList";
+import Recommendations from "@/components/dashboard/Recommendations";
 
-type Tab = "overview" | "books" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "rankings" | "profile";
+type Tab = "overview" | "books" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "rankings" | "profile";
 
 const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
   { id: "books", label: "My Books", icon: BookOpen },
+  { id: "wishlist", label: "Wishlist", icon: Bookmark },
+  { id: "events", label: "Events", icon: CalendarDays },
   { id: "ncert", label: "NCERT Books", icon: GraduationCap },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "notes", label: "My Notes", icon: StickyNote },
@@ -377,8 +382,14 @@ const StudentDashboard = () => {
                   )}
                 </CardContent>
               </Card>
+
+              {user?.id && <Recommendations userId={user.id} studentClass={user.student_class} />}
             </div>
           )}
+
+          {activeTab === "wishlist" && user?.id && <Wishlist userId={user.id} />}
+          {activeTab === "events" && user?.id && <EventsList userId={user.id} />}
+
 
           {/* Books Tab */}
           {activeTab === "books" && (

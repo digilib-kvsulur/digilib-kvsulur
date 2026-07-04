@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import {
   BookOpen, LogOut, Users, Target, Home, BookCheck, BookUp, Award,
-  Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText
+  Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText,
+  Calendar, RefreshCw, Star, AlertTriangle
 } from "lucide-react";
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
@@ -23,8 +24,12 @@ import AdminProfile from "@/components/admin/AdminProfile";
 import ClassAnalytics from "@/components/admin/ClassAnalytics";
 import LevelManager from "@/components/admin/LevelManager";
 import NotificationSender from "@/components/admin/NotificationSender";
+import EventsManager from "@/components/admin/EventsManager";
+import RenewalRequests from "@/components/admin/RenewalRequests";
+import ReviewsModeration from "@/components/admin/ReviewsModeration";
+import OverdueList from "@/components/admin/OverdueList";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "points" | "quizzes" | "challenges" | "levels" | "analytics" | "notifications" | "community" | "materials" | "profile";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "challenges" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile";
 
 const navSections = [
   {
@@ -47,6 +52,9 @@ const navSections = [
       { id: "books" as Tab, label: "Manage Books", icon: BookOpen },
       { id: "book-requests" as Tab, label: "Book Requests", icon: BookUp },
       { id: "book-issues" as Tab, label: "Book Issues", icon: BookCheck },
+      { id: "overdue" as Tab, label: "Overdue", icon: AlertTriangle },
+      { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
+      { id: "reviews" as Tab, label: "Reviews", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
     ],
   },
@@ -55,6 +63,7 @@ const navSections = [
     items: [
       { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
       { id: "challenges" as Tab, label: "Challenges", icon: Target },
+      { id: "events" as Tab, label: "Events", icon: Calendar },
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
       { id: "community" as Tab, label: "Community", icon: MessageSquare },
@@ -274,6 +283,10 @@ const AdminDashboard = () => {
           {activeTab === "books" && <BookManager />}
           {activeTab === "book-requests" && <BookIssueRequests />}
           {activeTab === "book-issues" && <BookIssueRegister />}
+          {activeTab === "overdue" && <OverdueList />}
+          {activeTab === "renewals" && <RenewalRequests />}
+          {activeTab === "reviews" && <ReviewsModeration />}
+          {activeTab === "events" && <EventsManager />}
           {activeTab === "points" && <PointsManager />}
           {activeTab === "quizzes" && <QuizManager />}
           {activeTab === "challenges" && <ChallengeManager />}

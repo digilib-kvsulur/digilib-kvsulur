@@ -21,6 +21,7 @@ export type Database = {
           due_date: string
           id: string
           issue_date: string
+          renewal_count: number
           return_date: string | null
           status: string
           user_id: string
@@ -31,6 +32,7 @@ export type Database = {
           due_date: string
           id?: string
           issue_date?: string
+          renewal_count?: number
           return_date?: string | null
           status?: string
           user_id: string
@@ -41,6 +43,7 @@ export type Database = {
           due_date?: string
           id?: string
           issue_date?: string
+          renewal_count?: number
           return_date?: string | null
           status?: string
           user_id?: string
@@ -51,6 +54,56 @@ export type Database = {
             columns: ["book_id"]
             isOneToOne: false
             referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_renewals: {
+        Row: {
+          admin_note: string | null
+          book_issue_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          requested_days: number
+          status: string
+          student_note: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          book_issue_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          requested_days?: number
+          status?: string
+          student_note?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          book_issue_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          requested_days?: number
+          status?: string
+          student_note?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_renewals_book_issue_id_fkey"
+            columns: ["book_issue_id"]
+            isOneToOne: false
+            referencedRelation: "book_issues"
             referencedColumns: ["id"]
           },
         ]
@@ -143,16 +196,90 @@ export type Database = {
           },
         ]
       }
+      book_reviews: {
+        Row: {
+          book_id: string
+          created_at: string
+          id: string
+          is_hidden: boolean
+          rating: number
+          review_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          rating: number
+          review_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          rating?: number
+          review_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_reviews_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_wishlist: {
+        Row: {
+          book_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_wishlist_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       books: {
         Row: {
           author: string
           available_copies: number
           category: string | null
+          class_level: string | null
           cover_url: string | null
           created_at: string
           description: string | null
+          first_added_at: string | null
           id: string
           isbn: string | null
+          language: string | null
+          subject: string | null
           title: string
           total_copies: number
           updated_at: string
@@ -161,11 +288,15 @@ export type Database = {
           author: string
           available_copies?: number
           category?: string | null
+          class_level?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
+          first_added_at?: string | null
           id?: string
           isbn?: string | null
+          language?: string | null
+          subject?: string | null
           title: string
           total_copies?: number
           updated_at?: string
@@ -174,11 +305,15 @@ export type Database = {
           author?: string
           available_copies?: number
           category?: string | null
+          class_level?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
+          first_added_at?: string | null
           id?: string
           isbn?: string | null
+          language?: string | null
+          subject?: string | null
           title?: string
           total_copies?: number
           updated_at?: string
@@ -268,6 +403,35 @@ export type Database = {
         }
         Relationships: []
       }
+      event_registrations: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "library_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       levels: {
         Row: {
           color: string
@@ -303,6 +467,45 @@ export type Database = {
           max_points?: number | null
           min_points?: number
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      library_events: {
+        Row: {
+          capacity: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_date: string
+          id: string
+          is_published: boolean
+          location: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date: string
+          id?: string
+          is_published?: boolean
+          location?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date?: string
+          id?: string
+          is_published?: boolean
+          location?: string | null
+          title?: string
           updated_at?: string
         }
         Relationships: []
