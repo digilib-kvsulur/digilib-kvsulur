@@ -1,289 +1,243 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, BookOpen, User, Plus, Send } from "lucide-react";
+import { Search, BookOpen, User, Plus, Bookmark, BookmarkCheck, Star, Clock, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BookRequestForm from "@/components/BookRequestForm";
-
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  category: string;
-  isbn: string;
-  available_copies: number;
-  total_copies: number;
-  description: string;
-}
+import BookDetailDialog from "@/components/catalog/BookDetailDialog";
 
 const Catalog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
-  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
-  const [books, setBooks] = useState<Book[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState("all");
+  const [selectedClass, setSelectedClass] = useState("all");
+  const [selectedLang, setSelectedLang] = useState("all");
+  const [selectedAuthor, setSelectedAuthor] = useState("all");
+  const [availability, setAvailability] = useState<"all" | "available" | "new">("all");
+  const [sortBy, setSortBy] = useState<"title" | "author" | "newest" | "rating">("title");
+
+  const [books, setBooks] = useState<any[]>([]);
+  const [ratings, setRatings] = useState<Record<string, { avg: number; count: number }>>({});
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const [myReservations, setMyReservations] = useState<Set<string>>(new Set());
+
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [detailBook, setDetailBook] = useState<any>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    checkAuth();
-    loadBooks();
-  }, []);
+  useEffect(() => { init(); }, []);
 
-  const checkAuth = async () => {
+  const init = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
+    await loadBooks();
+    if (user) {
+      const [{ data: wl }, { data: rs }] = await Promise.all([
+        supabase.from("book_wishlist").select("book_id").eq("user_id", user.id),
+        supabase.from("book_reservations").select("book_id").eq("user_id", user.id).eq("status", "pending"),
+      ]);
+      setWishlist(new Set((wl || []).map((x: any) => x.book_id)));
+      setMyReservations(new Set((rs || []).map((x: any) => x.book_id)));
+    }
   };
 
   const loadBooks = async () => {
     try {
-      const { data, error } = await supabase
-        .from('books')
-        .select('*')
-        .gt('total_copies', 0) // Only show books that are actually in the library
-        .order('title');
-
+      const { data, error } = await supabase.from("books").select("*").gt("total_copies", 0);
       if (error) throw error;
       setBooks(data || []);
-    } catch (error) {
-      console.error('Error loading books:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load books catalog",
-        variant: "destructive",
+      const { data: rev } = await supabase.from("book_reviews").select("book_id, rating").eq("is_hidden", false);
+      const agg: Record<string, { sum: number; count: number }> = {};
+      (rev || []).forEach((r: any) => {
+        agg[r.book_id] = agg[r.book_id] || { sum: 0, count: 0 };
+        agg[r.book_id].sum += r.rating; agg[r.book_id].count++;
       });
-    } finally {
-      setLoading(false);
-    }
+      const map: Record<string, { avg: number; count: number }> = {};
+      Object.entries(agg).forEach(([k, v]) => { map[k] = { avg: v.sum / v.count, count: v.count }; });
+      setRatings(map);
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to load catalog", variant: "destructive" });
+    } finally { setLoading(false); }
   };
 
-  const genres = ["all", ...Array.from(new Set(books.map(book => book.category).filter(Boolean)))];
+  const uniq = (arr: string[]) => Array.from(new Set(arr.filter(Boolean))).sort();
+  const genres = uniq(books.map(b => b.category));
+  const subjects = uniq(books.map(b => b.subject));
+  const classLevels = uniq(books.map(b => b.class_level));
+  const languages = uniq(books.map(b => b.language));
+  const authors = uniq(books.map(b => b.author));
 
-  const filteredBooks = books.filter(book => {
-    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (book.isbn && book.isbn.includes(searchTerm));
-    const matchesGenre = selectedGenre === "all" || book.category === selectedGenre;
-    const matchesAvailability = !showAvailableOnly || book.available_copies > 0;
-    
-    return matchesSearch && matchesGenre && matchesAvailability;
+  const oneMonthAgo = Date.now() - 30 * 86400_000;
+
+  let filteredBooks = books.filter(b => {
+    const s = searchTerm.toLowerCase();
+    if (searchTerm && !(b.title?.toLowerCase().includes(s) || b.author?.toLowerCase().includes(s) || (b.isbn || "").includes(searchTerm))) return false;
+    if (selectedGenre !== "all" && b.category !== selectedGenre) return false;
+    if (selectedSubject !== "all" && b.subject !== selectedSubject) return false;
+    if (selectedClass !== "all" && b.class_level !== selectedClass) return false;
+    if (selectedLang !== "all" && b.language !== selectedLang) return false;
+    if (selectedAuthor !== "all" && b.author !== selectedAuthor) return false;
+    if (availability === "available" && b.available_copies <= 0) return false;
+    if (availability === "new" && !(b.first_added_at && new Date(b.first_added_at).getTime() > oneMonthAgo)) return false;
+    return true;
   });
 
-  const handleBookRequest = async (bookId: string) => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to request books.",
-        variant: "destructive",
-      });
-      navigate("/login");
-      return;
-    }
+  filteredBooks = [...filteredBooks].sort((a, b) => {
+    if (sortBy === "newest") return new Date(b.first_added_at || b.created_at || 0).getTime() - new Date(a.first_added_at || a.created_at || 0).getTime();
+    if (sortBy === "author") return (a.author || "").localeCompare(b.author || "");
+    if (sortBy === "rating") return (ratings[b.id]?.avg || 0) - (ratings[a.id]?.avg || 0);
+    return (a.title || "").localeCompare(b.title || "");
+  });
 
-    try {
-      // Check if user already has a pending request for this book
-      const { data: existingRequest } = await supabase
-        .from('book_requests')
-        .select('id')
-        .eq('book_id', bookId)
-        .eq('user_id', user.id)
-        .eq('status', 'pending')
-        .maybeSingle();
+  const requireAuth = () => { if (!user) { toast({ title: "Sign in required", variant: "destructive" }); navigate("/login"); return false; } return true; };
 
-      if (existingRequest) {
-        toast({
-          title: "Request Already Exists",
-          description: "You already have a pending request for this book.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create new book request
-      const { error } = await supabase
-        .from('book_requests')
-        .insert({
-          book_id: bookId,
-          user_id: user.id
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Request Submitted",
-        description: "Your book request has been submitted successfully.",
-      });
-
-    } catch (error) {
-      console.error('Error requesting book:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit book request. Please try again.",
-        variant: "destructive",
-      });
+  const toggleWishlist = async (id: string) => {
+    if (!requireAuth()) return;
+    if (wishlist.has(id)) {
+      await supabase.from("book_wishlist").delete().eq("user_id", user.id).eq("book_id", id);
+      wishlist.delete(id); setWishlist(new Set(wishlist));
+      toast({ title: "Removed from wishlist" });
+    } else {
+      const { error } = await supabase.from("book_wishlist").insert({ user_id: user.id, book_id: id });
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      wishlist.add(id); setWishlist(new Set(wishlist));
+      toast({ title: "Saved to wishlist" });
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading catalog...</p>
-        </div>
-      </div>
-    );
-  }
+  const reserveBook = async (id: string) => {
+    if (!requireAuth()) return;
+    if (myReservations.has(id)) { toast({ title: "Already on waitlist" }); return; }
+    const { error } = await supabase.from("book_reservations").insert({ user_id: user.id, book_id: id });
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    myReservations.add(id); setMyReservations(new Set(myReservations));
+    toast({ title: "Added to waitlist", description: "We'll notify you when a copy is available." });
+  };
+
+  const requestBook = async (bookId: string) => {
+    if (!requireAuth()) return;
+    const { data: existing } = await supabase.from("book_requests").select("id").eq("book_id", bookId).eq("user_id", user.id).eq("status", "pending").maybeSingle();
+    if (existing) { toast({ title: "Already requested", variant: "destructive" }); return; }
+    const { error } = await supabase.from("book_requests").insert({ book_id: bookId, user_id: user.id });
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Request submitted" });
+  };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-16 w-16 border-b-2 border-primary rounded-full" /></div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">Digital Library</h1>
-                <p className="text-sm text-gray-600">Book Catalog</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" className="flex items-center gap-2" onClick={() => setShowRequestDialog(true)}>
-                <Plus className="h-4 w-4" />
-                Request New Book
-              </Button>
-              <BookRequestForm open={showRequestDialog} onOpenChange={setShowRequestDialog} onSuccess={() => setShowRequestDialog(false)} />
-              
-              <Button onClick={() => navigate('/')} variant="outline">
-                Home
-              </Button>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center"><BookOpen className="h-6 w-6 text-white" /></div>
+            <div><h1 className="text-lg font-bold text-gray-900">Digital Library</h1><p className="text-sm text-gray-600">Book Catalog</p></div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => setShowRequestDialog(true)}><Plus className="h-4 w-4 mr-2" />Request New Book</Button>
+            <BookRequestForm open={showRequestDialog} onOpenChange={setShowRequestDialog} onSuccess={() => setShowRequestDialog(false)} />
+            <Button onClick={() => navigate("/")} variant="outline">Home</Button>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Filters */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search books, authors, or ISBN..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <div className="flex gap-4 items-center">
-              <Select value={selectedGenre} onValueChange={setSelectedGenre}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select genre" />
-                </SelectTrigger>
-                <SelectContent>
-                  {genres.map(genre => (
-                    <SelectItem key={genre} value={genre}>
-                      {genre === "all" ? "All Genres" : genre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Button
-                variant={showAvailableOnly ? "default" : "outline"}
-                onClick={() => setShowAvailableOnly(!showAvailableOnly)}
-                className="whitespace-nowrap"
-              >
-                Available Only
-              </Button>
-            </div>
+        <div className="mb-6 space-y-3">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input placeholder="Search title, author or ISBN..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Select value={selectedGenre} onValueChange={setSelectedGenre}><SelectTrigger className="w-36"><SelectValue placeholder="Genre" /></SelectTrigger><SelectContent><SelectItem value="all">All genres</SelectItem>{genres.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
+            <Select value={selectedSubject} onValueChange={setSelectedSubject}><SelectTrigger className="w-36"><SelectValue placeholder="Subject" /></SelectTrigger><SelectContent><SelectItem value="all">All subjects</SelectItem>{subjects.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
+            <Select value={selectedClass} onValueChange={setSelectedClass}><SelectTrigger className="w-32"><SelectValue placeholder="Class" /></SelectTrigger><SelectContent><SelectItem value="all">All classes</SelectItem>{classLevels.map(g => <SelectItem key={g} value={g}>Class {g}</SelectItem>)}</SelectContent></Select>
+            <Select value={selectedLang} onValueChange={setSelectedLang}><SelectTrigger className="w-32"><SelectValue placeholder="Language" /></SelectTrigger><SelectContent><SelectItem value="all">All languages</SelectItem>{languages.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
+            <Select value={selectedAuthor} onValueChange={setSelectedAuthor}><SelectTrigger className="w-40"><SelectValue placeholder="Author" /></SelectTrigger><SelectContent><SelectItem value="all">All authors</SelectItem>{authors.slice(0, 100).map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
+            <Select value={availability} onValueChange={(v: any) => setAvailability(v)}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All books</SelectItem><SelectItem value="available">Available now</SelectItem><SelectItem value="new">New arrivals</SelectItem></SelectContent></Select>
+            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}><SelectTrigger className="w-40"><SelectValue placeholder="Sort" /></SelectTrigger><SelectContent><SelectItem value="title">Sort: Title</SelectItem><SelectItem value="author">Sort: Author</SelectItem><SelectItem value="newest">Sort: Newest</SelectItem><SelectItem value="rating">Sort: Top-rated</SelectItem></SelectContent></Select>
           </div>
         </div>
 
-        {/* Results Count */}
-        <div className="mb-6">
-          <p className="text-gray-600">
-            Found {filteredBooks.length} book{filteredBooks.length !== 1 ? 's' : ''}
-          </p>
-        </div>
+        <p className="text-gray-600 mb-4">{filteredBooks.length} book{filteredBooks.length !== 1 ? "s" : ""}</p>
 
-        {/* Books Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredBooks.map((book) => (
-            <Card key={book.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg mb-2">{book.title}</CardTitle>
-                    <CardDescription className="flex items-center gap-1 mb-2">
-                      <User className="h-4 w-4" />
-                      by {book.author}
-                    </CardDescription>
+          {filteredBooks.map(book => {
+            const r = ratings[book.id];
+            const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
+            return (
+              <Card key={book.id} className="hover:shadow-lg transition-shadow flex flex-col">
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg mb-2 truncate">{book.title}</CardTitle>
+                      <CardDescription className="flex items-center gap-1 mb-1"><User className="h-4 w-4" />by {book.author}</CardDescription>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant={book.available_copies > 0 ? "default" : "secondary"}>{book.available_copies > 0 ? `${book.available_copies} avail` : "Not avail"}</Badge>
+                      {isNew && <Badge className="bg-primary/10 text-primary border-primary/20">New</Badge>}
+                    </div>
                   </div>
-                  <Badge variant={book.available_copies > 0 ? "default" : "secondary"}>
-                    {book.available_copies > 0 ? `${book.available_copies} Available` : "Not Available"}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Category:</span>
-                    <Badge variant="outline">{book.category || 'Uncategorized'}</Badge>
-                  </div>
-                  
-                  {book.isbn && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">ISBN:</span>
-                      <span className="font-mono text-xs">{book.isbn}</span>
+                  {r && (
+                    <div className="flex items-center gap-1 mt-2 text-xs">
+                      <Star className="h-3 w-3 fill-warning text-warning" />
+                      <span className="font-medium">{r.avg.toFixed(1)}</span>
+                      <span className="text-muted-foreground">({r.count})</span>
                     </div>
                   )}
-                  
-                  {book.description && (
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {book.description}
-                    </p>
-                  )}
-                  
-                  <Button 
-                    className="w-full" 
-                    disabled={book.available_copies <= 0}
-                    onClick={() => handleBookRequest(book.id)}
-                  >
-                    {book.available_copies > 0 ? "Request Book" : "Currently Not Available"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col">
+                  <div className="space-y-2 text-sm flex-1">
+                    <div className="flex flex-wrap gap-1">
+                      {book.category && <Badge variant="outline" className="text-[10px]">{book.category}</Badge>}
+                      {book.subject && <Badge variant="outline" className="text-[10px]">{book.subject}</Badge>}
+                      {book.class_level && <Badge variant="outline" className="text-[10px]">Class {book.class_level}</Badge>}
+                    </div>
+                    {book.description && <p className="text-sm text-gray-600 line-clamp-2">{book.description}</p>}
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex gap-2">
+                      <Button className="flex-1" disabled={book.available_copies <= 0} onClick={() => requestBook(book.id)}>
+                        {book.available_copies > 0 ? "Request" : "Unavailable"}
+                      </Button>
+                      {book.available_copies <= 0 && (
+                        <Button variant="outline" onClick={() => reserveBook(book.id)}>
+                          <Clock className="h-4 w-4 mr-1" />{myReservations.has(book.id) ? "Waitlisted" : "Waitlist"}
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => toggleWishlist(book.id)}>
+                        {wishlist.has(book.id) ? <><BookmarkCheck className="h-4 w-4 mr-1" />Saved</> : <><Bookmark className="h-4 w-4 mr-1" />Save</>}
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setDetailBook(book)}>
+                        <MessageSquare className="h-4 w-4 mr-1" />Reviews
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {filteredBooks.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No books found</h3>
-            <p className="text-gray-600 mb-4">Try adjusting your search terms or filters.</p>
-            <Button className="flex items-center gap-2" onClick={() => setShowRequestDialog(true)}>
-              <Plus className="h-4 w-4" />
-              Request a New Book
-            </Button>
-            <BookRequestForm open={showRequestDialog} onOpenChange={setShowRequestDialog} onSuccess={() => setShowRequestDialog(false)} />
+            <p className="text-gray-600 mb-4">Try adjusting your filters.</p>
           </div>
         )}
       </main>
+
+      <BookDetailDialog book={detailBook} userId={user?.id || null} open={!!detailBook} onOpenChange={o => !o && setDetailBook(null)} />
     </div>
   );
 };
