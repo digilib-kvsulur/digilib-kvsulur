@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, BookOpen, Search } from "lucide-react";
+import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BulkImportBooks from "./BulkImportBooks";
@@ -42,6 +42,10 @@ const BookManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
+  // Bulk selection
+  const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
+  const [bulkCategory, setBulkCategory] = useState("");
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [formData, setFormData] = useState<BookFormData>({
     title: '',
     author: '',
@@ -196,6 +200,44 @@ const BookManager = () => {
     setShowAddDialog(true);
   };
 
+  const toggleSelectBook = (id: string) => {
+    const next = new Set(selectedBookIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedBookIds(next);
+  };
+
+  const toggleSelectAll = (filtered: Book[]) => {
+    if (selectedBookIds.size === filtered.length && filtered.every(b => selectedBookIds.has(b.id))) {
+      setSelectedBookIds(new Set());
+    } else {
+      setSelectedBookIds(new Set(filtered.map(b => b.id)));
+    }
+  };
+
+  const handleBulkCategoryUpdate = async () => {
+    if (selectedBookIds.size === 0 || !bulkCategory.trim()) {
+      toast({ title: "Error", description: "Select books and enter a category name.", variant: "destructive" });
+      return;
+    }
+    setBulkUpdating(true);
+    try {
+      const ids = Array.from(selectedBookIds);
+      const { error } = await supabase
+        .from('books')
+        .update({ category: bulkCategory.trim() })
+        .in('id', ids);
+      if (error) throw error;
+      toast({ title: "Success", description: `Category updated for ${ids.length} book(s).` });
+      setSelectedBookIds(new Set());
+      setBulkCategory("");
+      loadBooks();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to update category.", variant: "destructive" });
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -259,16 +301,45 @@ const BookManager = () => {
         </CardContent>
       </Card>
 
+      {/* Bulk Action Bar */}
+      {selectedBookIds.size > 0 && (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="py-3 px-4 flex flex-wrap items-center gap-3">
+            <CheckSquare className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-semibold text-primary">{selectedBookIds.size} book(s) selected</span>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Input
+                className="h-8 max-w-[200px] text-sm"
+                placeholder="New category name…"
+                value={bulkCategory}
+                onChange={e => setBulkCategory(e.target.value)}
+              />
+              <Button size="sm" disabled={bulkUpdating} onClick={handleBulkCategoryUpdate}>
+                {bulkUpdating ? "Updating…" : "Update Category"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setSelectedBookIds(new Set())}>Clear</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="text-lg">All Books</CardTitle>
-          <CardDescription>Showing {filteredBooks.length} of {books.length}</CardDescription>
+          <CardDescription>Showing {filteredBooks.length} of {books.length} — check rows to use bulk actions</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    checked={filteredBooks.length > 0 && filteredBooks.every(b => selectedBookIds.has(b.id))}
+                    onChange={() => toggleSelectAll(filteredBooks)}
+                  />
+                </TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Author</TableHead>
                 <TableHead>Category</TableHead>
@@ -280,7 +351,10 @@ const BookManager = () => {
             </TableHeader>
             <TableBody>
               {filteredBooks.map((book) => (
-                <TableRow key={book.id}>
+                <TableRow key={book.id} className={selectedBookIds.has(book.id) ? "bg-primary/5" : ""}>
+                  <TableCell>
+                    <input type="checkbox" checked={selectedBookIds.has(book.id)} onChange={() => toggleSelectBook(book.id)} />
+                  </TableCell>
                   <TableCell className="font-medium">{book.title}</TableCell>
                   <TableCell>{book.author}</TableCell>
                   <TableCell>{book.category || 'N/A'}</TableCell>
@@ -303,7 +377,7 @@ const BookManager = () => {
               ))}
               {filteredBooks.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     {books.length === 0 ? "No books yet. Add your first book or bulk import!" : "No books match your filters."}
                   </TableCell>
                 </TableRow>

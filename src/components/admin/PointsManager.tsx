@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Award, Plus } from "lucide-react";
+import { Award, Plus, CheckSquare, Square } from "lucide-react";
 
 interface User {
   id: string;
@@ -24,6 +24,13 @@ const PointsManager = () => {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [pointsToAward, setPointsToAward] = useState("");
   const [reason, setReason] = useState("");
+  
+  // Selection state for bulk actions
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [bulkPoints, setBulkPoints] = useState("");
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkAwarding, setBulkAwarding] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,22 +49,15 @@ const PointsManager = () => {
 
       if (error) {
         console.error('Error loading users:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load students.",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Failed to load students.", variant: "destructive" });
         return;
       }
 
       setUsers(data || []);
+      setSelectedUserIds(new Set());
     } catch (error) {
       console.error('Error loading users:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -65,37 +65,24 @@ const PointsManager = () => {
 
   const handleAwardPoints = async () => {
     if (!selectedUserId) {
-      toast({
-        title: "Error",
-        description: "Please select a student.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please select a student.", variant: "destructive" });
       return;
     }
 
     const points = parseInt(pointsToAward);
     if (!points || points <= 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid number of points.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please enter a valid number of points.", variant: "destructive" });
       return;
     }
 
     if (!reason.trim()) {
-      toast({
-        title: "Error",
-        description: "Please provide a reason for awarding points.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please provide a reason for awarding points.", variant: "destructive" });
       return;
     }
 
     try {
       setAwarding(true);
 
-      // Get current student points
       const { data: currentUser, error: fetchError } = await supabase
         .from('profiles')
         .select('points')
@@ -104,7 +91,6 @@ const PointsManager = () => {
 
       if (fetchError) throw fetchError;
 
-      // Update student points
       const newPoints = (currentUser.points || 0) + points;
       const { error: updateError } = await supabase
         .from('profiles')
@@ -113,28 +99,61 @@ const PointsManager = () => {
 
       if (updateError) throw updateError;
 
-      toast({
-        title: "Success",
-        description: `Successfully awarded ${points} points!`,
-      });
-
-      // Reset form
-      setSelectedUserId("");
-      setPointsToAward("");
-      setReason("");
-      
-      // Reload users to show updated points
+      toast({ title: "Success", description: `Successfully awarded ${points} points!` });
+      setSelectedUserId(""); setPointsToAward(""); setReason("");
       loadUsers();
     } catch (error) {
       console.error('Error awarding points:', error);
-      toast({
-        title: "Error",
-        description: "Failed to award points.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to award points.", variant: "destructive" });
     } finally {
       setAwarding(false);
     }
+  };
+
+  const handleBulkAwardPoints = async () => {
+    if (selectedUserIds.size === 0) return;
+    const points = parseInt(bulkPoints);
+    if (!points || points <= 0) {
+      toast({ title: "Error", description: "Please enter valid bulk points.", variant: "destructive" });
+      return;
+    }
+    if (!bulkReason) {
+      toast({ title: "Error", description: "Please select a reason.", variant: "destructive" });
+      return;
+    }
+
+    setBulkAwarding(true);
+    try {
+      const promises = Array.from(selectedUserIds).map(async (uid) => {
+        const student = users.find(u => u.id === uid);
+        if (!student) return;
+        const newPoints = (student.points || 0) + points;
+        return supabase.from('profiles').update({ points: newPoints }).eq('id', uid);
+      });
+
+      await Promise.all(promises);
+      toast({ title: "Bulk Points Awarded", description: `Successfully awarded +${points} points to ${selectedUserIds.size} students.` });
+      setBulkPoints(""); setBulkReason("");
+      setSelectedUserIds(new Set());
+      loadUsers();
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Failed", description: "Failed to award bulk points.", variant: "destructive" });
+    } finally {
+      setBulkAwarding(false);
+    }
+  };
+
+  const toggleSelectUser = (id: string) => {
+    const next = new Set(selectedUserIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedUserIds(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUserIds.size === users.length) setSelectedUserIds(new Set());
+    else setSelectedUserIds(new Set(users.map(u => u.id)));
   };
 
   if (loading) {
@@ -147,11 +166,50 @@ const PointsManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Bulk Award Card if any selected */}
+      {selectedUserIds.size > 0 && (
+        <Card className="border-primary bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><CheckSquare className="h-5 w-5 text-primary" /> Bulk Action: Award Points ({selectedUserIds.size} Selected)</CardTitle>
+            <CardDescription>Award points to all checked students at once</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="bulk-points">Points to Award</Label>
+                <Input id="bulk-points" type="number" min={1} value={bulkPoints} onChange={e => setBulkPoints(e.target.value)} placeholder="e.g. 50" />
+              </div>
+              <div className="space-y-1">
+                <Label>Reason</Label>
+                <Select value={bulkReason} onValueChange={setBulkReason}>
+                  <SelectTrigger><SelectValue placeholder="Select reason" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="excellent_reading">Excellent Reading</SelectItem>
+                    <SelectItem value="quiz_performance">Quiz Performance</SelectItem>
+                    <SelectItem value="participation">Class Participation</SelectItem>
+                    <SelectItem value="improvement">Improvement</SelectItem>
+                    <SelectItem value="helping_others">Helping Others</SelectItem>
+                    <SelectItem value="extra_effort">Extra Effort</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSelectedUserIds(new Set())}>Clear Selection</Button>
+              <Button size="sm" disabled={bulkAwarding} onClick={handleBulkAwardPoints}>
+                {bulkAwarding ? "Awarding..." : `Award to ${selectedUserIds.size} Students`}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Award Points Form */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5" />
+            <Award className="h-5 w-5 text-primary" />
             Award Points to Student
           </CardTitle>
           <CardDescription>
@@ -226,7 +284,7 @@ const PointsManager = () => {
         <CardHeader>
           <CardTitle>Student Points Overview</CardTitle>
           <CardDescription>
-            Current points for all students
+            Current points for all students (Select students to use bulk actions)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -236,6 +294,13 @@ const PointsManager = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedUserIds.size === users.length && users.length > 0} 
+                      onChange={toggleSelectAll} 
+                    />
+                  </TableHead>
                   <TableHead>Student Name</TableHead>
                   <TableHead>Class</TableHead>
                   <TableHead>Current Points</TableHead>
@@ -246,6 +311,13 @@ const PointsManager = () => {
                   .sort((a, b) => (b.points || 0) - (a.points || 0))
                   .map((user) => (
                     <TableRow key={user.id}>
+                      <TableCell>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedUserIds.has(user.id)} 
+                          onChange={() => toggleSelectUser(user.id)} 
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         {user.first_name} {user.last_name}
                       </TableCell>

@@ -28,8 +28,12 @@ import EventsManager from "@/components/admin/EventsManager";
 import RenewalRequests from "@/components/admin/RenewalRequests";
 import ReviewsModeration from "@/components/admin/ReviewsModeration";
 import OverdueList from "@/components/admin/OverdueList";
+import CirculationDashboard from "@/components/admin/CirculationDashboard";
+import InventoryAuditManager from "@/components/admin/InventoryAuditManager";
+import ExportReports from "@/components/admin/ExportReports";
+import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "challenges" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "challenges" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports";
 
 const navSections = [
   {
@@ -37,6 +41,7 @@ const navSections = [
     items: [
       { id: "overview" as Tab, label: "Overview", icon: Home },
       { id: "analytics" as Tab, label: "Analytics", icon: BarChart3 },
+      { id: "reports" as Tab, label: "Export Reports", icon: FileSpreadsheet },
     ],
   },
   {
@@ -50,6 +55,8 @@ const navSections = [
     title: "Library",
     items: [
       { id: "books" as Tab, label: "Manage Books", icon: BookOpen },
+      { id: "circulation" as Tab, label: "Circulation", icon: LibraryIcon },
+      { id: "audit" as Tab, label: "Inventory Audit", icon: ClipboardList },
       { id: "book-requests" as Tab, label: "Book Requests", icon: BookUp },
       { id: "book-issues" as Tab, label: "Book Issues", icon: BookCheck },
       { id: "overdue" as Tab, label: "Overdue", icon: AlertTriangle },
@@ -279,8 +286,11 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {activeTab === "users" && <UserApproval />}
+           {activeTab === "users" && <UserApproval />}
           {activeTab === "books" && <BookManager />}
+          {activeTab === "circulation" && <CirculationDashboard />}
+          {activeTab === "audit" && <InventoryAuditManager />}
+          {activeTab === "reports" && <ExportReports />}
           {activeTab === "book-requests" && <BookIssueRequests />}
           {activeTab === "book-issues" && <BookIssueRegister />}
           {activeTab === "overdue" && <OverdueList />}

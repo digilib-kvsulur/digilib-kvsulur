@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       book_issues: {
         Row: {
+          accession_number: string | null
           book_id: string
           created_at: string
           due_date: string
@@ -27,6 +28,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          accession_number?: string | null
           book_id: string
           created_at?: string
           due_date: string
@@ -38,6 +40,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          accession_number?: string | null
           book_id?: string
           created_at?: string
           due_date?: string
@@ -366,6 +369,7 @@ export type Database = {
       }
       challenges: {
         Row: {
+          class_level: string | null
           created_at: string
           created_by: string | null
           deadline: string | null
@@ -378,6 +382,7 @@ export type Database = {
           type: string
         }
         Insert: {
+          class_level?: string | null
           created_at?: string
           created_by?: string | null
           deadline?: string | null
@@ -390,6 +395,7 @@ export type Database = {
           type?: string
         }
         Update: {
+          class_level?: string | null
           created_at?: string
           created_by?: string | null
           deadline?: string | null
@@ -830,6 +836,166 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      book_audit_logs: {
+        Row: {
+          book_id: string
+          accession_number: string | null
+          status: string
+          verified_by: string
+          notes: string | null
+          id: string
+          audited_at: string
+        }
+        Insert: {
+          book_id: string
+          accession_number?: string | null
+          status: string
+          verified_by: string
+          notes?: string | null
+          id?: string
+          audited_at?: string
+        }
+        Update: {
+          book_id?: string
+          accession_number?: string | null
+          status?: string
+          verified_by?: string
+          notes?: string | null
+          id?: string
+          audited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_audit_logs_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_audit_logs_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      class_book_recommendations: {
+        Row: {
+          class_level: string
+          created_at: string
+          book_id: string
+          teacher_id: string
+          notes: string | null
+          id: string
+        }
+        Insert: {
+          class_level: string
+          created_at?: string
+          book_id: string
+          teacher_id: string
+          notes?: string | null
+          id?: string
+        }
+        Update: {
+          class_level?: string
+          created_at?: string
+          book_id?: string
+          teacher_id?: string
+          notes?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_book_recommendations_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_book_recommendations_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      class_reading_lists: {
+        Row: {
+          class_level: string
+          created_at: string
+          created_by: string
+          description: string | null
+          books: Json
+          id: string
+          title: string
+        }
+        Insert: {
+          class_level: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          books?: Json
+          id?: string
+          title: string
+        }
+        Update: {
+          class_level?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          books?: Json
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_reading_lists_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      monthly_reading_goals: {
+        Row: {
+          id: string
+          user_id: string
+          month_year: string
+          target_books: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          month_year: string
+          target_books: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          month_year?: string
+          target_books?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_reading_goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       reading_history: {
         Row: {
