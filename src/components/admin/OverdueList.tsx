@@ -20,8 +20,10 @@ export default function OverdueList() {
   useEffect(() => { load(); }, []);
 
   const remind = async (r: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
     await supabase.from("notifications").insert({
-      user_id: r.user_id,
+      target_user_id: r.user_id,
+      sent_by: user!.id,
       title: "Overdue book",
       message: `Please return "${r.books?.title}" — it was due on ${r.due_date}.`,
       type: "warning",

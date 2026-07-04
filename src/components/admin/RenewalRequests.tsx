@@ -32,7 +32,8 @@ export default function RenewalRequests() {
       decided_by: user?.id, decided_at: new Date().toISOString(),
     }).eq("id", row.id);
     await supabase.from("notifications").insert({
-      user_id: row.user_id,
+      target_user_id: row.user_id,
+      sent_by: user!.id,
       title: approve ? "Renewal approved" : "Renewal rejected",
       message: `Your renewal request for "${row.book_issues?.books?.title || "book"}" was ${approve ? "approved" : "rejected"}.`,
       type: approve ? "success" : "info",
