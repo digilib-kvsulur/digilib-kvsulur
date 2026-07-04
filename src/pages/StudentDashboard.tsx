@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
-  StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays
+  StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
