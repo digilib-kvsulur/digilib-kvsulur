@@ -382,8 +382,14 @@ const StudentDashboard = () => {
                   )}
                 </CardContent>
               </Card>
+
+              {user?.id && <Recommendations userId={user.id} studentClass={user.student_class} />}
             </div>
           )}
+
+          {activeTab === "wishlist" && user?.id && <Wishlist userId={user.id} />}
+          {activeTab === "events" && user?.id && <EventsList userId={user.id} />}
+
 
           {/* Books Tab */}
           {activeTab === "books" && (
