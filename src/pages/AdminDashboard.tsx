@@ -283,6 +283,10 @@ const AdminDashboard = () => {
           {activeTab === "books" && <BookManager />}
           {activeTab === "book-requests" && <BookIssueRequests />}
           {activeTab === "book-issues" && <BookIssueRegister />}
+          {activeTab === "overdue" && <OverdueList />}
+          {activeTab === "renewals" && <RenewalRequests />}
+          {activeTab === "reviews" && <ReviewsModeration />}
+          {activeTab === "events" && <EventsManager />}
           {activeTab === "points" && <PointsManager />}
           {activeTab === "quizzes" && <QuizManager />}
           {activeTab === "challenges" && <ChallengeManager />}
