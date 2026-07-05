@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Calendar, BookOpen, Clock, Search, ArrowUpDown, Filter, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Calendar, BookOpen, Clock, Search, ArrowUpDown, Filter, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,6 +18,7 @@ interface BookIssue {
   due_date: string;
   return_date?: string;
   status: string;
+  accession_number?: string | null;
   books?: { title: string; author: string };
   user?: { first_name: string; last_name: string; admission_number: string };
 }
