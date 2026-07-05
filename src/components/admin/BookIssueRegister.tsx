@@ -18,6 +18,7 @@ interface BookIssue {
   due_date: string;
   return_date?: string;
   status: string;
+  accession_number?: string | null;
   books?: { title: string; author: string };
   user?: { first_name: string; last_name: string; admission_number: string };
 }
