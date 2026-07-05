@@ -36,12 +36,14 @@ import Recommendations from "@/components/dashboard/Recommendations";
 import BadgeCabinet from "@/components/rewards/BadgeCabinet";
 import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
 import ReadingStreakCalendar from "@/components/dashboard/ReadingStreakCalendar";
+import MyRequests from "@/components/dashboard/MyRequests";
 
-type Tab = "overview" | "books" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "profile";
+type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "profile";
 
 const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
   { id: "books", label: "My Books", icon: BookOpen },
+  { id: "requests", label: "My Requests", icon: BookPlus },
   { id: "wishlist", label: "Wishlist", icon: Bookmark },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "ncert", label: "NCERT Books", icon: GraduationCap },
@@ -401,6 +403,7 @@ const StudentDashboard = () => {
             </div>
           )}
 
+          {activeTab === "requests" && user?.id && <MyRequests userId={user.id} />}
           {activeTab === "wishlist" && user?.id && <Wishlist userId={user.id} />}
           {activeTab === "events" && user?.id && <EventsList userId={user.id} />}
 
