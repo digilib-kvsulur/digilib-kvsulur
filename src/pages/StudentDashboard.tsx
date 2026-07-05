@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
-  StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays
+  StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -33,8 +33,11 @@ import Community from "@/components/community/Community";
 import Wishlist from "@/components/dashboard/Wishlist";
 import EventsList from "@/components/dashboard/EventsList";
 import Recommendations from "@/components/dashboard/Recommendations";
+import BadgeCabinet from "@/components/rewards/BadgeCabinet";
+import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
+import ReadingStreakCalendar from "@/components/dashboard/ReadingStreakCalendar";
 
-type Tab = "overview" | "books" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "rankings" | "profile";
+type Tab = "overview" | "books" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "profile";
 
 const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -47,6 +50,7 @@ const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "community", label: "Community", icon: Users },
   { id: "quizzes", label: "Quizzes", icon: Brain },
   { id: "challenges", label: "Challenges", icon: Target },
+  { id: "badges", label: "Badge Cabinet", icon: Award },
   { id: "rankings", label: "Rankings", icon: Medal },
   { id: "profile", label: "Profile", icon: User },
 ];
@@ -343,6 +347,16 @@ const StudentDashboard = () => {
                 ))}
               </div>
 
+              {/* Goals and Calendar */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                  {user?.id && <MonthlyGoalsWidget userId={user.id} />}
+                </div>
+                <div className="md:col-span-2">
+                  {user?.id && <ReadingStreakCalendar userId={user.id} />}
+                </div>
+              </div>
+
               {/* Daily Tip + Quick Bookmarks */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DailyTip />
@@ -443,6 +457,9 @@ const StudentDashboard = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Badges Tab */}
+          {activeTab === "badges" && user?.id && <BadgeCabinet userId={user.id} />}
 
           {/* Rankings Tab */}
           {activeTab === "rankings" && <Rankings user={user} />}
