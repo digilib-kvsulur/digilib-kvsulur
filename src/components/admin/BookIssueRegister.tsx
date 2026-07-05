@@ -40,9 +40,6 @@ const BookIssueRegister = () => {
   const [libraryBookCode, setLibraryBookCode] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [accessionNumberInput, setAccessionNumberInput] = useState("");
-  const [quickReturnBarcode, setQuickReturnBarcode] = useState("");
-  const [isQuickReturning, setIsQuickReturning] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { loadData(); }, []);
@@ -95,83 +92,24 @@ const BookIssueRegister = () => {
           .insert({ title: manualBookTitle, author: manualBookAuthor, isbn: libraryBookCode, description: 'Manual entry - Physical library book', total_copies: 1, available_copies: 0 })
           .select().single();
         if (bookError) throw bookError;
-        const { error: issueError } = await supabase.from('book_issues').insert({ 
-          book_id: newBook.id, 
-          user_id: selectedUser, 
-          issue_date: issueDate, 
-          due_date: dueDate, 
-          status: 'issued',
-          accession_number: accessionNumberInput.trim() || null
-        });
+        const { error: issueError } = await supabase.from('book_issues').insert({ book_id: newBook.id, user_id: selectedUser, issue_date: issueDate, due_date: dueDate, status: 'issued' });
         if (issueError) throw issueError;
         toast({ title: "Success", description: "Manual book entry created and issued successfully" });
         setManualBookTitle(""); setManualBookAuthor(""); setLibraryBookCode("");
       } else {
-        const { error: issueError } = await supabase.from('book_issues').insert({ 
-          book_id: selectedBook, 
-          user_id: selectedUser, 
-          issue_date: issueDate, 
-          due_date: dueDate, 
-          status: 'issued',
-          accession_number: accessionNumberInput.trim() || null
-        });
+        const { error: issueError } = await supabase.from('book_issues').insert({ book_id: selectedBook, user_id: selectedUser, issue_date: issueDate, due_date: dueDate, status: 'issued' });
         if (issueError) throw issueError;
         const { error: updateError } = await supabase.from('books').update({ available_copies: books.find(b => b.id === selectedBook)?.available_copies - 1 }).eq('id', selectedBook);
         if (updateError) throw updateError;
         toast({ title: "Success", description: "Book issued successfully" });
         setSelectedBook("");
       }
-      setSelectedUser(""); setIssueDate(today); setDueDate(defaultDue); setAccessionNumberInput("");
+      setSelectedUser(""); setIssueDate(today); setDueDate(defaultDue);
       loadData();
     } catch (error) {
       console.error('Error issuing book:', error);
       toast({ title: "Error", description: "Failed to issue book", variant: "destructive" });
     } finally { setIsSubmitting(false); }
-  };
-
-  const handleQuickReturn = async () => {
-    if (!quickReturnBarcode.trim()) {
-      toast({ title: "Error", description: "Please enter or scan an accession number.", variant: "destructive" });
-      return;
-    }
-    setIsQuickReturning(true);
-    try {
-      const { data: issue, error: fetchError } = await supabase
-        .from('book_issues')
-        .select('*, books(*)')
-        .eq('accession_number', quickReturnBarcode.trim())
-        .eq('status', 'issued')
-        .maybeSingle();
-
-      if (fetchError || !issue) {
-        toast({ title: "Not Found", description: "No active checkout found with this accession number.", variant: "destructive" });
-        setIsQuickReturning(false);
-        return;
-      }
-
-      const { error: updateError } = await supabase
-        .from('book_issues')
-        .update({ status: 'returned', return_date: new Date().toISOString().split('T')[0] })
-        .eq('id', issue.id);
-
-      if (updateError) throw updateError;
-
-      if (issue.books) {
-        await supabase
-          .from('books')
-          .update({ available_copies: (issue.books.available_copies || 0) + 1 })
-          .eq('id', issue.book_id);
-      }
-
-      toast({ title: "Success", description: `Book "${issue.books?.title || "book"}" returned successfully!` });
-      setQuickReturnBarcode("");
-      loadData();
-    } catch (e: any) {
-      console.error(e);
-      toast({ title: "Return Failed", description: "An error occurred during quick return.", variant: "destructive" });
-    } finally {
-      setIsQuickReturning(false);
-    }
   };
 
   const handleReturnBook = async (issueId: string, bookId: string) => {
@@ -251,7 +189,7 @@ const BookIssueRegister = () => {
               <Label htmlFor="manual-entry" className="text-sm cursor-pointer">Manual book entry (for books not in database)</Label>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {isManualEntry ? (
                 <>
                   <div className="space-y-1.5">
@@ -286,11 +224,6 @@ const BookIssueRegister = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Accession / Barcode</Label>
-                <Input value={accessionNumberInput} onChange={(e) => setAccessionNumberInput(e.target.value)} placeholder="e.g. KV-ACC-1002" className="h-10 rounded-lg" />
-              </div>
-
-              <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Issue Date *</Label>
                 <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="h-10 rounded-lg" />
               </div>
@@ -306,32 +239,6 @@ const BookIssueRegister = () => {
                 </Button>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Barcode / Accession Quick Return */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <RefreshCw className="h-5 w-5 text-primary animate-spin-slow" /> Barcode / Accession Quick Return
-          </CardTitle>
-          <CardDescription>Scan barcode or enter accession number to check in a book instantly</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Input
-                placeholder="Scan barcode or enter accession number (e.g. KV-ACC-1002)..."
-                value={quickReturnBarcode}
-                onChange={(e) => setQuickReturnBarcode(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleQuickReturn(); }}
-                className="h-10 rounded-lg"
-              />
-            </div>
-            <Button onClick={handleQuickReturn} disabled={isQuickReturning} className="h-10 px-6 font-semibold bg-success hover:bg-success/90 border-0 text-white">
-              {isQuickReturning ? "Returning..." : "Return Book"}
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -379,7 +286,6 @@ const BookIssueRegister = () => {
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <span className="text-xs text-muted-foreground">{issue.user?.first_name} {issue.user?.last_name}</span>
                         {issue.user?.admission_number && <Badge variant="outline" className="text-[10px] h-5">{issue.user.admission_number}</Badge>}
-                        {issue.accession_number && <Badge variant="secondary" className="text-[9px] h-5 font-mono px-1.5 border border-primary/10">Acc: #{issue.accession_number}</Badge>}
                       </div>
                     </div>
                   </div>

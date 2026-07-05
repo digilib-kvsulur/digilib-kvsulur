@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, BookOpen, Clock, RefreshCw, AlertCircle } from "lucide-react";
+import { Calendar, BookOpen, Clock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,18 +19,6 @@ const CurrentBooks = ({ books }: CurrentBooksProps) => {
   const [renewOpen, setRenewOpen] = useState<string | null>(null);
   const [days, setDays] = useState(7);
   const [note, setNote] = useState("");
-  const [renewals, setRenewals] = useState<any[]>([]);
-
-  const fetchRenewals = async () => {
-    if (!books || books.length === 0) return;
-    const issueIds = books.map(b => b.id);
-    const { data } = await supabase.from("book_renewals").select("*").in("book_issue_id", issueIds);
-    setRenewals(data || []);
-  };
-
-  useEffect(() => {
-    fetchRenewals();
-  }, [books]);
 
   const submitRenewal = async (issue: any) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -41,7 +29,6 @@ const CurrentBooks = ({ books }: CurrentBooksProps) => {
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Renewal requested", description: "An admin will review shortly." });
     setRenewOpen(null); setNote(""); setDays(7);
-    fetchRenewals();
   };
 
   if (!books || books.length === 0) {
@@ -68,11 +55,6 @@ const CurrentBooks = ({ books }: CurrentBooksProps) => {
         const isOverdue = daysLeft < 0;
         const isUrgent = daysLeft >= 0 && daysLeft <= 3;
 
-        const pendingRenewal = renewals.find(
-          (r) => r.book_issue_id === issue.id && r.status === "pending"
-        );
-        const hasPending = !!pendingRenewal;
-
         return (
           <div key={issue.id}
             className={`p-4 rounded-xl border transition-all hover:shadow-md ${
@@ -87,14 +69,7 @@ const CurrentBooks = ({ books }: CurrentBooksProps) => {
                 <BookOpen className={`h-5 w-5 ${isOverdue ? 'text-destructive' : isUrgent ? 'text-warning' : 'text-primary'}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-1">
-                  <h4 className="font-semibold text-sm text-foreground truncate">{title}</h4>
-                  {issue.accession_number && (
-                    <Badge variant="secondary" className="text-[9px] font-mono px-1">
-                      #{issue.accession_number}
-                    </Badge>
-                  )}
-                </div>
+                <h4 className="font-semibold text-sm text-foreground truncate">{title}</h4>
                 <p className="text-xs text-muted-foreground truncate">by {author}</p>
                 {book.category && <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0">{book.category}</Badge>}
               </div>
@@ -112,24 +87,10 @@ const CurrentBooks = ({ books }: CurrentBooksProps) => {
               </Badge>
             </div>
 
-            {hasPending && (
-              <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-lg border border-amber-200/30">
-                <AlertCircle className="h-3.5 w-3.5" />
-                <span>Renewal pending (+{pendingRenewal.requested_days} days)</span>
-              </div>
-            )}
-
             <div className="mt-2 flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground/70">Issued: {issueDate ? new Date(issueDate).toLocaleDateString() : 'N/A'}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-primary hover:text-primary/80"
-                onClick={() => setRenewOpen(issue.id)}
-                disabled={isOverdue || hasPending}
-              >
-                <RefreshCw className="h-3 w-3 mr-1" />
-                {isOverdue ? "Cannot renew (overdue)" : hasPending ? "Renewal requested" : "Request renewal"}
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setRenewOpen(issue.id)}>
+                <RefreshCw className="h-3 w-3 mr-1" />Request renewal
               </Button>
             </div>
 
