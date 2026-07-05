@@ -179,14 +179,18 @@ const BookIssueRegister = () => {
     try {
       const { error: updateError } = await supabase.from('book_issues').update({ status: 'returned', return_date: new Date().toISOString().split('T')[0] }).eq('id', issueId);
       if (updateError) throw updateError;
-      const book = books.find(b => b.id === bookId);
-      if (book) {
-        await supabase.from('books').update({ available_copies: book.available_copies + 1 }).eq('id', bookId);
+      // Always fetch fresh available_copies from DB — local `books` state filters out zero-copy books.
+      const { data: freshBook } = await supabase.from('books').select('available_copies, total_copies').eq('id', bookId).maybeSingle();
+      if (freshBook) {
+        const next = Math.min((freshBook.available_copies || 0) + 1, freshBook.total_copies || (freshBook.available_copies || 0) + 1);
+        const { error: stockErr } = await supabase.from('books').update({ available_copies: next }).eq('id', bookId);
+        if (stockErr) throw stockErr;
       }
-      toast({ title: "Success", description: "Book returned successfully" });
+      toast({ title: "Success", description: "Book returned and stock updated." });
       loadData();
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to return book", variant: "destructive" });
+    } catch (error: any) {
+      console.error(error);
+      toast({ title: "Error", description: error.message || "Failed to return book", variant: "destructive" });
     }
   };
 
