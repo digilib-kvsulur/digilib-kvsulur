@@ -14,8 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      book_audit_logs: {
+        Row: {
+          accession_number: string | null
+          audited_at: string
+          book_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          status: string
+          verified_by: string | null
+        }
+        Insert: {
+          accession_number?: string | null
+          audited_at?: string
+          book_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          verified_by?: string | null
+        }
+        Update: {
+          accession_number?: string | null
+          audited_at?: string
+          book_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_audit_logs_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       book_issues: {
         Row: {
+          accession_number: string | null
           book_id: string
           created_at: string
           due_date: string
@@ -27,6 +69,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          accession_number?: string | null
           book_id: string
           created_at?: string
           due_date: string
@@ -38,6 +81,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          accession_number?: string | null
           book_id?: string
           created_at?: string
           due_date?: string
@@ -268,6 +312,7 @@ export type Database = {
       }
       books: {
         Row: {
+          accession_number: string | null
           author: string
           available_copies: number
           category: string | null
@@ -285,6 +330,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accession_number?: string | null
           author: string
           available_copies?: number
           category?: string | null
@@ -302,6 +348,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accession_number?: string | null
           author?: string
           available_copies?: number
           category?: string | null
@@ -366,6 +413,7 @@ export type Database = {
       }
       challenges: {
         Row: {
+          class_level: string | null
           created_at: string
           created_by: string | null
           deadline: string | null
@@ -378,6 +426,7 @@ export type Database = {
           type: string
         }
         Insert: {
+          class_level?: string | null
           created_at?: string
           created_by?: string | null
           deadline?: string | null
@@ -390,6 +439,7 @@ export type Database = {
           type?: string
         }
         Update: {
+          class_level?: string | null
           created_at?: string
           created_by?: string | null
           deadline?: string | null
@@ -400,6 +450,74 @@ export type Database = {
           target_value?: number
           title?: string
           type?: string
+        }
+        Relationships: []
+      }
+      class_book_recommendations: {
+        Row: {
+          book_id: string
+          class_level: string
+          created_at: string
+          id: string
+          notes: string | null
+          teacher_id: string | null
+        }
+        Insert: {
+          book_id: string
+          class_level: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          teacher_id?: string | null
+        }
+        Update: {
+          book_id?: string
+          class_level?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          teacher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_book_recommendations_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_reading_lists: {
+        Row: {
+          books: Json
+          class_level: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          books?: Json
+          class_level: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          books?: Json
+          class_level?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -538,6 +656,33 @@ export type Database = {
           last_login_date?: string | null
           longest_streak?: number
           total_login_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      monthly_reading_goals: {
+        Row: {
+          created_at: string
+          id: string
+          month_year: string
+          target_books: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month_year: string
+          target_books?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month_year?: string
+          target_books?: number
           updated_at?: string
           user_id?: string
         }
