@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { clearStoredAuthSession, isInvalidRefreshTokenError } from "@/lib/authCleanup";
 
 const Login = () => {
   const [identifier, setIdentifier] = useState("");
@@ -41,6 +42,7 @@ const Login = () => {
       }
       const { data, error } = await supabase.auth.signInWithPassword({ email: user.email, password });
       if (error) {
+        if (isInvalidRefreshTokenError(error)) clearStoredAuthSession();
         toast({ title: "Login Failed", description: "Invalid password. Please try again.", variant: "destructive" });
         setIsLoading(false);
         return;

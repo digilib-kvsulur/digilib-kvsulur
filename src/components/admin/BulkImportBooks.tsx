@@ -7,10 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
-const SAMPLE_CSV = `title,author,isbn,category,description,total_copies
-The Alchemist,Paulo Coelho,9780062315007,Fiction,A shepherd boy's journey,3
-Wings of Fire,A.P.J. Abdul Kalam,9788173711466,Biography,Autobiography,5
-Physics Class 11,NCERT,,Textbook,Class 11 Physics,10`;
+const SAMPLE_CSV = `title,author,isbn,accession_number,category,description,total_copies
+The Alchemist,Paulo Coelho,9780062315007,KV-ACC-1001,Fiction,A shepherd boy's journey,3
+Wings of Fire,A.P.J. Abdul Kalam,9788173711466,KV-ACC-1002,Biography,Autobiography,5
+Physics Class 11,NCERT,,KV-ACC-1003,Textbook,Class 11 Physics,10`;
 
 const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
   const [open, setOpen] = useState(false);
@@ -54,6 +54,7 @@ const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
         title: String(r.title).trim(),
         author: String(r.author).trim(),
         isbn: r.isbn?.trim() || null,
+        accession_number: (r.accession_number || r.accession_code || r.library_book_code || r.library_code)?.trim() || null,
         category: r.category?.trim() || null,
         description: r.description?.trim() || null,
         total_copies: copies,
@@ -77,7 +78,7 @@ const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
         <DialogHeader>
           <DialogTitle>Bulk Import Books</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to add multiple books. Required columns: <code>title</code>, <code>author</code>.
+            Upload a CSV file to add multiple books. Required columns: <code>title</code>, <code>author</code>. Optional copy code: <code>accession_number</code>.
           </DialogDescription>
         </DialogHeader>
 

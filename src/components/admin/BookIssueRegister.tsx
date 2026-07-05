@@ -157,11 +157,18 @@ const BookIssueRegister = () => {
 
       if (updateError) throw updateError;
 
-      if (issue.books) {
-        await supabase
+      const { data: freshBook } = await supabase
+        .from('books')
+        .select('available_copies, total_copies')
+        .eq('id', issue.book_id)
+        .maybeSingle();
+      if (freshBook) {
+        const next = Math.min((freshBook.available_copies || 0) + 1, freshBook.total_copies || (freshBook.available_copies || 0) + 1);
+        const { error: stockError } = await supabase
           .from('books')
-          .update({ available_copies: (issue.books.available_copies || 0) + 1 })
+          .update({ available_copies: next })
           .eq('id', issue.book_id);
+        if (stockError) throw stockError;
       }
 
       toast({ title: "Success", description: `Book "${issue.books?.title || "book"}" returned successfully!` });

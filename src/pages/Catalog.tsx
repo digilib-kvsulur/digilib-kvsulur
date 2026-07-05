@@ -19,10 +19,12 @@ const Catalog = () => {
   const [selectedLang, setSelectedLang] = useState("all");
   const [selectedAuthor, setSelectedAuthor] = useState("all");
   const [availability, setAvailability] = useState<"all" | "available" | "new">("all");
-  const [sortBy, setSortBy] = useState<"title" | "author" | "newest" | "rating">("title");
+  const [sortBy, setSortBy] = useState<"newest" | "most_borrowed" | "most_recommended" | "title_az">("newest");
 
   const [books, setBooks] = useState<any[]>([]);
   const [ratings, setRatings] = useState<Record<string, { avg: number; count: number }>>({});
+  const [borrowCounts, setBorrowCounts] = useState<Record<string, number>>({});
+  const [recommendCounts, setRecommendCounts] = useState<Record<string, number>>({});
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [myReservations, setMyReservations] = useState<Set<string>>(new Set());
 
@@ -63,6 +65,17 @@ const Catalog = () => {
       const map: Record<string, { avg: number; count: number }> = {};
       Object.entries(agg).forEach(([k, v]) => { map[k] = { avg: v.sum / v.count, count: v.count }; });
       setRatings(map);
+
+      const [{ data: issues }, { data: recs }] = await Promise.all([
+        supabase.from("book_issues").select("book_id"),
+        supabase.from("class_book_recommendations").select("book_id"),
+      ]);
+      const issueMap: Record<string, number> = {};
+      (issues || []).forEach((i: any) => { if (i.book_id) issueMap[i.book_id] = (issueMap[i.book_id] || 0) + 1; });
+      const recMap: Record<string, number> = {};
+      (recs || []).forEach((r: any) => { if (r.book_id) recMap[r.book_id] = (recMap[r.book_id] || 0) + 1; });
+      setBorrowCounts(issueMap);
+      setRecommendCounts(recMap);
     } catch (e) {
       toast({ title: "Error", description: "Failed to load catalog", variant: "destructive" });
     } finally { setLoading(false); }
@@ -92,8 +105,8 @@ const Catalog = () => {
 
   filteredBooks = [...filteredBooks].sort((a, b) => {
     if (sortBy === "newest") return new Date(b.first_added_at || b.created_at || 0).getTime() - new Date(a.first_added_at || a.created_at || 0).getTime();
-    if (sortBy === "author") return (a.author || "").localeCompare(b.author || "");
-    if (sortBy === "rating") return (ratings[b.id]?.avg || 0) - (ratings[a.id]?.avg || 0);
+    if (sortBy === "most_borrowed") return (borrowCounts[b.id] || 0) - (borrowCounts[a.id] || 0) || (a.title || "").localeCompare(b.title || "");
+    if (sortBy === "most_recommended") return (recommendCounts[b.id] || 0) - (recommendCounts[a.id] || 0) || (ratings[b.id]?.avg || 0) - (ratings[a.id]?.avg || 0) || (a.title || "").localeCompare(b.title || "");
     return (a.title || "").localeCompare(b.title || "");
   });
 
@@ -162,7 +175,7 @@ const Catalog = () => {
             <Select value={selectedLang} onValueChange={setSelectedLang}><SelectTrigger className="w-32"><SelectValue placeholder="Language" /></SelectTrigger><SelectContent><SelectItem value="all">All languages</SelectItem>{languages.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
             <Select value={selectedAuthor} onValueChange={setSelectedAuthor}><SelectTrigger className="w-40"><SelectValue placeholder="Author" /></SelectTrigger><SelectContent><SelectItem value="all">All authors</SelectItem>{authors.slice(0, 100).map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
             <Select value={availability} onValueChange={(v: any) => setAvailability(v)}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All books</SelectItem><SelectItem value="available">Available now</SelectItem><SelectItem value="new">New arrivals</SelectItem></SelectContent></Select>
-            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}><SelectTrigger className="w-40"><SelectValue placeholder="Sort" /></SelectTrigger><SelectContent><SelectItem value="title">Sort: Title</SelectItem><SelectItem value="author">Sort: Author</SelectItem><SelectItem value="newest">Sort: Newest</SelectItem><SelectItem value="rating">Sort: Top-rated</SelectItem></SelectContent></Select>
+            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}><SelectTrigger className="w-48"><SelectValue placeholder="Sort" /></SelectTrigger><SelectContent><SelectItem value="newest">Newest</SelectItem><SelectItem value="most_borrowed">Most borrowed</SelectItem><SelectItem value="most_recommended">Most recommended</SelectItem><SelectItem value="title_az">Title A-Z</SelectItem></SelectContent></Select>
           </div>
         </div>
 
@@ -192,6 +205,10 @@ const Catalog = () => {
                       <span className="text-muted-foreground">({r.count})</span>
                     </div>
                   )}
+                  <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+                    {borrowCounts[book.id] > 0 && <span>{borrowCounts[book.id]} borrowed</span>}
+                    {recommendCounts[book.id] > 0 && <span>{recommendCounts[book.id]} recommended</span>}
+                  </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col">
                   <div className="space-y-2 text-sm flex-1">
