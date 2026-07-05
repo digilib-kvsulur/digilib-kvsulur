@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Trophy, Users, Shield, Award, Medal, Crown } from "lucide-react";
 import Leaderboard from "@/components/rewards/Leaderboard";
 import SchoolLeaderboard from "@/components/rewards/SchoolLeaderboard";
