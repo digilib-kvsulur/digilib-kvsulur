@@ -120,7 +120,7 @@ const Index = () => {
             </div>
             <div className="flex items-center space-x-2 sm:space-x-3">
               {loading ? (
-                <div className="w-5 h-5 border-2 border-[#3b6fa0] border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
               ) : user && profile ? (
                 <>
                   <span className="text-sm text-foreground hidden sm:inline">Hi, {profile.first_name}</span>
