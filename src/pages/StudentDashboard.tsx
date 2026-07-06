@@ -34,8 +34,6 @@ import Wishlist from "@/components/dashboard/Wishlist";
 import EventsList from "@/components/dashboard/EventsList";
 import Recommendations from "@/components/dashboard/Recommendations";
 import BadgeCabinet from "@/components/rewards/BadgeCabinet";
-import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
-import ReadingStreakCalendar from "@/components/dashboard/ReadingStreakCalendar";
 import MyRequests from "@/components/dashboard/MyRequests";
 
 type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "profile";
