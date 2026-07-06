@@ -349,15 +349,6 @@ const StudentDashboard = () => {
                 ))}
               </div>
 
-              {/* Goals and Calendar */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-1">
-                  {user?.id && <MonthlyGoalsWidget userId={user.id} />}
-                </div>
-                <div className="md:col-span-2">
-                  {user?.id && <ReadingStreakCalendar userId={user.id} />}
-                </div>
-              </div>
 
               {/* Daily Tip + Quick Bookmarks */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
