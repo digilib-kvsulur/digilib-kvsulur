@@ -93,9 +93,9 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f9fc]">
+    <div className="min-h-screen bg-background">
       {/* Top utility strip */}
-      <div className="hidden md:block bg-[#0f1b3d] text-white text-xs">
+      <div className="hidden md:block bg-primary text-white text-xs">
         <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between">
           <div className="flex items-center gap-5 opacity-90">
             <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3" /> AFS Sulur, Coimbatore</span>
@@ -106,16 +106,16 @@ const Index = () => {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#e8edf3]">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-[#0f1b3d] rounded-lg flex items-center justify-center shadow-sm">
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-sm">
                 <BookOpen className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-base font-bold text-[#0f1b3d] leading-tight">PM SHRI KV AFS SULUR</h1>
-                <p className="text-[11px] text-[#3b6fa0] font-medium">Digital Library</p>
+                <h1 className="text-base font-bold text-primary leading-tight">PM SHRI KV AFS SULUR</h1>
+                <p className="text-[11px] text-accent font-medium">Digital Library</p>
               </div>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-3">
@@ -123,8 +123,8 @@ const Index = () => {
                 <div className="w-5 h-5 border-2 border-[#3b6fa0] border-t-transparent rounded-full animate-spin" />
               ) : user && profile ? (
                 <>
-                  <span className="text-sm text-[#1e3a5f] hidden sm:inline">Hi, {profile.first_name}</span>
-                  <Button onClick={navigateToDashboard} size="sm" className="bg-[#0f1b3d] hover:bg-[#1e3a5f] text-white">
+                  <span className="text-sm text-foreground hidden sm:inline">Hi, {profile.first_name}</span>
+                  <Button onClick={navigateToDashboard} size="sm" className="bg-primary hover:bg-primary/90 text-white">
                     <LayoutDashboard className="h-4 w-4 mr-1.5" /> Dashboard
                   </Button>
                   <Button onClick={handleLogout} variant="outline" size="sm">Logout</Button>
@@ -132,7 +132,7 @@ const Index = () => {
               ) : (
                 <>
                   <Button onClick={() => navigate("/login")} variant="ghost" size="sm">Login</Button>
-                  <Button onClick={() => navigate("/login")} size="sm" className="bg-[#0f1b3d] hover:bg-[#1e3a5f] text-white">
+                  <Button onClick={() => navigate("/login")} size="sm" className="bg-primary hover:bg-primary/90 text-white">
                     Get Started
                   </Button>
                 </>
@@ -148,42 +148,42 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Left – editorial copy */}
             <div className="lg:col-span-6">
-              <div className="inline-flex items-center gap-2 bg-[#e8edf3] text-[#0f1b3d] rounded-full px-3 py-1 text-xs font-semibold mb-5">
-                <Star className="h-3 w-3 fill-[#0f1b3d]" /> EST. KENDRIYA VIDYALAYA SANGATHAN
+              <div className="inline-flex items-center gap-2 bg-secondary text-primary rounded-full px-3 py-1 text-xs font-semibold mb-5">
+                <Star className="h-3 w-3 fill-primary" /> EST. KENDRIYA VIDYALAYA SANGATHAN
               </div>
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#0f1b3d] leading-[1.05] mb-5">
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-primary leading-[1.05] mb-5">
                 A library that grows
-                <span className="block text-[#3b6fa0]">with every reader.</span>
+                <span className="block text-accent">with every reader.</span>
               </h2>
-              <p className="text-base sm:text-lg text-[#1e3a5f]/80 mb-7 max-w-xl leading-relaxed">
-                The official digital library of <span className="font-semibold text-[#0f1b3d]">PM SHRI Kendriya Vidyalaya, AFS Sulur</span> — borrow books,
+              <p className="text-base sm:text-lg text-muted-foreground mb-7 max-w-xl leading-relaxed">
+                The official digital library of <span className="font-semibold text-primary">PM SHRI Kendriya Vidyalaya, AFS Sulur</span> — borrow books,
                 track progress, take quizzes, and earn rewards in one place.
               </p>
               {!user ? (
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button onClick={() => navigate("/login")} size="lg" className="bg-[#0f1b3d] hover:bg-[#1e3a5f] text-white text-base px-7 h-12">
+                  <Button onClick={() => navigate("/login")} size="lg" className="bg-primary hover:bg-primary/90 text-white text-base px-7 h-12">
                     Open Your Account <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <Button onClick={() => navigate("/catalog")} variant="outline" size="lg" className="text-base px-7 h-12 border-[#0f1b3d] text-[#0f1b3d] hover:bg-[#0f1b3d] hover:text-white">
+                  <Button onClick={() => navigate("/catalog")} variant="outline" size="lg" className="text-base px-7 h-12 border-primary text-primary hover:bg-primary hover:text-white">
                     Browse Catalog
                   </Button>
                 </div>
               ) : (
-                <Button onClick={navigateToDashboard} size="lg" className="bg-[#0f1b3d] hover:bg-[#1e3a5f] text-white text-base px-7 h-12">
+                <Button onClick={navigateToDashboard} size="lg" className="bg-primary hover:bg-primary/90 text-white text-base px-7 h-12">
                   <LayoutDashboard className="h-4 w-4 mr-2" /> Go to Dashboard
                 </Button>
               )}
 
               {/* Inline stats strip */}
-              <div className="grid grid-cols-3 gap-4 mt-10 pt-8 border-t border-[#e8edf3]">
+              <div className="grid grid-cols-3 gap-4 mt-10 pt-8 border-t border-border">
                 {[
                   { v: statistics.totalBooks, l: "Books" },
                   { v: statistics.activeUsers, l: "Readers" },
                   { v: statistics.booksIssued, l: "Issued" },
                 ].map((s, i) => (
                   <div key={i}>
-                    <p className="text-3xl font-extrabold text-[#0f1b3d]">{s.v.toLocaleString()}+</p>
-                    <p className="text-xs text-[#3b6fa0] font-semibold uppercase tracking-wider mt-1">{s.l}</p>
+                    <p className="text-3xl font-extrabold text-primary">{s.v.toLocaleString()}+</p>
+                    <p className="text-xs text-accent font-semibold uppercase tracking-wider mt-1">{s.l}</p>
                   </div>
                 ))}
               </div>
@@ -191,22 +191,22 @@ const Index = () => {
 
             {/* Right – featured visual */}
             <div className="lg:col-span-6 relative">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-[#0f1b3d]/10">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-primary/10">
                 <img src={heroImg} alt="KV Sulur library reading hall" width={1280} height={896}
                   className="w-full h-[420px] lg:h-[520px] object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0f1b3d]/70 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-transparent to-transparent" />
                 <div className="absolute bottom-5 left-5 right-5 text-white">
                   <p className="text-[11px] uppercase tracking-widest opacity-90">Featured Story</p>
                   <p className="text-lg font-bold mt-1">Inside our newly renovated reading hall</p>
                 </div>
               </div>
-              <div className="hidden md:flex absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl border border-[#e8edf3] p-3 items-center gap-3">
-                <div className="w-10 h-10 bg-[#0f1b3d] rounded-lg flex items-center justify-center">
+              <div className="hidden md:flex absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl border border-border p-3 items-center gap-3">
+                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
                   <Trophy className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-xs text-[#3b6fa0] font-semibold">RANK #1</p>
-                  <p className="text-sm font-bold text-[#0f1b3d]">Region Library</p>
+                  <p className="text-xs text-accent font-semibold">RANK #1</p>
+                  <p className="text-sm font-bold text-primary">Region Library</p>
                 </div>
               </div>
             </div>
@@ -215,7 +215,7 @@ const Index = () => {
       </section>
 
       {/* DARK STATS BAND */}
-      <section className="bg-[#0f1b3d] text-white">
+      <section className="bg-primary text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-2 md:grid-cols-4 gap-6">
           {[
             { icon: BookOpen, v: statistics.totalBooks, l: "Books in catalog" },
@@ -241,11 +241,11 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-8">
             <div>
-              <p className="text-xs font-bold text-[#3b6fa0] uppercase tracking-widest">This Month</p>
-              <h3 className="text-3xl sm:text-4xl font-bold text-[#0f1b3d] mt-1">Featured Stories</h3>
+              <p className="text-xs font-bold text-accent uppercase tracking-widest">This Month</p>
+              <h3 className="text-3xl sm:text-4xl font-bold text-primary mt-1">Featured Stories</h3>
             </div>
             <button onClick={() => user ? navigateToDashboard() : navigate("/login")}
-              className="hidden sm:flex items-center gap-1 text-sm font-semibold text-[#0f1b3d] hover:text-[#3b6fa0]">
+              className="hidden sm:flex items-center gap-1 text-sm font-semibold text-primary hover:text-accent">
               View all <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -256,9 +256,9 @@ const Index = () => {
               <div className="relative rounded-2xl overflow-hidden h-[400px]">
                 <img src={event1Img} alt="Reading week event" loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0f1b3d] via-[#0f1b3d]/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/30 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-7 text-white">
-                  <span className="inline-block bg-white text-[#0f1b3d] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full mb-3">Cover Story</span>
+                  <span className="inline-block bg-white text-primary text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full mb-3">Cover Story</span>
                   <h4 className="text-2xl sm:text-3xl font-bold mb-2 leading-tight">National Reading Week 2026</h4>
                   <p className="text-sm opacity-90 max-w-lg">A week of author talks, book exhibitions and reading marathons across all classes.</p>
                 </div>
@@ -277,9 +277,9 @@ const Index = () => {
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-bold text-[#3b6fa0] uppercase tracking-widest">{s.tag}</span>
-                    <h4 className="text-lg font-bold text-[#0f1b3d] mt-1 leading-snug group-hover:text-[#3b6fa0] transition-colors">{s.title}</h4>
-                    <p className="text-sm text-[#1e3a5f]/70 mt-1">{s.desc}</p>
+                    <span className="text-[10px] font-bold text-accent uppercase tracking-widest">{s.tag}</span>
+                    <h4 className="text-lg font-bold text-primary mt-1 leading-snug group-hover:text-accent transition-colors">{s.title}</h4>
+                    <p className="text-sm text-muted-foreground mt-1">{s.desc}</p>
                   </div>
                 </article>
               ))}
@@ -289,20 +289,20 @@ const Index = () => {
       </section>
 
       {/* WHY STUDENTS LOVE IT */}
-      <section className="py-20 bg-white border-y border-[#e8edf3]">
+      <section className="py-20 bg-white border-y border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-xs font-bold text-[#3b6fa0] uppercase tracking-widest">Why students love it</p>
-            <h3 className="text-3xl sm:text-4xl font-bold text-[#0f1b3d] mt-1">Built for curious minds</h3>
+            <p className="text-xs font-bold text-accent uppercase tracking-widest">Why students love it</p>
+            <h3 className="text-3xl sm:text-4xl font-bold text-primary mt-1">Built for curious minds</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-[#e8edf3] rounded-2xl overflow-hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-secondary rounded-2xl overflow-hidden">
             {features.map((f, i) => (
-              <div key={i} className="bg-white p-7 group hover:bg-[#f7f9fc] transition-colors">
-                <div className="w-11 h-11 bg-[#0f1b3d] rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <div key={i} className="bg-white p-7 group hover:bg-background transition-colors">
+                <div className="w-11 h-11 bg-primary rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <f.icon className="h-5 w-5 text-white" />
                 </div>
-                <h4 className="text-lg font-bold text-[#0f1b3d] mb-1.5">{f.title}</h4>
-                <p className="text-sm text-[#1e3a5f]/70 leading-relaxed">{f.desc}</p>
+                <h4 className="text-lg font-bold text-primary mb-1.5">{f.title}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -313,13 +313,13 @@ const Index = () => {
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-xs font-bold text-[#3b6fa0] uppercase tracking-widest">Our Library</p>
-            <h3 className="text-3xl sm:text-4xl font-bold text-[#0f1b3d] mt-1">A glimpse inside</h3>
+            <p className="text-xs font-bold text-accent uppercase tracking-widest">Our Library</p>
+            <h3 className="text-3xl sm:text-4xl font-bold text-primary mt-1">A glimpse inside</h3>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 grid-rows-2 gap-3 h-[480px]">
             <div className="col-span-2 row-span-2 relative rounded-2xl overflow-hidden group">
               <img src={heroImg} alt="Reading hall" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0f1b3d]/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent" />
               <div className="absolute bottom-4 left-5 text-white">
                 <p className="text-xs uppercase tracking-widest opacity-80">Reading Hall</p>
                 <p className="text-xl font-bold">Where focus meets curiosity</p>
@@ -327,22 +327,22 @@ const Index = () => {
             </div>
             <div className="relative rounded-2xl overflow-hidden group">
               <img src={booksImg} alt="Book stack" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-[#0f1b3d]/30" />
+              <div className="absolute inset-0 bg-primary/30" />
               <p className="absolute bottom-3 left-3 text-white text-sm font-bold">Curated Picks</p>
             </div>
             <div className="relative rounded-2xl overflow-hidden group">
               <img src={libraryBooksImg} alt="Shelf" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-[#0f1b3d]/30" />
+              <div className="absolute inset-0 bg-primary/30" />
               <p className="absolute bottom-3 left-3 text-white text-sm font-bold">Collection</p>
             </div>
             <div className="relative rounded-2xl overflow-hidden group">
               <img src={event2Img} alt="Quiz event" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-[#0f1b3d]/30" />
+              <div className="absolute inset-0 bg-primary/30" />
               <p className="absolute bottom-3 left-3 text-white text-sm font-bold">Quiz Day</p>
             </div>
             <div className="relative rounded-2xl overflow-hidden group">
               <img src={libraryEventImg} alt="Library event" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-[#0f1b3d]/30" />
+              <div className="absolute inset-0 bg-primary/30" />
               <p className="absolute bottom-3 left-3 text-white text-sm font-bold">Events</p>
             </div>
           </div>
@@ -350,25 +350,25 @@ const Index = () => {
       </section>
 
       {/* EVENTS */}
-      <section className="py-20 bg-white border-t border-[#e8edf3]">
+      <section className="py-20 bg-white border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-xs font-bold text-[#3b6fa0] uppercase tracking-widest">Upcoming</p>
-            <h3 className="text-3xl sm:text-4xl font-bold text-[#0f1b3d] mt-1">Events & Activities</h3>
+            <p className="text-xs font-bold text-accent uppercase tracking-widest">Upcoming</p>
+            <h3 className="text-3xl sm:text-4xl font-bold text-primary mt-1">Events & Activities</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {events.map((e, i) => (
-              <article key={i} className="group rounded-2xl overflow-hidden border border-[#e8edf3] bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
+              <article key={i} className="group rounded-2xl overflow-hidden border border-border bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
                 <div className="relative h-44 overflow-hidden">
                   <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <span className="absolute top-3 left-3 bg-white text-[#0f1b3d] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full">{e.badge}</span>
+                  <span className="absolute top-3 left-3 bg-white text-primary text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full">{e.badge}</span>
                 </div>
                 <div className="p-5">
-                  <div className="flex items-center gap-1.5 text-xs text-[#3b6fa0] font-semibold mb-2">
+                  <div className="flex items-center gap-1.5 text-xs text-accent font-semibold mb-2">
                     <Clock className="h-3 w-3" /> {e.date}
                   </div>
-                  <h4 className="text-lg font-bold text-[#0f1b3d] mb-1.5 group-hover:text-[#3b6fa0] transition-colors">{e.title}</h4>
-                  <p className="text-sm text-[#1e3a5f]/70">{e.desc}</p>
+                  <h4 className="text-lg font-bold text-primary mb-1.5 group-hover:text-accent transition-colors">{e.title}</h4>
+                  <p className="text-sm text-muted-foreground">{e.desc}</p>
                 </div>
               </article>
             ))}
@@ -378,12 +378,12 @@ const Index = () => {
 
       {/* CTA */}
       {!user && (
-        <section className="py-20 bg-[#0f1b3d] relative overflow-hidden">
+        <section className="py-20 bg-primary relative overflow-hidden">
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, white 1px, transparent 1px), radial-gradient(circle at 80% 70%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
           <div className="relative max-w-3xl mx-auto px-4 text-center">
             <h3 className="text-3xl sm:text-4xl font-bold text-white mb-3">Ready to start reading?</h3>
             <p className="text-white/70 mb-8">Join your classmates and earn your first 10 points today.</p>
-            <Button onClick={() => navigate("/login")} size="lg" className="bg-white text-[#0f1b3d] hover:bg-[#e8edf3] text-base px-8 h-12 font-bold">
+            <Button onClick={() => navigate("/login")} size="lg" className="bg-white text-primary hover:bg-secondary text-base px-8 h-12 font-bold">
               Create Your Account <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -391,7 +391,7 @@ const Index = () => {
       )}
 
       {/* FOOTER */}
-      <footer className="bg-[#0a142e] text-white/80 py-12">
+      <footer className="bg-primary text-white/80 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
