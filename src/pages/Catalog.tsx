@@ -5,14 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, BookOpen, User, Plus, Bookmark, BookmarkCheck, Star, Clock, MessageSquare } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BookRequestForm from "@/components/BookRequestForm";
 import BookDetailDialog from "@/components/catalog/BookDetailDialog";
 
 const Catalog = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q !== null) setSearchTerm(q);
+  }, [searchParams]);
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedClass, setSelectedClass] = useState("all");
