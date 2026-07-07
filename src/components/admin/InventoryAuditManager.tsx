@@ -38,19 +38,24 @@ export default function InventoryAuditManager() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // Load all books for catalog lookup
       const { data: booksData } = await supabase.from("books").select("id, title, author").order("title");
       setBooks(booksData || []);
 
-      // Load recent audit logs
       const { data: auditLogs, error } = await supabase
         .from("book_audit_logs")
-        .select("*, books(title, author), profiles:verified_by(first_name, last_name)")
+        .select("*, books(title, author)")
         .order("audited_at", { ascending: false })
         .limit(30);
-
       if (error) throw error;
-      setLogs((auditLogs as any[]) || []);
+
+      const verifierIds = Array.from(new Set((auditLogs || []).map((r: any) => r.verified_by).filter(Boolean)));
+      let profileMap: Record<string, any> = {};
+      if (verifierIds.length) {
+        const { data: profs } = await supabase.from("profiles")
+          .select("id, first_name, last_name").in("id", verifierIds);
+        (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
+      }
+      setLogs(((auditLogs as any[]) || []).map((r: any) => ({ ...r, profiles: profileMap[r.verified_by] })));
     } catch (e: any) {
       console.error(e);
       toast({ title: "Error loading audit logs", description: e.message, variant: "destructive" });

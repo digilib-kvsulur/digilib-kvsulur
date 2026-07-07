@@ -13,11 +13,19 @@ export default function ReviewsModeration() {
 
   const load = async () => {
     let q = supabase.from("book_reviews")
-      .select("*, books(title), profiles:user_id(first_name,last_name)")
+      .select("*, books(title)")
       .order("created_at", { ascending: false }).limit(200);
     if (!showHidden) q = q.eq("is_hidden", false);
-    const { data } = await q;
-    setRows(data || []);
+    const { data, error } = await q;
+    if (error) { console.error(error); return; }
+    const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id).filter(Boolean)));
+    let profileMap: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: profs } = await supabase.from("profiles")
+        .select("id, first_name, last_name").in("id", userIds);
+      (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
+    }
+    setRows((data || []).map((r: any) => ({ ...r, profiles: profileMap[r.user_id] })));
   };
   useEffect(() => { load(); }, [showHidden]);
 

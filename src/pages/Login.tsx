@@ -186,15 +186,15 @@ const Login = () => {
             <form onSubmit={handleLogin} className="space-y-5">
               <Alert className="border-primary/20 bg-primary/5 rounded-xl">
                 <AlertCircle className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-xs text-muted-foreground">Sign in with your email, username, or phone number</AlertDescription>
+                <AlertDescription className="text-xs text-muted-foreground">Students: sign in with your 5-digit admission number. You can also use email, username, or phone.</AlertDescription>
               </Alert>
 
               <div className="space-y-2">
-                <Label htmlFor="identifier" className="text-sm font-medium">Email / Username / Phone</Label>
+                <Label htmlFor="identifier" className="text-sm font-medium">Admission No. / Email / Username / Phone</Label>
                 <Input
                   id="identifier"
                   type="text"
-                  placeholder="Enter your email, username, or phone"
+                  placeholder="e.g. 12345 or your email"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   className="h-12 rounded-xl"

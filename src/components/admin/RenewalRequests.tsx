@@ -10,10 +10,18 @@ export default function RenewalRequests() {
   const [rows, setRows] = useState<any[]>([]);
 
   const load = async () => {
-    const { data } = await supabase.from("book_renewals")
-      .select("*, book_issues(id, due_date, books(title), user_id), profiles:user_id(first_name,last_name,student_class)")
+    const { data, error } = await supabase.from("book_renewals")
+      .select("*, book_issues(id, due_date, renewal_count, books(title), user_id)")
       .eq("status", "pending").order("created_at", { ascending: true });
-    setRows(data || []);
+    if (error) { console.error(error); return; }
+    const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id).filter(Boolean)));
+    let profileMap: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: profs } = await supabase.from("profiles")
+        .select("id, first_name, last_name, student_class").in("id", userIds);
+      (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
+    }
+    setRows((data || []).map((r: any) => ({ ...r, profiles: profileMap[r.user_id] })));
   };
   useEffect(() => { load(); }, []);
 

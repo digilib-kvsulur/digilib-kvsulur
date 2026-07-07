@@ -301,6 +301,31 @@ const StudentDashboard = () => {
                 </div>
               </Card>
 
+              {/* Catalog Search */}
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const q = (e.currentTarget.elements.namedItem("q") as HTMLInputElement)?.value.trim();
+                      navigate(q ? `/catalog?q=${encodeURIComponent(q)}` : "/catalog");
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <div className="relative flex-1">
+                      <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        name="q"
+                        placeholder="Search catalog by title, author or ISBN…"
+                        className="w-full h-10 pl-9 pr-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                    <Button type="submit" size="sm" className="gradient-primary border-0">Search</Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => navigate("/catalog")}>Browse All</Button>
+                  </form>
+                </CardContent>
+              </Card>
+
               {/* Level + Streak Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <LevelProgress userPoints={user?.points || 0} />

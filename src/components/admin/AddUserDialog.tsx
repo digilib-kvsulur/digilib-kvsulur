@@ -24,6 +24,10 @@ const AddUserDialog = ({ onCreated }: { onCreated?: () => void }) => {
       toast({ title: "Missing fields", description: "Email, password and first name are required", variant: "destructive" });
       return;
     }
+    if (form.role === "student" && !/^\d{5}$/.test(form.admission_number.trim())) {
+      toast({ title: "Admission number required", description: "Enter a 5-digit admission number for students.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-create-user", { body: form });
@@ -66,7 +70,7 @@ const AddUserDialog = ({ onCreated }: { onCreated?: () => void }) => {
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Class</Label><Input value={form.student_class} onChange={(e) => upd("student_class", e.target.value)} /></div>
               <div><Label>Roll No.</Label><Input value={form.roll_number} onChange={(e) => upd("roll_number", e.target.value)} /></div>
-              <div className="col-span-2"><Label>Admission No.</Label><Input value={form.admission_number} onChange={(e) => upd("admission_number", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Admission No. * (5 digits)</Label><Input maxLength={5} pattern="\d{5}" placeholder="e.g. 12345" value={form.admission_number} onChange={(e) => upd("admission_number", e.target.value.replace(/\D/g, "").slice(0, 5))} /></div>
             </div>
           )}
         </div>
