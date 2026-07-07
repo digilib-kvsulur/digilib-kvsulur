@@ -8,9 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const SAMPLE_CSV = `email,first_name,last_name,student_class,roll_number,admission_number,phone,password
-student1@example.com,Aarav,Sharma,8,12,2024A001,9876543210,
-student2@example.com,Diya,Patel,9,07,2024A002,,Welcome@123`;
+const SAMPLE_CSV = `admission_number,email,first_name,last_name,student_class,roll_number,phone,password
+12345,student1@example.com,Aarav,Sharma,8,12,9876543210,
+12346,student2@example.com,Diya,Patel,9,07,,Welcome@123`;
 
 interface ResultRow { email: string; success: boolean; password?: string; error?: string }
 
@@ -31,10 +31,14 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
       skipEmptyLines: true,
       transformHeader: (h) => h.trim().toLowerCase().replace(/\s+/g, "_"),
       complete: (res) => {
-        const cleaned = (res.data as any[]).filter(r => r.email && r.first_name);
+        const raw = (res.data as any[]).filter(r => r.email && r.first_name && r.admission_number);
+        const cleaned = raw.filter(r => /^\d{5}$/.test(String(r.admission_number).trim()));
+        const invalid = raw.length - cleaned.length;
         setRows(cleaned);
         if (cleaned.length === 0) {
-          toast({ title: "No valid rows", description: "Make sure your CSV has 'email' and 'first_name' columns.", variant: "destructive" });
+          toast({ title: "No valid rows", description: "CSV needs 'admission_number' (5 digits), 'email', 'first_name'.", variant: "destructive" });
+        } else if (invalid > 0) {
+          toast({ title: `Skipped ${invalid} row(s)`, description: "Admission number must be exactly 5 digits.", variant: "destructive" });
         }
       },
       error: (err) => toast({ title: "Parse error", description: err.message, variant: "destructive" }),
