@@ -84,7 +84,7 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
         <DialogHeader>
           <DialogTitle>Bulk Import Students</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to create multiple student accounts at once. Required columns: <code>email</code>, <code>first_name</code>.
+            Upload a CSV to create multiple student accounts. Required columns: <code>admission_number</code> (5 digits), <code>email</code>, <code>first_name</code>.
           </DialogDescription>
         </DialogHeader>
 
