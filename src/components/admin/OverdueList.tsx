@@ -12,10 +12,18 @@ export default function OverdueList() {
   const today = new Date().toISOString().split("T")[0];
 
   const load = async () => {
-    const { data } = await supabase.from("book_issues")
-      .select("id, due_date, user_id, books(title), profiles:user_id(first_name,last_name,student_class,roll_number)")
+    const { data, error } = await supabase.from("book_issues")
+      .select("id, due_date, user_id, books(title)")
       .eq("status", "issued").lt("due_date", today).order("due_date", { ascending: true });
-    setRows(data || []);
+    if (error) { console.error(error); return; }
+    const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id).filter(Boolean)));
+    let profileMap: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: profs } = await supabase.from("profiles")
+        .select("id, first_name, last_name, student_class, roll_number").in("id", userIds);
+      (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
+    }
+    setRows((data || []).map((r: any) => ({ ...r, profiles: profileMap[r.user_id] })));
   };
   useEffect(() => { load(); }, []);
 
