@@ -33,7 +33,7 @@ const Rankings = ({ user }: RankingsProps) => {
       if (data) {
         setClassLeaderboardEntries(data.map((item: any, index: number) => ({
           id: item.id, studentId: item.id, studentName: item.first_name, studentClass: item.student_class,
-          totalPoints: item.points, rank: index + 1, recentActivity: "Active this week"
+          totalPoints: item.points || 0, rank: index + 1, recentActivity: "Active this week"
         })));
       }
     } catch (error) { console.error('Error in fetchClassLeaderboard:', error); }
