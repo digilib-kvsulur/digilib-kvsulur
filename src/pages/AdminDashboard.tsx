@@ -34,7 +34,7 @@ import InventoryAuditManager from "@/components/admin/InventoryAuditManager";
 import ExportReports from "@/components/admin/ExportReports";
 import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "challenges" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports";
 
 const navSections = [
   {
