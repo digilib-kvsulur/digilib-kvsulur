@@ -14,6 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      badge_awards: {
+        Row: {
+          award_type: string
+          awarded_at: string
+          awarded_by: string | null
+          badge_id: string
+          id: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          award_type?: string
+          awarded_at?: string
+          awarded_by?: string | null
+          badge_id: string
+          id?: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          award_type?: string
+          awarded_at?: string
+          awarded_by?: string | null
+          badge_id?: string
+          id?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "badge_awards_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      badges: {
+        Row: {
+          color: string | null
+          created_at: string
+          criteria_type: string | null
+          criteria_value: number | null
+          description: string | null
+          icon_name: string | null
+          id: string
+          is_active: boolean
+          name: string
+          points: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          criteria_type?: string | null
+          criteria_value?: number | null
+          description?: string | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          points?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          criteria_type?: string | null
+          criteria_value?: number | null
+          description?: string | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          points?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       book_audit_logs: {
         Row: {
           accession_number: string | null
@@ -577,6 +657,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       levels: {
         Row: {

@@ -19,7 +19,8 @@ import BookIssueRegister from "@/components/admin/BookIssueRegister";
 import BookIssueRequests from "@/components/admin/BookIssueRequests";
 import PointsManager from "@/components/admin/PointsManager";
 import QuizManager from "@/components/quiz/QuizManager";
-import ChallengeManager from "@/components/admin/ChallengeManager";
+import BadgeManager from "@/components/admin/BadgeManager";
+import WishlistView from "@/components/admin/WishlistView";
 import AdminProfile from "@/components/admin/AdminProfile";
 import ClassAnalytics from "@/components/admin/ClassAnalytics";
 import LevelManager from "@/components/admin/LevelManager";
@@ -33,7 +34,7 @@ import InventoryAuditManager from "@/components/admin/InventoryAuditManager";
 import ExportReports from "@/components/admin/ExportReports";
 import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "challenges" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports";
 
 const navSections = [
   {
@@ -63,13 +64,14 @@ const navSections = [
       { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
       { id: "reviews" as Tab, label: "Reviews", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
+      { id: "wishlist" as Tab, label: "Wishlists", icon: Star },
     ],
   },
   {
     title: "Engagement",
     items: [
       { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
-      { id: "challenges" as Tab, label: "Challenges", icon: Target },
+      { id: "badges" as Tab, label: "Badges", icon: Award },
       { id: "events" as Tab, label: "Events", icon: Calendar },
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
@@ -299,7 +301,8 @@ const AdminDashboard = () => {
           {activeTab === "events" && <EventsManager />}
           {activeTab === "points" && <PointsManager />}
           {activeTab === "quizzes" && <QuizManager />}
-          {activeTab === "challenges" && <ChallengeManager />}
+          {activeTab === "badges" && <BadgeManager />}
+          {activeTab === "wishlist" && <WishlistView />}
           {activeTab === "levels" && <LevelManager />}
           {activeTab === "analytics" && <ClassAnalytics />}
           {activeTab === "notifications" && <NotificationSender />}

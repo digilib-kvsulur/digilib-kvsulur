@@ -97,7 +97,7 @@ const Catalog = () => {
 
   let filteredBooks = books.filter(b => {
     const s = searchTerm.toLowerCase();
-    if (searchTerm && !(b.title?.toLowerCase().includes(s) || b.author?.toLowerCase().includes(s) || (b.isbn || "").includes(searchTerm))) return false;
+    if (searchTerm && !(b.title?.toLowerCase().includes(s) || b.author?.toLowerCase().includes(s) || (b.accession_number || "").toLowerCase().includes(s) || (b.category || "").toLowerCase().includes(s))) return false;
     if (selectedGenre !== "all" && b.category !== selectedGenre) return false;
     if (selectedSubject !== "all" && b.subject !== selectedSubject) return false;
     if (selectedClass !== "all" && b.class_level !== selectedClass) return false;

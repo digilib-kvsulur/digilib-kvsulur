@@ -7,10 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
-const SAMPLE_CSV = `title,author,isbn,accession_number,category,description,total_copies
-The Alchemist,Paulo Coelho,9780062315007,KV-ACC-1001,Fiction,A shepherd boy's journey,3
-Wings of Fire,A.P.J. Abdul Kalam,9788173711466,KV-ACC-1002,Biography,Autobiography,5
-Physics Class 11,NCERT,,KV-ACC-1003,Textbook,Class 11 Physics,10`;
+const SAMPLE_CSV = `title,author,accession_number,language,category,subject,class_level,description,total_copies
+The Alchemist,Paulo Coelho,KV-ACC-1001,English,Fiction,,,A shepherd boy's journey,3
+Wings of Fire,A.P.J. Abdul Kalam,KV-ACC-1002,English,Biography,,,Autobiography,5
+Physics Class 11,NCERT,KV-ACC-1003,English,Textbook,Physics,11,Class 11 Physics,10`;
 
 const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
   const [open, setOpen] = useState(false);
@@ -50,12 +50,15 @@ const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
     const out: { title: string; success: boolean; error?: string }[] = [];
     for (const r of rows) {
       const copies = Math.max(1, parseInt(r.total_copies) || 1);
+      const accession = (r.accession_number || r.accession_code || r.library_book_code || r.library_code)?.trim() || null;
       const { error } = await supabase.from("books").insert({
         title: String(r.title).trim(),
         author: String(r.author).trim(),
-        isbn: r.isbn?.trim() || null,
-        accession_number: (r.accession_number || r.accession_code || r.library_book_code || r.library_code)?.trim() || null,
+        accession_number: accession,
+        language: r.language?.trim() || null,
         category: r.category?.trim() || null,
+        subject: r.subject?.trim() || null,
+        class_level: r.class_level?.trim() || null,
         description: r.description?.trim() || null,
         total_copies: copies,
         available_copies: copies,
@@ -78,7 +81,7 @@ const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
         <DialogHeader>
           <DialogTitle>Bulk Import Books</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to add multiple books. Required columns: <code>title</code>, <code>author</code>. Optional copy code: <code>accession_number</code>.
+            Upload a CSV. Required: <code>title</code>, <code>author</code>. Optional: <code>accession_number</code> (library book code), <code>language</code>, <code>category</code>, <code>subject</code>, <code>class_level</code>, <code>total_copies</code>.
           </DialogDescription>
         </DialogHeader>
 
