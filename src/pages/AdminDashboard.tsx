@@ -64,6 +64,7 @@ const navSections = [
       { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
       { id: "reviews" as Tab, label: "Reviews", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
+      { id: "wishlist" as Tab, label: "Wishlists", icon: Star },
     ],
   },
   {
