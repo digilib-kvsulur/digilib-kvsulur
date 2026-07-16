@@ -49,7 +49,7 @@ const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "notes", label: "My Notes", icon: StickyNote },
   { id: "community", label: "Community", icon: Users },
   { id: "quizzes", label: "Quizzes", icon: Brain },
-  { id: "challenges", label: "Challenges", icon: Target },
+  
   { id: "badges", label: "Badge Cabinet", icon: Award },
   { id: "rankings", label: "Rankings", icon: Medal },
   { id: "profile", label: "Profile", icon: User },
