@@ -301,7 +301,8 @@ const AdminDashboard = () => {
           {activeTab === "events" && <EventsManager />}
           {activeTab === "points" && <PointsManager />}
           {activeTab === "quizzes" && <QuizManager />}
-          {activeTab === "challenges" && <ChallengeManager />}
+          {activeTab === "badges" && <BadgeManager />}
+          {activeTab === "wishlist" && <WishlistView />}
           {activeTab === "levels" && <LevelManager />}
           {activeTab === "analytics" && <ClassAnalytics />}
           {activeTab === "notifications" && <NotificationSender />}
