@@ -71,7 +71,7 @@ const navSections = [
     title: "Engagement",
     items: [
       { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
-      { id: "challenges" as Tab, label: "Challenges", icon: Target },
+      { id: "badges" as Tab, label: "Badges", icon: Award },
       { id: "events" as Tab, label: "Events", icon: Calendar },
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
