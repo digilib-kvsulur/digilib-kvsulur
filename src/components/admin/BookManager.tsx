@@ -53,8 +53,9 @@ const BookManager = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
-  const [bulkCategory, setBulkCategory] = useState("");
-  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [bulkEdit, setBulkEdit] = useState({ category: "", language: "", subject: "", class_level: "" });
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [formData, setFormData] = useState<BookFormData>(emptyForm);
   const { toast } = useToast();
 
@@ -132,14 +133,30 @@ const BookManager = () => {
     if (selectedBookIds.size === filtered.length && filtered.every(b => selectedBookIds.has(b.id))) setSelectedBookIds(new Set());
     else setSelectedBookIds(new Set(filtered.map(b => b.id)));
   };
-  const handleBulkCategoryUpdate = async () => {
-    if (selectedBookIds.size === 0 || !bulkCategory.trim()) { toast({ title: "Error", description: "Select books and enter a category.", variant: "destructive" }); return; }
-    setBulkUpdating(true);
+  const handleBulkEdit = async () => {
+    if (selectedBookIds.size === 0) return;
+    const patch: any = {};
+    (["category", "language", "subject", "class_level"] as const).forEach(k => {
+      const v = bulkEdit[k].trim();
+      if (v) patch[k] = v;
+    });
+    if (Object.keys(patch).length === 0) { toast({ title: "No changes", description: "Fill in at least one field.", variant: "destructive" }); return; }
+    setBulkBusy(true);
     const ids = Array.from(selectedBookIds);
-    const { error } = await supabase.from('books').update({ category: bulkCategory.trim() }).in('id', ids);
+    const { error } = await supabase.from("books").update(patch).in("id", ids);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Success", description: `Updated ${ids.length} book(s)` }); setSelectedBookIds(new Set()); setBulkCategory(""); loadBooks(); }
-    setBulkUpdating(false);
+    else { toast({ title: "Updated", description: `${ids.length} book(s) updated` }); setSelectedBookIds(new Set()); setBulkEdit({ category: "", language: "", subject: "", class_level: "" }); setShowBulkEdit(false); loadBooks(); }
+    setBulkBusy(false);
+  };
+  const handleBulkDelete = async () => {
+    if (selectedBookIds.size === 0) return;
+    if (!confirm(`Delete ${selectedBookIds.size} book(s)? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    const ids = Array.from(selectedBookIds);
+    const { error } = await supabase.from("books").delete().in("id", ids);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Deleted", description: `${ids.length} book(s) removed` }); setSelectedBookIds(new Set()); loadBooks(); }
+    setBulkBusy(false);
   };
 
   if (loading) return <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
@@ -204,9 +221,9 @@ const BookManager = () => {
           <CardContent className="py-3 px-4 flex flex-wrap items-center gap-3">
             <CheckSquare className="h-4 w-4 text-primary shrink-0" />
             <span className="text-sm font-semibold text-primary">{selectedBookIds.size} selected</span>
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Input className="h-8 max-w-[200px] text-sm" placeholder="New category…" value={bulkCategory} onChange={e => setBulkCategory(e.target.value)} />
-              <Button size="sm" disabled={bulkUpdating} onClick={handleBulkCategoryUpdate}>{bulkUpdating ? "Updating…" : "Update Category"}</Button>
+            <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
+              <Button size="sm" onClick={() => setShowBulkEdit(true)} disabled={bulkBusy}><Edit className="h-3.5 w-3.5 mr-1.5" />Bulk Edit</Button>
+              <Button size="sm" variant="destructive" onClick={handleBulkDelete} disabled={bulkBusy}><Trash2 className="h-3.5 w-3.5 mr-1.5" />Delete Selected</Button>
               <Button size="sm" variant="outline" onClick={() => setSelectedBookIds(new Set())}>Clear</Button>
             </div>
           </CardContent>
@@ -326,6 +343,37 @@ const BookManager = () => {
               <Button type="submit" className="gradient-primary border-0">{editingBook ? 'Update' : 'Add'} Book</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBulkEdit} onOpenChange={setShowBulkEdit}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Bulk Edit {selectedBookIds.size} Book(s)</DialogTitle>
+            <DialogDescription>Only filled fields will be applied to selected books. Leave blank to keep existing values.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Category</Label>
+              <Input value={bulkEdit.category} onChange={e => setBulkEdit(p => ({ ...p, category: e.target.value }))} placeholder="e.g. Fiction" />
+            </div>
+            <div>
+              <Label>Language</Label>
+              <Input value={bulkEdit.language} onChange={e => setBulkEdit(p => ({ ...p, language: e.target.value }))} placeholder="e.g. English" />
+            </div>
+            <div>
+              <Label>Subject</Label>
+              <Input value={bulkEdit.subject} onChange={e => setBulkEdit(p => ({ ...p, subject: e.target.value }))} placeholder="e.g. Science" />
+            </div>
+            <div>
+              <Label>Class Level</Label>
+              <Input value={bulkEdit.class_level} onChange={e => setBulkEdit(p => ({ ...p, class_level: e.target.value }))} placeholder="e.g. 11" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkEdit(false)}>Cancel</Button>
+            <Button onClick={handleBulkEdit} disabled={bulkBusy} className="gradient-primary border-0">{bulkBusy ? "Applying…" : "Apply Changes"}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
