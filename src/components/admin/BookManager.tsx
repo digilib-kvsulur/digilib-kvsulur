@@ -221,9 +221,9 @@ const BookManager = () => {
           <CardContent className="py-3 px-4 flex flex-wrap items-center gap-3">
             <CheckSquare className="h-4 w-4 text-primary shrink-0" />
             <span className="text-sm font-semibold text-primary">{selectedBookIds.size} selected</span>
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Input className="h-8 max-w-[200px] text-sm" placeholder="New category…" value={bulkCategory} onChange={e => setBulkCategory(e.target.value)} />
-              <Button size="sm" disabled={bulkUpdating} onClick={handleBulkCategoryUpdate}>{bulkUpdating ? "Updating…" : "Update Category"}</Button>
+            <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
+              <Button size="sm" onClick={() => setShowBulkEdit(true)} disabled={bulkBusy}><Edit className="h-3.5 w-3.5 mr-1.5" />Bulk Edit</Button>
+              <Button size="sm" variant="destructive" onClick={handleBulkDelete} disabled={bulkBusy}><Trash2 className="h-3.5 w-3.5 mr-1.5" />Delete Selected</Button>
               <Button size="sm" variant="outline" onClick={() => setSelectedBookIds(new Set())}>Clear</Button>
             </div>
           </CardContent>
