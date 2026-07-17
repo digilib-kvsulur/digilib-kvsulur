@@ -133,14 +133,30 @@ const BookManager = () => {
     if (selectedBookIds.size === filtered.length && filtered.every(b => selectedBookIds.has(b.id))) setSelectedBookIds(new Set());
     else setSelectedBookIds(new Set(filtered.map(b => b.id)));
   };
-  const handleBulkCategoryUpdate = async () => {
-    if (selectedBookIds.size === 0 || !bulkCategory.trim()) { toast({ title: "Error", description: "Select books and enter a category.", variant: "destructive" }); return; }
-    setBulkUpdating(true);
+  const handleBulkEdit = async () => {
+    if (selectedBookIds.size === 0) return;
+    const patch: any = {};
+    (["category", "language", "subject", "class_level"] as const).forEach(k => {
+      const v = bulkEdit[k].trim();
+      if (v) patch[k] = v;
+    });
+    if (Object.keys(patch).length === 0) { toast({ title: "No changes", description: "Fill in at least one field.", variant: "destructive" }); return; }
+    setBulkBusy(true);
     const ids = Array.from(selectedBookIds);
-    const { error } = await supabase.from('books').update({ category: bulkCategory.trim() }).in('id', ids);
+    const { error } = await supabase.from("books").update(patch).in("id", ids);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Success", description: `Updated ${ids.length} book(s)` }); setSelectedBookIds(new Set()); setBulkCategory(""); loadBooks(); }
-    setBulkUpdating(false);
+    else { toast({ title: "Updated", description: `${ids.length} book(s) updated` }); setSelectedBookIds(new Set()); setBulkEdit({ category: "", language: "", subject: "", class_level: "" }); setShowBulkEdit(false); loadBooks(); }
+    setBulkBusy(false);
+  };
+  const handleBulkDelete = async () => {
+    if (selectedBookIds.size === 0) return;
+    if (!confirm(`Delete ${selectedBookIds.size} book(s)? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    const ids = Array.from(selectedBookIds);
+    const { error } = await supabase.from("books").delete().in("id", ids);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Deleted", description: `${ids.length} book(s) removed` }); setSelectedBookIds(new Set()); loadBooks(); }
+    setBulkBusy(false);
   };
 
   if (loading) return <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
