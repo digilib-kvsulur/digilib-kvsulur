@@ -19,12 +19,12 @@ WHERE is_approved = true AND role = 'student';
 -- Enable RLS on the view
 ALTER VIEW public.leaderboard_profiles SET (security_barrier = true);
 
--- Create restrictive policies for the leaderboard view (Commented out: cannot create policies on views in PostgreSQL)
--- CREATE POLICY "Anyone can view leaderboard data" 
--- ON public.leaderboard_profiles 
--- FOR SELECT 
--- TO authenticated 
--- USING (true);
+-- Create restrictive policies for the leaderboard view
+CREATE POLICY "Anyone can view leaderboard data" 
+ON public.leaderboard_profiles 
+FOR SELECT 
+TO authenticated 
+USING (true);
 
 -- Create policy for admins and teachers to view full profiles for management purposes
 CREATE POLICY "Staff can view student profiles for management" 

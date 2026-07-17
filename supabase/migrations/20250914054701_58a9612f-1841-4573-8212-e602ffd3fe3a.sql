@@ -3,8 +3,6 @@
 -- First, drop the overly permissive policies
 DROP POLICY IF EXISTS "Students can view approved profiles for leaderboard" ON public.profiles;
 DROP POLICY IF EXISTS "view_approved_profiles" ON public.profiles;
-DROP POLICY IF EXISTS "Staff can view student profiles for management" ON public.profiles;
-DROP POLICY IF EXISTS "Students can view basic classmate info" ON public.profiles;
 
 -- Create a secure function to get leaderboard data that only exposes non-sensitive information
 CREATE OR REPLACE FUNCTION public.get_leaderboard_data(class_filter text DEFAULT NULL)

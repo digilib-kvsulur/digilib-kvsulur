@@ -1,11 +1,6 @@
 -- Fix the book_issues table foreign key relationships
 -- Add proper foreign key constraints to ensure data integrity
 
--- Drop existing constraints if they exist to prevent errors
-ALTER TABLE public.book_issues 
-DROP CONSTRAINT IF EXISTS book_issues_book_id_fkey,
-DROP CONSTRAINT IF EXISTS book_issues_user_id_fkey;
-
 -- Add foreign key constraint for book_id in book_issues table
 ALTER TABLE public.book_issues 
 ADD CONSTRAINT book_issues_book_id_fkey 
