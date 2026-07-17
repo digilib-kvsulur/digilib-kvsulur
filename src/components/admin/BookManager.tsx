@@ -53,8 +53,9 @@ const BookManager = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
-  const [bulkCategory, setBulkCategory] = useState("");
-  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [bulkEdit, setBulkEdit] = useState({ category: "", language: "", subject: "", class_level: "" });
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [formData, setFormData] = useState<BookFormData>(emptyForm);
   const { toast } = useToast();
 
