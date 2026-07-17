@@ -50,8 +50,8 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       supabase.rpc("get_public_profile_stats", { _id: userId }),
       supabase.from("badge_awards").select("badges(name, icon_name, color)").eq("user_id", userId).limit(8),
     ]);
-    const prof = (profRows || [])[0] || {};
-    const stats = (statsRows || [])[0] || {};
+    const prof: any = (profRows || [])[0] || {};
+    const stats: any = (statsRows || [])[0] || {};
     const full = {
       ...prof,
       booksRead: stats.books_read || 0,
