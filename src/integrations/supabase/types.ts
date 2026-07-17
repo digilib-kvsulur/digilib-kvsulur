@@ -1233,6 +1233,27 @@ export type Database = {
         }[]
       }
       get_profile_role: { Args: { _user_id: string }; Returns: string }
+      get_public_profile_stats: {
+        Args: { _id: string }
+        Returns: {
+          books_read: number
+          current_streak: number
+          longest_streak: number
+          quizzes: number
+        }[]
+      }
+      get_public_profiles: {
+        Args: { _ids: string[] }
+        Returns: {
+          first_name: string
+          id: string
+          last_name: string
+          points: number
+          role: string
+          student_class: string
+          username: string
+        }[]
+      }
       get_total_books_count: { Args: never; Returns: number }
       get_user_class_rank: {
         Args: { user_class: string; user_points: number }
@@ -1266,6 +1287,18 @@ export type Database = {
           current_streak: number
           longest_streak: number
           total_login_days: number
+        }[]
+      }
+      search_public_profiles: {
+        Args: { _exclude: string; _q: string }
+        Returns: {
+          first_name: string
+          id: string
+          last_name: string
+          points: number
+          role: string
+          student_class: string
+          username: string
         }[]
       }
     }
