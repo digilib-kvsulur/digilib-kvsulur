@@ -345,6 +345,37 @@ const BookManager = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={showBulkEdit} onOpenChange={setShowBulkEdit}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Bulk Edit {selectedBookIds.size} Book(s)</DialogTitle>
+            <DialogDescription>Only filled fields will be applied to selected books. Leave blank to keep existing values.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Category</Label>
+              <Input value={bulkEdit.category} onChange={e => setBulkEdit(p => ({ ...p, category: e.target.value }))} placeholder="e.g. Fiction" />
+            </div>
+            <div>
+              <Label>Language</Label>
+              <Input value={bulkEdit.language} onChange={e => setBulkEdit(p => ({ ...p, language: e.target.value }))} placeholder="e.g. English" />
+            </div>
+            <div>
+              <Label>Subject</Label>
+              <Input value={bulkEdit.subject} onChange={e => setBulkEdit(p => ({ ...p, subject: e.target.value }))} placeholder="e.g. Science" />
+            </div>
+            <div>
+              <Label>Class Level</Label>
+              <Input value={bulkEdit.class_level} onChange={e => setBulkEdit(p => ({ ...p, class_level: e.target.value }))} placeholder="e.g. 11" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkEdit(false)}>Cancel</Button>
+            <Button onClick={handleBulkEdit} disabled={bulkBusy} className="gradient-primary border-0">{bulkBusy ? "Applying…" : "Apply Changes"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
