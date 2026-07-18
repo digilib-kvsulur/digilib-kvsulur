@@ -51,13 +51,15 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
 
   const loadSocial = async () => {
     if (!user?.id) return;
-    const [{ data: full }, { data: posts }] = await Promise.all([
+    const [{ data: full }, { data: extra }, { data: posts }] = await Promise.all([
       supabase.rpc("get_public_profile_full", { _id: user.id }),
+      supabase.rpc("get_public_profile_stats", { _id: user.id }),
       supabase.rpc("get_public_posts_by_user", { _id: user.id, _limit: 10 }),
     ]);
-    if (full?.[0]) setSocial(full[0]);
+    setSocial({ ...(full?.[0] || {}), ...(extra?.[0] || {}) });
     setMyPosts(posts || []);
   };
+
 
   const uploadAvatar = async (file: File) => {
     if (!file || !user?.id) return;
