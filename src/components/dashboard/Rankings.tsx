@@ -41,40 +41,24 @@ const Rankings = ({ user }: RankingsProps) => {
 
   const fetchClassReadingLeague = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('student_class, points')
-        .eq('role', 'student')
-        .eq('is_approved', true);
-
+      const { data, error } = await supabase.rpc('get_class_league');
       if (error) throw error;
-
-      const classPoints: Record<string, { className: string; totalPoints: number; studentCount: number }> = {};
-      data?.forEach(item => {
-        const cls = item.student_class;
-        if (!cls) return;
-        if (!classPoints[cls]) {
-          classPoints[cls] = { className: cls, totalPoints: 0, studentCount: 0 };
-        }
-        classPoints[cls].totalPoints += item.points || 0;
-        classPoints[cls].studentCount += 1;
-      });
-
-      const sorted = Object.values(classPoints).sort((a, b) => b.totalPoints - a.totalPoints);
-      
+      const sorted = (data || []).map((r: any) => ({
+        className: r.student_class,
+        totalPoints: Number(r.total_points) || 0,
+        studentCount: Number(r.student_count) || 0,
+      }));
       let rank = 1;
       const ranked = sorted.map((entry, idx) => {
-        if (idx > 0 && entry.totalPoints !== sorted[idx - 1].totalPoints) {
-          rank = idx + 1;
-        }
+        if (idx > 0 && entry.totalPoints !== sorted[idx - 1].totalPoints) rank = idx + 1;
         return { ...entry, rank };
       });
-
       setLeagueEntries(ranked);
     } catch (error) {
       console.error('Error fetching class reading league:', error);
     }
   };
+
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
