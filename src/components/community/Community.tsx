@@ -280,21 +280,20 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       )}
 
       <Dialog open={!!profileDialogUser} onOpenChange={(o) => !o && setProfileDialogUser(null)}>
-        <DialogContent className="max-w-md p-0 overflow-hidden">
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
           {profileDialogUser && (
-            <ProfileDialog
+            <ProfileView
               userId={profileDialogUser}
               currentUserId={currentUserId}
-              fetchStats={fetchProfileStats}
               friendship={friendshipsMap[profileDialogUser]}
               onSend={sendFriendRequest}
               onRespond={respondFriendRequest}
               onRemove={removeFriend}
-              onClose={() => setProfileDialogUser(null)}
             />
           )}
         </DialogContent>
       </Dialog>
+
     </div>
   );
 };
