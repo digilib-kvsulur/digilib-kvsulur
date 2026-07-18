@@ -979,6 +979,8 @@ export type Database = {
           admission_number: string | null
           approved_at: string | null
           approved_by: string | null
+          avatar_url: string | null
+          bio: string | null
           created_at: string
           email: string | null
           first_name: string | null
@@ -997,6 +999,8 @@ export type Database = {
           admission_number?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
@@ -1015,6 +1019,8 @@ export type Database = {
           admission_number?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
@@ -1223,6 +1229,14 @@ export type Database = {
       get_active_quizzes_count: { Args: never; Returns: number }
       get_active_users_count: { Args: never; Returns: number }
       get_books_issued_count: { Args: never; Returns: number }
+      get_class_league: {
+        Args: never
+        Returns: {
+          student_class: string
+          student_count: number
+          total_points: number
+        }[]
+      }
       get_leaderboard_data: {
         Args: { class_filter?: string }
         Returns: {
@@ -1233,6 +1247,35 @@ export type Database = {
         }[]
       }
       get_profile_role: { Args: { _user_id: string }; Returns: string }
+      get_public_posts_by_user: {
+        Args: { _id: string; _limit?: number }
+        Returns: {
+          comments_count: number
+          content: string
+          created_at: string
+          id: string
+          likes_count: number
+          title: string
+        }[]
+      }
+      get_public_profile_full: {
+        Args: { _id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          first_name: string
+          followers_count: number
+          following_count: number
+          friends_count: number
+          id: string
+          last_name: string
+          points: number
+          posts_count: number
+          role: string
+          student_class: string
+          username: string
+        }[]
+      }
       get_public_profile_stats: {
         Args: { _id: string }
         Returns: {
@@ -1245,6 +1288,7 @@ export type Database = {
       get_public_profiles: {
         Args: { _ids: string[] }
         Returns: {
+          avatar_url: string
           first_name: string
           id: string
           last_name: string
