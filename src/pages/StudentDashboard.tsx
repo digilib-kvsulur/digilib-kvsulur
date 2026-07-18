@@ -35,8 +35,9 @@ import EventsList from "@/components/dashboard/EventsList";
 import Recommendations from "@/components/dashboard/Recommendations";
 import BadgeCabinet from "@/components/rewards/BadgeCabinet";
 import MyRequests from "@/components/dashboard/MyRequests";
+import NetworkTab from "@/components/dashboard/NetworkTab";
 
-type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "profile";
+type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "network" | "profile";
 
 const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -49,9 +50,9 @@ const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "notes", label: "My Notes", icon: StickyNote },
   { id: "community", label: "Community", icon: Users },
   { id: "quizzes", label: "Quizzes", icon: Brain },
-  
   { id: "badges", label: "Badge Cabinet", icon: Award },
   { id: "rankings", label: "Rankings", icon: Medal },
+  { id: "network", label: "Network", icon: Users },
   { id: "profile", label: "Profile", icon: User },
 ];
 
@@ -358,7 +359,7 @@ const StudentDashboard = () => {
                   { label: "Books Reading", value: currentBooksCount, icon: BookOpen, color: "text-primary", bg: "bg-primary/10" },
                   { label: "Quizzes Taken", value: quizResultsCount, icon: Brain, color: "text-accent", bg: "bg-accent/10" },
                   { label: "Monthly Goal", value: `${monthlyBooksRead}/5`, icon: Target, color: "text-success", bg: "bg-success/10" },
-                  { label: "Challenges", value: challenges.filter(c => c.isCompleted).length, icon: Star, color: "text-warning", bg: "bg-warning/10" },
+                  { label: "Badges Earned", value: challenges.filter(c => c.isCompleted).length, icon: Award, color: "text-warning", bg: "bg-warning/10" },
                 ].map((s, i) => (
                   <Card key={i} className="border-border/50 hover-lift">
                     <CardContent className="p-4">
@@ -480,6 +481,9 @@ const StudentDashboard = () => {
 
           {/* Rankings Tab */}
           {activeTab === "rankings" && <Rankings user={user} />}
+
+          {/* Network Tab */}
+          {activeTab === "network" && user?.id && <NetworkTab user={user} />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && <StudentProfile user={user} onProfileUpdate={handleProfileUpdate} />}

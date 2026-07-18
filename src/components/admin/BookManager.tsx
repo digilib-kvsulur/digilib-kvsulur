@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare } from "lucide-react";
+import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare, Wand2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BulkImportBooks from "./BulkImportBooks";
@@ -38,10 +38,11 @@ interface BookFormData {
   class_level: string;
   description: string;
   total_copies: number;
+  cover_url: string;
 }
 
 const emptyForm: BookFormData = {
-  title: '', author: '', accession_number: '', language: '', category: '', subject: '', class_level: '', description: '', total_copies: 1,
+  title: '', author: '', accession_number: '', language: '', category: '', subject: '', class_level: '', description: '', total_copies: 1, cover_url: '',
 };
 
 const BookManager = () => {
@@ -57,6 +58,7 @@ const BookManager = () => {
   const [bulkEdit, setBulkEdit] = useState({ category: "", language: "", subject: "", class_level: "" });
   const [bulkBusy, setBulkBusy] = useState(false);
   const [formData, setFormData] = useState<BookFormData>(emptyForm);
+  const [fetchingDetails, setFetchingDetails] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { loadBooks(); }, []);
@@ -83,6 +85,7 @@ const BookManager = () => {
         subject: formData.subject.trim() || null,
         class_level: formData.class_level.trim() || null,
         description: formData.description.trim() || null,
+        cover_url: formData.cover_url.trim() || null,
         total_copies: formData.total_copies,
       };
       if (editingBook) {
@@ -110,9 +113,51 @@ const BookManager = () => {
       accession_number: book.accession_number || '',
       language: book.language || '',
       category: book.category || '', subject: book.subject || '', class_level: book.class_level || '',
-      description: book.description || '', total_copies: book.total_copies,
+      description: book.description || '', total_copies: book.total_copies, cover_url: (book as any).cover_url || '',
     });
     setShowAddDialog(true);
+  };
+
+  const fetchBookDetails = async () => {
+    if (!formData.title.trim()) {
+      toast({ title: "Enter a title first", description: "Type the book title before fetching details.", variant: "destructive" });
+      return;
+    }
+    setFetchingDetails(true);
+    try {
+      const q = encodeURIComponent(`${formData.title.trim()} ${formData.author.trim()}`.trim());
+      const res = await fetch(`https://openlibrary.org/search.json?q=${q}&limit=1&fields=title,author_name,subject,language,description,cover_i,first_publish_year`);
+      if (!res.ok) throw new Error("Open Library request failed");
+      const json = await res.json();
+      const doc = json.docs?.[0];
+      if (!doc) { toast({ title: "Not found", description: "No matching book found in Open Library. Fill details manually.", variant: "destructive" }); return; }
+
+      const subjects: string[] = doc.subject || [];
+      const lang: string = (doc.language || [])[0] || "";
+      const langName = lang === "eng" ? "English" : lang === "tam" ? "Tamil" : lang === "hin" ? "Hindi" : lang ? lang.toUpperCase() : "";
+
+      // Derive category from first subject keyword
+      const categoryKeywords = ["Fiction", "Non-fiction", "Science", "Mathematics", "History", "Biography", "Poetry", "Drama", "Philosophy", "Religion", "Technology", "Textbook", "Reference"];
+      const guessedCategory = categoryKeywords.find(k => subjects.some(s => s.toLowerCase().includes(k.toLowerCase()))) || "";
+
+      const coverUrl = doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : "";
+      const guessedSubject = subjects.slice(0, 2).join(", ");
+      const guessedDesc = typeof doc.description === "string" ? doc.description : (doc.description?.value || "");
+
+      setFormData(prev => ({
+        ...prev,
+        language: prev.language || langName,
+        category: prev.category || guessedCategory,
+        subject: prev.subject || guessedSubject,
+        description: prev.description || guessedDesc,
+        cover_url: prev.cover_url || coverUrl,
+      }));
+      toast({ title: "Details fetched!", description: "Review and adjust the auto-filled fields as needed." });
+    } catch (e: any) {
+      toast({ title: "Fetch failed", description: e.message || "Could not reach Open Library.", variant: "destructive" });
+    } finally {
+      setFetchingDetails(false);
+    }
   };
 
   const handleDelete = async (bookId: string) => {
@@ -320,6 +365,17 @@ const BookManager = () => {
                 <Input id="total_copies" type="number" min="1" value={formData.total_copies} onChange={(e) => setFormData(p => ({ ...p, total_copies: parseInt(e.target.value) || 1 }))} required />
               </div>
             </div>
+
+            {/* AI Auto-Fetch Button */}
+            <div className="rounded-lg border border-dashed border-indigo-400/40 bg-indigo-500/5 p-3">
+              <p className="text-xs text-muted-foreground mb-2">
+                <span className="font-bold text-foreground">Auto-Fill</span> — fill Accession #, Title, Author & Copies above, then click below to fetch description, category, subject, language, and cover from Open Library.
+              </p>
+              <Button type="button" variant="outline" size="sm" onClick={fetchBookDetails} disabled={fetchingDetails} className="w-full border-indigo-400/40 hover:bg-indigo-500/10 font-semibold text-indigo-600 dark:text-indigo-400">
+                {fetchingDetails ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Fetching...</> : <><Wand2 className="h-4 w-4 mr-2" />Auto-Fill Book Details</>}
+              </Button>
+            </div>
+
             <div>
               <Label htmlFor="category">Catalogue / Category (optional)</Label>
               <Input id="category" value={formData.category} onChange={(e) => setFormData(p => ({ ...p, category: e.target.value }))} placeholder="e.g. Fiction, Science" />
@@ -337,6 +393,10 @@ const BookManager = () => {
             <div>
               <Label htmlFor="description">Description (optional)</Label>
               <Textarea id="description" value={formData.description} onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))} rows={2} />
+            </div>
+            <div>
+              <Label htmlFor="cover_url">Cover Image URL (optional)</Label>
+              <Input id="cover_url" value={formData.cover_url} onChange={(e) => setFormData(p => ({ ...p, cover_url: e.target.value }))} placeholder="https://covers.openlibrary.org/b/id/..." />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>

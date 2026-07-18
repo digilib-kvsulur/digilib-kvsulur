@@ -78,7 +78,7 @@ const BookIssueRegister = () => {
 
   const handleIssueBook = async () => {
     if (isManualEntry) {
-      if (!manualBookTitle || !manualBookAuthor || !libraryBookCode || !selectedUser || !dueDate) {
+      if (!manualBookTitle || !manualBookAuthor || !selectedUser || !dueDate) {
         toast({ title: "Missing Information", description: "Please fill in all required fields", variant: "destructive" });
         return;
       }
@@ -93,20 +93,20 @@ const BookIssueRegister = () => {
     try {
       if (isManualEntry) {
         const { data: newBook, error: bookError } = await supabase.from('books')
-          .insert({ title: manualBookTitle, author: manualBookAuthor, isbn: libraryBookCode, description: 'Manual entry - Physical library book', total_copies: 1, available_copies: 0 })
+          .insert({ title: manualBookTitle, author: manualBookAuthor, accession_number: accessionNumberInput.trim() || null, description: 'Manual entry - Physical library book', total_copies: 1, available_copies: 0 })
           .select().single();
         if (bookError) throw bookError;
-        const { error: issueError } = await supabase.from('book_issues').insert({ 
-          book_id: newBook.id, 
-          user_id: selectedUser, 
-          issue_date: issueDate, 
-          due_date: dueDate, 
+        const { error: issueError } = await supabase.from('book_issues').insert({
+          book_id: newBook.id,
+          user_id: selectedUser,
+          issue_date: issueDate,
+          due_date: dueDate,
           status: 'issued',
           accession_number: accessionNumberInput.trim() || null
         });
         if (issueError) throw issueError;
         toast({ title: "Success", description: "Manual book entry created and issued successfully" });
-        setManualBookTitle(""); setManualBookAuthor(""); setLibraryBookCode("");
+        setManualBookTitle(""); setManualBookAuthor("");
       } else {
         const { error: issueError } = await supabase.from('book_issues').insert({ 
           book_id: selectedBook, 
@@ -273,10 +273,6 @@ const BookIssueRegister = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium">Author *</Label>
                     <Input value={manualBookAuthor} onChange={(e) => setManualBookAuthor(e.target.value)} placeholder="Enter author name" className="h-10 rounded-lg" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Library Code *</Label>
-                    <Input value={libraryBookCode} onChange={(e) => setLibraryBookCode(e.target.value)} placeholder="Enter library code" className="h-10 rounded-lg" />
                   </div>
                 </>
               ) : (

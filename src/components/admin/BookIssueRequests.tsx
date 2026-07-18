@@ -64,7 +64,7 @@ const BookIssueRequests = () => {
     try {
       const { data: book } = await supabase.from('books').select('available_copies').eq('id', bookId).single();
       if (!book || book.available_copies <= 0) { toast({ title: "Error", description: "Book is not available.", variant: "destructive" }); return; }
-      const dueDate = new Date(); dueDate.setDate(dueDate.getDate() + 14);
+      const dueDate = new Date(); dueDate.setDate(dueDate.getDate() + 7);
       const { error: issueError } = await supabase.from('book_issues').insert({ user_id: userId, book_id: bookId, due_date: dueDate.toISOString().split('T')[0] });
       if (issueError) throw issueError;
       await supabase.from('books').update({ available_copies: book.available_copies - 1 }).eq('id', bookId);

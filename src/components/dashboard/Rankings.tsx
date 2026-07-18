@@ -32,7 +32,9 @@ const Rankings = ({ user }: RankingsProps) => {
       if (error) { console.error('Error fetching class leaderboard:', error); return; }
       if (data) {
         setClassLeaderboardEntries(data.map((item: any, index: number) => ({
-          id: item.id, studentId: item.id, studentName: item.first_name, studentClass: item.student_class,
+          id: item.id, studentId: item.id,
+          studentName: `${item.first_name || ""} ${item.last_name || ""}`.trim() || item.first_name || "Student",
+          studentClass: item.student_class,
           totalPoints: item.points || 0, rank: index + 1, recentActivity: "Active this week"
         })));
       }
