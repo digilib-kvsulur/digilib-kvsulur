@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { 
   User, Edit, Save, X, Camera, FileText, Users, Heart, MessageCircle, 
   Trophy, Flame, BookOpen, Sparkles, Plus, Search, UserPlus, Check, 
-  Clock, UserCheck, UserX 
+  Clock, UserCheck, UserX, Settings, Send, Calendar, Star, GraduationCap
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +19,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ProfileView } from "@/components/community/ProfileView";
 import BadgeCabinet from "@/components/rewards/BadgeCabinet";
 import ReadingStreakCalendar from "@/components/dashboard/ReadingStreakCalendar";
+import * as Icons from "lucide-react";
 
 interface StudentProfileProps {
   user: any;
@@ -32,6 +34,8 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
   const [uploading, setUploading] = useState(false);
   const [social, setSocial] = useState<any>({ posts_count: 0, followers_count: 0, following_count: 0, friends_count: 0 });
   const [myPosts, setMyPosts] = useState<any[]>([]);
+  const [levelInfo, setLevelInfo] = useState<any | null>(null);
+  
   const [formData, setFormData] = useState({
     first_name: '', last_name: '', email: '', phone: '',
     student_class: '', roll_number: '', admission_number: '',
@@ -62,50 +66,72 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
     loadAvatar(user.avatar_url);
     loadSocial();
     loadFriendshipsMap();
+    loadUserLevel();
   }, [user]);
 
   const loadAvatar = async (path?: string | null) => {
     if (!path) { setAvatarUrl(null); return; }
-    const { data } = await supabase.storage.from("avatars").createSignedUrl(path, 3600);
-    setAvatarUrl(data?.signedUrl || null);
+    try {
+      const { data } = await supabase.storage.from("avatars").createSignedUrl(path, 3600);
+      setAvatarUrl(data?.signedUrl || null);
+    } catch (e) {
+      console.error("Error loading avatar:", e);
+    }
+  };
+
+  const loadUserLevel = async () => {
+    if (!user?.points) return;
+    try {
+      const { data } = await supabase.rpc('get_user_level', { user_points: user.points });
+      if (data && data.length > 0) setLevelInfo(data[0]);
+    } catch (e) {
+      console.error('Error fetching level in profile:', e);
+    }
   };
 
   const loadSocial = async () => {
     if (!user?.id) return;
-    const [{ data: full }, { data: extra }, { data: posts }] = await Promise.all([
-      supabase.rpc("get_public_profile_full", { _id: user.id }),
-      supabase.rpc("get_public_profile_stats", { _id: user.id }),
-      supabase.rpc("get_public_posts_by_user", { _id: user.id, _limit: 10 }),
-    ]);
-    setSocial({ ...(full?.[0] || {}), ...(extra?.[0] || {}) });
-    setMyPosts(posts || []);
+    try {
+      const [{ data: full }, { data: extra }, { data: posts }] = await Promise.all([
+        supabase.rpc("get_public_profile_full", { _id: user.id }),
+        supabase.rpc("get_public_profile_stats", { _id: user.id }),
+        supabase.rpc("get_public_posts_by_user", { _id: user.id, _limit: 10 }),
+      ]);
+      setSocial({ ...(full?.[0] || {}), ...(extra?.[0] || {}) });
+      setMyPosts(posts || []);
+    } catch (e) {
+      console.error("Error loading social profile info:", e);
+    }
   };
 
   const loadFriendshipsMap = async () => {
     if (!user?.id) return;
-    const { data } = await supabase
-      .from("friendships")
-      .select("*")
-      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
-    
-    const m: Record<string, any> = {};
-    (data || []).forEach((f: any) => {
-      const other = f.requester_id === user.id ? f.addressee_id : f.requester_id;
-      m[other] = f;
-    });
-    setFriendshipsMap(m);
-
-    // Fetch public profiles for these users
-    const ids = Object.keys(m);
-    if (ids.length > 0) {
-      const { data: profs } = await supabase.rpc("get_public_profiles", { _ids: ids });
-      const pMap: Record<string, any> = {};
-      (profs || []).forEach((p: any) => {
-        pMap[p.id] = p;
+    try {
+      const { data } = await supabase
+        .from("friendships")
+        .select("*")
+        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+      
+      const m: Record<string, any> = {};
+      (data || []).forEach((f: any) => {
+        const other = f.requester_id === user.id ? f.addressee_id : f.requester_id;
+        m[other] = f;
       });
-      setFriendsProfiles(pMap);
-    } else {
-      setFriendsProfiles({});
+      setFriendshipsMap(m);
+
+      const ids = Object.keys(m);
+      if (ids.length > 0) {
+        const { data: profs } = await supabase.rpc("get_public_profiles", { _ids: ids });
+        const pMap: Record<string, any> = {};
+        (profs || []).forEach((p: any) => {
+          pMap[p.id] = p;
+        });
+        setFriendsProfiles(pMap);
+      } else {
+        setFriendsProfiles({});
+      }
+    } catch (e) {
+      console.error("Error loading friendships map:", e);
     }
   };
 
@@ -121,7 +147,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       return;
     }
     setFriendshipsMap((m) => ({ ...m, [targetId]: data }));
-    toast({ title: "Friend request sent" });
+    toast({ title: "Friend request sent!" });
     await loadFriendshipsMap();
     await loadSocial();
   };
@@ -138,7 +164,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       return;
     }
     setFriendshipsMap((m) => ({ ...m, [targetId]: { ...f, status } }));
-    toast({ title: status === "accepted" ? "Friend request accepted" : "Friend request declined" });
+    toast({ title: status === "accepted" ? "Friend request accepted 🎉" : "Friend request declined" });
     await loadFriendshipsMap();
     await loadSocial();
   };
@@ -209,7 +235,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", user.id);
       if (dbErr) throw dbErr;
       await loadAvatar(path);
-      toast({ title: "Profile picture updated" });
+      toast({ title: "Profile picture updated successfully!" });
       onProfileUpdate?.();
     } catch (e: any) {
       toast({ title: "Upload failed", description: e.message, variant: "destructive" });
@@ -245,27 +271,68 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
     } finally { setLoading(false); }
   };
 
+  // Profile completeness helper
+  const calculateCompleteness = () => {
+    const fields = [
+      formData.first_name, formData.last_name, formData.username, 
+      formData.bio, formData.phone, formData.student_class, 
+      formData.roll_number, formData.admission_number, user.avatar_url
+    ];
+    const filled = fields.filter(f => !!f).length;
+    return Math.round((filled / fields.length) * 100);
+  };
+
   const initials = `${(user?.first_name?.[0] || '').toUpperCase()}${(user?.last_name?.[0] || '').toUpperCase()}`;
+  const completeness = calculateCompleteness();
+  const LevelIcon = levelInfo ? (Icons[levelInfo.icon_name as keyof typeof Icons] as React.ComponentType<any>) : Star;
 
   return (
-    <div className="space-y-4">
-      {/* Instagram-style header */}
-      <Card className="overflow-hidden border-border/50">
-        <div className="h-24 gradient-primary" />
-        <CardContent className="px-6 pb-6 -mt-14">
-          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mb-4">
-            <div className="relative">
-              <Avatar className="h-24 w-24 ring-4 ring-background shadow-lg">
-                {avatarUrl && <AvatarImage src={avatarUrl} />}
-                <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-2xl">{initials}</AvatarFallback>
+    <div className="space-y-6">
+      <style>{`
+        .gradient-mesh {
+          background-color: #6366f1;
+          background-image: 
+            radial-gradient(at 10% 20%, rgba(99, 102, 241, 0.3) 0px, transparent 50%),
+            radial-gradient(at 90% 10%, rgba(168, 85, 247, 0.3) 0px, transparent 50%),
+            radial-gradient(at 50% 80%, rgba(236, 72, 153, 0.2) 0px, transparent 50%);
+          background-size: 200% 200%;
+          animation: meshShimmer 15s ease infinite;
+        }
+        @keyframes meshShimmer {
+          0% { background-position: 0% 50% }
+          50% { background-position: 100% 50% }
+          100% { background-position: 0% 50% }
+        }
+        .avatar-pulsing::after {
+          content: '';
+          position: absolute;
+          inset: -4px;
+          border-radius: 9999px;
+          background: linear-gradient(135deg, #a855f7, #6366f1, #ec4899);
+          z-index: -1;
+          opacity: 0.7;
+          filter: blur(4px);
+          animation: spin 6s linear infinite;
+        }
+      `}</style>
+
+      {/* Profile Cover & Header */}
+      <Card className="overflow-hidden border-border/40 shadow-md bg-card/75 backdrop-blur-md">
+        <div className="h-32 gradient-mesh relative" />
+        <CardContent className="px-6 pb-6 -mt-16 relative">
+          <div className="flex flex-col lg:flex-row items-center lg:items-end gap-6 mb-6">
+            <div className="relative shrink-0">
+              <Avatar className="h-28 w-28 ring-4 ring-background shadow-xl avatar-pulsing">
+                {avatarUrl && <AvatarImage src={avatarUrl} className="object-cover" />}
+                <AvatarFallback className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white font-extrabold text-3xl">{initials}</AvatarFallback>
               </Avatar>
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
-                className="absolute bottom-0 right-0 rounded-full bg-primary text-primary-foreground p-1.5 shadow-md hover:scale-110 transition-transform"
-                title="Change picture"
+                className="absolute bottom-1 right-1 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground p-2 shadow-lg hover:scale-110 active:scale-95 transition-all"
+                title="Change Avatar"
               >
-                <Camera className="h-3.5 w-3.5" />
+                <Camera className="h-4 w-4" />
               </button>
               <input
                 ref={fileRef}
@@ -275,167 +342,214 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
                 onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
               />
             </div>
-            <div className="flex-1 grid grid-cols-3 gap-2 text-center w-full">
-              <button onClick={() => setProfileTab("posts")} className="focus:outline-none hover:bg-muted/40 rounded-lg transition-colors">
-                <StatBlock icon={<FileText className="h-4 w-4" />} value={social.posts_count} label="Posts" />
+
+            <div className="flex-1 text-center lg:text-left space-y-2">
+              <div className="flex flex-wrap justify-center lg:justify-start items-center gap-2">
+                <h2 className="text-2xl font-extrabold tracking-tight">{user?.first_name} {user?.last_name}</h2>
+                {user?.username && <span className="text-sm font-semibold text-muted-foreground/80">@{user.username}</span>}
+                {user?.student_class && <Badge variant="outline" className="bg-indigo-500/10 text-indigo-500 border-indigo-500/30 font-bold">Class {user.student_class}</Badge>}
+              </div>
+
+              {user?.bio ? (
+                <p className="text-sm text-foreground/80 font-medium max-w-lg leading-relaxed">{user.bio}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No bio written yet. Click Settings to add one!</p>
+              )}
+
+              {/* Level Progress Gauge */}
+              {levelInfo && (
+                <div className="pt-2 max-w-md">
+                  <div className="flex justify-between items-center text-xs font-bold text-muted-foreground mb-1">
+                    <span className="flex items-center gap-1"><LevelIcon className="h-3.5 w-3.5" style={{ color: levelInfo.color }} /> Level {levelInfo.level_number}: {levelInfo.name}</span>
+                    <span>{user.points || 0} XP</span>
+                  </div>
+                  <Progress value={levelInfo.progress_to_next || 0} className="h-2" style={{ "--progress-foreground": levelInfo.color } as React.CSSProperties} />
+                  {levelInfo.points_to_next > 0 ? (
+                    <p className="text-[10px] text-muted-foreground mt-1 font-medium">{levelInfo.points_to_next} XP to next level</p>
+                  ) : (
+                    <p className="text-[10px] text-emerald-500 mt-1 font-semibold">Max level achieved! 🎖️</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Profile Statistics Block */}
+            <div className="w-full lg:w-auto shrink-0 bg-muted/30 border border-border/30 rounded-xl p-3 grid grid-cols-3 gap-6 text-center">
+              <button onClick={() => setProfileTab("posts")} className="focus:outline-none group">
+                <p className="text-xl font-black text-foreground group-hover:scale-105 transition-transform">{social.posts_count}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">Posts</p>
               </button>
-              <button onClick={() => { setProfileTab("friends"); setFriendsActiveSubTab("list"); }} className="focus:outline-none hover:bg-muted/40 rounded-lg transition-colors">
-                <StatBlock icon={<Users className="h-4 w-4" />} value={social.followers_count} label="Followers" />
+              <button onClick={() => { setProfileTab("friends"); setFriendsActiveSubTab("list"); }} className="focus:outline-none group">
+                <p className="text-xl font-black text-foreground group-hover:scale-105 transition-transform">{social.followers_count}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">Followers</p>
               </button>
-              <button onClick={() => { setProfileTab("friends"); setFriendsActiveSubTab("list"); }} className="focus:outline-none hover:bg-muted/40 rounded-lg transition-colors">
-                <StatBlock icon={<Users className="h-4 w-4" />} value={social.following_count} label="Following" />
+              <button onClick={() => { setProfileTab("friends"); setFriendsActiveSubTab("list"); }} className="focus:outline-none group">
+                <p className="text-xl font-black text-foreground group-hover:scale-105 transition-transform">{social.following_count}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">Following</p>
               </button>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-bold">{user?.first_name} {user?.last_name}</h2>
-              {user?.username && <span className="text-sm text-muted-foreground">@{user.username}</span>}
-              {user?.role && <Badge variant="secondary" className="capitalize">{user.role}</Badge>}
-              {user?.student_class && <Badge variant="outline">Class {user.student_class}</Badge>}
-            </div>
-            {user?.bio && <p className="text-sm text-foreground/80">{user.bio}</p>}
-          </div>
-
-          <div className="grid grid-cols-4 gap-2 mt-4">
-            <button onClick={() => setProfileTab("badges")} className="focus:outline-none text-left w-full">
-              <MiniStat icon={<Trophy className="h-4 w-4 text-yellow-500" />} value={user?.points || 0} label="Points" />
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 border-t border-border/30 pt-4">
+            <button onClick={() => setProfileTab("badges")} className="flex items-center gap-3 p-3 bg-muted/20 hover:bg-muted/40 border border-border/30 rounded-xl transition-all">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0"><Trophy className="h-5 w-5" /></div>
+              <div className="text-left"><p className="text-xs font-bold text-muted-foreground">Points</p><p className="text-base font-black leading-none">{user?.points || 0}</p></div>
             </button>
-            <button onClick={() => setProfileTab("streak")} className="focus:outline-none text-left w-full">
-              <MiniStat icon={<Flame className="h-4 w-4 text-orange-500" />} value={social?.current_streak || 0} label="Streak" />
+            <button onClick={() => setProfileTab("streak")} className="flex items-center gap-3 p-3 bg-muted/20 hover:bg-muted/40 border border-border/30 rounded-xl transition-all">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0"><Flame className="h-5 w-5" /></div>
+              <div className="text-left"><p className="text-xs font-bold text-muted-foreground">Streak</p><p className="text-base font-black leading-none">{social?.current_streak || 0} Days</p></div>
             </button>
-            <div className="pointer-events-none">
-              <MiniStat icon={<BookOpen className="h-4 w-4 text-blue-500" />} value={social?.books_read || 0} label="Books" />
+            <div className="flex items-center gap-3 p-3 bg-muted/10 border border-border/20 rounded-xl pointer-events-none select-none">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0"><BookOpen className="h-5 w-5" /></div>
+              <div className="text-left"><p className="text-xs font-bold text-muted-foreground">Read</p><p className="text-base font-black leading-none">{social?.books_read || 0}</p></div>
             </div>
-            <div className="pointer-events-none">
-              <MiniStat icon={<Sparkles className="h-4 w-4 text-purple-500" />} value={social?.quizzes || 0} label="Quiz" />
+            <div className="flex items-center gap-3 p-3 bg-muted/10 border border-border/20 rounded-xl pointer-events-none select-none">
+              <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-500 shrink-0"><Sparkles className="h-5 w-5" /></div>
+              <div className="text-left"><p className="text-xs font-bold text-muted-foreground">Quizzes</p><p className="text-base font-black leading-none">{social?.quizzes || 0}</p></div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Modern Tabs Section */}
+      {/* Tabs Layout */}
       <Tabs value={profileTab} onValueChange={setProfileTab} className="w-full space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="posts" className="text-xs sm:text-sm">Posts</TabsTrigger>
-          <TabsTrigger value="streak" className="text-xs sm:text-sm">Streak</TabsTrigger>
-          <TabsTrigger value="badges" className="text-xs sm:text-sm">Badges</TabsTrigger>
-          <TabsTrigger value="friends" className="text-xs sm:text-sm">Network</TabsTrigger>
-          <TabsTrigger value="details" className="text-xs sm:text-sm">Settings</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 p-1 bg-muted/40 border border-border/30 rounded-xl backdrop-blur-sm">
+          <TabsTrigger value="posts" className="rounded-lg text-xs font-bold py-2 flex items-center gap-1.5"><FileText className="h-4 w-4" /> Posts</TabsTrigger>
+          <TabsTrigger value="streak" className="rounded-lg text-xs font-bold py-2 flex items-center gap-1.5"><Flame className="h-4 w-4" /> Streak</TabsTrigger>
+          <TabsTrigger value="badges" className="rounded-lg text-xs font-bold py-2 flex items-center gap-1.5"><Trophy className="h-4 w-4" /> Badges</TabsTrigger>
+          <TabsTrigger value="friends" className="rounded-lg text-xs font-bold py-2 flex items-center gap-1.5"><Users className="h-4 w-4" /> Network</TabsTrigger>
+          <TabsTrigger value="details" className="rounded-lg text-xs font-bold py-2 flex items-center gap-1.5"><Settings className="h-4 w-4" /> Settings</TabsTrigger>
         </TabsList>
 
-        {/* Posts Tab */}
-        <TabsContent value="posts" className="space-y-4">
+        {/* Tab 1: Posts */}
+        <TabsContent value="posts" className="space-y-4 outline-none">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" /> My Posts
+            <h3 className="text-lg font-bold tracking-tight flex items-center gap-2 text-foreground">
+              <FileText className="h-5 w-5 text-indigo-500" /> Share & Read
             </h3>
-            <Button size="sm" onClick={() => setShowNewPost(!showNewPost)}>
+            <Button size="sm" onClick={() => setShowNewPost(!showNewPost)} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 shadow-md">
               <Plus className="h-4 w-4 mr-1.5" /> New Post
             </Button>
           </div>
 
           {showNewPost && (
-            <Card className="border-primary/30">
+            <Card className="border-indigo-500/20 shadow-lg bg-card/80 backdrop-blur-sm">
               <CardContent className="p-4 space-y-3">
+                <h4 className="text-sm font-bold text-foreground">Write a New Post</h4>
                 <Input 
-                  placeholder="Post title..." 
+                  placeholder="Catchy title for your post..." 
                   value={newPostDraft.title} 
                   onChange={(e) => setNewPostDraft({ ...newPostDraft, title: e.target.value })} 
                   maxLength={150} 
+                  className="rounded-lg border-border/60"
                 />
                 <Textarea 
-                  placeholder="What's on your mind?" 
-                  rows={3} 
+                  placeholder="What book have you been reading lately? What are your learning goals?" 
+                  rows={4} 
                   value={newPostDraft.content} 
                   onChange={(e) => setNewPostDraft({ ...newPostDraft, content: e.target.value })} 
                   maxLength={2000} 
+                  className="rounded-lg border-border/60"
                 />
-                <div className="flex justify-end gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => setShowNewPost(false)}>Cancel</Button>
-                  <Button size="sm" onClick={createPost}>Post</Button>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button size="sm" variant="outline" onClick={() => setShowNewPost(false)} className="rounded-lg">Cancel</Button>
+                  <Button size="sm" onClick={createPost} className="rounded-lg bg-indigo-600 hover:bg-indigo-700"><Send className="h-3.5 w-3.5 mr-1.5" /> Publish</Button>
                 </div>
               </CardContent>
             </Card>
           )}
 
           {myPosts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {myPosts.map((p: any) => (
-                <Card key={p.id} className="border-border/60 hover:shadow-sm transition-shadow">
-                  <CardContent className="p-4">
-                    <p className="text-sm font-semibold text-foreground">{p.title}</p>
-                    <p className="text-xs text-foreground/80 mt-1.5 whitespace-pre-wrap line-clamp-3">{p.content}</p>
-                    <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground pt-3 border-t border-border/30">
-                      <span className="flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{p.likes_count}</span>
-                      <span className="flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" />{p.comments_count}</span>
-                      <span className="ml-auto">{new Date(p.created_at).toLocaleDateString()}</span>
+                <Card key={p.id} className="border-border/40 bg-card/60 hover:shadow-md hover:border-border/80 hover:translate-y-[-2px] transition-all duration-300">
+                  <CardContent className="p-5 flex flex-col justify-between h-full">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant="outline" className="bg-indigo-500/5 text-indigo-500/80 border-indigo-500/20 font-bold">Thought</Badge>
+                        <span className="text-[10px] text-muted-foreground font-semibold">{new Date(p.created_at).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
+                      </div>
+                      <h4 className="font-extrabold text-foreground text-base tracking-tight mb-2">{p.title}</h4>
+                      <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap line-clamp-4 mb-4">{p.content}</p>
+                    </div>
+                    <div className="flex items-center gap-4 mt-auto pt-3 border-t border-border/30 text-xs font-bold text-muted-foreground/80">
+                      <span className="flex items-center gap-1.5 hover:text-pink-500 cursor-pointer transition-colors"><Heart className="h-4 w-4" /> {p.likes_count}</span>
+                      <span className="flex items-center gap-1.5 hover:text-indigo-500 cursor-pointer transition-colors"><MessageCircle className="h-4 w-4" /> {p.comments_count}</span>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">No posts yet. Share your first thought!</p>
+            <Card className="border-border/40 py-12 bg-card/40">
+              <CardContent className="text-center text-muted-foreground flex flex-col items-center">
+                <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500/80 mb-3"><FileText className="h-6 w-6" /></div>
+                <p className="font-bold text-foreground/90 text-sm">No posts yet</p>
+                <p className="text-xs text-muted-foreground/80 mt-1 max-w-xs">Share review notes, quizzes completed, or thoughts about your reading journeys!</p>
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
-        {/* Streak Tab */}
-        <TabsContent value="streak" className="space-y-4">
+        {/* Tab 2: Streak */}
+        <TabsContent value="streak" className="space-y-4 outline-none">
           <ReadingStreakCalendar userId={user.id} />
         </TabsContent>
 
-        {/* Badges Tab */}
-        <TabsContent value="badges" className="space-y-4">
+        {/* Tab 3: Badges */}
+        <TabsContent value="badges" className="space-y-4 outline-none">
           <BadgeCabinet userId={user.id} />
         </TabsContent>
 
-        {/* Friends/Network Tab */}
-        <TabsContent value="friends" className="space-y-4">
-          <Card className="border-border/50">
+        {/* Tab 4: Network */}
+        <TabsContent value="friends" className="space-y-4 outline-none">
+          <Card className="border-border/40 bg-card/75 backdrop-blur-md shadow-md">
             <CardContent className="p-4">
-              <Tabs value={friendsActiveSubTab} onValueChange={setFriendsActiveSubTab} className="space-y-3">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="list" className="text-xs">Friends List</TabsTrigger>
-                  <TabsTrigger value="requests" className="text-xs">Requests</TabsTrigger>
-                  <TabsTrigger value="discover" className="text-xs">Discover</TabsTrigger>
+              <Tabs value={friendsActiveSubTab} onValueChange={setFriendsActiveSubTab} className="space-y-4">
+                <TabsList className="grid w-full grid-cols-3 p-0.5 bg-muted/30 border border-border/30 rounded-lg">
+                  <TabsTrigger value="list" className="text-xs font-bold py-1.5">Classmate Friends</TabsTrigger>
+                  <TabsTrigger value="requests" className="text-xs font-bold py-1.5">
+                    Requests 
+                    {Object.entries(friendshipsMap).filter(([_, f]) => f.status === "pending" && f.addressee_id === user.id).length > 0 && (
+                      <span className="ml-1 w-2 h-2 bg-rose-500 rounded-full inline-block animate-pulse" />
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="discover" className="text-xs font-bold py-1.5">Discover Profiles</TabsTrigger>
                 </TabsList>
 
                 {/* Sub-tab: Friends List */}
-                <TabsContent value="list" className="space-y-2">
+                <TabsContent value="list" className="space-y-3 pt-1 outline-none">
                   {Object.entries(friendshipsMap).filter(([_, f]) => f.status === "accepted").length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Users className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">You haven't added any friends yet.</p>
-                      <Button size="sm" variant="link" onClick={() => setFriendsActiveSubTab("discover")}>Find classmates</Button>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 mx-auto mb-3"><Users className="h-6 w-6" /></div>
+                      <p className="font-bold text-foreground/90 text-sm">No classmate links yet</p>
+                      <p className="text-xs text-muted-foreground/80 mt-1 mb-4">Link up with classmates to compare badges, read books and quiz streaks!</p>
+                      <Button size="sm" onClick={() => setFriendsActiveSubTab("discover")} className="rounded-lg bg-purple-600 hover:bg-purple-700 shadow-md">Discover Classmates</Button>
                     </div>
                   ) : (
-                    <div className="divide-y divide-border/40">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {Object.entries(friendshipsMap)
                         .filter(([_, f]) => f.status === "accepted")
                         .map(([uid, f]) => {
                           const p = friendsProfiles[uid] || {};
                           const initials = `${(p.first_name?.[0] || "").toUpperCase()}${(p.last_name?.[0] || "").toUpperCase()}`;
                           return (
-                            <div key={uid} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                              <div className="flex items-center gap-3 cursor-pointer" onClick={() => setProfileDialogUser(uid)}>
-                                <Avatar className="h-9 w-9">
-                                  <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-xs">{initials || "U"}</AvatarFallback>
+                            <div key={uid} className="flex items-center justify-between p-3.5 bg-muted/20 hover:bg-muted/40 border border-border/30 rounded-xl transition-all">
+                              <div className="flex items-center gap-3 cursor-pointer min-w-0" onClick={() => setProfileDialogUser(uid)}>
+                                <Avatar className="h-10 w-10 ring-2 ring-indigo-500/10">
+                                  <AvatarFallback className="bg-gradient-to-br from-indigo-500/80 to-purple-500/80 text-white font-bold text-xs">{initials || "U"}</AvatarFallback>
                                 </Avatar>
-                                <div>
-                                  <p className="text-sm font-semibold hover:underline">{p.first_name} {p.last_name}</p>
-                                  <p className="text-xs text-muted-foreground">@{p.username || "username"} · Class {p.student_class || "—"}</p>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-bold text-foreground hover:underline truncate">{p.first_name} {p.last_name}</p>
+                                  <p className="text-xs text-muted-foreground truncate">@{p.username || "username"} · Class {p.student_class || "—"}</p>
                                 </div>
                               </div>
-                              <Button size="sm" variant="ghost" onClick={() => removeFriend(uid)}>
-                                <UserX className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeFriend(uid)} title="Remove classmate">
+                                  <UserX className="h-4 w-4 text-muted-foreground/60 hover:text-rose-500 transition-colors" />
+                                </Button>
+                              </div>
                             </div>
                           );
                         })}
@@ -444,12 +558,12 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
                 </TabsContent>
 
                 {/* Sub-tab: Requests */}
-                <TabsContent value="requests" className="space-y-4">
+                <TabsContent value="requests" className="space-y-4 pt-1 outline-none">
                   {/* Incoming */}
                   <div>
-                    <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Incoming Requests</h4>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-500" /> Incoming Requests</h4>
                     {Object.entries(friendshipsMap).filter(([_, f]) => f.status === "pending" && f.addressee_id === user.id).length === 0 ? (
-                      <p className="text-xs text-muted-foreground py-2">No incoming friend requests.</p>
+                      <p className="text-xs text-muted-foreground italic py-3 bg-muted/10 border border-border/10 rounded-lg text-center">No incoming requests</p>
                     ) : (
                       <div className="space-y-2">
                         {Object.entries(friendshipsMap)
@@ -458,19 +572,19 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
                             const p = friendsProfiles[uid] || {};
                             const initials = `${(p.first_name?.[0] || "").toUpperCase()}${(p.last_name?.[0] || "").toUpperCase()}`;
                             return (
-                              <div key={uid} className="flex items-center justify-between bg-muted/20 p-2.5 rounded-lg border border-border/40">
-                                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setProfileDialogUser(uid)}>
+                              <div key={uid} className="flex items-center justify-between p-3 bg-card border border-border/40 rounded-xl shadow-sm">
+                                <div className="flex items-center gap-3 cursor-pointer" onClick={() => setProfileDialogUser(uid)}>
                                   <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-[10px]">{initials}</AvatarFallback>
+                                    <AvatarFallback className="bg-indigo-500/10 text-indigo-500 font-bold text-xs">{initials}</AvatarFallback>
                                   </Avatar>
                                   <div>
-                                    <p className="text-xs font-semibold hover:underline">{p.first_name} {p.last_name}</p>
+                                    <p className="text-xs font-bold text-foreground hover:underline">{p.first_name} {p.last_name}</p>
                                     <p className="text-[10px] text-muted-foreground">@{p.username || "—"}</p>
                                   </div>
                                 </div>
-                                <div className="flex gap-1">
-                                  <Button size="sm" className="h-7 px-2.5 text-xs" onClick={() => respondFriendRequest(uid, "accepted")}><Check className="h-3.5 w-3.5 mr-1" />Accept</Button>
-                                  <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => respondFriendRequest(uid, "rejected")}><X className="h-3.5 w-3.5" /></Button>
+                                <div className="flex gap-1.5">
+                                  <Button size="sm" className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => respondFriendRequest(uid, "accepted")}><Check className="h-3.5 w-3.5 mr-1" />Accept</Button>
+                                  <Button size="sm" variant="outline" className="h-8 px-2 text-xs text-rose-500 hover:bg-rose-500/10 border-rose-500/20" onClick={() => respondFriendRequest(uid, "rejected")}><X className="h-3.5 w-3.5" /></Button>
                                 </div>
                               </div>
                             );
@@ -480,10 +594,10 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
                   </div>
 
                   {/* Outgoing */}
-                  <div className="pt-2 border-t border-border/30">
-                    <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Sent Requests</h4>
+                  <div className="pt-3 border-t border-border/30">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-amber-500" /> Sent Requests</h4>
                     {Object.entries(friendshipsMap).filter(([_, f]) => f.status === "pending" && f.requester_id === user.id).length === 0 ? (
-                      <p className="text-xs text-muted-foreground py-2">No pending outgoing requests.</p>
+                      <p className="text-xs text-muted-foreground italic py-3 bg-muted/10 border border-border/10 rounded-lg text-center">No outgoing requests pending</p>
                     ) : (
                       <div className="space-y-2">
                         {Object.entries(friendshipsMap)
@@ -492,17 +606,17 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
                             const p = friendsProfiles[uid] || {};
                             const initials = `${(p.first_name?.[0] || "").toUpperCase()}${(p.last_name?.[0] || "").toUpperCase()}`;
                             return (
-                              <div key={uid} className="flex items-center justify-between bg-muted/10 p-2 py-1.5 rounded-lg">
-                                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setProfileDialogUser(uid)}>
+                              <div key={uid} className="flex items-center justify-between p-3 bg-card border border-border/30 rounded-xl shadow-xs">
+                                <div className="flex items-center gap-3 cursor-pointer" onClick={() => setProfileDialogUser(uid)}>
                                   <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-[10px]">{initials}</AvatarFallback>
+                                    <AvatarFallback className="bg-indigo-500/10 text-indigo-500 font-bold text-xs">{initials}</AvatarFallback>
                                   </Avatar>
                                   <div>
-                                    <p className="text-xs font-semibold hover:underline">{p.first_name} {p.last_name}</p>
+                                    <p className="text-xs font-bold text-foreground hover:underline">{p.first_name} {p.last_name}</p>
                                     <p className="text-[10px] text-muted-foreground">@{p.username || "—"}</p>
                                   </div>
                                 </div>
-                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => removeFriend(uid)}>Cancel</Button>
+                                <Button size="sm" variant="ghost" className="h-8 px-3 text-xs text-rose-500 hover:bg-rose-500/10" onClick={() => removeFriend(uid)}>Cancel</Button>
                               </div>
                             );
                           })}
@@ -512,48 +626,52 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
                 </TabsContent>
 
                 {/* Sub-tab: Discover */}
-                <TabsContent value="discover" className="space-y-3">
+                <TabsContent value="discover" className="space-y-3 pt-1 outline-none">
                   <div className="flex gap-2">
                     <Input 
-                      placeholder="Search by name or @username..." 
+                      placeholder="Search classmates by name or username..." 
                       value={searchQuery} 
                       onChange={(e) => setSearchQuery(e.target.value)} 
                       onKeyDown={(e) => e.key === "Enter" && searchFriends()} 
+                      className="rounded-lg border-border/60"
                     />
-                    <Button size="sm" onClick={searchFriends}><Search className="h-4 w-4" /></Button>
+                    <Button size="sm" onClick={searchFriends} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 shadow-md px-3"><Search className="h-4 w-4" /></Button>
                   </div>
                   
                   {searchResults.length > 0 ? (
-                    <div className="divide-y divide-border/40">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                       {searchResults.map((r) => {
                         const existing = friendshipsMap[r.id];
                         const initials = `${(r.first_name?.[0] || "").toUpperCase()}${(r.last_name?.[0] || "").toUpperCase()}`;
                         return (
-                          <div key={r.id} className="flex items-center justify-between py-2.5">
-                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setProfileDialogUser(r.id)}>
+                          <div key={r.id} className="flex items-center justify-between p-3 bg-muted/20 border border-border/30 rounded-xl">
+                            <div className="flex items-center gap-3 cursor-pointer min-w-0" onClick={() => setProfileDialogUser(r.id)}>
                               <Avatar className="h-9 w-9">
-                                <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-xs">{initials}</AvatarFallback>
+                                <AvatarFallback className="bg-indigo-500/10 text-indigo-500 font-bold text-xs">{initials}</AvatarFallback>
                               </Avatar>
-                              <div>
-                                <p className="text-sm font-semibold hover:underline">{r.first_name} {r.last_name}</p>
-                                <p className="text-xs text-muted-foreground">@{r.username || "—"} · Class {r.student_class || "—"}</p>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-foreground hover:underline truncate">{r.first_name} {r.last_name}</p>
+                                <p className="text-xs text-muted-foreground truncate">@{r.username || "—"} · Class {r.student_class || "—"}</p>
                               </div>
                             </div>
                             {!existing ? (
-                              <Button size="sm" onClick={() => sendFriendRequest(r.id)}><UserPlus className="h-4 w-4" /></Button>
+                              <Button size="sm" onClick={() => sendFriendRequest(r.id)} className="h-8 bg-indigo-600 hover:bg-indigo-700 rounded-lg"><UserPlus className="h-4 w-4" /></Button>
                             ) : existing.status === "accepted" ? (
-                              <Badge className="bg-green-600">Friends</Badge>
+                              <Badge className="bg-emerald-600">Friends</Badge>
                             ) : (
-                              <Badge variant="secondary">Pending</Badge>
+                              <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-bold">Pending</Badge>
                             )}
                           </div>
                         );
                       })}
                     </div>
                   ) : searchQuery.trim() ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">No profiles found matching "{searchQuery}"</p>
+                    <p className="text-xs text-muted-foreground text-center py-6">No matching profiles found for "{searchQuery}"</p>
                   ) : (
-                    <p className="text-xs text-muted-foreground text-center py-4">Search for classmates or teachers to link up!</p>
+                    <div className="text-center py-6 text-muted-foreground border border-dashed border-border/30 rounded-xl">
+                      <Search className="h-8 w-8 mx-auto mb-2 opacity-30 text-indigo-500" />
+                      <p className="text-xs font-semibold">Enter a name or username above to find classmates and link up!</p>
+                    </div>
                   )}
                 </TabsContent>
               </Tabs>
@@ -561,42 +679,92 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
           </Card>
         </TabsContent>
 
-        {/* Settings Tab */}
-        <TabsContent value="details" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+        {/* Tab 5: Settings / Details */}
+        <TabsContent value="details" className="space-y-4 outline-none">
+          <Card className="border-border/40 bg-card/75 backdrop-blur-md shadow-md">
+            <CardHeader className="pb-3 border-b border-border/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" />Account Details</CardTitle>
-                  <CardDescription>Manage your personal info and login credentials</CardDescription>
+                  <CardTitle className="text-lg font-bold flex items-center gap-2 text-foreground"><Settings className="h-5 w-5 text-indigo-500" /> Edit Profile</CardTitle>
+                  <CardDescription className="text-xs mt-0.5">Manage your public bio, student details, and info card</CardDescription>
                 </div>
                 {!isEditing ? (
-                  <Button onClick={() => setIsEditing(true)} variant="outline"><Edit className="h-4 w-4 mr-2" />Edit</Button>
+                  <Button onClick={() => setIsEditing(true)} variant="outline" className="rounded-lg border-border/60 hover:bg-muted/40 font-bold text-xs"><Edit className="h-4 w-4 mr-1.5" />Edit Profile</Button>
                 ) : (
                   <div className="flex gap-2">
-                    <Button onClick={handleSave} disabled={loading}><Save className="h-4 w-4 mr-2" />{loading ? 'Saving…' : 'Save'}</Button>
-                    <Button onClick={() => setIsEditing(false)} variant="outline" disabled={loading}><X className="h-4 w-4 mr-2" />Cancel</Button>
+                    <Button onClick={handleSave} disabled={loading} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 shadow-md font-bold text-xs"><Save className="h-4 w-4 mr-1.5" />{loading ? 'Saving…' : 'Save Details'}</Button>
+                    <Button onClick={() => setIsEditing(false)} variant="outline" disabled={loading} className="rounded-lg border-border/60 font-bold text-xs"><X className="h-4 w-4 mr-1.5" />Cancel</Button>
                   </div>
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5 pt-5">
+              {/* Profile completeness progress */}
+              <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-3 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-foreground">Profile Completeness</p>
+                  <p className="text-[10px] text-muted-foreground font-medium mt-0.5">Fill academic and contact info to reach 100%</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Progress value={completeness} className="w-24 h-2 bg-border/40" />
+                  <span className="text-xs font-black text-indigo-500">{completeness}%</span>
+                </div>
+              </div>
+
               <div>
-                <Label>Bio</Label>
-                <Textarea value={formData.bio} onChange={(e) => setFormData(f => ({ ...f, bio: e.target.value }))} disabled={!isEditing} placeholder="Say something about yourself…" maxLength={200} rows={2} />
+                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Bio Description</Label>
+                <Textarea 
+                  value={formData.bio} 
+                  onChange={(e) => setFormData(f => ({ ...f, bio: e.target.value }))} 
+                  disabled={!isEditing} 
+                  placeholder="Tell your classmates about your favorite book genres, interests or reading goals…" 
+                  maxLength={200} 
+                  rows={3} 
+                  className="rounded-lg mt-1 border-border/60"
+                />
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><Label>First Name *</Label><Input value={formData.first_name} onChange={e => setFormData(f => ({ ...f, first_name: e.target.value }))} disabled={!isEditing} /></div>
-                <div><Label>Last Name *</Label><Input value={formData.last_name} onChange={e => setFormData(f => ({ ...f, last_name: e.target.value }))} disabled={!isEditing} /></div>
+                <div>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">First Name</Label>
+                  <Input value={formData.first_name} onChange={e => setFormData(f => ({ ...f, first_name: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Last Name</Label>
+                  <Input value={formData.last_name} onChange={e => setFormData(f => ({ ...f, last_name: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+                </div>
               </div>
-              <div><Label>Email</Label><Input value={formData.email} disabled className="bg-muted/40" /></div>
-              <div><Label>Username</Label><Input value={formData.username} onChange={e => setFormData(f => ({ ...f, username: e.target.value }))} disabled={!isEditing} /></div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Address</Label>
+                  <Input value={formData.email} disabled className="rounded-lg mt-1 bg-muted/40 border-border/40 text-muted-foreground" />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Unique Username</Label>
+                  <Input value={formData.username} onChange={e => setFormData(f => ({ ...f, username: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div><Label>Class</Label><Input value={formData.student_class} onChange={e => setFormData(f => ({ ...f, student_class: e.target.value }))} disabled={!isEditing} /></div>
-                <div><Label>Roll Number</Label><Input value={formData.roll_number} onChange={e => setFormData(f => ({ ...f, roll_number: e.target.value }))} disabled={!isEditing} /></div>
-                <div><Label>Admission Number</Label><Input value={formData.admission_number} onChange={e => setFormData(f => ({ ...f, admission_number: e.target.value }))} disabled={!isEditing} /></div>
+                <div>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5 text-muted-foreground" /> Student Class</Label>
+                  <Input value={formData.student_class} onChange={e => setFormData(f => ({ ...f, student_class: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Roll Number</Label>
+                  <Input value={formData.roll_number} onChange={e => setFormData(f => ({ ...f, roll_number: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Admission Number</Label>
+                  <Input value={formData.admission_number} onChange={e => setFormData(f => ({ ...f, admission_number: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+                </div>
               </div>
-              <div><Label>Phone</Label><Input value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))} disabled={!isEditing} /></div>
+
+              <div>
+                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Phone Contact</Label>
+                <Input value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -604,7 +772,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
 
       {/* Friend Profile Dialog Modal */}
       <Dialog open={!!profileDialogUser} onOpenChange={(o) => !o && setProfileDialogUser(null)}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden bg-background">
+        <DialogContent className="max-w-lg p-0 overflow-hidden bg-background rounded-xl border border-border/40 shadow-xl">
           {profileDialogUser && (
             <ProfileView
               userId={profileDialogUser}
@@ -620,19 +788,5 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
     </div>
   );
 };
-
-const StatBlock = ({ icon, value, label }: any) => (
-  <div className="rounded-lg py-2 hover:bg-muted/40 transition-colors w-full cursor-pointer">
-    <p className="text-xl font-bold leading-none">{value ?? 0}</p>
-    <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wide">{label}</p>
-  </div>
-);
-const MiniStat = ({ icon, value, label }: any) => (
-  <div className="rounded-lg bg-muted/40 p-2 text-center hover:bg-muted/70 transition-colors cursor-pointer w-full">
-    <div className="flex justify-center mb-1">{icon}</div>
-    <p className="text-base font-bold leading-none">{value}</p>
-    <p className="text-[9px] text-muted-foreground mt-1">{label}</p>
-  </div>
-);
 
 export default StudentProfile;
