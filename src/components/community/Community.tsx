@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ProfileView } from "./ProfileView";
+
 
 interface Post { id: string; title: string; content: string; user_id: string; created_at: string; author?: any; likes: number; liked: boolean; comment_count: number; }
 interface Comment { id: string; content: string; user_id: string; created_at: string; author?: any; }
@@ -280,21 +282,20 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       )}
 
       <Dialog open={!!profileDialogUser} onOpenChange={(o) => !o && setProfileDialogUser(null)}>
-        <DialogContent className="max-w-md p-0 overflow-hidden">
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
           {profileDialogUser && (
-            <ProfileDialog
+            <ProfileView
               userId={profileDialogUser}
               currentUserId={currentUserId}
-              fetchStats={fetchProfileStats}
               friendship={friendshipsMap[profileDialogUser]}
               onSend={sendFriendRequest}
               onRespond={respondFriendRequest}
               onRemove={removeFriend}
-              onClose={() => setProfileDialogUser(null)}
             />
           )}
         </DialogContent>
       </Dialog>
+
     </div>
   );
 };
