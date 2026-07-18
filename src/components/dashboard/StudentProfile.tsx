@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -141,7 +141,9 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
 
   const initials = `${(user?.first_name?.[0] || '').toUpperCase()}${(user?.last_name?.[0] || '').toUpperCase()}`;
   const completeness = calculateCompleteness();
-  const LevelIcon = levelInfo ? (Icons[levelInfo.icon_name as keyof typeof Icons] as React.ComponentType<any>) : Star;
+  // Safely resolve the level icon — fall back to Star if the DB icon name doesn't match a Lucide export
+  const resolvedIcon = levelInfo?.icon_name ? (Icons as any)[levelInfo.icon_name] : null;
+  const LevelIcon: React.ComponentType<any> = typeof resolvedIcon === 'function' ? resolvedIcon : Star;
 
   return (
     <div className="space-y-6">
