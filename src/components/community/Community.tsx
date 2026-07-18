@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ProfileView } from "./ProfileView";
+
 
 interface Post { id: string; title: string; content: string; user_id: string; created_at: string; author?: any; likes: number; liked: boolean; comment_count: number; }
 interface Comment { id: string; content: string; user_id: string; created_at: string; author?: any; }
