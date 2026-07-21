@@ -1,4 +1,7 @@
 -- Fix get_leaderboard_data to also return last_name
+-- Must drop first because the return type signature is changing
+DROP FUNCTION IF EXISTS public.get_leaderboard_data(text);
+
 CREATE OR REPLACE FUNCTION public.get_leaderboard_data(class_filter TEXT DEFAULT NULL)
 RETURNS TABLE(id UUID, first_name TEXT, last_name TEXT, student_class TEXT, points INTEGER)
 LANGUAGE sql
