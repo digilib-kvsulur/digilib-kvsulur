@@ -54,21 +54,10 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
 
     setLoading(true);
     try {
-      // 1) Update auth password — the auth account keeps its original dummy email
-      //    (e.g. admissionNo@kvschool.in). We do NOT change the auth email because:
-      //    a) Supabase would send a verification email, blocking login until clicked.
-      //    b) find_user_by_identifier looks up profiles.email and then signs in with
-      //       the auth account email, which must stay as the original dummy email.
-      const { error: passwordError } = await supabase.auth.updateUser({
-        password: password
-      });
-
-      if (passwordError) throw passwordError;
-
-      // 3) Update public profiles table with real student email and profile info
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
+      // Invoke the Edge Function to atomically update the student auth email, password, and public profile details.
+      // Doing this via Edge Function allows us to bypass the email verification link, avoiding lockout.
+      const { data, error: functionError } = await supabase.functions.invoke("student-first-login-setup", {
+        body: {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
           student_class: studentClass.trim(),
@@ -76,25 +65,17 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
           phone: phone.trim(),
           email: email.trim(),
           username: username.trim().toLowerCase(),
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", user.id);
-
-      if (profileError) {
-        if (profileError.message?.toLowerCase().includes("unique") || profileError.message?.toLowerCase().includes("username")) {
-          throw new Error("This username is already taken. Please choose another username.");
+          password: password
         }
-        throw profileError;
-      }
-
-      // 4) Clear the needs_profile_update flag in auth metadata
-      await supabase.auth.updateUser({
-        data: { needs_profile_update: false }
       });
 
-      // 5) Force the local session to refresh so checkAuth() reads the new metadata.
-      //    Without this, getSession() returns the stale cached session and the dialog stays open.
-      await supabase.auth.refreshSession();
+      if (functionError) throw functionError;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      // Force the local session to refresh so checkAuth() reads the new metadata and email.
+      // Without this, getSession() returns the stale cached session.
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw refreshError;
 
       toast({
         title: "Profile Setup Complete!",
