@@ -59,16 +59,31 @@ const BookManager = () => {
   const [bulkEdit, setBulkEdit] = useState({ category: "", language: "", subject: "", class_level: "" });
   const [bulkBusy, setBulkBusy] = useState(false);
   const [formData, setFormData] = useState<BookFormData>(emptyForm);
-  const [fetchingDetails, setFetchingDetails] = useState(false);
+  const [fetchingAll, setFetchingAll] = useState(false);
+  const [fetchAllProgress, setFetchAllProgress] = useState("");
   const { toast } = useToast();
 
   useEffect(() => { loadBooks(); }, []);
 
   const loadBooks = async () => {
     try {
-      const { data, error } = await supabase.from('books').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      setBooks(data || []);
+      // Fetch ALL books using pagination (Supabase default limit is 1000)
+      let allBooks: Book[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('books')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allBooks = [...allBooks, ...data];
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      setBooks(allBooks);
     } catch (error) {
       toast({ title: "Error", description: "Failed to load books", variant: "destructive" });
     } finally { setLoading(false); }
@@ -150,6 +165,53 @@ const BookManager = () => {
     }
   };
 
+  // Batch-fetch online metadata for ALL books that have missing description/cover/category
+  const fetchAllMissingMetadata = async () => {
+    const targets = books.filter(b =>
+      !b.description || (b.description as string).trim().length < 20 || !b.cover_url || !b.category
+    );
+    if (targets.length === 0) {
+      toast({ title: "All books already have metadata", description: "Nothing to update." });
+      return;
+    }
+    setFetchingAll(true);
+    let updated = 0;
+    let failed = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const book = targets[i];
+      setFetchAllProgress(`Fetching ${i + 1}/${targets.length}: ${book.title.slice(0, 30)}...`);
+      try {
+        const details = await fetchBookByQuery(book.title, book.author);
+        const patch: any = {};
+        if (details) {
+          if ((!book.description || (book.description as string).trim().length < 20) && details.description) patch.description = details.description;
+          if (!book.cover_url && details.cover_url) patch.cover_url = details.cover_url;
+          if (!book.category && details.category) patch.category = details.category;
+          if (!(book as any).language && details.language) patch.language = details.language;
+        }
+        if (!patch.description) {
+          const { generateSmartBookDescription } = await import("@/lib/bookApi");
+          patch.description = generateSmartBookDescription(book.title, book.author, book.category || undefined);
+        }
+        if (Object.keys(patch).length > 0) {
+          await supabase.from('books').update(patch).eq('id', book.id);
+          updated++;
+        }
+        // Small delay to avoid hammering APIs
+        await new Promise(r => setTimeout(r, 400));
+      } catch {
+        failed++;
+      }
+    }
+    setFetchingAll(false);
+    setFetchAllProgress("");
+    toast({
+      title: "Metadata fetch complete",
+      description: `${updated} books updated${failed > 0 ? `, ${failed} failed` : ""}.`
+    });
+    loadBooks();
+  };
+
   const handleDelete = async (bookId: string) => {
     if (!confirm('Delete this book?')) return;
     const { error } = await supabase.from('books').delete().eq('id', bookId);
@@ -218,6 +280,22 @@ const BookManager = () => {
           <p className="text-sm text-muted-foreground">{books.length} titles · {totalCopies} copies · {availableCopies} available</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {fetchingAll && (
+            <div className="flex items-center gap-2 text-xs text-indigo-600 font-medium bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {fetchAllProgress || "Fetching metadata..."}
+            </div>
+          )}
+          <Button
+            onClick={fetchAllMissingMetadata}
+            disabled={fetchingAll}
+            variant="outline"
+            size="sm"
+            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+          >
+            <Wand2 className="h-4 w-4 mr-2" />
+            Fetch Online Data
+          </Button>
           <BulkImportBooks onImported={loadBooks} />
           <Button onClick={handleAddNew} className="gradient-primary border-0 shadow-md">
             <Plus className="h-4 w-4 mr-2" />Add Book

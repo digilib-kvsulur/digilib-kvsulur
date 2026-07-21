@@ -58,9 +58,22 @@ const Catalog = () => {
 
   const loadBooks = async () => {
     try {
-      const { data, error } = await supabase.from("books").select("*").gt("total_copies", 0);
-      if (error) throw error;
-      setBooks(data || []);
+      let allBooks: any[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("books")
+          .select("*")
+          .gt("total_copies", 0)
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allBooks = [...allBooks, ...data];
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      setBooks(allBooks);
       const { data: rev } = await supabase.from("book_reviews").select("book_id, rating").eq("is_hidden", false);
       const agg: Record<string, { sum: number; count: number }> = {};
       (rev || []).forEach((r: any) => {

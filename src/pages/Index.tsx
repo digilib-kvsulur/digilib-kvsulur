@@ -124,7 +124,7 @@ const Index = () => {
 
       {/* Top Banner strip with generous padding */}
       <div className="relative border-b border-indigo-100 bg-indigo-50/80 text-xs backdrop-blur-sm z-50">
-        <div className="max-w-7xl mx-auto px-8 sm:px-12 py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-3 flex items-center justify-between">
           <div className="flex items-center gap-6 text-slate-600">
             <span className="flex items-center gap-2 font-medium"><MapPin className="h-4 w-4 text-indigo-600" /> PM SHRI KV AFS Sulur, Coimbatore</span>
             <span className="h-3.5 w-px bg-slate-300 hidden md:block" />
@@ -138,7 +138,7 @@ const Index = () => {
 
       {/* Main Header with generous padding */}
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md transition-all shadow-xs">
-        <div className="max-w-7xl mx-auto px-8 sm:px-12 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3.5 cursor-pointer" onClick={() => navigate("/")}>
             <div className="w-11 h-11 bg-gradient-to-tr from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/20">
               <BookOpen className="h-5.5 w-5.5 text-white" />
@@ -179,7 +179,7 @@ const Index = () => {
 
       {/* Hero Section with extra padding */}
       <section className="relative pt-16 lg:pt-20 pb-24 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-14 items-center">
             {/* Left Column */}
             <div className="lg:col-span-6 space-y-7 text-center lg:text-left">
@@ -253,7 +253,7 @@ const Index = () => {
 
       {/* Light Stats Row with extra padding */}
       <section className="border-y border-slate-200/80 bg-white">
-        <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
             { icon: BookMarked, v: statistics.totalBooks, l: "Books In Catalog" },
             { icon: Users, v: statistics.activeUsers, l: "Verified Readers" },
@@ -276,7 +276,7 @@ const Index = () => {
       {/* Trending Books Showcase with generous padding */}
       {trendingBooks.length > 0 && (
         <section className="py-24 relative">
-          <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="flex items-end justify-between mb-12">
               <div className="space-y-1">
                 <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Trending Now</p>
@@ -321,7 +321,7 @@ const Index = () => {
 
       {/* Features Grid with generous card padding */}
       <section id="about" className="py-24 bg-white border-y border-slate-200/80 relative">
-        <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
             <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Built For KV Students</p>
             <h3 className="text-3xl sm:text-4xl font-black text-slate-900">A Modern Gamified Library</h3>
@@ -344,7 +344,7 @@ const Index = () => {
 
       {/* Events Activity with extra padding */}
       <section id="events" className="py-24">
-        <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
             <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Calendar</p>
             <h3 className="text-3xl font-black text-slate-900">Upcoming Events & Activities</h3>
@@ -386,7 +386,7 @@ const Index = () => {
 
       {/* Footer with generous padding */}
       <footer className="bg-slate-900 border-t border-slate-800 py-16 text-sm text-slate-400">
-        <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-slate-800 pb-12">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
