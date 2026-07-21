@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 interface SchoolLeaderboardEntry {
   id: string;
   first_name: string;
+  last_name: string;
+  full_name: string;
   student_class: string;
   points: number;
   rank: number;
@@ -55,7 +57,8 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
       let currentRank = 1;
       validStudents.forEach((student: any, index: number) => {
         if (index > 0 && student.points !== validStudents[index - 1].points) currentRank = index + 1;
-        ranked.push({ ...student, points: student.points || 0, rank: currentRank });
+        const fullName = `${student.first_name || ""} ${student.last_name || ""}`.trim() || student.first_name || "Student";
+        ranked.push({ ...student, full_name: fullName, points: student.points || 0, rank: currentRank });
       });
       setEntries(ranked);
 
@@ -118,7 +121,7 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
                     {entry.first_name.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                <h4 className="font-semibold text-sm text-foreground truncate">{entry.first_name}</h4>
+                <h4 className="font-semibold text-sm text-foreground truncate">{entry.full_name}</h4>
                 <p className="text-xs text-muted-foreground">Class {entry.student_class}</p>
                 <p className="text-xl font-bold text-primary mt-2">{entry.points}</p>
                 <p className="text-[10px] text-muted-foreground">points</p>
@@ -145,7 +148,7 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-medium text-foreground truncate">{entry.first_name}</span>
+                  <span className="text-sm font-medium text-foreground truncate">{entry.full_name}</span>
                   {entry.id === currentUserId && <Badge variant="secondary" className="text-[10px] px-1.5">You</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground">Class {entry.student_class}</p>
