@@ -14,7 +14,6 @@ interface Row {
   admission_number?: string;
   phone?: string;
   password?: string;
-  // new import columns
   student_uid?: string;
   student_name?: string;
 }
@@ -59,15 +58,14 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Resolve email
-      const email = row.email?.trim().toLowerCase() || `${uid}@kvsulur.digilib`;
+      // Valid standard email domain format
+      const email = row.email?.trim().toLowerCase() || `${uid}@student.kvsulur.edu.in`;
 
       // Resolve name
       const name = (row.student_name || row.first_name || "Student").toString().trim();
       let firstName = name;
       let lastName = (row.last_name || "").toString().trim();
       
-      // If we got a full name and no last name, split it
       if (name && !lastName) {
         const parts = name.split(/\s+/);
         if (parts.length > 1) {
@@ -77,10 +75,13 @@ Deno.serve(async (req) => {
       }
 
       const rawClass = (row.student_class || "").toString().trim();
-
       const password = row.password?.trim() || "Welcome@123";
 
       try {
+        let userId: string | null = null;
+        let isExisting = false;
+
+        // Try creating new user
         const { data: created, error: createErr } = await admin.auth.admin.createUser({
           email,
           password,
@@ -93,33 +94,66 @@ Deno.serve(async (req) => {
             roll_number: row.roll_number?.trim() || "",
             admission_number: uid,
             phone: row.phone?.trim() || "",
-            needs_profile_update: true, // Mark that profile needs completion on first login
+            needs_profile_update: true,
           },
         });
-        if (createErr) throw createErr;
 
-        // Update the profile with the basic details.
-        // needs_profile_update is tracked via auth user_metadata (set above), NOT the profiles table.
-        // This makes it work without running the DB migration.
-        const { error: profileErr } = await admin.from("profiles").update({
-          role: "student",
-          is_approved: true,
-          approved_by: caller.id,
-          approved_at: new Date().toISOString(),
-          first_name: firstName,
-          last_name: lastName,
-          student_class: rawClass,
-          roll_number: row.roll_number?.trim() || "",
-          admission_number: uid,
-          phone: row.phone?.trim() || "",
-        }).eq("id", created.user.id);
+        if (createErr) {
+          // If user already registered, update existing user
+          if (createErr.message?.toLowerCase().includes("already registered") || createErr.message?.toLowerCase().includes("already exists")) {
+            isExisting = true;
+            const { data: usersList } = await admin.auth.admin.listUsers();
+            const existingUser = usersList?.users?.find(u => u.email?.toLowerCase() === email);
+            if (existingUser) {
+              userId = existingUser.id;
+              await admin.auth.admin.updateUserById(userId, {
+                password,
+                user_metadata: {
+                  ...existingUser.user_metadata,
+                  first_name: firstName,
+                  last_name: lastName,
+                  student_class: rawClass,
+                  admission_number: uid,
+                  needs_profile_update: true,
+                }
+              });
+            } else {
+              throw createErr;
+            }
+          } else {
+            throw createErr;
+          }
+        } else if (created?.user) {
+          userId = created.user.id;
+        }
 
-        results.push({
-          email,
-          success: true,
-          password,
-          ...(profileErr ? { error: `Profile update warning: ${profileErr.message}` } : {})
-        });
+        if (userId) {
+          // Update profile in DB
+          await admin.from("profiles").upsert({
+            id: userId,
+            role: "student",
+            is_approved: true,
+            approved_by: caller.id,
+            approved_at: new Date().toISOString(),
+            first_name: firstName,
+            last_name: lastName,
+            student_class: rawClass,
+            roll_number: row.roll_number?.trim() || "",
+            admission_number: uid,
+            phone: row.phone?.trim() || "",
+            email: email,
+            updated_at: new Date().toISOString()
+          }, { onConflict: "id" });
+
+          results.push({
+            email,
+            success: true,
+            password,
+            error: isExisting ? "Updated existing account" : undefined
+          });
+        } else {
+          results.push({ email, success: false, error: "User ID resolution failed" });
+        }
       } catch (e: any) {
         results.push({ email, success: false, error: e.message || String(e) });
       }
