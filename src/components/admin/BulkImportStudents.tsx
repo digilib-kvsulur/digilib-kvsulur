@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 
 const SAMPLE_CSV = `student_uid,student_name,student_class
 12345,Aarav Sharma,8
@@ -22,13 +23,16 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
   const [serverError, setServerError] = useState<string | null>(null);
+  const [progressStatus, setProgressStatus] = useState("");
+  const [progressPercent, setProgressPercent] = useState(0);
   const { toast } = useToast();
 
-  const reset = () => { setRows([]); setResults([]); setFileName(""); setServerError(null); };
+  const reset = () => { setRows([]); setResults([]); setFileName(""); setServerError(null); setProgressStatus(""); setProgressPercent(0); };
 
   const handleFile = (file: File) => {
     setFileName(file.name);
     setServerError(null);
+    setResults([]);
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
@@ -68,32 +72,48 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
     if (rows.length === 0) return;
     setLoading(true);
     setServerError(null);
+    setResults([]);
+    setProgressPercent(0);
+
+    const formattedRows = rows.map(r => ({
+      ...r,
+      student_uid: String(r.student_uid).trim(),
+      email: `${String(r.student_uid).trim()}@kvsulur.com`
+    }));
+
+    const BATCH_SIZE = 100;
+    const totalBatches = Math.ceil(formattedRows.length / BATCH_SIZE);
+    const allResults: ResultRow[] = [];
+
     try {
-      // Pass normalized rows with guaranteed email format
-      const formattedRows = rows.map(r => ({
-        ...r,
-        student_uid: String(r.student_uid).trim(),
-        email: `${String(r.student_uid).trim()}@kvsulur.com`
-      }));
+      for (let i = 0; i < formattedRows.length; i += BATCH_SIZE) {
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const chunk = formattedRows.slice(i, i + BATCH_SIZE);
+        const currentCount = Math.min(i + BATCH_SIZE, formattedRows.length);
+        
+        setProgressStatus(`Importing batch ${batchNum} of ${totalBatches} (${currentCount}/${formattedRows.length} students)...`);
+        setProgressPercent(Math.round((currentCount / formattedRows.length) * 100));
 
-      const { data, error } = await supabase.functions.invoke("admin-bulk-create-users", {
-        body: { rows: formattedRows }
-      });
+        const { data, error } = await supabase.functions.invoke("admin-bulk-create-users", {
+          body: { rows: chunk }
+        });
 
-      if (error) {
-        throw new Error(error.message || "Failed to invoke bulk import function");
+        if (error) {
+          throw new Error(`Batch ${batchNum} failed: ${error.message}`);
+        }
+        
+        if ((data as any)?.error) {
+          throw new Error(`Batch ${batchNum} error: ${(data as any).error}`);
+        }
+
+        const chunkResults = ((data as any).results as ResultRow[]) || [];
+        allResults.push(...chunkResults);
+        setResults([...allResults]);
       }
-      
-      if ((data as any)?.error) {
-        throw new Error((data as any).error);
-      }
 
-      const r = (data as any).results as ResultRow[];
-      setResults(r || []);
-      const ok = (r || []).filter(x => x.success).length;
-      
+      const ok = allResults.filter(x => x.success).length;
       if (ok > 0) {
-        toast({ title: "Import Complete", description: `${ok}/${r.length} students processed successfully!` });
+        toast({ title: "Import Complete", description: `${ok}/${allResults.length} students processed successfully!` });
         onImported?.();
       } else {
         toast({ 
@@ -104,10 +124,11 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
       }
     } catch (e: any) {
       console.error("Bulk import error:", e);
-      setServerError(e.message || "Edge function failed. Make sure 'admin-bulk-create-users' is deployed on Supabase.");
-      toast({ title: "Import failed", description: e.message, variant: "destructive" });
+      setServerError(e.message || "Edge function failed during batch import.");
+      toast({ title: "Import stopped early", description: e.message, variant: "destructive" });
     } finally { 
       setLoading(false); 
+      setProgressStatus("");
     }
   };
 
@@ -121,7 +142,7 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!loading) { setOpen(o); if (!o) reset(); } }}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline"><Upload className="h-4 w-4 mr-2" />Bulk Import</Button>
       </DialogTrigger>
@@ -141,23 +162,36 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
             </Alert>
           )}
 
+          {loading && (
+            <div className="space-y-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl">
+              <div className="flex items-center justify-between text-xs font-bold text-indigo-900">
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+                  {progressStatus}
+                </span>
+                <span>{progressPercent}%</span>
+              </div>
+              <Progress value={progressPercent} className="h-2 bg-indigo-200" />
+            </div>
+          )}
+
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={downloadSample}>
+            <Button variant="outline" size="sm" onClick={downloadSample} disabled={loading}>
               <FileDown className="h-4 w-4 mr-2" />Download sample CSV
             </Button>
             <label className="inline-flex">
               <input
-                type="file" accept=".csv" className="hidden"
+                type="file" accept=".csv" className="hidden" disabled={loading}
                 onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
               />
-              <span className="inline-flex items-center px-3 py-1.5 text-sm rounded-md border border-input bg-background hover:bg-accent cursor-pointer">
+              <span className={`inline-flex items-center px-3 py-1.5 text-sm rounded-md border border-input bg-background cursor-pointer ${loading ? "opacity-50 pointer-events-none" : "hover:bg-accent"}`}>
                 <Upload className="h-4 w-4 mr-2" />Choose CSV file
               </span>
             </label>
             {fileName && <Badge variant="secondary" className="self-center">{fileName} · {rows.length} rows</Badge>}
           </div>
 
-          {rows.length > 0 && results.length === 0 && (
+          {rows.length > 0 && results.length === 0 && !loading && (
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-muted px-3 py-2 text-xs font-medium">Preview (first 5)</div>
               <div className="text-xs">
@@ -199,9 +233,9 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Close</Button>
           <Button onClick={submit} disabled={loading || rows.length === 0} className="gradient-primary border-0">
-            {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importing...</> : `Import ${rows.length} student${rows.length === 1 ? "" : "s"}`}
+            {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importing ({progressPercent}%)...</> : `Import ${rows.length} student${rows.length === 1 ? "" : "s"}`}
           </Button>
         </DialogFooter>
       </DialogContent>

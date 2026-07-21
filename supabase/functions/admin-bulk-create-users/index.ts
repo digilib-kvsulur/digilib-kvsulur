@@ -44,8 +44,8 @@ Deno.serve(async (req) => {
     if (!Array.isArray(rows) || rows.length === 0) {
       return new Response(JSON.stringify({ error: "No rows provided" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (rows.length > 1000) {
-      return new Response(JSON.stringify({ error: "Maximum 1000 rows per import" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (rows.length > 5000) {
+      return new Response(JSON.stringify({ error: "Maximum 5000 rows per import batch" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Process a single row
