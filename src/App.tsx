@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import BookDetails from "./pages/BookDetails";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => {
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
             <Route path="/book/:id" element={<BookDetails />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

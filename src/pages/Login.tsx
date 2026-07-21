@@ -68,16 +68,31 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     if (!resetEmail) {
-      toast({ title: "Missing Email", description: "Please enter your email address", variant: "destructive" });
+      toast({ title: "Missing Info", description: "Please enter your email, admission number, or username", variant: "destructive" });
       setIsLoading(false);
       return;
     }
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, { redirectTo: `${window.location.origin}/reset-password` });
+      // Look up the user's real auth email via their identifier (email / username / admission no.)
+      // Bulk-imported students have a dummy auth email (e.g. 12345@kvschool.in), so we can't
+      // send the reset directly to what the user types — we must resolve their auth email first.
+      const { data: userData, error: lookupError } = await supabase.rpc('find_user_by_identifier', { identifier: resetEmail.trim() });
+
+      if (lookupError || !userData || userData.length === 0) {
+        toast({ title: "User Not Found", description: "No account found with that email, username, or admission number.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
+
+      const authEmail = userData[0].email;
+      const { error } = await supabase.auth.resetPasswordForEmail(authEmail, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
       if (error) {
         toast({ title: "Reset Failed", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: "Reset Email Sent", description: "Check your email for password reset instructions" });
+        toast({ title: "Reset Link Sent!", description: "A password reset link has been sent to the email on file for your account." });
         setShowForgotPassword(false);
         setResetEmail("");
       }
@@ -170,8 +185,9 @@ const Login = () => {
           {showForgotPassword ? (
             <form onSubmit={handleForgotPassword} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="resetEmail" className="text-sm font-medium">Email Address</Label>
-                <Input id="resetEmail" type="email" placeholder="Enter your email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="h-12 rounded-xl" required />
+                <Label htmlFor="resetEmail" className="text-sm font-medium">Email / Username / Admission Number</Label>
+                <Input id="resetEmail" type="text" placeholder="e.g. 12345 or your username" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="h-12 rounded-xl" required />
+                <p className="text-xs text-muted-foreground">Enter any identifier linked to your account. The reset link will be sent to the registered email on file.</p>
               </div>
               <Button type="submit" className="w-full h-12 rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg hover:shadow-xl transition-all" disabled={isLoading}>
                 {isLoading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Sending...</span> : 'Send Reset Link'}

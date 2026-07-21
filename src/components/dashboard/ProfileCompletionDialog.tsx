@@ -54,24 +54,16 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
 
     setLoading(true);
     try {
-      // 1) Update auth password first (non-fatal for email validation issues)
+      // 1) Update auth password — the auth account keeps its original dummy email
+      //    (e.g. admissionNo@kvschool.in). We do NOT change the auth email because:
+      //    a) Supabase would send a verification email, blocking login until clicked.
+      //    b) find_user_by_identifier looks up profiles.email and then signs in with
+      //       the auth account email, which must stay as the original dummy email.
       const { error: passwordError } = await supabase.auth.updateUser({
         password: password
       });
 
       if (passwordError) throw passwordError;
-
-      // 2) Try updating auth email address (non-fatal if old dummy domain is rejected by Supabase)
-      try {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: email.trim()
-        });
-        if (emailError) {
-          console.warn("Auth email update warning (proceeding with profile update):", emailError.message);
-        }
-      } catch (emailEx) {
-        console.warn("Auth email update exception:", emailEx);
-      }
 
       // 3) Update public profiles table with real student email and profile info
       const { error: profileError } = await supabase
