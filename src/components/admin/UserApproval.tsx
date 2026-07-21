@@ -49,12 +49,21 @@ const UserApproval = () => {
   const syncAllProfiles = async () => {
     setSyncing(true);
     try {
+      // 1. Try direct SQL RPC call first (instant, bypasses Deno network timeouts)
+      const { data: count, error: rpcErr } = await supabase.rpc("sync_missing_auth_profiles");
+      if (!rpcErr && typeof count === "number") {
+        toast({ title: "Profiles Synced!", description: `Successfully synced ${count} auth users into the profiles table.` });
+        await loadUsers();
+        return;
+      }
+
+      // 2. Fall back to Edge Function if RPC fails or is missing
       const { data, error } = await supabase.functions.invoke("admin-bulk-create-users", {
         body: { action: "sync_all_auth_users" }
       });
       if (error) throw error;
-      const count = (data as any)?.totalSynced || 0;
-      toast({ title: "Profiles Synced!", description: `Successfully synced ${count} auth users into the profiles table.` });
+      const totalCount = (data as any)?.totalSynced || 0;
+      toast({ title: "Profiles Synced!", description: `Successfully synced ${totalCount} auth users into the profiles table.` });
       await loadUsers();
     } catch (e: any) {
       toast({ title: "Sync failed", description: e.message || "Failed to sync auth users", variant: "destructive" });

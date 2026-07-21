@@ -113,9 +113,12 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
 
       // Final auto-sync to ensure all auth users have profile rows in public.profiles
       try {
-        await supabase.functions.invoke("admin-bulk-create-users", {
-          body: { action: "sync_all_auth_users" }
-        });
+        const { error: rpcErr } = await supabase.rpc("sync_missing_auth_profiles");
+        if (rpcErr) {
+          await supabase.functions.invoke("admin-bulk-create-users", {
+            body: { action: "sync_all_auth_users" }
+          });
+        }
       } catch (_) {}
 
       const ok = allResults.filter(x => x.success).length;
