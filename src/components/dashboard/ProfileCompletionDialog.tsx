@@ -93,6 +93,10 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
         data: { needs_profile_update: false }
       });
 
+      // 5) Force the local session to refresh so checkAuth() reads the new metadata.
+      //    Without this, getSession() returns the stale cached session and the dialog stays open.
+      await supabase.auth.refreshSession();
+
       toast({
         title: "Profile Setup Complete!",
         description: "Your account is now fully set up. Welcome to the library!",

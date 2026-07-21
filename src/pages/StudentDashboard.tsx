@@ -84,7 +84,9 @@ const StudentDashboard = () => {
 
   const checkAuth = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Use refreshSession so we always get up-to-date user_metadata (e.g. needs_profile_update)
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      const session = refreshed.session ?? (await supabase.auth.getSession()).data.session;
       if (!session) { navigate('/login'); return; }
       const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       if (error || !profile) { navigate('/login'); return; }
