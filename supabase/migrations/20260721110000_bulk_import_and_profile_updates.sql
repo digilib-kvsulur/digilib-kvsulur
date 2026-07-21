@@ -42,7 +42,7 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- 3) Direct SQL function to bulk-sync all auth.users into public.profiles
+-- 3) Robust cursor loop PL/pgSQL function to sync all auth.users safely without unique conflicts
 CREATE OR REPLACE FUNCTION public.sync_missing_auth_profiles()
 RETURNS integer
 LANGUAGE plpgsql
@@ -50,46 +50,79 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  synced_count integer;
+  u record;
+  synced_count integer := 0;
+  uid text;
+  email_lower text;
 BEGIN
-  INSERT INTO public.profiles (
-    id,
-    email,
-    first_name,
-    last_name,
-    role,
-    student_class,
-    roll_number,
-    admission_number,
-    phone,
-    is_approved,
-    needs_profile_update,
-    updated_at
-  )
-  SELECT 
-    u.id,
-    LOWER(u.email),
-    COALESCE(u.raw_user_meta_data->>'first_name', 'Student'),
-    COALESCE(u.raw_user_meta_data->>'last_name', ''),
-    COALESCE(u.raw_user_meta_data->>'role', 'student'),
-    COALESCE(u.raw_user_meta_data->>'student_class', ''),
-    COALESCE(u.raw_user_meta_data->>'roll_number', ''),
-    COALESCE(u.raw_user_meta_data->>'admission_number', SPLIT_PART(u.email, '@', 1)),
-    COALESCE(u.raw_user_meta_data->>'phone', ''),
-    true,
-    true,
-    NOW()
-  FROM auth.users u
-  ON CONFLICT (id) DO UPDATE SET
-    email = EXCLUDED.email,
-    first_name = EXCLUDED.first_name,
-    last_name = EXCLUDED.last_name,
-    student_class = EXCLUDED.student_class,
-    admission_number = EXCLUDED.admission_number,
-    is_approved = true,
-    updated_at = NOW();
+  FOR u IN SELECT * FROM auth.users LOOP
+    BEGIN
+      uid := COALESCE(u.raw_user_meta_data->>'admission_number', SPLIT_PART(u.email, '@', 1));
+      email_lower := LOWER(u.email);
 
-  GET DIAGNOSTICS synced_count = ROW_COUNT;
+      -- Check if id already exists
+      IF EXISTS (SELECT 1 FROM public.profiles WHERE id = u.id) THEN
+        UPDATE public.profiles SET
+          email = email_lower,
+          first_name = COALESCE(u.raw_user_meta_data->>'first_name', 'Student'),
+          last_name = COALESCE(u.raw_user_meta_data->>'last_name', ''),
+          student_class = COALESCE(u.raw_user_meta_data->>'student_class', ''),
+          roll_number = COALESCE(u.raw_user_meta_data->>'roll_number', ''),
+          admission_number = uid,
+          phone = COALESCE(u.raw_user_meta_data->>'phone', ''),
+          is_approved = true,
+          updated_at = NOW()
+        WHERE id = u.id;
+        synced_count := synced_count + 1;
+      -- Check if admission_number or email exists to avoid 409 unique key conflicts
+      ELSIF EXISTS (SELECT 1 FROM public.profiles WHERE admission_number = uid OR email = email_lower) THEN
+        UPDATE public.profiles SET
+          id = u.id,
+          email = email_lower,
+          first_name = COALESCE(u.raw_user_meta_data->>'first_name', 'Student'),
+          last_name = COALESCE(u.raw_user_meta_data->>'last_name', ''),
+          student_class = COALESCE(u.raw_user_meta_data->>'student_class', ''),
+          roll_number = COALESCE(u.raw_user_meta_data->>'roll_number', ''),
+          phone = COALESCE(u.raw_user_meta_data->>'phone', ''),
+          is_approved = true,
+          updated_at = NOW()
+        WHERE admission_number = uid OR email = email_lower;
+        synced_count := synced_count + 1;
+      ELSE
+        -- Safe Insert
+        INSERT INTO public.profiles (
+          id,
+          email,
+          first_name,
+          last_name,
+          role,
+          student_class,
+          roll_number,
+          admission_number,
+          phone,
+          is_approved,
+          needs_profile_update,
+          updated_at
+        ) VALUES (
+          u.id,
+          email_lower,
+          COALESCE(u.raw_user_meta_data->>'first_name', 'Student'),
+          COALESCE(u.raw_user_meta_data->>'last_name', ''),
+          COALESCE(u.raw_user_meta_data->>'role', 'student'),
+          COALESCE(u.raw_user_meta_data->>'student_class', ''),
+          COALESCE(u.raw_user_meta_data->>'roll_number', ''),
+          uid,
+          COALESCE(u.raw_user_meta_data->>'phone', ''),
+          true,
+          true,
+          NOW()
+        );
+        synced_count := synced_count + 1;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      -- Proceed to next user in case of any unhandled conflict
+    END;
+  END LOOP;
   RETURN synced_count;
 END;
 $$;
