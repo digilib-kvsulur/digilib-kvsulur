@@ -40,7 +40,51 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { rows } = await req.json() as { rows: Row[] };
+    const body = await req.json();
+
+    // Mode: Sync all existing Auth Users to public.profiles
+    if (body.action === "sync_all_auth_users") {
+      let page = 1;
+      let totalSynced = 0;
+      while (true) {
+        const { data: { users }, error: listErr } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        if (listErr || !users || users.length === 0) break;
+
+        const profilesToUpsert = users.map(u => {
+          const meta = u.user_metadata || {};
+          const uid = String(meta.admission_number || u.email?.split('@')[0] || '').trim();
+          const name = String(meta.first_name || 'Student').trim();
+          let firstName = name;
+          let lastName = String(meta.last_name || '').trim();
+          if (name && !lastName) {
+            const parts = name.split(/\s+/);
+            if (parts.length > 1) { firstName = parts[0]; lastName = parts.slice(1).join(" "); }
+          }
+          return {
+            id: u.id,
+            email: u.email?.toLowerCase() || '',
+            first_name: firstName,
+            last_name: lastName,
+            role: String(meta.role || 'student'),
+            student_class: String(meta.student_class || ''),
+            roll_number: String(meta.roll_number || ''),
+            admission_number: uid,
+            phone: String(meta.phone || ''),
+            is_approved: true,
+            needs_profile_update: true,
+            updated_at: new Date().toISOString()
+          };
+        });
+
+        await admin.from('profiles').upsert(profilesToUpsert, { onConflict: 'id' });
+        totalSynced += users.length;
+        if (users.length < 1000) break;
+        page++;
+      }
+      return new Response(JSON.stringify({ success: true, totalSynced }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const rows = body.rows as Row[];
     if (!Array.isArray(rows) || rows.length === 0) {
       return new Response(JSON.stringify({ error: "No rows provided" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

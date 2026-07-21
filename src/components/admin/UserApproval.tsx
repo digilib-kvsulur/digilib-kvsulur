@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,7 @@ const UserApproval = () => {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { init(); }, []);
@@ -43,6 +44,23 @@ const UserApproval = () => {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
     await loadUsers();
+  };
+
+  const syncAllProfiles = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-bulk-create-users", {
+        body: { action: "sync_all_auth_users" }
+      });
+      if (error) throw error;
+      const count = (data as any)?.totalSynced || 0;
+      toast({ title: "Profiles Synced!", description: `Successfully synced ${count} auth users into the profiles table.` });
+      await loadUsers();
+    } catch (e: any) {
+      toast({ title: "Sync failed", description: e.message || "Failed to sync auth users", variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const loadUsers = async () => {
@@ -139,6 +157,10 @@ const UserApproval = () => {
           <p className="text-sm text-muted-foreground">{users.length} total · {users.filter(u => !u.is_approved).length} pending</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={syncAllProfiles} disabled={syncing} className="border-indigo-300 text-indigo-700 hover:bg-indigo-50">
+            <RotateCcw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing..." : "Sync Auth Users"}
+          </Button>
           <BulkImportStudents onImported={loadUsers} />
           <AddUserDialog onCreated={loadUsers} />
         </div>

@@ -111,6 +111,13 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
         setResults([...allResults]);
       }
 
+      // Final auto-sync to ensure all auth users have profile rows in public.profiles
+      try {
+        await supabase.functions.invoke("admin-bulk-create-users", {
+          body: { action: "sync_all_auth_users" }
+        });
+      } catch (_) {}
+
       const ok = allResults.filter(x => x.success).length;
       if (ok > 0) {
         toast({ title: "Import Complete", description: `${ok}/${allResults.length} students processed successfully!` });
