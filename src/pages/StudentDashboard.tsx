@@ -84,9 +84,16 @@ const StudentDashboard = () => {
 
   const checkAuth = async () => {
     try {
-      // Use refreshSession so we always get up-to-date user_metadata (e.g. needs_profile_update)
-      const { data: refreshed } = await supabase.auth.refreshSession();
-      const session = refreshed.session ?? (await supabase.auth.getSession()).data.session;
+      // Prefer refreshSession to get up-to-date user_metadata; fall back to getSession if it fails
+      let session: any = null;
+      try {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        session = refreshed.session;
+      } catch (_) {}
+      if (!session) {
+        const { data: { session: cached } } = await supabase.auth.getSession();
+        session = cached;
+      }
       if (!session) { navigate('/login'); return; }
       const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       if (error || !profile) { navigate('/login'); return; }
@@ -140,7 +147,12 @@ const StudentDashboard = () => {
   useEffect(() => { if (user?.points && previousLevel !== null) checkLevelUp(user.points); }, [user?.points, previousLevel]);
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/login'); };
-  const handleProfileUpdate = () => checkAuth();
+  const handleProfileUpdate = () => {
+    // Immediately clear the flag in local state so the dialog unmounts right away.
+    // checkAuth() will then run in the background to fully refresh the user object.
+    setUser((prev: any) => prev ? { ...prev, needs_profile_update: false } : prev);
+    checkAuth();
+  };
 
   const handleQuizComplete = async (result: { score: number; pointsEarned: number }) => {
     await Promise.all([checkAuth(), fetchQuizResults(), fetchChallenges()]);
