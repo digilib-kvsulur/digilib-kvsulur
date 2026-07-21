@@ -92,16 +92,30 @@ const StudentDashboard = () => {
         toast({ title: "Account Pending", description: "Your account is pending admin approval.", variant: "destructive" });
         navigate('/login'); return;
       }
+
+      // Read needs_profile_update from auth metadata (works even without DB migration)
+      const metaNeedsUpdate = session.user.user_metadata?.needs_profile_update === true;
+      // Fallback: also check the profile column if the migration has been run
+      const profileNeedsUpdate = (profile as any).needs_profile_update === true;
+      const mergedUser = {
+        ...profile,
+        needs_profile_update: metaNeedsUpdate || profileNeedsUpdate,
+        // Pre-fill from auth metadata if profile fields are empty
+        first_name: profile.first_name || session.user.user_metadata?.first_name || "",
+        last_name: profile.last_name || session.user.user_metadata?.last_name || "",
+        student_class: profile.student_class || session.user.user_metadata?.student_class || "",
+      };
+
       if (profile.points !== null) {
         try {
           const { data: levelData } = await supabase.rpc('get_user_level', { user_points: profile.points });
           if (levelData && levelData.length > 0) setPreviousLevel(levelData[0].level_number);
         } catch (e) { console.error(e); }
       }
-      setUser(profile);
-      if (profile.student_class && profile.points !== null) {
+      setUser(mergedUser);
+      if (mergedUser.student_class && profile.points !== null) {
         try {
-          const { data: rankData, error: rankError } = await supabase.rpc('get_user_class_rank', { user_class: profile.student_class, user_points: profile.points || 0 });
+          const { data: rankData, error: rankError } = await supabase.rpc('get_user_class_rank', { user_class: mergedUser.student_class, user_points: profile.points || 0 });
           if (!rankError && rankData !== null) setClassRank(rankData);
         } catch (e) { console.error(e); }
       }

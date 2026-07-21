@@ -61,7 +61,7 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
 
       if (authError) throw authError;
 
-      // 2) Update public profiles table
+      // 2) Update public profiles table (do NOT set needs_profile_update here — column may not exist)
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -71,12 +71,17 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
           roll_number: rollNumber.trim(),
           phone: phone.trim(),
           email: email.trim(),
-          needs_profile_update: false,
           updated_at: new Date().toISOString()
         })
         .eq("id", user.id);
 
       if (profileError) throw profileError;
+
+      // 3) Clear the needs_profile_update flag in auth metadata
+      //    This is the source of truth we read from on login
+      await supabase.auth.updateUser({
+        data: { needs_profile_update: false }
+      });
 
       toast({
         title: "Profile Setup Complete!",

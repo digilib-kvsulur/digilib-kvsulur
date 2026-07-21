@@ -38,13 +38,16 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
       },
       complete: (res) => {
         const raw = (res.data as any[]).filter(r => r.student_uid && r.student_name && r.student_class);
-        const cleaned = raw.filter(r => /^\d{5}$/.test(String(r.student_uid).trim()));
-        const invalid = raw.length - cleaned.length;
+        // Accept any non-empty UID (no strict digit count requirement)
+        const cleaned = raw.filter(r => String(r.student_uid).trim().length > 0);
+        const missing = (res.data as any[]).length - raw.length;
         setRows(cleaned);
         if (cleaned.length === 0) {
-          toast({ title: "No valid rows", description: "CSV needs 'student_uid' (5 digits), 'student_name', and 'student_class'.", variant: "destructive" });
-        } else if (invalid > 0) {
-          toast({ title: `Skipped ${invalid} row(s)`, description: "Student UID must be exactly 5 digits.", variant: "destructive" });
+          toast({ title: "No valid rows", description: "CSV must have 'student_uid', 'student_name', and 'student_class' columns.", variant: "destructive" });
+        } else if (missing > 0) {
+          toast({ title: `${cleaned.length} valid rows found`, description: `${missing} row(s) skipped — missing one of the 3 required columns.` });
+        } else {
+          toast({ title: `${cleaned.length} student(s) ready`, description: "Review the preview below then click Import." });
         }
       },
       error: (err) => toast({ title: "Parse error", description: err.message, variant: "destructive" }),

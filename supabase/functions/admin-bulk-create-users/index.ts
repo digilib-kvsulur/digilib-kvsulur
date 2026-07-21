@@ -98,7 +98,10 @@ Deno.serve(async (req) => {
         });
         if (createErr) throw createErr;
 
-        await admin.from("profiles").update({
+        // Update the profile with the basic details.
+        // needs_profile_update is tracked via auth user_metadata (set above), NOT the profiles table.
+        // This makes it work without running the DB migration.
+        const { error: profileErr } = await admin.from("profiles").update({
           role: "student",
           is_approved: true,
           approved_by: caller.id,
@@ -109,10 +112,14 @@ Deno.serve(async (req) => {
           roll_number: row.roll_number?.trim() || "",
           admission_number: uid,
           phone: row.phone?.trim() || "",
-          needs_profile_update: true,
         }).eq("id", created.user.id);
 
-        results.push({ email, success: true, password });
+        results.push({
+          email,
+          success: true,
+          password,
+          ...(profileErr ? { error: `Profile update warning: ${profileErr.message}` } : {})
+        });
       } catch (e: any) {
         results.push({ email, success: false, error: e.message || String(e) });
       }
