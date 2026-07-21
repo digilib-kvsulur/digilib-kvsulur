@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, BookOpen, User, Plus, Bookmark, BookmarkCheck, Star, Clock, MessageSquare } from "lucide-react";
+import { Search, BookOpen, Plus, Bookmark, BookmarkCheck, Star, Clock, Library, Compass } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -162,116 +161,176 @@ const Catalog = () => {
     toast({ title: "Request submitted" });
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-16 w-16 border-b-2 border-primary rounded-full" /></div>;
+  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin h-10 w-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full" /></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-indigo-500/20 selection:text-indigo-900 overflow-x-hidden pb-12">
+      {/* Background patterns matching Index */}
+      <div className="fixed inset-0 bg-[linear-gradient(to_right,#e2e8f080_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f080_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none z-0" />
+      
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center"><BookOpen className="h-6 w-6 text-white" /></div>
-            <div><h1 className="text-lg font-bold text-gray-900">Digital Library</h1><p className="text-sm text-gray-600">Book Catalog</p></div>
+          <div className="flex items-center space-x-3.5 cursor-pointer" onClick={() => navigate("/")}>
+            <div className="w-11 h-11 bg-gradient-to-tr from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/20">
+              <Library className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-base font-black tracking-tight text-slate-900 leading-none">PM SHRI KV AFS SULUR</h1>
+              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider mt-1.5">Digital Catalog</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => setShowRequestDialog(true)}><Plus className="h-4 w-4 mr-2" />Request New Book</Button>
+            <Button onClick={() => setShowRequestDialog(true)} variant="outline" className="rounded-xl border-slate-200 hover:bg-slate-50 font-bold text-slate-700 shadow-sm hidden sm:flex">
+              <Plus className="h-4 w-4 mr-2" /> Request Book
+            </Button>
             <BookRequestForm open={showRequestDialog} onOpenChange={setShowRequestDialog} onSuccess={() => setShowRequestDialog(false)} />
-            <Button onClick={() => navigate("/")} variant="outline">Home</Button>
+            <Button onClick={() => navigate("/")} variant="ghost" className="rounded-xl text-slate-600 font-bold hover:text-indigo-600 hover:bg-indigo-50">
+              Home
+            </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6 space-y-3">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input placeholder="Search title, author or ISBN..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+      {/* Search and Filters Strip */}
+      <div className="bg-white border-b border-slate-200/80 shadow-sm relative z-30 mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+          <div className="relative max-w-2xl mx-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
+            <Input 
+              placeholder="Search by title, author, ISBN, or subject..." 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)} 
+              className="pl-12 pr-4 py-6 rounded-2xl border-slate-200 shadow-sm text-base focus-visible:ring-indigo-500 bg-slate-50/50 focus:bg-white transition-colors" 
+            />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Select value={selectedGenre} onValueChange={setSelectedGenre}><SelectTrigger className="w-36"><SelectValue placeholder="Genre" /></SelectTrigger><SelectContent><SelectItem value="all">All genres</SelectItem>{genres.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}><SelectTrigger className="w-36"><SelectValue placeholder="Subject" /></SelectTrigger><SelectContent><SelectItem value="all">All subjects</SelectItem>{subjects.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
-            <Select value={selectedClass} onValueChange={setSelectedClass}><SelectTrigger className="w-32"><SelectValue placeholder="Class" /></SelectTrigger><SelectContent><SelectItem value="all">All classes</SelectItem>{classLevels.map(g => <SelectItem key={g} value={g}>Class {g}</SelectItem>)}</SelectContent></Select>
-            <Select value={selectedLang} onValueChange={setSelectedLang}><SelectTrigger className="w-32"><SelectValue placeholder="Language" /></SelectTrigger><SelectContent><SelectItem value="all">All languages</SelectItem>{languages.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
-            <Select value={selectedAuthor} onValueChange={setSelectedAuthor}><SelectTrigger className="w-40"><SelectValue placeholder="Author" /></SelectTrigger><SelectContent><SelectItem value="all">All authors</SelectItem>{authors.slice(0, 100).map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
-            <Select value={availability} onValueChange={(v: any) => setAvailability(v)}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All books</SelectItem><SelectItem value="available">Available now</SelectItem><SelectItem value="new">New arrivals</SelectItem></SelectContent></Select>
-            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}><SelectTrigger className="w-48"><SelectValue placeholder="Sort" /></SelectTrigger><SelectContent><SelectItem value="newest">Newest</SelectItem><SelectItem value="most_borrowed">Most borrowed</SelectItem><SelectItem value="most_recommended">Most recommended</SelectItem><SelectItem value="title_az">Title A-Z</SelectItem></SelectContent></Select>
+          <div className="flex flex-wrap justify-center gap-2">
+            {[
+              { val: selectedGenre, set: setSelectedGenre, lbl: "Genre", opts: genres },
+              { val: selectedSubject, set: setSelectedSubject, lbl: "Subject", opts: subjects },
+              { val: selectedClass, set: setSelectedClass, lbl: "Class", opts: classLevels, format: (v: string) => `Class ${v}` },
+              { val: selectedLang, set: setSelectedLang, lbl: "Language", opts: languages },
+              { val: selectedAuthor, set: setSelectedAuthor, lbl: "Author", opts: authors.slice(0, 100) }
+            ].map((filter, i) => (
+              <Select key={i} value={filter.val} onValueChange={filter.set}>
+                <SelectTrigger className="w-32 sm:w-36 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-sm h-10">
+                  <SelectValue placeholder={filter.lbl} />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl max-h-[300px]">
+                  <SelectItem value="all" className="font-semibold text-indigo-600">All {filter.lbl}s</SelectItem>
+                  {filter.opts.map((opt: string) => (
+                    <SelectItem key={opt} value={opt}>{filter.format ? filter.format(opt) : opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ))}
+            <Select value={availability} onValueChange={(v: any) => setAvailability(v)}>
+              <SelectTrigger className="w-36 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-sm h-10">
+                <SelectValue placeholder="Availability" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="all">All books</SelectItem>
+                <SelectItem value="available">Available now</SelectItem>
+                <SelectItem value="new">New arrivals</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+              <SelectTrigger className="w-40 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-sm h-10">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="newest">Newest first</SelectItem>
+                <SelectItem value="most_borrowed">Most borrowed</SelectItem>
+                <SelectItem value="most_recommended">Most recommended</SelectItem>
+                <SelectItem value="title_az">Title A-Z</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
+      </div>
 
-        <p className="text-gray-600 mb-4">{filteredBooks.length} book{filteredBooks.length !== 1 ? "s" : ""}</p>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-black text-slate-900 tracking-tight">Catalog Results</h2>
+          <Badge variant="outline" className="bg-white text-slate-600 border-slate-200 font-bold px-3 py-1 rounded-full shadow-sm">
+            {filteredBooks.length} book{filteredBooks.length !== 1 ? "s" : ""}
+          </Badge>
+        </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredBooks.map(book => {
-            const r = ratings[book.id];
-            const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
-            return (
-              <Card 
-                key={book.id} 
-                onClick={() => navigate(`/book/${book.id}`)}
-                className="hover:shadow-lg hover:border-indigo-300 transition-all cursor-pointer flex flex-col group"
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg mb-2 truncate group-hover:text-indigo-600 transition-colors">{book.title}</CardTitle>
-                      <CardDescription className="flex items-center gap-1 mb-1"><User className="h-4 w-4" />by {book.author}</CardDescription>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge variant={book.available_copies > 0 ? "default" : "secondary"}>{book.available_copies > 0 ? `${book.available_copies} avail` : "Not avail"}</Badge>
-                      {isNew && <Badge className="bg-primary/10 text-primary border-primary/20">New</Badge>}
+        {filteredBooks.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
+            {filteredBooks.map(book => {
+              const r = ratings[book.id];
+              const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
+              return (
+                <div key={book.id} onClick={() => navigate(`/book/${book.id}`)} className="group cursor-pointer flex flex-col bg-white rounded-2.5xl shadow-sm hover:shadow-xl border border-slate-200/80 hover:border-indigo-300 transition-all overflow-hidden p-1.5 h-full">
+                  <div className="aspect-[2/3] w-full rounded-2xl bg-slate-100 overflow-hidden relative shadow-inner mb-3">
+                    {book.cover_url ? (
+                      <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-indigo-50 to-blue-50">
+                        <BookOpen className="h-8 w-8 text-indigo-400 mb-2" />
+                        <span className="text-xs font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
+                      </div>
+                    )}
+                    {/* Status badges overlay */}
+                    <div className="absolute top-2 left-2 right-2 flex flex-wrap gap-1">
+                      {isNew && <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider">NEW</span>}
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider ${book.available_copies > 0 ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-200"}`}>
+                        {book.available_copies > 0 ? `${book.available_copies} AVAIL` : "CHECKED OUT"}
+                      </span>
                     </div>
                   </div>
-                  {r && (
-                    <div className="flex items-center gap-1 mt-2 text-xs">
-                      <Star className="h-3 w-3 fill-warning text-warning" />
-                      <span className="font-medium">{r.avg.toFixed(1)}</span>
-                      <span className="text-muted-foreground">({r.count})</span>
+                  
+                  <div className="px-1.5 flex-1 flex flex-col">
+                    <h4 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1">{book.title}</h4>
+                    <p className="text-xs text-slate-500 truncate mb-2 font-medium">by {book.author}</p>
+                    
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {book.category && <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100">{book.category}</span>}
+                      {book.class_level && <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">Class {book.class_level}</span>}
                     </div>
-                  )}
-                  <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
-                    {borrowCounts[book.id] > 0 && <span>{borrowCounts[book.id]} borrowed</span>}
-                    {recommendCounts[book.id] > 0 && <span>{recommendCounts[book.id]} recommended</span>}
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col">
-                  <div className="space-y-2 text-sm flex-1">
-                    <div className="flex flex-wrap gap-1">
-                      {book.category && <Badge variant="outline" className="text-[10px]">{book.category}</Badge>}
-                      {book.subject && <Badge variant="outline" className="text-[10px]">{book.subject}</Badge>}
-                      {book.class_level && <Badge variant="outline" className="text-[10px]">Class {book.class_level}</Badge>}
-                    </div>
-                    {book.description && <p className="text-sm text-gray-600 line-clamp-2">{book.description}</p>}
-                  </div>
-                  <div className="mt-4 space-y-2" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex gap-2">
-                      <Button className="flex-1" disabled={book.available_copies <= 0} onClick={() => requestBook(book.id)}>
-                        {book.available_copies > 0 ? "Request" : "Unavailable"}
-                      </Button>
-                      {book.available_copies <= 0 && (
-                        <Button variant="outline" onClick={() => reserveBook(book.id)}>
-                          <Clock className="h-4 w-4 mr-1" />{myReservations.has(book.id) ? "Waitlisted" : "Waitlist"}
+                    
+                    {(r || borrowCounts[book.id]) && (
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium mb-2 mt-auto">
+                        {r && (
+                          <div className="flex items-center gap-0.5 text-amber-600">
+                            <Star className="h-3 w-3 fill-amber-500" /> {r.avg.toFixed(1)}
+                          </div>
+                        )}
+                        {borrowCounts[book.id] > 0 && <span className="ml-auto">{borrowCounts[book.id]} borrows</span>}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-1.5 mt-auto pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                      {book.available_copies > 0 ? (
+                        <Button size="sm" className="h-8 text-[10px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm border-0 px-0 w-full" onClick={() => requestBook(book.id)}>
+                          Borrow
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" className="h-8 text-[10px] font-bold rounded-lg border-slate-200 hover:bg-slate-50 text-slate-700 px-0 w-full" onClick={() => reserveBook(book.id)}>
+                          <Clock className="h-3 w-3 mr-1" /> Waitlist
                         </Button>
                       )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => toggleWishlist(book.id)}>
-                        {wishlist.has(book.id) ? <><BookmarkCheck className="h-4 w-4 mr-1" />Saved</> : <><Bookmark className="h-4 w-4 mr-1" />Save</>}
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/book/${book.id}`)}>
-                        <BookOpen className="h-4 w-4 mr-1" />Details
+                      <Button size="sm" variant="outline" className={`h-8 text-[10px] font-bold rounded-lg px-0 w-full border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-50 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
+                        {wishlist.has(book.id) ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
                       </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {filteredBooks.length === 0 && (
-          <div className="text-center py-12">
-            <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No books found</h3>
-            <p className="text-gray-600 mb-4">Try adjusting your filters.</p>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm max-w-2xl mx-auto">
+            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
+              <Compass className="h-8 w-8 text-slate-300" />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 mb-2">No books found</h3>
+            <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">We couldn't find any books matching your current filters. Try adjusting your search criteria or clearing filters.</p>
+            <Button variant="outline" onClick={() => {
+              setSearchTerm(""); setSelectedGenre("all"); setSelectedSubject("all"); setSelectedClass("all"); setSelectedLang("all"); setSelectedAuthor("all"); setAvailability("all");
+            }} className="rounded-xl font-bold text-slate-700">Clear All Filters</Button>
           </div>
         )}
       </main>
