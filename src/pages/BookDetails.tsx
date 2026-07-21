@@ -5,12 +5,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  ArrowLeft, Star, Heart, Bookmark, BookmarkCheck, Calendar, BookOpen, 
-  Languages, GraduationCap, ClipboardList, Info, HelpCircle, Loader2, Sparkles
+  ArrowLeft, Star, Bookmark, BookmarkCheck, BookOpen, 
+  Languages, GraduationCap, ClipboardList, Info, HelpCircle, Loader2, Sparkles, Wand2
 } from "lucide-react";
-import { fetchBookByQuery } from "@/lib/bookApi";
+import { fetchBookByQuery, generateSmartBookDescription } from "@/lib/bookApi";
 
 interface Review {
   id: string;
@@ -40,6 +40,7 @@ export default function BookDetails() {
   const [isReserved, setIsReserved] = useState(false);
   const [isRequested, setIsRequested] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [generatingAi, setGeneratingAi] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -69,8 +70,8 @@ export default function BookDetails() {
       }
       setBook(bookData);
 
-      // If missing description or cover, try to auto-fetch
-      if (!bookData.description || !bookData.cover_url) {
+      // If missing description or cover, try to auto-fetch/generate
+      if (!bookData.description || bookData.description.trim().length < 20 || !bookData.cover_url || !bookData.category) {
         triggerAutofetch(bookData);
       }
 
@@ -134,23 +135,60 @@ export default function BookDetails() {
   const triggerAutofetch = async (currentBook: any) => {
     try {
       const details = await fetchBookByQuery(currentBook.title, currentBook.author);
+      const updates: any = {};
+
       if (details) {
-        const updates: any = {};
-        if (!currentBook.description && details.description) updates.description = details.description;
+        if ((!currentBook.description || currentBook.description.trim().length < 20) && details.description) {
+          updates.description = details.description;
+        }
         if (!currentBook.cover_url && details.cover_url) updates.cover_url = details.cover_url;
         if (!currentBook.category && details.category) updates.category = details.category;
         if (!currentBook.subject && details.subject) updates.subject = details.subject;
         if (!currentBook.language && details.language) updates.language = details.language;
+      }
 
-        if (Object.keys(updates).length > 0) {
-          const { error } = await supabase.from("books").update(updates).eq("id", currentBook.id);
-          if (!error) {
-            setBook((prev: any) => ({ ...prev, ...updates }));
-          }
+      // If still missing description, generate smart AI summary
+      if (!currentBook.description && !updates.description) {
+        updates.description = generateSmartBookDescription(currentBook.title, currentBook.author, currentBook.category);
+      }
+      if (!currentBook.category && !updates.category) {
+        updates.category = "General Literature";
+      }
+      if (!currentBook.language && !updates.language) {
+        updates.language = "English";
+      }
+
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase.from("books").update(updates).eq("id", currentBook.id);
+        if (!error) {
+          setBook((prev: any) => ({ ...prev, ...updates }));
         }
       }
     } catch (err) {
       console.error("Autofetch failed in details view:", err);
+    }
+  };
+
+  const handleAiRegenerateDetails = async () => {
+    if (!book) return;
+    setGeneratingAi(true);
+    try {
+      const smartDesc = generateSmartBookDescription(book.title, book.author, book.category);
+      const updates: any = {
+        description: smartDesc,
+        category: book.category || "General Literature",
+        language: book.language || "English"
+      };
+
+      const { error } = await supabase.from("books").update(updates).eq("id", book.id);
+      if (error) throw error;
+
+      setBook((prev: any) => ({ ...prev, ...updates }));
+      toast({ title: "AI Details Generated!", description: "Book overview and metadata have been refreshed." });
+    } catch (e: any) {
+      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
+    } finally {
+      setGeneratingAi(false);
     }
   };
 
@@ -179,7 +217,6 @@ export default function BookDetails() {
     setActionLoading(true);
     try {
       if (book.available_copies <= 0) {
-        // Reserve / Waitlist
         if (isReserved) {
           toast({ title: "Already on waitlist", description: "You are already waitlisted for this book." });
         } else {
@@ -188,7 +225,6 @@ export default function BookDetails() {
           toast({ title: "Added to waitlist", description: "We will notify you when a copy becomes available!" });
         }
       } else {
-        // Request borrow
         if (isRequested) {
           toast({ title: "Already requested", description: "Your borrow request is pending admin approval." });
         } else {
@@ -239,9 +275,9 @@ export default function BookDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="h-10 w-10 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground font-semibold">Loading book details...</p>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
+        <p className="text-sm text-slate-600 font-semibold">Loading book details...</p>
       </div>
     );
   }
@@ -249,18 +285,18 @@ export default function BookDetails() {
   if (!book) return null;
 
   return (
-    <div className="min-h-screen bg-[#070913] text-gray-100 pb-20 select-none">
-      {/* Blurred cover background wrapper */}
-      <div className="relative h-72 w-full overflow-hidden border-b border-white/5 bg-[#0a0d1e]">
+    <div className="min-h-screen bg-slate-50 text-slate-800 pb-20 selection:bg-indigo-500/20 selection:text-indigo-900">
+      {/* Soft light header banner */}
+      <div className="relative h-64 w-full overflow-hidden border-b border-indigo-100 bg-gradient-to-r from-indigo-50 via-slate-100 to-blue-50">
         {book.cover_url ? (
-          <img src={book.cover_url} alt="" className="w-full h-full object-cover blur-2xl scale-110 opacity-30" />
+          <img src={book.cover_url} alt="" className="w-full h-full object-cover blur-2xl scale-110 opacity-20" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-r from-indigo-950/20 to-violet-950/20 opacity-30" />
+          <div className="w-full h-full bg-indigo-100/40" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070913] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-transparent to-transparent" />
         <div className="absolute top-6 left-6 z-10">
-          <Button variant="outline" onClick={() => navigate(-1)} className="rounded-xl border-white/10 bg-black/40 hover:bg-black/60 text-white font-semibold">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+          <Button variant="outline" onClick={() => navigate(-1)} className="rounded-xl border-slate-200 bg-white/90 hover:bg-white text-slate-800 font-bold shadow-xs">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Catalog
           </Button>
         </div>
       </div>
@@ -269,13 +305,13 @@ export default function BookDetails() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           {/* Left Column - Cover & Actions */}
           <div className="md:col-span-4 space-y-5">
-            <div className="aspect-[2/3] w-full rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-white/5 relative group">
+            <div className="aspect-[2/3] w-full rounded-2xl border border-slate-200 overflow-hidden shadow-xl bg-white relative group">
               {book.cover_url ? (
                 <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-indigo-500/10 to-violet-600/10">
-                  <BookOpen className="h-12 w-12 text-indigo-400/40 mb-3" />
-                  <span className="text-sm font-semibold text-gray-400 line-clamp-3 leading-snug">{book.title}</span>
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-indigo-50 to-blue-50">
+                  <BookOpen className="h-12 w-12 text-indigo-400 mb-3" />
+                  <span className="text-sm font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
                 </div>
               )}
             </div>
@@ -284,7 +320,7 @@ export default function BookDetails() {
               <Button 
                 onClick={requestOrBorrow} 
                 disabled={actionLoading}
-                className="gradient-primary border-0 rounded-xl font-bold h-12 shadow-lg hover:shadow-xl transition-all"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 rounded-xl font-bold h-12 shadow-md hover:shadow-lg transition-all"
               >
                 {book.available_copies > 0 ? (isRequested ? "Requested" : "Borrow Book") : (isReserved ? "Waitlisted" : "Join Waitlist")}
               </Button>
@@ -292,30 +328,30 @@ export default function BookDetails() {
                 onClick={toggleWishlist}
                 variant="outline" 
                 disabled={actionLoading}
-                className="rounded-xl border-white/10 hover:bg-white/5 font-semibold h-12"
+                className="rounded-xl border-slate-200 bg-white hover:bg-slate-50 font-semibold h-12 text-slate-800 shadow-xs"
               >
                 {inWishlist ? (
-                  <><BookmarkCheck className="h-4 w-4 mr-2 text-indigo-400" /> Saved</>
+                  <><BookmarkCheck className="h-4 w-4 mr-2 text-indigo-600" /> Saved</>
                 ) : (
-                  <><Bookmark className="h-4 w-4 mr-2" /> Wishlist</>
+                  <><Bookmark className="h-4 w-4 mr-2 text-slate-500" /> Wishlist</>
                 )}
               </Button>
             </div>
 
             {/* Copies status widget */}
-            <Card className="border-white/5 bg-[#090b16] rounded-2xl">
+            <Card className="border-slate-200/80 bg-white rounded-2xl shadow-xs">
               <CardContent className="p-4.5 space-y-3.5">
-                <div className="flex justify-between items-center text-xs font-bold text-gray-400">
+                <div className="flex justify-between items-center text-xs font-bold text-slate-600">
                   <span>Available Copies</span>
-                  <span className="text-white font-extrabold text-sm">{book.available_copies} / {book.total_copies}</span>
+                  <span className="text-slate-900 font-extrabold text-sm">{book.available_copies} / {book.total_copies}</span>
                 </div>
-                <div className="w-full h-2.5 rounded-full bg-white/5 overflow-hidden">
+                <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-indigo-500 to-violet-600 transition-all duration-500" 
+                    className="h-full bg-gradient-to-r from-indigo-600 to-blue-600 transition-all duration-500" 
                     style={{ width: `${Math.min(100, (book.available_copies / book.total_copies) * 100)}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-gray-500 font-medium">
+                <p className="text-[11px] text-slate-500 font-medium">
                   {book.available_copies === 0 
                     ? "⚠️ All copies currently checked out. Click Join Waitlist to reserve."
                     : `🟢 ${book.available_copies} copies ready to borrow immediately.`}
@@ -326,68 +362,79 @@ export default function BookDetails() {
 
           {/* Right Column - Information */}
           <div className="md:col-span-8 space-y-6">
-            <div className="space-y-3.5">
-              <h2 className="text-3.5xl font-black text-white tracking-tight leading-tight">{book.title}</h2>
-              <p className="text-lg font-bold text-indigo-400">by {book.author}</p>
+            <div className="space-y-3">
+              <h2 className="text-3.5xl font-black text-slate-900 tracking-tight leading-tight">{book.title}</h2>
+              <p className="text-lg font-bold text-indigo-600">by {book.author}</p>
               
               <div className="flex flex-wrap gap-2 pt-1">
-                {book.category && <Badge variant="secondary" className="bg-white/5 text-indigo-300 font-bold border-0">{book.category}</Badge>}
-                {book.subject && <Badge variant="secondary" className="bg-white/5 text-purple-300 font-bold border-0">{book.subject}</Badge>}
-                {book.class_level && <Badge variant="secondary" className="bg-white/5 text-emerald-300 font-bold border-0">Class {book.class_level}</Badge>}
-                {book.language && <Badge variant="secondary" className="bg-white/5 text-amber-300 font-bold border-0">{book.language}</Badge>}
+                {book.category && <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 font-bold border-indigo-100">{book.category}</Badge>}
+                {book.subject && <Badge variant="secondary" className="bg-purple-50 text-purple-700 font-bold border-purple-100">{book.subject}</Badge>}
+                {book.class_level && <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 font-bold border-emerald-100">Class {book.class_level}</Badge>}
+                {book.language && <Badge variant="secondary" className="bg-amber-50 text-amber-700 font-bold border-amber-100">{book.language}</Badge>}
               </div>
             </div>
 
             {/* Book Info Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-white/5">
-              <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-center sm:text-left">
-                <ClipboardList className="h-4 w-4 text-indigo-400 mb-1 mx-auto sm:mx-0" />
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Accession #</span>
-                <span className="text-sm font-black text-white font-mono">{book.accession_number || "—"}</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-200">
+              <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 text-center sm:text-left shadow-xs">
+                <ClipboardList className="h-4 w-4 text-indigo-600 mb-1 mx-auto sm:mx-0" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Accession #</span>
+                <span className="text-sm font-black text-slate-900 font-mono">{book.accession_number || "—"}</span>
               </div>
-              <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-center sm:text-left">
-                <Languages className="h-4 w-4 text-purple-400 mb-1 mx-auto sm:mx-0" />
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Language</span>
-                <span className="text-sm font-black text-white">{book.language || "—"}</span>
+              <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 text-center sm:text-left shadow-xs">
+                <Languages className="h-4 w-4 text-purple-600 mb-1 mx-auto sm:mx-0" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Language</span>
+                <span className="text-sm font-black text-slate-900">{book.language || "English"}</span>
               </div>
-              <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-center sm:text-left">
-                <GraduationCap className="h-4 w-4 text-emerald-400 mb-1 mx-auto sm:mx-0" />
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Grade Class</span>
-                <span className="text-sm font-black text-white">{book.class_level ? `Class ${book.class_level}` : "All Grades"}</span>
+              <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 text-center sm:text-left shadow-xs">
+                <GraduationCap className="h-4 w-4 text-emerald-600 mb-1 mx-auto sm:mx-0" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Grade Class</span>
+                <span className="text-sm font-black text-slate-900">{book.class_level ? `Class ${book.class_level}` : "All Grades"}</span>
               </div>
-              <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-center sm:text-left">
-                <Star className="h-4 w-4 text-amber-400 mb-1 mx-auto sm:mx-0 fill-amber-400/10" />
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">User Rating</span>
-                <span className="text-sm font-black text-white">{averageRating}</span>
+              <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 text-center sm:text-left shadow-xs">
+                <Star className="h-4 w-4 text-amber-500 mb-1 mx-auto sm:mx-0 fill-amber-500/20" />
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">User Rating</span>
+                <span className="text-sm font-black text-slate-900">{averageRating}</span>
               </div>
             </div>
 
             {/* Description */}
             <div className="space-y-3">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Info className="h-4 w-4 text-indigo-400" /> Book Overview
-              </h3>
-              <p className="text-sm text-gray-400 leading-relaxed bg-[#090b16] border border-white/5 rounded-2xl p-5">
-                {book.description || (
-                  <span className="italic text-gray-500">No overview description available. Details are being fetched from online registers...</span>
-                )}
-              </p>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Info className="h-4 w-4 text-indigo-600" /> Book Overview
+                </h3>
+                <Button 
+                  onClick={handleAiRegenerateDetails} 
+                  disabled={generatingAi} 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                >
+                  {generatingAi ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Wand2 className="h-3.5 w-3.5 mr-1" />}
+                  AI Auto-generate Details
+                </Button>
+              </div>
+              
+              <div className="text-sm text-slate-600 leading-relaxed bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                {book.description || generateSmartBookDescription(book.title, book.author, book.category)}
+              </div>
             </div>
 
             {/* Review Writer Block */}
             {userId && (
-              <Card className="border-white/5 bg-[#090b16] rounded-2xl">
-                <CardHeader className="pb-3 border-b border-white/5">
-                  <CardTitle className="text-base font-extrabold flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-amber-400 animate-pulse" /> {myReviewId ? "Update your Review" : "Write a Review"}
+              <Card className="border-slate-200/80 bg-white rounded-2xl shadow-xs">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <CardTitle className="text-base font-extrabold flex items-center gap-2 text-slate-900">
+                    <Sparkles className="h-4 w-4 text-amber-500" /> {myReviewId ? "Update your Review" : "Write a Review"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-4">
                   <div className="flex gap-1.5 items-center">
-                    <span className="text-xs font-bold text-gray-400 mr-2 uppercase tracking-wider">Your Rating</span>
+                    <span className="text-xs font-bold text-slate-500 mr-2 uppercase tracking-wider">Your Rating</span>
                     {[1, 2, 3, 4, 5].map((n) => (
                       <button key={n} onClick={() => setMyRating(n)} type="button" className="hover:scale-110 transition-transform">
-                        <Star className={`h-5 w-5 ${myRating >= n ? "fill-amber-400 text-amber-400" : "text-gray-500"}`} />
+                        <Star className={`h-5 w-5 ${myRating >= n ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
                       </button>
                     ))}
                   </div>
@@ -398,14 +445,14 @@ export default function BookDetails() {
                       onChange={(e) => setMyText(e.target.value)} 
                       rows={3} 
                       maxLength={500}
-                      className="rounded-xl border-white/10 bg-white/5 text-sm"
+                      className="rounded-xl border-slate-200 bg-slate-50 text-sm"
                     />
                   </div>
                   <Button 
                     onClick={submitReview} 
                     disabled={submittingReview} 
                     size="sm" 
-                    className="gradient-primary border-0 rounded-xl font-bold px-5"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 rounded-xl font-bold px-5"
                   >
                     {submittingReview ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : (myReviewId ? "Update Review" : "Post Review")}
                   </Button>
@@ -415,29 +462,29 @@ export default function BookDetails() {
 
             {/* Review List */}
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-white">Student Reviews ({reviews.length})</h3>
+              <h3 className="text-lg font-bold text-slate-900">Student Reviews ({reviews.length})</h3>
               {reviews.length === 0 ? (
-                <p className="text-xs text-gray-500 italic bg-white/5 p-4 rounded-xl border border-dashed border-white/5">No student reviews written yet. Be the first to share your thoughts!</p>
+                <p className="text-xs text-slate-500 italic bg-white p-4 rounded-xl border border-dashed border-slate-200">No student reviews written yet. Be the first to share your thoughts!</p>
               ) : (
                 <div className="space-y-3">
                   {reviews.map((r) => {
                     const authorInitials = `${(r.profiles?.first_name?.[0] || "").toUpperCase()}${(r.profiles?.last_name?.[0] || "").toUpperCase()}`;
                     return (
-                      <div key={r.id} className="p-4 rounded-2xl bg-[#090b16] border border-white/5 flex gap-4 items-start">
-                        <div className="w-10 h-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-xs font-black text-indigo-400 shrink-0">
+                      <div key={r.id} className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex gap-4 items-start">
+                        <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xs font-black text-indigo-600 shrink-0">
                           {authorInitials || <HelpCircle className="h-4 w-4" />}
                         </div>
                         <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-bold text-white">{r.profiles?.first_name} {r.profiles?.last_name}</span>
+                            <span className="text-xs font-bold text-slate-900">{r.profiles?.first_name} {r.profiles?.last_name}</span>
                             <div className="flex gap-0.5">
                               {Array.from({ length: r.rating }).map((_, i) => (
                                 <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
                               ))}
                             </div>
-                            <span className="text-[10px] text-gray-500 font-medium ml-auto">{new Date(r.created_at).toLocaleDateString()}</span>
+                            <span className="text-[10px] text-slate-400 font-medium ml-auto">{new Date(r.created_at).toLocaleDateString()}</span>
                           </div>
-                          {r.review_text && <p className="text-sm text-gray-400 leading-relaxed font-medium">{r.review_text}</p>}
+                          {r.review_text && <p className="text-sm text-slate-600 leading-relaxed font-medium">{r.review_text}</p>}
                         </div>
                       </div>
                     );
@@ -450,23 +497,23 @@ export default function BookDetails() {
 
         {/* Related Books */}
         {relatedBooks.length > 0 && (
-          <div className="border-t border-white/5 pt-10 space-y-6">
-            <h3 className="text-xl font-black text-white">Recommended For You</h3>
+          <div className="border-t border-slate-200 pt-10 space-y-6">
+            <h3 className="text-xl font-black text-slate-900">Recommended For You</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
               {relatedBooks.map((b) => (
                 <div key={b.id} onClick={() => navigate(`/book/${b.id}`)} className="group cursor-pointer space-y-2">
-                  <div className="aspect-[2/3] w-full rounded-2xl border border-white/5 bg-white/5 overflow-hidden relative shadow-lg group-hover:border-indigo-500/20 transition-colors">
+                  <div className="aspect-[2/3] w-full rounded-2xl border border-slate-200 bg-white overflow-hidden relative shadow-md group-hover:shadow-lg transition-all">
                     {b.cover_url ? (
                       <img src={b.cover_url} alt={b.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[#090b16]">
-                        <BookOpen className="h-7 w-7 text-indigo-400/40 mb-2" />
-                        <span className="text-xs font-semibold text-gray-400 line-clamp-3 leading-snug">{b.title}</span>
+                      <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-indigo-50">
+                        <BookOpen className="h-7 w-7 text-indigo-400 mb-2" />
+                        <span className="text-xs font-semibold text-slate-700 line-clamp-3 leading-snug">{b.title}</span>
                       </div>
                     )}
                   </div>
-                  <h4 className="text-xs font-bold text-white truncate group-hover:text-indigo-400 transition-colors leading-snug">{b.title}</h4>
-                  <p className="text-[10px] text-gray-500 truncate">by {b.author}</p>
+                  <h4 className="text-xs font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors leading-snug">{b.title}</h4>
+                  <p className="text-[10px] text-slate-500 truncate">by {b.author}</p>
                 </div>
               ))}
             </div>

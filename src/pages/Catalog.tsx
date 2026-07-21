@@ -191,11 +191,15 @@ const Catalog = () => {
             const r = ratings[book.id];
             const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
             return (
-              <Card key={book.id} className="hover:shadow-lg transition-shadow flex flex-col">
+              <Card 
+                key={book.id} 
+                onClick={() => navigate(`/book/${book.id}`)}
+                className="hover:shadow-lg hover:border-indigo-300 transition-all cursor-pointer flex flex-col group"
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg mb-2 truncate cursor-pointer hover:text-blue-600 transition-colors" onClick={() => navigate(`/book/${book.id}`)}>{book.title}</CardTitle>
+                      <CardTitle className="text-lg mb-2 truncate group-hover:text-indigo-600 transition-colors">{book.title}</CardTitle>
                       <CardDescription className="flex items-center gap-1 mb-1"><User className="h-4 w-4" />by {book.author}</CardDescription>
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -224,7 +228,7 @@ const Catalog = () => {
                     </div>
                     {book.description && <p className="text-sm text-gray-600 line-clamp-2">{book.description}</p>}
                   </div>
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-4 space-y-2" onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-2">
                       <Button className="flex-1" disabled={book.available_copies <= 0} onClick={() => requestBook(book.id)}>
                         {book.available_copies > 0 ? "Request" : "Unavailable"}
