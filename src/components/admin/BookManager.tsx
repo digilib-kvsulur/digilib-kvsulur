@@ -166,6 +166,32 @@ const BookManager = () => {
     }
   };
 
+  const fetchBookCoverOnly = async () => {
+    if (!formData.title.trim()) {
+      toast({ title: "Enter a title first", description: "Type the book title before fetching cover.", variant: "destructive" });
+      return;
+    }
+    setFetchingDetails(true);
+    try {
+      const details = await fetchBookByQuery(formData.title.trim(), formData.author.trim());
+      if (!details || !details.cover_url) { 
+        toast({ title: "Not found", description: "No cover image found for this book.", variant: "destructive" }); 
+        return; 
+      }
+      setFormData(prev => ({ ...prev, cover_url: details.cover_url || "" }));
+      toast({ title: "Cover fetched!", description: "Review the auto-filled cover URL." });
+    } catch (e: any) {
+      toast({ title: "Fetch failed", description: e.message || "Could not fetch cover.", variant: "destructive" });
+    } finally {
+      setFetchingDetails(false);
+    }
+  };
+
+  const clearFetchedData = () => {
+    setFormData(prev => ({ ...prev, cover_url: "", description: "" }));
+    toast({ title: "Fetched data cleared", description: "Cover URL and description have been cleared." });
+  };
+
   // Batch-fetch online metadata for ALL books that have missing description/cover/category
   const fetchAllMissingMetadata = async () => {
     const targets = books.filter(b =>
@@ -256,6 +282,16 @@ const BookManager = () => {
     else { toast({ title: "Deleted", description: `${ids.length} book(s) removed` }); setSelectedBookIds(new Set()); loadBooks(); }
     setBulkBusy(false);
   };
+  const handleBulkClearMetadata = async () => {
+    if (selectedBookIds.size === 0) return;
+    if (!confirm(`Clear auto-fetched metadata (cover & description) from ${selectedBookIds.size} book(s)?`)) return;
+    setBulkBusy(true);
+    const ids = Array.from(selectedBookIds);
+    const { error } = await supabase.from("books").update({ cover_url: null, description: null }).in("id", ids);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Metadata Cleared", description: `Cleared metadata for ${ids.length} book(s).` }); setSelectedBookIds(new Set()); loadBooks(); }
+    setBulkBusy(false);
+  };
 
   if (loading) return <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
@@ -338,6 +374,7 @@ const BookManager = () => {
             <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
               <Button size="sm" onClick={() => setShowBulkEdit(true)} disabled={bulkBusy}><Edit className="h-3.5 w-3.5 mr-1.5" />Bulk Edit</Button>
               <Button size="sm" variant="destructive" onClick={handleBulkDelete} disabled={bulkBusy}><Trash2 className="h-3.5 w-3.5 mr-1.5" />Delete Selected</Button>
+              <Button size="sm" variant="outline" onClick={handleBulkClearMetadata} disabled={bulkBusy} className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">Clear Metadata</Button>
               <Button size="sm" variant="outline" onClick={() => setSelectedBookIds(new Set())}>Clear</Button>
             </div>
           </CardContent>
@@ -438,11 +475,19 @@ const BookManager = () => {
             {/* AI Auto-Fetch Button */}
             <div className="rounded-lg border border-dashed border-indigo-400/40 bg-indigo-500/5 p-3">
               <p className="text-xs text-muted-foreground mb-2">
-                <span className="font-bold text-foreground">Auto-Fill</span> — fill Accession #, Title, Author & Copies above, then click below to fetch description, category, subject, language, and cover from Open Library.
+                <span className="font-bold text-foreground">Auto-Fill</span> — fill Accession #, Title, Author & Copies above, then click below to fetch details from Open Library.
               </p>
-              <Button type="button" variant="outline" size="sm" onClick={fetchBookDetails} disabled={fetchingDetails} className="w-full border-indigo-400/40 hover:bg-indigo-500/10 font-semibold text-indigo-600 dark:text-indigo-400">
-                {fetchingDetails ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Fetching...</> : <><Wand2 className="h-4 w-4 mr-2" />Auto-Fill Book Details</>}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={fetchBookDetails} disabled={fetchingDetails} className="flex-1 border-indigo-400/40 hover:bg-indigo-500/10 font-semibold text-indigo-600 dark:text-indigo-400">
+                  {fetchingDetails ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Fetching...</> : <><Wand2 className="h-4 w-4 mr-2" />Auto-Fill All</>}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={fetchBookCoverOnly} disabled={fetchingDetails} className="flex-1 border-indigo-400/40 hover:bg-indigo-500/10 font-semibold text-indigo-600 dark:text-indigo-400">
+                  {fetchingDetails ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Fetching...</> : <><BookOpen className="h-4 w-4 mr-2" />Fetch Cover Only</>}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={clearFetchedData} className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
+                  Clear Data
+                </Button>
+              </div>
             </div>
 
             <div>

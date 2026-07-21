@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, BookOpen, Plus, Bookmark, BookmarkCheck, Star, Clock, Library, Compass } from "lucide-react";
+import { Search, BookOpen, Plus, Bookmark, BookmarkCheck, Star, Clock, Library, Compass, Edit } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -43,7 +43,12 @@ const Catalog = () => {
 
   const init = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
+    if (user) {
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      setUser({ ...user, role: profile?.role });
+    } else {
+      setUser(null);
+    }
     await loadBooks();
     if (user) {
       const [{ data: wl }, { data: rs }] = await Promise.all([
@@ -274,11 +279,18 @@ const Catalog = () => {
                       </div>
                     )}
                     {/* Status badges overlay */}
-                    <div className="absolute top-2 left-2 right-2 flex flex-wrap gap-1">
-                      {isNew && <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider">NEW</span>}
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider ${book.available_copies > 0 ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-200"}`}>
-                        {book.available_copies > 0 ? `${book.available_copies} AVAIL` : "CHECKED OUT"}
-                      </span>
+                    <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1 pointer-events-none">
+                      <div className="flex flex-wrap gap-1">
+                        {isNew && <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider">NEW</span>}
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider ${book.available_copies > 0 ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-200"}`}>
+                          {book.available_copies > 0 ? `${book.available_copies} AVAIL` : "CHECKED OUT"}
+                        </span>
+                      </div>
+                      {user?.role === 'admin' && (
+                        <Button size="icon" variant="secondary" className="h-6 w-6 rounded-md bg-white/90 shadow-sm hover:bg-white hover:text-indigo-700 text-indigo-600 z-10 pointer-events-auto shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/admin-dashboard'); }}>
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
