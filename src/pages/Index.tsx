@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  BookOpen, Users, BarChart3, Trophy, Target, Zap, ArrowRight, LayoutDashboard,
-  Calendar, Award, Clock, GraduationCap, Sparkles, MapPin, Mail, ChevronRight, Star, BookMarked, Compass, Library, Loader2
+  BookOpen, BarChart3, Trophy, Target, Zap, ArrowRight, LayoutDashboard,
+  Award, Clock, Sparkles, MapPin, Mail, ChevronRight, Star, Loader2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -167,7 +167,7 @@ const Index = () => {
             <span className="h-3.5 w-px bg-slate-300 hidden md:block" />
             <span className="flex items-center gap-2 hidden md:flex font-medium"><Mail className="h-4 w-4 text-indigo-600" /> kvsulur.library@gov.in</span>
           </div>
-          <span className="flex items-center gap-2 text-indigo-900 font-bold px-3 py-1 bg-white/60 rounded-full border border-indigo-100 shadow-2xs">
+          <span className="flex items-center gap-2 text-indigo-900 font-bold px-3 py-1 bg-white/60 rounded-full border border-indigo-100 shadow-sm">
             <Sparkles className="h-3.5 w-3.5 text-amber-500" /> PM SHRI National Excellence School
           </span>
         </div>
@@ -178,7 +178,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3.5 cursor-pointer" onClick={() => navigate("/")}>
             <div className="w-11 h-11 bg-gradient-to-tr from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/20">
-              <BookOpen className="h-5.5 w-5.5 text-white" />
+              <BookOpen className="h-6 w-6 text-white" />
             </div>
             <div>
               <h1 className="text-base font-black tracking-tight text-slate-900 leading-none">PM SHRI KV AFS SULUR</h1>
@@ -220,7 +220,7 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-14 items-center">
             {/* Left Column */}
             <div className="lg:col-span-6 space-y-7 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider mx-auto lg:mx-0 shadow-2xs">
+              <div className="inline-flex items-center gap-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider mx-auto lg:mx-0 shadow-sm">
                 <Star className="h-4 w-4 fill-indigo-600 text-indigo-600" /> Kendriya Vidyalaya Sangathan
               </div>
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.12] max-w-xl">
@@ -233,15 +233,15 @@ const Index = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-3">
                 {!user ? (
                   <>
-                    <Button onClick={() => navigate("/login")} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-13 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0">
-                      Open Account <ArrowRight className="ml-2 h-4.5 w-4.5" />
+                    <Button onClick={() => navigate("/login")} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0">
+                      Open Account <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
-                    <Button onClick={() => navigate("/catalog")} variant="outline" size="lg" className="text-base px-9 py-3.5 h-13 border-slate-300 bg-white hover:bg-slate-50 text-slate-800 rounded-xl font-bold shadow-xs">
+                    <Button onClick={() => navigate("/catalog")} variant="outline" size="lg" className="text-base px-9 py-3.5 h-14 border-slate-300 bg-white hover:bg-slate-50 text-slate-800 rounded-xl font-bold shadow-sm">
                       Browse Books
                     </Button>
                   </>
                 ) : (
-                  <Button onClick={navigateToDashboard} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-13 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0">
+                  <Button onClick={navigateToDashboard} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0">
                     <LayoutDashboard className="h-5 w-5 mr-2.5" /> Go to Dashboard
                   </Button>
                 )}
@@ -265,7 +265,7 @@ const Index = () => {
             {/* Right Column (Visual) */}
             <div className="lg:col-span-6 relative flex justify-center">
               <div className="relative w-full max-w-[520px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border border-slate-200 bg-white group p-1">
-                <div className="w-full h-full rounded-2.5xl overflow-hidden relative">
+                <div className="w-full h-full rounded-3xl overflow-hidden relative">
                   <img src={heroImg} alt="Library hall" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-slate-950/10 to-transparent" />
                 </div>
@@ -341,7 +341,7 @@ const Index = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((f, i) => (
-              <div key={i} className="p-8 rounded-2.5xl bg-slate-50/50 border border-slate-200/80 shadow-xs hover:shadow-lg hover:bg-white hover:border-indigo-200 transition-all hover:-translate-y-1 space-y-4">
+              <div key={i} className="p-8 rounded-3xl bg-slate-50/50 border border-slate-200/80 shadow-sm hover:shadow-lg hover:bg-white hover:border-indigo-200 transition-all hover:-translate-y-1 space-y-4">
                 <div className={`w-12 h-12 rounded-xl border ${f.color} flex items-center justify-center`}>
                   <f.icon className="h-6 w-6" />
                 </div>
@@ -364,7 +364,7 @@ const Index = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {dbEvents.map((e, i) => (
-              <article key={i} className="group rounded-2.5xl border border-slate-200 bg-white overflow-hidden shadow-xs hover:shadow-md transition-all p-1.5">
+              <article key={i} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all p-1.5">
                 <div className="relative h-52 overflow-hidden rounded-2xl bg-slate-100">
                   <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                   <span className="absolute top-4 left-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full shadow-md">{e.badge}</span>
@@ -402,7 +402,7 @@ const Index = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center">
-                  <BookOpen className="h-5.5 w-5.5 text-indigo-400" />
+                  <BookOpen className="h-6 w-6 text-indigo-400" />
                 </div>
                 <h3 className="text-base font-extrabold text-white">PM SHRI KV AFS SULUR</h3>
               </div>
