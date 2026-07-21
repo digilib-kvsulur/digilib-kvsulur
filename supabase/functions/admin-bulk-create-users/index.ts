@@ -101,6 +101,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, totalSynced }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Mode: Admin resets a single user's password
+    if (body.action === "reset_user_password") {
+      const { userId, newPassword } = body;
+      if (!userId || !newPassword) {
+        return new Response(JSON.stringify({ error: "userId and newPassword are required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const { error: updateError } = await admin.auth.admin.updateUserById(userId, { password: newPassword });
+      if (updateError) {
+        return new Response(JSON.stringify({ error: updateError.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const rows = body.rows as Row[];
     if (!Array.isArray(rows) || rows.length === 0) {
       return new Response(JSON.stringify({ error: "No rows provided" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

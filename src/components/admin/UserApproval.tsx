@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +37,9 @@ const UserApproval = () => {
   const [classFilter, setClassFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [syncing, setSyncing] = useState(false);
+  const [resetTarget, setResetTarget] = useState<PendingUser | null>(null);
+  const [generatedPassword, setGeneratedPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { init(); }, []);
@@ -113,18 +117,31 @@ const UserApproval = () => {
     loadUsers();
   };
 
-  const resetPassword = async (u: PendingUser) => {
-    const { data, error } = await supabase.functions.invoke("admin-reset-password", { body: { user_id: u.id } });
-    if (error || (data as any)?.error) {
-      toast({ title: "Failed", description: error?.message || (data as any)?.error, variant: "destructive" });
-      return;
+  const generateTempPassword = () => {
+    const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
+  const openResetDialog = (u: PendingUser) => {
+    setGeneratedPassword(generateTempPassword());
+    setResetTarget(u);
+  };
+
+  const confirmResetPassword = async () => {
+    if (!resetTarget || !generatedPassword) return;
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-bulk-create-users", {
+        body: { action: "reset_user_password", userId: resetTarget.id, newPassword: generatedPassword }
+      });
+      if (error || (data as any)?.error) throw new Error(error?.message || (data as any)?.error);
+      toast({ title: "Password Reset!", description: `Password for ${resetTarget.first_name} has been updated.` });
+    } catch (e: any) {
+      toast({ title: "Reset Failed", description: e.message, variant: "destructive" });
+      setResetTarget(null);
+    } finally {
+      setResetting(false);
     }
-    const pwd = (data as any).password;
-    await navigator.clipboard.writeText(pwd).catch(() => {});
-    toast({
-      title: "Password reset",
-      description: `New password for ${u.email}: ${pwd} (copied to clipboard)`,
-    });
   };
 
   const classes = useMemo(() => {
@@ -329,7 +346,7 @@ const UserApproval = () => {
                             <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => resetPassword(u)}>
+                            <DropdownMenuItem onClick={() => openResetDialog(u)}>
                               <KeyRound className="h-4 w-4 mr-2" />Reset password
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(u.email); toast({ title: "Copied", description: u.email }); }}>
@@ -350,6 +367,34 @@ const UserApproval = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetTarget} onOpenChange={(open) => { if (!open && !resetting) setResetTarget(null); }}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><KeyRound className="h-5 w-5 text-orange-500" /> Reset Password</DialogTitle>
+            <DialogDescription>
+              A new temporary password will be set for <strong>{resetTarget?.first_name} {resetTarget?.last_name}</strong>. Give this password to the student so they can log in and set a new one.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+              <code className="text-lg font-mono font-bold tracking-widest text-slate-900 select-all">{generatedPassword}</code>
+              <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(generatedPassword); toast({ title: "Copied!", description: "Temporary password copied to clipboard." }); }}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">The student will be able to log in with this password. They should change it after logging in.</p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setResetTarget(null)} disabled={resetting}>Cancel</Button>
+              <Button onClick={confirmResetPassword} disabled={resetting} className="bg-orange-500 hover:bg-orange-600 text-white">
+                {resetting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Resetting...</> : <><KeyRound className="h-4 w-4 mr-2" />Confirm Reset</>}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
