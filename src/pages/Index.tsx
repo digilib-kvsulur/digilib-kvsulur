@@ -32,6 +32,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [trendingBooks, setTrendingBooks] = useState<Book[]>([]);
   const [statistics, setStatistics] = useState<Statistics>({ totalBooks: 0, activeUsers: 0, booksIssued: 0 });
+  const [dbEvents, setDbEvents] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,6 +48,7 @@ const Index = () => {
     });
     loadStatistics();
     loadTrendingBooks();
+    loadEvents();
     return () => subscription.unsubscribe();
   }, []);
 
@@ -92,6 +94,47 @@ const Index = () => {
     }
   };
 
+  const loadEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("library_events")
+        .select("*")
+        .eq("is_published", true)
+        .order("event_date", { ascending: true })
+        .limit(3);
+      if (!error && data && data.length > 0) {
+        const mapped = data.map((ev: any) => ({
+          title: ev.title,
+          date: new Date(ev.event_date).toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric"
+          }) + " " + new Date(ev.event_date).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit"
+          }),
+          desc: ev.description || "No description provided.",
+          badge: ev.location || "Upcoming",
+          img: ev.image_url || event1Img
+        }));
+        setDbEvents(mapped);
+      } else {
+        setDbEvents([
+          { title: "National Reading Week", date: "June 19–25, 2026", desc: "Author talks, storytelling workshops, and inter-class reading marathons.", badge: "Upcoming", img: event1Img },
+          { title: "Inter-Class Library Quiz", date: "Every Friday", desc: "Showcase your reading retention in our weekly live quiz with leaderboard prizes.", badge: "Weekly", img: event2Img },
+          { title: "Annual Book Donation Drive", date: "August 2026", desc: "Donate books to the secondary wing and receive double XP bonus points.", badge: "Annual", img: libraryEventImg },
+        ]);
+      }
+    } catch (e) {
+      console.error("Failed to load events:", e);
+      setDbEvents([
+        { title: "National Reading Week", date: "June 19–25, 2026", desc: "Author talks, storytelling workshops, and inter-class reading marathons.", badge: "Upcoming", img: event1Img },
+        { title: "Inter-Class Library Quiz", date: "Every Friday", desc: "Showcase your reading retention in our weekly live quiz with leaderboard prizes.", badge: "Weekly", img: event2Img },
+        { title: "Annual Book Donation Drive", date: "August 2026", desc: "Donate books to the secondary wing and receive double XP bonus points.", badge: "Annual", img: libraryEventImg },
+      ]);
+    }
+  };
+
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setProfile(null); };
   
   const navigateToDashboard = () => {
@@ -107,12 +150,6 @@ const Index = () => {
     { icon: Zap, title: "Daily Streaks", desc: "Build consistent habits. Log in daily, read books, and keep your reading streak alive.", color: "bg-rose-50 text-rose-600 border-rose-100" },
     { icon: Target, title: "Monthly Goals", desc: "Set personal reading challenges and participate in classroom book marathons.", color: "bg-purple-50 text-purple-600 border-purple-100" },
     { icon: Award, title: "Quizzes & Badges", desc: "Test your comprehension with integrated book quizzes and showcase awards on your cabinet.", color: "bg-cyan-50 text-cyan-600 border-cyan-100" },
-  ];
-
-  const events = [
-    { title: "National Reading Week", date: "June 19–25, 2026", desc: "Author talks, storytelling workshops, and inter-class reading marathons.", badge: "Upcoming", img: event1Img },
-    { title: "Inter-Class Library Quiz", date: "Every Friday", desc: "Showcase your reading retention in our weekly live quiz with leaderboard prizes.", badge: "Weekly", img: event2Img },
-    { title: "Annual Book Donation Drive", date: "August 2026", desc: "Donate books to the secondary wing and receive double XP bonus points.", badge: "Annual", img: libraryEventImg },
   ];
 
   return (
@@ -230,11 +267,7 @@ const Index = () => {
               <div className="relative w-full max-w-[520px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border border-slate-200 bg-white group p-1">
                 <div className="w-full h-full rounded-2.5xl overflow-hidden relative">
                   <img src={heroImg} alt="Library hall" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent" />
-                  <div className="absolute bottom-7 left-7 right-7 text-white space-y-1">
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-indigo-300">Library Campus View</p>
-                    <p className="text-lg font-black leading-snug">Our newly upgraded quiet study halls & book collection zones</p>
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-slate-950/10 to-transparent" />
                 </div>
               </div>
               <div className="absolute -bottom-6 -left-6 bg-white border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4 shadow-xl hidden md:flex">
@@ -242,8 +275,8 @@ const Index = () => {
                   <Trophy className="h-6 w-6 text-white" />
                 </div>
                 <div className="space-y-0.5">
-                  <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">RANK #1 SCHOOL</p>
-                  <p className="text-sm font-black text-slate-900">Best Region Library</p>
+                  <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">1st STUDENT CENTRIC</p>
+                  <p className="text-sm font-black text-slate-900">KVS DLMS</p>
                 </div>
               </div>
             </div>

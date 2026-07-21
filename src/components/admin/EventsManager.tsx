@@ -15,6 +15,8 @@ export default function EventsManager() {
   const [events, setEvents] = useState<any[]>([]);
   const [regs, setRegs] = useState<Record<string, number>>({});
   const [open, setOpen] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", event_date: "", location: "", capacity: "" });
 
   const load = async () => {
@@ -29,18 +31,43 @@ export default function EventsManager() {
 
   const create = async () => {
     if (!form.title || !form.event_date) { toast({ title: "Title and date required", variant: "destructive" }); return; }
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("library_events").insert({
-      title: form.title, description: form.description || null,
-      event_date: new Date(form.event_date).toISOString(),
-      location: form.location || null,
-      capacity: form.capacity ? parseInt(form.capacity) : null,
-      created_by: user?.id,
-    });
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Event created" });
-    setOpen(false); setForm({ title: "", description: "", event_date: "", location: "", capacity: "" });
-    load();
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      let imageUrl = null;
+      if (file) {
+        const ext = file.name.split(".").pop();
+        const path = `${user?.id || 'admin'}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("event-images").upload(path, file, {
+          contentType: file.type, upsert: false,
+        });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("event-images").getPublicUrl(path);
+        imageUrl = pub.publicUrl;
+      }
+
+      const { error } = await supabase.from("library_events").insert({
+        title: form.title, 
+        description: form.description || null,
+        event_date: new Date(form.event_date).toISOString(),
+        location: form.location || null,
+        capacity: form.capacity ? parseInt(form.capacity) : null,
+        created_by: user?.id,
+        image_url: imageUrl,
+      });
+      if (error) throw error;
+      
+      toast({ title: "Event created" });
+      setOpen(false); 
+      setForm({ title: "", description: "", event_date: "", location: "", capacity: "" });
+      setFile(null);
+      load();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const remove = async (id: string) => {
@@ -66,7 +93,13 @@ export default function EventsManager() {
               <div><Label>Date &amp; time</Label><Input type="datetime-local" value={form.event_date} onChange={e => setForm({ ...form, event_date: e.target.value })} /></div>
               <div><Label>Location</Label><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
               <div><Label>Capacity (optional)</Label><Input type="number" value={form.capacity} onChange={e => setForm({ ...form, capacity: e.target.value })} /></div>
-              <Button onClick={create} className="w-full">Create</Button>
+              <div>
+                <Label>Event Image (Optional)</Label>
+                <Input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} />
+              </div>
+              <Button onClick={create} className="w-full" disabled={uploading}>
+                {uploading ? "Creating & Uploading..." : "Create"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -75,6 +108,11 @@ export default function EventsManager() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {events.map(ev => (
           <Card key={ev.id}>
+            {ev.image_url && (
+              <div className="w-full h-48 overflow-hidden rounded-t-xl relative bg-slate-100 border-b">
+                <img src={ev.image_url} alt={ev.title} className="w-full h-full object-cover" />
+              </div>
+            )}
             <CardHeader className="flex flex-row items-start justify-between space-y-0">
               <div>
                 <CardTitle className="text-base">{ev.title}</CardTitle>
