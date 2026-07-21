@@ -16,6 +16,7 @@ interface Row {
   password?: string;
   student_uid?: string;
   student_name?: string;
+  username?: string;
 }
 
 Deno.serve(async (req) => {
@@ -81,7 +82,8 @@ Deno.serve(async (req) => {
               student_class: String(meta.student_class || ''),
               roll_number: String(meta.roll_number || ''),
               admission_number: uid,
-              phone: String(meta.phone || ''),
+              username: String(meta.username || '').trim() || uid,
+              phone: String(meta.phone || '').trim() || null,
               is_approved: true,
               needs_profile_update: true,
               updated_at: new Date().toISOString()
@@ -130,6 +132,8 @@ Deno.serve(async (req) => {
 
       const rawClass = String(row.student_class || "").trim();
       const password = String(row.password || "").trim() || "Welcome@123";
+      const phoneVal = String(row.phone || "").trim() || null;
+      const usernameVal = String(row.username || "").trim() || uid;
 
       try {
         let userId: string | null = null;
@@ -158,7 +162,8 @@ Deno.serve(async (req) => {
               student_class: rawClass,
               roll_number: String(row.roll_number || "").trim(),
               admission_number: uid,
-              phone: String(row.phone || "").trim(),
+              username: usernameVal,
+              phone: phoneVal,
               needs_profile_update: true,
             }
           });
@@ -175,7 +180,8 @@ Deno.serve(async (req) => {
               student_class: rawClass,
               roll_number: String(row.roll_number || "").trim(),
               admission_number: uid,
-              phone: String(row.phone || "").trim(),
+              username: usernameVal,
+              phone: phoneVal,
               needs_profile_update: true,
             },
           });
@@ -217,7 +223,8 @@ Deno.serve(async (req) => {
             student_class: rawClass,
             roll_number: String(row.roll_number || "").trim(),
             admission_number: uid,
-            phone: String(row.phone || "").trim(),
+            username: usernameVal,
+            phone: phoneVal,
             email: email,
             updated_at: new Date().toISOString()
           }, { onConflict: "id" });

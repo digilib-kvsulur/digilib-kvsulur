@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Sparkles, KeyRound, Mail, Phone, GraduationCap, Hash, UserCheck } from "lucide-react";
+import { Loader2, Sparkles, KeyRound, Mail, Phone, GraduationCap, Hash, UserCheck, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,6 +21,7 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
   const [rollNumber, setRollNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
     e.preventDefault();
     setErrorMsg("");
 
-    if (!firstName.trim() || !lastName.trim() || !studentClass.trim() || !rollNumber.trim() || !phone.trim() || !email.trim() || !password.trim()) {
+    if (!firstName.trim() || !lastName.trim() || !studentClass.trim() || !rollNumber.trim() || !phone.trim() || !email.trim() || !username.trim() || !password.trim()) {
       setErrorMsg("Please fill in all fields.");
       return;
     }
@@ -82,11 +83,17 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
           roll_number: rollNumber.trim(),
           phone: phone.trim(),
           email: email.trim(),
+          username: username.trim().toLowerCase(),
           updated_at: new Date().toISOString()
         })
         .eq("id", user.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        if (profileError.message?.toLowerCase().includes("unique") || profileError.message?.toLowerCase().includes("username")) {
+          throw new Error("This username is already taken. Please choose another username.");
+        }
+        throw profileError;
+      }
 
       // 4) Clear the needs_profile_update flag in auth metadata
       await supabase.auth.updateUser({
@@ -185,6 +192,22 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <User className="h-3 w-3 text-muted-foreground" /> Choose Username *
+            </Label>
+            <Input
+              value={username}
+              onChange={(e) => setUsername(e.target.value.replace(/\s+/g, "").toLowerCase())}
+              placeholder="e.g. aarav123"
+              className="rounded-xl border-border/60 font-mono text-sm"
+              required
+            />
+            <p className="text-[10px] text-muted-foreground leading-normal">
+              Unique handle used to login and search profiles (letters, numbers only).
+            </p>
           </div>
 
           <div className="space-y-1.5">

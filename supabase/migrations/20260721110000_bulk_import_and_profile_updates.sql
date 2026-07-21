@@ -24,8 +24,8 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'student_class', ''),
     NEW.raw_user_meta_data->>'roll_number',
     NEW.raw_user_meta_data->>'admission_number',
-    NEW.raw_user_meta_data->>'username',
-    NEW.raw_user_meta_data->>'phone',
+    COALESCE(NEW.raw_user_meta_data->>'username', NEW.raw_user_meta_data->>'admission_number', NEW.email),
+    NULLIF(NEW.raw_user_meta_data->>'phone', ''),
     COALESCE((NEW.raw_user_meta_data->>'needs_profile_update')::boolean, false)
   )
   ON CONFLICT (id) DO UPDATE SET
@@ -35,6 +35,8 @@ BEGIN
     student_class = EXCLUDED.student_class,
     roll_number = EXCLUDED.roll_number,
     admission_number = EXCLUDED.admission_number,
+    username = EXCLUDED.username,
+    phone = EXCLUDED.phone,
     needs_profile_update = EXCLUDED.needs_profile_update;
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
@@ -53,12 +55,16 @@ DECLARE
   u record;
   synced_count integer := 0;
   uid text;
+  username_val text;
+  phone_val text;
   email_lower text;
 BEGIN
   FOR u IN SELECT * FROM auth.users LOOP
     BEGIN
       uid := COALESCE(u.raw_user_meta_data->>'admission_number', SPLIT_PART(u.email, '@', 1));
       email_lower := LOWER(u.email);
+      username_val := COALESCE(u.raw_user_meta_data->>'username', uid, email_lower);
+      phone_val := NULLIF(COALESCE(u.raw_user_meta_data->>'phone', ''), '');
 
       -- Check if id already exists
       IF EXISTS (SELECT 1 FROM public.profiles WHERE id = u.id) THEN
@@ -69,13 +75,14 @@ BEGIN
           student_class = COALESCE(u.raw_user_meta_data->>'student_class', ''),
           roll_number = COALESCE(u.raw_user_meta_data->>'roll_number', ''),
           admission_number = uid,
-          phone = COALESCE(u.raw_user_meta_data->>'phone', ''),
+          username = username_val,
+          phone = phone_val,
           is_approved = true,
           updated_at = NOW()
         WHERE id = u.id;
         synced_count := synced_count + 1;
-      -- Check if admission_number or email exists to avoid 409 unique key conflicts
-      ELSIF EXISTS (SELECT 1 FROM public.profiles WHERE admission_number = uid OR email = email_lower) THEN
+      -- Check if admission_number, username, or email exists to avoid unique key conflicts
+      ELSIF EXISTS (SELECT 1 FROM public.profiles WHERE admission_number = uid OR email = email_lower OR username = username_val) THEN
         UPDATE public.profiles SET
           id = u.id,
           email = email_lower,
@@ -83,10 +90,10 @@ BEGIN
           last_name = COALESCE(u.raw_user_meta_data->>'last_name', ''),
           student_class = COALESCE(u.raw_user_meta_data->>'student_class', ''),
           roll_number = COALESCE(u.raw_user_meta_data->>'roll_number', ''),
-          phone = COALESCE(u.raw_user_meta_data->>'phone', ''),
+          phone = phone_val,
           is_approved = true,
           updated_at = NOW()
-        WHERE admission_number = uid OR email = email_lower;
+        WHERE admission_number = uid OR email = email_lower OR username = username_val;
         synced_count := synced_count + 1;
       ELSE
         -- Safe Insert
@@ -99,6 +106,7 @@ BEGIN
           student_class,
           roll_number,
           admission_number,
+          username,
           phone,
           is_approved,
           needs_profile_update,
@@ -112,7 +120,8 @@ BEGIN
           COALESCE(u.raw_user_meta_data->>'student_class', ''),
           COALESCE(u.raw_user_meta_data->>'roll_number', ''),
           uid,
-          COALESCE(u.raw_user_meta_data->>'phone', ''),
+          username_val,
+          phone_val,
           true,
           true,
           NOW()

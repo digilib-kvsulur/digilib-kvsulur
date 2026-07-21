@@ -1,8 +1,19 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BookOpen, Trophy, GraduationCap } from "lucide-react";
+import { Users, BookOpen, Trophy, GraduationCap, Award, Search, FileSpreadsheet, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Papa from "papaparse";
+
+interface StudentAnalytic {
+  id: string;
+  name: string;
+  admission_number: string;
+  points: number;
+  books_count: number;
+  quiz_count: number;
+}
 
 interface ClassData {
   class_name: string;
@@ -10,18 +21,14 @@ interface ClassData {
   total_points: number;
   books_read: number;
   quiz_completions: number;
-  students: Array<{
-    id: string;
-    name: string;
-    points: number;
-    books_count: number;
-    quiz_count: number;
-  }>;
+  students: StudentAnalytic[];
 }
 
 const ClassAnalytics = () => {
   const [classData, setClassData] = useState<ClassData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadClassAnalytics();
@@ -29,52 +36,85 @@ const ClassAnalytics = () => {
 
   const loadClassAnalytics = async () => {
     try {
-      // Get class-wise student data
-      const { data: students, error: studentsError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, student_class, points')
-        .eq('role', 'student')
-        .eq('is_approved', true)
-        .not('student_class', 'is', null);
+      // Get all approved students using pagination to avoid the 1000-row limit
+      let allStudents: any[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, student_class, points, admission_number")
+          .eq("role", "student")
+          .eq("is_approved", true)
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allStudents = [...allStudents, ...data];
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
 
-      if (studentsError) throw studentsError;
+      // Get reading history
+      let allReading: any[] = [];
+      from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("reading_history")
+          .select("user_id")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allReading = [...allReading, ...data];
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
 
-      // Get reading history counts per student
-      const { data: readingHistory, error: readingError } = await supabase
-        .from('reading_history')
-        .select('user_id');
+      // Get quiz results
+      let allQuizzes: any[] = [];
+      from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("quiz_results")
+          .select("user_id")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allQuizzes = [...allQuizzes, ...data];
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
 
-      if (readingError) throw readingError;
+      // Pre-calculate counts for high performance
+      const readingCountMap: Record<string, number> = {};
+      allReading.forEach(rh => {
+        if (rh.user_id) readingCountMap[rh.user_id] = (readingCountMap[rh.user_id] || 0) + 1;
+      });
 
-      // Get quiz results counts per student
-      const { data: quizResults, error: quizError } = await supabase
-        .from('quiz_results')
-        .select('user_id');
-
-      if (quizError) throw quizError;
+      const quizCountMap: Record<string, number> = {};
+      allQuizzes.forEach(qr => {
+        if (qr.user_id) quizCountMap[qr.user_id] = (quizCountMap[qr.user_id] || 0) + 1;
+      });
 
       // Group students by class
-      const classGroups: { [key: string]: any[] } = {};
-      students?.forEach(student => {
-        const className = student.student_class || 'Unassigned';
+      const classGroups: Record<string, any[]> = {};
+      allStudents.forEach(student => {
+        const className = (student.student_class || "Unassigned").trim();
         if (!classGroups[className]) {
           classGroups[className] = [];
         }
         classGroups[className].push(student);
       });
 
-      // Calculate analytics for each class
+      // Calculate analytics
       const analyticsData: ClassData[] = Object.entries(classGroups).map(([className, classStudents]) => {
         const studentAnalytics = classStudents.map(student => {
-          const studentReadingCount = readingHistory?.filter(rh => rh.user_id === student.id).length || 0;
-          const studentQuizCount = quizResults?.filter(qr => qr.user_id === student.id).length || 0;
-          
           return {
             id: student.id,
-            name: `${student.first_name} ${student.last_name}`,
+            name: `${student.first_name || ""} ${student.last_name || ""}`.trim() || "Student",
+            admission_number: student.admission_number || "—",
             points: student.points || 0,
-            books_count: studentReadingCount,
-            quiz_count: studentQuizCount
+            books_count: readingCountMap[student.id] || 0,
+            quiz_count: quizCountMap[student.id] || 0
           };
         });
 
@@ -88,29 +128,75 @@ const ClassAnalytics = () => {
         };
       });
 
-      setClassData(analyticsData.sort((a, b) => a.class_name.localeCompare(b.class_name)));
+      // Sort classes alphanumeric (e.g. 6A, 6B, 7A...)
+      const sortedClasses = analyticsData.sort((a, b) => 
+        a.class_name.localeCompare(b.class_name, undefined, { numeric: true, sensitivity: 'base' })
+      );
+      setClassData(sortedClasses);
+
+      // Default select the first class
+      if (sortedClasses.length > 0) {
+        setSelectedClass(sortedClasses[0].class_name);
+      }
     } catch (error) {
-      console.error('Error loading class analytics:', error);
+      console.error("Error loading class analytics:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  const activeClassInfo = useMemo(() => {
+    return classData.find(c => c.class_name === selectedClass);
+  }, [classData, selectedClass]);
+
+  const filteredStudents = useMemo(() => {
+    if (!activeClassInfo) return [];
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return activeClassInfo.students;
+    return activeClassInfo.students.filter(s =>
+      s.name.toLowerCase().includes(query) || s.admission_number.toLowerCase().includes(query)
+    );
+  }, [activeClassInfo, searchQuery]);
+
+  const topStudent = useMemo(() => {
+    if (!activeClassInfo || activeClassInfo.students.length === 0) return null;
+    return activeClassInfo.students[0];
+  }, [activeClassInfo]);
+
+  const avgPoints = useMemo(() => {
+    if (!activeClassInfo || activeClassInfo.student_count === 0) return 0;
+    return Math.round(activeClassInfo.total_points / activeClassInfo.student_count);
+  }, [activeClassInfo]);
+
+  const exportClassCsv = () => {
+    if (!activeClassInfo) return;
+    const exportData = activeClassInfo.students.map((s, idx) => ({
+      Rank: idx + 1,
+      Name: s.name,
+      "Admission Number": s.admission_number,
+      Points: s.points,
+      "Books Read": s.books_count,
+      "Quizzes Completed": s.quiz_count,
+    }));
+    const csv = Papa.unparse(exportData);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Class_${selectedClass}_Analytics.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="animate-pulse">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="mb-6">
-              <CardHeader>
-                <div className="h-6 bg-gray-200 rounded w-32"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="h-4 bg-gray-200 rounded"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                </div>
-              </CardContent>
+        <div className="h-8 bg-gray-200 rounded w-48 animate-pulse mb-6"></div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-2"><div className="h-4 bg-gray-200 rounded w-20"></div></CardHeader>
+              <CardContent><div className="h-8 bg-gray-200 rounded w-24"></div></CardContent>
             </Card>
           ))}
         </div>
@@ -119,72 +205,189 @@ const ClassAnalytics = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2 mb-6">
-        <GraduationCap className="h-6 w-6" />
-        <h2 className="text-2xl font-bold">Class-wise Analytics</h2>
+    <div className="space-y-6 select-none">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100">
+            <GraduationCap className="h-5.5 w-5.5 text-indigo-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Class-wise Analytics</h2>
+            <p className="text-xs text-slate-500">Monitor reading performance, milestones and leaderboards by class</p>
+          </div>
+        </div>
+
+        {activeClassInfo && (
+          <Button onClick={exportClassCsv} variant="outline" size="sm" className="border-indigo-300 text-indigo-700 hover:bg-indigo-50">
+            <FileSpreadsheet className="h-4 w-4 mr-2" /> Export Class Report
+          </Button>
+        )}
       </div>
 
-      {classData.map((classInfo) => (
-        <Card key={classInfo.class_name}>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Class {classInfo.class_name}</span>
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  {classInfo.student_count} students
-                </div>
-                <div className="flex items-center gap-1">
-                  <BookOpen className="h-4 w-4" />
-                  {classInfo.books_read} books
-                </div>
-                <div className="flex items-center gap-1">
-                  <Trophy className="h-4 w-4" />
-                  {classInfo.quiz_completions} quizzes
-                </div>
-              </div>
-            </CardTitle>
-            <CardDescription>
-              Total class points: {classInfo.total_points.toLocaleString()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <h4 className="font-semibold text-sm text-gray-700 mb-3">Student Performance</h4>
-              <div className="grid gap-2">
-                {classInfo.students.map((student, index) => (
-                  <div key={student.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-medium">
-                        {index + 1}
-                      </div>
-                      <span className="font-medium">{student.name}</span>
+      {classData.length === 0 ? (
+        <Card className="border-border/50">
+          <CardContent className="text-center py-16">
+            <GraduationCap className="h-14 w-14 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-slate-800 mb-1">No class data found</h3>
+            <p className="text-sm text-slate-500 max-w-sm mx-auto">Assign students to classes to begin gathering analytics data.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+          
+          {/* Class Sidebar Selector */}
+          <div className="space-y-3 lg:col-span-1">
+            <Card className="border-border/50">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Select Class</CardTitle>
+              </CardHeader>
+              <CardContent className="p-2 pt-0 space-y-1">
+                {classData.map(c => (
+                  <button
+                    key={c.class_name}
+                    onClick={() => { setSelectedClass(c.class_name); setSearchQuery(""); }}
+                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-between ${
+                      selectedClass === c.class_name
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+                        : "hover:bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    <span>Class {c.class_name}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                      selectedClass === c.class_name ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                    }`}>
+                      {c.student_count}
+                    </span>
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Class Champion Card */}
+            {topStudent && (
+              <Card className="border-amber-200 bg-amber-500/5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
+                <CardContent className="pt-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-amber-500" />
+                    <span className="text-xs font-bold text-amber-700 uppercase tracking-widest">Class Champion</span>
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-slate-900 leading-snug">{topStudent.name}</h4>
+                    <p className="text-[10px] text-slate-500 mt-1">UID: {topStudent.admission_number}</p>
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[9px] text-amber-700 font-bold uppercase tracking-wider">Top Score</p>
+                      <p className="text-xl font-black text-amber-600">{topStudent.points.toLocaleString()} <span className="text-xs font-medium">XP</span></p>
                     </div>
-                    <div className="flex items-center gap-6 text-sm text-gray-600">
-                      <span>{student.points} pts</span>
-                      <span>{student.books_count} books</span>
-                      <span>{student.quiz_count} quizzes</span>
+                    <div className="text-right">
+                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Books Read</p>
+                      <p className="text-sm font-bold text-slate-800">{topStudent.books_count} books</p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Class Analytics Pane */}
+          {activeClassInfo && (
+            <div className="lg:col-span-3 space-y-6">
+              
+              {/* Stat Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: "Class Size", value: activeClassInfo.student_count, desc: "Total students", icon: Users, color: "text-blue-600", bg: "bg-blue-50 border-blue-100" },
+                  { label: "Total Points", value: activeClassInfo.total_points.toLocaleString(), desc: "Accumulated XP", icon: Trophy, color: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
+                  { label: "Average XP", value: avgPoints.toLocaleString(), desc: "XP per student", icon: Award, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
+                  { label: "Books Read", value: activeClassInfo.books_read, desc: "Milestones met", icon: BookOpen, color: "text-indigo-600", bg: "bg-indigo-50 border-indigo-100" },
+                ].map((s, idx) => (
+                  <Card key={idx} className={`border ${s.bg}`}>
+                    <CardContent className="p-4 flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{s.label}</p>
+                        <p className="text-2xl font-black text-slate-900 leading-none">{s.value}</p>
+                        <p className="text-[10px] text-slate-500 font-medium">{s.desc}</p>
+                      </div>
+                      <div className={`p-2 rounded-lg bg-white shadow-xs shrink-0`}>
+                        <s.icon className={`h-4.5 w-4.5 ${s.color}`} />
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
-              {classInfo.students.length === 0 && (
-                <p className="text-gray-500 text-center py-4">No students found in this class</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
 
-      {classData.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <GraduationCap className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No class data found</h3>
-            <p className="text-gray-600">Students need to be assigned to classes to see analytics here</p>
-          </CardContent>
-        </Card>
+              {/* Leaderboard & Filter */}
+              <Card className="border-border/50">
+                <CardHeader className="py-4 border-b border-slate-100 flex flex-row items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                      <GraduationCap className="h-5 w-5 text-indigo-600" /> Class {selectedClass} Leaderboard
+                    </CardTitle>
+                    <CardDescription className="text-xs">Ranking of all students in this class based on XP points</CardDescription>
+                  </div>
+                  <div className="relative w-48 sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                    <Input
+                      placeholder="Search student or UID..."
+                      className="pl-9 h-8.5 rounded-lg text-xs"
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/70 border-b text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                          <th className="py-3 px-4 w-12 text-center">Rank</th>
+                          <th className="py-3 px-4">Student</th>
+                          <th className="py-3 px-4">Admission #</th>
+                          <th className="py-3 px-4 text-center">Books</th>
+                          <th className="py-3 px-4 text-center">Quizzes</th>
+                          <th className="py-3 px-4 text-right pr-6">XP points</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredStudents.map((s, idx) => (
+                          <tr key={s.id} className="border-b last:border-0 hover:bg-slate-50/50 transition-colors">
+                            <td className="py-3 px-4 text-center font-bold text-slate-600">
+                              {idx + 1 === 1 ? (
+                                <span className="inline-flex w-5 h-5 bg-amber-100 text-amber-700 rounded-full items-center justify-center text-[10px]">🥇</span>
+                              ) : idx + 1 === 2 ? (
+                                <span className="inline-flex w-5 h-5 bg-slate-100 text-slate-600 rounded-full items-center justify-center text-[10px]">🥈</span>
+                              ) : idx + 1 === 3 ? (
+                                <span className="inline-flex w-5 h-5 bg-orange-100 text-orange-700 rounded-full items-center justify-center text-[10px]">🥉</span>
+                              ) : (
+                                idx + 1
+                              )}
+                            </td>
+                            <td className="py-3 px-4 font-bold text-slate-900">{s.name}</td>
+                            <td className="py-3 px-4 font-mono text-slate-500">{s.admission_number}</td>
+                            <td className="py-3 px-4 text-center font-semibold text-slate-700">{s.books_count}</td>
+                            <td className="py-3 px-4 text-center font-semibold text-slate-700">{s.quiz_count}</td>
+                            <td className="py-3 px-4 text-right font-black text-indigo-600 pr-6">{s.points.toLocaleString()}</td>
+                          </tr>
+                        ))}
+
+                        {filteredStudents.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="text-center py-10 text-slate-500">
+                              No students match your search filter.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+        </div>
       )}
     </div>
   );

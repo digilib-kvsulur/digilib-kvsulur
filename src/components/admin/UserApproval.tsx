@@ -74,14 +74,29 @@ const UserApproval = () => {
 
   const loadUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-    if (error) {
+    try {
+      let allUsers: PendingUser[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allUsers = [...allUsers, ...data];
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      setUsers(allUsers);
+    } catch (error) {
       toast({ title: "Error", description: "Failed to load users", variant: "destructive" });
-    } else {
-      setUsers(data || []);
+    } finally {
+      setSelected(new Set());
+      setLoading(false);
     }
-    setSelected(new Set());
-    setLoading(false);
   };
 
   const setApproval = async (ids: string[], approve: boolean) => {
