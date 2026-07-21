@@ -53,15 +53,26 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
 
     setLoading(true);
     try {
-      // 1) Update auth user credentials (email & password)
-      const { error: authError } = await supabase.auth.updateUser({
-        email: email.trim(),
+      // 1) Update auth password first (non-fatal for email validation issues)
+      const { error: passwordError } = await supabase.auth.updateUser({
         password: password
       });
 
-      if (authError) throw authError;
+      if (passwordError) throw passwordError;
 
-      // 2) Update public profiles table (do NOT set needs_profile_update here — column may not exist)
+      // 2) Try updating auth email address (non-fatal if old dummy domain is rejected by Supabase)
+      try {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: email.trim()
+        });
+        if (emailError) {
+          console.warn("Auth email update warning (proceeding with profile update):", emailError.message);
+        }
+      } catch (emailEx) {
+        console.warn("Auth email update exception:", emailEx);
+      }
+
+      // 3) Update public profiles table with real student email and profile info
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -77,8 +88,7 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
 
       if (profileError) throw profileError;
 
-      // 3) Clear the needs_profile_update flag in auth metadata
-      //    This is the source of truth we read from on login
+      // 4) Clear the needs_profile_update flag in auth metadata
       await supabase.auth.updateUser({
         data: { needs_profile_update: false }
       });

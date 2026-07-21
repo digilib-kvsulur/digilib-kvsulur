@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       }
 
       // Valid standard email domain format
-      const email = row.email?.trim().toLowerCase() || `${uid}@student.kvsulur.edu.in`;
+      const email = row.email?.trim().toLowerCase() || `${uid}@kvsulur.com`;
 
       // Resolve name
       const name = (row.student_name || row.first_name || "Student").toString().trim();

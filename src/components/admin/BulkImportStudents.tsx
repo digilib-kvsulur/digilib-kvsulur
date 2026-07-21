@@ -73,7 +73,7 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
       const formattedRows = rows.map(r => ({
         ...r,
         student_uid: String(r.student_uid).trim(),
-        email: `${String(r.student_uid).trim()}@student.kvsulur.edu.in`
+        email: `${String(r.student_uid).trim()}@kvsulur.com`
       }));
 
       const { data, error } = await supabase.functions.invoke("admin-bulk-create-users", {
@@ -166,7 +166,7 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
                     <span className="font-medium">UID: {r.student_uid}</span>
                     <span className="text-muted-foreground">{r.student_name}</span>
                     {r.student_class && <span className="text-muted-foreground">Class {r.student_class}</span>}
-                    <span className="text-indigo-600 font-mono text-[10px] ml-auto">{r.student_uid}@student.kvsulur.edu.in</span>
+                    <span className="text-indigo-600 font-mono text-[10px] ml-auto">{r.student_uid}@kvsulur.com</span>
                   </div>
                 ))}
               </div>
