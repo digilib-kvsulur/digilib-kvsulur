@@ -77,6 +77,9 @@ const StudentDashboard = () => {
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [monthlyBooksRead, setMonthlyBooksRead] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Once the student completes profile setup, this permanently hides the dialog
+  // regardless of stale auth metadata (avoids the re-open loop).
+  const [profileSetupComplete, setProfileSetupComplete] = useState(false);
 
   const streakData = useLoginStreak(user?.id);
 
@@ -148,9 +151,11 @@ const StudentDashboard = () => {
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/login'); };
   const handleProfileUpdate = () => {
-    // Immediately clear the flag in local state so the dialog unmounts right away.
-    // checkAuth() will then run in the background to fully refresh the user object.
+    // Permanently dismiss the dialog on the client side first.
+    // This prevents checkAuth() from re-opening it even if auth metadata is stale.
+    setProfileSetupComplete(true);
     setUser((prev: any) => prev ? { ...prev, needs_profile_update: false } : prev);
+    // Refresh data in background (non-blocking)
     checkAuth();
   };
 
@@ -519,7 +524,7 @@ const StudentDashboard = () => {
         </div>
       </main>
 
-      {user?.needs_profile_update && (
+      {!profileSetupComplete && user?.needs_profile_update && (
         <ProfileCompletionDialog
           open={true}
           user={user}
