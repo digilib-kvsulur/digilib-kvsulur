@@ -59,6 +59,7 @@ const BookManager = () => {
   const [bulkEdit, setBulkEdit] = useState({ category: "", language: "", subject: "", class_level: "" });
   const [bulkBusy, setBulkBusy] = useState(false);
   const [formData, setFormData] = useState<BookFormData>(emptyForm);
+  const [fetchingDetails, setFetchingDetails] = useState(false);
   const [fetchingAll, setFetchingAll] = useState(false);
   const [fetchAllProgress, setFetchAllProgress] = useState("");
   const { toast } = useToast();
