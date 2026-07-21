@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Play, Pause, Trophy, FileText } from "lucide-react";
+import { Plus, Edit, Trash2, Play, Pause, Trophy, FileText, Upload } from "lucide-react";
 import { Quiz } from "@/types/quiz";
 import { QuizForm } from "./QuizForm";
+import BulkImportQuiz from "./BulkImportQuiz";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -296,6 +297,10 @@ const QuizManager = () => {
             <Trophy className="h-4 w-4" />
             Quiz Results
           </TabsTrigger>
+          <TabsTrigger value="bulk-import" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Bulk Import
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="quizzes">
@@ -450,7 +455,16 @@ const QuizManager = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="bulk-import">
+          <Card>
+            <CardContent className="pt-6">
+              <BulkImportQuiz onDone={loadQuizzes} />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
     </div>
   );
 };

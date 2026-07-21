@@ -6,14 +6,17 @@ const corsHeaders = {
 };
 
 interface Row {
-  email: string;
-  first_name: string;
+  email?: string;
+  first_name?: string;
   last_name?: string;
   student_class?: string;
   roll_number?: string;
   admission_number?: string;
   phone?: string;
   password?: string;
+  // new import columns
+  student_uid?: string;
+  student_name?: string;
 }
 
 Deno.serve(async (req) => {
@@ -49,14 +52,33 @@ Deno.serve(async (req) => {
     const results: Array<{ email: string; success: boolean; password?: string; error?: string }> = [];
 
     for (const row of rows) {
-      const email = (row.email || "").trim().toLowerCase();
-      const first_name = (row.first_name || "").trim();
-      if (!email || !first_name) {
-        results.push({ email, success: false, error: "Missing email or first_name" });
+      // Resolve student uid
+      const uid = (row.student_uid || row.admission_number || "").toString().trim();
+      if (!uid) {
+        results.push({ email: "", success: false, error: "Missing student UID or admission number" });
         continue;
       }
-      const password = row.password?.trim() ||
-        `Welcome@${(row.admission_number || row.roll_number || "Student").trim()}`;
+
+      // Resolve email
+      const email = row.email?.trim().toLowerCase() || `${uid}@kvsulur.digilib`;
+
+      // Resolve name
+      const name = (row.student_name || row.first_name || "Student").toString().trim();
+      let firstName = name;
+      let lastName = (row.last_name || "").toString().trim();
+      
+      // If we got a full name and no last name, split it
+      if (name && !lastName) {
+        const parts = name.split(/\s+/);
+        if (parts.length > 1) {
+          firstName = parts[0];
+          lastName = parts.slice(1).join(" ");
+        }
+      }
+
+      const rawClass = (row.student_class || "").toString().trim();
+
+      const password = row.password?.trim() || "Welcome@123";
 
       try {
         const { data: created, error: createErr } = await admin.auth.admin.createUser({
@@ -64,13 +86,14 @@ Deno.serve(async (req) => {
           password,
           email_confirm: true,
           user_metadata: {
-            first_name,
-            last_name: row.last_name?.trim() || "",
+            first_name: firstName,
+            last_name: lastName,
             role: "student",
-            student_class: row.student_class?.trim(),
-            roll_number: row.roll_number?.trim(),
-            admission_number: row.admission_number?.trim(),
-            phone: row.phone?.trim(),
+            student_class: rawClass,
+            roll_number: row.roll_number?.trim() || "",
+            admission_number: uid,
+            phone: row.phone?.trim() || "",
+            needs_profile_update: true, // Mark that profile needs completion on first login
           },
         });
         if (createErr) throw createErr;
@@ -80,12 +103,13 @@ Deno.serve(async (req) => {
           is_approved: true,
           approved_by: caller.id,
           approved_at: new Date().toISOString(),
-          first_name,
-          last_name: row.last_name?.trim() || "",
-          student_class: row.student_class?.trim(),
-          roll_number: row.roll_number?.trim(),
-          admission_number: row.admission_number?.trim(),
-          phone: row.phone?.trim(),
+          first_name: firstName,
+          last_name: lastName,
+          student_class: rawClass,
+          roll_number: row.roll_number?.trim() || "",
+          admission_number: uid,
+          phone: row.phone?.trim() || "",
+          needs_profile_update: true,
         }).eq("id", created.user.id);
 
         results.push({ email, success: true, password });

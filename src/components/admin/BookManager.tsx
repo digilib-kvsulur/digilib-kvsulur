@@ -12,6 +12,7 @@ import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare, Wand2, Loader2 } fro
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BulkImportBooks from "./BulkImportBooks";
+import { fetchBookByQuery } from "@/lib/bookApi";
 
 interface Book {
   id: string;
@@ -125,36 +126,25 @@ const BookManager = () => {
     }
     setFetchingDetails(true);
     try {
-      const q = encodeURIComponent(`${formData.title.trim()} ${formData.author.trim()}`.trim());
-      const res = await fetch(`https://openlibrary.org/search.json?q=${q}&limit=1&fields=title,author_name,subject,language,description,cover_i,first_publish_year`);
-      if (!res.ok) throw new Error("Open Library request failed");
-      const json = await res.json();
-      const doc = json.docs?.[0];
-      if (!doc) { toast({ title: "Not found", description: "No matching book found in Open Library. Fill details manually.", variant: "destructive" }); return; }
-
-      const subjects: string[] = doc.subject || [];
-      const lang: string = (doc.language || [])[0] || "";
-      const langName = lang === "eng" ? "English" : lang === "tam" ? "Tamil" : lang === "hin" ? "Hindi" : lang ? lang.toUpperCase() : "";
-
-      // Derive category from first subject keyword
-      const categoryKeywords = ["Fiction", "Non-fiction", "Science", "Mathematics", "History", "Biography", "Poetry", "Drama", "Philosophy", "Religion", "Technology", "Textbook", "Reference"];
-      const guessedCategory = categoryKeywords.find(k => subjects.some(s => s.toLowerCase().includes(k.toLowerCase()))) || "";
-
-      const coverUrl = doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : "";
-      const guessedSubject = subjects.slice(0, 2).join(", ");
-      const guessedDesc = typeof doc.description === "string" ? doc.description : (doc.description?.value || "");
+      const details = await fetchBookByQuery(formData.title.trim(), formData.author.trim());
+      if (!details) { 
+        toast({ title: "Not found", description: "No matching book found. Fill details manually.", variant: "destructive" }); 
+        return; 
+      }
 
       setFormData(prev => ({
         ...prev,
-        language: prev.language || langName,
-        category: prev.category || guessedCategory,
-        subject: prev.subject || guessedSubject,
-        description: prev.description || guessedDesc,
-        cover_url: prev.cover_url || coverUrl,
+        title: details.title || prev.title,
+        author: details.author || prev.author,
+        language: prev.language || details.language || "",
+        category: prev.category || details.category || "",
+        subject: prev.subject || details.subject || "",
+        description: prev.description || details.description || "",
+        cover_url: prev.cover_url || details.cover_url || "",
       }));
       toast({ title: "Details fetched!", description: "Review and adjust the auto-filled fields as needed." });
     } catch (e: any) {
-      toast({ title: "Fetch failed", description: e.message || "Could not reach Open Library.", variant: "destructive" });
+      toast({ title: "Fetch failed", description: e.message || "Could not fetch details.", variant: "destructive" });
     } finally {
       setFetchingDetails(false);
     }

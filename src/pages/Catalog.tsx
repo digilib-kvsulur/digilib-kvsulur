@@ -195,7 +195,7 @@ const Catalog = () => {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg mb-2 truncate">{book.title}</CardTitle>
+                      <CardTitle className="text-lg mb-2 truncate cursor-pointer hover:text-blue-600 transition-colors" onClick={() => navigate(`/book/${book.id}`)}>{book.title}</CardTitle>
                       <CardDescription className="flex items-center gap-1 mb-1"><User className="h-4 w-4" />by {book.author}</CardDescription>
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -239,8 +239,8 @@ const Catalog = () => {
                       <Button variant="outline" size="sm" className="flex-1" onClick={() => toggleWishlist(book.id)}>
                         {wishlist.has(book.id) ? <><BookmarkCheck className="h-4 w-4 mr-1" />Saved</> : <><Bookmark className="h-4 w-4 mr-1" />Save</>}
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setDetailBook(book)}>
-                        <MessageSquare className="h-4 w-4 mr-1" />Reviews
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/book/${book.id}`)}>
+                        <BookOpen className="h-4 w-4 mr-1" />Details
                       </Button>
                     </div>
                   </div>

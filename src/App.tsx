@@ -12,6 +12,7 @@ import Catalog from "./pages/Catalog";
 import StudentDashboard from "./pages/StudentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import BookDetails from "./pages/BookDetails";
 import NotFound from "./pages/NotFound";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
 
@@ -34,6 +35,7 @@ const App = () => {
             <Route path="/student-dashboard" element={<StudentDashboard />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+            <Route path="/book/:id" element={<BookDetails />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

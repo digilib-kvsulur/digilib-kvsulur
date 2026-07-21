@@ -8,9 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const SAMPLE_CSV = `admission_number,email,first_name,last_name,student_class,roll_number,phone,password
-12345,student1@example.com,Aarav,Sharma,8,12,9876543210,
-12346,student2@example.com,Diya,Patel,9,07,,Welcome@123`;
+const SAMPLE_CSV = `student_uid,student_name,student_class
+12345,Aarav Sharma,8
+12346,Diya Patel,9`;
 
 interface ResultRow { email: string; success: boolean; password?: string; error?: string }
 
@@ -29,16 +29,22 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      transformHeader: (h) => h.trim().toLowerCase().replace(/\s+/g, "_"),
+      transformHeader: (h) => {
+        const clean = h.trim().toLowerCase().replace(/\s+/g, "_");
+        if (clean === "student_uid" || clean === "uid" || clean === "admission_number") return "student_uid";
+        if (clean === "student_name" || clean === "name" || clean === "first_name") return "student_name";
+        if (clean === "student_class" || clean === "class") return "student_class";
+        return clean;
+      },
       complete: (res) => {
-        const raw = (res.data as any[]).filter(r => r.email && r.first_name && r.admission_number);
-        const cleaned = raw.filter(r => /^\d{5}$/.test(String(r.admission_number).trim()));
+        const raw = (res.data as any[]).filter(r => r.student_uid && r.student_name && r.student_class);
+        const cleaned = raw.filter(r => /^\d{5}$/.test(String(r.student_uid).trim()));
         const invalid = raw.length - cleaned.length;
         setRows(cleaned);
         if (cleaned.length === 0) {
-          toast({ title: "No valid rows", description: "CSV needs 'admission_number' (5 digits), 'email', 'first_name'.", variant: "destructive" });
+          toast({ title: "No valid rows", description: "CSV needs 'student_uid' (5 digits), 'student_name', and 'student_class'.", variant: "destructive" });
         } else if (invalid > 0) {
-          toast({ title: `Skipped ${invalid} row(s)`, description: "Admission number must be exactly 5 digits.", variant: "destructive" });
+          toast({ title: `Skipped ${invalid} row(s)`, description: "Student UID must be exactly 5 digits.", variant: "destructive" });
         }
       },
       error: (err) => toast({ title: "Parse error", description: err.message, variant: "destructive" }),
@@ -88,7 +94,7 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
         <DialogHeader>
           <DialogTitle>Bulk Import Students</DialogTitle>
           <DialogDescription>
-            Upload a CSV to create multiple student accounts. Required columns: <code>admission_number</code> (5 digits), <code>email</code>, <code>first_name</code>.
+            Upload a CSV to create multiple student accounts. Required columns: <code>student_uid</code> (5-digit admission number), <code>student_name</code>, and <code>student_class</code>.
           </DialogDescription>
         </DialogHeader>
 
@@ -115,8 +121,8 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
               <div className="text-xs">
                 {rows.slice(0, 5).map((r, i) => (
                   <div key={i} className="px-3 py-1.5 border-t flex flex-wrap gap-3">
-                    <span className="font-medium">{r.first_name} {r.last_name}</span>
-                    <span className="text-muted-foreground">{r.email}</span>
+                    <span className="font-medium">UID: {r.student_uid}</span>
+                    <span className="text-muted-foreground">{r.student_name}</span>
                     {r.student_class && <span className="text-muted-foreground">Class {r.student_class}</span>}
                   </div>
                 ))}
@@ -129,7 +135,7 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
               <div className="bg-muted px-3 py-2 text-xs font-medium flex items-center justify-between">
                 <span>Results ({results.filter(r => r.success).length} ok / {results.filter(r => !r.success).length} failed)</span>
                 <Button size="sm" variant="ghost" onClick={downloadResults}>
-                  <FileDown className="h-3 w-3 mr-1" />Download with passwords
+                  <FileDown className="h-3 w-3 mr-1" />Download with credentials
                 </Button>
               </div>
               <ScrollArea className="max-h-64">

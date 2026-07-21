@@ -36,6 +36,7 @@ import Recommendations from "@/components/dashboard/Recommendations";
 import BadgeCabinet from "@/components/rewards/BadgeCabinet";
 import MyRequests from "@/components/dashboard/MyRequests";
 import NetworkTab from "@/components/dashboard/NetworkTab";
+import ProfileCompletionDialog from "@/components/dashboard/ProfileCompletionDialog";
 
 type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "network" | "profile";
 
@@ -489,6 +490,14 @@ const StudentDashboard = () => {
           {activeTab === "profile" && <StudentProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>
+
+      {user?.needs_profile_update && (
+        <ProfileCompletionDialog
+          open={true}
+          user={user}
+          onComplete={handleProfileUpdate}
+        />
+      )}
 
       {/* Book Request Dialog */}
       <BookRequestForm open={showBookRequest} onOpenChange={setShowBookRequest} onSuccess={() => setShowBookRequest(false)} />
