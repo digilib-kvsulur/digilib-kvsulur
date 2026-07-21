@@ -50,16 +50,16 @@ Deno.serve(async (req) => {
 
     // Process a single row
     const processRow = async (row: Row) => {
-      const uid = (row.student_uid || row.admission_number || "").toString().trim();
+      const uid = String(row.student_uid || row.admission_number || "").trim();
       if (!uid) {
         return { email: "", success: false, error: "Missing student UID or admission number" };
       }
 
-      const email = row.email?.trim().toLowerCase() || `${uid}@kvsulur.com`;
+      const email = String(row.email || "").trim().toLowerCase() || `${uid}@kvsulur.com`;
 
-      const name = (row.student_name || row.first_name || "Student").toString().trim();
+      const name = String(row.student_name || row.first_name || "Student").trim();
       let firstName = name;
-      let lastName = (row.last_name || "").toString().trim();
+      let lastName = String(row.last_name || "").trim();
       
       if (name && !lastName) {
         const parts = name.split(/\s+/);
@@ -69,19 +69,23 @@ Deno.serve(async (req) => {
         }
       }
 
-      const rawClass = (row.student_class || "").toString().trim();
-      const password = row.password?.trim() || "Welcome@123";
+      const rawClass = String(row.student_class || "").trim();
+      const password = String(row.password || "").trim() || "Welcome@123";
 
       try {
         let userId: string | null = null;
         let isExisting = false;
 
-        // First check if profile/user already exists with this admission_number or email
-        const { data: existingProf } = await admin
-          .from("profiles")
-          .select("id")
-          .or(`admission_number.eq.${uid},email.eq.${email}`)
-          .maybeSingle();
+        // 1. Check if profile already exists with this admission_number or email
+        let existingProf: { id: string } | null = null;
+
+        const { data: pByUid } = await admin.from("profiles").select("id").eq("admission_number", uid).limit(1).maybeSingle();
+        if (pByUid) {
+          existingProf = pByUid;
+        } else {
+          const { data: pByEmail } = await admin.from("profiles").select("id").eq("email", email).limit(1).maybeSingle();
+          if (pByEmail) existingProf = pByEmail;
+        }
 
         if (existingProf?.id) {
           userId = existingProf.id;
@@ -93,14 +97,14 @@ Deno.serve(async (req) => {
               last_name: lastName,
               role: "student",
               student_class: rawClass,
-              roll_number: row.roll_number?.trim() || "",
+              roll_number: String(row.roll_number || "").trim(),
               admission_number: uid,
-              phone: row.phone?.trim() || "",
+              phone: String(row.phone || "").trim(),
               needs_profile_update: true,
             }
           });
         } else {
-          // Try creating new user
+          // 2. Try creating new user in Auth
           const { data: created, error: createErr } = await admin.auth.admin.createUser({
             email,
             password,
@@ -110,35 +114,31 @@ Deno.serve(async (req) => {
               last_name: lastName,
               role: "student",
               student_class: rawClass,
-              roll_number: row.roll_number?.trim() || "",
+              roll_number: String(row.roll_number || "").trim(),
               admission_number: uid,
-              phone: row.phone?.trim() || "",
+              phone: String(row.phone || "").trim(),
               needs_profile_update: true,
             },
           });
 
           if (createErr) {
-            // Fallback: search profile again or rethrow
-            if (createErr.message?.toLowerCase().includes("already registered") || createErr.message?.toLowerCase().includes("already exists")) {
-              const { data: profByEmail } = await admin.from("profiles").select("id").eq("email", email).maybeSingle();
-              if (profByEmail?.id) {
-                userId = profByEmail.id;
-                isExisting = true;
-                await admin.auth.admin.updateUserById(userId, {
-                  password,
-                  user_metadata: {
-                    first_name: firstName,
-                    last_name: lastName,
-                    student_class: rawClass,
-                    admission_number: uid,
-                    needs_profile_update: true,
-                  }
-                });
-              } else {
-                throw createErr;
-              }
+            // Handle any database trigger error or user existing error gracefully
+            const { data: fallbackProf } = await admin.from("profiles").select("id").or(`admission_number.eq.${uid},email.eq.${email}`).limit(1).maybeSingle();
+            if (fallbackProf?.id) {
+              userId = fallbackProf.id;
+              isExisting = true;
+              await admin.auth.admin.updateUserById(userId, {
+                password,
+                user_metadata: {
+                  first_name: firstName,
+                  last_name: lastName,
+                  student_class: rawClass,
+                  admission_number: uid,
+                  needs_profile_update: true,
+                }
+              });
             } else {
-              throw createErr;
+              throw new Error(createErr.message || "Database error creating new user");
             }
           } else if (created?.user) {
             userId = created.user.id;
@@ -146,6 +146,7 @@ Deno.serve(async (req) => {
         }
 
         if (userId) {
+          // 3. Guarantee profile record exists in public.profiles table
           await admin.from("profiles").upsert({
             id: userId,
             role: "student",
@@ -155,9 +156,9 @@ Deno.serve(async (req) => {
             first_name: firstName,
             last_name: lastName,
             student_class: rawClass,
-            roll_number: row.roll_number?.trim() || "",
+            roll_number: String(row.roll_number || "").trim(),
             admission_number: uid,
-            phone: row.phone?.trim() || "",
+            phone: String(row.phone || "").trim(),
             email: email,
             updated_at: new Date().toISOString()
           }, { onConflict: "id" });
@@ -176,7 +177,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Process rows in parallel batches of 15 to avoid edge function timeouts while staying robust
+    // Process rows in parallel batches of 15
     const results: Array<{ email: string; success: boolean; password?: string; error?: string }> = [];
     const BATCH_SIZE = 15;
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
