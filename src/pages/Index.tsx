@@ -353,7 +353,7 @@ const Index = () => {
       )}
 
       {/* Features Grid with generous card padding */}
-      <section id="about" className="py-24 bg-white border-y border-slate-200/80 relative">
+      <section id="about" className="py-24 bg-white relative max-w-7xl mx-auto my-12 rounded-3xl border border-slate-200/80 shadow-md overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
             <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Built For KV Students</p>
@@ -385,7 +385,7 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {events.map((e, i) => (
+            {dbEvents.map((e, i) => (
               <article key={i} className="group rounded-2.5xl border border-slate-200 bg-white overflow-hidden shadow-xs hover:shadow-md transition-all p-1.5">
                 <div className="relative h-52 overflow-hidden rounded-2xl bg-slate-100">
                   <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
