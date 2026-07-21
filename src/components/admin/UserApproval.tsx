@@ -131,11 +131,11 @@ const UserApproval = () => {
     if (!resetTarget || !generatedPassword) return;
     setResetting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-bulk-create-users", {
-        body: { action: "reset_user_password", userId: resetTarget.id, newPassword: generatedPassword }
+      const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+        body: { user_id: resetTarget.id, new_password: generatedPassword }
       });
       if (error || (data as any)?.error) throw new Error(error?.message || (data as any)?.error);
-      toast({ title: "Password Reset!", description: `Password for ${resetTarget.first_name} has been updated.` });
+      toast({ title: "Password Reset!", description: `Password for ${resetTarget.first_name} has been updated. Copy the password and hand it to the student.` });
     } catch (e: any) {
       toast({ title: "Reset Failed", description: e.message, variant: "destructive" });
       setResetTarget(null);
