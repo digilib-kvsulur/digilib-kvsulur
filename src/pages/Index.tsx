@@ -283,29 +283,7 @@ const Index = () => {
           </div>
         </div>
       </section>
-
-      {/* Light Stats Row with extra padding */}
-      <section className="border-y border-slate-200/80 bg-white">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
-          {[
-            { icon: BookMarked, v: statistics.totalBooks, l: "Books In Catalog" },
-            { icon: Users, v: statistics.activeUsers, l: "Verified Readers" },
-            { icon: Compass, v: statistics.booksIssued, l: "Books Checked Out" },
-            { icon: Library, v: 12, l: "Classes Served" },
-          ].map((s, i) => (
-            <div key={i} className="flex items-center gap-4.5 p-3 rounded-2xl hover:bg-slate-50 transition-colors">
-              <div className="w-13 h-13 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
-                <s.icon className="h-6 w-6 text-indigo-600" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-black text-slate-900 leading-none">{s.v.toLocaleString()}+</p>
-                <p className="text-xs text-slate-500 font-medium">{s.l}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
+      
       {/* Trending Books Showcase with generous padding */}
       {trendingBooks.length > 0 && (
         <section className="py-24 relative">
