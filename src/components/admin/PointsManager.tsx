@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Award, Plus, CheckSquare, Square } from "lucide-react";
+import { Award, Plus, CheckSquare, BookOpen, Settings2, CheckCircle, XCircle, Clock } from "lucide-react";
 
 interface User {
   id: string;
@@ -31,10 +33,26 @@ const PointsManager = () => {
   const [bulkReason, setBulkReason] = useState("");
   const [bulkAwarding, setBulkAwarding] = useState(false);
 
+  // Reading approval state
+  const [pendingReadings, setPendingReadings] = useState<any[]>([]);
+  const [loadingReadings, setLoadingReadings] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+
+  // Points rules state
+  const [pointsRules, setPointsRules] = useState<Record<string, number>>({
+    points_per_book_read: 25,
+    points_per_quiz_passed: 50,
+    points_per_daily_streak: 10,
+    points_per_review: 15
+  });
+  const [savingRules, setSavingRules] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
     loadUsers();
+    loadPendingReadings();
+    loadPointsRules();
   }, []);
 
   const loadUsers = async () => {
@@ -156,6 +174,63 @@ const PointsManager = () => {
     else setSelectedUserIds(new Set(users.map(u => u.id)));
   };
 
+  const loadPendingReadings = async () => {
+    setLoadingReadings(true);
+    const { data, error } = await supabase
+      .from('reading_history')
+      .select('id, book_title, book_author, completed_date, points_earned, user_id, status')
+      .eq('status', 'pending')
+      .order('completed_date', { ascending: false });
+    if (error) { console.error(error); setLoadingReadings(false); return; }
+    // Enrich with profiles
+    const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id)));
+    let profileMap: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: profs } = await supabase.from('profiles').select('id, first_name, last_name, student_class').in('id', userIds);
+      (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
+    }
+    setPendingReadings((data || []).map((r: any) => ({ ...r, profile: profileMap[r.user_id] })));
+    setLoadingReadings(false);
+  };
+
+  const handleApproveReading = async (id: string) => {
+    setApprovingId(id);
+    const { error } = await supabase.from('reading_history').update({ status: 'approved' }).eq('id', id);
+    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    else toast({ title: 'Approved', description: 'Points awarded to the student.' });
+    setApprovingId(null);
+    loadPendingReadings();
+  };
+
+  const handleRejectReading = async (id: string) => {
+    setApprovingId(id);
+    const { error } = await supabase.from('reading_history').update({ status: 'rejected' }).eq('id', id);
+    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    else toast({ title: 'Rejected', description: 'Reading entry rejected.' });
+    setApprovingId(null);
+    loadPendingReadings();
+  };
+
+  const loadPointsRules = async () => {
+    const { data } = await supabase.from('system_settings').select('key, value').in('key', [
+      'points_per_book_read', 'points_per_quiz_passed', 'points_per_daily_streak', 'points_per_review'
+    ]);
+    if (data && data.length > 0) {
+      const rules: Record<string, number> = {};
+      data.forEach((row: any) => { rules[row.key] = Number(row.value); });
+      setPointsRules(prev => ({ ...prev, ...rules }));
+    }
+  };
+
+  const handleSavePointsRules = async () => {
+    setSavingRules(true);
+    const upserts = Object.entries(pointsRules).map(([key, value]) => ({ key, value: value as any }));
+    const { error } = await supabase.from('system_settings').upsert(upserts, { onConflict: 'key' });
+    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    else toast({ title: 'Settings saved', description: 'Points configuration updated.' });
+    setSavingRules(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -166,6 +241,20 @@ const PointsManager = () => {
 
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-foreground">Points Management</h2>
+        <p className="text-sm text-muted-foreground">Award points, approve reading entries, and configure point rules.</p>
+      </div>
+      <Tabs defaultValue="award">
+        <TabsList className="mb-4">
+          <TabsTrigger value="award" className="gap-2"><Award className="h-4 w-4" /> Award Points</TabsTrigger>
+          <TabsTrigger value="readings" className="gap-2">
+            <BookOpen className="h-4 w-4" /> Reading Approvals
+            {pendingReadings.length > 0 && <Badge className="ml-1 bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{pendingReadings.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="rules" className="gap-2"><Settings2 className="h-4 w-4" /> Points Rules</TabsTrigger>
+        </TabsList>
+        <TabsContent value="award" className="space-y-6">
       {/* Bulk Award Card if any selected */}
       {selectedUserIds.size > 0 && (
         <Card className="border-primary bg-primary/5">
@@ -276,8 +365,8 @@ const PointsManager = () => {
               {awarding ? "Awarding..." : "Award Points"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
       {/* Student Points Overview */}
       <Card>
@@ -334,6 +423,80 @@ const PointsManager = () => {
           )}
         </CardContent>
       </Card>
+      </TabsContent>
+
+
+        {/* Reading Approvals Tab */}
+        <TabsContent value="readings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-amber-500" /> Pending Reading Entries</CardTitle>
+              <CardDescription>Approve or reject student reading log submissions. Points are only awarded on approval.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingReadings ? (
+                <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+              ) : pendingReadings.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No pending reading entries. 🎉</p>
+              ) : (
+                <div className="space-y-3">
+                  {pendingReadings.map(r => (
+                    <div key={r.id} className="p-4 rounded-xl border border-border/50 bg-card flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm text-foreground truncate">{r.book_title}</p>
+                        <p className="text-xs text-muted-foreground">by {r.book_author} · {r.profile?.first_name} {r.profile?.last_name} · Class {r.profile?.student_class || '—'}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(r.completed_date).toLocaleDateString()} · {r.points_earned} pts pending</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => handleApproveReading(r.id)} disabled={approvingId === r.id}>
+                          <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleRejectReading(r.id)} disabled={approvingId === r.id}>
+                          <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Points Rules Tab */}
+        <TabsContent value="rules">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Settings2 className="h-5 w-5 text-primary" /> Points Configuration</CardTitle>
+              <CardDescription>Set how many points students earn for each activity. Changes apply to future actions.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
+                {([
+                  { key: 'points_per_book_read', label: 'Points per Reading Entry (approved)' },
+                  { key: 'points_per_quiz_passed', label: 'Max Points per Quiz' },
+                  { key: 'points_per_daily_streak', label: 'Points per Daily Streak' },
+                  { key: 'points_per_review', label: 'Points per Book Review' },
+                ] as const).map(({ key, label }) => (
+                  <div key={key} className="space-y-1">
+                    <Label htmlFor={key}>{label}</Label>
+                    <Input
+                      id={key}
+                      type="number"
+                      min={0}
+                      value={pointsRules[key] ?? ''}
+                      onChange={e => setPointsRules(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                    />
+                  </div>
+                ))}
+              </div>
+              <Button className="mt-6" onClick={handleSavePointsRules} disabled={savingRules}>
+                {savingRules ? 'Saving…' : 'Save Configuration'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

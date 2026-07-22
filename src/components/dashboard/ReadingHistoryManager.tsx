@@ -19,6 +19,7 @@ interface ReadingHistoryEntry {
   rating?: number;
   points_earned: number;
   notes?: string;
+  status?: string;
 }
 
 interface ReadingHistoryManagerProps {
@@ -100,13 +101,13 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
       } else {
         const { error } = await supabase
           .from('reading_history')
-          .insert(entryData);
+          .insert({ ...entryData, status: 'pending' });
 
         if (error) throw error;
 
         toast({
-          title: "Success",
-          description: `Book added! You earned ${pointsEarned} points!`,
+          title: "Entry submitted for approval",
+          description: `Your reading entry will be reviewed by the admin. Points will be awarded after approval.`,
         });
       }
 
@@ -206,7 +207,7 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
             <DialogHeader>
               <DialogTitle>{editingEntry ? 'Edit' : 'Add'} Reading Entry</DialogTitle>
               <DialogDescription>
-                {editingEntry ? 'Update your reading entry' : 'Add a book you\'ve completed. Points are awarded based on your rating (1-5 stars = 5-25 points)'}
+                {editingEntry ? 'Update your reading entry' : 'Add a book you\'ve completed. An admin will review and award points after approval.'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -300,9 +301,13 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-green-600 border-green-600">
-                    +{entry.points_earned} points
-                  </Badge>
+                  {entry.status === 'approved' ? (
+                    <Badge className="bg-success/10 text-success border-success/20">+{entry.points_earned} pts</Badge>
+                  ) : entry.status === 'rejected' ? (
+                    <Badge variant="destructive">Rejected</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">⏳ Pending Approval</Badge>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

@@ -233,15 +233,15 @@ const Index = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-3">
                 {!user ? (
                   <>
-                    <Button onClick={() => navigate("/login")} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0">
+                    <Button onClick={() => navigate("/login")} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
                       Open Account <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
-                    <Button onClick={() => navigate("/catalog")} variant="outline" size="lg" className="text-base px-9 py-3.5 h-14 border-slate-300 bg-white hover:bg-slate-50 text-slate-800 rounded-xl font-bold shadow-sm">
+                    <Button onClick={() => navigate("/catalog")} variant="outline" size="lg" className="text-base px-9 py-3.5 h-14 border-slate-300 bg-white hover:bg-indigo-50/50 hover:text-indigo-600 hover:border-indigo-300 text-slate-800 rounded-xl font-bold shadow-sm transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
                       Browse Books
                     </Button>
                   </>
                 ) : (
-                  <Button onClick={navigateToDashboard} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0">
+                  <Button onClick={navigateToDashboard} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
                     <LayoutDashboard className="h-5 w-5 mr-2.5" /> Go to Dashboard
                   </Button>
                 )}
@@ -300,7 +300,7 @@ const Index = () => {
             
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
               {trendingBooks.map((b) => (
-                <div key={b.id} onClick={() => navigate(`/book/${b.id}`)} className="group cursor-pointer space-y-3.5">
+                <div key={b.id} onClick={() => navigate(`/book/${b.id}`)} className="group cursor-pointer space-y-3.5 transition-all duration-300 hover:-translate-y-1.5">
                   <div className="aspect-[2/3] w-full rounded-2xl bg-white border border-slate-200 overflow-hidden relative shadow-md group-hover:shadow-xl group-hover:border-indigo-400 transition-all p-1">
                     <div className="w-full h-full rounded-xl overflow-hidden relative">
                       {b.cover_url ? (
@@ -364,7 +364,7 @@ const Index = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {dbEvents.map((e, i) => (
-              <article key={i} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all p-1.5">
+              <article key={i} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1.5 duration-300 p-1.5">
                 <div className="relative h-52 overflow-hidden rounded-2xl bg-slate-100">
                   <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                   <span className="absolute top-4 left-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full shadow-md">{e.badge}</span>
@@ -388,7 +388,7 @@ const Index = () => {
           <div className="relative max-w-3xl mx-auto px-8 sm:px-12 text-center space-y-7">
             <h3 className="text-3.5xl sm:text-4xl font-black tracking-tight text-white">Ready to Start Your Reading Adventure?</h3>
             <p className="text-indigo-100 text-base max-w-lg mx-auto leading-relaxed">Join 500+ student bookworms at KV AFS Sulur. Log reading activities, earn custom badges, and climb classes league!</p>
-            <Button onClick={() => navigate("/login")} size="lg" className="bg-white hover:bg-slate-100 text-indigo-950 text-base px-9 py-4 h-14 rounded-xl font-bold shadow-xl border-0">
+            <Button onClick={() => navigate("/login")} size="lg" className="bg-white hover:bg-slate-100 hover:text-indigo-900 text-indigo-950 text-base px-9 py-4 h-14 rounded-xl font-bold shadow-xl border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
               Create Account Now <ArrowRight className="ml-2.5 h-5 w-5" />
             </Button>
           </div>

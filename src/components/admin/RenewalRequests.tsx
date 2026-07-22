@@ -13,7 +13,11 @@ export default function RenewalRequests() {
     const { data, error } = await supabase.from("book_renewals")
       .select("*, book_issues(id, due_date, renewal_count, books(title), user_id)")
       .eq("status", "pending").order("created_at", { ascending: true });
-    if (error) { console.error(error); return; }
+    if (error) {
+      console.error(error);
+      toast({ title: "Error", description: error.message || "Failed to load renewals.", variant: "destructive" });
+      return;
+    }
     const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id).filter(Boolean)));
     let profileMap: Record<string, any> = {};
     if (userIds.length) {

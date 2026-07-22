@@ -64,7 +64,18 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
 
       const totalStudents = ranked.length;
       const totalPoints = ranked.reduce((sum, e) => sum + e.points, 0);
-      setSchoolStats({ totalStudents, totalPoints, averagePoints: totalStudents > 0 ? Math.round(totalPoints / totalStudents) : 0 });
+      
+      const { data: statsData } = await supabase.rpc('get_school_leaderboard_stats');
+      if (statsData && statsData.length > 0) {
+        const stats = statsData[0];
+        setSchoolStats({
+          totalStudents: Number(stats.total_students) || 0,
+          totalPoints: Number(stats.total_points) || 0,
+          averagePoints: Math.round(Number(stats.average_points)) || 0
+        });
+      } else {
+        setSchoolStats({ totalStudents, totalPoints, averagePoints: totalStudents > 0 ? Math.round(totalPoints / totalStudents) : 0 });
+      }
 
       if (currentUserId) {
         const userEntry = ranked.find(e => e.id === currentUserId);

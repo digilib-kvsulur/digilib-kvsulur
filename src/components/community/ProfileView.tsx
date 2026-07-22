@@ -65,15 +65,14 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
 
   return (
     <div className="max-h-[85vh] overflow-y-auto">
-      {/* Cover + Header */}
-      <div className="relative h-28 gradient-primary" />
-      <div className="px-6 pb-4 -mt-14">
-        <div className="flex items-end gap-4 mb-3">
-          <Avatar className="h-24 w-24 ring-4 ring-background shadow-lg">
+      {/* Profile Header – no overlapping banner */}
+      <div className="px-6 pt-6 pb-4">
+        <div className="flex items-center gap-4 mb-4">
+          <Avatar className="h-20 w-20 ring-4 ring-primary/20 shadow-lg shrink-0">
             {avatarUrl && <AvatarImage src={avatarUrl} />}
             <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-2xl">{initials(profile)}</AvatarFallback>
           </Avatar>
-          <div className="flex-1 pb-1 grid grid-cols-3 gap-2 text-center">
+          <div className="flex-1 grid grid-cols-3 gap-2 text-center">
             <StatBlock value={profile.posts_count} label="Posts" />
             <StatBlock value={profile.followers_count} label="Followers" />
             <StatBlock value={profile.following_count} label="Following" />

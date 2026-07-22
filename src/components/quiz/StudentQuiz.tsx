@@ -98,23 +98,25 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
 
   const calculateResult = (): QuizResult => {
     let correctAnswers = 0;
-    let pointsEarned = 0;
+    const totalQuestions = quiz.questions.length;
+    const pointsReward = Number(quiz.pointsReward) || 50;
 
     quiz.questions.forEach((question, index) => {
       if (answers[index] === question.correctAnswer) {
         correctAnswers++;
-        pointsEarned += question.points;
       }
     });
 
-    const score = Math.round((correctAnswers / quiz.questions.length) * 100);
+    const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    // Award points proportionally based on score percentage
+    const pointsEarned = Math.round((score / 100) * pointsReward);
     const timeSpent = (quiz.timeLimit * 60) - timeRemaining;
 
     return {
       quizId: quiz.id,
       quizTitle: quiz.title,
       score,
-      totalQuestions: quiz.questions.length,
+      totalQuestions,
       correctAnswers,
       pointsEarned,
       completedAt: new Date().toISOString(),
@@ -168,7 +170,7 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
         throw insertError;
       }
 
-      // Update user points using proper SQL syntax
+      // Update user points safely using fetch-then-update pattern
       const { data: currentUser, error: fetchError } = await supabase
         .from('profiles')
         .select('points')
@@ -177,13 +179,12 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
 
       if (fetchError) {
         console.error('Error fetching current points:', fetchError);
-      } else {
-        const newPoints = (currentUser.points || 0) + result.pointsEarned;
+      } else if (result.pointsEarned > 0) {
+        const newPoints = (Number(currentUser.points) || 0) + result.pointsEarned;
         const { error: pointsError } = await supabase
           .from('profiles')
           .update({ points: newPoints })
           .eq('id', user.id);
-
         if (pointsError) {
           console.error('Error updating user points:', pointsError);
         }

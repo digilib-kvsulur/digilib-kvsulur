@@ -15,7 +15,11 @@ export default function OverdueList() {
     const { data, error } = await supabase.from("book_issues")
       .select("id, due_date, user_id, books(title)")
       .eq("status", "issued").lt("due_date", today).order("due_date", { ascending: true });
-    if (error) { console.error(error); return; }
+    if (error) {
+      console.error(error);
+      toast({ title: "Error", description: error.message || "Failed to load overdue books.", variant: "destructive" });
+      return;
+    }
     const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id).filter(Boolean)));
     let profileMap: Record<string, any> = {};
     if (userIds.length) {

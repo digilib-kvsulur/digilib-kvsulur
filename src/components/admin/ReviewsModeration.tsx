@@ -17,7 +17,11 @@ export default function ReviewsModeration() {
       .order("created_at", { ascending: false }).limit(200);
     if (!showHidden) q = q.eq("is_hidden", false);
     const { data, error } = await q;
-    if (error) { console.error(error); return; }
+    if (error) {
+      console.error(error);
+      toast({ title: "Error", description: error.message || "Failed to load reviews.", variant: "destructive" });
+      return;
+    }
     const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id).filter(Boolean)));
     let profileMap: Record<string, any> = {};
     if (userIds.length) {

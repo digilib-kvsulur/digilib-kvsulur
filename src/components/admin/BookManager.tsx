@@ -56,7 +56,7 @@ const BookManager = () => {
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
   const [showBulkEdit, setShowBulkEdit] = useState(false);
-  const [bulkEdit, setBulkEdit] = useState({ category: "", language: "", subject: "", class_level: "" });
+  const [bulkEdit, setBulkEdit] = useState({ category: "", language: "", subject: "", class_level: "", cover_url: "" });
   const [bulkBusy, setBulkBusy] = useState(false);
   const [formData, setFormData] = useState<BookFormData>(emptyForm);
   const [fetchingDetails, setFetchingDetails] = useState(false);
@@ -239,6 +239,35 @@ const BookManager = () => {
     loadBooks();
   };
 
+  // Bulk fetch covers for selected books only
+  const handleBulkFetchCovers = async () => {
+    if (selectedBookIds.size === 0) {
+      toast({ title: "No books selected", description: "Select at least one book first.", variant: "destructive" });
+      return;
+    }
+    const targets = books.filter(b => selectedBookIds.has(b.id));
+    setBulkBusy(true);
+    let updated = 0; let failed = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const book = targets[i];
+      setFetchAllProgress(`Fetching cover ${i + 1}/${targets.length}: ${book.title.slice(0, 30)}...`);
+      try {
+        const details = await fetchBookByQuery(book.title, book.author);
+        if (details?.cover_url) {
+          await supabase.from('books').update({ cover_url: details.cover_url }).eq('id', book.id);
+          updated++;
+        }
+        await new Promise(r => setTimeout(r, 300));
+      } catch { failed++; }
+    }
+    setBulkBusy(false);
+    setFetchAllProgress("");
+    setSelectedBookIds(new Set());
+    toast({ title: "Cover fetch complete", description: `${updated} covers updated${failed > 0 ? `, ${failed} failed` : ""}.` });
+    loadBooks();
+  };
+
+
   const handleDelete = async (bookId: string) => {
     if (!confirm('Delete this book?')) return;
     const { error } = await supabase.from('books').delete().eq('id', bookId);
@@ -260,7 +289,7 @@ const BookManager = () => {
   const handleBulkEdit = async () => {
     if (selectedBookIds.size === 0) return;
     const patch: any = {};
-    (["category", "language", "subject", "class_level"] as const).forEach(k => {
+    (["category", "language", "subject", "class_level", "cover_url"] as const).forEach(k => {
       const v = bulkEdit[k].trim();
       if (v) patch[k] = v;
     });
@@ -269,7 +298,7 @@ const BookManager = () => {
     const ids = Array.from(selectedBookIds);
     const { error } = await supabase.from("books").update(patch).in("id", ids);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Updated", description: `${ids.length} book(s) updated` }); setSelectedBookIds(new Set()); setBulkEdit({ category: "", language: "", subject: "", class_level: "" }); setShowBulkEdit(false); loadBooks(); }
+    else { toast({ title: "Updated", description: `${ids.length} book(s) updated` }); setSelectedBookIds(new Set()); setBulkEdit({ category: "", language: "", subject: "", class_level: "", cover_url: "" }); setShowBulkEdit(false); loadBooks(); }
     setBulkBusy(false);
   };
   const handleBulkDelete = async () => {
@@ -375,6 +404,9 @@ const BookManager = () => {
               <Button size="sm" onClick={() => setShowBulkEdit(true)} disabled={bulkBusy}><Edit className="h-3.5 w-3.5 mr-1.5" />Bulk Edit</Button>
               <Button size="sm" variant="destructive" onClick={handleBulkDelete} disabled={bulkBusy}><Trash2 className="h-3.5 w-3.5 mr-1.5" />Delete Selected</Button>
               <Button size="sm" variant="outline" onClick={handleBulkClearMetadata} disabled={bulkBusy} className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">Clear Metadata</Button>
+              <Button size="sm" variant="outline" onClick={handleBulkFetchCovers} disabled={bulkBusy} className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700">
+                {bulkBusy && fetchAllProgress ? fetchAllProgress : "Fetch Covers"}
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setSelectedBookIds(new Set())}>Clear</Button>
             </div>
           </CardContent>
@@ -542,6 +574,10 @@ const BookManager = () => {
             <div>
               <Label>Class Level</Label>
               <Input value={bulkEdit.class_level} onChange={e => setBulkEdit(p => ({ ...p, class_level: e.target.value }))} placeholder="e.g. 11" />
+            </div>
+            <div>
+              <Label>Cover Image URL</Label>
+              <Input value={bulkEdit.cover_url} onChange={e => setBulkEdit(p => ({ ...p, cover_url: e.target.value }))} placeholder="https://..." />
             </div>
           </div>
           <DialogFooter>

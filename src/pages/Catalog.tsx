@@ -88,12 +88,15 @@ const Catalog = () => {
       Object.entries(agg).forEach(([k, v]) => { map[k] = { avg: v.sum / v.count, count: v.count }; });
       setRatings(map);
 
-      const [{ data: issues }, { data: recs }] = await Promise.all([
-        supabase.from("book_issues").select("book_id"),
+      // Query borrow counts and recommendations via secure RPC / public select
+      const [{ data: countsData }, { data: recs }] = await Promise.all([
+        supabase.rpc('get_book_borrow_counts'),
         supabase.from("class_book_recommendations").select("book_id"),
       ]);
       const issueMap: Record<string, number> = {};
-      (issues || []).forEach((i: any) => { if (i.book_id) issueMap[i.book_id] = (issueMap[i.book_id] || 0) + 1; });
+      (countsData || []).forEach((item: any) => {
+        if (item.book_id) issueMap[item.book_id] = Number(item.borrow_count) || 0;
+      });
       const recMap: Record<string, number> = {};
       (recs || []).forEach((r: any) => { if (r.book_id) recMap[r.book_id] = (recMap[r.book_id] || 0) + 1; });
       setBorrowCounts(issueMap);
@@ -133,6 +136,11 @@ const Catalog = () => {
   });
 
   const requireAuth = () => { if (!user) { toast({ title: "Sign in required", variant: "destructive" }); navigate("/login"); return false; } return true; };
+
+  const handleRequestNewBook = () => {
+    if (!requireAuth()) return;
+    setShowRequestDialog(true);
+  };
 
   const toggleWishlist = async (id: string) => {
     if (!requireAuth()) return;
@@ -186,7 +194,7 @@ const Catalog = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button onClick={() => setShowRequestDialog(true)} variant="outline" className="rounded-xl border-slate-200 hover:bg-slate-50 font-bold text-slate-700 shadow-sm hidden sm:flex">
+            <Button onClick={handleRequestNewBook} variant="outline" className="rounded-xl border-slate-200 hover:bg-slate-50 font-bold text-slate-700 shadow-sm">
               <Plus className="h-4 w-4 mr-2" /> Request Book
             </Button>
             <BookRequestForm open={showRequestDialog} onOpenChange={setShowRequestDialog} onSuccess={() => setShowRequestDialog(false)} />
