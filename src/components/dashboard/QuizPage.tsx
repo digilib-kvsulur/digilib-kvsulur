@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Clock, Award, TrendingUp, Star, Play } from "lucide-react";
+import { Trophy, Clock, Award, TrendingUp, Star, Play, Sparkles } from "lucide-react";
 import { Quiz, QuizResult } from "@/types/quiz";
 import { useToast } from "@/hooks/use-toast";
 
@@ -79,18 +79,22 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
                       </Badge>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3 flex-wrap">
                       <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
+                        <Clock className="h-4 w-4 text-indigo-500" />
                         {quiz.timeLimit} min
                       </span>
                       <span className="flex items-center gap-1">
-                        <Award className="h-4 w-4" />
-                        {quiz.pointsReward} points
+                        <Award className="h-4 w-4 text-amber-500" />
+                        {quiz.pointsReward} score pts
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="h-4 w-4 text-violet-500" />
+                        +{quiz.completionBonus ?? 10} bonus
                       </span>
                       <span>{quiz.questions.length} questions</span>
                     </div>
-
+                    
                     <Button 
                       onClick={() => handleStartQuiz(quiz)}
                       className="w-full bg-blue-600 hover:bg-blue-700"
@@ -124,26 +128,35 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
                   <p className="text-sm text-gray-400">Start your first quiz to see results here</p>
                 </div>
               ) : (
-                results.slice(-10).reverse().map((result, index) => (
-                  <div key={index} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">{result.quizTitle}</h4>
-                      <Badge variant={result.score >= 80 ? "default" : result.score >= 60 ? "secondary" : "destructive"}>
-                        {result.score}%
-                      </Badge>
+                results.slice(-10).reverse().map((result, index) => {
+                  const quizTitle = result.quizTitle || (result as any).quizzes?.title || "Quiz";
+                  const score = result.score || 0;
+                  const completedAt = result.completedAt || (result as any).completed_at;
+                  const pointsEarned = result.pointsEarned || (result as any).points_earned || 0;
+                  const totalQuestions = result.totalQuestions || (result as any).quizzes?.questions?.length || 0;
+                  const correctAnswers = result.correctAnswers !== undefined ? result.correctAnswers : Math.round((score / 100) * totalQuestions);
+
+                  return (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-foreground">{quizTitle}</h4>
+                        <Badge variant={score >= 80 ? "default" : score >= 60 ? "secondary" : "destructive"}>
+                          {score}%
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span>{correctAnswers}/{totalQuestions} correct</span>
+                        <span className="flex items-center gap-1">
+                          <Star className="h-4 w-4 text-yellow-500" />
+                          +{pointsEarned} points
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Completed: {completedAt ? new Date(completedAt).toLocaleDateString("en-IN") : "Unknown"}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span>{result.correctAnswers}/{result.totalQuestions} correct</span>
-                      <span className="flex items-center gap-1">
-                        <Star className="h-4 w-4 text-yellow-500" />
-                        +{result.pointsEarned} points
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Completed: {new Date(result.completedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </CardContent>

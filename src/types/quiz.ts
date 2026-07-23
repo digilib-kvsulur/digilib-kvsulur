@@ -8,6 +8,7 @@ export interface Quiz {
   questions: Question[];
   timeLimit: number; // in minutes
   pointsReward: number;
+  completionBonus?: number; // bonus points just for finishing
   isActive: boolean;
   createdAt: string;
   createdBy: string;
@@ -40,7 +41,20 @@ export interface QuizResult {
   totalQuestions: number;
   correctAnswers: number;
   pointsEarned: number;
+  completionBonus: number;
+  totalPointsAwarded: number;
   completedAt: string;
   timeSpent: number;
   answers: number[];
+  questionResults: QuestionResult[];
+}
+
+export interface QuestionResult {
+  questionIndex: number;
+  question: string;
+  options: string[];
+  selectedAnswer: number;
+  correctAnswer: number;
+  isCorrect: boolean;
+  explanation?: string;
 }

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, BookOpen, Plus, Bookmark, BookmarkCheck, Star, Clock, Library, Compass, Edit } from "lucide-react";
+import { Search, BookOpen, Plus, Bookmark, BookmarkCheck, Star, Clock, Library, Compass, Edit, Sparkles } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -184,13 +184,21 @@ const Catalog = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3.5 cursor-pointer" onClick={() => navigate("/")}>
-            <div className="w-11 h-11 bg-gradient-to-tr from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/20">
-              <Library className="h-6 w-6 text-white" />
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate("/")}>
+            {/* Dual Logo Placeholders */}
+            <div className="flex items-center -space-x-2.5 shrink-0">
+              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs" title="PM SHRI Logo">
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                <Sparkles className="h-5 w-5 text-amber-500 absolute" />
+              </div>
+              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs z-10" title="KV Logo">
+                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                <Library className="h-5 w-5 text-indigo-600 absolute" />
+              </div>
             </div>
             <div>
-              <h1 className="text-base font-black tracking-tight text-slate-900 leading-none">PM SHRI KV AFS SULUR</h1>
-              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider mt-1.5">Digital Catalog</p>
+              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-tight">KV Sulur Library</h1>
+              <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">Digital Catalog</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

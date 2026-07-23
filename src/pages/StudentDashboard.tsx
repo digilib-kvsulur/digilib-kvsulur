@@ -16,6 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import LevelProgress from "@/components/dashboard/LevelProgress";
 import CurrentBooks from "@/components/dashboard/CurrentBooks";
 import QuizPage from "@/components/dashboard/QuizPage";
+import LoginStreakCard from "@/components/dashboard/LoginStreakCard";
 import ReadingChallenges from "@/components/rewards/ReadingChallenges";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import BookRequestForm from "@/components/BookRequestForm";
@@ -159,9 +160,10 @@ const StudentDashboard = () => {
     checkAuth();
   };
 
-  const handleQuizComplete = async (result: { score: number; pointsEarned: number }) => {
+  const handleQuizComplete = async (result: { score: number; pointsEarned: number; totalPointsAwarded?: number; completionBonus?: number }) => {
     await Promise.all([checkAuth(), fetchQuizResults(), fetchChallenges()]);
-    toast({ title: "Quiz Completed!", description: `You scored ${result.score}% and earned ${result.pointsEarned} points!` });
+    const total = result.totalPointsAwarded ?? result.pointsEarned;
+    toast({ title: "Quiz Completed! 🎉", description: `Score: ${result.score}% · Earned ${total} points!` });
     setSelectedQuiz(null);
   };
 
@@ -179,7 +181,7 @@ const StudentDashboard = () => {
 
   const fetchAvailableQuizzes = async () => {
     const { data } = await supabase.from('quizzes').select('*').eq('is_active', true).order('created_at', { ascending: false });
-    setAvailableQuizzes(data?.map(q => ({ id: q.id, title: q.title, description: q.description || '', difficulty: q.difficulty, timeLimit: q.time_limit, pointsReward: q.points_reward, questions: Array.isArray(q.questions) ? q.questions : [] })) || []);
+    setAvailableQuizzes(data?.map(q => ({ id: q.id, title: q.title, description: q.description || '', difficulty: q.difficulty, timeLimit: q.time_limit, pointsReward: q.points_reward, completionBonus: (q as any).completion_bonus ?? 10, questions: Array.isArray(q.questions) ? q.questions : [], isActive: q.is_active, createdAt: q.created_at, createdBy: q.created_by })) || []);
   };
 
   const fetchChallenges = async () => {
@@ -365,25 +367,12 @@ const StudentDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <LevelProgress userPoints={user?.points || 0} />
                 {!streakData.loading && (
-                  <Card className="border-border/50">
-                    <CardContent className="p-5">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-14 h-14 rounded-full bg-warning/10 flex items-center justify-center ${streakData.currentStreak >= 3 ? 'animate-pulse' : ''}`}>
-                          <Flame className="h-7 w-7 text-warning" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-3xl font-bold text-foreground">{streakData.currentStreak}</span>
-                            <span className="text-sm text-muted-foreground">day streak</span>
-                          </div>
-                          <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><Trophy className="h-3 w-3 text-warning" /> Best: {streakData.longestStreak}</span>
-                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3 text-primary" /> Total: {streakData.totalLoginDays}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <LoginStreakCard
+                    currentStreak={streakData.currentStreak}
+                    longestStreak={streakData.longestStreak}
+                    totalLoginDays={streakData.totalLoginDays}
+                    onPointsClaimed={checkAuth}
+                  />
                 )}
               </div>
 

@@ -994,6 +994,7 @@ export type Database = {
           student_class: string | null
           updated_at: string
           username: string | null
+          streak_last_claimed: string | null
         }
         Insert: {
           admission_number?: string | null
@@ -1014,6 +1015,7 @@ export type Database = {
           student_class?: string | null
           updated_at?: string
           username?: string | null
+          streak_last_claimed?: string | null
         }
         Update: {
           admission_number?: string | null
@@ -1034,6 +1036,7 @@ export type Database = {
           student_class?: string | null
           updated_at?: string
           username?: string | null
+          streak_last_claimed?: string | null
         }
         Relationships: []
       }

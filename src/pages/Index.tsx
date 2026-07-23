@@ -154,16 +154,18 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-indigo-500/20 selection:text-indigo-900 overflow-x-hidden">
-      {/* Light Background Grids and Blobs */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f080_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f080_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none z-0" />
-      <div className="absolute top-[-5%] left-[-5%] w-[45%] h-[45%] rounded-full bg-indigo-200/30 blur-[130px] pointer-events-none" />
-      <div className="absolute top-[20%] right-[-5%] w-[40%] h-[40%] rounded-full bg-blue-200/30 blur-[140px] pointer-events-none" />
+      {/* Light Background Grids and Blobs wrapped to prevent scrollbar stretch */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f080_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f080_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        <div className="absolute top-[-5%] left-[-5%] w-[45%] h-[45%] rounded-full bg-indigo-200/30 blur-[130px]" />
+        <div className="absolute top-[20%] right-[-5%] w-[40%] h-[40%] rounded-full bg-blue-200/30 blur-[140px]" />
+      </div>
 
       {/* Top Banner strip with generous padding */}
       <div className="relative border-b border-indigo-100 bg-indigo-50/80 text-xs backdrop-blur-sm z-50">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-3 flex items-center justify-between">
           <div className="flex items-center gap-6 text-slate-600">
-            <span className="flex items-center gap-2 font-medium"><MapPin className="h-4 w-4 text-indigo-600" /> PM SHRI KV AFS Sulur, Coimbatore</span>
+            <span className="flex items-center gap-2 font-medium"><MapPin className="h-4 w-4 text-indigo-600" /> KV AFS Sulur, Coimbatore</span>
             <span className="h-3.5 w-px bg-slate-300 hidden md:block" />
             <span className="flex items-center gap-2 hidden md:flex font-medium"><Mail className="h-4 w-4 text-indigo-600" /> kvsulur.library@gov.in</span>
           </div>
@@ -176,13 +178,23 @@ const Index = () => {
       {/* Main Header with generous padding */}
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md transition-all shadow-xs">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3.5 cursor-pointer" onClick={() => navigate("/")}>
-            <div className="w-11 h-11 bg-gradient-to-tr from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/20">
-              <BookOpen className="h-6 w-6 text-white" />
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate("/")}>
+            {/* Dual Logo Placeholders Container */}
+            <div className="flex items-center -space-x-2.5 shrink-0">
+              {/* PM SHRI Logo Slot */}
+              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs" title="PM SHRI Logo">
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                <Sparkles className="h-5 w-5 text-amber-500 absolute" />
+              </div>
+              {/* KV Logo Slot */}
+              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs z-10" title="KV Logo">
+                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                <BookOpen className="h-5 w-5 text-indigo-600 absolute" />
+              </div>
             </div>
             <div>
-              <h1 className="text-base font-black tracking-tight text-slate-900 leading-none">PM SHRI KV AFS SULUR</h1>
-              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider mt-1.5">Digital Library Hub</p>
+              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-tight">KV Sulur Library</h1>
+              <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">Digital Library System</p>
             </div>
           </div>
           <nav className="hidden md:flex items-center space-x-9 text-sm font-semibold text-slate-700">
@@ -227,7 +239,7 @@ const Index = () => {
                 A Library That Grows With <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Every Reader.</span>
               </h2>
               <p className="text-base sm:text-lg text-slate-600 max-w-lg leading-relaxed mx-auto lg:mx-0 font-normal">
-                Welcome to the digital portal of <span className="font-semibold text-slate-900">PM SHRI Kendriya Vidyalaya, AFS Sulur</span>. Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
+                Welcome to the digital portal of <span className="font-semibold text-slate-900">Kendriya Vidyalaya AFS Sulur</span>. Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-3">
@@ -401,10 +413,13 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-slate-800 pb-12">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center">
-                  <BookOpen className="h-6 w-6 text-indigo-400" />
+                <div className="flex items-center -space-x-2 shrink-0">
+                  <div className="relative w-8 h-8 rounded-full bg-indigo-500/30 flex items-center justify-center overflow-hidden">
+                    <img src="/logos/pm-shri.png" alt="" className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display='none'; }} />
+                    <BookOpen className="h-4 w-4 text-indigo-300 absolute" />
+                  </div>
                 </div>
-                <h3 className="text-base font-extrabold text-white">PM SHRI KV AFS SULUR</h3>
+                <h3 className="text-base font-extrabold text-white">KV AFS Sulur Digital Library</h3>
               </div>
               <p className="text-xs leading-relaxed text-slate-400 pr-4">Empowering student development, comprehension capabilities, and literature-focused gamified progress for Kendriya Vidyalaya learners.</p>
             </div>
@@ -430,7 +445,7 @@ const Index = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row items-center justify-between pt-8 text-xs text-slate-500">
-            <p>&copy; 2026 PM SHRI Kendriya Vidyalaya AFS Sulur. All rights reserved.</p>
+            <p>&copy; 2026 Kendriya Vidyalaya AFS Sulur. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 sm:mt-0">
               <a href="#" className="hover:text-slate-400 transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-slate-400 transition-colors">Terms of Service</a>
