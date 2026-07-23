@@ -119,7 +119,7 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
             Complete Your Profile
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
-            Welcome to PM SHRI KV AFS SULUR Digital Library! Let's complete your registration to get started.
+            Welcome to KV Sulur Digital Library! Let's complete your registration to get started.
           </DialogDescription>
         </DialogHeader>
 
