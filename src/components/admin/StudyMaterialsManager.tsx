@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Upload, Trash2, Download, BookOpen, Loader2 } from "lucide-react";
+import BulkImportMaterials from "./BulkImportMaterials";
 
 interface Material {
   id: string;
@@ -109,11 +110,14 @@ const StudyMaterialsManager = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" /> Study Materials
-        </h2>
-        <p className="text-sm text-muted-foreground">Upload PDFs, notes, and resources for students.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-primary" /> Study Materials
+          </h2>
+          <p className="text-sm text-muted-foreground">Upload PDFs, notes, and resources for students.</p>
+        </div>
+        <BulkImportMaterials onImported={load} />
       </div>
 
       <Card>
