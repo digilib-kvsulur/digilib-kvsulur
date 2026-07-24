@@ -47,20 +47,36 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   const fetchProfileStats = async (userId: string) => {
     if (statsCache[userId]) return statsCache[userId];
-    const [{ data: profRows }, { data: statsRows }, { data: awards }] = await Promise.all([
+    const [{ data: profRows }, { data: statsRows }, { data: awards }, { data: allBadges }] = await Promise.all([
       supabase.rpc("get_public_profiles", { _ids: [userId] }),
       supabase.rpc("get_public_profile_stats", { _id: userId }),
-      supabase.from("badge_awards").select("badges(name, icon_name, color)").eq("user_id", userId).limit(8),
+      supabase.from("badge_awards").select("badge_id, badges(name, icon_name, color)").eq("user_id", userId),
+      supabase.from("badges").select("id, name, icon_name, color, criteria_type, criteria_value").eq("is_active", true),
     ]);
     const prof: any = (profRows || [])[0] || {};
     const stats: any = (statsRows || [])[0] || {};
+
+    // Merge manually awarded badges with auto-criterion earned badges
+    const manualIds = new Set((awards || []).map((a: any) => a.badge_id));
+    const manualBadges = (awards || []).map((a: any) => a.badges).filter(Boolean);
+    const statMap: Record<string, number> = {
+      points: prof.points || 0,
+      books_read: stats.books_read || 0,
+      quizzes_completed: stats.quizzes || 0,
+      login_streak: stats.current_streak || 0,
+    };
+    const autoBadges = (allBadges || [])
+      .filter((b: any) => !manualIds.has(b.id) && b.criteria_type && b.criteria_type !== "manual")
+      .filter((b: any) => (statMap[b.criteria_type] || 0) >= (b.criteria_value || 0))
+      .map((b: any) => ({ name: b.name, icon_name: b.icon_name, color: b.color }));
+
     const full = {
       ...prof,
       booksRead: stats.books_read || 0,
       quizzes: stats.quizzes || 0,
       streak: stats.current_streak || 0,
       longestStreak: stats.longest_streak || 0,
-      badges: (awards || []).map((a: any) => a.badges).filter(Boolean),
+      badges: [...manualBadges, ...autoBadges],
     };
     setStatsCache((c) => ({ ...c, [userId]: full }));
     setProfileCache((c) => ({ ...c, [userId]: prof }));

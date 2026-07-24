@@ -42,7 +42,7 @@ export default function MyRequests({ userId }: { userId: string }) {
     setLoading(true);
     try {
       const [bookRequests, renewals, reservations] = await Promise.all([
-        supabase.from("book_requests").select("*, books(title, author)").eq("user_id", userId).order("created_at", { ascending: false }),
+        supabase.from("book_requests").select("id, status, created_at, admin_notes, requested_title, requested_author, books(title, author)").eq("user_id", userId).order("created_at", { ascending: false }),
         supabase.from("book_renewals").select("*, book_issues(due_date, books(title, author))").eq("user_id", userId).order("created_at", { ascending: false }),
         supabase.from("book_reservations").select("*, books(title, author)").eq("user_id", userId).order("created_at", { ascending: false }),
       ]);
@@ -108,15 +108,13 @@ export default function MyRequests({ userId }: { userId: string }) {
                 {statusBadge(item.status)}
               </div>
               {item.note && (
-                <div className="text-xs text-muted-foreground mt-3 border-t border-border/40 pt-2">
-                  {item.note.startsWith("Reason:") ? (
-                    <span className="italic">{item.note}</span>
-                  ) : (
-                    <div>
-                      <span className="font-semibold text-foreground">Admin reply: </span>
-                      <span>{item.note}</span>
-                    </div>
-                  )}
+                <div className={`mt-3 rounded-lg px-3 py-2 text-xs flex items-start gap-2 ${
+                  item.status === "rejected" ? "bg-destructive/10 border border-destructive/20 text-destructive" :
+                  item.status === "approved" || item.status === "fulfilled" ? "bg-success/10 border border-success/20 text-success" :
+                  "bg-primary/10 border border-primary/20 text-primary"
+                }`}>
+                  <span className="shrink-0 font-bold">📩 Admin:</span>
+                  <span className="break-words">{item.note}</span>
                 </div>
               )}
             </div>

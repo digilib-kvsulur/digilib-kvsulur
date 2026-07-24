@@ -38,7 +38,7 @@ export default function BadgeManager() {
     // Get real award count for manual and auto criteria
     const [{ data: awards }, { data: allUsers }] = await Promise.all([
       supabase.from("badge_awards").select("badge_id"),
-      supabase.from("profiles").select("id, points, reading_history(id), quiz_results(id), login_streaks(current_streak)").eq("role", "student")
+      supabase.from("profiles").select("id, points, reading_history(id,status), quiz_results(id), login_streaks(current_streak)").eq("role", "student")
     ]);
 
     const counts: Record<string, number> = {};
@@ -61,7 +61,7 @@ export default function BadgeManager() {
 
           let val = 0;
           if (b.criteria_type === "points") val = u.points || 0;
-          else if (b.criteria_type === "books_read") val = u.reading_history?.length || 0;
+          else if (b.criteria_type === "books_read") val = (u.reading_history?.filter((r: any) => r.status === "approved")?.length) || 0;
           else if (b.criteria_type === "quizzes_completed") val = u.quiz_results?.length || 0;
           else if (b.criteria_type === "login_streak") val = u.login_streaks?.[0]?.current_streak || 0;
 
