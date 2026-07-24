@@ -33,6 +33,7 @@ const Index = () => {
   const [trendingBooks, setTrendingBooks] = useState<Book[]>([]);
   const [statistics, setStatistics] = useState<Statistics>({ totalBooks: 0, activeUsers: 0, booksIssued: 0 });
   const [dbEvents, setDbEvents] = useState<any[]>([]);
+  const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,8 +50,18 @@ const Index = () => {
     loadStatistics();
     loadTrendingBooks();
     loadEvents();
+    loadGallery();
     return () => subscription.unsubscribe();
   }, []);
+
+  const loadGallery = async () => {
+    try {
+      const { data } = await supabase.from("gallery_images").select("*").eq("is_active", true).order("created_at", { ascending: false });
+      setGalleryImages(data || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const loadUserProfile = async (userId: string) => {
     try {
@@ -385,6 +396,34 @@ const Index = () => {
                     <p className="text-sm text-slate-600 leading-relaxed">{e.desc}</p>
                   </div>
                 </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Gallery Section */}
+      {galleryImages.length > 0 && (
+        <section className="py-24 bg-slate-50 border-t border-slate-200">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+            <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
+              <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Library Gallery</p>
+              <h3 className="text-3xl font-black text-slate-900">Moments & Memories</h3>
+              <p className="text-sm text-slate-600 pt-1">Glimpses of activities, book fairs, and proud moments in our library.</p>
+            </div>
+            
+            <div className="flex overflow-x-auto pb-8 snap-x snap-mandatory gap-6 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {galleryImages.map((img, i) => (
+                <div key={img.id || i} className="shrink-0 w-72 sm:w-80 md:w-96 snap-center group rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all border border-slate-200">
+                  <div className="aspect-[4/3] bg-slate-100 overflow-hidden relative">
+                    <img src={img.image_url} alt={img.caption || "Gallery"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
+                  </div>
+                  {img.caption && (
+                    <div className="p-4 bg-white">
+                      <p className="text-sm font-medium text-slate-700 line-clamp-2">{img.caption}</p>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
