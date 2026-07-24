@@ -112,7 +112,7 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-card border border-border shadow-sm">
+    <div className="overflow-hidden rounded-2xl bg-card border border-border shadow-sm h-full flex flex-col justify-center">
       <div className="p-5">
         <div className="flex flex-col items-center justify-center gap-4 text-center">
           <div className="flex flex-col items-center gap-3">
