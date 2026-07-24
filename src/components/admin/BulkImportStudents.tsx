@@ -10,9 +10,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 
-const SAMPLE_CSV = `student_uid,student_name,student_class
-12345,Aarav Sharma,8
-12346,Diya Patel,9`;
+const SAMPLE_CSV = `student_uid,student_name,student_class,role
+12345,Aarav Sharma,8,student
+12346,Diya Patel,9,student
+EMP001,Amit Kumar,8,teacher`;
 
 interface ResultRow { email: string; success: boolean; password?: string; error?: string }
 
@@ -38,22 +39,23 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
       skipEmptyLines: true,
       transformHeader: (h) => {
         const clean = h.trim().toLowerCase().replace(/\s+/g, "_");
-        if (clean === "student_uid" || clean === "uid" || clean === "admission_number") return "student_uid";
-        if (clean === "student_name" || clean === "name" || clean === "first_name") return "student_name";
-        if (clean === "student_class" || clean === "class") return "student_class";
+        if (clean === "student_uid" || clean === "uid" || clean === "admission_number" || clean === "employee_id") return "student_uid";
+        if (clean === "student_name" || clean === "name" || clean === "first_name" || clean === "teacher_name") return "student_name";
+        if (clean === "student_class" || clean === "class" || clean === "assigned_class") return "student_class";
+        if (clean === "role" || clean === "user_type") return "role";
         return clean;
       },
       complete: (res) => {
-        const raw = (res.data as any[]).filter(r => r.student_uid && r.student_name && r.student_class);
+        const raw = (res.data as any[]).filter(r => r.student_uid && r.student_name);
         const cleaned = raw.filter(r => String(r.student_uid).trim().length > 0);
         const missing = (res.data as any[]).length - raw.length;
         setRows(cleaned);
         if (cleaned.length === 0) {
-          toast({ title: "No valid rows", description: "CSV must have 'student_uid', 'student_name', and 'student_class' columns.", variant: "destructive" });
+          toast({ title: "No valid rows", description: "CSV must have 'uid', and 'name' columns.", variant: "destructive" });
         } else if (missing > 0) {
           toast({ title: `${cleaned.length} valid rows found`, description: `${missing} row(s) skipped — missing required columns.` });
         } else {
-          toast({ title: `${cleaned.length} student(s) ready`, description: "Review preview below then click Import." });
+          toast({ title: `${cleaned.length} user(s) ready`, description: "Review preview below then click Import." });
         }
       },
       error: (err) => toast({ title: "Parse error", description: err.message, variant: "destructive" }),

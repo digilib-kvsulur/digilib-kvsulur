@@ -61,16 +61,20 @@ const AddUserDialog = ({ onCreated }: { onCreated?: () => void }) => {
               <Label>Role</Label>
               <Select value={form.role} onValueChange={(v) => upd("role", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="student">Student</SelectItem><SelectItem value="admin">Admin</SelectItem></SelectContent>
+                <SelectContent>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="teacher">Teacher</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
               </Select>
             </div>
             <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => upd("phone", e.target.value)} /></div>
           </div>
-          {form.role === "student" && (
+          {(form.role === "student" || form.role === "teacher") && (
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Class</Label><Input value={form.student_class} onChange={(e) => upd("student_class", e.target.value)} /></div>
-              <div><Label>Roll No.</Label><Input value={form.roll_number} onChange={(e) => upd("roll_number", e.target.value)} /></div>
-              <div className="col-span-2"><Label>Admission No. * (5 digits)</Label><Input maxLength={5} pattern="\d{5}" placeholder="e.g. 12345" value={form.admission_number} onChange={(e) => upd("admission_number", e.target.value.replace(/\D/g, "").slice(0, 5))} /></div>
+              <div><Label>{form.role === "teacher" ? "Assigned Class" : "Class"}</Label><Input value={form.student_class} onChange={(e) => upd("student_class", e.target.value)} /></div>
+              {form.role === "student" && <div><Label>Roll No.</Label><Input value={form.roll_number} onChange={(e) => upd("roll_number", e.target.value)} /></div>}
+              <div className="col-span-2"><Label>{form.role === "teacher" ? "Employee ID" : "Admission No. * (5 digits)"}</Label><Input maxLength={form.role === "teacher" ? 10 : 5} placeholder={form.role === "teacher" ? "e.g. EMP123" : "e.g. 12345"} value={form.admission_number} onChange={(e) => upd("admission_number", e.target.value)} /></div>
             </div>
           )}
         </div>
