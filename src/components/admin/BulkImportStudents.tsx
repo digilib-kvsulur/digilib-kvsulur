@@ -70,6 +70,15 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
     URL.revokeObjectURL(url);
   };
 
+  const downloadTeacherSample = () => {
+    const teacherCsv = `student_uid,student_name,student_class,role\nEMP001,Amit Kumar,8A,teacher\nEMP002,Priya Sharma,,teacher\nEMP003,Rahul Verma,10B,teacher`;
+    const blob = new Blob([teacherCsv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "teachers-sample.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const submit = async () => {
     if (rows.length === 0) return;
     setLoading(true);
@@ -189,7 +198,10 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
 
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={downloadSample} disabled={loading}>
-              <FileDown className="h-4 w-4 mr-2" />Download sample CSV
+              <FileDown className="h-4 w-4 mr-2" />Student CSV Template
+            </Button>
+            <Button variant="outline" size="sm" onClick={downloadTeacherSample} disabled={loading}>
+              <FileDown className="h-4 w-4 mr-2" />Teacher CSV Template
             </Button>
             <label className="inline-flex">
               <input
