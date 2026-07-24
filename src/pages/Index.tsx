@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,6 +35,7 @@ const Index = () => {
   const [dbEvents, setDbEvents] = useState<any[]>([]);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const navigate = useNavigate();
+  const galleryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -53,6 +54,22 @@ const Index = () => {
     loadGallery();
     return () => subscription.unsubscribe();
   }, []);
+
+  // Auto-scroll gallery
+  useEffect(() => {
+    if (galleryImages.length <= 1) return;
+    const el = galleryRef.current;
+    if (!el) return;
+    let dir = 1;
+    const interval = setInterval(() => {
+      if (!el) return;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft >= maxScroll - 4) dir = -1;
+      if (el.scrollLeft <= 4) dir = 1;
+      el.scrollBy({ left: dir * 320, behavior: 'smooth' });
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [galleryImages]);
 
   const loadGallery = async () => {
     try {
@@ -381,7 +398,7 @@ const Index = () => {
               <p className="text-sm text-slate-600 pt-1">Get involved in reading forums, competitive quizzes, and book exhibitions.</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className={`grid grid-cols-1 gap-8 ${dbEvents.length === 1 ? 'md:grid-cols-1 max-w-md mx-auto' : dbEvents.length === 2 ? 'md:grid-cols-2 max-w-2xl mx-auto' : 'md:grid-cols-3'}`}>
               {dbEvents.map((e, i) => (
                 <article key={i} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1.5 duration-300 p-1.5 flex flex-col">
                   <div className={`relative overflow-hidden rounded-2xl bg-slate-100 ${e.orientation === 'vertical' ? 'aspect-[3/4]' : 'h-52'}`}>
@@ -412,7 +429,7 @@ const Index = () => {
               <p className="text-sm text-slate-600 pt-1">Glimpses of activities, book fairs, and proud moments in our library.</p>
             </div>
             
-            <div className="flex overflow-x-auto pb-8 snap-x snap-mandatory gap-6 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div ref={galleryRef} className="flex overflow-x-auto pb-8 snap-x snap-mandatory gap-6 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {galleryImages.map((img, i) => (
                 <div key={img.id || i} className="shrink-0 w-72 sm:w-80 md:w-96 snap-center group rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all border border-slate-200">
                   <div className="aspect-[4/3] bg-slate-100 overflow-hidden relative">

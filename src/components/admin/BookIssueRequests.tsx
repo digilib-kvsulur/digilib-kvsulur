@@ -143,8 +143,8 @@ const BookIssueRequests = () => {
   const borrowRequests = requests.filter(r => r.book_id);
   const customRequests = requests.filter(r => !r.book_id);
 
-  const BorrowRequestCard = ({ request }: { request: BookRequest }) => (
-    <div className="p-4 rounded-xl border border-border/50 bg-card hover:shadow-sm transition-all space-y-3">
+  const renderBorrowRequestCard = (request: BookRequest) => (
+    <div key={request.id} className="p-4 rounded-xl border border-border/50 bg-card hover:shadow-sm transition-all space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -201,8 +201,8 @@ const BookIssueRequests = () => {
     </div>
   );
 
-  const CustomRequestCard = ({ request }: { request: BookRequest }) => (
-    <div className="p-4 rounded-xl border border-border/50 bg-card hover:shadow-sm transition-all space-y-3">
+  const renderCustomRequestCard = (request: BookRequest) => (
+    <div key={request.id} className="p-4 rounded-xl border border-border/50 bg-card hover:shadow-sm transition-all space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
@@ -285,7 +285,7 @@ const BookIssueRequests = () => {
                 <p className="text-center text-muted-foreground py-8">No pending borrow requests</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {pendingBorrow.map(r => <BorrowRequestCard key={r.id} request={r} />)}
+                  {pendingBorrow.map(r => renderBorrowRequestCard(r))}
                 </div>
               )}
             </CardContent>
@@ -300,7 +300,7 @@ const BookIssueRequests = () => {
                 <p className="text-center text-muted-foreground py-8">No processed requests</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {processedBorrow.map(r => <BorrowRequestCard key={r.id} request={r} />)}
+                  {processedBorrow.map(r => renderBorrowRequestCard(r))}
                 </div>
               )}
             </CardContent>
@@ -318,7 +318,7 @@ const BookIssueRequests = () => {
                 <p className="text-center text-muted-foreground py-8">No book purchase suggestions yet</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {customRequests.map(r => <CustomRequestCard key={r.id} request={r} />)}
+                  {customRequests.map(r => renderCustomRequestCard(r))}
                 </div>
               )}
             </CardContent>

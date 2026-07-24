@@ -62,13 +62,13 @@ const LevelProgress = ({ userPoints }: LevelProgressProps) => {
   return (
     <Card className="border-border/50 overflow-hidden h-full flex flex-col">
       <div className="h-1" style={{ background: `linear-gradient(90deg, ${levelInfo.color}, ${levelInfo.color}88)` }} />
-      <CardContent className="p-5 flex-1 flex flex-col justify-between">
+      <CardContent className="p-5 flex-1 flex flex-col justify-center gap-3">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${levelInfo.color}15` }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${levelInfo.color}15` }}>
             {IconComponent ? (
-              <IconComponent className="h-7 w-7" style={{ color: levelInfo.color }} />
+              <IconComponent className="h-6 w-6" style={{ color: levelInfo.color }} />
             ) : (
-              <Star className="h-7 w-7" style={{ color: levelInfo.color }} />
+              <Star className="h-6 w-6" style={{ color: levelInfo.color }} />
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -80,7 +80,7 @@ const LevelProgress = ({ userPoints }: LevelProgressProps) => {
           </div>
         </div>
         
-        <div className="mt-4">
+        <div>
           <p className="text-xs text-muted-foreground mb-1.5">{levelInfo.description}</p>
           {levelInfo.points_to_next > 0 ? (
             <>
