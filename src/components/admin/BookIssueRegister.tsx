@@ -65,7 +65,7 @@ const BookIssueRegister = () => {
       );
 
       const { data: booksData } = await supabase.from('books').select('*').gt('available_copies', 0).order('title');
-      const { data: usersData } = await supabase.from('profiles').select('id, first_name, last_name, admission_number, student_class').eq('is_approved', true).eq('role', 'student').order('first_name');
+      const { data: usersData } = await supabase.from('profiles').select('id, first_name, last_name, admission_number, student_class, role').eq('is_approved', true).in('role', ['student', 'teacher']).order('first_name');
 
       setBookIssues(issuesWithProfiles || []);
       setBooks(booksData || []);
