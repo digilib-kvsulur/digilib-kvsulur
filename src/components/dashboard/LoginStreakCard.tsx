@@ -114,13 +114,13 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
   return (
     <div className="overflow-hidden rounded-2xl bg-card border border-border shadow-sm">
       <div className="p-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col items-center justify-center gap-4 text-center">
+          <div className="flex flex-col items-center gap-3">
             <div className={`flex items-center justify-center w-14 h-14 rounded-full bg-warning/10 shrink-0 ${currentStreak >= 3 ? 'animate-streak-fire' : ''}`}>
               <Flame className="h-7 w-7 text-warning" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <span className="text-3xl font-black text-foreground">{currentStreak}</span>
                 <span className="text-sm font-semibold text-muted-foreground">day streak</span>
                 <span className="text-lg">{getStreakEmoji(currentStreak)}</span>
@@ -129,7 +129,7 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+          <div className="flex flex-wrap items-center gap-4 w-full justify-center">
             <div className="flex gap-4 text-center">
               <div>
                 <div className="flex items-center gap-1 justify-center">

@@ -52,8 +52,13 @@ export default function EventsList({ userId }: { userId: string }) {
           const registered = mine.has(ev.id);
           const full = ev.capacity && (counts[ev.id] || 0) >= ev.capacity && !registered;
           return (
-            <Card key={ev.id}>
-              <CardContent className="p-4">
+            <Card key={ev.id} className="overflow-hidden flex flex-col">
+              {ev.image_url && (
+                <div className={`w-full relative bg-slate-100 ${ev.image_orientation === 'vertical' ? 'aspect-[3/4]' : 'h-48'}`}>
+                  <img src={ev.image_url} alt={ev.title} className="w-full h-full object-cover" />
+                </div>
+              )}
+              <CardContent className="p-4 flex-1 flex flex-col">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="font-bold">{ev.title}</h3>
                   {registered && <Badge className="gradient-primary text-primary-foreground">Registered</Badge>}
@@ -61,7 +66,7 @@ export default function EventsList({ userId }: { userId: string }) {
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Calendar className="h-3 w-3" />{new Date(ev.event_date).toLocaleString()}</p>
                 {ev.location && <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2"><MapPin className="h-3 w-3" />{ev.location}</p>}
                 {ev.description && <p className="text-sm mb-3">{ev.description}</p>}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mt-auto pt-4">
                   <Badge variant="outline"><Users className="h-3 w-3 mr-1" />{counts[ev.id] || 0}{ev.capacity ? `/${ev.capacity}` : ""}</Badge>
                   <Button size="sm" variant={registered ? "outline" : "default"} disabled={!!full} onClick={() => toggle(ev)}>
                     {registered ? "Cancel" : full ? "Full" : "Register"}

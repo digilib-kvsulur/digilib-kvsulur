@@ -85,6 +85,8 @@ const Index = () => {
       const { data, error } = await supabase
         .from("books")
         .select("id, title, author, category, cover_url")
+        .not("cover_url", "is", null)
+        .neq("cover_url", "")
         .limit(6);
       if (!error && data) {
         setTrendingBooks(data);
@@ -115,23 +117,16 @@ const Index = () => {
           }),
           desc: ev.description || "No description provided.",
           badge: ev.location || "Upcoming",
-          img: ev.image_url || event1Img
+          img: ev.image_url || event1Img,
+          orientation: ev.image_orientation || "horizontal"
         }));
         setDbEvents(mapped);
       } else {
-        setDbEvents([
-          { title: "National Reading Week", date: "June 19–25, 2026", desc: "Author talks, storytelling workshops, and inter-class reading marathons.", badge: "Upcoming", img: event1Img },
-          { title: "Inter-Class Library Quiz", date: "Every Friday", desc: "Showcase your reading retention in our weekly live quiz with leaderboard prizes.", badge: "Weekly", img: event2Img },
-          { title: "Annual Book Donation Drive", date: "August 2026", desc: "Donate books to the secondary wing and receive double XP bonus points.", badge: "Annual", img: libraryEventImg },
-        ]);
+        setDbEvents([]);
       }
     } catch (e) {
       console.error("Failed to load events:", e);
-      setDbEvents([
-        { title: "National Reading Week", date: "June 19–25, 2026", desc: "Author talks, storytelling workshops, and inter-class reading marathons.", badge: "Upcoming", img: event1Img },
-        { title: "Inter-Class Library Quiz", date: "Every Friday", desc: "Showcase your reading retention in our weekly live quiz with leaderboard prizes.", badge: "Weekly", img: event2Img },
-        { title: "Annual Book Donation Drive", date: "August 2026", desc: "Donate books to the secondary wing and receive double XP bonus points.", badge: "Annual", img: libraryEventImg },
-      ]);
+      setDbEvents([]);
     }
   };
 
@@ -183,13 +178,13 @@ const Index = () => {
             <div className="flex items-center -space-x-2.5 shrink-0">
               {/* PM SHRI Logo Slot */}
               <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs" title="PM SHRI Logo">
-                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
-                <Sparkles className="h-5 w-5 text-amber-500 absolute" />
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+                <Sparkles className="h-5 w-5 text-amber-500 absolute hidden" />
               </div>
               {/* KV Logo Slot */}
               <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs z-10" title="KV Logo">
-                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
-                <BookOpen className="h-5 w-5 text-indigo-600 absolute" />
+                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+                <BookOpen className="h-5 w-5 text-indigo-600 absolute hidden" />
               </div>
             </div>
             <div>
@@ -366,33 +361,35 @@ const Index = () => {
       </section>
 
       {/* Events Activity with extra padding */}
-      <section id="events" className="py-24">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
-            <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Calendar</p>
-            <h3 className="text-3xl font-black text-slate-900">Upcoming Events & Activities</h3>
-            <p className="text-sm text-slate-600 pt-1">Get involved in reading forums, competitive quizzes, and book exhibitions.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {dbEvents.map((e, i) => (
-              <article key={i} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1.5 duration-300 p-1.5">
-                <div className="relative h-52 overflow-hidden rounded-2xl bg-slate-100">
-                  <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  <span className="absolute top-4 left-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full shadow-md">{e.badge}</span>
-                </div>
-                <div className="p-6 space-y-3.5">
-                  <div className="flex items-center gap-2 text-xs text-indigo-600 font-bold">
-                    <Clock className="h-4 w-4" /> {e.date}
+      {dbEvents.length > 0 && (
+        <section id="events" className="py-24">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+            <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
+              <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Calendar</p>
+              <h3 className="text-3xl font-black text-slate-900">Upcoming Events & Activities</h3>
+              <p className="text-sm text-slate-600 pt-1">Get involved in reading forums, competitive quizzes, and book exhibitions.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {dbEvents.map((e, i) => (
+                <article key={i} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1.5 duration-300 p-1.5 flex flex-col">
+                  <div className={`relative overflow-hidden rounded-2xl bg-slate-100 ${e.orientation === 'vertical' ? 'aspect-[3/4]' : 'h-52'}`}>
+                    <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <span className="absolute top-4 left-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full shadow-md">{e.badge}</span>
                   </div>
-                  <h4 className="text-xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">{e.title}</h4>
-                  <p className="text-sm text-slate-600 leading-relaxed">{e.desc}</p>
-                </div>
-              </article>
-            ))}
+                  <div className="p-6 space-y-3.5 flex-1 flex flex-col justify-start">
+                    <div className="flex items-center gap-2 text-xs text-indigo-600 font-bold">
+                      <Clock className="h-4 w-4" /> {e.date}
+                    </div>
+                    <h4 className="text-xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">{e.title}</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed">{e.desc}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA Box with generous padding */}
       {!user && (
@@ -416,7 +413,7 @@ const Index = () => {
                 <div className="flex items-center -space-x-2 shrink-0">
                   <div className="relative w-8 h-8 rounded-full bg-indigo-500/30 flex items-center justify-center overflow-hidden">
                     <img src="/logos/pm-shri.png" alt="" className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display='none'; }} />
-                    <BookOpen className="h-4 w-4 text-indigo-300 absolute" />
+                    <BookOpen className="h-4 w-4 text-indigo-300 absolute hidden" />
                   </div>
                 </div>
                 <h3 className="text-base font-extrabold text-white">KV AFS Sulur Digital Library</h3>

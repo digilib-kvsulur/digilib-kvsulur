@@ -17,7 +17,7 @@ export default function EventsManager() {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", event_date: "", location: "", capacity: "" });
+  const [form, setForm] = useState({ title: "", description: "", event_date: "", location: "", capacity: "", image_orientation: "horizontal" });
 
   const load = async () => {
     const { data } = await supabase.from("library_events").select("*").order("event_date", { ascending: true });
@@ -55,12 +55,13 @@ export default function EventsManager() {
         capacity: form.capacity ? parseInt(form.capacity) : null,
         created_by: user?.id,
         image_url: imageUrl,
+        image_orientation: form.image_orientation,
       });
       if (error) throw error;
       
       toast({ title: "Event created" });
       setOpen(false); 
-      setForm({ title: "", description: "", event_date: "", location: "", capacity: "" });
+      setForm({ title: "", description: "", event_date: "", location: "", capacity: "", image_orientation: "horizontal" });
       setFile(null);
       load();
     } catch (e: any) {
@@ -96,6 +97,13 @@ export default function EventsManager() {
               <div>
                 <Label>Event Image (Optional)</Label>
                 <Input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} />
+              </div>
+              <div>
+                <Label>Image Orientation</Label>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.image_orientation} onChange={e => setForm({ ...form, image_orientation: e.target.value })}>
+                  <option value="horizontal">Horizontal (Landscape)</option>
+                  <option value="vertical">Vertical (Portrait)</option>
+                </select>
               </div>
               <Button onClick={create} className="w-full" disabled={uploading}>
                 {uploading ? "Creating & Uploading..." : "Create"}

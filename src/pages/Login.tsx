@@ -138,12 +138,12 @@ const Login = () => {
             {/* Dual Logo Placeholders */}
             <div className="flex items-center -space-x-2 shrink-0">
               <div className="relative w-11 h-11 rounded-full bg-white/20 border border-white/10 flex items-center justify-center overflow-hidden backdrop-blur-sm">
-                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
-                <BookOpen className="h-5 w-5 text-primary-foreground absolute" />
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+                <BookOpen className="h-5 w-5 text-primary-foreground absolute hidden" />
               </div>
               <div className="relative w-11 h-11 rounded-full bg-white/20 border border-white/10 flex items-center justify-center overflow-hidden backdrop-blur-sm z-10">
-                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
-                <BookOpen className="h-5 w-5 text-primary-foreground/70 absolute" />
+                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+                <BookOpen className="h-5 w-5 text-primary-foreground/70 absolute hidden" />
               </div>
             </div>
             <div>
