@@ -153,7 +153,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+        <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
           {navSections.map(section => (
             <div key={section.title}>
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-1">{section.title}</p>
@@ -169,7 +169,7 @@ const AdminDashboard = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border">
+        <div className="shrink-0 p-4 border-t border-border">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
               {user?.first_name?.[0]}{user?.last_name?.[0]}

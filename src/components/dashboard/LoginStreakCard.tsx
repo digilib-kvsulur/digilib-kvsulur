@@ -112,62 +112,60 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
   };
 
   return (
-    <Card className="overflow-hidden border-0 shadow-md">
-      <div className="gradient-primary p-[1px]">
-        <CardContent className="bg-card rounded-[calc(var(--radius)-1px)] p-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className={`flex items-center justify-center w-14 h-14 rounded-full bg-warning/10 shrink-0 ${currentStreak >= 3 ? 'animate-streak-fire' : ''}`}>
-                <Flame className="h-7 w-7 text-warning" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl font-black text-foreground">{currentStreak}</span>
-                  <span className="text-sm font-semibold text-muted-foreground">day streak</span>
-                  <span className="text-lg">{getStreakEmoji(currentStreak)}</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{getStreakMessage(currentStreak)}</p>
-              </div>
+    <div className="overflow-hidden rounded-2xl bg-card border border-border shadow-sm">
+      <div className="p-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className={`flex items-center justify-center w-14 h-14 rounded-full bg-warning/10 shrink-0 ${currentStreak >= 3 ? 'animate-streak-fire' : ''}`}>
+              <Flame className="h-7 w-7 text-warning" />
             </div>
-
-            <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-              <div className="flex gap-4 text-center">
-                <div>
-                  <div className="flex items-center gap-1 justify-center">
-                    <Trophy className="h-3.5 w-3.5 text-warning" />
-                    <span className="text-sm font-bold text-foreground">{longestStreak}</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase">Best</p>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1 justify-center">
-                    <Calendar className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-sm font-bold text-foreground">{totalLoginDays}</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase">Total</p>
-                </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-3xl font-black text-foreground">{currentStreak}</span>
+                <span className="text-sm font-semibold text-muted-foreground">day streak</span>
+                <span className="text-lg">{getStreakEmoji(currentStreak)}</span>
               </div>
-
-              {currentStreak > 0 && (
-                <Button
-                  onClick={handleClaim}
-                  disabled={claimedToday || claiming}
-                  size="sm"
-                  className={`rounded-xl px-4 py-2 font-bold transition-all ${
-                    claimedToday 
-                      ? "bg-muted text-muted-foreground cursor-not-allowed" 
-                      : "gradient-primary border-0 text-white shadow-md hover:scale-[1.02] active:scale-[0.98]"
-                  }`}
-                >
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                  {claimedToday ? "Bonus Claimed ✓" : `Claim Daily Bonus (+${pointsPerStreak})`}
-                </Button>
-              )}
+              <p className="text-xs text-muted-foreground mt-0.5">{getStreakMessage(currentStreak)}</p>
             </div>
           </div>
-        </CardContent>
+
+          <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+            <div className="flex gap-4 text-center">
+              <div>
+                <div className="flex items-center gap-1 justify-center">
+                  <Trophy className="h-3.5 w-3.5 text-warning" />
+                  <span className="text-sm font-bold text-foreground">{longestStreak}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase">Best</p>
+              </div>
+              <div>
+                <div className="flex items-center gap-1 justify-center">
+                  <Calendar className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-sm font-bold text-foreground">{totalLoginDays}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase">Total</p>
+              </div>
+            </div>
+
+            {currentStreak > 0 && (
+              <Button
+                onClick={handleClaim}
+                disabled={claimedToday || claiming}
+                size="sm"
+                className={`rounded-xl px-4 py-2 font-bold transition-all ${
+                  claimedToday 
+                    ? "bg-muted text-muted-foreground cursor-not-allowed" 
+                    : "gradient-primary border-0 text-white shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                {claimedToday ? "Bonus Claimed ✓" : `Claim Daily Bonus (+${pointsPerStreak})`}
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 };
 

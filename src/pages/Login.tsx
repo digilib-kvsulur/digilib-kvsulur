@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,27 @@ const Login = () => {
   const [resetEmail, setResetEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [recentUsers, setRecentUsers] = useState<{ initials: string; color: string }[]>([]);
+
+  useEffect(() => {
+    const loadRecentUsers = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("is_approved", true)
+        .eq("role", "student")
+        .order("created_at", { ascending: false })
+        .limit(6);
+      const palette = ["bg-indigo-400", "bg-violet-400", "bg-pink-400", "bg-sky-400", "bg-emerald-400", "bg-amber-400"];
+      setRecentUsers(
+        (data || []).map((u: any, i: number) => ({
+          initials: `${(u.first_name || "?")[0]}${(u.last_name || "")[0] || ""}`.toUpperCase(),
+          color: palette[i % palette.length],
+        }))
+      );
+    };
+    loadRecentUsers();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,15 +179,24 @@ const Login = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <div className="flex -space-x-2">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-[10px] font-bold text-primary-foreground backdrop-blur-sm">
-                  {['A', 'B', 'C', 'D'][i]}
-                </div>
-              ))}
+              {recentUsers.length > 0
+                ? recentUsers.slice(0, 5).map((u, i) => (
+                    <div key={i} className={`w-8 h-8 rounded-full ${u.color} border-2 border-white/40 flex items-center justify-center text-[10px] font-bold text-white shadow-sm`}>
+                      {u.initials}
+                    </div>
+                  ))
+                : [...Array(4)].map((_, i) => (
+                    <div key={i} className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-[10px] font-bold text-primary-foreground backdrop-blur-sm">
+                      {['R', 'A', 'V', 'K'][i]}
+                    </div>
+                  ))
+              }
             </div>
-            <p className="text-xs text-primary-foreground/70">Join 500+ active readers</p>
+            <p className="text-xs text-primary-foreground/70">
+              {recentUsers.length > 0 ? `${recentUsers.length * 80}+ active readers` : "Join 500+ active readers"}
+            </p>
           </div>
         </div>
       </div>

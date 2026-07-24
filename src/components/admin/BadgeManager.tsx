@@ -21,6 +21,7 @@ const CRIT_TYPES = ["manual", "points", "books_read", "quizzes_completed", "logi
 export default function BadgeManager() {
   const { toast } = useToast();
   const [badges, setBadges] = useState<BadgeRow[]>([]);
+  const [awardCounts, setAwardCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [dlgOpen, setDlgOpen] = useState(false);
   const [editing, setEditing] = useState<BadgeRow | null>(null);
@@ -33,6 +34,46 @@ export default function BadgeManager() {
     setLoading(true);
     const { data } = await supabase.from("badges").select("*").order("created_at", { ascending: false });
     setBadges((data as any) || []);
+
+    // Get real award count for manual and auto criteria
+    const [{ data: awards }, { data: allUsers }] = await Promise.all([
+      supabase.from("badge_awards").select("badge_id"),
+      supabase.from("profiles").select("id, points, reading_history(id), quiz_results(id), login_streaks(current_streak)").eq("role", "student")
+    ]);
+
+    const counts: Record<string, number> = {};
+    const manualAwards = awards || [];
+    const activeBadges = (data as any) || [];
+
+    activeBadges.forEach((b: any) => {
+      let count = 0;
+      if (b.criteria_type === "manual" || !b.criteria_type) {
+        count = manualAwards.filter((a: any) => a.badge_id === b.id).length;
+      } else {
+        // Evaluate auto-criteria count
+        (allUsers || []).forEach((u: any) => {
+          // Manual check
+          const hasManual = manualAwards.some((a: any) => a.badge_id === b.id && a.user_id === u.id);
+          if (hasManual) {
+            count++;
+            return;
+          }
+
+          let val = 0;
+          if (b.criteria_type === "points") val = u.points || 0;
+          else if (b.criteria_type === "books_read") val = u.reading_history?.length || 0;
+          else if (b.criteria_type === "quizzes_completed") val = u.quiz_results?.length || 0;
+          else if (b.criteria_type === "login_streak") val = u.login_streaks?.[0]?.current_streak || 0;
+
+          if (val >= (b.criteria_value || 0)) {
+            count++;
+          }
+        });
+      }
+      counts[b.id] = count;
+    });
+
+    setAwardCounts(counts);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -105,6 +146,9 @@ export default function BadgeManager() {
                 <div className="flex flex-wrap gap-2 text-xs">
                   <Badge variant="outline">+{b.points} pts</Badge>
                   {b.criteria_type !== "manual" && <Badge variant="outline">Target: {b.criteria_value}</Badge>}
+                  <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-100/50">
+                    Earned: {awardCounts[b.id] || 0}
+                  </Badge>
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button size="sm" variant="outline" onClick={() => openEdit(b)}><Edit className="h-3.5 w-3.5" /></Button>

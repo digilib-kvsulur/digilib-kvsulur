@@ -34,17 +34,34 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const [{ data: full }, { data: extraStats }, { data: awards }, { data: userPosts }] = await Promise.all([
+      const [{ data: full }, { data: extraStats }, { data: allBadges }, { data: awards }, { data: userPosts }] = await Promise.all([
         supabase.rpc("get_public_profile_full", { _id: userId }),
         supabase.rpc("get_public_profile_stats", { _id: userId }),
-        supabase.from("badge_awards").select("badges(name, icon_name, color)").eq("user_id", userId).limit(12),
+        supabase.from("badges").select("*").eq("is_active", true),
+        supabase.from("badge_awards").select("badge_id").eq("user_id", userId),
         supabase.rpc("get_public_posts_by_user", { _id: userId, _limit: 20 }),
       ]);
       const p: any = (full || [])[0] || null;
       const s: any = (extraStats || [])[0] || {};
       setProfile(p);
       setStats({ ...p, ...s });
-      setBadges((awards || []).map((a: any) => a.badges).filter(Boolean));
+      
+      const manualAwards = new Set((awards || []).map((a: any) => a.badge_id));
+      const getStatValue = (type?: string) => {
+        if (type === "points") return p?.points || 0;
+        if (type === "books_read") return s?.books_read || 0;
+        if (type === "quizzes_completed") return s?.quizzes || 0;
+        if (type === "login_streak") return s?.current_streak || 0;
+        return 0;
+      };
+
+      const unlockedBadges = (allBadges || []).filter((b: any) => {
+        if (manualAwards.has(b.id)) return true;
+        if (b.criteria_type === "manual" || !b.criteria_type) return false;
+        return getStatValue(b.criteria_type) >= (b.criteria_value || 0);
+      });
+
+      setBadges(unlockedBadges);
       setPosts(userPosts || []);
       if (p?.avatar_url) {
         const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(p.avatar_url, 3600);

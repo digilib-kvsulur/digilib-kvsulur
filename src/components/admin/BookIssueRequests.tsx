@@ -69,11 +69,22 @@ const BookIssueRequests = () => {
       const { error: issueError } = await supabase.from('book_issues').insert({ user_id: userId, book_id: bookId, due_date: dueDate.toISOString().split('T')[0] });
       if (issueError) throw issueError;
       await supabase.from('books').update({ available_copies: book.available_copies - 1 }).eq('id', bookId);
-      await supabase.from('book_requests').update({ status: 'approved', admin_notes: 'Book issued successfully' }).eq('id', requestId);
+      
+      const customReply = replyText[requestId]?.trim();
+      const reply = customReply || 'Book issued successfully';
+      
+      await supabase.from('book_requests').update({ status: 'approved', admin_notes: reply }).eq('id', requestId);
       // Send notification
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('notifications').insert({ target_user_id: userId, sent_by: user!.id, title: 'Borrow request approved', message: 'Your book request has been approved and the book has been issued to you.', type: 'success' });
+      await supabase.from('notifications').insert({ 
+        target_user_id: userId, 
+        sent_by: user!.id, 
+        title: 'Borrow request approved', 
+        message: customReply || 'Your book request has been approved and the book has been issued to you.', 
+        type: 'success' 
+      });
       toast({ title: "Success", description: "Book request approved and issued." });
+      setReplyText(prev => { const c = { ...prev }; delete c[requestId]; return c; });
       loadRequests();
     } catch (error) { console.error('Error approving request:', error); toast({ title: "Error", description: "Failed to approve request.", variant: "destructive" }); }
   };

@@ -107,7 +107,18 @@ export default function MyRequests({ userId }: { userId: string }) {
                 </div>
                 {statusBadge(item.status)}
               </div>
-              {item.note && <p className="text-xs text-muted-foreground mt-3 border-t border-border/40 pt-2">{item.note}</p>}
+              {item.note && (
+                <div className="text-xs text-muted-foreground mt-3 border-t border-border/40 pt-2">
+                  {item.note.startsWith("Reason:") ? (
+                    <span className="italic">{item.note}</span>
+                  ) : (
+                    <div>
+                      <span className="font-semibold text-foreground">Admin reply: </span>
+                      <span>{item.note}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

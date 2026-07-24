@@ -82,6 +82,8 @@ const StudentDashboard = () => {
   // regardless of stale auth metadata (avoids the re-open loop).
   const [profileSetupComplete, setProfileSetupComplete] = useState(false);
 
+  const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
+
   const streakData = useLoginStreak(user?.id);
 
   useEffect(() => { checkAuth(); }, []);
@@ -161,7 +163,7 @@ const StudentDashboard = () => {
   };
 
   const handleQuizComplete = async (result: { score: number; pointsEarned: number; totalPointsAwarded?: number; completionBonus?: number }) => {
-    await Promise.all([checkAuth(), fetchQuizResults(), fetchChallenges()]);
+    await Promise.all([checkAuth(), fetchQuizResults(), fetchChallenges(), fetchBadgesCount()]);
     const total = result.totalPointsAwarded ?? result.pointsEarned;
     toast({ title: "Quiz Completed! 🎉", description: `Score: ${result.score}% · Earned ${total} points!` });
     setSelectedQuiz(null);
@@ -214,6 +216,40 @@ const StudentDashboard = () => {
     setMonthlyBooksRead(data?.length || 0);
   };
 
+  const fetchBadgesCount = async () => {
+    if (!user?.id) return;
+    try {
+      const [{ data: allBadges }, { data: awards }, { count: books }, { count: quizzes }, { data: streak }] = await Promise.all([
+        supabase.from("badges").select("*").eq("is_active", true),
+        supabase.from("badge_awards").select("badge_id").eq("user_id", user.id),
+        supabase.from("reading_history").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "approved"),
+        supabase.from("quiz_results").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("login_streaks").select("current_streak").eq("user_id", user.id).maybeSingle(),
+      ]);
+      
+      const manualAwards = new Set((awards || []).map((a: any) => a.badge_id));
+      const stats = { points: user.points || 0, booksRead: books || 0, quizzes: quizzes || 0, streak: streak?.current_streak || 0 };
+      
+      const getStatValue = (type?: string) => {
+        return type === "points" ? stats.points 
+          : type === "books_read" ? stats.booksRead 
+          : type === "quizzes_completed" ? stats.quizzes 
+          : type === "login_streak" ? stats.streak 
+          : 0;
+      };
+      
+      const unlockedCount = (allBadges || []).filter((b: any) => {
+        if (manualAwards.has(b.id)) return true;
+        if (b.criteria_type === "manual" || !b.criteria_type) return false;
+        return getStatValue(b.criteria_type) >= (b.criteria_value || 0);
+      }).length;
+      
+      setBadgesEarnedCount(unlockedCount);
+    } catch (e) {
+      console.error("Error fetching badges count:", e);
+    }
+  };
+
   const handleJoinChallenge = (id: string) => console.log("Joining:", id);
   const handleClaimReward = async (id: string) => {
     await supabase.from('challenge_progress').update({ is_claimed: true }).eq('challenge_id', id).eq('user_id', user?.id);
@@ -221,7 +257,7 @@ const StudentDashboard = () => {
   };
 
   useEffect(() => {
-    if (user?.id) { fetchCurrentBooks(); fetchQuizResults(); fetchAvailableQuizzes(); fetchChallenges(); fetchRecentActivities(); fetchMonthlyBooksRead(); }
+    if (user?.id) { fetchCurrentBooks(); fetchQuizResults(); fetchAvailableQuizzes(); fetchChallenges(); fetchRecentActivities(); fetchMonthlyBooksRead(); fetchBadgesCount(); }
   }, [user?.id]);
 
   if (loading) return (
@@ -254,7 +290,7 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 min-h-0 p-3 space-y-1 overflow-y-auto">
           {navItems.map(item => (
             <button key={item.id} onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === item.id ? 'gradient-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
@@ -264,7 +300,7 @@ const StudentDashboard = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border">
+        <div className="shrink-0 p-4 border-t border-border">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
               {user?.first_name?.[0]}{user?.last_name?.[0]}
@@ -382,7 +418,7 @@ const StudentDashboard = () => {
                   { label: "Books Reading", value: currentBooksCount, icon: BookOpen, color: "text-primary", bg: "bg-primary/10" },
                   { label: "Quizzes Taken", value: quizResultsCount, icon: Brain, color: "text-accent", bg: "bg-accent/10" },
                   { label: "Monthly Goal", value: `${monthlyBooksRead}/5`, icon: Target, color: "text-success", bg: "bg-success/10" },
-                  { label: "Badges Earned", value: challenges.filter(c => c.isCompleted).length, icon: Award, color: "text-warning", bg: "bg-warning/10" },
+                  { label: "Badges Earned", value: badgesEarnedCount, icon: Award, color: "text-warning", bg: "bg-warning/10" },
                 ].map((s, i) => (
                   <Card key={i} className="border-border/50 hover-lift">
                     <CardContent className="p-4">
