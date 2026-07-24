@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
             user_metadata: {
               first_name: firstName,
               last_name: lastName,
-              role: "student",
+              role: row.role === 'teacher' ? 'teacher' : 'student',
               student_class: rawClass,
               roll_number: String(row.roll_number || "").trim(),
               admission_number: uid,
@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
             user_metadata: {
               first_name: firstName,
               last_name: lastName,
-              role: "student",
+              role: row.role === 'teacher' ? 'teacher' : 'student',
               student_class: rawClass,
               roll_number: String(row.roll_number || "").trim(),
               admission_number: uid,
@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
           // 3. Guarantee profile record exists in public.profiles table
           await admin.from("profiles").upsert({
             id: userId,
-            role: "student",
+            role: row.role === 'teacher' ? 'teacher' : 'student',
             is_approved: true,
             approved_by: caller.id,
             approved_at: new Date().toISOString(),
