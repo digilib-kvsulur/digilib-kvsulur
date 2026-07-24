@@ -33,7 +33,7 @@ import CirculationDashboard from "@/components/admin/CirculationDashboard";
 import InventoryAuditManager from "@/components/admin/InventoryAuditManager";
 import ExportReports from "@/components/admin/ExportReports";
 import GalleryManager from "@/components/admin/GalleryManager";
-import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon } from "lucide-react";
+import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon } from "lucide-react";
 
 type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery";
 
@@ -74,7 +74,7 @@ const navSections = [
       { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
       { id: "badges" as Tab, label: "Badges", icon: Award },
       { id: "events" as Tab, label: "Events", icon: Calendar },
-      { id: "gallery" as Tab, label: "Gallery", icon: Image },
+      { id: "gallery" as Tab, label: "Gallery", icon: ImageIcon },
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
       { id: "community" as Tab, label: "Community", icon: MessageSquare },
