@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw, Loader2, GraduationCap } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +40,9 @@ const UserApproval = () => {
   const [resetTarget, setResetTarget] = useState<PendingUser | null>(null);
   const [generatedPassword, setGeneratedPassword] = useState("");
   const [resetting, setResetting] = useState(false);
+  const [editingClassTarget, setEditingClassTarget] = useState<PendingUser | null>(null);
+  const [newClassVal, setNewClassVal] = useState("");
+  const [updatingClass, setUpdatingClass] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { init(); }, []);
@@ -141,6 +144,25 @@ const UserApproval = () => {
       setResetTarget(null);
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleSaveClass = async () => {
+    if (!editingClassTarget) return;
+    setUpdatingClass(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ student_class: newClassVal.trim() || null })
+        .eq("id", editingClassTarget.id);
+      if (error) throw error;
+      toast({ title: "Success", description: "Class updated successfully." });
+      setEditingClassTarget(null);
+      await loadUsers();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to update class", variant: "destructive" });
+    } finally {
+      setUpdatingClass(false);
     }
   };
 
@@ -352,6 +374,10 @@ const UserApproval = () => {
                             <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(u.email); toast({ title: "Copied", description: u.email }); }}>
                               <Copy className="h-4 w-4 mr-2" />Copy email
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setEditingClassTarget(u); setNewClassVal(u.student_class || ""); }}>
+                              <GraduationCap className="h-4 w-4 mr-2" />
+                              {u.role === "teacher" ? "Edit Class Teacher" : "Edit Class"}
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive" onClick={() => setApproval([u.id], false)}>
                               <XCircle className="h-4 w-4 mr-2" />Revoke access
@@ -390,6 +416,41 @@ const UserApproval = () => {
               <Button variant="outline" onClick={() => setResetTarget(null)} disabled={resetting}>Cancel</Button>
               <Button onClick={confirmResetPassword} disabled={resetting} className="bg-orange-500 hover:bg-orange-600 text-white">
                 {resetting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Resetting...</> : <><KeyRound className="h-4 w-4 mr-2" />Confirm Reset</>}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Class Dialog */}
+      <Dialog open={!!editingClassTarget} onOpenChange={(open) => { if (!open && !updatingClass) setEditingClassTarget(null); }}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-indigo-500" /> 
+              {editingClassTarget?.role === "teacher" ? "Edit Class Teacher Assignment" : "Edit Class Assignment"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingClassTarget?.role === "teacher" 
+                ? `Assign a class to Class Teacher ${editingClassTarget?.first_name} ${editingClassTarget?.last_name}. Leave blank if they have no class.`
+                : `Update class for student ${editingClassTarget?.first_name} ${editingClassTarget?.last_name}.`
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Class / Section</label>
+              <Input 
+                value={newClassVal} 
+                onChange={(e) => setNewClassVal(e.target.value)} 
+                placeholder="e.g. 8A, 9B, 10, or leave blank"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setEditingClassTarget(null)} disabled={updatingClass}>Cancel</Button>
+              <Button onClick={handleSaveClass} disabled={updatingClass} className="gradient-primary border-0 text-white font-bold">
+                {updatingClass ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : "Save Changes"}
               </Button>
             </div>
           </div>
