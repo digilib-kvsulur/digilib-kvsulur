@@ -48,6 +48,18 @@ const BookIssueRegister = () => {
 
   useEffect(() => { loadData(); }, []);
 
+  useEffect(() => {
+    if (selectedUser && users.length > 0) {
+      const user = users.find(u => u.id === selectedUser);
+      const days = user?.role === 'teacher' ? 30 : 7;
+      const issueD = new Date(issueDate);
+      if (!isNaN(issueD.getTime())) {
+        const dueD = new Date(issueD.getTime() + days * 86400000);
+        setDueDate(dueD.toISOString().split('T')[0]);
+      }
+    }
+  }, [selectedUser, issueDate, users]);
+
   const loadData = async () => {
     try {
       const { data: issuesData, error: issuesError } = await supabase
@@ -211,7 +223,8 @@ const BookIssueRegister = () => {
       issue.books?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       issue.user?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       issue.user?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.user?.admission_number?.toLowerCase().includes(searchTerm.toLowerCase());
+      issue.user?.admission_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      issue.accession_number?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || issue.status === statusFilter || (statusFilter === "overdue" && isOverdue(issue.due_date, issue.status));
     return matchesSearch && matchesStatus;
   });

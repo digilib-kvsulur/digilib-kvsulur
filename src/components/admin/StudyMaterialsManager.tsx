@@ -41,6 +41,8 @@ interface CbseCurriculumEntry {
   chapter_number: number | null;
   file_url: string;
   description: string | null;
+  class_number: string;
+  subject: string;
   created_at: string;
 }
 
@@ -56,14 +58,19 @@ const NCERT_URL_CODES: Record<string, Record<string, { code: string; bookName: s
   "10": { Mathematics: { code: "jemh1", bookName: "Mathematics – Class 10", chapters: 15 }, Science: { code: "jesc1", bookName: "Science – Class 10", chapters: 16 } },
   "11": {
     Mathematics: { code: "kemh1", bookName: "Mathematics – Class 11", chapters: 16 },
-    Physics: { code: "keph1", bookName: "Physics Part 1 – Class 11", chapters: 8 },
-    Chemistry: { code: "kech1", bookName: "Chemistry Part 1 – Class 11", chapters: 7 },
+    Physics_Part1: { code: "keph1", bookName: "Physics Part 1 – Class 11", chapters: 8 },
+    Physics_Part2: { code: "keph2", bookName: "Physics Part 2 – Class 11", chapters: 7 },
+    Chemistry_Part1: { code: "kech1", bookName: "Chemistry Part 1 – Class 11", chapters: 7 },
+    Chemistry_Part2: { code: "kech2", bookName: "Chemistry Part 2 – Class 11", chapters: 7 },
     Biology: { code: "kebo1", bookName: "Biology – Class 11", chapters: 22 },
   },
   "12": {
-    Mathematics: { code: "lemh1", bookName: "Mathematics Part 1 – Class 12", chapters: 6 },
-    Physics: { code: "leph1", bookName: "Physics Part 1 – Class 12", chapters: 8 },
-    Chemistry: { code: "lech1", bookName: "Chemistry Part 1 – Class 12", chapters: 9 },
+    Mathematics_Part1: { code: "lemh1", bookName: "Mathematics Part 1 – Class 12", chapters: 6 },
+    Mathematics_Part2: { code: "lemh2", bookName: "Mathematics Part 2 – Class 12", chapters: 7 },
+    Physics_Part1: { code: "leph1", bookName: "Physics Part 1 – Class 12", chapters: 8 },
+    Physics_Part2: { code: "leph2", bookName: "Physics Part 2 – Class 12", chapters: 6 },
+    Chemistry_Part1: { code: "lech1", bookName: "Chemistry Part 1 – Class 12", chapters: 9 },
+    Chemistry_Part2: { code: "lech2", bookName: "Chemistry Part 2 – Class 12", chapters: 7 },
     Biology: { code: "lebo1", bookName: "Biology – Class 12", chapters: 16 },
   },
 };
@@ -109,6 +116,8 @@ const StudyMaterialsManager = () => {
     chapter_number: "",
     file_url: "",
     description: "",
+    class_number: "10",
+    subject: "Mathematics"
   });
 
   // NCERT edit states
@@ -364,6 +373,8 @@ const StudyMaterialsManager = () => {
         chapter_number: parseInt(cbseForm.chapter_number) || null,
         file_url: finalUrl,
         description: cbseForm.description.trim() || null,
+        class_number: cbseForm.class_number,
+        subject: cbseForm.subject,
       };
 
       let error;
@@ -375,7 +386,7 @@ const StudyMaterialsManager = () => {
       if (error) throw error;
 
       toast({ title: editingCbseId ? "Updated!" : "Added!" });
-      setCbseForm({ category: "", chapter_title: "", chapter_number: "", file_url: "", description: "" });
+      setCbseForm({ category: "", chapter_title: "", chapter_number: "", file_url: "", description: "", class_number: "10", subject: "Mathematics" });
       setCbseFile(null);
       setEditingCbseId(null);
       const fEl = document.getElementById("cbse-file") as HTMLInputElement;
@@ -692,6 +703,24 @@ const StudyMaterialsManager = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddCbse} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Class *</Label>
+                  <Select value={cbseForm.class_number} onValueChange={v => setCbseForm({ ...cbseForm, class_number: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CLASSES.map(num => <SelectItem key={num} value={num}>Class {num}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Subject *</Label>
+                  <Select value={cbseForm.subject} onValueChange={v => setCbseForm({ ...cbseForm, subject: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <Label>Category / Book Name *</Label>
                   <Input value={cbseForm.category} onChange={e => setCbseForm({ ...cbseForm, category: e.target.value })} placeholder="e.g. Class 10 Syllabus 2025-26" required />

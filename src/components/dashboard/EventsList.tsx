@@ -86,7 +86,7 @@ export default function EventsList({ userId }: { userId: string }) {
               No events found matching this status.
             </CardContent></Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {visibleEvents.map(ev => {
                 const registered = mine.has(ev.id);
                 const full = ev.capacity && (counts[ev.id] || 0) >= ev.capacity && !registered;
@@ -95,7 +95,7 @@ export default function EventsList({ userId }: { userId: string }) {
                 return (
                   <Card key={ev.id} className="overflow-hidden border-border/60 hover:shadow-md transition-all flex flex-col">
                     {ev.image_url && (
-                      <div className={`w-full relative bg-slate-50 ${ev.image_orientation === 'vertical' ? 'aspect-[4/3]' : 'h-48'}`}>
+                      <div className={`w-full relative bg-slate-50 ${ev.image_orientation === 'vertical' ? 'aspect-[3/4]' : 'h-32'}`}>
                         <img src={ev.image_url} alt={ev.title} className="w-full h-full object-cover" />
                       </div>
                     )}

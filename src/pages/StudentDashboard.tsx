@@ -363,14 +363,14 @@ const StudentDashboard = () => {
                       <p className="text-primary-foreground/80 text-sm mt-1">Keep up your reading streak and earn more points!</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm">
+                      <button onClick={() => setActiveTab('rankings')} className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm hover:bg-primary-foreground/30 transition-colors">
                         <p className="text-2xl font-bold text-primary-foreground">{user?.points || 0}</p>
                         <p className="text-xs text-primary-foreground/80">Total Points</p>
-                      </div>
-                      <div className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm">
+                      </button>
+                      <button onClick={() => setActiveTab('rankings')} className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm hover:bg-primary-foreground/30 transition-colors">
                         <p className="text-2xl font-bold text-primary-foreground">#{classRank}</p>
                         <p className="text-xs text-primary-foreground/80">Class Rank</p>
-                      </div>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -417,12 +417,12 @@ const StudentDashboard = () => {
               {/* Quick Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: "Books Reading", value: currentBooksCount, icon: BookOpen, color: "text-primary", bg: "bg-primary/10" },
-                  { label: "Quizzes Taken", value: quizResultsCount, icon: Brain, color: "text-accent", bg: "bg-accent/10" },
-                  { label: "Monthly Goal", value: `${monthlyBooksRead}/5`, icon: Target, color: "text-success", bg: "bg-success/10" },
-                  { label: "Badges Earned", value: badgesEarnedCount, icon: Award, color: "text-warning", bg: "bg-warning/10" },
+                  { label: "Books Reading", value: currentBooksCount, icon: BookOpen, color: "text-primary", bg: "bg-primary/10", tab: "books" },
+                  { label: "Quizzes Taken", value: quizResultsCount, icon: Brain, color: "text-accent", bg: "bg-accent/10", tab: "quizzes" },
+                  { label: "Monthly Goal", value: `${monthlyBooksRead}/5`, icon: Target, color: "text-success", bg: "bg-success/10", tab: null },
+                  { label: "Badges Earned", value: badgesEarnedCount, icon: Award, color: "text-warning", bg: "bg-warning/10", tab: "badges" },
                 ].map((s, i) => (
-                  <Card key={i} className="border-border/50 hover-lift">
+                  <Card key={i} className={`border-border/50 hover-lift ${s.tab ? "cursor-pointer" : ""}`} onClick={() => s.tab && setActiveTab(s.tab)}>
                     <CardContent className="p-4">
                       <div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center mb-2`}>
                         <s.icon className={`h-5 w-5 ${s.color}`} />
@@ -435,9 +435,8 @@ const StudentDashboard = () => {
               </div>
 
 
-              {/* Daily Tip + Quick Actions + Quick Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <DailyTip />
+              {/* Quick Actions + Quick Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Quick Actions */}
                 <Card className="border-border/50 overflow-hidden">
                   <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
@@ -447,8 +446,8 @@ const StudentDashboard = () => {
                       {[
                         { label: "Study Materials", icon: FileText, tab: "materials", color: "text-indigo-600", bg: "bg-indigo-50" },
                         { label: "Library Events", icon: CalendarDays, tab: "events", color: "text-rose-600", bg: "bg-rose-50" },
-                        { label: "My Requests", icon: BookPlus, tab: "requests", color: "text-amber-600", bg: "bg-amber-50" },
-                        { label: "Wishlist", icon: Bookmark, tab: "wishlist", color: "text-purple-600", bg: "bg-purple-50" },
+                        { label: "Community", icon: Users, tab: "community", color: "text-amber-600", bg: "bg-amber-50" },
+                        { label: "Network", icon: Bookmark, tab: "network", color: "text-purple-600", bg: "bg-purple-50" },
                       ].map(a => (
                         <button
                           key={a.tab}

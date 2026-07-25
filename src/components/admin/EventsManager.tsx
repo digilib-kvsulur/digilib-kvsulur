@@ -17,6 +17,7 @@ export default function EventsManager() {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: "", description: "", event_date: "", location: "", capacity: "", image_orientation: "horizontal" });
 
   const load = async () => {
@@ -47,20 +48,32 @@ export default function EventsManager() {
         imageUrl = pub.publicUrl;
       }
 
-      const { error } = await supabase.from("library_events").insert({
+      let error;
+      const payload = {
         title: form.title, 
         description: form.description || null,
         event_date: new Date(form.event_date).toISOString(),
         location: form.location || null,
         capacity: form.capacity ? parseInt(form.capacity) : null,
-        created_by: user?.id,
-        image_url: imageUrl,
         image_orientation: form.image_orientation,
-      });
+        ...(imageUrl && { image_url: imageUrl }),
+      };
+
+      if (editingId) {
+        ({ error } = await supabase.from("library_events").update(payload).eq("id", editingId));
+      } else {
+        ({ error } = await supabase.from("library_events").insert({
+          ...payload,
+          created_by: user?.id,
+          image_url: imageUrl,
+        }));
+      }
+      
       if (error) throw error;
       
-      toast({ title: "Event created" });
+      toast({ title: editingId ? "Event updated" : "Event created" });
       setOpen(false); 
+      setEditingId(null);
       setForm({ title: "", description: "", event_date: "", location: "", capacity: "", image_orientation: "horizontal" });
       setFile(null);
       load();
@@ -69,6 +82,19 @@ export default function EventsManager() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleEdit = (ev: any) => {
+    setForm({
+      title: ev.title,
+      description: ev.description || "",
+      event_date: new Date(ev.event_date).toISOString().slice(0, 16),
+      location: ev.location || "",
+      capacity: ev.capacity ? String(ev.capacity) : "",
+      image_orientation: ev.image_orientation || "horizontal"
+    });
+    setEditingId(ev.id);
+    setOpen(true);
   };
 
   const remove = async (id: string) => {
@@ -84,10 +110,10 @@ export default function EventsManager() {
           <h2 className="text-2xl font-bold">Library Events</h2>
           <p className="text-sm text-muted-foreground">Create events and see registrations.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setEditingId(null); setForm({ title: "", description: "", event_date: "", location: "", capacity: "", image_orientation: "horizontal" }); setFile(null); } }}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />New event</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Create event</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? "Edit Event" : "Create Event"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Title</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
               <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
@@ -106,7 +132,7 @@ export default function EventsManager() {
                 </select>
               </div>
               <Button onClick={create} className="w-full" disabled={uploading}>
-                {uploading ? "Creating & Uploading..." : "Create"}
+                {uploading ? "Saving..." : editingId ? "Save Changes" : "Create"}
               </Button>
             </div>
           </DialogContent>
@@ -128,7 +154,10 @@ export default function EventsManager() {
                   <Calendar className="h-3 w-3" /> {new Date(ev.event_date).toLocaleString()}
                 </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => remove(ev.id)}><Trash2 className="h-4 w-4" /></Button>
+              <div className="flex items-center">
+                <Button variant="ghost" size="sm" onClick={() => handleEdit(ev)} className="text-indigo-600 hover:text-indigo-700">Edit</Button>
+                <Button variant="ghost" size="sm" onClick={() => remove(ev.id)} className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></Button>
+              </div>
             </CardHeader>
             <CardContent>
               {ev.description && <p className="text-sm text-muted-foreground mb-2">{ev.description}</p>}

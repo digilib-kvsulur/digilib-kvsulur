@@ -256,13 +256,13 @@ const Index = () => {
             {/* Left Column */}
             <div className="lg:col-span-6 space-y-7 text-center lg:text-left">
               <div className="inline-flex items-center gap-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider mx-auto lg:mx-0 shadow-sm">
-                <Star className="h-4 w-4 fill-indigo-600 text-indigo-600" /> Kendriya Vidyalaya Sangathan
+                <Star className="h-4 w-4 fill-indigo-600 text-indigo-600" /> PM SHRI KENDRIYA VIDYALAYA AFS SULUR, DLMS
               </div>
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.12] max-w-xl">
                 A Library That Grows With <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Every Reader.</span>
               </h2>
               <p className="text-base sm:text-lg text-slate-600 max-w-lg leading-relaxed mx-auto lg:mx-0 font-normal">
-                Welcome to the digital portal of <span className="font-semibold text-slate-900">Kendriya Vidyalaya AFS Sulur</span>. Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
+                Welcome to the digital portal of <span className="font-semibold text-slate-900">PM SHRI KENDRIYA VIDYALAYA AFS SULUR, DLMS</span>. Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-3">
@@ -421,23 +421,25 @@ const Index = () => {
 
       {/* Gallery Section */}
       {galleryImages.length > 0 && (
-        <section className="py-24 bg-slate-50 border-t border-slate-200">
+        <section className="py-24 bg-slate-50 border-t border-slate-200 overflow-hidden">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
               <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Library Gallery</p>
               <h3 className="text-3xl font-black text-slate-900">Moments & Memories</h3>
               <p className="text-sm text-slate-600 pt-1">Glimpses of activities, book fairs, and proud moments in our library.</p>
             </div>
-            
-            <div ref={galleryRef} className="flex overflow-x-auto pb-8 snap-x snap-mandatory gap-6 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {galleryImages.map((img, i) => (
-                <div key={img.id || i} className="shrink-0 w-72 sm:w-80 md:w-96 snap-center group rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all border border-slate-200">
-                  <div className="aspect-[4/3] bg-slate-100 overflow-hidden relative">
-                    <img src={img.image_url} alt={img.caption || "Gallery"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
+          </div>
+          
+          <div className="relative w-full overflow-hidden flex" style={{ paddingBottom: '2rem' }}>
+            <div className="flex w-max animate-scroll hover:[animation-play-state:paused] gap-6 px-3">
+              {[...galleryImages, ...galleryImages, ...galleryImages].map((img, i) => (
+                <div key={`${img.id || 'idx'}-${i}`} className="shrink-0 group rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all border border-slate-200 flex flex-col h-72">
+                  <div className="h-full bg-slate-100 overflow-hidden relative flex-1">
+                    <img src={img.image_url} alt={img.caption || "Gallery"} className="h-full w-auto max-w-[600px] object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
                   </div>
                   {img.caption && (
-                    <div className="p-4 bg-white">
-                      <p className="text-sm font-medium text-slate-700 line-clamp-2">{img.caption}</p>
+                    <div className="p-3 bg-white border-t border-slate-100 h-14 flex items-center shrink-0">
+                      <p className="text-xs font-medium text-slate-700 truncate w-full max-w-xs">{img.caption}</p>
                     </div>
                   )}
                 </div>
@@ -474,7 +476,7 @@ const Index = () => {
                 </div>
                 <h3 className="text-base font-extrabold text-white">KV AFS Sulur Digital Library</h3>
               </div>
-              <p className="text-xs leading-relaxed text-slate-400 pr-4">Empowering student development, comprehension capabilities, and literature-focused gamified progress for Kendriya Vidyalaya learners.</p>
+              <p className="text-xs leading-relaxed text-slate-400 pr-4">Empowering student development, comprehension capabilities, and literature-focused gamified progress for PM SHRI Kendriya Vidyalaya learners.</p>
             </div>
             
             <div className="space-y-4">
@@ -490,7 +492,7 @@ const Index = () => {
             <div className="space-y-4">
               <h4 className="text-sm font-bold text-white uppercase tracking-wider">Official Contact</h4>
               <p className="text-xs leading-relaxed text-slate-400">
-                Kendriya Vidyalaya AFS Sulur<br />
+                PM SHRI KENDRIYA VIDYALAYA AFS SULUR<br />
                 Air Force Station Sulur, Coimbatore - 641401<br />
                 Phone: +91 422 2682215
               </p>
@@ -498,7 +500,7 @@ const Index = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row items-center justify-between pt-8 text-xs text-slate-500">
-            <p>&copy; 2026 Kendriya Vidyalaya AFS Sulur. All rights reserved.</p>
+            <p>&copy; 2026 PM SHRI KENDRIYA VIDYALAYA AFS SULUR, DLMS. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 sm:mt-0">
               <a href="#" className="hover:text-slate-400 transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-slate-400 transition-colors">Terms of Service</a>

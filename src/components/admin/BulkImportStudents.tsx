@@ -89,7 +89,8 @@ const BulkImportStudents = ({ onImported }: { onImported?: () => void }) => {
     const formattedRows = rows.map(r => ({
       ...r,
       student_uid: String(r.student_uid).trim(),
-      email: `${String(r.student_uid).trim()}@kvsulur.com`
+      email: `${String(r.student_uid).trim()}@kvsulur.com`,
+      role: r.role ? String(r.role).trim().toLowerCase() : 'student'
     }));
 
     const BATCH_SIZE = 100;

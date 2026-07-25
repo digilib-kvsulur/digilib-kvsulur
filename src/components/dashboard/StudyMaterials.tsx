@@ -303,20 +303,23 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
         <TabsContent value="cbse" className="mt-4 space-y-6">
           {/* DB + Official Card Grid */}
           {(() => {
-            // Build CBSE curriculum cards from DB rows (grouped by category/title) + static official links
+            // Build CBSE curriculum cards from DB rows (grouped by subject) + static official links
             const cbseGroups: Record<string, { name: string; chapters: { title: string; url: string }[] }> = {};
 
-            dbCbse.forEach((row) => {
-              const cat = row.category || row.title || "CBSE Resource";
-              if (!cbseGroups[cat]) cbseGroups[cat] = { name: cat, chapters: [] };
-              cbseGroups[cat].chapters.push({ title: row.chapter_title || row.title, url: row.file_url });
+            // Filter DB rows by class
+            const filteredCbse = dbCbse.filter(row => !row.class_number || row.class_number === "All" || row.class_number === baseClass);
+
+            filteredCbse.forEach((row) => {
+              const sub = row.subject || row.category || "CBSE Resource";
+              if (!cbseGroups[sub]) cbseGroups[sub] = { name: sub, chapters: [] };
+              cbseGroups[sub].chapters.push({ title: row.chapter_title || row.title, url: row.file_url });
             });
 
-            // Merge cbseUploads (teacher uploads subject=CBSE Curriculum)
+            // Merge cbseUploads (teacher uploads subject=CBSE Curriculum, class is already filtered above)
             cbseUploads.forEach((m) => {
-              const cat = m.title;
-              if (!cbseGroups[cat]) cbseGroups[cat] = { name: cat, chapters: [] };
-              cbseGroups[cat].chapters.push({ title: m.description || m.title, url: m.file_url });
+              const sub = m.title || "Teacher Upload";
+              if (!cbseGroups[sub]) cbseGroups[sub] = { name: sub, chapters: [] };
+              cbseGroups[sub].chapters.push({ title: m.description || m.title, url: m.file_url });
             });
 
             // Always include static official links as cards
