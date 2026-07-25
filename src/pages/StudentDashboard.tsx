@@ -47,7 +47,6 @@ const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "requests", label: "My Requests", icon: BookPlus },
   { id: "wishlist", label: "Wishlist", icon: Bookmark },
   { id: "events", label: "Events", icon: CalendarDays },
-  { id: "ncert", label: "NCERT Books", icon: GraduationCap },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "notes", label: "My Notes", icon: StickyNote },
   { id: "community", label: "Community", icon: Users },
@@ -199,14 +198,17 @@ const StudentDashboard = () => {
   const fetchRecentActivities = async () => {
     if (!user?.id) return;
     const activities: any[] = [];
-    const { data: bookIssues } = await supabase.from('book_issues').select('*, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3);
-    bookIssues?.forEach(i => activities.push({ type: 'book', title: `Started '${i.books?.title || 'Unknown'}'`, time: i.created_at }));
-    const { data: qr } = await supabase.from('quiz_results').select('*, quizzes (title)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(3);
-    qr?.forEach(r => activities.push({ type: 'quiz', title: `Completed ${r.quizzes?.title || 'Quiz'}`, time: r.completed_at, score: r.score }));
-    const { data: rh } = await supabase.from('reading_history').select('*').eq('user_id', user.id).order('completed_date', { ascending: false }).limit(2);
-    rh?.forEach(e => activities.push({ type: 'reading', title: `Finished '${e.book_title}'`, time: e.completed_date, points: e.points_earned }));
+    const { data: bookIssues } = await supabase.from('book_issues').select('*, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(4);
+    bookIssues?.forEach(i => activities.push({ type: 'book', title: `Started reading '${i.books?.title || 'Unknown'}'`, time: i.created_at }));
+    const { data: qr } = await supabase.from('quiz_results').select('*, quizzes (title)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(4);
+    qr?.forEach(r => activities.push({ type: 'quiz', title: `Completed quiz: ${r.quizzes?.title || 'Quiz'}`, time: r.completed_at, score: r.score }));
+    const { data: rh } = await supabase.from('reading_history').select('*').eq('user_id', user.id).order('completed_date', { ascending: false }).limit(4);
+    rh?.forEach(e => activities.push({ type: 'reading', title: `Finished reading '${e.book_title}'`, time: e.completed_date, points: e.points_earned }));
+    const { data: reqs } = await supabase.from('book_requests').select('*, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(4);
+    reqs?.forEach(r => activities.push({ type: 'request', title: `Requested book '${r.books?.title || 'Unknown'}'`, time: r.created_at, status: r.status }));
+    
     activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-    setRecentActivities(activities.slice(0, 5));
+    setRecentActivities(activities.slice(0, 10));
   };
 
   const fetchMonthlyBooksRead = async () => {
@@ -359,6 +361,9 @@ const StudentDashboard = () => {
                     <div>
                       <h2 className="text-xl sm:text-2xl font-bold text-primary-foreground">Welcome back, {user?.first_name}! 👋</h2>
                       <p className="text-primary-foreground/80 text-sm mt-1">Keep up your reading streak and earn more points!</p>
+                      <Button onClick={() => setActiveTab("materials")} size="sm" className="mt-3 bg-white text-indigo-700 hover:bg-slate-100 font-extrabold rounded-xl border-0 shadow-sm transition-all flex items-center gap-1.5 h-8">
+                        <FileText className="h-4 w-4" /> Study Materials
+                      </Button>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm">
@@ -449,14 +454,23 @@ const StudentDashboard = () => {
                     <div className="space-y-2">
                       {recentActivities.map((a, i) => (
                         <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/60 transition-all border border-transparent hover:border-border/50">
-                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${a.type === 'book' ? 'bg-primary/10' : a.type === 'quiz' ? 'bg-success/10' : 'bg-accent/10'}`}>
-                            {a.type === 'book' ? <BookOpen className="h-4 w-4 text-primary" /> : a.type === 'quiz' ? <Brain className="h-4 w-4 text-success" /> : <Star className="h-4 w-4 text-accent" />}
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            a.type === 'book' ? 'bg-blue-100 text-blue-700' :
+                            a.type === 'quiz' ? 'bg-purple-100 text-purple-700' :
+                            a.type === 'reading' ? 'bg-emerald-100 text-emerald-700' :
+                            'bg-amber-100 text-amber-700'
+                          }`}>
+                            {a.type === 'book' ? <BookOpen className="h-4 w-4" /> :
+                             a.type === 'quiz' ? <Brain className="h-4 w-4" /> :
+                             a.type === 'reading' ? <Medal className="h-4 w-4" /> :
+                             <BookPlus className="h-4 w-4" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{a.title}</p>
                             <div className="flex items-center gap-2">
                               {a.score && <span className="text-xs text-success font-medium">Score: {a.score}%</span>}
                               {a.points ? <span className="text-xs text-warning font-medium">+{a.points} pts</span> : null}
+                              {a.status && <span className="text-xs text-muted-foreground capitalize">Status: {a.status}</span>}
                             </div>
                           </div>
                           <span className="text-xs text-muted-foreground shrink-0">{getTimeAgo(a.time)}</span>
@@ -506,9 +520,6 @@ const StudentDashboard = () => {
               </Card>
             </div>
           )}
-
-          {/* NCERT Books */}
-          {activeTab === "ncert" && <NCERTBooks />}
 
           {/* Notes */}
           {activeTab === "notes" && user?.id && <StudentNotes userId={user.id} />}

@@ -12,10 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, LogOut, Users, Trophy, GraduationCap, TrendingUp, Calendar, Target, Plus, Trash2, ListChecks, Star, BookMarked, Brain } from "lucide-react";
+import { BookOpen, LogOut, Users, Trophy, GraduationCap, TrendingUp, Calendar, Target, Plus, Trash2, ListChecks, Star, BookMarked, Brain, FileText, User } from "lucide-react";
 import NotificationBell from "@/components/dashboard/NotificationBell";
+import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
+import StudentProfile from "@/components/dashboard/StudentProfile";
 
-type TeacherTab = "progress" | "challenges" | "reading-lists" | "recommendations";
+type TeacherTab = "progress" | "challenges" | "reading-lists" | "recommendations" | "materials" | "profile";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -77,6 +79,14 @@ const TeacherDashboard = () => {
       setLoading(false);
     })();
   }, []);
+
+  const fetchTeacherProfile = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+      if (profile) setTeacher(profile);
+    }
+  };
 
   // Fetch all class details when selectedClass changes
   const fetchClassDetails = async () => {
@@ -325,11 +335,13 @@ const TeacherDashboard = () => {
 
         {/* Navigation Tabs */}
         <Tabs defaultValue="progress" value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-4">
-          <TabsList className="grid grid-cols-4 w-full bg-white border">
+          <TabsList className="grid grid-cols-2 md:grid-cols-6 w-full bg-white border h-auto gap-1 p-1">
             <TabsTrigger value="progress" className="flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Class Progress</TabsTrigger>
             <TabsTrigger value="challenges" className="flex items-center gap-2"><Target className="h-4 w-4" /> Challenges</TabsTrigger>
             <TabsTrigger value="reading-lists" className="flex items-center gap-2"><ListChecks className="h-4 w-4" /> Reading Lists</TabsTrigger>
             <TabsTrigger value="recommendations" className="flex items-center gap-2"><Star className="h-4 w-4" /> Recommendations</TabsTrigger>
+            <TabsTrigger value="materials" className="flex items-center gap-2"><FileText className="h-4 w-4" /> Study Materials</TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-2"><User className="h-4 w-4" /> My Profile</TabsTrigger>
           </TabsList>
 
           {/* TAB 1: Class Progress & Leaderboard */}
@@ -507,6 +519,22 @@ const TeacherDashboard = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* TAB 5: Study Materials */}
+          <TabsContent value="materials">
+            <Card className="border-border/50 bg-white">
+              <CardContent className="pt-6">
+                <StudyMaterialsManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TAB 6: Teacher Profile */}
+          <TabsContent value="profile">
+            {teacher && (
+              <StudentProfile user={teacher} onProfileUpdate={fetchTeacherProfile} />
+            )}
           </TabsContent>
         </Tabs>
       </main>

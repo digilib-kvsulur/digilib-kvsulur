@@ -23,18 +23,56 @@ export default function GalleryManager() {
 
   useEffect(() => { load(); }, []);
 
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] || null;
+    setFile(f);
+    if (f) {
+      setPreviewUrl(URL.createObjectURL(f));
+      setForm(prev => ({ ...prev, image_url: "" })); // Clear URL if file is chosen
+    } else {
+      setPreviewUrl("");
+    }
+  };
+
   const handleAdd = async () => {
-    if (!form.image_url) {
-      toast({ title: "Image URL required", variant: "destructive" });
+    if (!form.image_url && !file) {
+      toast({ title: "Please provide an image URL or upload a file", variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
-      const { error } = await supabase.from("gallery_images").insert([form]);
+      let finalUrl = form.image_url;
+
+      if (file) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not signed in");
+        
+        const ext = file.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        
+        const { error: upErr } = await supabase.storage.from("gallery-images").upload(path, file, {
+          contentType: file.type, upsert: false
+        });
+        if (upErr) throw upErr;
+        
+        const { data: pub } = supabase.storage.from("gallery-images").getPublicUrl(path);
+        finalUrl = pub.publicUrl;
+      }
+
+      const { error } = await supabase.from("gallery_images").insert([{
+        image_url: finalUrl,
+        caption: form.caption,
+        is_active: form.is_active
+      }]);
       if (error) throw error;
       toast({ title: "Image added successfully" });
       setOpen(false);
       setForm({ image_url: "", caption: "", is_active: true });
+      setFile(null);
+      setPreviewUrl("");
       load();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -62,30 +100,45 @@ export default function GalleryManager() {
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <ImageIcon className="h-6 w-6" /> Gallery Manager
           </h2>
-          <p className="text-sm text-muted-foreground">Manage scrolling gallery images for the homepage via external URLs.</p>
+          <p className="text-sm text-muted-foreground">Manage scrolling gallery images for the homepage via uploads or URLs.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setFile(null); setPreviewUrl(""); } }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Add Image</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md rounded-2xl">
             <DialogHeader><DialogTitle>Add Gallery Image</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label>External Image URL</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <LinkIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      className="pl-9" 
-                      placeholder="https://imgur.com/... or Google Drive link" 
-                      value={form.image_url} 
-                      onChange={e => setForm({ ...form, image_url: e.target.value })} 
-                    />
+              <div className="border p-4 rounded-xl space-y-3 bg-slate-50">
+                <Label className="font-bold text-slate-700">Choose Image Source</Label>
+                
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs">Option A: Upload Image File</Label>
+                    <Input type="file" accept="image/*" onChange={handleFileChange} />
+                  </div>
+                  
+                  <div className="text-center text-xs text-muted-foreground">— OR —</div>
+                  
+                  <div>
+                    <Label className="text-xs">Option B: External Image URL</Label>
+                    <div className="relative">
+                      <LinkIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        className="pl-9" 
+                        placeholder="https://imgur.com/... or Google Drive link" 
+                        value={form.image_url} 
+                        onChange={e => {
+                          setForm({ ...form, image_url: e.target.value });
+                          setFile(null);
+                          setPreviewUrl("");
+                        }} 
+                      />
+                    </div>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Use a direct image link from Imgur, Postimages, or a public Google Drive image link to save storage space.</p>
               </div>
+
               <div className="space-y-2">
                 <Label>Caption (Optional)</Label>
                 <Input value={form.caption} onChange={e => setForm({ ...form, caption: e.target.value })} />
@@ -95,9 +148,9 @@ export default function GalleryManager() {
                 <Label>Active (Show on homepage)</Label>
               </div>
               
-              {form.image_url && (
+              {(previewUrl || form.image_url) && (
                 <div className="mt-4 border rounded-md overflow-hidden bg-slate-50 h-32 flex items-center justify-center">
-                  <img src={form.image_url} alt="Preview" className="max-h-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                  <img src={previewUrl || form.image_url} alt="Preview" className="max-h-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
                 </div>
               )}
               
