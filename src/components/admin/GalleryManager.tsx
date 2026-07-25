@@ -8,9 +8,46 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Trash2, Plus, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import imageCompression from 'browser-image-compression';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { firebaseStorage } from "@/integrations/firebase/client";
+const compressImage = (file: File, maxW: number, maxH: number, quality: number): Promise<File> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxW || height > maxH) {
+          if (width > height) {
+            height = Math.round((height * maxW) / width);
+            width = maxW;
+          } else {
+            width = Math.round((width * maxH) / height);
+            height = maxH;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name, { type: "image/jpeg", lastModified: Date.now() }));
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+    };
+  });
+};
 
 export default function GalleryManager() {
   const { toast } = useToast();
@@ -53,21 +90,19 @@ export default function GalleryManager() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Not signed in");
         
-        // Light compression for gallery images as requested
-        const options = {
-          maxSizeMB: 2,
-          maxWidthOrHeight: 2500,
-          useWebWorker: true,
-          initialQuality: 0.9,
-        };
-        const compressedFile = await imageCompression(file, options);
+        // Light compression (max size 2000px, quality 0.85) using native Canvas
+        const compressedFile = await compressImage(file, 2000, 2000, 0.85);
         
         const ext = file.name.split(".").pop();
         const path = `gallery/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         
-        const storageRef = ref(firebaseStorage, path);
-        const snapshot = await uploadBytes(storageRef, compressedFile);
-        finalUrl = await getDownloadURL(snapshot.ref);
+        const { error: upErr } = await supabase.storage.from("gallery-images").upload(path, compressedFile, {
+          contentType: "image/jpeg", upsert: false
+        });
+        if (upErr) throw upErr;
+        
+        const { data: pub } = supabase.storage.from("gallery-images").getPublicUrl(path);
+        finalUrl = pub.publicUrl;
       }
 
       const { error } = await supabase.from("gallery_images").insert([{

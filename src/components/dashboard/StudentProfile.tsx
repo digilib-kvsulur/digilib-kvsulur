@@ -1,7 +1,44 @@
 import { useState, useEffect, useRef } from "react";
-import imageCompression from 'browser-image-compression';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { firebaseStorage } from "@/integrations/firebase/client";
+const compressImage = (file: File, maxW: number, maxH: number, quality: number): Promise<File> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxW || height > maxH) {
+          if (width > height) {
+            height = Math.round((height * maxW) / width);
+            width = maxW;
+          } else {
+            width = Math.round((width * maxH) / height);
+            height = maxH;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name, { type: "image/jpeg", lastModified: Date.now() }));
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+    };
+  });
+};
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,24 +130,21 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
     if (!file || !user?.id) return;
     setUploading(true);
     try {
-      // Compress avatar (max 500KB, max 800x800)
-      const options = {
-        maxSizeMB: 0.5,
-        maxWidthOrHeight: 800,
-        useWebWorker: true,
-      };
-      const compressedFile = await imageCompression(file, options);
+      // Compress avatar (max 800px width/height, quality 0.75) using native Canvas
+      const compressedFile = await compressImage(file, 800, 800, 0.75);
 
       const ext = file.name.split('.').pop();
-      const path = `avatars/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       
-      const storageRef = ref(firebaseStorage, path);
-      const snapshot = await uploadBytes(storageRef, compressedFile);
-      const downloadUrl = await getDownloadURL(snapshot.ref);
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
+        upsert: true,
+        contentType: "image/jpeg"
+      });
+      if (upErr) throw upErr;
 
-      const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: downloadUrl }).eq("id", user.id);
+      const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", user.id);
       if (dbErr) throw dbErr;
-      await loadAvatar(downloadUrl);
+      await loadAvatar(path);
       toast({ title: "Profile picture updated successfully!" });
       onProfileUpdate?.();
     } catch (e: any) {

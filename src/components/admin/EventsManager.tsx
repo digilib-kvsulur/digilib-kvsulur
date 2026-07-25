@@ -9,8 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Plus, Trash2, Users } from "lucide-react";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { firebaseStorage } from "@/integrations/firebase/client";
 
 export default function EventsManager() {
   const { toast } = useToast();
@@ -39,13 +37,14 @@ export default function EventsManager() {
       
       let imageUrl = null;
       if (file) {
-        // No compression for event banners (waiver) as requested
         const ext = file.name.split(".").pop();
-        const path = `events/${user?.id || 'admin'}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        
-        const storageRef = ref(firebaseStorage, path);
-        const snapshot = await uploadBytes(storageRef, file);
-        imageUrl = await getDownloadURL(snapshot.ref);
+        const path = `${user?.id || 'admin'}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("event-images").upload(path, file, {
+          contentType: file.type, upsert: false,
+        });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("event-images").getPublicUrl(path);
+        imageUrl = pub.publicUrl;
       }
 
       const { error } = await supabase.from("library_events").insert({
