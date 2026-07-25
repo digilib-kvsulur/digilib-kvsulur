@@ -139,12 +139,12 @@ export default function EventsManager() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
         {events.map(ev => (
-          <Card key={ev.id}>
+          <Card key={ev.id} className="flex flex-col">
             {ev.image_url && (
-              <div className="w-full h-48 overflow-hidden rounded-t-xl relative bg-slate-100 border-b">
-                <img src={ev.image_url} alt={ev.title} className="w-full h-full object-cover" />
+              <div className="w-full relative bg-slate-100 border-b rounded-t-xl overflow-hidden">
+                <img src={ev.image_url} alt={ev.title} className="w-full h-auto object-contain" style={{ maxHeight: '300px' }} />
               </div>
             )}
             <CardHeader className="flex flex-row items-start justify-between space-y-0">

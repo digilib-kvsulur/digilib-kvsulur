@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Upload, Trash2, Download, BookOpen, Loader2, Plus, GraduationCap, Link2, Edit2, RefreshCw, Save, X } from "lucide-react";
+import { FileText, Upload, Trash2, Download, BookOpen, Loader2, Plus, GraduationCap, Link2, Edit2, RefreshCw, Save, X, Database } from "lucide-react";
 import BulkImportMaterials from "./BulkImportMaterials";
+import BulkImportCbse from "./BulkImportCbse";
 
 interface Material {
   id: string;
@@ -199,6 +200,54 @@ const StudyMaterialsManager = () => {
       loadNcertChapters();
     } catch (err: any) {
       toast({ title: "Fetch failed", description: err.message, variant: "destructive" });
+    } finally {
+      setFetchingNcert(false);
+    }
+  };
+
+  const fetchAllNcertDatabase = async () => {
+    if (!confirm("This will fetch and import all predefined NCERT books for all classes. It may take a moment. Continue?")) return;
+    setFetchingNcert(true);
+    
+    try {
+      const allRows: any[] = [];
+      const CHAPTER_NAMES: Record<string, string[]> = {
+        Mathematics: ["Real Numbers","Polynomials","Pair of Linear Equations in Two Variables","Quadratic Equations","Arithmetic Progressions","Triangles","Coordinate Geometry","Introduction to Trigonometry","Some Applications of Trigonometry","Circles","Areas Related to Circles","Surface Areas and Volumes","Statistics","Probability","Proofs in Mathematics"],
+        Science: ["Chemical Reactions and Equations","Acids, Bases and Salts","Metals and Non-metals","Carbon and Its Compounds","Life Processes","Control and Coordination","How do Organisms Reproduce?","Heredity","Light – Reflection and Refraction","The Human Eye and the Colourful World","Electricity","Magnetic Effects of Electric Current","Our Environment","Sustainable Management of Natural Resources","Carbon and Its Compounds (Extra)","Management of Natural Resources"],
+        Physics_Part1: ["Electric Charges and Fields","Electrostatic Potential and Capacitance","Current Electricity","Moving Charges and Magnetism","Magnetism and Matter","Electromagnetic Induction","Alternating Current","Electromagnetic Waves"],
+        Chemistry_Part1: ["The Solid State","Solutions","Electrochemistry","Chemical Kinetics","Surface Chemistry","General Principles","The p-Block Elements","The d and f Block Elements"],
+      };
+
+      for (const [cls, subjects] of Object.entries(NCERT_URL_CODES)) {
+        for (const [sub, data] of Object.entries(subjects)) {
+          for (let i = 0; i < data.chapters; i++) {
+            const chNum = i + 1;
+            const chapterNames = CHAPTER_NAMES[sub] || CHAPTER_NAMES[sub.replace(/_Part\d/, "")] || [];
+            const chapterName = chapterNames[i] ? `Chapter ${chNum} – ${chapterNames[i]}` : `Chapter ${chNum}`;
+            allRows.push({
+              class_number: cls,
+              subject: sub,
+              book_name: data.bookName,
+              chapter_title: chapterName,
+              chapter_number: chNum,
+              file_url: buildNcertUrl(data.code, chNum),
+            });
+          }
+        }
+      }
+
+      // Process in batches of 100 to avoid request too large errors
+      for (let i = 0; i < allRows.length; i += 100) {
+        const batch = allRows.slice(i, i + 100);
+        const { error } = await supabase.from("ncert_books").insert(batch);
+        if (error) throw error;
+      }
+
+      toast({ title: `✅ Fetched all books!`, description: `${allRows.length} chapters registered successfully.` });
+      setShowFetchPanel(false);
+      loadNcertChapters();
+    } catch (err: any) {
+      toast({ title: "Fetch All failed", description: err.message, variant: "destructive" });
     } finally {
       setFetchingNcert(false);
     }
@@ -518,12 +567,19 @@ const StudyMaterialsManager = () => {
           <Card className="border-border/50 bg-emerald-50/50 border-emerald-200">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5 text-emerald-600" /> Fetch from NCERT.nic.in
+                <CardTitle className="text-lg flex justify-between items-center">
+                  <span><BookOpen className="h-5 w-5 inline mr-2 text-indigo-500" /> NCERT Books</span>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm" onClick={() => setShowFetchPanel(!showFetchPanel)}>
+                      <Download className="h-4 w-4 mr-2" /> {showFetchPanel ? "Hide Fetch Panel" : "Fetch NCERT Chapters"}
+                    </Button>
+                    {showFetchPanel && (
+                      <Button variant="outline" size="sm" onClick={fetchAllNcertDatabase} disabled={fetchingNcert} className="border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                        <Database className="h-4 w-4 mr-2" /> Fetch Complete Database
+                      </Button>
+                    )}
+                  </div>
                 </CardTitle>
-                <Button variant="outline" size="sm" onClick={() => setShowFetchPanel(p => !p)} className="h-8 text-xs">
-                  {showFetchPanel ? "Hide" : "Show"}
-                </Button>
               </div>
               <CardDescription>Auto-register all chapter links from the official NCERT website in one click.</CardDescription>
             </CardHeader>
@@ -595,7 +651,7 @@ const StudyMaterialsManager = () => {
                   <Select value={ncertForm.subject} onValueChange={v => setNcertForm({ ...ncertForm, subject: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {["Mathematics", "Science", "English", "Social Science", "Physics", "Chemistry", "Biology", "Hindi"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      {["Mathematics", "Science", "English", "Social Science", "Physics", "Chemistry", "Biology", "Hindi", "Mathematics_Part1", "Mathematics_Part2", "Physics_Part1", "Physics_Part2", "Chemistry_Part1", "Chemistry_Part2"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -696,10 +752,10 @@ const StudyMaterialsManager = () => {
 
         {/* Tab 3: CBSE Curriculum */}
         <TabsContent value="cbse" className="space-y-6 mt-0">
-          <Card className="border-border/50">
-            <CardHeader>
+          <Card className="border-border/50 bg-slate-50/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg flex items-center gap-2"><GraduationCap className="h-5 w-5 text-indigo-500" /> {editingCbseId ? "Edit CBSE Entry" : "Add CBSE Curriculum Entry"}</CardTitle>
-              <CardDescription>Add syllabus documents, curriculum guides, or CBSE portal links. Students see these as clickable cards.</CardDescription>
+              <BulkImportCbse onImported={loadCbseCurriculum} />
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddCbse} className="grid grid-cols-1 md:grid-cols-2 gap-4">
