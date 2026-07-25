@@ -24,7 +24,7 @@ import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager"
 import LevelUpBanner from "@/components/rewards/LevelUpBanner";
 import Rankings from "@/components/dashboard/Rankings";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
-import DailyTip from "@/components/dashboard/DailyTip";
+
 import QuickBookmarks from "@/components/dashboard/QuickBookmarks";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudentNotes from "@/components/dashboard/StudentNotes";

@@ -8,13 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
 
 
-interface Post { id: string; title: string; content: string; user_id: string; created_at: string; author?: any; likes: number; liked: boolean; comment_count: number; }
+interface Post { id: string; title: string; content: string; user_id: string; created_at: string; author?: any; likes: number; liked: boolean; comment_count: number; media_url?: string; media_type?: string; }
 interface Comment { id: string; content: string; user_id: string; created_at: string; author?: any; }
 
 const nameOf = (p: any) => p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
@@ -25,6 +25,8 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [draft, setDraft] = useState({ title: "", content: "" });
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [uploadingPost, setUploadingPost] = useState(false);
   const [openComments, setOpenComments] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [commentDraft, setCommentDraft] = useState("");
@@ -120,9 +122,27 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   const createPost = async () => {
     if (!draft.title.trim() || !draft.content.trim()) { toast({ title: "Fill both fields", variant: "destructive" }); return; }
-    const { error } = await supabase.from("posts").insert({ user_id: currentUserId, title: draft.title, content: draft.content });
-    if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
-    setDraft({ title: "", content: "" }); setShowNew(false); toast({ title: "Posted!" }); load();
+    setUploadingPost(true);
+    try {
+      let mediaUrl: string | null = null;
+      let mediaType: string | null = null;
+      if (mediaFile) {
+        const ext = mediaFile.name.split(".").pop()?.toLowerCase();
+        const path = `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("community-media").upload(path, mediaFile, { contentType: mediaFile.type });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("community-media").getPublicUrl(path);
+        mediaUrl = pub.publicUrl;
+        mediaType = mediaFile.type.startsWith("image") ? "image" : mediaFile.type.startsWith("video") ? "video" : "pdf";
+      }
+      const { error } = await supabase.from("posts").insert({ user_id: currentUserId, title: draft.title, content: draft.content, media_url: mediaUrl, media_type: mediaType });
+      if (error) throw error;
+      setDraft({ title: "", content: "" }); setMediaFile(null); setShowNew(false); toast({ title: "Posted!" }); load();
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    } finally {
+      setUploadingPost(false);
+    }
   };
 
   const deletePost = async (id: string) => { await supabase.from("posts").delete().eq("id", id); toast({ title: "Deleted" }); load(); };
@@ -212,9 +232,17 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           <CardContent className="p-4 space-y-3">
             <Input placeholder="Post title..." value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} maxLength={150} />
             <Textarea placeholder="What's on your mind?" rows={4} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={2000} />
-            <div className="flex justify-end gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setShowNew(false)}>Cancel</Button>
-              <Button size="sm" onClick={createPost}>Post</Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <label htmlFor="community-media" className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors px-3 py-1.5 rounded-lg border border-dashed border-border hover:border-primary">
+                <Paperclip className="h-3.5 w-3.5" /> {mediaFile ? mediaFile.name : "Attach photo / video / PDF"}
+              </label>
+              <input id="community-media" type="file" accept="image/*,video/*,.pdf" className="hidden" onChange={(e) => setMediaFile(e.target.files?.[0] || null)} />
+              {mediaFile && (
+                <button onClick={() => setMediaFile(null)} className="text-xs text-destructive hover:text-destructive/80"><X className="h-3.5 w-3.5" /></button>
+              )}
+              <div className="flex-1" />
+              <Button size="sm" variant="ghost" onClick={() => { setShowNew(false); setMediaFile(null); }}>Cancel</Button>
+              <Button size="sm" onClick={createPost} disabled={uploadingPost}>{uploadingPost ? "Posting..." : "Post"}</Button>
             </div>
           </CardContent>
         </Card>
@@ -257,6 +285,22 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     </div>
                     <h3 className="font-bold mt-2">{p.title}</h3>
                     <p className="text-sm whitespace-pre-wrap mt-1">{p.content}</p>
+                    {p.media_url && (
+                      <div className="mt-2 rounded-xl overflow-hidden border border-border/50">
+                        {p.media_type === "image" && (
+                          <img src={p.media_url} alt="Post media" className="w-full max-h-96 object-contain bg-muted/30" />
+                        )}
+                        {p.media_type === "video" && (
+                          <video src={p.media_url} controls className="w-full max-h-80" />
+                        )}
+                        {p.media_type === "pdf" && (
+                          <a href={p.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 hover:bg-muted/40 transition-colors">
+                            <FileText className="h-5 w-5 text-primary" />
+                            <span className="text-sm text-primary hover:underline">View Attached PDF</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
                     <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
                       <button onClick={() => toggleLike(p)} className="flex items-center gap-1 text-sm hover:text-primary transition-colors">
                         <Heart className={`h-4 w-4 ${p.liked ? "fill-destructive text-destructive" : ""}`} /> {p.likes}
