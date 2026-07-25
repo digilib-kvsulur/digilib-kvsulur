@@ -64,8 +64,12 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
       setBadges(unlockedBadges);
       setPosts(userPosts || []);
       if (p?.avatar_url) {
-        const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(p.avatar_url, 3600);
-        setAvatarUrl(signed?.signedUrl || null);
+        if (p.avatar_url.startsWith("http")) {
+          setAvatarUrl(p.avatar_url);
+        } else {
+          const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(p.avatar_url, 3600);
+          setAvatarUrl(signed?.signedUrl || null);
+        }
       } else {
         setAvatarUrl(null);
       }

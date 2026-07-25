@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import imageCompression from 'browser-image-compression';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { firebaseStorage } from "@/integrations/firebase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +54,10 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
 
   const loadAvatar = async (path?: string | null) => {
     if (!path) { setAvatarUrl(null); return; }
+    if (path.startsWith("http")) {
+      setAvatarUrl(path);
+      return;
+    }
     try {
       const { data } = await supabase.storage.from("avatars").createSignedUrl(path, 3600);
       setAvatarUrl(data?.signedUrl || null);
@@ -86,13 +93,24 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
     if (!file || !user?.id) return;
     setUploading(true);
     try {
+      // Compress avatar (max 500KB, max 800x800)
+      const options = {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+
       const ext = file.name.split('.').pop();
-      const path = `${user.id}/avatar.${ext}`;
-      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
-      if (upErr) throw upErr;
-      const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", user.id);
+      const path = `avatars/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      
+      const storageRef = ref(firebaseStorage, path);
+      const snapshot = await uploadBytes(storageRef, compressedFile);
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+
+      const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: downloadUrl }).eq("id", user.id);
       if (dbErr) throw dbErr;
-      await loadAvatar(path);
+      await loadAvatar(downloadUrl);
       toast({ title: "Profile picture updated successfully!" });
       onProfileUpdate?.();
     } catch (e: any) {

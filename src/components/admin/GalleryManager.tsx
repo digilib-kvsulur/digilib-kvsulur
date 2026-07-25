@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Trash2, Plus, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import imageCompression from 'browser-image-compression';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { firebaseStorage } from "@/integrations/firebase/client";
 
 export default function GalleryManager() {
   const { toast } = useToast();
@@ -50,16 +53,21 @@ export default function GalleryManager() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Not signed in");
         
+        // Light compression for gallery images as requested
+        const options = {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 2500,
+          useWebWorker: true,
+          initialQuality: 0.9,
+        };
+        const compressedFile = await imageCompression(file, options);
+        
         const ext = file.name.split(".").pop();
-        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const path = `gallery/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         
-        const { error: upErr } = await supabase.storage.from("gallery-images").upload(path, file, {
-          contentType: file.type, upsert: false
-        });
-        if (upErr) throw upErr;
-        
-        const { data: pub } = supabase.storage.from("gallery-images").getPublicUrl(path);
-        finalUrl = pub.publicUrl;
+        const storageRef = ref(firebaseStorage, path);
+        const snapshot = await uploadBytes(storageRef, compressedFile);
+        finalUrl = await getDownloadURL(snapshot.ref);
       }
 
       const { error } = await supabase.from("gallery_images").insert([{
