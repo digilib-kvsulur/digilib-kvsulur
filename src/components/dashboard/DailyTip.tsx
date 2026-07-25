@@ -29,17 +29,17 @@ const DailyTip = () => {
   return (
     <Card className="border-border/50 overflow-hidden">
       <div className="h-1 gradient-primary" />
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 bg-warning/10 rounded-xl flex items-center justify-center shrink-0">
-            <Lightbulb className="h-5 w-5 text-warning" />
+      <CardContent className="p-3">
+        <div className="flex items-start gap-2.5">
+          <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+            <Lightbulb className="h-4 w-4 text-warning" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Daily Tip</p>
-            <p className="text-sm text-foreground leading-relaxed">{tips[tipIndex]}</p>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Daily Tip</p>
+            <p className="text-xs text-foreground leading-relaxed">{tips[tipIndex]}</p>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={nextTip}>
-            <RefreshCw className="h-3.5 w-3.5" />
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={nextTip}>
+            <RefreshCw className="h-3 w-3" />
           </Button>
         </div>
       </CardContent>

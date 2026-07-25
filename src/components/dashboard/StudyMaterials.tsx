@@ -116,6 +116,8 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
   const [sortBy, setSortBy] = useState("newest");
   const [filterSubject, setFilterSubject] = useState("all");
   const [ncertBook, setNcertBook] = useState<{ name: string; chapters: { title: string; url: string }[] } | null>(null);
+  const [cbseBook, setCbseBook] = useState<{ name: string; chapters: { title: string; url: string }[] } | null>(null);
+  const [dbCbse, setDbCbse] = useState<any[]>([]);
 
   const baseClass = getBaseClass(studentClass);
 
@@ -135,6 +137,14 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
         setDbNcert(ncert || []);
       } catch (e) {
         console.error("Error fetching ncert books:", e);
+      }
+
+      // 3. Fetch CBSE Curriculum from Database
+      try {
+        const { data: cbse } = await supabase.from("cbse_curriculum").select("*").order("chapter_number", { ascending: true });
+        setDbCbse(cbse || []);
+      } catch (e) {
+        console.error("Error fetching cbse curriculum:", e);
       }
 
       setLoading(false);
@@ -291,67 +301,59 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
 
         {/* CBSE Curriculum Tab */}
         <TabsContent value="cbse" className="mt-4 space-y-6">
-          {/* Official Resources Section */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Official CBSE Portal Links</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {OFFICIAL_CBSE_LINKS.map((link, idx) => (
-                <Card key={idx} className="border-border/60 hover:border-indigo-300 hover:shadow-sm transition-all">
-                  <CardContent className="p-4 flex flex-col justify-between h-full">
-                    <div>
-                      <h4 className="font-bold text-sm text-foreground line-clamp-1">{link.title}</h4>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{link.description}</p>
-                    </div>
-                    <div className="mt-3.5 pt-2 border-t border-slate-100 flex justify-end">
-                      <Button asChild size="sm" variant="outline" className="h-7 text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50">
-                        <a href={link.url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-3 w-3 mr-1" /> Visit Portal
-                        </a>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          {/* DB + Official Card Grid */}
+          {(() => {
+            // Build CBSE curriculum cards from DB rows (grouped by category/title) + static official links
+            const cbseGroups: Record<string, { name: string; chapters: { title: string; url: string }[] }> = {};
 
-          {/* Teacher Uploaded Curriculum Resources */}
-          <div className="space-y-3 pt-2">
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Uploaded Curriculum Guides & Syllabus</h3>
-            {loading ? (
-              <div className="text-center py-6"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
-            ) : cbseUploads.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-muted-foreground text-xs italic">
-                No custom curriculum uploads available for your class.
-              </CardContent></Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {cbseUploads.map(m => (
-                  <Card key={m.id} className="hover-lift border-border/60 group">
-                    <CardContent className="p-4 flex items-start gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-indigo-100/50 flex items-center justify-center shrink-0">
-                        <GraduationCap className="h-5 w-5 text-indigo-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground line-clamp-1 text-sm">{m.title}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">Syllabus Guide {m.student_class && ` · Class ${m.student_class}`}</p>
-                        {m.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{m.description}</p>}
-                        <Button asChild size="sm" variant="outline" className="mt-2 h-7 text-xs">
-                          <a href={m.file_url} target="_blank" rel="noopener noreferrer">
-                            <Download className="h-3 w-3 mr-1" /> Open Guide
-                          </a>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+            dbCbse.forEach((row) => {
+              const cat = row.category || row.title || "CBSE Resource";
+              if (!cbseGroups[cat]) cbseGroups[cat] = { name: cat, chapters: [] };
+              cbseGroups[cat].chapters.push({ title: row.chapter_title || row.title, url: row.file_url });
+            });
+
+            // Merge cbseUploads (teacher uploads subject=CBSE Curriculum)
+            cbseUploads.forEach((m) => {
+              const cat = m.title;
+              if (!cbseGroups[cat]) cbseGroups[cat] = { name: cat, chapters: [] };
+              cbseGroups[cat].chapters.push({ title: m.description || m.title, url: m.file_url });
+            });
+
+            // Always include static official links as cards
+            const officialCards = OFFICIAL_CBSE_LINKS.map(l => ({ name: l.title, chapters: [{ title: l.description, url: l.url }] }));
+
+            const allCards = [...Object.values(cbseGroups), ...officialCards];
+
+            return (
+              <>
+                <p className="text-sm text-muted-foreground">Tap any resource to view or open a specific link or chapter.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {allCards.map((card, idx) => (
+                    <Card
+                      key={idx}
+                      className="hover-lift cursor-pointer group border-border/60 hover:border-indigo-400/60 hover:shadow-md transition-all"
+                      onClick={() => setCbseBook(card)}
+                    >
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 font-black text-lg">
+                          {card.name[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-foreground group-hover:text-indigo-600 transition-colors line-clamp-1">{card.name}</p>
+                          <p className="text-xs text-muted-foreground">{card.chapters.length} {card.chapters.length === 1 ? "link" : "items"}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-indigo-600 transition-colors shrink-0" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </TabsContent>
       </Tabs>
 
-      {/* Chapter picker popup */}
+      {/* Chapter picker popup for NCERT */}
       <Dialog open={!!ncertBook} onOpenChange={() => setNcertBook(null)}>
         <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader>
@@ -374,6 +376,35 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                 </span>
                 <span className="flex-1 text-sm text-foreground group-hover:text-primary transition-colors">{ch.title}</span>
                 <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+              </a>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Chapter/Link picker popup for CBSE */}
+      <Dialog open={!!cbseBook} onOpenChange={() => setCbseBook(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <GraduationCap className="h-5 w-5 text-indigo-600" />
+              {cbseBook?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+            {cbseBook?.chapters.map((ch, i) => (
+              <a
+                key={i}
+                href={ch.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50/60 transition-colors group border border-transparent hover:border-indigo-200"
+              >
+                <span className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                  {i + 1}
+                </span>
+                <span className="flex-1 text-sm text-foreground group-hover:text-indigo-600 transition-colors">{ch.title}</span>
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-indigo-600 transition-colors shrink-0" />
               </a>
             ))}
           </div>

@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Upload, Trash2, Download, BookOpen, Loader2, Plus, FileDown } from "lucide-react";
+import { FileText, Upload, Trash2, Download, BookOpen, Loader2, Plus, GraduationCap, Link2, Edit2, RefreshCw, Save, X } from "lucide-react";
 import BulkImportMaterials from "./BulkImportMaterials";
 
 interface Material {
@@ -34,8 +34,44 @@ interface NcertBookChapter {
   created_at: string;
 }
 
+interface CbseCurriculumEntry {
+  id: string;
+  category: string;
+  chapter_title: string;
+  chapter_number: number | null;
+  file_url: string;
+  description: string | null;
+  created_at: string;
+}
+
 const CLASSES = ["6", "7", "8", "9", "10", "11", "12", "All"];
 const SUBJECTS = ["Mathematics", "Science", "English", "Social Science", "Physics", "Chemistry", "Biology", "Hindi", "Sanskrit", "Computer Science", "CBSE Curriculum", "General"];
+
+// NCERT URL codes per class+subject — pattern: https://ncert.nic.in/textbook/pdf/{code}{chapter_padded}.pdf
+const NCERT_URL_CODES: Record<string, Record<string, { code: string; bookName: string; chapters: number }>> = {
+  "6":  { Mathematics: { code: "hemh1", bookName: "Mathematics – Class 6", chapters: 14 }, Science: { code: "hesc1", bookName: "Science – Class 6", chapters: 16 } },
+  "7":  { Mathematics: { code: "hemh2", bookName: "Mathematics – Class 7", chapters: 15 }, Science: { code: "hesc2", bookName: "Science – Class 7", chapters: 18 } },
+  "8":  { Mathematics: { code: "hemh3", bookName: "Mathematics – Class 8", chapters: 16 }, Science: { code: "hesc3", bookName: "Science – Class 8", chapters: 18 } },
+  "9":  { Mathematics: { code: "iemh1", bookName: "Mathematics – Class 9", chapters: 15 }, Science: { code: "iesc1", bookName: "Science – Class 9", chapters: 15 } },
+  "10": { Mathematics: { code: "jemh1", bookName: "Mathematics – Class 10", chapters: 15 }, Science: { code: "jesc1", bookName: "Science – Class 10", chapters: 16 } },
+  "11": {
+    Mathematics: { code: "kemh1", bookName: "Mathematics – Class 11", chapters: 16 },
+    Physics: { code: "keph1", bookName: "Physics Part 1 – Class 11", chapters: 8 },
+    Chemistry: { code: "kech1", bookName: "Chemistry Part 1 – Class 11", chapters: 7 },
+    Biology: { code: "kebo1", bookName: "Biology – Class 11", chapters: 22 },
+  },
+  "12": {
+    Mathematics: { code: "lemh1", bookName: "Mathematics Part 1 – Class 12", chapters: 6 },
+    Physics: { code: "leph1", bookName: "Physics Part 1 – Class 12", chapters: 8 },
+    Chemistry: { code: "lech1", bookName: "Chemistry Part 1 – Class 12", chapters: 9 },
+    Biology: { code: "lebo1", bookName: "Biology – Class 12", chapters: 16 },
+  },
+};
+
+const buildNcertUrl = (code: string, chapter: number) => {
+  const ch = String(chapter).padStart(2, "0");
+  return `https://ncert.nic.in/textbook/pdf/${code}${ch}.pdf`;
+};
 
 const StudyMaterialsManager = () => {
   const { toast } = useToast();
@@ -61,9 +97,34 @@ const StudyMaterialsManager = () => {
     file_url: "",
   });
 
+  // CBSE Curriculum states
+  const [cbseEntries, setCbseEntries] = useState<CbseCurriculumEntry[]>([]);
+  const [loadingCbse, setLoadingCbse] = useState(true);
+  const [addingCbse, setAddingCbse] = useState(false);
+  const [editingCbseId, setEditingCbseId] = useState<string | null>(null);
+  const [cbseFile, setCbseFile] = useState<File | null>(null);
+  const [cbseForm, setCbseForm] = useState({
+    category: "",
+    chapter_title: "",
+    chapter_number: "",
+    file_url: "",
+    description: "",
+  });
+
+  // NCERT edit states
+  const [editingNcertId, setEditingNcertId] = useState<string | null>(null);
+  const [editNcertForm, setEditNcertForm] = useState<Partial<NcertBookChapter>>({});
+
+  // NCERT fetch panel state
+  const [showFetchPanel, setShowFetchPanel] = useState(false);
+  const [fetchClass, setFetchClass] = useState("10");
+  const [fetchSubject, setFetchSubject] = useState("Mathematics");
+  const [fetchingNcert, setFetchingNcert] = useState(false);
+
   useEffect(() => {
     loadMaterials();
     loadNcertChapters();
+    loadCbseCurriculum();
   }, []);
 
   const loadMaterials = async () => {
@@ -80,6 +141,58 @@ const StudyMaterialsManager = () => {
     if (error) toast({ title: "Failed to load NCERT", description: error.message, variant: "destructive" });
     else setNcertChapters((data as NcertBookChapter[]) || []);
     setLoadingNcert(false);
+  };
+
+  const loadCbseCurriculum = async () => {
+    setLoadingCbse(true);
+    const { data, error } = await supabase.from("cbse_curriculum").select("*").order("category", { ascending: true }).order("chapter_number", { ascending: true });
+    if (error) toast({ title: "Failed to load CBSE Curriculum", description: error.message, variant: "destructive" });
+    else setCbseEntries((data as CbseCurriculumEntry[]) || []);
+    setLoadingCbse(false);
+  };
+
+  const bulkFetchNcertChapters = async () => {
+    const classData = NCERT_URL_CODES[fetchClass];
+    if (!classData || !classData[fetchSubject]) {
+      toast({ title: "No URL pattern available for this class/subject combination", variant: "destructive" });
+      return;
+    }
+    const { code, bookName, chapters } = classData[fetchSubject];
+    setFetchingNcert(true);
+    try {
+      const CHAPTER_NAMES: Record<string, string[]> = {
+        Mathematics: ["Real Numbers","Polynomials","Pair of Linear Equations in Two Variables","Quadratic Equations","Arithmetic Progressions","Triangles","Coordinate Geometry","Introduction to Trigonometry","Some Applications of Trigonometry","Circles","Areas Related to Circles","Surface Areas and Volumes","Statistics","Probability","Proofs in Mathematics"],
+        Science: ["Chemical Reactions and Equations","Acids, Bases and Salts","Metals and Non-metals","Carbon and Its Compounds","Life Processes","Control and Coordination","How do Organisms Reproduce?","Heredity","Light – Reflection and Refraction","The Human Eye and the Colourful World","Electricity","Magnetic Effects of Electric Current","Our Environment","Sustainable Management of Natural Resources","Carbon and Its Compounds (Extra)","Management of Natural Resources"],
+        Physics: ["Electric Charges and Fields","Electrostatic Potential and Capacitance","Current Electricity","Moving Charges and Magnetism","Magnetism and Matter","Electromagnetic Induction","Alternating Current","Electromagnetic Waves"],
+        Chemistry: ["The Solid State","Solutions","Electrochemistry","Chemical Kinetics","Surface Chemistry","General Principles","The p-Block Elements","The d and f Block Elements"],
+        Biology: ["The Living World","Biological Classification","Plant Kingdom","Animal Kingdom","Morphology of Flowering Plants","Anatomy of Flowering Plants","Structural Organisation in Animals","Cell: The Unit of Life","Biomolecules","Cell Cycle and Cell Division","Transport in Plants","Mineral Nutrition","Photosynthesis","Respiration in Plants","Plant Growth","Digestion and Absorption","Breathing and Exchange of Gases","Body Fluids and Circulation","Excretory Products","Locomotion and Movement","Neural Control","Chemical Coordination"],
+      };
+
+      const rows = Array.from({ length: chapters }, (_, i) => {
+        const chNum = i + 1;
+        const chapterNames = CHAPTER_NAMES[fetchSubject] || [];
+        const chapterName = chapterNames[i] ? `Chapter ${chNum} – ${chapterNames[i]}` : `Chapter ${chNum}`;
+        return {
+          class_number: fetchClass,
+          subject: fetchSubject,
+          book_name: bookName,
+          chapter_title: chapterName,
+          chapter_number: chNum,
+          file_url: buildNcertUrl(code, chNum),
+        };
+      });
+
+      const { error } = await supabase.from("ncert_books").insert(rows);
+      if (error) throw error;
+
+      toast({ title: `✅ Fetched ${chapters} chapters!`, description: `${bookName} chapters registered successfully.` });
+      setShowFetchPanel(false);
+      loadNcertChapters();
+    } catch (err: any) {
+      toast({ title: "Fetch failed", description: err.message, variant: "destructive" });
+    } finally {
+      setFetchingNcert(false);
+    }
   };
 
   const handleUploadMaterial = async (e: React.FormEvent) => {
@@ -209,6 +322,84 @@ const StudyMaterialsManager = () => {
     }
   };
 
+  const handleEditNcertSave = async (id: string) => {
+    try {
+      const { error } = await supabase.from("ncert_books").update({
+        chapter_title: editNcertForm.chapter_title,
+        book_name: editNcertForm.book_name,
+        file_url: editNcertForm.file_url,
+        chapter_number: editNcertForm.chapter_number,
+      }).eq("id", id);
+      if (error) throw error;
+      toast({ title: "Updated" });
+      setEditingNcertId(null);
+      loadNcertChapters();
+    } catch (err: any) {
+      toast({ title: "Failed to update", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleAddCbse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cbseForm.chapter_title.trim() || (!cbseForm.file_url.trim() && !cbseFile)) {
+      toast({ title: "Title and URL/File are required", variant: "destructive" });
+      return;
+    }
+    setAddingCbse(true);
+    try {
+      let finalUrl = cbseForm.file_url.trim();
+      if (cbseFile) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const ext = cbseFile.name.split(".").pop();
+        const path = `cbse/${cbseForm.category}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("study-materials").upload(path, cbseFile, { contentType: cbseFile.type });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("study-materials").getPublicUrl(path);
+        finalUrl = pub.publicUrl;
+      }
+
+      const payload = {
+        category: cbseForm.category.trim() || "CBSE Curriculum",
+        chapter_title: cbseForm.chapter_title.trim(),
+        chapter_number: parseInt(cbseForm.chapter_number) || null,
+        file_url: finalUrl,
+        description: cbseForm.description.trim() || null,
+      };
+
+      let error;
+      if (editingCbseId) {
+        ({ error } = await supabase.from("cbse_curriculum").update(payload).eq("id", editingCbseId));
+      } else {
+        ({ error } = await supabase.from("cbse_curriculum").insert(payload));
+      }
+      if (error) throw error;
+
+      toast({ title: editingCbseId ? "Updated!" : "Added!" });
+      setCbseForm({ category: "", chapter_title: "", chapter_number: "", file_url: "", description: "" });
+      setCbseFile(null);
+      setEditingCbseId(null);
+      const fEl = document.getElementById("cbse-file") as HTMLInputElement;
+      if (fEl) fEl.value = "";
+      loadCbseCurriculum();
+    } catch (err: any) {
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setAddingCbse(false);
+    }
+  };
+
+  const handleDeleteCbse = async (entry: CbseCurriculumEntry) => {
+    if (!confirm(`Delete "${entry.chapter_title}"?`)) return;
+    try {
+      const { error } = await supabase.from("cbse_curriculum").delete().eq("id", entry.id);
+      if (error) throw error;
+      toast({ title: "Deleted" });
+      loadCbseCurriculum();
+    } catch (err: any) {
+      toast({ title: "Failed to delete", description: err.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -221,9 +412,10 @@ const StudyMaterialsManager = () => {
       </div>
 
       <Tabs defaultValue="materials" className="space-y-6">
-        <TabsList className="bg-slate-100 p-1 rounded-xl">
-          <TabsTrigger value="materials">Reference & Curriculum Materials</TabsTrigger>
-          <TabsTrigger value="ncert">NCERT Books Manager</TabsTrigger>
+        <TabsList className="bg-slate-100 p-1 rounded-xl flex-wrap h-auto gap-1">
+          <TabsTrigger value="materials">Reference Materials</TabsTrigger>
+          <TabsTrigger value="ncert">NCERT Books</TabsTrigger>
+          <TabsTrigger value="cbse">CBSE Curriculum</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Reference Materials */}
@@ -311,9 +503,69 @@ const StudyMaterialsManager = () => {
 
         {/* Tab 2: NCERT Chapters */}
         <TabsContent value="ncert" className="space-y-6 mt-0">
+          {/* Fetch Panel */}
+          <Card className="border-border/50 bg-emerald-50/50 border-emerald-200">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5 text-emerald-600" /> Fetch from NCERT.nic.in
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={() => setShowFetchPanel(p => !p)} className="h-8 text-xs">
+                  {showFetchPanel ? "Hide" : "Show"}
+                </Button>
+              </div>
+              <CardDescription>Auto-register all chapter links from the official NCERT website in one click.</CardDescription>
+            </CardHeader>
+            {showFetchPanel && (
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                  <div>
+                    <Label>Class</Label>
+                    <Select value={fetchClass} onValueChange={setFetchClass}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(NCERT_URL_CODES).map(cls => (
+                          <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Subject</Label>
+                    <Select value={fetchSubject} onValueChange={setFetchSubject}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(NCERT_URL_CODES[fetchClass] || {}).map(sub => (
+                          <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    {NCERT_URL_CODES[fetchClass]?.[fetchSubject] ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          Will import <strong>{NCERT_URL_CODES[fetchClass][fetchSubject].chapters}</strong> chapters of{" "}
+                          <strong>{NCERT_URL_CODES[fetchClass][fetchSubject].bookName}</strong>
+                        </p>
+                        <Button onClick={bulkFetchNcertChapters} disabled={fetchingNcert} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0 font-bold">
+                          {fetchingNcert ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Fetching...</> : <><RefreshCw className="h-4 w-4 mr-2" /> Fetch All Chapters</>}
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                        No URL pattern available for Class {fetchClass} – {fetchSubject}. Add chapters manually below.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2"><Upload className="h-5 w-5 text-indigo-500" /> Add NCERT Chapter</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2"><Upload className="h-5 w-5 text-indigo-500" /> Add NCERT Chapter Manually</CardTitle>
               <CardDescription>Upload a chapter PDF file or provide a direct web link (e.g. from ncert.nic.in).</CardDescription>
             </CardHeader>
             <CardContent>
@@ -373,6 +625,7 @@ const StudyMaterialsManager = () => {
             </CardContent>
           </Card>
 
+          {/* NCERT list with edit */}
           <Card className="border-border/50">
             <CardHeader><CardTitle className="text-lg">Registered NCERT Chapters ({ncertChapters.length})</CardTitle></CardHeader>
             <CardContent>
@@ -383,23 +636,144 @@ const StudyMaterialsManager = () => {
               ) : (
                 <div className="space-y-2">
                   {ncertChapters.map(c => (
-                    <div key={c.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border/60 hover:bg-muted/30 transition-colors">
+                    <div key={c.id} className="p-3 rounded-xl border border-border/60 hover:bg-muted/30 transition-colors">
+                      {editingNcertId === c.id ? (
+                        <div className="space-y-2">
+                          <Input value={editNcertForm.chapter_title || ""} onChange={e => setEditNcertForm(p => ({ ...p, chapter_title: e.target.value }))} placeholder="Chapter title" />
+                          <Input value={editNcertForm.book_name || ""} onChange={e => setEditNcertForm(p => ({ ...p, book_name: e.target.value }))} placeholder="Book name" />
+                          <Input value={editNcertForm.file_url || ""} onChange={e => setEditNcertForm(p => ({ ...p, file_url: e.target.value }))} placeholder="PDF URL" />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleEditNcertSave(c.id)} className="gradient-primary border-0 h-8">
+                              <Save className="h-3.5 w-3.5 mr-1" /> Save
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingNcertId(null)} className="h-8">
+                              <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 text-emerald-700 font-extrabold text-sm">
+                              {c.class_number}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-foreground truncate text-sm">{c.chapter_title}</p>
+                              <p className="text-xs text-muted-foreground truncate">{c.book_name} ({c.subject})</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button asChild variant="outline" size="sm" className="h-8">
+                              <a href={c.file_url} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /></a>
+                            </Button>
+                            <Button onClick={() => { setEditingNcertId(c.id); setEditNcertForm(c); }} variant="outline" size="sm" className="h-8">
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button onClick={() => handleDeleteNcertChapter(c)} variant="ghost" size="sm" className="text-destructive h-8">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab 3: CBSE Curriculum */}
+        <TabsContent value="cbse" className="space-y-6 mt-0">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2"><GraduationCap className="h-5 w-5 text-indigo-500" /> {editingCbseId ? "Edit CBSE Entry" : "Add CBSE Curriculum Entry"}</CardTitle>
+              <CardDescription>Add syllabus documents, curriculum guides, or CBSE portal links. Students see these as clickable cards.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAddCbse} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Category / Book Name *</Label>
+                  <Input value={cbseForm.category} onChange={e => setCbseForm({ ...cbseForm, category: e.target.value })} placeholder="e.g. Class 10 Syllabus 2025-26" required />
+                </div>
+                <div>
+                  <Label>Item / Chapter Number</Label>
+                  <Input type="number" value={cbseForm.chapter_number} onChange={e => setCbseForm({ ...cbseForm, chapter_number: e.target.value })} placeholder="e.g. 1" />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Title / Link Label *</Label>
+                  <Input value={cbseForm.chapter_title} onChange={e => setCbseForm({ ...cbseForm, chapter_title: e.target.value })} placeholder="e.g. Mathematics Syllabus" required />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Description (optional)</Label>
+                  <Textarea value={cbseForm.description} onChange={e => setCbseForm({ ...cbseForm, description: e.target.value })} placeholder="Brief description of this resource..." rows={2} />
+                </div>
+                <div className="md:col-span-2">
+                  <div className="border p-4 rounded-xl space-y-3 bg-slate-50">
+                    <Label className="font-bold text-slate-700">Resource</Label>
+                    <div>
+                      <Label className="text-xs">Option A: URL (Portal link or direct PDF link)</Label>
+                      <div className="flex gap-2">
+                        <Input value={cbseForm.file_url} onChange={e => setCbseForm({ ...cbseForm, file_url: e.target.value })} placeholder="e.g. https://cbseacademic.nic.in/curriculum_2025.html" />
+                        {cbseForm.file_url && (
+                          <Button type="button" variant="outline" size="sm" className="h-9 shrink-0" onClick={() => window.open(cbseForm.file_url, "_blank")}>
+                            <Link2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-center text-xs text-muted-foreground">— OR —</div>
+                    <div>
+                      <Label className="text-xs">Option B: Upload PDF / Document</Label>
+                      <Input id="cbse-file" type="file" accept=".pdf,.doc,.docx" onChange={e => setCbseFile(e.target.files?.[0] || null)} />
+                    </div>
+                  </div>
+                </div>
+                <div className="md:col-span-2 flex gap-2">
+                  <Button type="submit" disabled={addingCbse} className="gradient-primary border-0 font-bold">
+                    {addingCbse ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</> : <><Plus className="h-4 w-4 mr-2" /> {editingCbseId ? "Update Entry" : "Add Entry"}</>}
+                  </Button>
+                  {editingCbseId && (
+                    <Button type="button" variant="outline" onClick={() => { setEditingCbseId(null); setCbseForm({ category: "", chapter_title: "", chapter_number: "", file_url: "", description: "" }); }}>
+                      <X className="h-4 w-4 mr-1" /> Cancel Edit
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader><CardTitle className="text-lg">CBSE Curriculum Entries ({cbseEntries.length})</CardTitle></CardHeader>
+            <CardContent>
+              {loadingCbse ? (
+                <div className="text-center py-8 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
+              ) : cbseEntries.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8 text-sm">No CBSE curriculum entries added yet. Only the default official portal links will be shown.</p>
+              ) : (
+                <div className="space-y-2">
+                  {cbseEntries.map(entry => (
+                    <div key={entry.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border/60 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 text-emerald-700 font-extrabold text-sm">
-                          {c.class_number}
+                        <div className="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-700 font-extrabold text-sm">
+                          {entry.category[0]?.toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-foreground truncate text-sm">{c.chapter_title}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {c.book_name} ({c.subject})
-                          </p>
+                          <p className="font-semibold text-foreground truncate text-sm">{entry.chapter_title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{entry.category}{entry.description && ` · ${entry.description}`}</p>
                         </div>
                       </div>
                       <div className="flex gap-2">
                         <Button asChild variant="outline" size="sm" className="h-8">
-                          <a href={c.file_url} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /></a>
+                          <a href={entry.file_url} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /></a>
                         </Button>
-                        <Button onClick={() => handleDeleteNcertChapter(c)} variant="ghost" size="sm" className="text-destructive h-8">
+                        <Button variant="outline" size="sm" className="h-8" onClick={() => {
+                          setEditingCbseId(entry.id);
+                          setCbseForm({ category: entry.category, chapter_title: entry.chapter_title, chapter_number: String(entry.chapter_number || ""), file_url: entry.file_url, description: entry.description || "" });
+                        }}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button onClick={() => handleDeleteCbse(entry)} variant="ghost" size="sm" className="text-destructive h-8">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

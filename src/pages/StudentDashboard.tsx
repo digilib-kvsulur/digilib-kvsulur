@@ -361,9 +361,6 @@ const StudentDashboard = () => {
                     <div>
                       <h2 className="text-xl sm:text-2xl font-bold text-primary-foreground">Welcome back, {user?.first_name}! 👋</h2>
                       <p className="text-primary-foreground/80 text-sm mt-1">Keep up your reading streak and earn more points!</p>
-                      <Button onClick={() => setActiveTab("materials")} size="sm" className="mt-3 bg-white text-indigo-700 hover:bg-slate-100 font-extrabold rounded-xl border-0 shadow-sm transition-all flex items-center gap-1.5 h-8">
-                        <FileText className="h-4 w-4" /> Study Materials
-                      </Button>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm">
@@ -438,9 +435,35 @@ const StudentDashboard = () => {
               </div>
 
 
-              {/* Daily Tip + Quick Bookmarks */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Daily Tip + Quick Actions + Quick Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <DailyTip />
+                {/* Quick Actions */}
+                <Card className="border-border/50 overflow-hidden">
+                  <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+                  <CardContent className="p-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Actions</p>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Study Materials", icon: FileText, tab: "materials", color: "text-indigo-600", bg: "bg-indigo-50" },
+                        { label: "Library Events", icon: CalendarDays, tab: "events", color: "text-rose-600", bg: "bg-rose-50" },
+                        { label: "My Requests", icon: BookPlus, tab: "requests", color: "text-amber-600", bg: "bg-amber-50" },
+                        { label: "Wishlist", icon: Bookmark, tab: "wishlist", color: "text-purple-600", bg: "bg-purple-50" },
+                      ].map(a => (
+                        <button
+                          key={a.tab}
+                          onClick={() => setActiveTab(a.tab)}
+                          className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left group"
+                        >
+                          <div className={`w-7 h-7 rounded-lg ${a.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                            <a.icon className={`h-3.5 w-3.5 ${a.color}`} />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">{a.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
                 <QuickBookmarks currentBooks={currentBooks} monthlyBooksRead={monthlyBooksRead} totalPoints={user?.points || 0} />
               </div>
 
