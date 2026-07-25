@@ -398,14 +398,14 @@ const Index = () => {
               <p className="text-sm text-slate-600 pt-1">Get involved in reading forums, competitive quizzes, and book exhibitions.</p>
             </div>
             
-            <div className={`grid grid-cols-1 gap-8 ${dbEvents.length === 1 ? 'md:grid-cols-1 max-w-md mx-auto' : dbEvents.length === 2 ? 'md:grid-cols-2 max-w-2xl mx-auto' : 'md:grid-cols-3'}`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${dbEvents.length === 1 ? 'max-w-md mx-auto' : dbEvents.length === 2 ? 'max-w-2xl mx-auto' : 'md:grid-cols-3 lg:grid-cols-4'}`}>
               {dbEvents.map((e, i) => (
                 <article key={i} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1.5 duration-300 p-1.5 flex flex-col">
-                  <div className={`relative overflow-hidden rounded-2xl bg-slate-100 ${e.orientation === 'vertical' ? 'aspect-[3/4]' : 'h-52'}`}>
-                    <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    <span className="absolute top-4 left-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full shadow-md">{e.badge}</span>
+                  <div className="relative overflow-hidden rounded-2xl bg-slate-100 flex items-center justify-center">
+                    <img src={e.img} alt={e.title} loading="lazy" className="w-full h-auto max-h-[250px] object-contain transition-transform duration-700 group-hover:scale-105" />
+                    <span className="absolute top-4 left-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full shadow-md z-10">{e.badge}</span>
                   </div>
-                  <div className="p-6 space-y-3.5 flex-1 flex flex-col justify-start">
+                  <div className="p-4 space-y-3 flex-1 flex flex-col justify-start">
                     <div className="flex items-center gap-2 text-xs text-indigo-600 font-bold">
                       <Clock className="h-4 w-4" /> {e.date}
                     </div>
