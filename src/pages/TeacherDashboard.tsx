@@ -100,14 +100,14 @@ const TeacherDashboard = () => {
     }
   };
 
-  // Fetch all class details when selectedClass changes
-  const fetchClassDetails = async () => {
-    if (!selectedClass) return;
+  // Fetch all class details for the given class name
+  const fetchClassDetails = async (classToFetch: string) => {
+    if (!classToFetch) return;
 
     // Load students in class
     const { data: st } = await supabase.from("profiles")
       .select("id, first_name, last_name, roll_number, points, student_class")
-      .eq("role", "student").eq("is_approved", true).eq("student_class", selectedClass)
+      .eq("role", "student").eq("is_approved", true).eq("student_class", classToFetch)
       .order("points", { ascending: false });
     
     const studentList = st || [];
@@ -127,26 +127,26 @@ const TeacherDashboard = () => {
     // Load class reading lists
     const { data: rl } = await supabase.from("class_reading_lists")
       .select("*")
-      .eq("class_level", selectedClass)
+      .eq("class_level", classToFetch)
       .order("created_at", { ascending: false });
     setReadingLists(rl || []);
 
     // Load class recommendations
     const { data: recs } = await supabase.from("class_book_recommendations")
       .select("*, books(title, author)")
-      .eq("class_level", selectedClass);
+      .eq("class_level", classToFetch);
     setRecommendations(recs || []);
 
     // Load class challenges
     const { data: ch } = await supabase.from("challenges")
       .select("*")
-      .eq("class_level", selectedClass)
+      .eq("class_level", classToFetch)
       .order("created_at", { ascending: false });
     setClassChallenges(ch || []);
   };
 
   useEffect(() => {
-    fetchClassDetails();
+    if (selectedClass) fetchClassDetails(selectedClass);
   }, [selectedClass]);
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
@@ -194,7 +194,7 @@ const TeacherDashboard = () => {
       toast({ title: "Success", description: "Class challenge created successfully!" });
       setShowChallengeDialog(false);
       setChallengeForm({ title: "", description: "", targetValue: 3, type: "books_read", rewardPoints: 50, deadline: "" });
-      fetchClassDetails();
+      fetchClassDetails(selectedClass);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -204,7 +204,7 @@ const TeacherDashboard = () => {
     if (!confirm("Delete this challenge? Progress for this challenge will be removed.")) return;
     await supabase.from("challenges").delete().eq("id", id);
     toast({ title: "Challenge deleted" });
-    fetchClassDetails();
+    fetchClassDetails(selectedClass);
   };
 
   // CRUD for Reading Lists
@@ -229,7 +229,7 @@ const TeacherDashboard = () => {
       toast({ title: "Success", description: "Reading list created!" });
       setShowListDialog(false);
       setListForm({ title: "", description: "", selectedBookIds: [] });
-      fetchClassDetails();
+      fetchClassDetails(selectedClass);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -239,7 +239,7 @@ const TeacherDashboard = () => {
     if (!confirm("Delete this reading list?")) return;
     await supabase.from("class_reading_lists").delete().eq("id", id);
     toast({ title: "Reading list deleted" });
-    fetchClassDetails();
+    fetchClassDetails(selectedClass);
   };
 
   // CRUD for recommendations
@@ -260,7 +260,7 @@ const TeacherDashboard = () => {
       toast({ title: "Success", description: "Book recommended to class!" });
       setShowRecDialog(false);
       setRecForm({ bookId: "", notes: "" });
-      fetchClassDetails();
+      fetchClassDetails(selectedClass);
     } catch (e: any) {
       toast({ title: "Error", description: "Already recommended or database error.", variant: "destructive" });
     }
@@ -269,7 +269,7 @@ const TeacherDashboard = () => {
   const handleDeleteRecommendation = async (id: string) => {
     await supabase.from("class_book_recommendations").delete().eq("id", id);
     toast({ title: "Recommendation removed" });
-    fetchClassDetails();
+    fetchClassDetails(selectedClass);
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-10 w-10 border-b-2 border-primary rounded-full" /></div>;
