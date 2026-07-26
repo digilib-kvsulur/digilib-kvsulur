@@ -2,6 +2,42 @@
 
 Digital Library Management System for PM SHRI Kendriya Vidyalaya AFS Sulur. The app supports students, teachers, and admins with catalog browsing, book issue workflows, study materials, events, quizzes, rewards, community features, and reports.
 
+## DLMS features
+
+- Public landing page with school library highlights, events, and catalog access.
+- Student registration and login with admin approval workflow.
+- Role-based dashboards for students, teachers, and admins.
+- Book catalog with search, filtering, availability, and detailed book pages.
+- Book request, issue, return, renewal, overdue, and circulation tracking.
+- Admin book management with manual entry and bulk import support.
+- Student dashboard for current books, requests, wishlist, notes, reading history, and recommendations.
+- Teacher dashboard for class progress, reading lists, recommendations, study materials, and student insights.
+- Quiz and challenge system to encourage reading engagement.
+- Points, levels, badges, rankings, login streaks, and leaderboards.
+- Study materials and NCERT/CBSE curriculum resources.
+- Events, gallery, and community features with media support.
+- Notifications and announcements for students and staff.
+- Reports and export tools for library administration.
+- Profile management for students, teachers, and admins.
+- Supabase-backed authentication, database, storage, RPC functions, and Edge Functions.
+
+## Best features to highlight in a launch poster
+
+- Smart digital book catalog with search and availability status.
+- Student, teacher, and admin dashboards in one platform.
+- Online book request, issue, return, renewal, and overdue tracking.
+- Reading points, badges, levels, streaks, and leaderboards.
+- Quizzes and reading challenges to make library use engaging.
+- Study materials, NCERT resources, and CBSE curriculum support.
+- Personalized recommendations, wishlist, notes, and reading history.
+- Teacher tools for class reading progress and student insights.
+- Library events, gallery, community posts, and announcements.
+- Admin reports, bulk import tools, and circulation management.
+
+Suggested poster tagline:
+
+> Discover books. Track reading. Earn rewards. Grow together with KV Sulur DLMS.
+
 ## Tech stack
 
 - React + TypeScript
