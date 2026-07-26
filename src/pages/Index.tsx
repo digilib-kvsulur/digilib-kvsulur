@@ -11,6 +11,7 @@ import heroImg from "@/assets/landing-hero.jpg";
 import event1Img from "@/assets/landing-event-1.jpg";
 import event2Img from "@/assets/landing-event-2.jpg";
 import libraryEventImg from "@/assets/library-event.jpg";
+import EventDetailModal from "@/components/dashboard/EventDetailModal";
 
 interface Book {
   id: string;
@@ -124,6 +125,8 @@ const Index = () => {
     }
   };
 
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+
   const loadEvents = async () => {
     try {
       const { data, error } = await supabase
@@ -134,6 +137,7 @@ const Index = () => {
         .limit(3);
       if (!error && data && data.length > 0) {
         const mapped = data.map((ev: any) => ({
+          ...ev,
           title: ev.title,
           date: new Date(ev.event_date).toLocaleDateString("en-US", {
             month: "long",
@@ -398,9 +402,9 @@ const Index = () => {
               <p className="text-sm text-slate-600 pt-1">Get involved in reading forums, competitive quizzes, and book exhibitions.</p>
             </div>
             
-            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${dbEvents.length === 1 ? 'max-w-md mx-auto' : dbEvents.length === 2 ? 'max-w-2xl mx-auto' : 'md:grid-cols-3 lg:grid-cols-4'}`}>
+             <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${dbEvents.length === 1 ? 'max-w-md mx-auto' : dbEvents.length === 2 ? 'max-w-2xl mx-auto' : 'md:grid-cols-3 lg:grid-cols-4'}`}>
               {dbEvents.map((e, i) => (
-                <article key={i} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1.5 duration-300 p-1.5 flex flex-col">
+                <article key={i} onClick={() => setSelectedEvent(e)} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1.5 duration-300 p-1.5 flex flex-col cursor-pointer">
                   <div className="relative overflow-hidden rounded-2xl bg-slate-100 flex items-center justify-center">
                     <img src={e.img} alt={e.title} loading="lazy" className="w-full h-auto max-h-[250px] object-cover transition-transform duration-700 group-hover:scale-105" />
                     <span className="absolute top-3 left-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-md z-10 whitespace-nowrap overflow-hidden text-ellipsis max-w-[90%]">{e.badge}</span>
@@ -508,6 +512,12 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      <EventDetailModal
+        event={selectedEvent}
+        open={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </div>
   );
 };
