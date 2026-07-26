@@ -1,23 +1,38 @@
 
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Catalog from "./pages/Catalog";
-import StudentDashboard from "./pages/StudentDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import TeacherDashboard from "./pages/TeacherDashboard";
-import BookDetails from "./pages/BookDetails";
-import NotFound from "./pages/NotFound";
-import ResetPassword from "./pages/ResetPassword";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
 
 const queryClient = new QueryClient();
+
+const Index = lazy(() => import("./pages/Index"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Catalog = lazy(() => import("./pages/Catalog"));
+const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
+const BookDetails = lazy(() => import("./pages/BookDetails"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+
+const STUDENT_ROLES = ["student"] as const;
+const ADMIN_ROLES = ["admin"] as const;
+const TEACHER_ROLES = ["teacher", "admin"] as const;
+
+const PageLoader = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4" />
+      <p className="text-muted-foreground">Loading...</p>
+    </div>
+  </div>
+);
 
 const App = () => {
   useEffect(() => { recoverInvalidAuthSession(); }, []);
@@ -28,19 +43,42 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/catalog" element={<Catalog />} />
-            <Route path="/student-dashboard" element={<StudentDashboard />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
-            <Route path="/book/:id" element={<BookDetails />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/catalog" element={<Catalog />} />
+              <Route
+                path="/student-dashboard"
+                element={(
+                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                    <StudentDashboard />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/admin-dashboard"
+                element={(
+                  <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/teacher-dashboard"
+                element={(
+                  <ProtectedRoute allowedRoles={TEACHER_ROLES}>
+                    <TeacherDashboard />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route path="/book/:id" element={<BookDetails />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

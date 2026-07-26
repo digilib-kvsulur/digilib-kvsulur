@@ -454,7 +454,7 @@ const Index = () => {
         <section className="py-20 relative overflow-hidden bg-gradient-to-tr from-indigo-900 via-indigo-800 to-blue-900 text-white">
           <div className="relative max-w-3xl mx-auto px-8 sm:px-12 text-center space-y-7">
             <h3 className="text-3.5xl sm:text-4xl font-black tracking-tight text-white">Ready to Start Your Reading Adventure?</h3>
-            <p className="text-indigo-100 text-base max-w-lg mx-auto leading-relaxed">Join 500+ student bookworms at KV AFS Sulur. Log reading activities, earn custom badges, and climb classes league!</p>
+            <p className="text-indigo-100 text-base max-w-lg mx-auto leading-relaxed">Join 1500+ student bookworms at KV AFS Sulur. Log reading activities, earn custom badges, and climb classes league!</p>
             <Button onClick={() => navigate("/login")} size="lg" className="bg-white hover:bg-slate-100 hover:text-indigo-900 text-indigo-950 text-base px-9 py-4 h-14 rounded-xl font-bold shadow-xl border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
               Create Account Now <ArrowRight className="ml-2.5 h-5 w-5" />
             </Button>
@@ -474,7 +474,7 @@ const Index = () => {
                     <BookOpen className="h-4 w-4 text-indigo-300 absolute hidden" />
                   </div>
                 </div>
-                <h3 className="text-base font-extrabold text-white">KV AFS Sulur Digital Library</h3>
+                <h3 className="text-base font-extrabold text-white">PM SHRI KV AFS Sulur Digital Library</h3>
               </div>
               <p className="text-xs leading-relaxed text-slate-400 pr-4">Empowering student development, comprehension capabilities, and literature-focused gamified progress for PM SHRI Kendriya Vidyalaya learners.</p>
             </div>
