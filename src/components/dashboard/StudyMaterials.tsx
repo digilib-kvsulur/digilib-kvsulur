@@ -133,9 +133,9 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
 
   // Add DB items
   dbNcert.forEach((row) => {
-    const sub = row.subject;
+    const sub = row.subject.replace(/(_Part\d| Part \d)/gi, "").trim();
     if (!ncertForClass[sub]) {
-      ncertForClass[sub] = { name: row.book_name, chapters: [] };
+      ncertForClass[sub] = { name: `${sub} (Complete)`, chapters: [] };
     }
     ncertForClass[sub].chapters.push({ title: row.chapter_title, url: row.file_url });
   });

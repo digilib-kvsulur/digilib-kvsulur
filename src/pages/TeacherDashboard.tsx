@@ -16,8 +16,11 @@ import { BookOpen, LogOut, Users, Trophy, GraduationCap, TrendingUp, Calendar, T
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import StudentProfile from "@/components/dashboard/StudentProfile";
+import Community from "@/components/community/Community";
+import MyRequests from "@/components/dashboard/MyRequests";
+import NetworkTab from "@/components/dashboard/NetworkTab";
 
-type TeacherTab = "progress" | "challenges" | "reading-lists" | "recommendations" | "materials" | "profile";
+type TeacherTab = "progress" | "badges" | "reading-lists" | "recommendations" | "materials" | "community" | "network" | "book-requests" | "profile";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -68,7 +71,11 @@ const TeacherDashboard = () => {
       setTeacher(profile);
       const initial = profile.student_class || "";
       const { data: cls } = await supabase.from("profiles").select("student_class").eq("role", "student").eq("is_approved", true);
-      const uniq = Array.from(new Set((cls || []).map((c: any) => c.student_class).filter(Boolean))).sort() as string[];
+      const uniq = Array.from(new Set((cls || []).map((c: any) => c.student_class).filter(Boolean))).sort((a: any, b: any) => {
+        const numA = parseInt(a) || 0;
+        const numB = parseInt(b) || 0;
+        return numA === numB ? a.localeCompare(b) : numA - numB;
+      }) as string[];
       setClasses(uniq);
       setSelectedClass(initial || uniq[0] || "");
       
@@ -232,8 +239,9 @@ const TeacherDashboard = () => {
 
   // CRUD for recommendations
   const handleCreateRecommendation = async () => {
+    if (!selectedClass) return;
     if (!recForm.bookId) {
-      toast({ title: "Error", description: "Please select a book.", variant: "destructive" });
+      toast({ title: "Please select a book", variant: "destructive" });
       return;
     }
     try {
@@ -337,10 +345,13 @@ const TeacherDashboard = () => {
         <Tabs defaultValue="progress" value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-4">
           <TabsList className="grid grid-cols-2 md:grid-cols-6 w-full bg-white border h-auto gap-1 p-1">
             <TabsTrigger value="progress" className="flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Class Progress</TabsTrigger>
-            <TabsTrigger value="challenges" className="flex items-center gap-2"><Target className="h-4 w-4" /> Challenges</TabsTrigger>
+            <TabsTrigger value="badges" className="flex items-center gap-2"><Target className="h-4 w-4" /> Badges</TabsTrigger>
             <TabsTrigger value="reading-lists" className="flex items-center gap-2"><ListChecks className="h-4 w-4" /> Reading Lists</TabsTrigger>
             <TabsTrigger value="recommendations" className="flex items-center gap-2"><Star className="h-4 w-4" /> Recommendations</TabsTrigger>
-            <TabsTrigger value="materials" className="flex items-center gap-2"><FileText className="h-4 w-4" /> Study Materials</TabsTrigger>
+            <TabsTrigger value="community" className="flex items-center gap-2"><Users className="h-4 w-4" /> Community</TabsTrigger>
+            <TabsTrigger value="network" className="flex items-center gap-2"><Star className="h-4 w-4" /> Network</TabsTrigger>
+            <TabsTrigger value="book-requests" className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> Requests</TabsTrigger>
+            <TabsTrigger value="materials" className="flex items-center gap-2"><BookMarked className="h-4 w-4" /> Study Materials</TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2"><User className="h-4 w-4" /> My Profile</TabsTrigger>
           </TabsList>
 
@@ -384,28 +395,31 @@ const TeacherDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* TAB 2: Class Challenges */}
-          <TabsContent value="challenges">
+          {/* TAB 2: Class Badges */}
+          <TabsContent value="badges">
             <Card className="border-border/50 bg-white">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div>
-                  <CardTitle className="text-base flex items-center gap-2"><Target className="h-5 w-5 text-primary" /> Class Challenges</CardTitle>
-                  <CardDescription>Manage challenges specifically targeting students in Class {selectedClass}</CardDescription>
+                  <CardTitle className="text-base flex items-center gap-2"><Target className="h-5 w-5 text-primary" /> Class Badges</CardTitle>
+                  <CardDescription>Create unlockable badges for students in Class {selectedClass}</CardDescription>
                 </div>
                 <Button size="sm" className="gradient-primary border-0" onClick={() => setShowChallengeDialog(true)}>
-                  <Plus className="h-4 w-4 mr-1" /> Add Challenge
+                  <Plus className="h-4 w-4 mr-1" /> Add Badge
                 </Button>
               </CardHeader>
               <CardContent>
                 {classChallenges.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No custom challenges set for this class. Create one to motivate your readers!</p>
+                  <p className="text-center text-muted-foreground py-8">No custom badges created for this class. Create one to motivate your readers!</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {classChallenges.map(c => (
                       <Card key={c.id} className="border-border/40 hover:shadow-sm transition-all flex flex-col justify-between">
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-base font-bold">{c.title}</CardTitle>
+                            <CardTitle className="text-base font-bold flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center border border-yellow-300">🏅</div>
+                              {c.title}
+                            </CardTitle>
                             <Badge variant="outline" className="text-xs font-semibold">+{c.reward_points} XP</Badge>
                           </div>
                           <CardDescription className="text-xs">{c.description}</CardDescription>
@@ -536,6 +550,18 @@ const TeacherDashboard = () => {
               <StudentProfile user={teacher} onProfileUpdate={fetchTeacherProfile} />
             )}
           </TabsContent>
+
+          <TabsContent value="community">
+            {teacher?.id && <Community currentUserId={teacher.id} isAdmin={false} />}
+          </TabsContent>
+
+          <TabsContent value="network">
+            {teacher?.id && <NetworkTab user={teacher} />}
+          </TabsContent>
+
+          <TabsContent value="book-requests">
+            {teacher?.id && <MyRequests userId={teacher.id} />}
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -634,53 +660,53 @@ const TeacherDashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* DIALOG: Add challenge */}
+      {/* DIALOG: Create Badge */}
       <Dialog open={showChallengeDialog} onOpenChange={setShowChallengeDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Custom Class Challenge</DialogTitle>
-            <DialogDescription>Assign a goal specifically for students in Class {selectedClass}</DialogDescription>
+            <DialogTitle>Create Class Badge</DialogTitle>
+            <DialogDescription>Assign a badge requirement specifically for students in Class {selectedClass}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 my-2">
             <div className="space-y-1">
-              <Label>Challenge Title</Label>
-              <Input placeholder="e.g. July Reading Sprint" value={challengeForm.title} onChange={e => setChallengeForm(prev => ({ ...prev, title: e.target.value }))} />
+              <Label>Badge Title</Label>
+              <Input placeholder="e.g. Reading Champion" value={challengeForm.title} onChange={e => setChallengeForm(prev => ({ ...prev, title: e.target.value }))} />
             </div>
             <div className="space-y-1">
               <Label>Description</Label>
-              <Textarea placeholder="Explain what the students need to do..." value={challengeForm.description} onChange={e => setChallengeForm(prev => ({ ...prev, description: e.target.value }))} />
+              <Textarea placeholder="Explain how to earn this badge..." value={challengeForm.description} onChange={e => setChallengeForm(prev => ({ ...prev, description: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Type</Label>
+                <Label>Target Type</Label>
                 <Select value={challengeForm.type} onValueChange={v => setChallengeForm(prev => ({ ...prev, type: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="books_read">Books Completed</SelectItem>
-                    <SelectItem value="quiz_completed">Quizzes Taken</SelectItem>
-                    <SelectItem value="points_earned">Points Gained</SelectItem>
+                    <SelectItem value="books_read">Books Read</SelectItem>
+                    <SelectItem value="quiz_completed">Quizzes Passed</SelectItem>
+                    <SelectItem value="points">Total Points</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Target Value</Label>
+                <Label>Target Amount</Label>
                 <Input type="number" value={challengeForm.targetValue} onChange={e => setChallengeForm(prev => ({ ...prev, targetValue: parseInt(e.target.value) || 1 }))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Reward Points (XP)</Label>
+                <Label>XP Reward (Optional)</Label>
                 <Input type="number" value={challengeForm.rewardPoints} onChange={e => setChallengeForm(prev => ({ ...prev, rewardPoints: parseInt(e.target.value) || 0 }))} />
               </div>
               <div className="space-y-1">
-                <Label>Deadline</Label>
+                <Label>Deadline (Optional)</Label>
                 <Input type="date" value={challengeForm.deadline} onChange={e => setChallengeForm(prev => ({ ...prev, deadline: e.target.value }))} />
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowChallengeDialog(false)}>Cancel</Button>
-            <Button onClick={handleCreateChallenge}>Create Challenge</Button>
+            <Button onClick={handleCreateChallenge}>Create Badge</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
