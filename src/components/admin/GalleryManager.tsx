@@ -106,14 +106,14 @@ export default function GalleryManager() {
           const { data: pub } = supabase.storage.from("gallery-images").getPublicUrl(path);
           newImages.push({
             image_url: pub.publicUrl,
-            caption: form.caption || f.name,
+            caption: "",
             is_active: form.is_active
           });
         }
       } else {
         newImages.push({
           image_url: form.image_url,
-          caption: form.caption,
+          caption: "",
           is_active: form.is_active
         });
       }
@@ -191,11 +191,6 @@ export default function GalleryManager() {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Caption (Optional)</Label>
-                <Input value={form.caption} onChange={e => setForm({ ...form, caption: e.target.value })} />
               </div>
               <div className="flex items-center gap-2 pt-2">
                 <Switch checked={form.is_active} onCheckedChange={(c) => setForm({ ...form, is_active: c })} />
