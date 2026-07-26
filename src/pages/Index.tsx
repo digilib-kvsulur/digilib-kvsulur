@@ -402,15 +402,15 @@ const Index = () => {
               {dbEvents.map((e, i) => (
                 <article key={i} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1.5 duration-300 p-1.5 flex flex-col">
                   <div className="relative overflow-hidden rounded-2xl bg-slate-100 flex items-center justify-center">
-                    <img src={e.img} alt={e.title} loading="lazy" className="w-full h-auto max-h-[250px] object-contain transition-transform duration-700 group-hover:scale-105" />
-                    <span className="absolute top-4 left-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full shadow-md z-10">{e.badge}</span>
+                    <img src={e.img} alt={e.title} loading="lazy" className="w-full h-auto max-h-[250px] object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <span className="absolute top-3 left-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-md z-10 whitespace-nowrap overflow-hidden text-ellipsis max-w-[90%]">{e.badge}</span>
                   </div>
-                  <div className="p-4 space-y-3 flex-1 flex flex-col justify-start">
-                    <div className="flex items-center gap-2 text-xs text-indigo-600 font-bold">
+                  <div className="p-4 space-y-2.5 flex-1 flex flex-col justify-start">
+                    <div className="flex items-center gap-2 text-xs text-indigo-600 font-bold shrink-0">
                       <Clock className="h-4 w-4" /> {e.date}
                     </div>
-                    <h4 className="text-xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">{e.title}</h4>
-                    <p className="text-sm text-slate-600 leading-relaxed">{e.desc}</p>
+                    <h4 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug line-clamp-2" title={e.title}>{e.title}</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed line-clamp-3" title={e.desc}>{e.desc}</p>
                   </div>
                 </article>
               ))}
@@ -432,7 +432,7 @@ const Index = () => {
           
           <div className="relative w-full overflow-hidden flex" style={{ paddingBottom: '2rem' }}>
             <div className="flex w-max animate-scroll hover:[animation-play-state:paused] gap-6 px-3">
-              {[...galleryImages, ...galleryImages, ...galleryImages].map((img, i) => (
+              {[...galleryImages, ...galleryImages].map((img, i) => (
                 <div key={`${img.id || 'idx'}-${i}`} className="shrink-0 group rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all border border-slate-200 flex flex-col h-72">
                   <div className="h-full bg-slate-100 overflow-hidden relative flex-1">
                     <img src={img.image_url} alt={img.caption || "Gallery"} className="h-full w-auto max-w-[600px] object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
