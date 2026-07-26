@@ -82,13 +82,38 @@ const TeacherDashboard = () => {
         return numA === numB ? a.localeCompare(b) : numA - numB;
       }) as string[];
       setClasses(uniq);
-      setSelectedClass(teacherClass || uniq[0] || "");
+      const initialClass = teacherClass || uniq[0] || "";
+      setSelectedClass(initialClass);
       
       // Load all books for catalog dropdown selections
       const { data: books } = await supabase.from("books").select("id, title, author").order("title");
       setAllBooks(books || []);
       
       setLoading(false);
+      
+      // Directly load class data since selectedClass useEffect may not fire if value doesn't change
+      if (initialClass) {
+        // Load students in class
+        const { data: st } = await supabase.from("profiles")
+          .select("id, first_name, last_name, roll_number, points, student_class")
+          .eq("role", "student").eq("is_approved", true).eq("student_class", initialClass)
+          .order("points", { ascending: false });
+        const studentList = st || [];
+        setStudents(studentList);
+        const ids = studentList.map((s: any) => s.id);
+        if (ids.length) {
+          const { data: bi } = await supabase.from("book_issues")
+            .select("id, user_id, status, due_date, issue_date, accession_number, books(title, author)")
+            .in("user_id", ids);
+          setIssues(bi || []);
+        } else { setIssues([]); }
+        const { data: rl } = await supabase.from("class_reading_lists").select("*").eq("class_level", initialClass).order("created_at", { ascending: false });
+        setReadingLists(rl || []);
+        const { data: recs } = await supabase.from("class_book_recommendations").select("*, books(title, author)").eq("class_level", initialClass);
+        setRecommendations(recs || []);
+        const { data: ch } = await supabase.from("challenges").select("*").eq("class_level", initialClass).order("created_at", { ascending: false });
+        setClassChallenges(ch || []);
+      }
     })();
   }, []);
 

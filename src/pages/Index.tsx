@@ -139,14 +139,19 @@ const Index = () => {
         const mapped = data.map((ev: any) => ({
           ...ev,
           title: ev.title,
-          date: new Date(ev.event_date).toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric"
-          }) + " " + new Date(ev.event_date).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit"
-          }),
+          date: (() => {
+            const start = new Date(ev.event_date);
+            const optionsDate = { month: "long", day: "numeric", year: "numeric" } as const;
+            const optionsTime = { hour: "2-digit", minute: "2-digit" } as const;
+            const startStr = start.toLocaleDateString("en-US", optionsDate) + " " + start.toLocaleTimeString("en-US", optionsTime);
+            if (!ev.end_date) return startStr;
+            const end = new Date(ev.end_date);
+            if (start.toDateString() === end.toDateString()) {
+              return `${start.toLocaleDateString("en-US", optionsDate)} ${start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
+            } else {
+              return `${startStr} - ${end.toLocaleDateString("en-US", optionsDate)} ${end.toLocaleTimeString("en-IN", optionsTime)}`;
+            }
+          })(),
           desc: ev.description || "No description provided.",
           badge: ev.location || "Upcoming",
           img: ev.image_url || event1Img,

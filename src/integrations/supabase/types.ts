@@ -736,6 +736,8 @@ export type Database = {
           location: string | null
           title: string
           updated_at: string
+          schedule_files: string | null
+          end_date: string | null
         }
         Insert: {
           capacity?: number | null
@@ -748,6 +750,8 @@ export type Database = {
           location?: string | null
           title: string
           updated_at?: string
+          schedule_files?: string | null
+          end_date?: string | null
         }
         Update: {
           capacity?: number | null
@@ -760,6 +764,8 @@ export type Database = {
           location?: string | null
           title?: string
           updated_at?: string
+          schedule_files?: string | null
+          end_date?: string | null
         }
         Relationships: []
       }

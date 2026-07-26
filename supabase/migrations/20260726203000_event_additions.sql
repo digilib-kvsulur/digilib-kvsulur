@@ -1,0 +1,2 @@
+ALTER TABLE library_events ADD COLUMN IF NOT EXISTS schedule_files TEXT;
+ALTER TABLE library_events ADD COLUMN IF NOT EXISTS end_date TIMESTAMP WITH TIME ZONE;

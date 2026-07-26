@@ -132,8 +132,22 @@ export default function EventsList({ userId }: { userId: string }) {
                           <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors shrink-0 mt-0.5" />
                         </div>
                         <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 text-primary" />
-                          {new Date(ev.event_date).toLocaleString()}
+                          <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span>
+                            {(() => {
+                              const start = new Date(ev.event_date);
+                              const optionsDate = { month: "short", day: "numeric" } as const;
+                              const optionsTime = { hour: "2-digit", minute: "2-digit" } as const;
+                              const startStr = start.toLocaleDateString("en-IN", optionsDate) + " " + start.toLocaleTimeString("en-IN", optionsTime);
+                              if (!ev.end_date) return startStr;
+                              const end = new Date(ev.end_date);
+                              if (start.toDateString() === end.toDateString()) {
+                                  return `${start.toLocaleDateString("en-IN", optionsDate)} ${start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+                              } else {
+                                  return `${startStr} - ${end.toLocaleDateString("en-IN", optionsDate)} ${end.toLocaleTimeString("en-IN", optionsTime)}`;
+                              }
+                            })()}
+                          </span>
                         </p>
                         {ev.location && (
                           <p className="text-xs text-muted-foreground flex items-center gap-1.5">

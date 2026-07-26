@@ -203,7 +203,7 @@ const StudyMaterialsManager = () => {
         };
       });
 
-      const { error } = await supabase.from("ncert_books").insert(rows);
+      const { error } = await supabase.from("ncert_books").upsert(rows, { onConflict: "class_number,subject,chapter_number", ignoreDuplicates: true });
       if (error) throw error;
 
       toast({ title: `✅ Fetched ${chapters} chapters!`, description: `${bookName} chapters registered successfully.` });
@@ -250,7 +250,7 @@ const StudyMaterialsManager = () => {
       // Process in batches of 100 to avoid request too large errors
       for (let i = 0; i < allRows.length; i += 100) {
         const batch = allRows.slice(i, i + 100);
-        const { error } = await supabase.from("ncert_books").insert(batch);
+        const { error } = await supabase.from("ncert_books").upsert(batch, { onConflict: "class_number,subject,chapter_number", ignoreDuplicates: true });
         if (error) throw error;
       }
 
@@ -309,7 +309,7 @@ const StudyMaterialsManager = () => {
       // Process in batches of 100 to avoid request too large errors
       for (let i = 0; i < allRows.length; i += 100) {
         const batch = allRows.slice(i, i + 100);
-        const { error } = await supabase.from("ncert_books").insert(batch);
+        const { error } = await supabase.from("ncert_books").upsert(batch, { onConflict: "class_number,subject,chapter_number", ignoreDuplicates: true });
         if (error) throw error;
       }
 

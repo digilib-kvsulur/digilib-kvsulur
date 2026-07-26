@@ -75,25 +75,32 @@ export default function EventDetailModal({
   };
 
   const eventDate = new Date(event.event_date);
+  const endDate = event.end_date ? new Date(event.end_date) : null;
   const isUpcoming = eventDate > new Date();
+
+  const formatDateRange = () => {
+    const optionsDate = { weekday: "long", year: "numeric", month: "long", day: "numeric" } as const;
+    const optionsTime = { hour: "2-digit", minute: "2-digit" } as const;
+    
+    const startFormatted = eventDate.toLocaleDateString("en-IN", optionsDate) + " " + eventDate.toLocaleTimeString("en-IN", optionsTime);
+    if (!endDate) return startFormatted;
+
+    if (eventDate.toDateString() === endDate.toDateString()) {
+      return `${eventDate.toLocaleDateString("en-IN", optionsDate)} ${eventDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+    } else {
+      return `${startFormatted} - ${endDate.toLocaleDateString("en-IN", optionsDate)} ${endDate.toLocaleTimeString("en-IN", optionsTime)}`;
+    }
+  };
 
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl">
-          {/* Hero image */}
-          {event.image_url && (
-            <div className="relative w-full overflow-hidden rounded-t-2xl bg-slate-100" style={{ maxHeight: 280 }}>
-              <img
-                src={event.image_url}
-                alt={event.title}
-                className="w-full h-full object-cover"
-                style={{ maxHeight: 280 }}
-              />
-              {/* Status badge */}
-              <div className="absolute top-4 left-4 flex gap-2">
+          <div className="p-6 space-y-5">
+            <DialogHeader className="space-y-3">
+              <div className="flex flex-wrap gap-2">
                 {isUpcoming && (
-                  <span className="bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-md">
+                  <span className="bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
                     Upcoming
                   </span>
                 )}
@@ -108,11 +115,6 @@ export default function EventDetailModal({
                   </span>
                 )}
               </div>
-            </div>
-          )}
-
-          <div className="p-6 space-y-5">
-            <DialogHeader className="space-y-1">
               <DialogTitle className="text-2xl font-black text-slate-900 leading-tight">
                 {event.title}
               </DialogTitle>
@@ -122,16 +124,7 @@ export default function EventDetailModal({
             <div className="flex flex-wrap gap-3 text-sm">
               <div className="flex items-center gap-2 text-indigo-600 font-semibold">
                 <Calendar className="h-4 w-4" />
-                {eventDate.toLocaleDateString("en-IN", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </div>
-              <div className="flex items-center gap-2 text-slate-500 font-medium">
-                <Clock className="h-4 w-4" />
-                {eventDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                {formatDateRange()}
               </div>
               {event.location && (
                 <div className="flex items-center gap-2 text-slate-500 font-medium">

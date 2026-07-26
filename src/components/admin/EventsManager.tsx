@@ -24,7 +24,7 @@ export default function EventsManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewEvent, setViewEvent] = useState<any | null>(null);
   const [form, setForm] = useState({
-    title: "", description: "", event_date: "", location: "", capacity: "",
+    title: "", description: "", event_date: "", end_date: "", location: "", capacity: "",
     image_orientation: "horizontal"
   });
   // Existing schedule files (when editing)
@@ -41,7 +41,7 @@ export default function EventsManager() {
   useEffect(() => { load(); }, []);
 
   const resetForm = () => {
-    setForm({ title: "", description: "", event_date: "", location: "", capacity: "", image_orientation: "horizontal" });
+    setForm({ title: "", description: "", event_date: "", end_date: "", location: "", capacity: "", image_orientation: "horizontal" });
     setFile(null);
     setScheduleFiles([]);
     setExistingScheduleFiles([]);
@@ -66,7 +66,7 @@ export default function EventsManager() {
 
   const create = async () => {
     if (!form.title || !form.event_date) {
-      toast({ title: "Title and date required", variant: "destructive" }); return;
+      toast({ title: "Title and start date required", variant: "destructive" }); return;
     }
     setUploading(true);
     try {
@@ -92,6 +92,7 @@ export default function EventsManager() {
         title: form.title,
         description: form.description || null,
         event_date: new Date(form.event_date).toISOString(),
+        end_date: form.end_date ? new Date(form.end_date).toISOString() : null,
         location: form.location || null,
         capacity: form.capacity ? parseInt(form.capacity) : null,
         image_orientation: form.image_orientation,
@@ -128,6 +129,7 @@ export default function EventsManager() {
       title: ev.title,
       description: ev.description || "",
       event_date: new Date(ev.event_date).toISOString().slice(0, 16),
+      end_date: ev.end_date ? new Date(ev.end_date).toISOString().slice(0, 16) : "",
       location: ev.location || "",
       capacity: ev.capacity ? String(ev.capacity) : "",
       image_orientation: ev.image_orientation || "horizontal",
@@ -183,7 +185,10 @@ export default function EventsManager() {
             <div className="space-y-4">
               <div><Label>Title *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
               <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-              <div><Label>Date &amp; time *</Label><Input type="datetime-local" value={form.event_date} onChange={e => setForm({ ...form, event_date: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><Label>Start Date &amp; time *</Label><Input type="datetime-local" value={form.event_date} onChange={e => setForm({ ...form, event_date: e.target.value })} /></div>
+                <div><Label>End Date &amp; time (optional)</Label><Input type="datetime-local" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} /></div>
+              </div>
               <div><Label>Location</Label><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
               <div><Label>Capacity (optional)</Label><Input type="number" value={form.capacity} onChange={e => setForm({ ...form, capacity: e.target.value })} /></div>
 
@@ -279,7 +284,22 @@ export default function EventsManager() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                  <Calendar className="h-3 w-3" /> {new Date(ev.event_date).toLocaleString()}
+                  <Calendar className="h-3 w-3 shrink-0" />
+                  <span className="truncate">
+                    {(() => {
+                      const start = new Date(ev.event_date);
+                      const optionsDate = { month: "short", day: "numeric" } as const;
+                      const optionsTime = { hour: "2-digit", minute: "2-digit" } as const;
+                      const startStr = start.toLocaleDateString("en-IN", optionsDate) + " " + start.toLocaleTimeString("en-IN", optionsTime);
+                      if (!ev.end_date) return startStr;
+                      const end = new Date(ev.end_date);
+                      if (start.toDateString() === end.toDateString()) {
+                        return `${start.toLocaleDateString("en-IN", optionsDate)} ${start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+                      } else {
+                        return `${startStr} - ${end.toLocaleDateString("en-IN", optionsDate)} ${end.toLocaleTimeString("en-IN", optionsTime)}`;
+                      }
+                    })()}
+                  </span>
                 </p>
               </CardHeader>
               <CardContent className="px-4 pb-4 flex-1 flex flex-col justify-between gap-3">
