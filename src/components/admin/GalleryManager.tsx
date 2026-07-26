@@ -63,59 +63,69 @@ export default function GalleryManager() {
 
   useEffect(() => { load(); }, []);
 
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] || null;
-    setFile(f);
-    if (f) {
-      setPreviewUrl(URL.createObjectURL(f));
-      setForm(prev => ({ ...prev, image_url: "" })); // Clear URL if file is chosen
+    const selectedFiles = Array.from(e.target.files || []);
+    setFiles(selectedFiles);
+    
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    
+    if (selectedFiles.length > 0) {
+      setPreviewUrls(selectedFiles.map(f => URL.createObjectURL(f)));
+      setForm(prev => ({ ...prev, image_url: "" }));
     } else {
-      setPreviewUrl("");
+      setPreviewUrls([]);
     }
   };
 
   const handleAdd = async () => {
-    if (!form.image_url && !file) {
-      toast({ title: "Please provide an image URL or upload a file", variant: "destructive" });
+    if (!form.image_url && files.length === 0) {
+      toast({ title: "Please provide an image URL or upload files", variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
-      let finalUrl = form.image_url;
+      const { data: { user } } = await supabase.auth.getUser();
+      const newImages = [];
 
-      if (file) {
-        const { data: { user } } = await supabase.auth.getUser();
+      if (files.length > 0) {
         if (!user) throw new Error("Not signed in");
         
-        // Light compression (max size 2000px, quality 0.85) using native Canvas
-        const compressedFile = await compressImage(file, 2000, 2000, 0.85);
-        
-        const ext = file.name.split(".").pop();
-        const path = `gallery/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        
-        const { error: upErr } = await supabase.storage.from("gallery-images").upload(path, compressedFile, {
-          contentType: "image/jpeg", upsert: false
+        for (const f of files) {
+          const compressedFile = await compressImage(f, 2000, 2000, 0.85);
+          const ext = f.name.split(".").pop();
+          const path = `gallery/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          
+          const { error: upErr } = await supabase.storage.from("gallery-images").upload(path, compressedFile, {
+            contentType: "image/jpeg", upsert: false
+          });
+          if (upErr) throw upErr;
+          
+          const { data: pub } = supabase.storage.from("gallery-images").getPublicUrl(path);
+          newImages.push({
+            image_url: pub.publicUrl,
+            caption: form.caption || f.name,
+            is_active: form.is_active
+          });
+        }
+      } else {
+        newImages.push({
+          image_url: form.image_url,
+          caption: form.caption,
+          is_active: form.is_active
         });
-        if (upErr) throw upErr;
-        
-        const { data: pub } = supabase.storage.from("gallery-images").getPublicUrl(path);
-        finalUrl = pub.publicUrl;
       }
 
-      const { error } = await supabase.from("gallery_images").insert([{
-        image_url: finalUrl,
-        caption: form.caption,
-        is_active: form.is_active
-      }]);
+      const { error } = await supabase.from("gallery_images").insert(newImages);
       if (error) throw error;
-      toast({ title: "Image added successfully" });
+      toast({ title: `${newImages.length} image(s) added successfully` });
       setOpen(false);
       setForm({ image_url: "", caption: "", is_active: true });
-      setFile(null);
-      setPreviewUrl("");
+      setFiles([]);
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+      setPreviewUrls([]);
       load();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -145,7 +155,7 @@ export default function GalleryManager() {
           </h2>
           <p className="text-sm text-muted-foreground">Manage scrolling gallery images for the homepage via uploads or URLs.</p>
         </div>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setFile(null); setPreviewUrl(""); } }}>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setFiles([]); previewUrls.forEach(url => URL.revokeObjectURL(url)); setPreviewUrls([]); } }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Add Image</Button>
           </DialogTrigger>
@@ -157,8 +167,8 @@ export default function GalleryManager() {
                 
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-xs">Option A: Upload Image File</Label>
-                    <Input type="file" accept="image/*" onChange={handleFileChange} />
+                    <Label className="text-xs">Option A: Upload Image File(s)</Label>
+                    <Input type="file" accept="image/*" multiple onChange={handleFileChange} />
                   </div>
                   
                   <div className="text-center text-xs text-muted-foreground">— OR —</div>
@@ -173,8 +183,9 @@ export default function GalleryManager() {
                         value={form.image_url} 
                         onChange={e => {
                           setForm({ ...form, image_url: e.target.value });
-                          setFile(null);
-                          setPreviewUrl("");
+                          setFiles([]);
+                          previewUrls.forEach(url => URL.revokeObjectURL(url));
+                          setPreviewUrls([]);
                         }} 
                       />
                     </div>
@@ -191,9 +202,15 @@ export default function GalleryManager() {
                 <Label>Active (Show on homepage)</Label>
               </div>
               
-              {(previewUrl || form.image_url) && (
-                <div className="mt-4 border rounded-md overflow-hidden bg-slate-50 h-32 flex items-center justify-center">
-                  <img src={previewUrl || form.image_url} alt="Preview" className="max-h-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+              {(previewUrls.length > 0 || form.image_url) && (
+                <div className="mt-4 border rounded-md overflow-x-auto bg-slate-50 h-32 flex items-center p-2 gap-2">
+                  {previewUrls.length > 0 ? (
+                    previewUrls.map((url, idx) => (
+                      <img key={idx} src={url} alt={`Preview ${idx}`} className="h-full w-auto object-contain shrink-0" />
+                    ))
+                  ) : (
+                    <img src={form.image_url} alt="Preview" className="h-full w-auto object-contain shrink-0 mx-auto" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                  )}
                 </div>
               )}
               

@@ -67,29 +67,6 @@ const FALLBACK_NCERT: Record<string, Record<string, NcertBookData>> = {
   },
 };
 
-const OFFICIAL_CBSE_LINKS = [
-  {
-    title: "CBSE Official Curriculum (Secondary - Class 9-10)",
-    description: "Official CBSE curriculum, syllabus, and course structures for secondary classes.",
-    url: "https://cbseacademic.nic.in/curriculum_2025.html",
-  },
-  {
-    title: "CBSE Official Curriculum (Senior Secondary - Class 11-12)",
-    description: "Official course curriculum and elective structures for classes 11 and 12.",
-    url: "https://cbseacademic.nic.in/curriculum_2025.html",
-  },
-  {
-    title: "CBSE Sample Question Papers (Class 10)",
-    description: "Practice papers with marking schemes released by CBSE Academic board.",
-    url: "https://cbseacademic.nic.in/SQP_CLASSX_2024-25.html",
-  },
-  {
-    title: "CBSE Sample Question Papers (Class 12)",
-    description: "Latest subject-wise sample papers and grading rubrics for class 12.",
-    url: "https://cbseacademic.nic.in/SQP_CLASSXII_2024-25.html",
-  },
-];
-
 const getBaseClass = (cls?: string) => {
   if (!cls) return "";
   const num = cls.replace(/[^0-9]/g, "");
@@ -174,7 +151,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
 
   // Separate regular Reference Materials vs CBSE Curriculum uploads
   const referenceMaterials = materials.filter(m => m.subject !== "CBSE Curriculum");
-  const cbseUploads = materials.filter(m => m.subject === "CBSE Curriculum");
+  const cbseUploads = materials.filter(m => m.subject === "CBSE Curriculum" && (!m.student_class || m.student_class === "All" || m.student_class === baseClass));
 
   const subjects = ["all", ...Array.from(new Set(referenceMaterials.map(m => m.subject || "General").filter(Boolean)))];
 
@@ -323,9 +300,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
             });
 
             // Always include static official links as cards
-            const officialCards = OFFICIAL_CBSE_LINKS.map(l => ({ name: l.title, chapters: [{ title: l.description, url: l.url }] }));
-
-            const allCards = [...Object.values(cbseGroups), ...officialCards];
+            const allCards = [...Object.values(cbseGroups)];
 
             return (
               <>
