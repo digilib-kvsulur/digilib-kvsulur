@@ -21,7 +21,7 @@ import MyRequests from "@/components/dashboard/MyRequests";
 import NetworkTab from "@/components/dashboard/NetworkTab";
 import TeacherProfileCompletionDialog from "@/components/dashboard/TeacherProfileCompletionDialog";
 
-type TeacherTab = "overview" | "progress" | "badges" | "reading-lists" | "recommendations" | "materials" | "community" | "network" | "book-requests" | "profile";
+type TeacherTab = "progress" | "badges" | "reading-lists" | "recommendations" | "materials" | "community" | "network" | "book-requests" | "profile";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ const TeacherDashboard = () => {
   
   const [teacher, setTeacher] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TeacherTab>("overview");
+  const [activeTab, setActiveTab] = useState<TeacherTab>("progress");
   
   // Class selection
   const [selectedClass, setSelectedClass] = useState<string>("");
@@ -352,9 +352,9 @@ const TeacherDashboard = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <Tabs defaultValue="overview" value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-4">
+        <Tabs defaultValue="progress" value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-4">
           <TabsList className="flex flex-wrap items-center justify-start w-full bg-white border h-auto gap-1 p-1 rounded-lg">
-            <TabsTrigger value="overview" className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> Overview</TabsTrigger>
+            
             <TabsTrigger value="progress" className="flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Class Progress</TabsTrigger>
             <TabsTrigger value="badges" className="flex items-center gap-2"><Target className="h-4 w-4" /> Badges</TabsTrigger>
             <TabsTrigger value="reading-lists" className="flex items-center gap-2"><ListChecks className="h-4 w-4" /> Reading Lists</TabsTrigger>
@@ -367,35 +367,6 @@ const TeacherDashboard = () => {
           </TabsList>
 
           {/* TAB 0: Overview */}
-          <TabsContent value="overview">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <Card className="border-border/50 bg-white hover:shadow-md transition-shadow">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0"><Users className="h-5 w-5" /></div>
-                  <div><p className="text-2xl font-extrabold text-[#0f1b3d]">{students.length}</p><p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">Total Students</p></div>
-                </CardContent>
-              </Card>
-              <Card className="border-border/50 bg-white hover:shadow-md transition-shadow">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center text-warning shrink-0"><Trophy className="h-5 w-5" /></div>
-                  <div><p className="text-2xl font-extrabold text-[#0f1b3d]">{students.filter(s => s.points > 0).length}</p><p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">Active Readers</p></div>
-                </CardContent>
-              </Card>
-              <Card className="border-border/50 bg-white hover:shadow-md transition-shadow">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center text-success shrink-0"><BookOpen className="h-5 w-5" /></div>
-                  <div><p className="text-2xl font-extrabold text-[#0f1b3d]">{activeIssues.length}</p><p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">Books Borrowed</p></div>
-                </CardContent>
-              </Card>
-              <Card className="border-border/50 bg-white hover:shadow-md transition-shadow">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 bg-destructive/10 rounded-lg flex items-center justify-center text-destructive shrink-0"><Calendar className="h-5 w-5" /></div>
-                  <div><p className="text-2xl font-extrabold text-[#0f1b3d]">{overdueIssues.length}</p><p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">Overdue Books</p></div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
           {/* TAB 1: Class Progress & Leaderboard */}
           <TabsContent value="progress">
             <Card className="border-border/50 bg-white">
