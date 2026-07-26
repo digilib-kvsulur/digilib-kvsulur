@@ -70,15 +70,19 @@ const TeacherDashboard = () => {
         navigate("/"); return;
       }
       setTeacher(profile);
-      const initial = profile.student_class || "";
+      const teacherClass = profile.student_class || "";
       const { data: cls } = await supabase.from("profiles").select("student_class").eq("role", "student").eq("is_approved", true);
-      const uniq = Array.from(new Set((cls || []).map((c: any) => c.student_class).filter(Boolean))).sort((a: any, b: any) => {
+      const uniqSet = new Set((cls || []).map((c: any) => c.student_class).filter(Boolean));
+      if (teacherClass) {
+        uniqSet.add(teacherClass);
+      }
+      const uniq = Array.from(uniqSet).sort((a: any, b: any) => {
         const numA = parseInt(a) || 0;
         const numB = parseInt(b) || 0;
         return numA === numB ? a.localeCompare(b) : numA - numB;
       }) as string[];
       setClasses(uniq);
-      setSelectedClass(initial || uniq[0] || "");
+      setSelectedClass(teacherClass || uniq[0] || "");
       
       // Load all books for catalog dropdown selections
       const { data: books } = await supabase.from("books").select("id, title, author").order("title");
