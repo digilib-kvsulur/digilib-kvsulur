@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Register = () => {
+  const registrationsTemporarilyClosed = true;
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -69,6 +70,31 @@ const Register = () => {
   };
 
   const classOptions = getClassOptions();
+
+  // Temporary notice while student accounts are supplied by the school.
+  if (registrationsTemporarilyClosed) return (
+    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <section className="w-full max-w-lg rounded-3xl border border-indigo-100 bg-white p-8 text-center shadow-xl shadow-indigo-100/50 sm:p-10">
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
+          <GraduationCap className="h-7 w-7" />
+        </div>
+        <h1 className="text-2xl font-extrabold text-slate-900">Student accounts are ready</h1>
+        <p className="mt-4 text-sm leading-6 text-slate-600">
+          All student users have already been created. Please sign in using your 5-digit admission number and the default password below.
+        </p>
+        <div className="my-6 rounded-2xl bg-indigo-50 px-5 py-4 text-left">
+          <p className="text-xs font-bold uppercase tracking-wide text-indigo-700">Default password</p>
+          <p className="mt-1 text-lg font-extrabold text-indigo-950">Welcome@123</p>
+        </div>
+        <Button onClick={() => navigate("/login")} className="h-11 w-full rounded-xl bg-indigo-600 font-bold text-white hover:bg-indigo-700">
+          Go to Login
+        </Button>
+        <button onClick={() => navigate("/")} className="mt-4 text-sm font-semibold text-slate-600 hover:text-indigo-600">
+          Back to home
+        </button>
+      </section>
+    </main>
+  );
 
   const stepIndicator = (
     <div className="flex items-center gap-2 mb-8">

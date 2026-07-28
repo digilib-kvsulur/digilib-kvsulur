@@ -201,7 +201,7 @@ const Index = () => {
       </div>
 
       {/* Top Banner strip with generous padding */}
-      <div className="relative border-b border-indigo-100 bg-indigo-50/80 text-xs backdrop-blur-sm z-50">
+      <div className="relative hidden border-b border-indigo-100 bg-indigo-50/80 text-xs backdrop-blur-sm z-50 sm:block">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-3 flex items-center justify-between">
           <div className="flex items-center gap-6 text-slate-600">
             <span className="flex items-center gap-2 font-medium"><MapPin className="h-4 w-4 text-indigo-600" /> PM SHRI KV AFS Sulur, Coimbatore</span>
@@ -256,7 +256,7 @@ const Index = () => {
             ) : (
               <>
                 <button onClick={() => navigate("/login")} className="hidden sm:block text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl font-semibold px-4 py-2 text-sm transition-colors">Login</button>
-                <Button onClick={() => navigate("/login")} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-md shadow-indigo-600/20 border-0 px-6 py-2.5 h-10">
+                <Button onClick={() => navigate("/login")} size="sm" className="h-10 border-0 bg-indigo-600 px-3 py-2.5 text-xs font-extrabold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 sm:px-6 sm:text-sm rounded-xl">
                   Get Started
                 </Button>
               </>
