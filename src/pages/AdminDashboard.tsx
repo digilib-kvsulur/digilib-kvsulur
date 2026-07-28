@@ -149,8 +149,8 @@ const AdminDashboard = () => {
               <BookOpen className="h-5 w-5 text-primary-foreground" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm font-bold text-foreground truncate">KV Sulur Library</h1>
-              <p className="text-xs text-muted-foreground">Admin Panel</p>
+              <h1 className="text-sm font-bold text-foreground truncate">PM SHRI KV SULUR</h1>
+              <p className="text-xs text-muted-foreground">DLMS - Admin</p>
             </div>
           </div>
         </div>

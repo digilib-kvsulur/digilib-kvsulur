@@ -6,9 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Calendar, BookOpen, Clock, Search, ArrowUpDown, Filter, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Calendar, BookOpen, Clock, Search, ArrowUpDown, Filter, CheckCircle2, AlertTriangle, RefreshCw, Check, ChevronsUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 interface BookIssue {
   id: string;
@@ -44,6 +47,8 @@ const BookIssueRegister = () => {
   const [accessionNumberInput, setAccessionNumberInput] = useState("");
   const [quickReturnBarcode, setQuickReturnBarcode] = useState("");
   const [isQuickReturning, setIsQuickReturning] = useState(false);
+  const [openBookDropdown, setOpenBookDropdown] = useState(false);
+  const [openUserDropdown, setOpenUserDropdown] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { loadData(); }, []);
@@ -76,8 +81,8 @@ const BookIssueRegister = () => {
         })
       );
 
-      const { data: booksData } = await supabase.from('books').select('*').gt('available_copies', 0).order('title');
-      const { data: usersData } = await supabase.from('profiles').select('id, first_name, last_name, admission_number, student_class, role').eq('is_approved', true).in('role', ['student', 'teacher']).order('first_name');
+      const { data: booksData } = await supabase.from('books').select('*').gt('available_copies', 0).order('title').limit(10000);
+      const { data: usersData } = await supabase.from('profiles').select('id, first_name, last_name, admission_number, student_class, role').eq('is_approved', true).in('role', ['student', 'teacher']).order('first_name').limit(10000);
 
       setBookIssues(issuesWithProfiles || []);
       setBooks(booksData || []);
@@ -86,6 +91,22 @@ const BookIssueRegister = () => {
       console.error('Error loading data:', error);
       toast({ title: "Error", description: "Failed to load book issue data", variant: "destructive" });
     } finally { setLoading(false); }
+  };
+
+  const handleFetchAccession = async () => {
+    if (!accessionNumberInput.trim()) {
+      toast({ title: "Enter Accession", description: "Please enter an accession number.", variant: "destructive" });
+      return;
+    }
+    const { data: book, error } = await supabase.from('books').select('*').eq('accession_number', accessionNumberInput.trim()).maybeSingle();
+    if (error || !book) {
+      toast({ title: "Not Found", description: "No book found with this accession number. Switching to manual entry." });
+      setIsManualEntry(true);
+    } else {
+      setIsManualEntry(false);
+      setSelectedBook(book.id);
+      toast({ title: "Book Found", description: `Selected: ${book.title}` });
+    }
   };
 
   const handleIssueBook = async () => {
@@ -289,26 +310,72 @@ const BookIssueRegister = () => {
                   </div>
                 </>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 flex flex-col">
                   <Label className="text-xs font-medium">Select Book *</Label>
-                  <Select value={selectedBook} onValueChange={setSelectedBook}>
-                    <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Choose a book" /></SelectTrigger>
-                    <SelectContent>{books.map(book => <SelectItem key={book.id} value={book.id}>{book.title} ({book.available_copies} avail.)</SelectItem>)}</SelectContent>
-                  </Select>
+                  <Popover open={openBookDropdown} onOpenChange={setOpenBookDropdown}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={openBookDropdown} className="h-10 justify-between font-normal text-left truncate px-3">
+                        {selectedBook ? (books.find((b) => b.id === selectedBook)?.title || "Unknown Book") : "Search book..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search books..." />
+                        <CommandList>
+                          <CommandEmpty>No book found.</CommandEmpty>
+                          <CommandGroup>
+                            {books.map((book) => (
+                              <CommandItem key={book.id} value={book.title + book.id} onSelect={() => { setSelectedBook(book.id); setOpenBookDropdown(false); }}>
+                                <Check className={cn("mr-2 h-4 w-4", selectedBook === book.id ? "opacity-100" : "opacity-0")} />
+                                {book.title} ({book.available_copies} avail.)
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )}
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 flex flex-col">
                 <Label className="text-xs font-medium">Select Student *</Label>
-                <Select value={selectedUser} onValueChange={setSelectedUser}>
-                  <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Choose a student" /></SelectTrigger>
-                  <SelectContent>{users.map(user => <SelectItem key={user.id} value={user.id}>{user.first_name} {user.last_name} ({user.admission_number})</SelectItem>)}</SelectContent>
-                </Select>
+                <Popover open={openUserDropdown} onOpenChange={setOpenUserDropdown}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={openUserDropdown} className="h-10 justify-between font-normal text-left truncate px-3">
+                      {selectedUser ? (() => {
+                        const u = users.find((user) => user.id === selectedUser);
+                        return u ? `${u.first_name} ${u.last_name} (${u.admission_number})` : "Unknown User";
+                      })() : "Search student..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search students..." />
+                      <CommandList>
+                        <CommandEmpty>No student found.</CommandEmpty>
+                        <CommandGroup>
+                          {users.map((user) => (
+                            <CommandItem key={user.id} value={`${user.first_name} ${user.last_name} ${user.admission_number}`} onSelect={() => { setSelectedUser(user.id); setOpenUserDropdown(false); }}>
+                              <Check className={cn("mr-2 h-4 w-4", selectedUser === user.id ? "opacity-100" : "opacity-0")} />
+                              {user.first_name} {user.last_name} ({user.admission_number})
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Accession / Barcode</Label>
-                <Input value={accessionNumberInput} onChange={(e) => setAccessionNumberInput(e.target.value)} placeholder="e.g. KV-ACC-1002" className="h-10 rounded-lg" />
+                <div className="flex gap-2">
+                  <Input value={accessionNumberInput} onChange={(e) => setAccessionNumberInput(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') handleFetchAccession(); }} placeholder="KV-ACC-1002" className="h-10 rounded-lg" />
+                  <Button variant="secondary" onClick={handleFetchAccession} className="h-10 font-bold">Fetch</Button>
+                </div>
               </div>
 
               <div className="space-y-1.5">

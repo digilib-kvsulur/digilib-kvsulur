@@ -99,7 +99,7 @@
   }
   /* Smooth page transitions */
   a, button, input, select, textarea {
-    @apply transition-colors duration-200;
+    @apply transition-all duration-300 ease-in-out;
   }
 }
 

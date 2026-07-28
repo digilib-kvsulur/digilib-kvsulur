@@ -314,8 +314,8 @@ const TeacherDashboard = () => {
               <GraduationCap className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-[#0f1b3d]">Teacher Panel</h1>
-              <p className="text-xs text-muted-foreground">Welcome, {teacher?.first_name} {teacher?.last_name}</p>
+              <h1 className="text-base font-bold text-[#0f1b3d]">DLMS Teacher Panel</h1>
+              <p className="text-xs text-muted-foreground">Welcome, {teacher?.first_name} {teacher?.last_name} of PM SHRI KV SULUR</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

@@ -418,7 +418,7 @@ const Index = () => {
                   onClick={() => setSelectedEvent(e)}
                   className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-xl transition-all hover:-translate-y-2 duration-300 flex flex-col cursor-pointer"
                 >
-                  <div className="relative overflow-hidden bg-slate-100" style={{ height: 220 }}>
+                  <div className="relative overflow-hidden bg-slate-100 aspect-[3/4]">
                     <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <span className="absolute top-3 left-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-md z-10 max-w-[85%] truncate">{e.badge}</span>
