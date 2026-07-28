@@ -272,7 +272,7 @@ const Index = () => {
             {/* Left Column */}
             <div className="lg:col-span-6 space-y-7 text-center lg:text-left">
               <div className="inline-flex items-center gap-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider mx-auto lg:mx-0 shadow-sm">
-                <Star className="h-4 w-4 fill-indigo-600 text-indigo-600" /> PM SHRI KV SULUR, DLMS
+                <Star className="h-4 w-4 fill-indigo-600 text-indigo-600" /> PM SHRI KV AFS SULUR, DLMS
               </div>
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.12] max-w-xl">
                 A Library That Grows With <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Every Reader.</span>
