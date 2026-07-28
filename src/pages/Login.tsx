@@ -137,7 +137,7 @@ const Login = () => {
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <div className="flex items-center gap-3">
             {/* Dual Logo Placeholders */}
-            <div className="flex items-center -space-x-2.5 shrink-0">
+            <div className="flex shrink-0 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-2 py-1.5 shadow-sm backdrop-blur-sm">
               {/* PM SHRI Logo Slot */}
               <div className="relative flex h-10 w-10 items-center justify-center" title="PM SHRI Logo">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="relative z-10 h-full w-full object-contain drop-shadow-sm" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
@@ -209,7 +209,7 @@ const Login = () => {
         <div className="w-full max-w-[420px] animate-fade-in">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="flex shrink-0 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-2 py-1.5 shadow-sm backdrop-blur-sm">
+            <div className="flex items-center -space-x-2.5 shrink-0">
               <div className="relative z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200/80 bg-slate-50 shadow-xs" title="PM SHRI Logo">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="relative z-10 h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
                 <Sparkles className="absolute hidden h-5 w-5 text-amber-500" />
