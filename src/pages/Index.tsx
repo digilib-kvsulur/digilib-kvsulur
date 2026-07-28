@@ -232,8 +232,8 @@ const Index = () => {
               </div>
             </div>
             <div>
-              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-tight">KV Sulur Library</h1>
-              <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">Digital Library System</p>
+              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-tight">PM SHRI KV SULUR</h1>
+              <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">DLMS</p>
             </div>
           </div>
           <nav className="hidden md:flex items-center space-x-9 text-sm font-semibold text-slate-700">
@@ -272,13 +272,13 @@ const Index = () => {
             {/* Left Column */}
             <div className="lg:col-span-6 space-y-7 text-center lg:text-left">
               <div className="inline-flex items-center gap-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider mx-auto lg:mx-0 shadow-sm">
-                <Star className="h-4 w-4 fill-indigo-600 text-indigo-600" /> PM SHRI KENDRIYA VIDYALAYA AFS SULUR, DLMS
+                <Star className="h-4 w-4 fill-indigo-600 text-indigo-600" /> PM SHRI KV SULUR, DLMS
               </div>
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.12] max-w-xl">
                 A Library That Grows With <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Every Reader.</span>
               </h2>
               <p className="text-base sm:text-lg text-slate-600 max-w-lg leading-relaxed mx-auto lg:mx-0 font-normal">
-                Welcome to the digital portal of <span className="font-semibold text-slate-900">PM SHRI KENDRIYA VIDYALAYA AFS SULUR, DLMS</span>. Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
+                Welcome to the digital portal of <span className="font-semibold text-slate-900">PM SHRI KENDRIYA VIDYALAYA, AIR FORCE STATION SULUR - DLMS</span>. Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-3">

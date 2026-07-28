@@ -137,18 +137,16 @@ const Login = () => {
           <div className="flex items-center gap-3">
             {/* Dual Logo Placeholders */}
             <div className="flex items-center -space-x-2 shrink-0">
-              <div className="relative w-11 h-11 rounded-full bg-white/20 border border-white/10 flex items-center justify-center overflow-hidden backdrop-blur-sm">
-                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
-                <BookOpen className="h-5 w-5 text-primary-foreground absolute hidden" />
+              <div className="relative w-12 h-12 rounded-full bg-white border-2 border-white/30 flex items-center justify-center overflow-hidden shadow-lg" title="PM SHRI Logo">
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain p-1" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
               </div>
-              <div className="relative w-11 h-11 rounded-full bg-white/20 border border-white/10 flex items-center justify-center overflow-hidden backdrop-blur-sm z-10">
-                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
-                <BookOpen className="h-5 w-5 text-primary-foreground/70 absolute hidden" />
+              <div className="relative w-12 h-12 rounded-full bg-white border-2 border-white/30 flex items-center justify-center overflow-hidden shadow-lg z-10" title="KV Logo">
+                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain p-1" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
               </div>
             </div>
             <div>
-              <h1 className="text-base font-bold text-primary-foreground leading-tight">KV Sulur Library</h1>
-              <p className="text-xs text-primary-foreground/70">Digital Library System</p>
+              <h1 className="text-base font-bold text-primary-foreground leading-tight">PM SHRI KV AFS SULUR</h1>
+              <p className="text-xs text-primary-foreground/70">Digital Library Management System</p>
             </div>
           </div>
           
