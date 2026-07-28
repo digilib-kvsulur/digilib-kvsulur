@@ -277,7 +277,7 @@ const StudentDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-dvh overflow-hidden bg-background flex">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 bg-card border-r border-border flex-col fixed h-full z-40">
         <div className="p-5 border-b border-border">
@@ -352,7 +352,7 @@ const StudentDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0">
+      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 lg:ml-64 lg:pt-0">
         <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 

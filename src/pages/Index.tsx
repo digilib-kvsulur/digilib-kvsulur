@@ -339,10 +339,10 @@ const Index = () => {
       {trendingBooks.length > 0 && (
         <section className="py-24 relative">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-            <div className="flex items-end justify-between mb-12">
+            <div className="mb-12 flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:justify-between sm:text-left">
               <div className="space-y-1">
                 <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Trending Now</p>
-                <h3 className="text-3xl font-black text-slate-900">Explore Popular Books</h3>
+                <h3 className="text-2xl font-black text-slate-900 sm:text-3xl">Explore Popular Books</h3>
               </div>
               <Button onClick={() => navigate("/catalog")} variant="link" className="text-indigo-600 hover:text-indigo-800 font-bold p-2 flex items-center gap-1.5">
                 View catalog <ChevronRight className="h-4 w-4" />
@@ -386,7 +386,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
             <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Built For KV Students</p>
-            <h3 className="text-3xl sm:text-4xl font-black text-slate-900">A Modern Gamified Library</h3>
+            <h3 className="text-2xl sm:text-4xl font-black text-slate-900">A Modern Gamified Library</h3>
             <p className="text-sm text-slate-600 leading-relaxed pt-1">We have reimagined the library experience by connecting reading with gamification, comprehension milestones, and social connection.</p>
           </div>
           

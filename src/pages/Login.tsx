@@ -209,12 +209,19 @@ const Login = () => {
         <div className="w-full max-w-[420px] animate-fade-in">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center shadow-lg">
-              <BookOpen className="h-7 w-7 text-primary-foreground" />
+            <div className="flex items-center -space-x-2.5 shrink-0">
+              <div className="relative z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200/80 bg-slate-50 shadow-xs" title="PM SHRI Logo">
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="relative z-10 h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+                <Sparkles className="absolute hidden h-5 w-5 text-amber-500" />
+              </div>
+              <div className="relative z-20 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200/80 bg-slate-50 shadow-xs" title="KV Logo">
+                <img src="/logos/kv.png" alt="KV" className="relative z-10 h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+                <BookOpen className="absolute hidden h-5 w-5 text-indigo-600" />
+              </div>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground">KV Sulur Library</h1>
-              <p className="text-xs text-muted-foreground">Digital Library System</p>
+              <h1 className="text-sm font-bold text-foreground">PM SHRI KV AFS SULUR</h1>
+              <p className="text-xs text-muted-foreground">Digital Library Management System</p>
             </div>
           </div>
 
