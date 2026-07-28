@@ -15,6 +15,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showRegistrationNotice, setShowRegistrationNotice] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -281,7 +282,7 @@ const Login = () => {
           <div className="mt-8 pt-6 border-t border-border text-center">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Button variant="link" className="p-0 h-auto text-primary font-semibold" onClick={() => navigate('/register')}>
+              <Button variant="link" className="p-0 h-auto text-primary font-semibold" onClick={() => setShowRegistrationNotice(true)}>
                 Create Account
               </Button>
             </p>
@@ -294,6 +295,21 @@ const Login = () => {
           </div>
         </div>
       </div>
+      {showRegistrationNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-5" role="dialog" aria-modal="true" aria-labelledby="registration-notice-title">
+          <div className="w-full max-w-md rounded-3xl bg-white p-7 text-center shadow-2xl sm:p-8">
+            <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
+              <AlertCircle className="h-6 w-6" />
+            </div>
+            <h2 id="registration-notice-title" className="text-xl font-extrabold text-slate-900">Student accounts are ready</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">All student users have already been created. Use your 5-digit admission number and the default password <strong>Welcome@123</strong> to log in.</p>
+            <div className="mt-6 flex gap-3">
+              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowRegistrationNotice(false)}>Close</Button>
+              <Button className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700" onClick={() => navigate('/register')}>Continue</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
