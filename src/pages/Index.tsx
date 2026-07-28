@@ -529,7 +529,7 @@ const Index = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row items-center justify-between pt-8 text-xs text-slate-500">
-            <p>&copy; 2026 PM SHRI KENDRIYA VIDYALAYA AFS SULUR, DLMS. All rights reserved.</p>
+            <p>&copy; 2026 PM SHRI KENDRIYA VIDYALAYA AFS SULUR, DLMS. All rights reserved. DLMS Built by G V TANISH VETTRIVEL, Student & Team</p>
             <div className="flex space-x-6 mt-4 sm:mt-0">
               <a href="#" className="hover:text-slate-400 transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-slate-400 transition-colors">Terms of Service</a>
