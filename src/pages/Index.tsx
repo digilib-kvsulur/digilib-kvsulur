@@ -233,7 +233,7 @@ const Index = () => {
             </div>
             <div>
               <h1 className="text-sm font-black tracking-tight text-slate-900 leading-tight">PM SHRI KV SULUR</h1>
-              <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">DLMS</p>
+              <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">Digital Library System</p>
             </div>
           </div>
           <nav className="hidden md:flex items-center space-x-9 text-sm font-semibold text-slate-700">
