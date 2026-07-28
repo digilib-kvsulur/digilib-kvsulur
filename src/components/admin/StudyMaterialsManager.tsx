@@ -893,7 +893,7 @@ const StudyMaterialsManager = () => {
                     {addingCbse ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</> : <><Plus className="h-4 w-4 mr-2" /> {editingCbseId ? "Update Entry" : "Add Entry"}</>}
                   </Button>
                   {editingCbseId && (
-                    <Button type="button" variant="outline" onClick={() => { setEditingCbseId(null); setCbseForm({ category: "", chapter_title: "", chapter_number: "", file_url: "", description: "" }); }}>
+                    <Button type="button" variant="outline" onClick={() => { setEditingCbseId(null); setCbseForm({ category: "", chapter_title: "", chapter_number: "", file_url: "", description: "", class_number: "10", subject: "Mathematics" }); }}>
                       <X className="h-4 w-4 mr-1" /> Cancel Edit
                     </Button>
                   )}

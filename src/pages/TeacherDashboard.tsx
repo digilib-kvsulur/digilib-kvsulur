@@ -71,7 +71,7 @@ const TeacherDashboard = () => {
       }
       setTeacher(profile);
       const teacherClass = profile.student_class || "";
-      const { data: cls } = await supabase.from("profiles").select("student_class").eq("role", "student").eq("is_approved", true);
+      const { data: cls } = await supabase.from("profiles").select("student_class").eq("role", "student");
       const uniqSet = new Set((cls || []).map((c: any) => c.student_class).filter(Boolean));
       if (teacherClass) {
         uniqSet.add(teacherClass);
@@ -95,8 +95,8 @@ const TeacherDashboard = () => {
       if (initialClass) {
         // Load students in class
         const { data: st } = await supabase.from("profiles")
-          .select("id, first_name, last_name, roll_number, points, student_class")
-          .eq("role", "student").eq("is_approved", true).eq("student_class", initialClass)
+          .select("id, first_name, last_name, roll_number, points, student_class, is_approved")
+          .eq("role", "student").eq("student_class", initialClass)
           .order("points", { ascending: false });
         const studentList = st || [];
         setStudents(studentList);
@@ -131,8 +131,8 @@ const TeacherDashboard = () => {
 
     // Load students in class
     const { data: st } = await supabase.from("profiles")
-      .select("id, first_name, last_name, roll_number, points, student_class")
-      .eq("role", "student").eq("is_approved", true).eq("student_class", classToFetch)
+      .select("id, first_name, last_name, roll_number, points, student_class, is_approved")
+      .eq("role", "student").eq("student_class", classToFetch)
       .order("points", { ascending: false });
     
     const studentList = st || [];
@@ -410,15 +410,20 @@ const TeacherDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {students.length === 0 && <p className="text-sm text-muted-foreground py-6 text-center">No students registered in this class.</p>}
+                  {students.length === 0 && (
+                    <div className="text-center py-8 space-y-2">
+                      <p className="text-sm text-muted-foreground">No students registered in class <strong>{selectedClass}</strong>.</p>
+                      <p className="text-xs text-muted-foreground/70">Make sure students have selected <strong>"{selectedClass}"</strong> as their class during signup. Check the Admin Panel → Users to verify.</p>
+                    </div>
+                  )}
                   {students.map((s, i) => {
                     const studentActiveIssues = activeIssues.filter(x => x.user_id === s.id);
                     const studentOverdue = overdueIssues.filter(x => x.user_id === s.id);
                     return (
                       <div
                         key={s.id}
-                        onClick={() => drillDownStudent(s)}
-                        className="flex items-center justify-between p-3.5 rounded-xl border bg-card hover:bg-muted/30 hover:border-primary/30 transition-all cursor-pointer"
+                        onClick={() => s.is_approved && drillDownStudent(s)}
+                        className={`flex items-center justify-between p-3.5 rounded-xl border bg-card transition-all ${s.is_approved ? 'hover:bg-muted/30 hover:border-primary/30 cursor-pointer' : 'opacity-60 cursor-default'}`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{i + 1}</div>
@@ -428,9 +433,14 @@ const TeacherDashboard = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Badge variant="outline" className={studentOverdue.length ? "border-destructive text-destructive" : ""}>
-                            {studentActiveIssues.length} out {studentOverdue.length ? `(${studentOverdue.length} overdue)` : ""}
-                          </Badge>
+                          {!s.is_approved && (
+                            <Badge variant="outline" className="text-xs border-amber-400 text-amber-600 bg-amber-50">Pending Approval</Badge>
+                          )}
+                          {s.is_approved && (
+                            <Badge variant="outline" className={studentOverdue.length ? "border-destructive text-destructive" : ""}>
+                              {studentActiveIssues.length} out {studentOverdue.length ? `(${studentOverdue.length} overdue)` : ""}
+                            </Badge>
+                          )}
                           <Badge className="gradient-primary text-white font-bold">{s.points || 0} pts</Badge>
                         </div>
                       </div>
