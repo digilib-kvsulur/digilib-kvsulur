@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Papa from "papaparse";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ export default function BulkImportCbse({ onImported }: { onImported?: () => void
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<{ title: string; success: boolean; error?: string }[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleFile = (file: File) => {
@@ -174,22 +175,26 @@ export default function BulkImportCbse({ onImported }: { onImported?: () => void
           )}
 
           {/* File upload */}
-          <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg bg-slate-50">
+          <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg bg-slate-50 cursor-pointer" onClick={() => !loading && fileInputRef.current?.click()}>
             <Upload className="h-8 w-8 text-slate-400 mb-4" />
             <p className="text-sm font-medium mb-1">Select CSV File</p>
-            <p className="text-xs text-slate-500 mb-4">Upload your prepared CSV</p>
-            <label>
-              <Button type="button" variant="outline" disabled={loading} className="pointer-events-none">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Choose File"}
-              </Button>
-              <input
-                type="file"
-                accept=".csv"
-                className="hidden"
-                onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = ""; }}
-                disabled={loading}
-              />
-            </label>
+            <p className="text-xs text-slate-500 mb-4">Upload your prepared CSV — click anywhere here</p>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading}
+              onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
+            >
+              {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importing...</> : "Choose File"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = ""; }}
+              disabled={loading}
+            />
           </div>
 
           {/* Progress */}
