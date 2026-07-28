@@ -96,6 +96,17 @@ export default function EventDetailModal({
     <>
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl">
+          {/* Cover image — full-bleed banner outside padded content */}
+          {event.image_url && (
+            <div className="w-full overflow-hidden rounded-t-2xl relative" style={{ height: 260 }}>
+              <img
+                src={event.image_url}
+                alt={event.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            </div>
+          )}
           <div className="p-6 space-y-5">
             <DialogHeader className="space-y-3">
               <div className="flex flex-wrap gap-2">

@@ -406,20 +406,33 @@ const Index = () => {
               <h3 className="text-3xl font-black text-slate-900">Upcoming Events & Activities</h3>
               <p className="text-sm text-slate-600 pt-1">Get involved in reading forums, competitive quizzes, and book exhibitions.</p>
             </div>
-            
-             <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${dbEvents.length === 1 ? 'max-w-md mx-auto' : dbEvents.length === 2 ? 'max-w-2xl mx-auto' : 'md:grid-cols-3 lg:grid-cols-4'}`}>
+
+            <div className={`grid gap-5 ${
+              dbEvents.length === 1 ? 'grid-cols-1 max-w-sm mx-auto' :
+              dbEvents.length === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto' :
+              'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'
+            }`}>
               {dbEvents.map((e, i) => (
-                <article key={i} onClick={() => setSelectedEvent(e)} className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all hover:-translate-y-1.5 duration-300 p-1.5 flex flex-col cursor-pointer">
-                  <div className="relative overflow-hidden rounded-2xl bg-slate-100 flex items-center justify-center">
-                    <img src={e.img} alt={e.title} loading="lazy" className="w-full h-auto max-h-[250px] object-cover transition-transform duration-700 group-hover:scale-105" />
-                    <span className="absolute top-3 left-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-md z-10 whitespace-nowrap overflow-hidden text-ellipsis max-w-[90%]">{e.badge}</span>
+                <article
+                  key={i}
+                  onClick={() => setSelectedEvent(e)}
+                  className="group rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-xl transition-all hover:-translate-y-2 duration-300 flex flex-col cursor-pointer"
+                >
+                  <div className="relative overflow-hidden bg-slate-100" style={{ height: 220 }}>
+                    <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <span className="absolute top-3 left-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-md z-10 max-w-[85%] truncate">{e.badge}</span>
+                    <span className="absolute bottom-3 right-3 bg-white/90 text-indigo-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      View Details →
+                    </span>
                   </div>
-                  <div className="p-4 space-y-2.5 flex-1 flex flex-col justify-start">
-                    <div className="flex items-center gap-2 text-xs text-indigo-600 font-bold shrink-0">
-                      <Clock className="h-4 w-4" /> {e.date}
+                  <div className="p-5 space-y-2 flex-1 flex flex-col">
+                    <div className="flex items-center gap-2 text-xs text-indigo-600 font-bold">
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{e.date}</span>
                     </div>
-                    <h4 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug line-clamp-2" title={e.title}>{e.title}</h4>
-                    <p className="text-sm text-slate-600 leading-relaxed line-clamp-3" title={e.desc}>{e.desc}</p>
+                    <h4 className="text-base font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug line-clamp-2 flex-1" title={e.title}>{e.title}</h4>
+                    <p className="text-sm text-slate-500 leading-relaxed line-clamp-2" title={e.desc}>{e.desc}</p>
                   </div>
                 </article>
               ))}
