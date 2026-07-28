@@ -255,7 +255,7 @@ const Index = () => {
               </div>
             ) : (
               <>
-                <button onClick={() => navigate("/login")} className="text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl font-semibold px-4 py-2 text-sm transition-colors">Login</button>
+                <button onClick={() => navigate("/login")} className="hidden sm:block text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl font-semibold px-4 py-2 text-sm transition-colors">Login</button>
                 <Button onClick={() => navigate("/login")} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-md shadow-indigo-600/20 border-0 px-6 py-2.5 h-10">
                   Get Started
                 </Button>
