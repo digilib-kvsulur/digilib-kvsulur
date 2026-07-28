@@ -145,8 +145,13 @@ const AdminDashboard = () => {
       <aside className="hidden lg:flex w-64 bg-card border-r border-border flex-col fixed h-full z-40">
         <div className="p-5 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center shadow-md">
-              <BookOpen className="h-5 w-5 text-primary-foreground" />
+            <div className="flex items-center -space-x-2 shrink-0">
+              <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-10" title="PM SHRI Logo">
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain p-1" />
+              </div>
+              <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-20" title="KV Logo">
+                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain p-1" />
+              </div>
             </div>
             <div className="min-w-0">
               <h1 className="text-sm font-bold text-foreground truncate">PM SHRI KV SULUR</h1>

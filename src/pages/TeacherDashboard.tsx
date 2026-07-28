@@ -310,8 +310,13 @@ const TeacherDashboard = () => {
       <header className="bg-card border-b sticky top-0 z-40 bg-white">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#0f1b3d] rounded-xl flex items-center justify-center shadow-md">
-              <GraduationCap className="h-6 w-6 text-white" />
+            <div className="flex items-center -space-x-2 shrink-0">
+              <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-10" title="PM SHRI Logo">
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain p-1" />
+              </div>
+              <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-20" title="KV Logo">
+                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain p-1" />
+              </div>
             </div>
             <div>
               <h1 className="text-base font-bold text-[#0f1b3d]">DLMS Teacher Panel</h1>

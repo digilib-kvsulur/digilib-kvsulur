@@ -153,7 +153,14 @@ const Index = () => {
             }
           })(),
           desc: ev.description || "No description provided.",
-          badge: ev.location || "Upcoming",
+          badge: (() => {
+            const now = new Date();
+            const start = new Date(ev.event_date);
+            const end = ev.end_date ? new Date(ev.end_date) : start;
+            if (now > end) return "Completed";
+            if (now >= start && now <= end) return "Ongoing";
+            return "Upcoming";
+          })(),
           img: ev.image_url || event1Img,
           orientation: ev.image_orientation || "horizontal"
         }));
