@@ -139,13 +139,13 @@ const Login = () => {
             {/* Dual Logo Placeholders */}
             <div className="flex items-center -space-x-2.5 shrink-0">
               {/* PM SHRI Logo Slot */}
-              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs" title="PM SHRI Logo">
-                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+              <div className="relative flex h-10 w-10 items-center justify-center" title="PM SHRI Logo">
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="relative z-10 h-full w-full object-contain drop-shadow-sm" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
                 <Sparkles className="h-5 w-5 text-amber-500 absolute hidden" />
               </div>
               {/* KV Logo Slot */}
-              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs z-10" title="KV Logo">
-                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+              <div className="relative z-10 flex h-10 w-10 items-center justify-center" title="KV Logo">
+                <img src="/logos/kv.png" alt="KV" className="relative z-10 h-full w-full object-contain drop-shadow-sm" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
                 <BookOpen className="h-5 w-5 text-indigo-600 absolute hidden" />
               </div>
             </div>
