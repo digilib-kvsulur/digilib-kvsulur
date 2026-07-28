@@ -136,12 +136,16 @@ const Login = () => {
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <div className="flex items-center gap-3">
             {/* Dual Logo Placeholders */}
-            <div className="flex items-center -space-x-2 shrink-0">
-              <div className="relative w-12 h-12 rounded-full bg-white border-2 border-white/30 flex items-center justify-center overflow-hidden shadow-lg" title="PM SHRI Logo">
-                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain p-1" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+            <div className="flex items-center -space-x-2.5 shrink-0">
+              {/* PM SHRI Logo Slot */}
+              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs" title="PM SHRI Logo">
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+                <Sparkles className="h-5 w-5 text-amber-500 absolute hidden" />
               </div>
-              <div className="relative w-12 h-12 rounded-full bg-white border-2 border-white/30 flex items-center justify-center overflow-hidden shadow-lg z-10" title="KV Logo">
-                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain p-1" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+              {/* KV Logo Slot */}
+              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs z-10" title="KV Logo">
+                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+                <BookOpen className="h-5 w-5 text-indigo-600 absolute hidden" />
               </div>
             </div>
             <div>
