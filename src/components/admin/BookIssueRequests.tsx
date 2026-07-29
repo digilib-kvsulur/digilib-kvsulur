@@ -61,19 +61,16 @@ const BookIssueRequests = () => {
     } finally { setLoading(false); }
   };
 
-  const handleApproveRequest = async (requestId: string, bookId: string, userId: string) => {
+  const handleApproveRequest = async (requestId: string, _bookId: string, userId: string) => {
     try {
-      const { data: book } = await supabase.from('books').select('available_copies').eq('id', bookId).single();
-      if (!book || book.available_copies <= 0) { toast({ title: "Error", description: "Book is not available.", variant: "destructive" }); return; }
-      const dueDate = new Date(); dueDate.setDate(dueDate.getDate() + 7);
-      const { error: issueError } = await supabase.from('book_issues').insert({ user_id: userId, book_id: bookId, due_date: dueDate.toISOString().split('T')[0] });
-      if (issueError) throw issueError;
-      await supabase.from('books').update({ available_copies: book.available_copies - 1 }).eq('id', bookId);
-      
       const customReply = replyText[requestId]?.trim();
       const reply = customReply || 'Book issued successfully';
-      
-      await supabase.from('book_requests').update({ status: 'approved', admin_notes: reply }).eq('id', requestId);
+      const { error: approvalError } = await supabase.rpc('approve_book_request', {
+        p_request_id: requestId,
+        p_admin_notes: reply,
+        p_due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      });
+      if (approvalError) throw approvalError;
       // Send notification
       const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('notifications').insert({ 
