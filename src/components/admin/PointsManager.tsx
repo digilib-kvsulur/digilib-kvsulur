@@ -17,7 +17,6 @@ interface User {
   last_name: string;
   student_class?: string;
   points: number;
-  admission_number?: string | null;
 }
 
 const PointsManager = () => {
@@ -25,7 +24,6 @@ const PointsManager = () => {
   const [loading, setLoading] = useState(true);
   const [awarding, setAwarding] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
-  const [studentSearch, setStudentSearch] = useState("");
   const [pointsToAward, setPointsToAward] = useState("");
   const [reason, setReason] = useState("");
   
@@ -62,7 +60,7 @@ const PointsManager = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, student_class, admission_number, points')
+        .select('id, first_name, last_name, student_class, points')
         .eq('role', 'student')
         .eq('is_approved', true)
         .order('first_name');
@@ -175,12 +173,6 @@ const PointsManager = () => {
     if (selectedUserIds.size === users.length) setSelectedUserIds(new Set());
     else setSelectedUserIds(new Set(users.map(u => u.id)));
   };
-
-  const matchingUsers = users.filter(user => {
-    const query = studentSearch.trim().toLowerCase();
-    return !query || `${user.first_name} ${user.last_name}`.toLowerCase().includes(query) ||
-      (user.admission_number || "").toLowerCase().includes(query);
-  });
 
   const loadPendingReadings = async () => {
     setLoadingReadings(true);
@@ -317,16 +309,14 @@ const PointsManager = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="student">Select Student</Label>
-              <Input value={studentSearch} onChange={event => setStudentSearch(event.target.value)} placeholder="Search admission number or name..." />
               <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a student" />
                 </SelectTrigger>
                 <SelectContent>
-                  {matchingUsers.map((user) => (
+                  {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.first_name} {user.last_name} 
-                      {user.admission_number && ` (${user.admission_number})`}
                       {user.student_class && ` (${user.student_class})`}
                     </SelectItem>
                   ))}
