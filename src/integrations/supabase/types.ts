@@ -1227,7 +1227,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      approve_reading_entry: { Args: { p_reading_id: string }; Returns: number }
       approve_book_request: {
         Args: {
           p_admin_notes: string
@@ -1236,7 +1235,6 @@ export type Database = {
         }
         Returns: string
       }
-      claim_streak_points: { Args: never; Returns: number }
       find_user_by_identifier: {
         Args: { identifier: string }
         Returns: {
@@ -1344,24 +1342,6 @@ export type Database = {
         Returns: boolean
       }
       is_staff_or_admin: { Args: { _uid: string }; Returns: boolean }
-      issue_book_to_user: {
-        Args: { p_book_id: string; p_issue_date?: string; p_user_id: string }
-        Returns: string
-      }
-      get_teacher_class_students: {
-        Args: { p_class: string }
-        Returns: {
-          avatar_url: string
-          avatar_url: string
-          first_name: string
-          id: string
-          is_approved: boolean
-          last_name: string
-          points: number
-          roll_number: string
-          student_class: string
-        }[]
-      }
       record_login_streak: {
         Args: { p_user_id: string }
         Returns: {

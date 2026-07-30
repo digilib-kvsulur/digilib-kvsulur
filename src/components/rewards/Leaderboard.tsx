@@ -7,7 +7,6 @@ import { LeaderboardEntry } from "@/types/rewards";
 interface LeaderboardProps {
   entries: LeaderboardEntry[];
   currentUserId?: string;
-  onEntryClick?: (userId: string) => void;
 }
 
 const getRankIcon = (rank: number) => {
@@ -28,7 +27,7 @@ const getRankBg = (rank: number) => {
   }
 };
 
-const Leaderboard = ({ entries, currentUserId, onEntryClick }: LeaderboardProps) => {
+const Leaderboard = ({ entries, currentUserId }: LeaderboardProps) => {
   const validEntries = entries.filter(e => e?.studentName && typeof e.totalPoints === 'number' && e.totalPoints >= 0);
   const topThree = validEntries.slice(0, 3);
   const others = validEntries.slice(3);
@@ -51,10 +50,8 @@ const Leaderboard = ({ entries, currentUserId, onEntryClick }: LeaderboardProps)
           {topThree.map((entry) => (
             <div
               key={entry.id || entry.studentId}
-              onClick={() => entry.studentId && onEntryClick?.(entry.studentId)}
               className={`relative p-4 rounded-xl border bg-gradient-to-b transition-all hover:shadow-md ${getRankBg(entry.rank)} ${
                 entry.studentId === currentUserId ? 'ring-2 ring-primary' : ''
-              } ${entry.studentId && onEntryClick ? 'cursor-pointer' : ''
               }`}
             >
               <div className="text-center">
@@ -83,10 +80,8 @@ const Leaderboard = ({ entries, currentUserId, onEntryClick }: LeaderboardProps)
           {others.map((entry) => (
             <div
               key={entry.id || entry.studentId}
-              onClick={() => entry.studentId && onEntryClick?.(entry.studentId)}
               className={`flex items-center gap-3 px-4 py-3 transition-all hover:bg-muted/30 ${
                 entry.studentId === currentUserId ? 'bg-primary/5 border-l-2 border-l-primary' : ''
-              } ${entry.studentId && onEntryClick ? 'cursor-pointer' : ''
               }`}
             >
               <div className="w-7 flex items-center justify-center shrink-0">

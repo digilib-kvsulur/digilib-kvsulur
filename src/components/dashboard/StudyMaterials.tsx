@@ -137,10 +137,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
     if (!ncertForClass[sub]) {
       ncertForClass[sub] = { name: `${sub} (Complete)`, chapters: [] };
     }
-    const title = row.chapter_title?.trim() || `Chapter ${row.chapter_number || ncertForClass[sub].chapters.length + 1}`;
-    if (!ncertForClass[sub].chapters.some(chapter => chapter.url === row.file_url || chapter.title.trim().toLowerCase() === title.toLowerCase())) {
-      ncertForClass[sub].chapters.push({ title, url: row.file_url });
-    }
+    ncertForClass[sub].chapters.push({ title: row.chapter_title, url: row.file_url });
   });
 
   // If no DB entries found, fall back to hardcoded data

@@ -94,7 +94,10 @@ const TeacherDashboard = () => {
       // Directly load class data since selectedClass useEffect may not fire if value doesn't change
       if (initialClass) {
         // Load students in class
-        const { data: st } = await supabase.rpc("get_teacher_class_students", { p_class: initialClass });
+        const { data: st } = await supabase.from("profiles")
+          .select("id, first_name, last_name, roll_number, points, student_class, is_approved")
+          .eq("role", "student").eq("student_class", initialClass)
+          .order("points", { ascending: false });
         const studentList = st || [];
         setStudents(studentList);
         const ids = studentList.map((s: any) => s.id);
@@ -127,7 +130,10 @@ const TeacherDashboard = () => {
     if (!classToFetch) return;
 
     // Load students in class
-    const { data: st } = await supabase.rpc("get_teacher_class_students", { p_class: classToFetch });
+    const { data: st } = await supabase.from("profiles")
+      .select("id, first_name, last_name, roll_number, points, student_class, is_approved")
+      .eq("role", "student").eq("student_class", classToFetch)
+      .order("points", { ascending: false });
     
     const studentList = st || [];
     setStudents(studentList);

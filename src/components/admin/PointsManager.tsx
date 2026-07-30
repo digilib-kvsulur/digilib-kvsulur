@@ -203,12 +203,11 @@ const PointsManager = () => {
 
   const handleApproveReading = async (id: string) => {
     setApprovingId(id);
-    const { data: awarded, error } = await supabase.rpc('approve_reading_entry', { p_reading_id: id });
+    const { error } = await supabase.from('reading_history').update({ status: 'approved' }).eq('id', id);
     if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    else toast({ title: 'Approved', description: `Reading approved and ${awarded || 0} points awarded.` });
+    else toast({ title: 'Approved', description: 'Points awarded to the student.' });
     setApprovingId(null);
     loadPendingReadings();
-    loadUsers();
   };
 
   const handleRejectReading = async (id: string) => {

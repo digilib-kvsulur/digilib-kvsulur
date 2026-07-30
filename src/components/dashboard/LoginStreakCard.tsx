@@ -56,13 +56,30 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
     try {
       const todayStr = new Date().toISOString().split("T")[0];
 
-      const { data: earned, error: claimError } = await supabase.rpc("claim_streak_points");
-      if (claimError) throw claimError;
+      // Update points and last claimed date
+      const { data: profile, error: fetchError } = await supabase
+        .from("profiles")
+        .select("points")
+        .eq("id", userId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      const newPoints = (Number(profile.points) || 0) + pointsPerStreak;
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          points: newPoints,
+          streak_last_claimed: todayStr
+        })
+        .eq("id", userId);
+
+      if (updateError) throw updateError;
 
       setClaimedToday(true);
       toast({
         title: "Daily Streak Bonus Claimed!",
-        description: `Day ${currentStreak}: you earned +${earned || pointsPerStreak * currentStreak} points!`,
+        description: `Successfully claimed +${pointsPerStreak} points for keeping your streak alive!`,
       });
       onPointsClaimed?.();
     } catch (e: any) {
