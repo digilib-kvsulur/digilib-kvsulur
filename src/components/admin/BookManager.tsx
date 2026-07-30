@@ -54,7 +54,6 @@ const BookManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
-  const [duplicatesOnly, setDuplicatesOnly] = useState(false);
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [bulkEdit, setBulkEdit] = useState({ category: "", language: "", subject: "", class_level: "", cover_url: "" });
@@ -326,18 +325,10 @@ const BookManager = () => {
   if (loading) return <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
   const categories = Array.from(new Set(books.map(b => b.category).filter(Boolean))) as string[];
-  const duplicateAccessionNumbers = new Set(
-    Object.entries(books.reduce<Record<string, number>>((counts, book) => {
-      const accession = book.accession_number?.trim().toLowerCase();
-      if (accession) counts[accession] = (counts[accession] || 0) + 1;
-      return counts;
-    }, {})).filter(([, count]) => count > 1).map(([accession]) => accession)
-  );
   const filteredBooks = books.filter(b => {
     if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
     if (availabilityFilter === "available" && b.available_copies <= 0) return false;
     if (availabilityFilter === "issued" && b.available_copies >= b.total_copies) return false;
-    if (duplicatesOnly && !duplicateAccessionNumbers.has(b.accession_number?.trim().toLowerCase() || "")) return false;
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
     return b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || (b.accession_number || "").toLowerCase().includes(q);
@@ -400,12 +391,6 @@ const BookManager = () => {
                 <SelectItem value="issued">Issued only</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-md border bg-muted/30 p-3 text-sm">
-            <span>{duplicateAccessionNumbers.size} repeated accession number{duplicateAccessionNumbers.size === 1 ? "" : "s"} found</span>
-            <Button type="button" size="sm" variant={duplicatesOnly ? "default" : "outline"} onClick={() => setDuplicatesOnly(value => !value)}>
-              {duplicatesOnly ? "Show all books" : "Find duplicates"}
-            </Button>
           </div>
         </CardContent>
       </Card>

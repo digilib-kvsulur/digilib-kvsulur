@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +29,6 @@ export default function BadgeManager() {
   const [awardOpen, setAwardOpen] = useState<BadgeRow | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState("");
-  const [studentSearch, setStudentSearch] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -110,8 +109,8 @@ export default function BadgeManager() {
   };
 
   const openAward = async (b: BadgeRow) => {
-    setAwardOpen(b); setSelectedStudent(""); setStudentSearch("");
-    const { data } = await supabase.from("profiles").select("id, first_name, last_name, student_class, admission_number").eq("role", "student").eq("is_approved", true).order("first_name");
+    setAwardOpen(b); setSelectedStudent("");
+    const { data } = await supabase.from("profiles").select("id, first_name, last_name, student_class").eq("role", "student").eq("is_approved", true).order("first_name");
     setStudents(data || []);
   };
   const doAward = async () => {
@@ -121,15 +120,6 @@ export default function BadgeManager() {
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { toast({ title: "Badge awarded" }); setAwardOpen(null); }
   };
-
-  const matchingStudents = useMemo(() => {
-    const query = studentSearch.trim().toLowerCase();
-    if (!query) return students;
-    return students.filter(student =>
-      `${student.first_name || ""} ${student.last_name || ""}`.toLowerCase().includes(query) ||
-      (student.admission_number || "").toLowerCase().includes(query)
-    );
-  }, [students, studentSearch]);
 
   return (
     <div className="space-y-4">
@@ -203,16 +193,6 @@ export default function BadgeManager() {
       <Dialog open={!!awardOpen} onOpenChange={(o) => !o && setAwardOpen(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Award "{awardOpen?.name}"</DialogTitle></DialogHeader>
-          <Input value={studentSearch} onChange={event => setStudentSearch(event.target.value)} placeholder="Search by admission number or name..." />
-          {studentSearch.trim() && (
-            <div className="max-h-32 overflow-y-auto rounded-md border p-1">
-              {matchingStudents.length ? matchingStudents.map(student => (
-                <Button key={student.id} type="button" variant="ghost" className="w-full justify-start text-left" onClick={() => setSelectedStudent(student.id)}>
-                  {student.first_name} {student.last_name} · {student.admission_number || "No admission #"}
-                </Button>
-              )) : <p className="p-2 text-sm text-muted-foreground">No matching students</p>}
-            </div>
-          )}
           <Select value={selectedStudent} onValueChange={setSelectedStudent}>
             <SelectTrigger><SelectValue placeholder="Pick a student..." /></SelectTrigger>
             <SelectContent className="max-h-72">{students.map(s => <SelectItem key={s.id} value={s.id}>{s.first_name} {s.last_name} · Class {s.student_class || "—"}</SelectItem>)}</SelectContent>
