@@ -1227,6 +1227,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_book_request: {
+        Args: {
+          p_admin_notes: string
+          p_due_date: string
+          p_request_id: string
+        }
+        Returns: string
+      }
       find_user_by_identifier: {
         Args: { identifier: string }
         Returns: {

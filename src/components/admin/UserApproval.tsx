@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw, Loader2, GraduationCap } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw, Loader2, GraduationCap, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -43,6 +43,7 @@ const UserApproval = () => {
   const [editingClassTarget, setEditingClassTarget] = useState<PendingUser | null>(null);
   const [newClassVal, setNewClassVal] = useState("");
   const [updatingClass, setUpdatingClass] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => { init(); }, []);
@@ -163,6 +164,25 @@ const UserApproval = () => {
       toast({ title: "Error", description: e.message || "Failed to update class", variant: "destructive" });
     } finally {
       setUpdatingClass(false);
+    }
+  };
+
+  const deleteUser = async (user: PendingUser) => {
+    if (user.id === currentUser?.id) {
+      toast({ title: "Cannot delete current account", variant: "destructive" });
+      return;
+    }
+    if (!confirm(`Permanently delete ${user.first_name} ${user.last_name}'s account? This cannot be undone.`)) return;
+    setDeletingUserId(user.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", { body: { user_id: user.id } });
+      if (error || (data as any)?.error) throw new Error(error?.message || (data as any)?.error);
+      toast({ title: "User deleted", description: "The profile and login account were removed." });
+      await loadUsers();
+    } catch (error: any) {
+      toast({ title: "Delete failed", description: error.message || "Unable to delete user.", variant: "destructive" });
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -318,6 +338,9 @@ const UserApproval = () => {
                           <Button size="sm" variant="destructive" onClick={() => setApproval([u.id], false)}>
                             <XCircle className="h-4 w-4 mr-1" />Reject
                           </Button>
+                          <Button size="sm" variant="outline" className="text-destructive" disabled={deletingUserId === u.id} onClick={() => deleteUser(u)}>
+                            <Trash2 className="h-4 w-4 mr-1" />{deletingUserId === u.id ? "Deleting..." : "Delete"}
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -381,6 +404,9 @@ const UserApproval = () => {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive" onClick={() => setApproval([u.id], false)}>
                               <XCircle className="h-4 w-4 mr-2" />Revoke access
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" disabled={deletingUserId === u.id} onClick={() => deleteUser(u)}>
+                              <Trash2 className="h-4 w-4 mr-2" />{deletingUserId === u.id ? "Deleting..." : "Delete user"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
