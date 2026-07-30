@@ -12,7 +12,13 @@ export interface FetchedBookDetails {
   category?: string;
   subject?: string;
   language?: string;
+  class_level?: string;
 }
+
+const inferClassLevel = (title: string, subjects: string[] = []): string => {
+  const match = `${title} ${subjects.join(" ")}`.match(/(?:class|grade|standard)\s*(\d{1,2})\b/i);
+  return match ? match[1] : "";
+};
 
 const CATEGORY_KEYWORDS = [
   "Fiction", "Non-fiction", "Science", "Mathematics", "History", "Biography", 
@@ -39,6 +45,15 @@ const guessCategory = (subjects: string[]): string => {
     subjects.some(subj => subj.toLowerCase().includes(kw.toLowerCase()))
   );
   return found || "General Literature";
+};
+
+const fetchInternetArchiveCover = async (title: string, author?: string): Promise<string> => {
+  try {
+    const query = encodeURIComponent(`title:(${title})${author ? ` AND creator:(${author})` : ""}`);
+    const response = await fetch(`https://archive.org/advancedsearch.php?q=${query}&fl[]=identifier&rows=1&output=json`);
+    const identifier = response.ok ? (await response.json())?.response?.docs?.[0]?.identifier : null;
+    return identifier ? `https://archive.org/services/img/${identifier}` : "";
+  } catch { return ""; }
 };
 
 /**
@@ -79,6 +94,7 @@ export async function fetchBookByIsbn(isbn: string): Promise<FetchedBookDetails 
           category: info.categories?.[0] || guessCategory(info.categories || []),
           subject: info.categories?.join(", ") || "",
           language: mapLanguage(info.language || ""),
+          class_level: inferClassLevel(info.title || "", info.categories || []),
         };
       }
     }
@@ -106,6 +122,7 @@ export async function fetchBookByIsbn(isbn: string): Promise<FetchedBookDetails 
             category: guessCategory(subjects),
             subject: subjects.slice(0, 3).join(", "),
             language: "English",
+            class_level: inferClassLevel(info.title || "", subjects),
           };
         }
       }
@@ -153,6 +170,7 @@ export async function fetchBookByQuery(title: string, author?: string): Promise<
           category: info.categories?.[0] || guessCategory(info.categories || []),
           subject: info.categories?.join(", ") || "",
           language: mapLanguage(info.language || ""),
+          class_level: inferClassLevel(info.title || "", info.categories || []),
         };
       }
     }
@@ -180,6 +198,7 @@ export async function fetchBookByQuery(title: string, author?: string): Promise<
             category: guessCategory(subjects),
             subject: subjects.slice(0, 3).join(", "),
             language: mapLanguage(lang),
+            class_level: inferClassLevel(doc.title || "", subjects),
           };
         }
       }
@@ -187,6 +206,9 @@ export async function fetchBookByQuery(title: string, author?: string): Promise<
       console.error("Open Library query fetch failed:", error);
     }
   }
+
+  // 3) Internet Archive provides an additional cover source when catalogues have no image.
+  if (details && !details.cover_url) details.cover_url = await fetchInternetArchiveCover(details.title || title, details.author || author);
 
   // If we found details or if external API gave sparse info, ensure we have a rich description and category
   if (!details && title) {

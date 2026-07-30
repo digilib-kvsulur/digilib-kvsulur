@@ -156,6 +156,7 @@ const BookManager = () => {
         language: prev.language || details.language || "",
         category: prev.category || details.category || "",
         subject: prev.subject || details.subject || "",
+        class_level: prev.class_level || details.class_level || "",
         description: prev.description || details.description || "",
         cover_url: prev.cover_url || details.cover_url || "",
       }));
@@ -216,6 +217,7 @@ const BookManager = () => {
           if (!book.cover_url && details.cover_url) patch.cover_url = details.cover_url;
           if (!book.category && details.category) patch.category = details.category;
           if (!(book as any).language && details.language) patch.language = details.language;
+          if (!book.class_level && details.class_level) patch.class_level = details.class_level;
         }
         if (!patch.description) {
           const { generateSmartBookDescription } = await import("@/lib/bookApi");
@@ -385,7 +387,7 @@ const BookManager = () => {
             className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
           >
             <Wand2 className="h-4 w-4 mr-2" />
-            Fetch Online Data
+            Smart Fetch (Google, Open Library & Archive)
           </Button>
           <BulkImportBooks onImported={loadBooks} />
           <Button onClick={handleAddNew} className="gradient-primary border-0 shadow-md">

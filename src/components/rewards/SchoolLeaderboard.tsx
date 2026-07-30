@@ -18,6 +18,7 @@ interface SchoolLeaderboardEntry {
 
 interface SchoolLeaderboardProps {
   currentUserId?: string;
+  onEntryClick?: (userId: string) => void;
 }
 
 const getRankIcon = (rank: number) => {
@@ -38,7 +39,7 @@ const getRankBg = (rank: number) => {
   }
 };
 
-const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
+const SchoolLeaderboard = ({ currentUserId, onEntryClick }: SchoolLeaderboardProps) => {
   const [entries, setEntries] = useState<SchoolLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
@@ -121,9 +122,10 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
           {topThree.map((entry) => (
             <div
               key={entry.id}
+              onClick={() => onEntryClick?.(entry.id)}
               className={`relative p-4 rounded-xl border bg-gradient-to-b transition-all hover:shadow-md ${getRankBg(entry.rank)} ${
                 entry.id === currentUserId ? 'ring-2 ring-primary' : ''
-              }`}
+              } ${onEntryClick ? 'cursor-pointer' : ''}`}
             >
               <div className="text-center">
                 <div className="flex justify-center mb-2">{getRankIcon(entry.rank)}</div>
@@ -149,9 +151,10 @@ const SchoolLeaderboard = ({ currentUserId }: SchoolLeaderboardProps) => {
           {others.map((entry) => (
             <div
               key={entry.id}
+              onClick={() => onEntryClick?.(entry.id)}
               className={`flex items-center gap-3 px-4 py-3 transition-all hover:bg-muted/30 ${
                 entry.id === currentUserId ? 'bg-primary/5 border-l-2 border-l-primary' : ''
-              }`}
+              } ${onEntryClick ? 'cursor-pointer' : ''}`}
             >
               <div className="w-7 flex items-center justify-center shrink-0">{getRankIcon(entry.rank)}</div>
               <Avatar className="h-8 w-8 shrink-0">

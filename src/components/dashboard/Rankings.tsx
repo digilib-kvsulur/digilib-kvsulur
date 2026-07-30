@@ -148,7 +148,7 @@ const Rankings = ({ user }: RankingsProps) => {
               <CardDescription className="text-xs">Ranking among all students</CardDescription>
             </CardHeader>
             <CardContent>
-              <SchoolLeaderboard currentUserId={user?.id} />
+              <SchoolLeaderboard currentUserId={user?.id} onEntryClick={openProfile} />
             </CardContent>
           </Card>
         </TabsContent>

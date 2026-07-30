@@ -38,6 +38,7 @@ import BadgeCabinet from "@/components/rewards/BadgeCabinet";
 import MyRequests from "@/components/dashboard/MyRequests";
 import NetworkTab from "@/components/dashboard/NetworkTab";
 import ProfileCompletionDialog from "@/components/dashboard/ProfileCompletionDialog";
+import ReturnedBookReviewPrompt from "@/components/dashboard/ReturnedBookReviewPrompt";
 
 type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "network" | "profile";
 
@@ -278,6 +279,7 @@ const StudentDashboard = () => {
 
   return (
     <div className="h-dvh overflow-hidden bg-background flex">
+      <ReturnedBookReviewPrompt userId={user?.id} />
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 bg-card border-r border-border flex-col fixed h-full z-40">
         <div className="p-5 border-b border-border">

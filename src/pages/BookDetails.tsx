@@ -295,7 +295,7 @@ export default function BookDetails() {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-transparent to-transparent" />
         <div className="absolute top-6 left-6 z-10">
-          <Button variant="outline" onClick={() => navigate(-1)} className="rounded-xl border-slate-200 bg-white/90 hover:bg-white text-slate-800 font-bold shadow-xs">
+          <Button variant="outline" onClick={() => navigate(-1)} className="rounded-xl border-slate-200 bg-white/90 text-slate-800 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 font-bold shadow-xs transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Catalog
           </Button>
         </div>
@@ -328,7 +328,7 @@ export default function BookDetails() {
                 onClick={toggleWishlist}
                 variant="outline" 
                 disabled={actionLoading}
-                className="rounded-xl border-slate-200 bg-white hover:bg-slate-50 font-semibold h-12 text-slate-800 shadow-xs"
+                className={`rounded-xl border-slate-200 bg-white font-semibold h-12 text-slate-800 shadow-xs transition-colors ${inWishlist ? "hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300" : "hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300"}`}
               >
                 {inWishlist ? (
                   <><BookmarkCheck className="h-4 w-4 mr-2 text-indigo-600" /> Saved</>
