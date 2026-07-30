@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Trophy, Users, Shield, Award, Medal, Crown } from "lucide-react";
 import Leaderboard from "@/components/rewards/Leaderboard";
 import SchoolLeaderboard from "@/components/rewards/SchoolLeaderboard";
 import { supabase } from "@/integrations/supabase/client";
+import { ProfileView } from "@/components/community/ProfileView";
 
 interface RankingsProps {
   user: any;
@@ -15,6 +17,8 @@ const Rankings = ({ user }: RankingsProps) => {
   const [classLeaderboardEntries, setClassLeaderboardEntries] = useState<any[]>([]);
   const [leagueEntries, setLeagueEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [profileFriendship, setProfileFriendship] = useState<any>(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -71,6 +75,28 @@ const Rankings = ({ user }: RankingsProps) => {
     }
   };
 
+  const openProfile = async (userId: string) => {
+    if (!userId) return;
+    const { data } = await supabase.from("friendships").select("*")
+      .or(`and(requester_id.eq.${user.id},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${user.id})`).maybeSingle();
+    setProfileFriendship(data || null);
+    setProfileUserId(userId);
+  };
+  const sendRequest = async (targetId: string) => {
+    const { data, error } = await supabase.from("friendships").insert({ requester_id: user.id, addressee_id: targetId }).select().single();
+    if (!error) setProfileFriendship(data);
+  };
+  const respondRequest = async (_targetId: string, status: string) => {
+    if (!profileFriendship) return;
+    const { data } = await supabase.from("friendships").update({ status }).eq("id", profileFriendship.id).select().single();
+    setProfileFriendship(data || null);
+  };
+  const removeRequest = async () => {
+    if (!profileFriendship) return;
+    await supabase.from("friendships").delete().eq("id", profileFriendship.id);
+    setProfileFriendship(null);
+  };
+
   if (loading) return (
     <Card><CardContent className="p-6"><div className="animate-pulse space-y-4"><div className="h-4 bg-muted rounded w-3/4" /><div className="h-4 bg-muted rounded w-1/2" /></div></CardContent></Card>
   );
@@ -110,7 +136,7 @@ const Rankings = ({ user }: RankingsProps) => {
               <CardDescription className="text-xs">Ranking based on total points earned</CardDescription>
             </CardHeader>
             <CardContent>
-              <Leaderboard entries={classLeaderboardEntries} currentUserId={user?.id} />
+              <Leaderboard entries={classLeaderboardEntries} currentUserId={user?.id} onEntryClick={openProfile} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -167,6 +193,11 @@ const Rankings = ({ user }: RankingsProps) => {
           </Card>
         </TabsContent>
       </Tabs>
+      <Dialog open={!!profileUserId} onOpenChange={open => !open && setProfileUserId(null)}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
+          {profileUserId && <ProfileView userId={profileUserId} currentUserId={user.id} friendship={profileFriendship} onSend={sendRequest} onRespond={respondRequest} onRemove={removeRequest} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

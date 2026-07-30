@@ -126,32 +126,16 @@ const BookIssueRegister = () => {
     try {
       if (isManualEntry) {
         const { data: newBook, error: bookError } = await supabase.from('books')
-          .insert({ title: manualBookTitle, author: manualBookAuthor, accession_number: accessionNumberInput.trim() || null, description: 'Manual entry - Physical library book', total_copies: 1, available_copies: 0 })
+          .insert({ title: manualBookTitle, author: manualBookAuthor, accession_number: accessionNumberInput.trim() || null, description: 'Manual entry - Physical library book', total_copies: 1, available_copies: 1 })
           .select().single();
         if (bookError) throw bookError;
-        const { error: issueError } = await supabase.from('book_issues').insert({
-          book_id: newBook.id,
-          user_id: selectedUser,
-          issue_date: issueDate,
-          due_date: dueDate,
-          status: 'issued',
-          accession_number: accessionNumberInput.trim() || null
-        });
+        const { error: issueError } = await supabase.rpc('issue_book_to_user', { p_book_id: newBook.id, p_user_id: selectedUser, p_issue_date: issueDate });
         if (issueError) throw issueError;
         toast({ title: "Success", description: "Manual book entry created and issued successfully" });
         setManualBookTitle(""); setManualBookAuthor("");
       } else {
-        const { error: issueError } = await supabase.from('book_issues').insert({ 
-          book_id: selectedBook, 
-          user_id: selectedUser, 
-          issue_date: issueDate, 
-          due_date: dueDate, 
-          status: 'issued',
-          accession_number: accessionNumberInput.trim() || null
-        });
+        const { error: issueError } = await supabase.rpc('issue_book_to_user', { p_book_id: selectedBook, p_user_id: selectedUser, p_issue_date: issueDate });
         if (issueError) throw issueError;
-        const { error: updateError } = await supabase.from('books').update({ available_copies: books.find(b => b.id === selectedBook)?.available_copies - 1 }).eq('id', selectedBook);
-        if (updateError) throw updateError;
         toast({ title: "Success", description: "Book issued successfully" });
         setSelectedBook("");
       }
@@ -288,7 +272,7 @@ const BookIssueRegister = () => {
           <CardTitle className="text-lg flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" /> Issue New Book
           </CardTitle>
-          <CardDescription>Issue a book to a student</CardDescription>
+          <CardDescription>Teachers receive 30-day loans with no issue limit; students receive one active 7-day loan.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -340,27 +324,27 @@ const BookIssueRegister = () => {
               )}
 
               <div className="space-y-1.5 flex flex-col">
-                <Label className="text-xs font-medium">Select Student *</Label>
+                <Label className="text-xs font-medium">Select Student / Teacher *</Label>
                 <Popover open={openUserDropdown} onOpenChange={setOpenUserDropdown}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" aria-expanded={openUserDropdown} className="h-10 justify-between font-normal text-left truncate px-3">
                       {selectedUser ? (() => {
                         const u = users.find((user) => user.id === selectedUser);
                         return u ? `${u.first_name} ${u.last_name} (${u.admission_number})` : "Unknown User";
-                      })() : "Search student..."}
+                      })() : "Search student or teacher..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0">
                     <Command>
-                      <CommandInput placeholder="Search students..." />
+                      <CommandInput placeholder="Search by name, admission no. or teacher..." />
                       <CommandList>
-                        <CommandEmpty>No student found.</CommandEmpty>
+                      <CommandEmpty>No student or teacher found.</CommandEmpty>
                         <CommandGroup>
                           {users.map((user) => (
-                            <CommandItem key={user.id} value={`${user.first_name} ${user.last_name} ${user.admission_number}`} onSelect={() => { setSelectedUser(user.id); setOpenUserDropdown(false); }}>
+                            <CommandItem key={user.id} value={`${user.first_name} ${user.last_name} ${user.admission_number} ${user.role} ${user.student_class || ""}`} onSelect={() => { setSelectedUser(user.id); setOpenUserDropdown(false); }}>
                               <Check className={cn("mr-2 h-4 w-4", selectedUser === user.id ? "opacity-100" : "opacity-0")} />
-                              {user.first_name} {user.last_name} ({user.admission_number})
+                              {user.first_name} {user.last_name} ({user.admission_number}) · {user.role === 'teacher' ? 'Teacher' : `Class ${user.student_class || '—'}`}
                             </CommandItem>
                           ))}
                         </CommandGroup>
