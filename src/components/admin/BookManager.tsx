@@ -312,6 +312,22 @@ const BookManager = () => {
     else { toast({ title: "Deleted", description: `${ids.length} book(s) removed` }); setSelectedBookIds(new Set()); loadBooks(); }
     setBulkBusy(false);
   };
+  const handleRemoveDuplicateCopies = async () => {
+    const duplicates = new Map<string, Book[]>();
+    books.forEach(book => {
+      const accession = book.accession_number?.trim().toLowerCase();
+      if (!accession || !duplicateAccessionNumbers.has(accession)) return;
+      duplicates.set(accession, [...(duplicates.get(accession) || []), book]);
+    });
+    const idsToDelete = Array.from(duplicates.values()).flatMap(group => group.slice(1).map(book => book.id));
+    if (!idsToDelete.length) return;
+    if (!confirm(`Keep the first book listed for each repeated accession number and delete ${idsToDelete.length} duplicate record(s)?`)) return;
+    setBulkBusy(true);
+    const { error } = await supabase.from("books").delete().in("id", idsToDelete);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Duplicates removed", description: `${idsToDelete.length} duplicate record(s) were deleted; one original was kept for each accession number.` }); setSelectedBookIds(new Set()); loadBooks(); }
+    setBulkBusy(false);
+  };
   const handleBulkClearMetadata = async () => {
     if (selectedBookIds.size === 0) return;
     if (!confirm(`Clear auto-fetched metadata (cover & description) from ${selectedBookIds.size} book(s)?`)) return;
@@ -403,9 +419,10 @@ const BookManager = () => {
           </div>
           <div className="mt-3 flex items-center justify-between gap-3 rounded-md border bg-muted/30 p-3 text-sm">
             <span>{duplicateAccessionNumbers.size} repeated accession number{duplicateAccessionNumbers.size === 1 ? "" : "s"} found</span>
-            <Button type="button" size="sm" variant={duplicatesOnly ? "default" : "outline"} onClick={() => setDuplicatesOnly(value => !value)}>
-              {duplicatesOnly ? "Show all books" : "Find duplicates"}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" variant={duplicatesOnly ? "default" : "outline"} onClick={() => setDuplicatesOnly(value => !value)}>{duplicatesOnly ? "Show all books" : "Find duplicates"}</Button>
+              {duplicateAccessionNumbers.size > 0 && <Button type="button" size="sm" variant="destructive" disabled={bulkBusy} onClick={handleRemoveDuplicateCopies}>Keep originals, delete duplicates</Button>}
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -36,6 +36,7 @@ AS $$
 DECLARE
   request_row public.book_requests%ROWTYPE;
   book_row public.books%ROWTYPE;
+  borrower_role text;
   issue_id uuid;
 BEGIN
   IF NOT public.is_staff_or_admin(auth.uid()) THEN
@@ -47,13 +48,19 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Book request not found'; END IF;
   IF request_row.status <> 'pending' THEN RAISE EXCEPTION 'This request has already been processed'; END IF;
   IF request_row.book_id IS NULL THEN RAISE EXCEPTION 'Purchase suggestions cannot be issued'; END IF;
+  SELECT role INTO borrower_role FROM public.profiles WHERE id = request_row.user_id;
+  IF borrower_role NOT IN ('student', 'teacher') THEN RAISE EXCEPTION 'Borrower is not an active student or teacher'; END IF;
+  IF borrower_role = 'student' AND EXISTS (SELECT 1 FROM public.book_issues WHERE user_id = request_row.user_id AND status = 'issued') THEN
+    RAISE EXCEPTION 'Students may only have one active book issue';
+  END IF;
 
   SELECT * INTO book_row FROM public.books WHERE id = request_row.book_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'The requested book no longer exists'; END IF;
   IF book_row.available_copies <= 0 THEN RAISE EXCEPTION 'Book is not available'; END IF;
 
   INSERT INTO public.book_issues (user_id, book_id, accession_number, due_date)
-  VALUES (request_row.user_id, request_row.book_id, book_row.accession_number, p_due_date)
+  VALUES (request_row.user_id, request_row.book_id, book_row.accession_number,
+    CURRENT_DATE + CASE WHEN borrower_role = 'teacher' THEN 30 ELSE 7 END)
   RETURNING id INTO issue_id;
 
   UPDATE public.books SET available_copies = available_copies - 1 WHERE id = book_row.id;

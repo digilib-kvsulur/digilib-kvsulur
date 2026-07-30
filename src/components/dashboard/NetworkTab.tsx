@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +30,14 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
     if (user?.id) loadFriendshipsMap();
   }, [user?.id]);
 
+  useEffect(() => {
+    if (activeSubTab !== "discover") return;
+    const query = searchQuery.trim();
+    if (!query) { setSearchResults([]); return; }
+    const timer = window.setTimeout(() => { searchFriends(); }, 250);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery, activeSubTab, user?.id]);
+
   const loadFriendshipsMap = async () => {
     if (!user?.id) return;
     try {
@@ -49,7 +57,14 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
       if (ids.length > 0) {
         const { data: profs } = await supabase.rpc("get_public_profiles", { _ids: ids });
         const pMap: Record<string, any> = {};
-        (profs || []).forEach((p: any) => { pMap[p.id] = p; });
+        await Promise.all((profs || []).map(async (p: any) => {
+          let avatarUrl = p.avatar_url || null;
+          if (avatarUrl && !avatarUrl.startsWith("http")) {
+            const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(avatarUrl, 3600);
+            avatarUrl = signed?.signedUrl || null;
+          }
+          pMap[p.id] = { ...p, avatar_url: avatarUrl };
+        }));
         setFriendsProfiles(pMap);
       } else {
         setFriendsProfiles({});
@@ -152,6 +167,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
                       <div key={uid} className="flex items-center justify-between p-3.5 bg-muted/20 hover:bg-muted/40 border border-border/30 rounded-xl transition-all">
                         <div className="flex items-center gap-3 cursor-pointer min-w-0" onClick={() => setProfileDialogUser(uid)}>
                           <Avatar className="h-10 w-10 ring-2 ring-indigo-500/10">
+                            {p.avatar_url && <AvatarImage src={p.avatar_url} alt={`${p.first_name || "User"}'s profile picture`} />}
                             <AvatarFallback className="bg-gradient-to-br from-indigo-500/80 to-purple-500/80 text-white font-bold text-xs">{ini || "U"}</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
@@ -245,7 +261,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
             <TabsContent value="discover" className="space-y-3 pt-1 outline-none">
               <div className="flex gap-2">
                 <Input
-                  placeholder="Search classmates by name or username..."
+                  placeholder="Search name or username — results update as you type..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && searchFriends()}
