@@ -180,13 +180,6 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            My Reading History
-          </h3>
-          <p className="text-sm text-gray-600">Track books you've completed and earn points based on your rating</p>
-        </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
             <Button onClick={() => {

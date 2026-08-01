@@ -373,6 +373,7 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.get_school_leaderboard_stats() FROM anon;
 GRANT EXECUTE ON FUNCTION public.get_school_leaderboard_stats() TO authenticated;
 
+DROP FUNCTION IF EXISTS public.get_teacher_class_students(text);
 CREATE OR REPLACE FUNCTION public.get_teacher_class_students(p_class text)
 RETURNS TABLE(id uuid, first_name text, last_name text, username text, student_class text, admission_number text, points integer, avatar_url text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$

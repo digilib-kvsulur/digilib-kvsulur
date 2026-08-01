@@ -95,25 +95,44 @@ const SchoolLeaderboard = ({ currentUserId, onEntryClick }: SchoolLeaderboardPro
 
   return (
     <div className="space-y-4">
-      {/* Your rank + stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Stats Summary Row */}
+      <div className={`grid grid-cols-2 md:grid-cols-${currentUserRank ? '4' : '3'} gap-4 mb-2`}>
         {currentUserRank && (
-          <div className="col-span-2 sm:col-span-1 p-3 rounded-xl bg-primary/5 border border-primary/20 text-center">
-            <Trophy className="h-5 w-5 text-primary mx-auto mb-1" />
-            <p className="text-xl font-bold text-primary">#{currentUserRank}</p>
-            <p className="text-[10px] text-muted-foreground">Your Rank</p>
+          <div className="col-span-2 md:col-span-1 relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-indigo-500 via-purple-500 to-fuchsia-500 text-white shadow-md flex flex-col justify-between">
+            <Trophy className="h-24 w-24 text-white/10 absolute -bottom-4 -right-4 rotate-12" />
+            <div className="relative z-10">
+              <p className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-1">Your Rank</p>
+              <h3 className="text-4xl font-extrabold tracking-tight">#{currentUserRank}</h3>
+            </div>
+            <div className="mt-4 relative z-10 self-start inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-[10px] font-semibold text-white backdrop-blur-md shadow-sm border border-white/20">
+              School Leaderboard
+            </div>
           </div>
         )}
-        {[
-          { label: "Students", value: schoolStats.totalStudents, color: "text-primary" },
-          { label: "Total Points", value: schoolStats.totalPoints, color: "text-success" },
-          { label: "Average", value: schoolStats.averagePoints, color: "text-accent" },
-        ].map((stat) => (
-          <div key={stat.label} className="p-3 rounded-xl bg-muted/30 border border-border/30 text-center">
-            <p className={`text-lg font-bold ${stat.color}`}>{stat.value}</p>
-            <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+        
+        <div className="rounded-2xl p-4 bg-card border border-border/60 shadow-sm flex flex-col justify-center items-center text-center transition-all hover:shadow-md hover:border-primary/20">
+          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
+            <Users className="h-5 w-5 text-blue-500" />
           </div>
-        ))}
+          <h3 className="text-2xl font-bold text-foreground">{schoolStats.totalStudents.toLocaleString()}</h3>
+          <p className="text-xs text-muted-foreground font-medium mt-1">Total Students</p>
+        </div>
+        
+        <div className="rounded-2xl p-4 bg-card border border-border/60 shadow-sm flex flex-col justify-center items-center text-center transition-all hover:shadow-md hover:border-emerald-500/20">
+          <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center mb-3">
+            <Award className="h-5 w-5 text-emerald-500" />
+          </div>
+          <h3 className="text-2xl font-bold text-foreground">{schoolStats.totalPoints.toLocaleString()}</h3>
+          <p className="text-xs text-muted-foreground font-medium mt-1">Total Points</p>
+        </div>
+        
+        <div className="rounded-2xl p-4 bg-card border border-border/60 shadow-sm flex flex-col justify-center items-center text-center transition-all hover:shadow-md hover:border-amber-500/20">
+          <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center mb-3">
+            <Medal className="h-5 w-5 text-amber-500" />
+          </div>
+          <h3 className="text-2xl font-bold text-foreground">{schoolStats.averagePoints.toLocaleString()}</h3>
+          <p className="text-xs text-muted-foreground font-medium mt-1">Class Average</p>
+        </div>
       </div>
 
       {/* Top 3 podium */}
