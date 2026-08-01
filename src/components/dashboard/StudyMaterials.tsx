@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Download, Search, BookOpen, Loader2, ExternalLink, ChevronRight, GraduationCap } from "lucide-react";
+import { ExternalLink, BookOpen, Search, FileText, Download, Loader2, ChevronRight, GraduationCap } from "lucide-react";
 
 interface Material {
   id: string;
@@ -240,9 +240,11 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                         )}
                       </div>
                       {m.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{m.description}</p>}
-                      <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => setViewMaterial({ title: m.title, url: m.file_url })}>
-                        <BookOpen className="h-3 w-3 mr-1" /> Open
-                      </Button>
+                      <div className="mt-3">
+                        <Button size="sm" variant="outline" className="h-8 text-xs font-semibold px-3" onClick={() => setViewMaterial({ title: m.title, url: m.file_url })}>
+                          <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Open
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -390,16 +392,19 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
       <Dialog open={!!viewMaterial} onOpenChange={() => setViewMaterial(null)}>
         <DialogContent className="max-w-5xl w-full h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-4 border-b bg-muted/20 shrink-0">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground line-clamp-1">
-                <FileText className="h-5 w-5 text-primary shrink-0" />
-                {viewMaterial?.title}
+            <div className="flex items-start justify-between gap-3">
+              <DialogTitle className="flex items-start gap-2 text-base font-bold text-foreground">
+                <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <span className="leading-snug text-left">{viewMaterial?.title}</span>
               </DialogTitle>
-              <Button asChild variant="outline" size="sm" className="h-8 hidden sm:flex">
-                <a href={viewMaterial?.url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in New Tab
-                </a>
-              </Button>
+              {viewMaterial?.url?.toLowerCase().includes('.pdf') && (
+                <Button asChild variant="outline" size="sm" className="h-8 shrink-0">
+                  <a href={viewMaterial.url} download target="_blank" rel="noopener noreferrer">
+                    <Download className="h-3.5 w-3.5 sm:mr-2" />
+                    <span className="hidden sm:inline">Download</span>
+                  </a>
+                </Button>
+              )}
             </div>
           </DialogHeader>
           <div className="flex-1 bg-muted/10 w-full h-full relative">

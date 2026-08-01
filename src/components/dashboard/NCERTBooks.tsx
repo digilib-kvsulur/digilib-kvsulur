@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ExternalLink, BookOpen, Search, FileText } from "lucide-react";
+import { ExternalLink, BookOpen, Search, FileText, Download } from "lucide-react";
 
 // NCERT books — direct links to official NCERT PDFs (ncert.nic.in)
 const NCERT_BOOKS: { class: string; subject: string; title: string; url: string }[] = [
@@ -120,16 +120,19 @@ const NCERTBooks = () => {
       <Dialog open={!!viewMaterial} onOpenChange={() => setViewMaterial(null)}>
         <DialogContent className="max-w-5xl w-full h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-4 border-b bg-muted/20 shrink-0">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground line-clamp-1">
-                <FileText className="h-5 w-5 text-primary shrink-0" />
-                {viewMaterial?.title}
+            <div className="flex items-start justify-between gap-3">
+              <DialogTitle className="flex items-start gap-2 text-base font-bold text-foreground">
+                <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <span className="leading-snug text-left">{viewMaterial?.title}</span>
               </DialogTitle>
-              <Button asChild variant="outline" size="sm" className="h-8 hidden sm:flex">
-                <a href={viewMaterial?.url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in New Tab
-                </a>
-              </Button>
+              {viewMaterial?.url?.toLowerCase().includes('.pdf') && (
+                <Button asChild variant="outline" size="sm" className="h-8 shrink-0">
+                  <a href={viewMaterial.url} download target="_blank" rel="noopener noreferrer">
+                    <Download className="h-3.5 w-3.5 sm:mr-2" />
+                    <span className="hidden sm:inline">Download</span>
+                  </a>
+                </Button>
+              )}
             </div>
           </DialogHeader>
           <div className="flex-1 bg-muted/10 w-full h-full relative">
