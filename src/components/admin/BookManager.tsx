@@ -406,6 +406,51 @@ const BookManager = () => {
       toast({ title: "Error", description: e.message || "Failed to save accession number.", variant: "destructive" });
     }
   };
+  const handleMergeSameTitles = async (primaryBook: Book, duplicates: Book[]) => {
+    setBulkBusy(true);
+    try {
+      const dupIds = duplicates.map(b => b.id);
+      const newAccessions = new Set<string>(primaryBook.accession_numbers || []);
+      if (primaryBook.accession_number) newAccessions.add(primaryBook.accession_number);
+      
+      let addTotal = 0;
+      let addAvailable = 0;
+      
+      for (const dup of duplicates) {
+        if (dup.accession_numbers) dup.accession_numbers.forEach(a => newAccessions.add(a));
+        if (dup.accession_number) newAccessions.add(dup.accession_number);
+        addTotal += dup.total_copies;
+        addAvailable += dup.available_copies;
+      }
+
+      // Reassign foreign keys
+      for (const table of ['book_issues', 'book_requests', 'book_reviews']) {
+        const { error: fkeyError } = await supabase.from(table).update({ book_id: primaryBook.id }).in('book_id', dupIds);
+        // Ignore errors for tables that might not exist or be empty
+        if (fkeyError && fkeyError.code !== '42P01') console.error(`Error updating ${table}:`, fkeyError);
+      }
+      
+      // Update primary book
+      const { error: updateError } = await supabase.from('books').update({
+        total_copies: primaryBook.total_copies + addTotal,
+        available_copies: primaryBook.available_copies + addAvailable,
+        accession_numbers: Array.from(newAccessions).filter(Boolean),
+        accession_number: Array.from(newAccessions).filter(Boolean)[0] || null, // Keep legacy field populated
+      }).eq('id', primaryBook.id);
+      if (updateError) throw updateError;
+      
+      // Delete duplicates
+      const { error: deleteError } = await supabase.from('books').delete().in('id', dupIds);
+      if (deleteError) throw deleteError;
+      
+      toast({ title: "Merged Successfully", description: "The identical title rows have been merged into one multi-copy book." });
+      loadBooks();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to merge titles.", variant: "destructive" });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   if (loading) return <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
@@ -428,6 +473,17 @@ const BookManager = () => {
   const duplicatesList = Array.from(duplicateAccessionMap.entries())
     .filter(([, list]) => list.length > 1)
     .map(([acc, list]) => ({ accession: acc, books: list }));
+
+  const sameTitleMap = new Map<string, Book[]>();
+  books.forEach(b => {
+    const titleKey = b.title.trim().toLowerCase();
+    if (titleKey) {
+      sameTitleMap.set(titleKey, [...(sameTitleMap.get(titleKey) || []), b]);
+    }
+  });
+  const sameTitleList = Array.from(sameTitleMap.entries())
+    .filter(([, list]) => list.length > 1)
+    .map(([title, list]) => ({ title, books: list }));
 
   const missingAccessions = books.filter(b => !b.accession_number?.trim());
   const multiCopyBooks = books.filter(b => b.total_copies > 1);
@@ -751,10 +807,11 @@ const BookManager = () => {
           </DialogHeader>
 
           <Tabs defaultValue="duplicates" className="mt-4">
-            <TabsList className="grid grid-cols-3">
+            <TabsList className="grid grid-cols-4">
               <TabsTrigger value="duplicates">Duplicates ({duplicatesList.length})</TabsTrigger>
               <TabsTrigger value="missing">Missing ({missingAccessions.length})</TabsTrigger>
-              <TabsTrigger value="multicopy">Multi-Copy Rows ({multiCopyBooks.length})</TabsTrigger>
+              <TabsTrigger value="multicopy">Multi-Copy ({multiCopyBooks.length})</TabsTrigger>
+              <TabsTrigger value="same_titles">Same Titles ({sameTitleList.length})</TabsTrigger>
             </TabsList>
 
             {/* Duplicates Tab */}
@@ -908,8 +965,59 @@ const BookManager = () => {
                 </div>
               )}
             </TabsContent>
-          </Tabs>
 
+            {/* Same Titles Tab */}
+            <TabsContent value="same_titles" className="space-y-3 pt-3">
+              {sameTitleList.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">No identical titles found!</div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden max-h-[50vh] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Conflicting Rows</TableHead>
+                        <TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sameTitleList.map(item => (
+                        <TableRow key={item.title}>
+                          <TableCell className="font-semibold text-xs">{item.title}</TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              {item.books.map((b, idx) => (
+                                <div key={b.id} className="text-xs flex items-center gap-2">
+                                  <Badge variant="outline" className="text-[9px]">Row {idx + 1}</Badge>
+                                  <span>{b.author}</span>
+                                  <span className="text-muted-foreground">({b.total_copies} copies)</span>
+                                </div>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                              onClick={() => {
+                                const primary = item.books[0];
+                                const dupes = item.books.slice(1);
+                                handleMergeSameTitles(primary, dupes);
+                              }}
+                              disabled={bulkBusy}
+                            >
+                              Merge into one
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setVerifyOpen(false)}>Close Verifier</Button>
           </DialogFooter>
