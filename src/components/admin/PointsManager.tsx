@@ -28,11 +28,13 @@ const PointsManager = () => {
   const [studentSearch, setStudentSearch] = useState("");
   const [pointsToAward, setPointsToAward] = useState("");
   const [reason, setReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
   
   // Selection state for bulk actions
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [bulkPoints, setBulkPoints] = useState("");
   const [bulkReason, setBulkReason] = useState("");
+  const [customBulkReason, setCustomBulkReason] = useState("");
   const [bulkAwarding, setBulkAwarding] = useState(false);
 
   // Reading approval state
@@ -95,7 +97,8 @@ const PointsManager = () => {
       return;
     }
 
-    if (!reason.trim()) {
+    const actualReason = reason === "other" ? customReason.trim() : reason;
+    if (!actualReason) {
       toast({ title: "Error", description: "Please provide a reason for awarding points.", variant: "destructive" });
       return;
     }
@@ -119,8 +122,21 @@ const PointsManager = () => {
 
       if (updateError) throw updateError;
 
+      // Insert notification
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      if (adminUser) {
+        const formattedReason = actualReason.replace(/_/g, ' ').toUpperCase();
+        await supabase.from('notifications').insert({
+          title: 'Points Awarded!',
+          message: `You have been awarded ${points} points. Reason: ${formattedReason}`,
+          type: 'points',
+          target_user_id: selectedUserId,
+          sent_by: adminUser.id
+        });
+      }
+
       toast({ title: "Success", description: `Successfully awarded ${points} points!` });
-      setSelectedUserId(""); setPointsToAward(""); setReason("");
+      setSelectedUserId(""); setPointsToAward(""); setReason(""); setCustomReason("");
       loadUsers();
     } catch (error) {
       console.error('Error awarding points:', error);
@@ -137,8 +153,9 @@ const PointsManager = () => {
       toast({ title: "Error", description: "Please enter valid bulk points.", variant: "destructive" });
       return;
     }
-    if (!bulkReason) {
-      toast({ title: "Error", description: "Please select a reason.", variant: "destructive" });
+    const actualReason = bulkReason === "other" ? customBulkReason.trim() : bulkReason;
+    if (!actualReason) {
+      toast({ title: "Error", description: "Please provide or select a reason.", variant: "destructive" });
       return;
     }
 
@@ -152,8 +169,23 @@ const PointsManager = () => {
       });
 
       await Promise.all(promises);
+
+      // Insert bulk notifications
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      if (adminUser) {
+        const formattedReason = actualReason.replace(/_/g, ' ').toUpperCase();
+        const notifPayloads = Array.from(selectedUserIds).map(uid => ({
+          title: 'Points Awarded!',
+          message: `You have been awarded ${points} points. Reason: ${formattedReason}`,
+          type: 'points',
+          target_user_id: uid,
+          sent_by: adminUser.id
+        }));
+        await supabase.from('notifications').insert(notifPayloads);
+      }
+
       toast({ title: "Bulk Points Awarded", description: `Successfully awarded +${points} points to ${selectedUserIds.size} students.` });
-      setBulkPoints(""); setBulkReason("");
+      setBulkPoints(""); setBulkReason(""); setCustomBulkReason("");
       setSelectedUserIds(new Set());
       loadUsers();
     } catch (e: any) {
@@ -291,6 +323,17 @@ const PointsManager = () => {
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+                {bulkReason === "other" && (
+                  <div className="space-y-1 mt-2">
+                    <Label htmlFor="custom-bulk-reason">Specify Reason</Label>
+                    <Input
+                      id="custom-bulk-reason"
+                      value={customBulkReason}
+                      onChange={e => setCustomBulkReason(e.target.value)}
+                      placeholder="Enter custom reason..."
+                    />
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex justify-end gap-2">
@@ -363,6 +406,17 @@ const PointsManager = () => {
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
+              {reason === "other" && (
+                <div className="space-y-2 mt-2">
+                  <Label htmlFor="custom-reason">Specify Reason</Label>
+                  <Input
+                    id="custom-reason"
+                    value={customReason}
+                    onChange={e => setCustomReason(e.target.value)}
+                    placeholder="Enter custom reason..."
+                  />
+                </div>
+              )}
             </div>
           </div>
 

@@ -1,8 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Crown, Medal, Award, User } from "lucide-react";
 import { LeaderboardEntry } from "@/types/rewards";
+import { getAvatarUrl } from "@/lib/utils";
 
 interface LeaderboardProps {
   entries: LeaderboardEntry[];
@@ -60,6 +61,7 @@ const Leaderboard = ({ entries, currentUserId, onEntryClick }: LeaderboardProps)
               <div className="text-center">
                 <div className="flex justify-center mb-2">{getRankIcon(entry.rank)}</div>
                 <Avatar className="h-12 w-12 mx-auto mb-2">
+                  {entry.avatar && <AvatarImage src={getAvatarUrl(entry.avatar)} className="object-cover" />}
                   <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
                     {entry.studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </AvatarFallback>
@@ -93,6 +95,7 @@ const Leaderboard = ({ entries, currentUserId, onEntryClick }: LeaderboardProps)
                 {getRankIcon(entry.rank)}
               </div>
               <Avatar className="h-8 w-8 shrink-0">
+                {entry.avatar && <AvatarImage src={getAvatarUrl(entry.avatar)} className="object-cover" />}
                 <AvatarFallback className="bg-muted text-muted-foreground text-xs">
                   {entry.studentName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </AvatarFallback>

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvatarUrl } from "@/lib/utils";
 import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
@@ -222,23 +224,40 @@ const StudentDashboard = () => {
   const fetchBadgesCount = async () => {
     if (!user?.id) return;
     try {
-      const [{ data: allBadges }, { data: awards }, { count: books }, { count: quizzes }, { data: streak }] = await Promise.all([
+      const [{ data: allBadges }, { data: awards }, { count: books }, { count: quizzes }, { data: streak }, { data: actStats }] = await Promise.all([
         supabase.from("badges").select("*").eq("is_active", true),
         supabase.from("badge_awards").select("badge_id").eq("user_id", user.id),
         supabase.from("reading_history").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "approved"),
         supabase.from("quiz_results").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         supabase.from("login_streaks").select("current_streak").eq("user_id", user.id).maybeSingle(),
+        supabase.rpc("get_user_activity_stats", { _user_id: user.id }),
       ]);
       
       const manualAwards = new Set((awards || []).map((a: any) => a.badge_id));
-      const stats = { points: user.points || 0, booksRead: books || 0, quizzes: quizzes || 0, streak: streak?.current_streak || 0 };
+      const act = (actStats || [])[0] || {};
+      const stats = {
+        points: user.points || 0,
+        booksRead: books || 0,
+        quizzes: quizzes || 0,
+        streak: streak?.current_streak || 0,
+        postsCount: act.posts_count || 0,
+        commentsCount: act.comments_count || 0,
+        friendsCount: act.friends_count || 0,
+        booksIssued: act.books_issued || 0,
+        reviewsCount: act.reviews_count || 0,
+      };
       
       const getStatValue = (type?: string) => {
-        return type === "points" ? stats.points 
-          : type === "books_read" ? stats.booksRead 
-          : type === "quizzes_completed" ? stats.quizzes 
-          : type === "login_streak" ? stats.streak 
-          : 0;
+        if (type === "points") return stats.points;
+        if (type === "books_read") return stats.booksRead;
+        if (type === "quizzes_completed") return stats.quizzes;
+        if (type === "login_streak") return stats.streak;
+        if (type === "posts_count") return stats.postsCount;
+        if (type === "comments_count") return stats.commentsCount;
+        if (type === "friends_count") return stats.friendsCount;
+        if (type === "books_issued") return stats.booksIssued;
+        if (type === "reviews_count") return stats.reviewsCount;
+        return 0;
       };
       
       const unlockedCount = (allBadges || []).filter((b: any) => {
@@ -311,9 +330,12 @@ const StudentDashboard = () => {
 
         <div className="shrink-0 p-4 border-t border-border">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-              {user?.first_name?.[0]}{user?.last_name?.[0]}
-            </div>
+            <Avatar className="h-9 w-9 border border-border">
+              {user?.avatar_url && <AvatarImage src={getAvatarUrl(user.avatar_url)} className="object-cover" />}
+              <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-sm">
+                {user?.first_name?.[0]}{user?.last_name?.[0]}
+              </AvatarFallback>
+            </Avatar>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground truncate">{user?.first_name} {user?.last_name}</p>
               <p className="text-xs text-muted-foreground">Class {user?.student_class}</p>

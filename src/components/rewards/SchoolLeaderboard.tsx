@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Crown, Medal, Award, Trophy, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getAvatarUrl } from "@/lib/utils";
 
 interface SchoolLeaderboardEntry {
   id: string;
@@ -14,6 +15,7 @@ interface SchoolLeaderboardEntry {
   student_class: string;
   points: number;
   rank: number;
+  avatar_url?: string;
 }
 
 interface SchoolLeaderboardProps {
@@ -149,6 +151,7 @@ const SchoolLeaderboard = ({ currentUserId, onEntryClick }: SchoolLeaderboardPro
               <div className="text-center">
                 <div className="flex justify-center mb-2">{getRankIcon(entry.rank)}</div>
                 <Avatar className="h-12 w-12 mx-auto mb-2">
+                  {entry.avatar_url && <AvatarImage src={getAvatarUrl(entry.avatar_url)} className="object-cover" />}
                   <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
                     {entry.first_name.charAt(0)}
                   </AvatarFallback>
@@ -177,6 +180,7 @@ const SchoolLeaderboard = ({ currentUserId, onEntryClick }: SchoolLeaderboardPro
             >
               <div className="w-7 flex items-center justify-center shrink-0">{getRankIcon(entry.rank)}</div>
               <Avatar className="h-8 w-8 shrink-0">
+                {entry.avatar_url && <AvatarImage src={getAvatarUrl(entry.avatar_url)} className="object-cover" />}
                 <AvatarFallback className="bg-muted text-muted-foreground text-xs">{entry.first_name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvatarUrl } from "@/lib/utils";
 import {
   BookOpen, LogOut, Users, Target, Home, BookCheck, BookUp, Award,
   Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText,
@@ -182,9 +184,12 @@ const AdminDashboard = () => {
 
         <div className="shrink-0 p-4 border-t border-border">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-              {user?.first_name?.[0]}{user?.last_name?.[0]}
-            </div>
+            <Avatar className="h-9 w-9 border border-border">
+              {user?.avatar_url && <AvatarImage src={getAvatarUrl(user.avatar_url)} className="object-cover" />}
+              <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-sm">
+                {user?.first_name?.[0]}{user?.last_name?.[0]}
+              </AvatarFallback>
+            </Avatar>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground truncate">{user?.first_name} {user?.last_name}</p>
               <p className="text-xs text-muted-foreground">Administrator</p>

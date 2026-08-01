@@ -18,28 +18,61 @@ const iconFor = (name?: string) => {
 export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
   const [badges, setBadges] = useState<BadgeRow[]>([]);
   const [awards, setAwards] = useState<Set<string>>(new Set());
-  const [stats, setStats] = useState({ points: 0, booksRead: 0, quizzes: 0, streak: 0 });
+  const [stats, setStats] = useState({
+    points: 0,
+    booksRead: 0,
+    quizzes: 0,
+    streak: 0,
+    postsCount: 0,
+    commentsCount: 0,
+    friendsCount: 0,
+    booksIssued: 0,
+    reviewsCount: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userId) return;
     (async () => {
-      const [{ data: bs }, { data: aw }, { data: profile }, { count: books }, { count: quizzes }, { data: streak }] = await Promise.all([
+      const [{ data: bs }, { data: aw }, { data: profile }, { count: books }, { count: quizzes }, { data: streak }, { data: actStats }] = await Promise.all([
         supabase.from("badges").select("*").eq("is_active", true).order("points"),
         supabase.from("badge_awards").select("badge_id").eq("user_id", userId),
         supabase.from("profiles").select("points").eq("id", userId).maybeSingle(),
-        supabase.from("reading_history").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("reading_history").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "approved"),
         supabase.from("quiz_results").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("login_streaks").select("current_streak").eq("user_id", userId).maybeSingle(),
+        supabase.rpc("get_user_activity_stats", { _user_id: userId }),
       ]);
+      const act = (actStats || [])[0] || {};
       setBadges((bs as any) || []);
       setAwards(new Set((aw || []).map((a: any) => a.badge_id)));
-      setStats({ points: profile?.points || 0, booksRead: books || 0, quizzes: quizzes || 0, streak: streak?.current_streak || 0 });
+      setStats({
+        points: profile?.points || 0,
+        booksRead: books || 0,
+        quizzes: quizzes || 0,
+        streak: streak?.current_streak || 0,
+        postsCount: act.posts_count || 0,
+        commentsCount: act.comments_count || 0,
+        friendsCount: act.friends_count || 0,
+        booksIssued: act.books_issued || 0,
+        reviewsCount: act.reviews_count || 0
+      });
       setLoading(false);
     })();
   }, [userId]);
 
-  const getStat = (t?: string) => t === "points" ? stats.points : t === "books_read" ? stats.booksRead : t === "quizzes_completed" ? stats.quizzes : t === "login_streak" ? stats.streak : 0;
+  const getStat = (t?: string) => {
+    if (t === "points") return stats.points;
+    if (t === "books_read") return stats.booksRead;
+    if (t === "quizzes_completed") return stats.quizzes;
+    if (t === "login_streak") return stats.streak;
+    if (t === "posts_count") return stats.postsCount;
+    if (t === "comments_count") return stats.commentsCount;
+    if (t === "friends_count") return stats.friendsCount;
+    if (t === "books_issued") return stats.booksIssued;
+    if (t === "reviews_count") return stats.reviewsCount;
+    return 0;
+  };
 
   if (loading) return <Card><CardContent className="p-8 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" /></CardContent></Card>;
 

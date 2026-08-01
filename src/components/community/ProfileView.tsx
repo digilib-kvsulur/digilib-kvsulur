@@ -34,17 +34,19 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const [{ data: full }, { data: extraStats }, { data: allBadges }, { data: awards }, { data: userPosts }] = await Promise.all([
+      const [{ data: full }, { data: extraStats }, { data: allBadges }, { data: awards }, { data: userPosts }, { data: actStats }] = await Promise.all([
         supabase.rpc("get_public_profile_full", { _id: userId }),
         supabase.rpc("get_public_profile_stats", { _id: userId }),
         supabase.from("badges").select("*").eq("is_active", true),
         supabase.from("badge_awards").select("badge_id").eq("user_id", userId),
         supabase.rpc("get_public_posts_by_user", { _id: userId, _limit: 20 }),
+        supabase.rpc("get_user_activity_stats", { _user_id: userId }),
       ]);
       const p: any = (full || [])[0] || null;
       const s: any = (extraStats || [])[0] || {};
+      const act: any = (actStats || [])[0] || {};
       setProfile(p);
-      setStats({ ...p, ...s });
+      setStats({ ...p, ...s, ...act });
       
       const manualAwards = new Set((awards || []).map((a: any) => a.badge_id));
       const getStatValue = (type?: string) => {
@@ -52,6 +54,11 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
         if (type === "books_read") return s?.books_read || 0;
         if (type === "quizzes_completed") return s?.quizzes || 0;
         if (type === "login_streak") return s?.current_streak || 0;
+        if (type === "posts_count") return act?.posts_count || 0;
+        if (type === "comments_count") return act?.comments_count || 0;
+        if (type === "friends_count") return act?.friends_count || 0;
+        if (type === "books_issued") return act?.books_issued || 0;
+        if (type === "reviews_count") return act?.reviews_count || 0;
         return 0;
       };
 

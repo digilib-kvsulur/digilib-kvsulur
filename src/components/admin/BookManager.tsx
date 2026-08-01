@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare, Wand2, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare, Wand2, Loader2, ShieldAlert, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BulkImportBooks from "./BulkImportBooks";
@@ -63,6 +64,8 @@ const BookManager = () => {
   const [fetchingDetails, setFetchingDetails] = useState(false);
   const [fetchingAll, setFetchingAll] = useState(false);
   const [fetchAllProgress, setFetchAllProgress] = useState("");
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [missingAccessionInputs, setMissingAccessionInputs] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   useEffect(() => { loadBooks(); }, []);
@@ -341,6 +344,66 @@ const BookManager = () => {
     setBulkBusy(false);
   };
 
+  const handleSplitCopies = async (book: Book) => {
+    if (!confirm(`This will split "${book.title}" into ${book.total_copies} individual book records (each with 1 copy) to allow tracking individual accession numbers. Proceed?`)) return;
+    
+    setBulkBusy(true);
+    try {
+      const baseAcc = book.accession_number?.trim() || `ACC-${Math.floor(Math.random() * 100000)}`;
+      const inserts = [];
+      for (let i = 1; i <= book.total_copies; i++) {
+        inserts.push({
+          title: book.title,
+          author: book.author,
+          accession_number: `${baseAcc}-${i}`,
+          language: book.language,
+          category: book.category,
+          subject: book.subject,
+          class_level: book.class_level,
+          description: book.description,
+          total_copies: 1,
+          available_copies: 1,
+          cover_url: book.cover_url,
+          isbn: book.isbn
+        });
+      }
+      
+      const { error: delError } = await supabase.from("books").delete().eq("id", book.id);
+      if (delError) throw delError;
+      
+      const { error: insError } = await supabase.from("books").insert(inserts);
+      if (insError) throw insError;
+      
+      toast({ title: "Success", description: `Successfully split into ${book.total_copies} individual copies.` });
+      loadBooks();
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Error", description: e.message || "Failed to split copies.", variant: "destructive" });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleQuickSaveAccession = async (bookId: string, accession: string) => {
+    if (!accession.trim()) return;
+    try {
+      const { error } = await supabase
+        .from("books")
+        .update({ accession_number: accession.trim() })
+        .eq("id", bookId);
+      if (error) throw error;
+      toast({ title: "Updated", description: "Accession number saved successfully." });
+      setMissingAccessionInputs(prev => {
+        const next = { ...prev };
+        delete next[bookId];
+        return next;
+      });
+      loadBooks();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to save accession number.", variant: "destructive" });
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
   const categories = Array.from(new Set(books.map(b => b.category).filter(Boolean))) as string[];
@@ -351,6 +414,20 @@ const BookManager = () => {
       return counts;
     }, {})).filter(([, count]) => count > 1).map(([accession]) => accession)
   );
+
+  const duplicateAccessionMap = new Map<string, Book[]>();
+  books.forEach(b => {
+    const acc = b.accession_number?.trim().toLowerCase();
+    if (acc) {
+      duplicateAccessionMap.set(acc, [...(duplicateAccessionMap.get(acc) || []), b]);
+    }
+  });
+  const duplicatesList = Array.from(duplicateAccessionMap.entries())
+    .filter(([, list]) => list.length > 1)
+    .map(([acc, list]) => ({ accession: acc, books: list }));
+
+  const missingAccessions = books.filter(b => !b.accession_number?.trim());
+  const multiCopyBooks = books.filter(b => b.total_copies > 1);
   const filteredBooks = books.filter(b => {
     if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
     if (availabilityFilter === "available" && b.available_copies <= 0) return false;
@@ -419,9 +496,15 @@ const BookManager = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-md border bg-muted/30 p-3 text-sm">
-            <span>{duplicateAccessionNumbers.size} repeated accession number{duplicateAccessionNumbers.size === 1 ? "" : "s"} found</span>
-            <div className="flex gap-2">
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-md border bg-muted/30 p-3 text-sm">
+            <div className="flex flex-col gap-0.5">
+              <span>{duplicateAccessionNumbers.size} repeated accession number{duplicateAccessionNumbers.size === 1 ? "" : "s"} found</span>
+              <span className="text-[10px] text-muted-foreground">Verify physical copy counts and format alignment.</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800" onClick={() => setVerifyOpen(true)}>
+                <ShieldAlert className="h-4 w-4 mr-1.5" /> Accession Verifier
+              </Button>
               <Button type="button" size="sm" variant={duplicatesOnly ? "default" : "outline"} onClick={() => setDuplicatesOnly(value => !value)}>{duplicatesOnly ? "Show all books" : "Find duplicates"}</Button>
               {duplicateAccessionNumbers.size > 0 && <Button type="button" size="sm" variant="destructive" disabled={bulkBusy} onClick={handleRemoveDuplicateCopies}>Keep originals, delete duplicates</Button>}
             </div>
@@ -617,6 +700,166 @@ const BookManager = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowBulkEdit(false)}>Cancel</Button>
             <Button onClick={handleBulkEdit} disabled={bulkBusy} className="gradient-primary border-0">{bulkBusy ? "Applying…" : "Apply Changes"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Accession Verifier Dialog */}
+      <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <ShieldAlert className="h-5 w-5 text-indigo-600" />
+              Accession & Copy Alignment Verifier
+            </DialogTitle>
+            <DialogDescription>
+              Check database alignment for physical library accessions. In KV systems, each row represents 1 unique book copy with its own accession code.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Tabs defaultValue="duplicates" className="mt-4">
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="duplicates">Duplicates ({duplicatesList.length})</TabsTrigger>
+              <TabsTrigger value="missing">Missing ({missingAccessions.length})</TabsTrigger>
+              <TabsTrigger value="multicopy">Multi-Copy Rows ({multiCopyBooks.length})</TabsTrigger>
+            </TabsList>
+
+            {/* Duplicates Tab */}
+            <TabsContent value="duplicates" className="space-y-3 pt-3">
+              {duplicatesList.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">No duplicate accession numbers found! Good job!</div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Accession #</TableHead>
+                        <TableHead>Conflicting Books</TableHead>
+                        <TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {duplicatesList.map(item => (
+                        <TableRow key={item.accession}>
+                          <TableCell className="font-mono font-bold text-xs">{item.accession.toUpperCase()}</TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              {item.books.map(b => (
+                                <div key={b.id} className="text-xs">
+                                  <span className="font-bold">{b.title}</span> by {b.author}
+                                </div>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="destructive" onClick={() => {
+                              handleRemoveDuplicateCopies();
+                            }}>Deduplicate</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Missing Tab */}
+            <TabsContent value="missing" className="space-y-3 pt-3">
+              {missingAccessions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">Every book has an accession number! All clear!</div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden max-h-[50vh] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Author</TableHead>
+                        <TableHead className="w-[240px]">Assign Accession #</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {missingAccessions.map(b => (
+                        <TableRow key={b.id}>
+                          <TableCell className="text-xs font-semibold">{b.title}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{b.author}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1.5">
+                              <Input
+                                placeholder="e.g. KV-ACC-1002"
+                                className="h-8 text-xs font-mono"
+                                value={missingAccessionInputs[b.id] || ""}
+                                onChange={e => setMissingAccessionInputs(prev => ({ ...prev, [b.id]: e.target.value }))}
+                              />
+                              <Button
+                                size="sm"
+                                className="h-8 text-xs"
+                                disabled={!missingAccessionInputs[b.id]?.trim()}
+                                onClick={() => handleQuickSaveAccession(b.id, missingAccessionInputs[b.id])}
+                              >
+                                Save
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Multi-Copy Tab */}
+            <TabsContent value="multicopy" className="space-y-3 pt-3">
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300 flex gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <div>
+                  <span className="font-bold">Why split copies?</span> If a single book record has `total_copies` &gt; 1, the database cannot allocate unique copy accession numbers or check out specific physical copies individually. Splitting makes each copy its own row (e.g. KV-ACC-1200-1, KV-ACC-1200-2) for proper tracking.
+                </div>
+              </div>
+
+              {multiCopyBooks.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">All books have individual single-copy rows! Excellent!</div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden max-h-[50vh] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Author</TableHead>
+                        <TableHead>Current Copies</TableHead>
+                        <TableHead>Base Accession</TableHead>
+                        <TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {multiCopyBooks.map(b => (
+                        <TableRow key={b.id}>
+                          <TableCell className="text-xs font-semibold">{b.title}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{b.author}</TableCell>
+                          <TableCell className="text-xs font-bold text-indigo-600">{b.total_copies}</TableCell>
+                          <TableCell className="text-xs font-mono">{b.accession_number || "None"}</TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              className="h-8 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
+                              onClick={() => handleSplitCopies(b)}
+                              disabled={bulkBusy}
+                            >
+                              Split into {b.total_copies} Rows
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setVerifyOpen(false)}>Close Verifier</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

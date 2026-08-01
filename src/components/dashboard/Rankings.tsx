@@ -39,7 +39,8 @@ const Rankings = ({ user }: RankingsProps) => {
           id: item.id, studentId: item.id,
           studentName: `${item.first_name || ""} ${item.last_name || ""}`.trim() || item.first_name || "Student",
           studentClass: item.student_class,
-          totalPoints: item.points || 0, rank: index + 1, recentActivity: "Active this week"
+          totalPoints: item.points || 0, rank: index + 1, recentActivity: "Active this week",
+          avatar: item.avatar_url
         })));
       }
     } catch (error) { console.error('Error in fetchClassLeaderboard:', error); }

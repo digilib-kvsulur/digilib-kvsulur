@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,6 +12,7 @@ import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Chec
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
+import { getAvatarUrl } from "@/lib/utils";
 
 
 interface Post { id: string; title: string; content: string; user_id: string; created_at: string; author?: any; likes: number; liked: boolean; comment_count: number; media_url?: string; media_type?: string; }
@@ -49,14 +50,16 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   const fetchProfileStats = async (userId: string) => {
     if (statsCache[userId]) return statsCache[userId];
-    const [{ data: profRows }, { data: statsRows }, { data: awards }, { data: allBadges }] = await Promise.all([
+    const [{ data: profRows }, { data: statsRows }, { data: awards }, { data: allBadges }, { data: actStats }] = await Promise.all([
       supabase.rpc("get_public_profiles", { _ids: [userId] }),
       supabase.rpc("get_public_profile_stats", { _id: userId }),
       supabase.from("badge_awards").select("badge_id, badges(name, icon_name, color)").eq("user_id", userId),
       supabase.from("badges").select("id, name, icon_name, color, criteria_type, criteria_value").eq("is_active", true),
+      supabase.rpc("get_user_activity_stats", { _user_id: userId }),
     ]);
     const prof: any = (profRows || [])[0] || {};
     const stats: any = (statsRows || [])[0] || {};
+    const act: any = (actStats || [])[0] || {};
 
     // Merge manually awarded badges with auto-criterion earned badges
     const manualIds = new Set((awards || []).map((a: any) => a.badge_id));
@@ -66,6 +69,11 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       books_read: stats.books_read || 0,
       quizzes_completed: stats.quizzes || 0,
       login_streak: stats.current_streak || 0,
+      posts_count: act.posts_count || 0,
+      comments_count: act.comments_count || 0,
+      friends_count: act.friends_count || 0,
+      books_issued: act.books_issued || 0,
+      reviews_count: act.reviews_count || 0,
     };
     const autoBadges = (allBadges || [])
       .filter((b: any) => !manualIds.has(b.id) && b.criteria_type && b.criteria_type !== "manual")
@@ -261,6 +269,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 <div className="flex items-start gap-3">
                   <UserHoverCard userId={p.user_id} author={p.author} currentUserId={currentUserId} fetchStats={fetchProfileStats} friendship={friendshipsMap[p.user_id]} onSend={sendFriendRequest} onRespond={respondFriendRequest} onRemove={removeFriend} onView={setProfileDialogUser}>
                     <Avatar className="h-10 w-10 cursor-pointer ring-2 ring-transparent hover:ring-primary/40 transition-all">
+                      {p.author?.avatar_url && <AvatarImage src={getAvatarUrl(p.author.avatar_url)} className="object-cover" />}
                       <AvatarFallback className="gradient-primary text-primary-foreground text-xs font-bold">{initials(p.author)}</AvatarFallback>
                     </Avatar>
                   </UserHoverCard>
@@ -314,7 +323,10 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                         {(comments[p.id] || []).map((c) => (
                           <div key={c.id} className="flex items-start gap-2 p-2 bg-muted/40 rounded-lg">
                             <UserHoverCard userId={c.user_id} author={c.author} currentUserId={currentUserId} fetchStats={fetchProfileStats} friendship={friendshipsMap[c.user_id]} onSend={sendFriendRequest} onRespond={respondFriendRequest} onRemove={removeFriend} onView={setProfileDialogUser}>
-                              <Avatar className="h-6 w-6 cursor-pointer"><AvatarFallback className="text-[10px] gradient-primary text-primary-foreground">{initials(c.author)}</AvatarFallback></Avatar>
+                              <Avatar className="h-6 w-6 cursor-pointer">
+                                {c.author?.avatar_url && <AvatarImage src={getAvatarUrl(c.author.avatar_url)} className="object-cover" />}
+                                <AvatarFallback className="text-[10px] gradient-primary text-primary-foreground">{initials(c.author)}</AvatarFallback>
+                              </Avatar>
                             </UserHoverCard>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-semibold">{nameOf(c.author)} <span className="font-normal text-muted-foreground">· {new Date(c.created_at).toLocaleDateString()}</span></p>
@@ -379,6 +391,7 @@ function UserHoverCard({ userId, author, currentUserId, fetchStats, friendship, 
         <div className="p-4 -mt-8 space-y-3">
           <div className="flex items-end gap-3">
             <Avatar className="h-16 w-16 ring-4 ring-background">
+              {author?.avatar_url && <AvatarImage src={getAvatarUrl(author.avatar_url)} className="object-cover" />}
               <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-lg">{initials(author)}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0 pb-1">
@@ -457,6 +470,7 @@ function ProfileDialog({ userId, currentUserId, fetchStats, friendship, onSend, 
       <div className="h-24 gradient-primary" />
       <div className="px-6 pb-6 -mt-12">
         <Avatar className="h-24 w-24 ring-4 ring-background mb-3">
+          {full?.avatar_url && <AvatarImage src={getAvatarUrl(full.avatar_url)} className="object-cover" />}
           <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-2xl">{initials(full)}</AvatarFallback>
         </Avatar>
         <DialogHeader className="text-left space-y-1 mb-4">
@@ -563,6 +577,7 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
     return (
       <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/60 transition-colors">
         <Avatar className="h-10 w-10 cursor-pointer" onClick={() => openProfile(userId)}>
+          {p?.avatar_url && <AvatarImage src={getAvatarUrl(p.avatar_url)} className="object-cover" />}
           <AvatarFallback className="gradient-primary text-primary-foreground text-xs font-bold">{initials(p)}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openProfile(userId)}>
@@ -631,6 +646,7 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
               return (
                 <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/60">
                   <Avatar className="h-10 w-10 cursor-pointer" onClick={() => openProfile(r.id)}>
+                    {r?.avatar_url && <AvatarImage src={getAvatarUrl(r.avatar_url)} className="object-cover" />}
                     <AvatarFallback className="gradient-primary text-primary-foreground text-xs font-bold">{initials(r)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openProfile(r.id)}>

@@ -15,9 +15,20 @@ export interface FetchedBookDetails {
   class_level?: string;
 }
 
+const ROMAN_MAP: Record<string, string> = {
+  i: "1", ii: "2", iii: "3", iv: "4", v: "5", vi: "6", vii: "7", viii: "8", ix: "9", x: "10", xi: "11", xii: "12"
+};
+
 const inferClassLevel = (title: string, subjects: string[] = []): string => {
-  const match = `${title} ${subjects.join(" ")}`.match(/(?:class|grade|standard)\s*(\d{1,2})\b/i);
-  return match ? match[1] : "";
+  const text = `${title} ${subjects.join(" ")}`.toLowerCase();
+  const digitMatch = text.match(/(?:class|grade|standard|std)\s*(\d{1,2})\b/i);
+  if (digitMatch) return digitMatch[1];
+  
+  const romanMatch = text.match(/(?:class|grade|standard|std)\s*(xi{0,2}|ix|vi{0,3}|iv|i{1,3})\b/i);
+  if (romanMatch && ROMAN_MAP[romanMatch[1]]) {
+    return ROMAN_MAP[romanMatch[1]];
+  }
+  return "";
 };
 
 const CATEGORY_KEYWORDS = [
@@ -38,13 +49,33 @@ const mapLanguage = (langCode: string): string => {
   return langCode.toUpperCase();
 };
 
-// Helper to deduce category from categories or subjects
-const guessCategory = (subjects: string[]): string => {
-  if (!subjects || subjects.length === 0) return "";
+const inferCategory = (title: string, subjects: string[] = []): string => {
+  const text = `${title} ${subjects.join(" ")}`.toLowerCase();
+  if (
+    text.includes("dictionary") ||
+    text.includes("encyclopedia") ||
+    text.includes("encyclopaedia") ||
+    text.includes("atlas") ||
+    text.includes("reference") ||
+    text.includes("handbook") ||
+    text.includes("thesaurus")
+  ) {
+    return "Reference";
+  }
+
   const found = CATEGORY_KEYWORDS.find(kw => 
     subjects.some(subj => subj.toLowerCase().includes(kw.toLowerCase()))
   );
-  return found || "General Literature";
+  if (found) return found;
+
+  if (text.includes("math") || text.includes("arithmetic") || text.includes("algebra") || text.includes("geometry")) return "Mathematics";
+  if (text.includes("science") || text.includes("physics") || text.includes("chemistry") || text.includes("biology") || text.includes("botany") || text.includes("zoology")) return "Science";
+  if (text.includes("history") || text.includes("historical")) return "History";
+  if (text.includes("biography") || text.includes("autobiography") || text.includes("memoir")) return "Biography";
+  if (text.includes("poem") || text.includes("poetry") || text.includes("verse")) return "Poetry";
+  if (text.includes("drama") || text.includes("play") || text.includes("tragedy") || text.includes("comedy")) return "Drama";
+
+  return "General Literature";
 };
 
 const fetchInternetArchiveCover = async (title: string, author?: string): Promise<string> => {
@@ -91,7 +122,7 @@ export async function fetchBookByIsbn(isbn: string): Promise<FetchedBookDetails 
           author: info.authors?.join(", ") || "",
           description: info.description || "",
           cover_url: cover,
-          category: info.categories?.[0] || guessCategory(info.categories || []),
+          category: inferCategory(info.title || "", info.categories || []),
           subject: info.categories?.join(", ") || "",
           language: mapLanguage(info.language || ""),
           class_level: inferClassLevel(info.title || "", info.categories || []),
@@ -119,7 +150,7 @@ export async function fetchBookByIsbn(isbn: string): Promise<FetchedBookDetails 
             author: info.authors?.map((a: any) => a.name).join(", ") || "",
             description: typeof info.notes === 'string' ? info.notes : "",
             cover_url: cover,
-            category: guessCategory(subjects),
+            category: inferCategory(info.title || "", subjects),
             subject: subjects.slice(0, 3).join(", "),
             language: "English",
             class_level: inferClassLevel(info.title || "", subjects),
@@ -167,7 +198,7 @@ export async function fetchBookByQuery(title: string, author?: string): Promise<
           author: info.authors?.join(", ") || "",
           description: info.description || "",
           cover_url: cover,
-          category: info.categories?.[0] || guessCategory(info.categories || []),
+          category: inferCategory(info.title || "", info.categories || []),
           subject: info.categories?.join(", ") || "",
           language: mapLanguage(info.language || ""),
           class_level: inferClassLevel(info.title || "", info.categories || []),
@@ -195,7 +226,7 @@ export async function fetchBookByQuery(title: string, author?: string): Promise<
             title: doc.title || "",
             author: doc.author_name?.join(", ") || "",
             cover_url: cover,
-            category: guessCategory(subjects),
+            category: inferCategory(doc.title || "", subjects),
             subject: subjects.slice(0, 3).join(", "),
             language: mapLanguage(lang),
             class_level: inferClassLevel(doc.title || "", subjects),
@@ -212,18 +243,19 @@ export async function fetchBookByQuery(title: string, author?: string): Promise<
 
   // If we found details or if external API gave sparse info, ensure we have a rich description and category
   if (!details && title) {
+    const inferred = inferCategory(title, []);
     details = {
       title: title.trim(),
       author: author?.trim() || "Famous Author",
-      category: "General Literature",
+      category: inferred,
       language: "English",
-      description: generateSmartBookDescription(title, author, "General Literature"),
+      description: generateSmartBookDescription(title, author, inferred),
     };
   } else if (details) {
+    if (!details.category) details.category = inferCategory(details.title || title, []);
     if (!details.description || details.description.trim().length < 20) {
       details.description = generateSmartBookDescription(details.title || title, details.author || author, details.category);
     }
-    if (!details.category) details.category = "General Literature";
     if (!details.language) details.language = "English";
   }
 

@@ -16,7 +16,23 @@ interface BadgeRow {
   points: number; criteria_type?: string; criteria_value?: number; is_active: boolean;
 }
 
-const CRIT_TYPES = ["manual", "points", "books_read", "quizzes_completed", "login_streak"];
+const CRIT_TYPES = [
+  "manual", "points", "books_read", "quizzes_completed", "login_streak",
+  "posts_count", "comments_count", "friends_count", "books_issued", "reviews_count"
+];
+
+const CRIT_LABELS: Record<string, string> = {
+  manual: "Manual Award (By Admin)",
+  points: "XP Points Threshold",
+  books_read: "Books Read (Approved Reviews)",
+  quizzes_completed: "Quizzes Completed",
+  login_streak: "Consecutive Daily Logins",
+  posts_count: "Community Posts Created",
+  comments_count: "Community Replies Posted",
+  friends_count: "Friend Connections Made",
+  books_issued: "Total Books Borrowed",
+  reviews_count: "Book Reviews Written"
+};
 
 export default function BadgeManager() {
   const { toast } = useToast();
@@ -37,10 +53,33 @@ export default function BadgeManager() {
     setBadges((data as any) || []);
 
     // Get real award count for manual and auto criteria
-    const [{ data: awards }, { data: allUsers }] = await Promise.all([
-      supabase.from("badge_awards").select("badge_id"),
-      supabase.from("profiles").select("id, points, reading_history(id,status), quiz_results(id), login_streaks(current_streak)").eq("role", "student")
+    const [{ data: awards }, { data: allUsers }, { data: posts }, { data: comments }, { data: friendships }, { data: issues }, { data: reviews }] = await Promise.all([
+      supabase.from("badge_awards").select("badge_id, user_id"),
+      supabase.from("profiles").select("id, points, reading_history(id,status), quiz_results(id), login_streaks(current_streak)").eq("role", "student"),
+      supabase.from("posts").select("user_id"),
+      supabase.from("post_comments").select("user_id"),
+      supabase.from("friendships").select("requester_id, addressee_id").eq("status", "accepted"),
+      supabase.from("book_issues").select("user_id"),
+      supabase.from("book_reviews").select("user_id")
     ]);
+
+    const postsMap: Record<string, number> = {};
+    (posts || []).forEach(p => { postsMap[p.user_id] = (postsMap[p.user_id] || 0) + 1; });
+
+    const commentsMap: Record<string, number> = {};
+    (comments || []).forEach(c => { commentsMap[c.user_id] = (commentsMap[c.user_id] || 0) + 1; });
+
+    const friendsMap: Record<string, number> = {};
+    (friendships || []).forEach(f => {
+      friendsMap[f.requester_id] = (friendsMap[f.requester_id] || 0) + 1;
+      friendsMap[f.addressee_id] = (friendsMap[f.addressee_id] || 0) + 1;
+    });
+
+    const issuesMap: Record<string, number> = {};
+    (issues || []).forEach(i => { issuesMap[i.user_id] = (issuesMap[i.user_id] || 0) + 1; });
+
+    const reviewsMap: Record<string, number> = {};
+    (reviews || []).forEach(r => { reviewsMap[r.user_id] = (reviewsMap[r.user_id] || 0) + 1; });
 
     const counts: Record<string, number> = {};
     const manualAwards = awards || [];
@@ -65,6 +104,11 @@ export default function BadgeManager() {
           else if (b.criteria_type === "books_read") val = (u.reading_history?.filter((r: any) => r.status === "approved")?.length) || 0;
           else if (b.criteria_type === "quizzes_completed") val = u.quiz_results?.length || 0;
           else if (b.criteria_type === "login_streak") val = u.login_streaks?.[0]?.current_streak || 0;
+          else if (b.criteria_type === "posts_count") val = postsMap[u.id] || 0;
+          else if (b.criteria_type === "comments_count") val = commentsMap[u.id] || 0;
+          else if (b.criteria_type === "friends_count") val = friendsMap[u.id] || 0;
+          else if (b.criteria_type === "books_issued") val = issuesMap[u.id] || 0;
+          else if (b.criteria_type === "reviews_count") val = reviewsMap[u.id] || 0;
 
           if (val >= (b.criteria_value || 0)) {
             count++;
@@ -148,7 +192,7 @@ export default function BadgeManager() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center justify-between gap-2">
                   <span className="truncate">{b.name}</span>
-                  <Badge variant={b.is_active ? "default" : "secondary"} className="text-[10px]">{b.criteria_type}</Badge>
+                  <Badge variant={b.is_active ? "default" : "secondary"} className="text-[10px]">{CRIT_LABELS[b.criteria_type || "manual"] || b.criteria_type}</Badge>
                 </CardTitle>
                 <CardDescription className="text-xs line-clamp-2">{b.description || "No description"}</CardDescription>
               </CardHeader>
@@ -187,7 +231,7 @@ export default function BadgeManager() {
                 <Label>Criteria Type</Label>
                 <Select value={form.criteria_type || "manual"} onValueChange={v => setForm({ ...form, criteria_type: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CRIT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                  <SelectContent>{CRIT_TYPES.map(t => <SelectItem key={t} value={t}>{CRIT_LABELS[t] || t}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div><Label>Target Value</Label><Input type="number" value={form.criteria_value ?? 0} onChange={e => setForm({ ...form, criteria_value: parseInt(e.target.value) || 0 })} disabled={form.criteria_type === "manual"} /></div>

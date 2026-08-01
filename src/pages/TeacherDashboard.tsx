@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvatarUrl } from "@/lib/utils";
 import { BookOpen, LogOut, Users, Trophy, GraduationCap, TrendingUp, Calendar, Target, Plus, Trash2, ListChecks, Star, BookMarked, Brain, FileText, User } from "lucide-react";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
@@ -318,6 +320,12 @@ const TeacherDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9 border border-border">
+              {teacher?.avatar_url && <AvatarImage src={getAvatarUrl(teacher.avatar_url)} className="object-cover" />}
+              <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-sm">
+                {teacher?.first_name?.[0]}{teacher?.last_name?.[0]}
+              </AvatarFallback>
+            </Avatar>
             <NotificationBell />
             <Button variant="outline" size="sm" onClick={() => navigate("/catalog")}>Library Catalog</Button>
             <Button variant="outline" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>

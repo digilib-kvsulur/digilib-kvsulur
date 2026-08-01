@@ -41,6 +41,34 @@ const Catalog = () => {
 
   useEffect(() => { init(); }, []);
 
+
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(24);
+  const [totalCount, setTotalCount] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
+  const [genres, setGenres] = useState<string[]>([]);
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [classLevels, setClassLevels] = useState<string[]>([]);
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [authors, setAuthors] = useState<string[]>([]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedGenre, selectedSubject, selectedClass, selectedLang, selectedAuthor, availability, sortBy, debouncedSearch]);
+
+  useEffect(() => {
+    fetchBooks();
+  }, [currentPage, debouncedSearch, selectedGenre, selectedSubject, selectedClass, selectedLang, selectedAuthor, availability, sortBy]);
+
   const init = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -49,7 +77,7 @@ const Catalog = () => {
     } else {
       setUser(null);
     }
-    await loadBooks();
+    await loadFilterOptions();
     if (user) {
       const [{ data: wl }, { data: rs }] = await Promise.all([
         supabase.from("book_wishlist").select("book_id").eq("user_id", user.id),
@@ -60,80 +88,100 @@ const Catalog = () => {
     }
   };
 
-  const loadBooks = async () => {
+  const loadFilterOptions = async () => {
     try {
-      let allBooks: any[] = [];
-      const PAGE = 1000;
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from("books")
-          .select("*")
-          .gt("total_copies", 0)
-          .range(from, from + PAGE - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allBooks = [...allBooks, ...data];
-        if (data.length < PAGE) break;
-        from += PAGE;
+      const { data, error } = await supabase.rpc("get_distinct_book_filters");
+      if (error) throw error;
+      if (data) {
+        setGenres(data.categories || []);
+        setSubjects(data.subjects || []);
+        setClassLevels(data.class_levels || []);
+        setLanguages(data.languages || []);
+        setAuthors(data.authors || []);
       }
-      setBooks(allBooks);
-      const { data: rev } = await supabase.from("book_reviews").select("book_id, rating").eq("is_hidden", false);
-      const agg: Record<string, { sum: number; count: number }> = {};
-      (rev || []).forEach((r: any) => {
-        agg[r.book_id] = agg[r.book_id] || { sum: 0, count: 0 };
-        agg[r.book_id].sum += r.rating; agg[r.book_id].count++;
-      });
-      const map: Record<string, { avg: number; count: number }> = {};
-      Object.entries(agg).forEach(([k, v]) => { map[k] = { avg: v.sum / v.count, count: v.count }; });
-      setRatings(map);
-
-      // Query borrow counts and recommendations via secure RPC / public select
-      const [{ data: countsData }, { data: recs }] = await Promise.all([
-        supabase.rpc('get_book_borrow_counts'),
-        supabase.from("class_book_recommendations").select("book_id"),
-      ]);
-      const issueMap: Record<string, number> = {};
-      (countsData || []).forEach((item: any) => {
-        if (item.book_id) issueMap[item.book_id] = Number(item.borrow_count) || 0;
-      });
-      const recMap: Record<string, number> = {};
-      (recs || []).forEach((r: any) => { if (r.book_id) recMap[r.book_id] = (recMap[r.book_id] || 0) + 1; });
-      setBorrowCounts(issueMap);
-      setRecommendCounts(recMap);
     } catch (e) {
+      console.error("Failed to load filter options:", e);
+    }
+  };
+
+  const fetchBooks = async () => {
+    setLoading(true);
+    try {
+      let query = supabase
+        .from("books")
+        .select("*", { count: "exact" })
+        .gt("total_copies", 0);
+
+      if (debouncedSearch.trim()) {
+        const s = `%${debouncedSearch.trim()}%`;
+        query = query.or(`title.ilike.${s},author.ilike.${s},accession_number.ilike.${s},subject.ilike.${s}`);
+      }
+
+      if (selectedGenre !== "all") query = query.eq("category", selectedGenre);
+      if (selectedSubject !== "all") query = query.eq("subject", selectedSubject);
+      if (selectedClass !== "all") query = query.eq("class_level", selectedClass);
+      if (selectedLang !== "all") query = query.eq("language", selectedLang);
+      if (selectedAuthor !== "all") query = query.eq("author", selectedAuthor);
+
+      if (availability === "available") {
+        query = query.gt("available_copies", 0);
+      } else if (availability === "new") {
+        const oneMonthAgoIso = new Date(Date.now() - 30 * 86400_000).toISOString();
+        query = query.gte("first_added_at", oneMonthAgoIso);
+      }
+
+      if (sortBy === "newest") {
+        query = query.order("created_at", { ascending: false });
+      } else if (sortBy === "title_az") {
+        query = query.order("title", { ascending: true });
+      } else {
+        query = query.order("title", { ascending: true });
+      }
+
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+
+      setBooks(data || []);
+      setTotalCount(count || 0);
+
+      // Load ratings, borrows & recs in parallel for the displayed page
+      if (data && data.length > 0) {
+        const bookIds = data.map(b => b.id);
+        const { data: rev } = await supabase.from("book_reviews").select("book_id, rating").in("book_id", bookIds).eq("is_hidden", false);
+        const agg: Record<string, { sum: number; count: number }> = {};
+        (rev || []).forEach((r: any) => {
+          agg[r.book_id] = agg[r.book_id] || { sum: 0, count: 0 };
+          agg[r.book_id].sum += r.rating; agg[r.book_id].count++;
+        });
+        const map: Record<string, { avg: number; count: number }> = {};
+        Object.entries(agg).forEach(([k, v]) => { map[k] = { avg: v.sum / v.count, count: v.count }; });
+        setRatings(map);
+
+        const [{ data: countsData }, { data: recs }] = await Promise.all([
+          supabase.rpc('get_book_borrow_counts'),
+          supabase.from("class_book_recommendations").select("book_id").in("book_id", bookIds),
+        ]);
+        const issueMap: Record<string, number> = {};
+        (countsData || []).forEach((item: any) => {
+          if (item.book_id) issueMap[item.book_id] = Number(item.borrow_count) || 0;
+        });
+        const recMap: Record<string, number> = {};
+        (recs || []).forEach((r: any) => { if (r.book_id) recMap[r.book_id] = (recMap[r.book_id] || 0) + 1; });
+        setBorrowCounts(issueMap);
+        setRecommendCounts(recMap);
+      }
+    } catch (e) {
+      console.error(e);
       toast({ title: "Error", description: "Failed to load catalog", variant: "destructive" });
     } finally { setLoading(false); }
   };
 
-  const uniq = (arr: string[]) => Array.from(new Set(arr.filter(Boolean))).sort();
-  const genres = uniq(books.map(b => b.category));
-  const subjects = uniq(books.map(b => b.subject));
-  const classLevels = uniq(books.map(b => b.class_level));
-  const languages = uniq(books.map(b => b.language));
-  const authors = uniq(books.map(b => b.author));
-
   const oneMonthAgo = Date.now() - 30 * 86400_000;
-
-  let filteredBooks = books.filter(b => {
-    const s = searchTerm.toLowerCase();
-    if (searchTerm && !(b.title?.toLowerCase().includes(s) || b.author?.toLowerCase().includes(s) || (b.accession_number || "").toLowerCase().includes(s) || (b.category || "").toLowerCase().includes(s))) return false;
-    if (selectedGenre !== "all" && b.category !== selectedGenre) return false;
-    if (selectedSubject !== "all" && b.subject !== selectedSubject) return false;
-    if (selectedClass !== "all" && b.class_level !== selectedClass) return false;
-    if (selectedLang !== "all" && b.language !== selectedLang) return false;
-    if (selectedAuthor !== "all" && b.author !== selectedAuthor) return false;
-    if (availability === "available" && b.available_copies <= 0) return false;
-    if (availability === "new" && !(b.first_added_at && new Date(b.first_added_at).getTime() > oneMonthAgo)) return false;
-    return true;
-  });
-
-  filteredBooks = [...filteredBooks].sort((a, b) => {
-    if (sortBy === "newest") return new Date(b.first_added_at || b.created_at || 0).getTime() - new Date(a.first_added_at || a.created_at || 0).getTime();
-    if (sortBy === "most_borrowed") return (borrowCounts[b.id] || 0) - (borrowCounts[a.id] || 0) || (a.title || "").localeCompare(b.title || "");
-    if (sortBy === "most_recommended") return (recommendCounts[b.id] || 0) - (recommendCounts[a.id] || 0) || (ratings[b.id]?.avg || 0) - (ratings[a.id]?.avg || 0) || (a.title || "").localeCompare(b.title || "");
-    return (a.title || "").localeCompare(b.title || "");
-  });
+  const filteredBooks = books;
 
   const requireAuth = () => { if (!user) { toast({ title: "Sign in required", variant: "destructive" }); navigate("/login"); return false; } return true; };
 
@@ -274,80 +322,108 @@ const Catalog = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-black text-slate-900 tracking-tight">Catalog Results</h2>
           <Badge variant="outline" className="bg-white text-slate-600 border-slate-200 font-bold px-3 py-1 rounded-full shadow-sm">
-            {filteredBooks.length} book{filteredBooks.length !== 1 ? "s" : ""}
+            {totalCount} book{totalCount !== 1 ? "s" : ""}
           </Badge>
         </div>
 
         {filteredBooks.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
-            {filteredBooks.map(book => {
-              const r = ratings[book.id];
-              const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
-              return (
-                <div key={book.id} onClick={() => navigate(`/book/${book.id}`)} className="group cursor-pointer flex flex-col bg-white rounded-2.5xl shadow-sm hover:shadow-xl border border-slate-200/80 hover:border-indigo-300 transition-all overflow-hidden p-1.5 h-full">
-                  <div className="aspect-[2/3] w-full rounded-2xl bg-slate-100 overflow-hidden relative shadow-inner mb-3">
-                    {book.cover_url ? (
-                      <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-indigo-50 to-blue-50">
-                        <BookOpen className="h-8 w-8 text-indigo-400 mb-2" />
-                        <span className="text-xs font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
-                      </div>
-                    )}
-                    {/* Status badges overlay */}
-                    <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1 pointer-events-none">
-                      <div className="flex flex-wrap gap-1">
-                        {isNew && <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider">NEW</span>}
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider ${book.available_copies > 0 ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-200"}`}>
-                          {book.available_copies > 0 ? `${book.available_copies} AVAIL` : "CHECKED OUT"}
-                        </span>
-                      </div>
-                      {user?.role === 'admin' && (
-                        <Button size="icon" variant="secondary" className="h-6 w-6 rounded-md bg-white/90 shadow-sm hover:bg-white hover:text-indigo-700 text-indigo-600 z-10 pointer-events-auto shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/admin-dashboard'); }}>
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="px-1.5 flex-1 flex flex-col">
-                    <h4 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1">{book.title}</h4>
-                    <p className="text-xs text-slate-500 truncate mb-2 font-medium">by {book.author}</p>
-                    
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {book.category && <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100">{book.category}</span>}
-                      {book.class_level && <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">Class {book.class_level}</span>}
-                    </div>
-                    
-                    {(r || borrowCounts[book.id]) && (
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium mb-2 mt-auto">
-                        {r && (
-                          <div className="flex items-center gap-0.5 text-amber-600">
-                            <Star className="h-3 w-3 fill-amber-500" /> {r.avg.toFixed(1)}
-                          </div>
-                        )}
-                        {borrowCounts[book.id] > 0 && <span className="ml-auto">{borrowCounts[book.id]} borrows</span>}
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-1.5 mt-auto pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                      {book.available_copies > 0 ? (
-                        <Button size="sm" className="h-8 text-[10px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm border-0 px-0 w-full" onClick={() => requestBook(book.id)}>
-                          Borrow
-                        </Button>
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
+              {filteredBooks.map(book => {
+                const r = ratings[book.id];
+                const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
+                return (
+                  <div key={book.id} onClick={() => navigate(`/book/${book.id}`)} className="group cursor-pointer flex flex-col bg-white rounded-2.5xl shadow-sm hover:shadow-xl border border-slate-200/80 hover:border-indigo-300 transition-all overflow-hidden p-1.5 h-full">
+                    <div className="aspect-[2/3] w-full rounded-2xl bg-slate-100 overflow-hidden relative shadow-inner mb-3">
+                      {book.cover_url ? (
+                        <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       ) : (
-                        <Button size="sm" variant="outline" className="h-8 text-[10px] font-bold rounded-lg border-slate-200 hover:bg-slate-50 text-slate-700 px-0 w-full" onClick={() => reserveBook(book.id)}>
-                          <Clock className="h-3 w-3 mr-1" /> Waitlist
-                        </Button>
+                        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-indigo-50 to-blue-50">
+                          <BookOpen className="h-8 w-8 text-indigo-400 mb-2" />
+                          <span className="text-xs font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
+                        </div>
                       )}
-                      <Button size="sm" variant="outline" className={`h-8 text-[10px] font-bold rounded-lg px-0 w-full border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-50 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
-                        {wishlist.has(book.id) ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
-                      </Button>
+                      {/* Status badges overlay */}
+                      <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1 pointer-events-none">
+                        <div className="flex flex-wrap gap-1">
+                          {isNew && <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider">NEW</span>}
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider ${book.available_copies > 0 ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-200"}`}>
+                            {book.available_copies > 0 ? `${book.available_copies} AVAIL` : "CHECKED OUT"}
+                          </span>
+                        </div>
+                        {user?.role === 'admin' && (
+                          <Button size="icon" variant="secondary" className="h-6 w-6 rounded-md bg-white/90 shadow-sm hover:bg-white hover:text-indigo-700 text-indigo-600 z-10 pointer-events-auto shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/admin-dashboard'); }}>
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="px-1.5 flex-1 flex flex-col">
+                      <h4 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1">{book.title}</h4>
+                      <p className="text-xs text-slate-500 truncate mb-2 font-medium">by {book.author}</p>
+                      
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {book.category && <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100">{book.category}</span>}
+                        {book.class_level && <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">Class {book.class_level}</span>}
+                      </div>
+                      
+                      {(r || borrowCounts[book.id]) && (
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium mb-2 mt-auto">
+                          {r && (
+                            <div className="flex items-center gap-0.5 text-amber-600">
+                              <Star className="h-3 w-3 fill-amber-500" /> {r.avg.toFixed(1)}
+                            </div>
+                          )}
+                          {borrowCounts[book.id] > 0 && <span className="ml-auto">{borrowCounts[book.id]} borrows</span>}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-1.5 mt-auto pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                        {book.available_copies > 0 ? (
+                          <Button size="sm" className="h-8 text-[10px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm border-0 px-0 w-full" onClick={() => requestBook(book.id)}>
+                            Borrow
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" className="h-8 text-[10px] font-bold rounded-lg border-slate-200 hover:bg-slate-50 text-slate-700 px-0 w-full" onClick={() => reserveBook(book.id)}>
+                            <Clock className="h-3 w-3 mr-1" /> Waitlist
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" className={`h-8 text-[10px] font-bold rounded-lg px-0 w-full border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-50 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
+                          {wishlist.has(book.id) ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {totalCount > pageSize && (
+              <div className="flex justify-center items-center gap-3 pt-6 border-t border-slate-200/60">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  className="rounded-xl border-slate-200 h-9 font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  Previous
+                </Button>
+                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border">
+                  Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
+                  className="rounded-xl border-slate-200 h-9 font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm max-w-2xl mx-auto">
