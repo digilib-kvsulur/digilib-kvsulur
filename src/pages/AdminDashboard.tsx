@@ -64,6 +64,8 @@ const navSections = [
       { id: "book-requests" as Tab, label: "Book Requests", icon: BookUp },
       { id: "book-issues" as Tab, label: "Book Issues", icon: BookCheck },
       { id: "overdue" as Tab, label: "Overdue", icon: AlertTriangle },
+      { id: "condemnation" as Tab, label: "Condemnation", icon: ShieldAlert },
+      { id: "shelf-data" as Tab, label: "Shelf Data", icon: HardDriveDownload },
       { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
       { id: "reviews" as Tab, label: "Reviews", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
