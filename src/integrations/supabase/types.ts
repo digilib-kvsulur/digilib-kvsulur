@@ -736,8 +736,6 @@ export type Database = {
           location: string | null
           title: string
           updated_at: string
-          schedule_files: string | null
-          end_date: string | null
         }
         Insert: {
           capacity?: number | null
@@ -750,8 +748,6 @@ export type Database = {
           location?: string | null
           title: string
           updated_at?: string
-          schedule_files?: string | null
-          end_date?: string | null
         }
         Update: {
           capacity?: number | null
@@ -764,8 +760,6 @@ export type Database = {
           location?: string | null
           title?: string
           updated_at?: string
-          schedule_files?: string | null
-          end_date?: string | null
         }
         Relationships: []
       }
@@ -1000,7 +994,6 @@ export type Database = {
           student_class: string | null
           updated_at: string
           username: string | null
-          streak_last_claimed: string | null
         }
         Insert: {
           admission_number?: string | null
@@ -1021,7 +1014,6 @@ export type Database = {
           student_class?: string | null
           updated_at?: string
           username?: string | null
-          streak_last_claimed?: string | null
         }
         Update: {
           admission_number?: string | null
@@ -1042,7 +1034,6 @@ export type Database = {
           student_class?: string | null
           updated_at?: string
           username?: string | null
-          streak_last_claimed?: string | null
         }
         Relationships: []
       }
@@ -1227,16 +1218,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      approve_reading_entry: { Args: { p_reading_id: string }; Returns: number }
-      approve_book_request: {
-        Args: {
-          p_admin_notes: string
-          p_due_date: string
-          p_request_id: string
-        }
-        Returns: string
-      }
-      claim_streak_points: { Args: never; Returns: number }
       find_user_by_identifier: {
         Args: { identifier: string }
         Returns: {
@@ -1344,24 +1325,6 @@ export type Database = {
         Returns: boolean
       }
       is_staff_or_admin: { Args: { _uid: string }; Returns: boolean }
-      issue_book_to_user: {
-        Args: { p_book_id: string; p_issue_date?: string; p_user_id: string }
-        Returns: string
-      }
-      get_teacher_class_students: {
-        Args: { p_class: string }
-        Returns: {
-          avatar_url: string
-          avatar_url: string
-          first_name: string
-          id: string
-          is_approved: boolean
-          last_name: string
-          points: number
-          roll_number: string
-          student_class: string
-        }[]
-      }
       record_login_streak: {
         Args: { p_user_id: string }
         Returns: {
