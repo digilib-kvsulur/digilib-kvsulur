@@ -888,7 +888,7 @@ const BookManager = () => {
                                   updated[idx] = e.target.value;
                                   setMultiCopyManualAccessions(prev => ({ ...prev, [b.id]: updated }));
                                 }}
-                                placeholder={`Copy ${idx + 1} accession`}
+                                placeholder={`Copy ${idx + 1} (e.g. 0${String(idx + 1).padStart(4, '0')})`}
                                 className="h-7 text-xs font-mono"
                               />
                             </div>

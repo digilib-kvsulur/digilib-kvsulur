@@ -261,21 +261,21 @@ const BarcodeGenerator = () => {
         <Card className="border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2"><Barcode className="h-5 w-5 text-indigo-500" /> Generate Accession Series</CardTitle>
-            <CardDescription>Quickly add a numbered series of accession barcodes (e.g. KV-ACC-1001 to KV-ACC-1050)</CardDescription>
+            <CardDescription>Bulk-add a range of 5-digit accession barcodes (e.g. 01001 to 01050)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 pb-5">
             <div className="grid grid-cols-3 gap-2">
               <div className="col-span-3 space-y-1">
                 <Label className="text-xs font-semibold">Prefix</Label>
-                <Input value={seriesPrefix} onChange={e => setSeriesPrefix(e.target.value)} placeholder="e.g. KV-ACC-" className="font-mono text-sm h-9" />
+                <Input value={seriesPrefix} onChange={e => setSeriesPrefix(e.target.value)} placeholder="Optional prefix, e.g. KVS-" className="font-mono text-sm h-9" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Start #</Label>
-                <Input type="number" value={seriesStart} onChange={e => setSeriesStart(e.target.value)} placeholder="1001" className="font-mono text-sm h-9" />
+                <Input type="number" value={seriesStart} onChange={e => setSeriesStart(e.target.value)} placeholder="01001" className="font-mono text-sm h-9" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">End #</Label>
-                <Input type="number" value={seriesEnd} onChange={e => setSeriesEnd(e.target.value)} placeholder="1050" className="font-mono text-sm h-9" />
+                <Input type="number" value={seriesEnd} onChange={e => setSeriesEnd(e.target.value)} placeholder="01050" className="font-mono text-sm h-9" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Count</Label>

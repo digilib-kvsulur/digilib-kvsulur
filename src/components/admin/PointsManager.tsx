@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Award, Plus, CheckSquare, BookOpen, Settings2, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Award, Plus, CheckSquare, BookOpen, Settings2, CheckCircle, XCircle, Clock, CheckCheck, X } from "lucide-react";
 
 interface User {
   id: string;
@@ -41,6 +41,8 @@ const PointsManager = () => {
   const [pendingReadings, setPendingReadings] = useState<any[]>([]);
   const [loadingReadings, setLoadingReadings] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [selectedReadingIds, setSelectedReadingIds] = useState<Set<string>>(new Set());
+  const [bulkProcessingReadings, setBulkProcessingReadings] = useState(false);
 
   // Points rules state
   const [pointsRules, setPointsRules] = useState<Record<string, number>>({
@@ -241,6 +243,34 @@ const PointsManager = () => {
     setApprovingId(null);
     loadPendingReadings();
     loadUsers();
+  };
+
+  const handleBulkApproveReadings = async () => {
+    if (selectedReadingIds.size === 0) return;
+    setBulkProcessingReadings(true);
+    let approved = 0;
+    for (const id of Array.from(selectedReadingIds)) {
+      const { error } = await supabase.rpc('approve_reading_entry', { p_reading_id: id });
+      if (!error) approved++;
+    }
+    toast({ title: `${approved} Approved`, description: `${approved} reading entries approved and points awarded.` });
+    setSelectedReadingIds(new Set());
+    setBulkProcessingReadings(false);
+    loadPendingReadings();
+    loadUsers();
+  };
+
+  const handleBulkRejectReadings = async () => {
+    if (selectedReadingIds.size === 0) return;
+    if (!confirm(`Reject ${selectedReadingIds.size} reading entries?`)) return;
+    setBulkProcessingReadings(true);
+    const ids = Array.from(selectedReadingIds);
+    const { error } = await supabase.from('reading_history').update({ status: 'rejected' }).in('id', ids);
+    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    else toast({ title: `${ids.length} Rejected`, description: 'Reading entries rejected.' });
+    setSelectedReadingIds(new Set());
+    setBulkProcessingReadings(false);
+    loadPendingReadings();
   };
 
   const handleRejectReading = async (id: string) => {
@@ -505,18 +535,57 @@ const PointsManager = () => {
                 <p className="text-center text-muted-foreground py-8">No pending reading entries. 🎉</p>
               ) : (
                 <div className="space-y-3">
-                  {pendingReadings.map(r => (
+                  {/* Bulk action bar */}
+                  <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/40 border border-border/50">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded"
+                        checked={selectedReadingIds.size === pendingReadings.length && pendingReadings.length > 0}
+                        onChange={e => setSelectedReadingIds(e.target.checked ? new Set(pendingReadings.map((r: any) => r.id)) : new Set())}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {selectedReadingIds.size > 0 ? `${selectedReadingIds.size} selected` : `${pendingReadings.length} pending`}
+                      </span>
+                    </div>
+                    {selectedReadingIds.size > 0 && (
+                      <div className="flex gap-2">
+                        <Button size="sm" className="h-7 text-xs bg-success hover:bg-success/90 text-white border-0" onClick={handleBulkApproveReadings} disabled={bulkProcessingReadings}>
+                          <CheckCheck className="h-3 w-3 mr-1" /> Approve All ({selectedReadingIds.size})
+                        </Button>
+                        <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={handleBulkRejectReadings} disabled={bulkProcessingReadings}>
+                          <X className="h-3 w-3 mr-1" /> Reject All ({selectedReadingIds.size})
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedReadingIds(new Set())}>
+                          Clear
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  {pendingReadings.map((r: any) => (
                     <div key={r.id} className="p-4 rounded-xl border border-border/50 bg-card flex flex-wrap items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm text-foreground truncate">{r.book_title}</p>
-                        <p className="text-xs text-muted-foreground">by {r.book_author} · {r.profile?.first_name} {r.profile?.last_name} · Class {r.profile?.student_class || '—'}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(r.completed_date).toLocaleDateString()} · {r.points_earned} pts pending</p>
+                      <div className="flex items-start gap-2 min-w-0">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 rounded shrink-0"
+                          checked={selectedReadingIds.has(r.id)}
+                          onChange={e => setSelectedReadingIds(prev => {
+                            const s = new Set(prev);
+                            e.target.checked ? s.add(r.id) : s.delete(r.id);
+                            return s;
+                          })}
+                        />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm text-foreground truncate">{r.book_title}</p>
+                          <p className="text-xs text-muted-foreground">by {r.book_author} · {r.profile?.first_name} {r.profile?.last_name} · Class {r.profile?.student_class || '—'}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(r.completed_date).toLocaleDateString()} · {r.points_earned} pts pending</p>
+                        </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleApproveReading(r.id)} disabled={approvingId === r.id}>
+                        <Button size="sm" onClick={() => handleApproveReading(r.id)} disabled={approvingId === r.id || bulkProcessingReadings}>
                           <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleRejectReading(r.id)} disabled={approvingId === r.id}>
+                        <Button size="sm" variant="destructive" onClick={() => handleRejectReading(r.id)} disabled={approvingId === r.id || bulkProcessingReadings}>
                           <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
                         </Button>
                       </div>

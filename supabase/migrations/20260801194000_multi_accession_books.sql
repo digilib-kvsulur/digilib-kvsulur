@@ -108,3 +108,6 @@ BEGIN
 END; $$;
 
 GRANT EXECUTE ON FUNCTION public.issue_book_to_user(uuid, uuid, date, text) TO authenticated;
+
+-- 9. Add employee_code to profiles for teachers (mirrors student admission_number for display)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS employee_code TEXT;

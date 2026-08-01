@@ -24,7 +24,7 @@ export default function OverdueList() {
     let profileMap: Record<string, any> = {};
     if (userIds.length) {
       const { data: profs } = await supabase.from("profiles")
-        .select("id, first_name, last_name, student_class, roll_number, admission_number, employee_code").in("id", userIds);
+        .select("id, first_name, last_name, student_class, roll_number, admission_number, role").in("id", userIds);
       (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
     }
     setRows((data || []).map((r: any) => ({ ...r, profiles: profileMap[r.user_id] })));
@@ -62,7 +62,9 @@ export default function OverdueList() {
                     {r.profiles?.first_name} {r.profiles?.last_name} · Class {r.profiles?.student_class || "—"} · Roll {r.profiles?.roll_number || "—"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {r.profiles?.admission_number ? `Admn: ${r.profiles.admission_number}` : r.profiles?.employee_code ? `Emp: ${r.profiles.employee_code}` : ""}
+                    {r.profiles?.admission_number && (
+                      <span>{r.profiles.role === 'teacher' ? 'Emp Code' : 'Admn'}: {r.profiles.admission_number}</span>
+                    )}
                     {(r.accession_number || r.books?.accession_number) && (
                       <span className="ml-2 font-mono">Acc: {r.accession_number || r.books?.accession_number}</span>
                     )}

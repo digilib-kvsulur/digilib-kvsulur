@@ -50,7 +50,7 @@ const BookIssueRequests = () => {
             const { data: b } = await supabase.from('books').select('title, author, available_copies, accession_number, accession_numbers').eq('id', req.book_id).maybeSingle();
             book = b;
           }
-          const { data: p } = await supabase.from('profiles').select('first_name, last_name, student_class, admission_number, employee_code').eq('id', req.user_id).maybeSingle();
+          const { data: p } = await supabase.from('profiles').select('first_name, last_name, student_class, admission_number, role').eq('id', req.user_id).maybeSingle();
           return { ...req, book, profile: p };
         })
       );
@@ -152,7 +152,7 @@ const BookIssueRequests = () => {
             <p className="text-xs text-muted-foreground">{request.profile?.student_class ? `Class ${request.profile.student_class}` : 'N/A'}</p>
             {(request.profile?.admission_number || request.profile?.employee_code) && (
               <p className="text-[10px] text-muted-foreground font-mono">
-                {request.profile.admission_number ? `Admn: ${request.profile.admission_number}` : `Emp: ${request.profile.employee_code}`}
+                {request.profile.role === 'teacher' ? 'Emp Code' : 'Admn'}: {request.profile.admission_number || request.profile.employee_code}
               </p>
             )}
           </div>

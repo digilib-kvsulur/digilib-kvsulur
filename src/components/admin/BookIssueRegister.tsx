@@ -23,7 +23,7 @@ interface BookIssue {
   status: string;
   accession_number?: string | null;
   books?: { title: string; author: string };
-  user?: { first_name: string; last_name: string; admission_number: string };
+  user?: { first_name: string; last_name: string; admission_number: string; role: string };
 }
 
 const BookIssueRegister = () => {
@@ -96,13 +96,13 @@ const BookIssueRegister = () => {
       const issuesWithProfiles = await Promise.all(
         (issuesData || []).map(async (issue) => {
           const { data: profileData } = await supabase
-            .from('profiles').select('first_name, last_name, admission_number')
+            .from('profiles').select('first_name, last_name, admission_number, role')
             .eq('id', issue.user_id).maybeSingle();
-          return { ...issue, user: profileData ? { first_name: profileData.first_name || '', last_name: profileData.last_name || '', admission_number: profileData.admission_number || '' } : undefined };
+          return { ...issue, user: profileData ? { first_name: profileData.first_name || '', last_name: profileData.last_name || '', admission_number: profileData.admission_number || '', role: profileData.role || 'student' } : undefined };
         })
       );
 
-      const { data: booksData } = await supabase.from('books').select('*').gt('available_copies', 0).order('title').limit(10000);
+      const { data: booksData } = await supabase.from('books').select('id, title, author, accession_number, accession_numbers, available_copies, total_copies').order('title').limit(10000);
       const { data: usersData } = await supabase.from('profiles').select('id, first_name, last_name, admission_number, student_class, role').eq('is_approved', true).in('role', ['student', 'teacher']).order('first_name').limit(10000);
 
       setBookIssues(issuesWithProfiles || []);
@@ -454,7 +454,7 @@ const BookIssueRegister = () => {
           <div className="flex gap-2">
             <div className="flex-1">
               <Input
-                placeholder="Scan barcode or enter accession number (e.g. KV-ACC-1002)..."
+                placeholder="Scan barcode or enter 5-digit accession number (e.g. 01002)..."
                 value={quickReturnBarcode}
                 onChange={(e) => setQuickReturnBarcode(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleQuickReturn(); }}
@@ -510,7 +510,7 @@ const BookIssueRegister = () => {
                       <p className="text-xs text-muted-foreground">{issue.books?.author}</p>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <span className="text-xs text-muted-foreground">{issue.user?.first_name} {issue.user?.last_name}</span>
-                        {issue.user?.admission_number && <Badge variant="outline" className="text-[10px] h-5">{issue.user.admission_number}</Badge>}
+                        {issue.user?.admission_number && <Badge variant="outline" className="text-[10px] h-5">{issue.user.role === 'teacher' ? 'Emp Code' : 'Admn'}: {issue.user.admission_number}</Badge>}
                         {issue.accession_number && <Badge variant="secondary" className="text-[9px] h-5 font-mono px-1.5 border border-primary/10">Acc: #{issue.accession_number}</Badge>}
                       </div>
                     </div>
