@@ -130,6 +130,10 @@ const Catalog = () => {
         query = query.gte("first_added_at", oneMonthAgoIso);
       }
 
+      // Primary: most issued (popular) books first, then books with covers, then user sort
+      query = query.order("issue_count", { ascending: false, nullsFirst: false });
+      query = query.order("cover_url", { ascending: false, nullsFirst: false });
+
       if (sortBy === "newest") {
         query = query.order("created_at", { ascending: false });
       } else if (sortBy === "title_az") {
@@ -250,7 +254,7 @@ const Catalog = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button onClick={handleRequestNewBook} variant="outline" className="rounded-xl border-slate-200 hover:bg-slate-50 font-bold text-slate-700 shadow-sm">
+            <Button onClick={handleRequestNewBook} variant="outline" className="rounded-xl border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 font-bold text-indigo-700 shadow-sm transition-all duration-200">
               <Plus className="h-4 w-4 mr-2" /> Request Book
             </Button>
             <BookRequestForm open={showRequestDialog} onOpenChange={setShowRequestDialog} onSuccess={() => setShowRequestDialog(false)} />

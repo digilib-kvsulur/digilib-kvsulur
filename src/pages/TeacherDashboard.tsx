@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/utils";
-import { BookOpen, LogOut, Users, Trophy, GraduationCap, TrendingUp, Calendar, Target, Plus, Trash2, ListChecks, Star, BookMarked, Brain, FileText, User } from "lucide-react";
+import { BookOpen, LogOut, Users, Trophy, GraduationCap, TrendingUp, Calendar, Target, Plus, Trash2, ListChecks, Star, BookMarked, Brain, FileText, User, AlertTriangle } from "lucide-react";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import StudentProfile from "@/components/dashboard/StudentProfile";
@@ -411,6 +411,15 @@ const TeacherDashboard = () => {
                 <CardDescription>Click a student to drill down into their active streaks, books, and quiz performance.</CardDescription>
               </CardHeader>
               <CardContent>
+                {!teacher?.student_class && (
+                  <div className="mb-4 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                    <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+                    <div>
+                      <p className="font-bold">No Class Allotted</p>
+                      <p className="text-xs mt-0.5">You do not have a class assigned to your profile. You can browse other classes using the selector above, but to manage your own class go to the <strong>My Profile</strong> tab and set your allotted class.</p>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   {students.length === 0 && (
                     <div className="text-center py-8 space-y-2">
@@ -424,8 +433,8 @@ const TeacherDashboard = () => {
                     return (
                       <div
                         key={s.id}
-                        onClick={() => s.is_approved && drillDownStudent(s)}
-                        className={`flex items-center justify-between p-3.5 rounded-xl border bg-card transition-all ${s.is_approved ? 'hover:bg-muted/30 hover:border-primary/30 cursor-pointer' : 'opacity-60 cursor-default'}`}
+                        onClick={() => s.is_approved !== false && drillDownStudent(s)}
+                        className={`flex items-center justify-between p-3.5 rounded-xl border bg-card transition-all ${s.is_approved !== false ? 'hover:bg-muted/30 hover:border-primary/30 cursor-pointer' : 'opacity-60 cursor-default'}`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{i + 1}</div>
@@ -435,10 +444,10 @@ const TeacherDashboard = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          {!s.is_approved && (
+                          {s.is_approved === false && (
                             <Badge variant="outline" className="text-xs border-amber-400 text-amber-600 bg-amber-50">Pending Approval</Badge>
                           )}
-                          {s.is_approved && (
+                          {s.is_approved !== false && (
                             <Badge variant="outline" className={studentOverdue.length ? "border-destructive text-destructive" : ""}>
                               {studentActiveIssues.length} out {studentOverdue.length ? `(${studentOverdue.length} overdue)` : ""}
                             </Badge>

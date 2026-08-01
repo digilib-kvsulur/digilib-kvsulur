@@ -116,11 +116,52 @@ export default function BookShelfData() {
         if (r.total_copies) payload.total_copies = Number(r.total_copies) || 1;
         if (r.available_copies) payload.available_copies = Number(r.available_copies) || 0;
 
-        const { data: existing } = await supabase.from("books").select("id").eq("accession_number", acc).maybeSingle();
-        const { error } = existing
-          ? await supabase.from("books").update(payload).eq("id", existing.id)
-          : await supabase.from("books").insert(payload);
-        if (error) errors.push(`${acc}: ${error.message}`); else updated++;
+        const { data: existing } = await supabase
+          .from("books")
+          .select("id, accession_numbers, total_copies, available_copies")
+          .ilike("title", r.title.trim())
+          .maybeSingle();
+
+        if (existing) {
+          const currentAccs = Array.isArray(existing.accession_numbers) ? existing.accession_numbers : [];
+          const newAccs = acc && !currentAccs.includes(acc) ? [...currentAccs, acc] : currentAccs;
+          const copiesToAdd = Number(r.total_copies) || 1;
+          const { error } = await supabase
+            .from("books")
+            .update({
+              accession_numbers: newAccs,
+              accession_number: newAccs[0] || acc,
+              total_copies: existing.total_copies + copiesToAdd,
+              available_copies: existing.available_copies + (Number(r.available_copies) || copiesToAdd),
+              category: r.category || null,
+              subject: r.subject || null,
+              language: r.language || null,
+              class_level: r.class_level || null,
+              description: r.description || null,
+              cover_url: r.cover_url || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existing.id);
+          if (error) errors.push(`${acc}: ${error.message}`); else updated++;
+        } else {
+          const payload: any = {
+            accession_number: acc,
+            accession_numbers: acc ? [acc] : [],
+            title: r.title,
+            author: r.author || "Unknown",
+            category: r.category || null,
+            subject: r.subject || null,
+            language: r.language || null,
+            class_level: r.class_level || null,
+            description: r.description || null,
+            cover_url: r.cover_url || null,
+            total_copies: Number(r.total_copies) || 1,
+            available_copies: Number(r.available_copies) || 1,
+            updated_at: new Date().toISOString(),
+          };
+          const { error } = await supabase.from("books").insert(payload);
+          if (error) errors.push(`${acc}: ${error.message}`); else updated++;
+        }
       }
       setResult({ updated, skipped, errors });
       toast({ title: "Import complete", description: `${updated} rows saved, ${skipped} skipped.` });

@@ -49,6 +49,8 @@ const BookIssueRegister = () => {
   const [isQuickReturning, setIsQuickReturning] = useState(false);
   const [openBookDropdown, setOpenBookDropdown] = useState(false);
   const [openUserDropdown, setOpenUserDropdown] = useState(false);
+  const [selectedAccession, setSelectedAccession] = useState("");
+  const [availableAccessions, setAvailableAccessions] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => { loadData(); }, []);
@@ -64,6 +66,25 @@ const BookIssueRegister = () => {
       }
     }
   }, [selectedUser, issueDate, users]);
+
+  // Fetch available accessions for the selected book title row
+  useEffect(() => {
+    if (selectedBook) {
+      (async () => {
+        const { data, error } = await supabase.rpc('get_available_accessions', { p_book_id: selectedBook });
+        if (!error && data) {
+          setAvailableAccessions(data);
+          setSelectedAccession(data[0] || "");
+        } else {
+          setAvailableAccessions([]);
+          setSelectedAccession("");
+        }
+      })();
+    } else {
+      setAvailableAccessions([]);
+      setSelectedAccession("");
+    }
+  }, [selectedBook]);
 
   const loadData = async () => {
     try {
@@ -98,13 +119,19 @@ const BookIssueRegister = () => {
       toast({ title: "Enter Accession", description: "Please enter an accession number.", variant: "destructive" });
       return;
     }
-    const { data: book, error } = await supabase.from('books').select('*').eq('accession_number', accessionNumberInput.trim()).maybeSingle();
+    const { data: book, error } = await supabase
+      .from('books')
+      .select('*')
+      .contains('accession_numbers', [accessionNumberInput.trim()])
+      .maybeSingle();
+
     if (error || !book) {
       toast({ title: "Not Found", description: "No book found with this accession number. Switching to manual entry." });
       setIsManualEntry(true);
     } else {
       setIsManualEntry(false);
       setSelectedBook(book.id);
+      setSelectedAccession(accessionNumberInput.trim());
       toast({ title: "Book Found", description: `Selected: ${book.title}` });
     }
   };
@@ -129,12 +156,22 @@ const BookIssueRegister = () => {
           .insert({ title: manualBookTitle, author: manualBookAuthor, accession_number: accessionNumberInput.trim() || null, description: 'Manual entry - Physical library book', total_copies: 1, available_copies: 1 })
           .select().single();
         if (bookError) throw bookError;
-        const { error: issueError } = await supabase.rpc('issue_book_to_user', { p_book_id: newBook.id, p_user_id: selectedUser, p_issue_date: issueDate });
+        const { error: issueError } = await supabase.rpc('issue_book_to_user', {
+          p_book_id: newBook.id,
+          p_user_id: selectedUser,
+          p_issue_date: issueDate,
+          p_accession_number: accessionNumberInput.trim() || null
+        });
         if (issueError) throw issueError;
         toast({ title: "Success", description: "Manual book entry created and issued successfully" });
         setManualBookTitle(""); setManualBookAuthor("");
       } else {
-        const { error: issueError } = await supabase.rpc('issue_book_to_user', { p_book_id: selectedBook, p_user_id: selectedUser, p_issue_date: issueDate });
+        const { error: issueError } = await supabase.rpc('issue_book_to_user', {
+          p_book_id: selectedBook,
+          p_user_id: selectedUser,
+          p_issue_date: issueDate,
+          p_accession_number: selectedAccession || null
+        });
         if (issueError) throw issueError;
         toast({ title: "Success", description: "Book issued successfully" });
         setSelectedBook("");
@@ -357,10 +394,33 @@ const BookIssueRegister = () => {
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Accession / Barcode</Label>
                 <div className="flex gap-2">
-                  <Input value={accessionNumberInput} onChange={(e) => setAccessionNumberInput(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') handleFetchAccession(); }} placeholder="KV-ACC-1002" className="h-10 rounded-lg" />
+                  <Input value={accessionNumberInput} onChange={(e) => setAccessionNumberInput(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') handleFetchAccession(); }} placeholder="Scan/Type copy code" className="h-10 rounded-lg font-mono text-sm" />
                   <Button variant="secondary" onClick={handleFetchAccession} className="h-10 font-bold">Fetch</Button>
                 </div>
               </div>
+
+              {!isManualEntry && selectedBook && (
+                <div className="space-y-1.5 flex flex-col">
+                  <Label className="text-xs font-medium">Select Copy (Accession #) *</Label>
+                  <Select value={selectedAccession} onValueChange={setSelectedAccession}>
+                    <SelectTrigger className="h-10 rounded-lg font-mono text-sm">
+                      <SelectValue placeholder="Choose copy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableAccessions.map((acc) => (
+                        <SelectItem key={acc} value={acc} className="font-mono text-xs">
+                          {acc}
+                        </SelectItem>
+                      ))}
+                      {availableAccessions.length === 0 && (
+                        <SelectItem value="none" disabled>
+                          No copies available
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Issue Date *</Label>

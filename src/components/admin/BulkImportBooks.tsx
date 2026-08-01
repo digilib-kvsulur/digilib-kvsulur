@@ -78,20 +78,43 @@ const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
         }
       }
 
-      const { error } = await supabase.from("books").insert({
-        title: String(r.title).trim(),
-        author: String(r.author).trim(),
-        accession_number: accession,
-        language: r.language?.trim() || (fetchedDetails as any).language || null,
-        category: r.category?.trim() || (fetchedDetails as any).category || null,
-        subject: r.subject?.trim() || (fetchedDetails as any).subject || null,
-        class_level: r.class_level?.trim() || null,
-        description: r.description?.trim() || (fetchedDetails as any).description || null,
-        cover_url: r.cover_url?.trim() || (fetchedDetails as any).cover_url || null,
-        total_copies: copies,
-        available_copies: copies,
-      });
-      out.push({ title: r.title, success: !error, error: error?.message });
+      const { data: existing } = await supabase
+        .from("books")
+        .select("id, accession_numbers, total_copies, available_copies")
+        .ilike("title", String(r.title).trim())
+        .maybeSingle();
+
+      if (existing) {
+        const currentAccs = Array.isArray(existing.accession_numbers) ? existing.accession_numbers : [];
+        const newAccs = accession && !currentAccs.includes(accession) ? [...currentAccs, accession] : currentAccs;
+        const copiesToAdd = Math.max(1, copies);
+        const { error } = await supabase
+          .from("books")
+          .update({
+            accession_numbers: newAccs,
+            total_copies: existing.total_copies + copiesToAdd,
+            available_copies: existing.available_copies + copiesToAdd
+          })
+          .eq("id", existing.id);
+        out.push({ title: r.title, success: !error, error: error?.message });
+      } else {
+        const accs = accession ? [accession] : [];
+        const { error } = await supabase.from("books").insert({
+          title: String(r.title).trim(),
+          author: String(r.author).trim(),
+          accession_number: accession,
+          accession_numbers: accs,
+          language: r.language?.trim() || (fetchedDetails as any).language || null,
+          category: r.category?.trim() || (fetchedDetails as any).category || null,
+          subject: r.subject?.trim() || (fetchedDetails as any).subject || null,
+          class_level: r.class_level?.trim() || null,
+          description: r.description?.trim() || (fetchedDetails as any).description || null,
+          cover_url: r.cover_url?.trim() || (fetchedDetails as any).cover_url || null,
+          total_copies: copies,
+          available_copies: copies,
+        });
+        out.push({ title: r.title, success: !error, error: error?.message });
+      }
     }
     setResults(out);
     const ok = out.filter(x => x.success).length;

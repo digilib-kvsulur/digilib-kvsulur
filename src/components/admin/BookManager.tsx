@@ -20,6 +20,7 @@ interface Book {
   title: string;
   author: string;
   accession_number?: string;
+  accession_numbers?: string[];
   language?: string;
   subject?: string;
   class_level?: string;
@@ -33,18 +34,17 @@ interface Book {
 interface BookFormData {
   title: string;
   author: string;
-  accession_number: string;
+  accession_numbers: string[];
   language: string;
   category: string;
   subject: string;
   class_level: string;
   description: string;
-  total_copies: number;
   cover_url: string;
 }
 
 const emptyForm: BookFormData = {
-  title: '', author: '', accession_number: '', language: '', category: '', subject: '', class_level: '', description: '', total_copies: 1, cover_url: '',
+  title: '', author: '', accession_numbers: [], language: '', category: '', subject: '', class_level: '', description: '', cover_url: '',
 };
 
 const BookManager = () => {
@@ -66,6 +66,7 @@ const BookManager = () => {
   const [fetchAllProgress, setFetchAllProgress] = useState("");
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [missingAccessionInputs, setMissingAccessionInputs] = useState<Record<string, string>>({});
+  const [newAccessionInput, setNewAccessionInput] = useState("");
   const { toast } = useToast();
 
   useEffect(() => { loadBooks(); }, []);
@@ -97,31 +98,35 @@ const BookManager = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const accessions = formData.accession_numbers.filter(a => a.trim());
+      const totalCopies = Math.max(accessions.length, 1);
       const payload = {
         title: formData.title,
         author: formData.author,
-        accession_number: formData.accession_number.trim() || null,
+        accession_number: accessions[0] || null, // keep first for backwards compat
+        accession_numbers: accessions,
         language: formData.language.trim() || null,
         category: formData.category.trim() || null,
         subject: formData.subject.trim() || null,
         class_level: formData.class_level.trim() || null,
         description: formData.description.trim() || null,
         cover_url: formData.cover_url.trim() || null,
-        total_copies: formData.total_copies,
+        total_copies: totalCopies,
       };
       if (editingBook) {
+        const copiesDelta = totalCopies - editingBook.total_copies;
         const { error } = await supabase.from('books').update({
           ...payload,
-          available_copies: editingBook.available_copies + (formData.total_copies - editingBook.total_copies),
+          available_copies: Math.max(0, editingBook.available_copies + copiesDelta),
         }).eq('id', editingBook.id);
         if (error) throw error;
         toast({ title: "Success", description: "Book updated" });
       } else {
-        const { error } = await supabase.from('books').insert({ ...payload, available_copies: formData.total_copies });
+        const { error } = await supabase.from('books').insert({ ...payload, available_copies: totalCopies });
         if (error) throw error;
         toast({ title: "Success", description: "Book added" });
       }
-      setShowAddDialog(false); setEditingBook(null); setFormData(emptyForm); loadBooks();
+      setShowAddDialog(false); setEditingBook(null); setFormData(emptyForm); setNewAccessionInput(""); loadBooks();
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to save book", variant: "destructive" });
     }
@@ -129,13 +134,20 @@ const BookManager = () => {
 
   const handleEdit = (book: Book) => {
     setEditingBook(book);
+    // Populate accession_numbers from the array column or fall back to single value
+    const accessions: string[] = (
+      Array.isArray(book.accession_numbers) && book.accession_numbers.length > 0
+        ? book.accession_numbers
+        : book.accession_number ? [book.accession_number] : []
+    );
     setFormData({
       title: book.title, author: book.author,
-      accession_number: book.accession_number || '',
+      accession_numbers: accessions,
       language: book.language || '',
       category: book.category || '', subject: book.subject || '', class_level: book.class_level || '',
-      description: book.description || '', total_copies: book.total_copies, cover_url: (book as any).cover_url || '',
+      description: book.description || '', cover_url: (book as any).cover_url || '',
     });
+    setNewAccessionInput("");
     setShowAddDialog(true);
   };
 
@@ -344,41 +356,27 @@ const BookManager = () => {
     setBulkBusy(false);
   };
 
-  const handleSplitCopies = async (book: Book) => {
-    if (!confirm(`This will split "${book.title}" into ${book.total_copies} individual book records (each with 1 copy) to allow tracking individual accession numbers. Proceed?`)) return;
-    
+  // Convert a multi-copy row into a single row with accession_numbers array
+  const handleConvertToMultiAccession = async (book: Book) => {
+    if (!confirm(`This will store all ${book.total_copies} copy accession numbers inside one row for "${book.title}", keeping it as a single catalog entry. Proceed?`)) return;
     setBulkBusy(true);
     try {
       const baseAcc = book.accession_number?.trim() || `ACC-${Math.floor(Math.random() * 100000)}`;
-      const inserts = [];
+      const accessions: string[] = [];
       for (let i = 1; i <= book.total_copies; i++) {
-        inserts.push({
-          title: book.title,
-          author: book.author,
-          accession_number: `${baseAcc}-${i}`,
-          language: book.language,
-          category: book.category,
-          subject: book.subject,
-          class_level: book.class_level,
-          description: book.description,
-          total_copies: 1,
-          available_copies: 1,
-          cover_url: book.cover_url,
-          isbn: book.isbn
-        });
+        accessions.push(`${baseAcc}-${i}`);
       }
-      
-      const { error: delError } = await supabase.from("books").delete().eq("id", book.id);
-      if (delError) throw delError;
-      
-      const { error: insError } = await supabase.from("books").insert(inserts);
-      if (insError) throw insError;
-      
-      toast({ title: "Success", description: `Successfully split into ${book.total_copies} individual copies.` });
+      const { error } = await supabase.from("books").update({
+        accession_numbers: accessions,
+        accession_number: accessions[0],
+        total_copies: book.total_copies,
+        available_copies: book.available_copies,
+      }).eq("id", book.id);
+      if (error) throw error;
+      toast({ title: "Converted", description: `${book.total_copies} accessions stored in one catalog row.` });
       loadBooks();
     } catch (e: any) {
-      console.error(e);
-      toast({ title: "Error", description: e.message || "Failed to split copies.", variant: "destructive" });
+      toast({ title: "Error", description: e.message || "Failed to convert.", variant: "destructive" });
     } finally {
       setBulkBusy(false);
     }
@@ -599,8 +597,47 @@ const BookManager = () => {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <Label htmlFor="accession_number">Accession Number / Library Book Code</Label>
-              <Input id="accession_number" value={formData.accession_number} onChange={(e) => setFormData(p => ({ ...p, accession_number: e.target.value }))} placeholder="e.g. KV-ACC-1001" />
+              <Label>Accession Numbers (Physical Copies)</Label>
+              <p className="text-[11px] text-muted-foreground mb-2">Each accession number = one physical copy. The title shows once in catalog regardless of how many copies exist.</p>
+              {/* Chip list */}
+              <div className="flex flex-wrap gap-1.5 mb-2 min-h-[32px]">
+                {formData.accession_numbers.map((acc, idx) => (
+                  <span key={idx} className="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-mono rounded-full px-2.5 py-0.5">
+                    {acc}
+                    <button type="button" onClick={() => setFormData(p => ({ ...p, accession_numbers: p.accession_numbers.filter((_, i) => i !== idx) }))} className="text-indigo-400 hover:text-red-500 ml-0.5 leading-none">×</button>
+                  </span>
+                ))}
+                {formData.accession_numbers.length === 0 && <span className="text-xs text-muted-foreground italic">No accession numbers added yet</span>}
+              </div>
+              {/* Add new accession */}
+              <div className="flex gap-2">
+                <Input
+                  value={newAccessionInput}
+                  onChange={e => setNewAccessionInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = newAccessionInput.trim();
+                      if (val && !formData.accession_numbers.includes(val)) {
+                        setFormData(p => ({ ...p, accession_numbers: [...p.accession_numbers, val] }));
+                        setNewAccessionInput("");
+                      }
+                    }
+                  }}
+                  placeholder="e.g. 00001  (press Enter to add)"
+                  className="font-mono text-sm"
+                />
+                <Button type="button" size="sm" variant="outline" className="shrink-0 border-indigo-300 text-indigo-700 hover:bg-indigo-50" onClick={() => {
+                  const val = newAccessionInput.trim();
+                  if (val && !formData.accession_numbers.includes(val)) {
+                    setFormData(p => ({ ...p, accession_numbers: [...p.accession_numbers, val] }));
+                    setNewAccessionInput("");
+                  }
+                }}>Add</Button>
+              </div>
+              {formData.accession_numbers.length > 0 && (
+                <p className="text-[11px] text-muted-foreground mt-1">{formData.accession_numbers.length} copy(ies) — <span className="font-semibold">Total Copies</span> will be set to {formData.accession_numbers.length} automatically.</p>
+              )}
             </div>
             <div>
               <Label htmlFor="title">Book Name *</Label>
@@ -610,16 +647,7 @@ const BookManager = () => {
               <Label htmlFor="author">Author *</Label>
               <Input id="author" value={formData.author} onChange={(e) => setFormData(p => ({ ...p, author: e.target.value }))} required />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="language">Language</Label>
-                <Input id="language" value={formData.language} onChange={(e) => setFormData(p => ({ ...p, language: e.target.value }))} placeholder="English / Tamil / Hindi" />
-              </div>
-              <div>
-                <Label htmlFor="total_copies">Copies *</Label>
-                <Input id="total_copies" type="number" min="1" value={formData.total_copies} onChange={(e) => setFormData(p => ({ ...p, total_copies: parseInt(e.target.value) || 1 }))} required />
-              </div>
-            </div>
+
 
             {/* AI Auto-Fetch Button */}
             <div className="rounded-lg border border-dashed border-indigo-400/40 bg-indigo-500/5 p-3">
@@ -811,10 +839,10 @@ const BookManager = () => {
 
             {/* Multi-Copy Tab */}
             <TabsContent value="multicopy" className="space-y-3 pt-3">
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300 flex gap-2">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-xs text-indigo-800 flex gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold">Why split copies?</span> If a single book record has `total_copies` &gt; 1, the database cannot allocate unique copy accession numbers or check out specific physical copies individually. Splitting makes each copy its own row (e.g. KV-ACC-1200-1, KV-ACC-1200-2) for proper tracking.
+                  <span className="font-bold">Keep Catalog Clean:</span> Converting creates multiple physical copy accession numbers under the <strong>same single row</strong> (e.g. KV-ACC-1200-1, KV-ACC-1200-2). This prevents duplicate title listings from cluttering the catalog pages.
                 </div>
               </div>
 
@@ -843,10 +871,10 @@ const BookManager = () => {
                             <Button
                               size="sm"
                               className="h-8 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
-                              onClick={() => handleSplitCopies(b)}
+                              onClick={() => handleConvertToMultiAccession(b)}
                               disabled={bulkBusy}
                             >
-                              Split into {b.total_copies} Rows
+                              Convert to Multi-Accession
                             </Button>
                           </TableCell>
                         </TableRow>
