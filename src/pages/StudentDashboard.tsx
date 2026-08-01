@@ -458,7 +458,7 @@ const StudentDashboard = () => {
                       ].map(a => (
                         <button
                           key={a.tab}
-                          onClick={() => setActiveTab(a.tab)}
+                          onClick={() => setActiveTab(a.tab as Tab)}
                           className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left group"
                         >
                           <div className={`w-7 h-7 rounded-lg ${a.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>

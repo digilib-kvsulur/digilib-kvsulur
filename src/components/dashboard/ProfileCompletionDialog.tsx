@@ -137,10 +137,8 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
               </Label>
               <Input
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="e.g. Aarav"
-                className="rounded-xl border-border/60"
-                required
+                disabled
+                className="rounded-xl border-border/40 bg-muted/40 text-muted-foreground"
               />
             </div>
             <div className="space-y-1.5">
@@ -149,13 +147,26 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
               </Label>
               <Input
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="e.g. Sharma"
-                className="rounded-xl border-border/60"
-                required
+                disabled
+                className="rounded-xl border-border/40 bg-muted/40 text-muted-foreground"
               />
             </div>
           </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <Hash className="h-3 w-3 text-muted-foreground" /> Admission Number
+            </Label>
+            <Input
+              value={user?.admission_number || ""}
+              disabled
+              className="rounded-xl border-border/40 bg-muted/40 text-muted-foreground font-mono"
+            />
+            <p className="text-[10px] text-muted-foreground leading-normal">
+              Name and admission number are set by the library and cannot be edited.
+            </p>
+          </div>
+
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">

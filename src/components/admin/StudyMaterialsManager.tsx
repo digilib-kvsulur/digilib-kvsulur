@@ -928,7 +928,7 @@ const StudyMaterialsManager = () => {
                         </Button>
                         <Button variant="outline" size="sm" className="h-8" onClick={() => {
                           setEditingCbseId(entry.id);
-                          setCbseForm({ category: entry.category, chapter_title: entry.chapter_title, chapter_number: String(entry.chapter_number || ""), file_url: entry.file_url, description: entry.description || "" });
+                          setCbseForm({ category: entry.category, chapter_title: entry.chapter_title, chapter_number: String(entry.chapter_number || ""), file_url: entry.file_url, description: entry.description || "", class_number: entry.class_number || "All", subject: entry.subject || "General" });
                         }}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
