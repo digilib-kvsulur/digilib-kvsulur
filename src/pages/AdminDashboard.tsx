@@ -307,6 +307,8 @@ const AdminDashboard = () => {
           {activeTab === "book-requests" && <BookIssueRequests />}
           {activeTab === "book-issues" && <BookIssueRegister />}
           {activeTab === "overdue" && <OverdueList />}
+          {activeTab === "condemnation" && <BookCondemnation />}
+          {activeTab === "shelf-data" && <BookShelfData />}
           {activeTab === "renewals" && <RenewalRequests />}
           {activeTab === "reviews" && <ReviewsModeration />}
           {activeTab === "events" && <EventsManager />}
