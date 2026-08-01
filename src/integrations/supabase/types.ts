@@ -142,6 +142,56 @@ export type Database = {
           },
         ]
       }
+      book_condemnations: {
+        Row: {
+          accession_number: string | null
+          book_condition: string | null
+          book_id: string | null
+          book_title: string
+          condemned_at: string
+          condemned_by: string | null
+          copies: number
+          created_at: string
+          id: string
+          notes: string | null
+          reason: string
+        }
+        Insert: {
+          accession_number?: string | null
+          book_condition?: string | null
+          book_id?: string | null
+          book_title?: string
+          condemned_at?: string
+          condemned_by?: string | null
+          copies?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reason?: string
+        }
+        Update: {
+          accession_number?: string | null
+          book_condition?: string | null
+          book_id?: string | null
+          book_title?: string
+          condemned_at?: string
+          condemned_by?: string | null
+          copies?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_condemnations_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       book_issues: {
         Row: {
           accession_number: string | null
@@ -425,6 +475,7 @@ export type Database = {
           available_copies: number
           category: string | null
           class_level: string | null
+          condemned_copies: number
           cover_url: string | null
           created_at: string
           description: string | null
@@ -443,6 +494,7 @@ export type Database = {
           available_copies?: number
           category?: string | null
           class_level?: string | null
+          condemned_copies?: number
           cover_url?: string | null
           created_at?: string
           description?: string | null
@@ -461,6 +513,7 @@ export type Database = {
           available_copies?: number
           category?: string | null
           class_level?: string | null
+          condemned_copies?: number
           cover_url?: string | null
           created_at?: string
           description?: string | null
@@ -472,6 +525,42 @@ export type Database = {
           title?: string
           total_copies?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      cbse_curriculum: {
+        Row: {
+          category: string
+          chapter_number: number | null
+          chapter_title: string
+          class_number: string
+          created_at: string
+          description: string | null
+          file_url: string
+          id: string
+          subject: string
+        }
+        Insert: {
+          category?: string
+          chapter_number?: number | null
+          chapter_title?: string
+          class_number?: string
+          created_at?: string
+          description?: string | null
+          file_url?: string
+          id?: string
+          subject?: string
+        }
+        Update: {
+          category?: string
+          chapter_number?: number | null
+          chapter_title?: string
+          class_number?: string
+          created_at?: string
+          description?: string | null
+          file_url?: string
+          id?: string
+          subject?: string
         }
         Relationships: []
       }
@@ -685,6 +774,30 @@ export type Database = {
         }
         Relationships: []
       }
+      gallery_images: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          image_url: string
+          is_active: boolean
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          is_active?: boolean
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
       levels: {
         Row: {
           color: string
@@ -730,10 +843,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          end_date: string | null
           event_date: string
           id: string
+          image_orientation: string | null
+          image_url: string | null
           is_published: boolean
           location: string | null
+          schedule_files: string | null
           title: string
           updated_at: string
         }
@@ -742,10 +859,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          end_date?: string | null
           event_date: string
           id?: string
+          image_orientation?: string | null
+          image_url?: string | null
           is_published?: boolean
           location?: string | null
+          schedule_files?: string | null
           title: string
           updated_at?: string
         }
@@ -754,10 +875,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          end_date?: string | null
           event_date?: string
           id?: string
+          image_orientation?: string | null
+          image_url?: string | null
           is_published?: boolean
           location?: string | null
+          schedule_files?: string | null
           title?: string
           updated_at?: string
         }
@@ -823,6 +948,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ncert_books: {
+        Row: {
+          book_name: string
+          chapter_number: number | null
+          chapter_title: string
+          class_number: string
+          created_at: string
+          file_url: string
+          id: string
+          subject: string
+        }
+        Insert: {
+          book_name?: string
+          chapter_number?: number | null
+          chapter_title?: string
+          class_number: string
+          created_at?: string
+          file_url?: string
+          id?: string
+          subject: string
+        }
+        Update: {
+          book_name?: string
+          chapter_number?: number | null
+          chapter_title?: string
+          class_number?: string
+          created_at?: string
+          file_url?: string
+          id?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           color: string
@@ -859,7 +1017,7 @@ export type Database = {
           id: string
           is_read: boolean
           message: string
-          sent_by: string
+          sent_by: string | null
           target_user_id: string | null
           title: string
           type: string
@@ -869,7 +1027,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           message: string
-          sent_by: string
+          sent_by?: string | null
           target_user_id?: string | null
           title: string
           type?: string
@@ -879,7 +1037,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           message?: string
-          sent_by?: string
+          sent_by?: string | null
           target_user_id?: string | null
           title?: string
           type?: string
@@ -987,10 +1145,12 @@ export type Database = {
           id: string
           is_approved: boolean
           last_name: string | null
+          needs_profile_update: boolean
           phone: string | null
           points: number
           role: string
           roll_number: string | null
+          streak_last_claimed: string | null
           student_class: string | null
           updated_at: string
           username: string | null
@@ -1007,10 +1167,12 @@ export type Database = {
           id: string
           is_approved?: boolean
           last_name?: string | null
+          needs_profile_update?: boolean
           phone?: string | null
           points?: number
           role?: string
           roll_number?: string | null
+          streak_last_claimed?: string | null
           student_class?: string | null
           updated_at?: string
           username?: string | null
@@ -1027,10 +1189,12 @@ export type Database = {
           id?: string
           is_approved?: boolean
           last_name?: string | null
+          needs_profile_update?: boolean
           phone?: string | null
           points?: number
           role?: string
           roll_number?: string | null
+          streak_last_claimed?: string | null
           student_class?: string | null
           updated_at?: string
           username?: string | null
@@ -1127,6 +1291,7 @@ export type Database = {
           notes: string | null
           points_earned: number
           rating: number | null
+          status: string
           user_id: string
         }
         Insert: {
@@ -1138,6 +1303,7 @@ export type Database = {
           notes?: string | null
           points_earned?: number
           rating?: number | null
+          status?: string
           user_id: string
         }
         Update: {
@@ -1149,6 +1315,7 @@ export type Database = {
           notes?: string | null
           points_earned?: number
           rating?: number | null
+          status?: string
           user_id?: string
         }
         Relationships: []
@@ -1195,6 +1362,24 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json | null
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1218,6 +1403,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_book_request: {
+        Args: {
+          p_admin_notes?: string
+          p_due_date?: string
+          p_request_id: string
+        }
+        Returns: string
+      }
+      approve_reading_entry: { Args: { p_reading_id: string }; Returns: number }
+      claim_streak_points: { Args: never; Returns: number }
+      condemn_book: {
+        Args: {
+          p_book_id: string
+          p_condition?: string
+          p_copies: number
+          p_notes?: string
+          p_reason: string
+        }
+        Returns: string
+      }
       find_user_by_identifier: {
         Args: { identifier: string }
         Returns: {
@@ -1228,6 +1433,13 @@ export type Database = {
       }
       get_active_quizzes_count: { Args: never; Returns: number }
       get_active_users_count: { Args: never; Returns: number }
+      get_book_borrow_counts: {
+        Args: never
+        Returns: {
+          book_id: string
+          borrow_count: number
+        }[]
+      }
       get_books_issued_count: { Args: never; Returns: number }
       get_class_league: {
         Args: never
@@ -1298,7 +1510,38 @@ export type Database = {
           username: string
         }[]
       }
+      get_school_leaderboard_stats: {
+        Args: never
+        Returns: {
+          average_points: number
+          total_points: number
+          total_students: number
+        }[]
+      }
+      get_teacher_class_students: {
+        Args: { p_class: string }
+        Returns: {
+          admission_number: string
+          avatar_url: string
+          first_name: string
+          id: string
+          last_name: string
+          points: number
+          student_class: string
+          username: string
+        }[]
+      }
       get_total_books_count: { Args: never; Returns: number }
+      get_user_activity_stats: {
+        Args: { _user_id: string }
+        Returns: {
+          books_issued: number
+          comments_count: number
+          friends_count: number
+          posts_count: number
+          reviews_count: number
+        }[]
+      }
       get_user_class_rank: {
         Args: { user_class: string; user_points: number }
         Returns: number
@@ -1325,6 +1568,19 @@ export type Database = {
         Returns: boolean
       }
       is_staff_or_admin: { Args: { _uid: string }; Returns: boolean }
+      issue_book_to_user: {
+        Args: { p_book_id: string; p_issue_date?: string; p_user_id: string }
+        Returns: string
+      }
+      notify_user: {
+        Args: {
+          _message: string
+          _title: string
+          _type?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       record_login_streak: {
         Args: { p_user_id: string }
         Returns: {
@@ -1345,6 +1601,7 @@ export type Database = {
           username: string
         }[]
       }
+      sync_missing_auth_profiles: { Args: never; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
