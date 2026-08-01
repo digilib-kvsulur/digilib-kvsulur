@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, BookOpen, Search, Download } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ExternalLink, BookOpen, Search, FileText } from "lucide-react";
 
 // NCERT books — direct links to official NCERT PDFs (ncert.nic.in)
 const NCERT_BOOKS: { class: string; subject: string; title: string; url: string }[] = [
@@ -48,6 +49,7 @@ const NCERTBooks = () => {
   const [classFilter, setClassFilter] = useState<string>("all");
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [viewMaterial, setViewMaterial] = useState<{title: string, url: string} | null>(null);
 
   const subjects = Array.from(new Set(NCERT_BOOKS.map((b) => b.subject)));
   const classes = Array.from(new Set(NCERT_BOOKS.map((b) => b.class))).sort((a, b) => +a - +b);
@@ -104,16 +106,44 @@ const NCERTBooks = () => {
                   </div>
                 </div>
               </div>
-              <Button asChild size="sm" variant="outline" className="w-full">
-                <a href={b.url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open Book
-                </a>
+              <Button size="sm" variant="outline" className="w-full" onClick={() => setViewMaterial({ title: b.title, url: b.url })}>
+                <BookOpen className="h-3.5 w-3.5 mr-2" /> Open Book
               </Button>
             </CardContent>
           </Card>
         ))}
         {filtered.length === 0 && <p className="col-span-full text-center text-sm text-muted-foreground py-8">No books match your filter.</p>}
       </div>
+    </div>
+      
+      {/* Material Viewer Popup */}
+      <Dialog open={!!viewMaterial} onOpenChange={() => setViewMaterial(null)}>
+        <DialogContent className="max-w-5xl w-full h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b bg-muted/20 shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground line-clamp-1">
+                <FileText className="h-5 w-5 text-primary shrink-0" />
+                {viewMaterial?.title}
+              </DialogTitle>
+              <Button asChild variant="outline" size="sm" className="h-8 hidden sm:flex">
+                <a href={viewMaterial?.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in New Tab
+                </a>
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 bg-muted/10 w-full h-full relative">
+            {viewMaterial && (
+              <iframe
+                src={viewMaterial.url}
+                className="w-full h-full border-0 absolute inset-0"
+                title={viewMaterial.title}
+                allow="autoplay"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

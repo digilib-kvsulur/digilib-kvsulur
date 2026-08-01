@@ -94,6 +94,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
   const [filterSubject, setFilterSubject] = useState("all");
   const [ncertBook, setNcertBook] = useState<{ name: string; chapters: { title: string; url: string }[] } | null>(null);
   const [cbseBook, setCbseBook] = useState<{ name: string; chapters: { title: string; url: string }[] } | null>(null);
+  const [viewMaterial, setViewMaterial] = useState<{title: string, url: string} | null>(null);
   const [dbCbse, setDbCbse] = useState<any[]>([]);
 
   const baseClass = getBaseClass(studentClass);
@@ -239,10 +240,8 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                         )}
                       </div>
                       {m.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{m.description}</p>}
-                      <Button asChild size="sm" variant="outline" className="mt-2 h-7 text-xs">
-                        <a href={m.file_url} target="_blank" rel="noopener noreferrer">
-                          <Download className="h-3 w-3 mr-1" /> Open
-                        </a>
+                      <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => setViewMaterial({ title: m.title, url: m.file_url })}>
+                        <BookOpen className="h-3 w-3 mr-1" /> Open
                       </Button>
                     </div>
                   </CardContent>
@@ -345,19 +344,17 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-1 pr-1">
             {ncertBook?.chapters.map((ch, i) => (
-              <a
+              <button
                 key={i}
-                href={ch.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/60 transition-colors group border border-transparent hover:border-border/60"
+                onClick={() => setViewMaterial({ title: `${ncertBook.name} - ${ch.title}`, url: ch.url })}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/60 transition-colors group border border-transparent hover:border-border/60 text-left w-full"
               >
                 <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
                   {i + 1}
                 </span>
                 <span className="flex-1 text-sm text-foreground group-hover:text-primary transition-colors">{ch.title}</span>
                 <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-              </a>
+              </button>
             ))}
           </div>
         </DialogContent>
@@ -374,20 +371,46 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-1 pr-1">
             {cbseBook?.chapters.map((ch, i) => (
-              <a
+              <button
                 key={i}
-                href={ch.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50/60 transition-colors group border border-transparent hover:border-indigo-200"
+                onClick={() => setViewMaterial({ title: `${cbseBook.name} - ${ch.title}`, url: ch.url })}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50/60 transition-colors group border border-transparent hover:border-indigo-200 text-left w-full"
               >
                 <span className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                   {i + 1}
                 </span>
                 <span className="flex-1 text-sm text-foreground group-hover:text-indigo-600 transition-colors">{ch.title}</span>
                 <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-indigo-600 transition-colors shrink-0" />
-              </a>
+              </button>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Material Viewer Popup */}
+      <Dialog open={!!viewMaterial} onOpenChange={() => setViewMaterial(null)}>
+        <DialogContent className="max-w-5xl w-full h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b bg-muted/20 shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground line-clamp-1">
+                <FileText className="h-5 w-5 text-primary shrink-0" />
+                {viewMaterial?.title}
+              </DialogTitle>
+              <Button asChild variant="outline" size="sm" className="h-8 hidden sm:flex">
+                <a href={viewMaterial?.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in New Tab
+                </a>
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 bg-muted/10 w-full h-full relative">
+            {viewMaterial && (
+              <iframe
+                src={viewMaterial.url}
+                className="w-full h-full border-0 absolute inset-0"
+                title={viewMaterial.title}
+                allow="autoplay"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

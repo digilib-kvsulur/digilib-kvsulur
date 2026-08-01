@@ -130,6 +130,8 @@ const StudyMaterialsManager = () => {
   const [fetchClass, setFetchClass] = useState("10");
   const [fetchSubject, setFetchSubject] = useState("Mathematics");
   const [fetchingNcert, setFetchingNcert] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [viewMaterial, setViewMaterial] = useState<{title: string, url: string} | null>(null);
 
   useEffect(() => {
     loadMaterials();
@@ -617,8 +619,8 @@ const StudyMaterialsManager = () => {
                           {m.description && ` · ${m.description}`}
                         </p>
                       </div>
-                      <Button asChild variant="outline" size="sm" className="h-8">
-                        <a href={m.file_url} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /></a>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => setViewMaterial({ title: m.title, url: m.file_url })}>
+                        <BookOpen className="h-4 w-4" />
                       </Button>
                       <Button onClick={() => handleDeleteMaterial(m)} variant="ghost" size="sm" className="text-destructive h-8">
                         <Trash2 className="h-4 w-4" />
@@ -804,8 +806,8 @@ const StudyMaterialsManager = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button asChild variant="outline" size="sm" className="h-8">
-                              <a href={c.file_url} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /></a>
+                            <Button size="sm" variant="outline" className="h-8" onClick={() => setViewMaterial({ title: c.chapter_title, url: c.file_url })}>
+                              <BookOpen className="h-4 w-4" />
                             </Button>
                             <Button onClick={() => { setEditingNcertId(c.id); setEditNcertForm(c); }} variant="outline" size="sm" className="h-8">
                               <Edit2 className="h-4 w-4" />
@@ -923,8 +925,8 @@ const StudyMaterialsManager = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button asChild variant="outline" size="sm" className="h-8">
-                          <a href={entry.file_url} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /></a>
+                        <Button size="sm" variant="outline" className="h-8" onClick={() => setViewMaterial({ title: entry.chapter_title, url: entry.file_url })}>
+                          <BookOpen className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="sm" className="h-8" onClick={() => {
                           setEditingCbseId(entry.id);
@@ -944,6 +946,35 @@ const StudyMaterialsManager = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Material Viewer Popup */}
+      <Dialog open={!!viewMaterial} onOpenChange={() => setViewMaterial(null)}>
+        <DialogContent className="max-w-5xl w-full h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b bg-muted/20 shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground line-clamp-1">
+                <FileText className="h-5 w-5 text-primary shrink-0" />
+                {viewMaterial?.title}
+              </DialogTitle>
+              <Button asChild variant="outline" size="sm" className="h-8 hidden sm:flex">
+                <a href={viewMaterial?.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in New Tab
+                </a>
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 bg-muted/10 w-full h-full relative">
+            {viewMaterial && (
+              <iframe
+                src={viewMaterial.url}
+                className="w-full h-full border-0 absolute inset-0"
+                title={viewMaterial.title}
+                allow="autoplay"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -176,8 +176,19 @@ export async function fetchBookByIsbn(isbn: string): Promise<FetchedBookDetails 
  */
 export async function fetchBookByQuery(title: string, author?: string): Promise<FetchedBookDetails | null> {
   const queryParts = [];
-  if (title) queryParts.push(`intitle:${title.trim()}`);
-  if (author) queryParts.push(`inauthor:${author.trim()}`);
+  const searchTitle = title.trim();
+  const searchAuthor = author?.trim() || "";
+  
+  const isNcertOrClass = searchTitle.toLowerCase().includes("ncert") || 
+                         searchAuthor.toLowerCase().includes("ncert") || 
+                         /class\s*\d+/i.test(searchTitle);
+
+  if (searchTitle) queryParts.push(`intitle:${searchTitle}`);
+  if (searchAuthor) queryParts.push(`inauthor:${searchAuthor}`);
+  if (isNcertOrClass && !searchTitle.toLowerCase().includes("ncert")) {
+    queryParts.push("NCERT");
+  }
+
   const query = encodeURIComponent(queryParts.join(" "));
 
   if (!query) return null;
@@ -212,7 +223,9 @@ export async function fetchBookByQuery(title: string, author?: string): Promise<
   // 2) Fallback to Open Library
   if (!details) {
     try {
-      const q = encodeURIComponent(`${title.trim()} ${author?.trim() || ""}`.trim());
+      let qStr = `${searchTitle} ${searchAuthor}`.trim();
+      if (isNcertOrClass && !qStr.toLowerCase().includes("ncert")) qStr += " NCERT";
+      const q = encodeURIComponent(qStr);
       const olRes = await fetch(`https://openlibrary.org/search.json?q=${q}&limit=1`);
       if (olRes.ok) {
         const data = await olRes.json();
