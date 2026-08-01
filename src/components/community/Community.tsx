@@ -131,8 +131,8 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         const path = `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("community-media").upload(path, mediaFile, { contentType: mediaFile.type });
         if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from("community-media").getPublicUrl(path);
-        mediaUrl = pub.publicUrl;
+        const { data: signed } = await supabase.storage.from("community-media").createSignedUrl(path, 60 * 60 * 24 * 365);
+        mediaUrl = signed?.signedUrl || "";
         mediaType = mediaFile.type.startsWith("image") ? "image" : mediaFile.type.startsWith("video") ? "video" : "pdf";
       }
       const { error } = await supabase.from("posts").insert({ user_id: currentUserId, title: draft.title, content: draft.content, media_url: mediaUrl, media_type: mediaType });

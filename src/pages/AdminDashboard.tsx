@@ -33,9 +33,11 @@ import CirculationDashboard from "@/components/admin/CirculationDashboard";
 import InventoryAuditManager from "@/components/admin/InventoryAuditManager";
 import ExportReports from "@/components/admin/ExportReports";
 import GalleryManager from "@/components/admin/GalleryManager";
-import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon } from "lucide-react";
+import BookShelfData from "@/components/admin/BookShelfData";
+import BookCondemnation from "@/components/admin/BookCondemnation";
+import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "condemnation";
 
 const navSections = [
   {
@@ -62,6 +64,8 @@ const navSections = [
       { id: "book-requests" as Tab, label: "Book Requests", icon: BookUp },
       { id: "book-issues" as Tab, label: "Book Issues", icon: BookCheck },
       { id: "overdue" as Tab, label: "Overdue", icon: AlertTriangle },
+      { id: "condemnation" as Tab, label: "Condemnation", icon: ShieldAlert },
+      { id: "shelf-data" as Tab, label: "Shelf Data", icon: HardDriveDownload },
       { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
       { id: "reviews" as Tab, label: "Reviews", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
@@ -303,6 +307,8 @@ const AdminDashboard = () => {
           {activeTab === "book-requests" && <BookIssueRequests />}
           {activeTab === "book-issues" && <BookIssueRegister />}
           {activeTab === "overdue" && <OverdueList />}
+          {activeTab === "condemnation" && <BookCondemnation />}
+          {activeTab === "shelf-data" && <BookShelfData />}
           {activeTab === "renewals" && <RenewalRequests />}
           {activeTab === "reviews" && <ReviewsModeration />}
           {activeTab === "events" && <EventsManager />}

@@ -366,13 +366,15 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">First Name</Label>
-              <Input value={formData.first_name} onChange={e => setFormData(f => ({ ...f, first_name: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+              <Input value={formData.first_name} disabled className="rounded-lg mt-1 bg-muted/40 border-border/40 text-muted-foreground" />
+              <p className="text-[10px] text-muted-foreground mt-1">Locked — contact the librarian to change your name.</p>
             </div>
             <div>
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Last Name</Label>
-              <Input value={formData.last_name} onChange={e => setFormData(f => ({ ...f, last_name: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+              <Input value={formData.last_name} disabled className="rounded-lg mt-1 bg-muted/40 border-border/40 text-muted-foreground" />
             </div>
           </div>
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -398,8 +400,9 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
             </div>
             <div>
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Admission Number</Label>
-              <Input value={formData.admission_number} onChange={e => setFormData(f => ({ ...f, admission_number: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+              <Input value={formData.admission_number} disabled className="rounded-lg mt-1 bg-muted/40 border-border/40 text-muted-foreground" />
             </div>
+
           </div>
 
           <div>
