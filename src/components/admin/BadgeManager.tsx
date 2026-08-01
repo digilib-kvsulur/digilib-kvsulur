@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Award, Plus, Edit, Trash2, UserPlus } from "lucide-react";
+import { Award, Plus, Edit, Trash2, UserPlus, Users, CheckCircle } from "lucide-react";
 
 interface BadgeRow {
   id: string; name: string; description?: string; icon_name?: string; color?: string;
@@ -46,6 +46,15 @@ export default function BadgeManager() {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
+
+  // Earner drilldown
+  const [earnerOpen, setEarnerOpen] = useState<BadgeRow | null>(null);
+  const [earnerList, setEarnerList] = useState<any[]>([]);
+  const [earnerLoading, setEarnerLoading] = useState(false);
+
+  // Cache of all users for auto-badge earner computation
+  const [cachedAllUsers, setCachedAllUsers] = useState<any[]>([]);
+  const [cachedHelperMaps, setCachedHelperMaps] = useState<any>(null);
 
   const load = async () => {
     setLoading(true);
@@ -119,6 +128,11 @@ export default function BadgeManager() {
     });
 
     setAwardCounts(counts);
+
+    // Cache data for earner drilldowns
+    setCachedAllUsers(allUsers || []);
+    setCachedHelperMaps({ postsMap, commentsMap, friendsMap, issuesMap, reviewsMap, manualAwards });
+
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -157,6 +171,68 @@ export default function BadgeManager() {
     setAwardOpen(b); setSelectedStudent(""); setStudentSearch("");
     const { data } = await supabase.from("profiles").select("id, first_name, last_name, student_class, admission_number").eq("role", "student").eq("is_approved", true).order("first_name");
     setStudents(data || []);
+  };
+
+  const openEarners = async (b: BadgeRow) => {
+    setEarnerOpen(b);
+    setEarnerLoading(true);
+    setEarnerList([]);
+
+    if (b.criteria_type === "manual" || !b.criteria_type) {
+      // Fetch actual badge_awards records with user + awarder profile
+      const { data: awards } = await supabase
+        .from("badge_awards")
+        .select("user_id, awarded_by, award_type, awarded_at, note")
+        .eq("badge_id", b.id)
+        .order("awarded_at", { ascending: false });
+
+      if (awards && awards.length > 0) {
+        const userIds = awards.map((a: any) => a.user_id);
+        const awarderIds = awards.map((a: any) => a.awarded_by).filter(Boolean);
+        const allIds = Array.from(new Set([...userIds, ...awarderIds]));
+
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, admission_number, role, student_class")
+          .in("id", allIds);
+        const profMap: Record<string, any> = {};
+        (profs || []).forEach((p: any) => { profMap[p.id] = p; });
+
+        setEarnerList(awards.map((a: any) => ({
+          user: profMap[a.user_id],
+          awarder: a.awarded_by ? profMap[a.awarded_by] : null,
+          award_type: a.award_type,
+          awarded_at: a.awarded_at,
+          note: a.note,
+        })));
+      }
+    } else {
+      // Auto criteria — compute from cached data
+      const maps = cachedHelperMaps || {};
+      const qualifying = cachedAllUsers.filter((u: any) => {
+        let val = 0;
+        if (b.criteria_type === "points") val = u.points || 0;
+        else if (b.criteria_type === "books_read") val = (u.reading_history?.filter((r: any) => r.status === "approved")?.length) || 0;
+        else if (b.criteria_type === "quizzes_completed") val = u.quiz_results?.length || 0;
+        else if (b.criteria_type === "login_streak") val = u.login_streaks?.[0]?.current_streak || 0;
+        else if (b.criteria_type === "posts_count") val = maps.postsMap?.[u.id] || 0;
+        else if (b.criteria_type === "comments_count") val = maps.commentsMap?.[u.id] || 0;
+        else if (b.criteria_type === "friends_count") val = maps.friendsMap?.[u.id] || 0;
+        else if (b.criteria_type === "books_issued") val = maps.issuesMap?.[u.id] || 0;
+        else if (b.criteria_type === "reviews_count") val = maps.reviewsMap?.[u.id] || 0;
+        return val >= (b.criteria_value || 0);
+      });
+
+      // Fetch proper profiles for qualifying users
+      if (qualifying.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, admission_number, student_class")
+          .in("id", qualifying.map((u: any) => u.id));
+        setEarnerList((profs || []).map((p: any) => ({ user: p, awarder: null, award_type: 'auto', awarded_at: null })));
+      }
+    }
+    setEarnerLoading(false);
   };
   const doAward = async () => {
     if (!awardOpen || !selectedStudent) return;
@@ -200,8 +276,13 @@ export default function BadgeManager() {
                 <div className="flex flex-wrap gap-2 text-xs">
                   <Badge variant="outline">+{b.points} pts</Badge>
                   {b.criteria_type !== "manual" && <Badge variant="outline">Target: {b.criteria_value}</Badge>}
-                  <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-100/50">
-                    Earned: {awardCounts[b.id] || 0}
+                  <Badge
+                    variant="secondary"
+                    className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-100/50 cursor-pointer transition-colors"
+                    onClick={() => openEarners(b)}
+                  >
+                    <Users className="h-3 w-3 mr-1" />
+                    Earned by: {awardCounts[b.id] || 0}
                   </Badge>
                 </div>
                 <div className="flex gap-2 pt-2">
@@ -265,6 +346,83 @@ export default function BadgeManager() {
             <Button variant="outline" onClick={() => setAwardOpen(null)}>Cancel</Button>
             <Button onClick={doAward} disabled={!selectedStudent}>Award</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Earners Drilldown Dialog */}
+      <Dialog open={!!earnerOpen} onOpenChange={(o) => !o && setEarnerOpen(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-indigo-500" />
+              Who Earned "{earnerOpen?.name}"
+              {!earnerLoading && (
+                <Badge variant="secondary" className="ml-2 text-xs">{earnerList.length} {earnerOpen?.criteria_type === 'manual' ? 'awarded' : 'qualifying'}</Badge>
+              )}
+            </DialogTitle>
+            {earnerOpen && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {earnerOpen.criteria_type === 'manual'
+                  ? 'Manually awarded by admin'
+                  : `Auto: ${CRIT_LABELS[earnerOpen.criteria_type || 'manual']} ≥ ${earnerOpen.criteria_value}`}
+              </p>
+            )}
+          </DialogHeader>
+
+          {earnerLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+            </div>
+          ) : earnerList.length === 0 ? (
+            <p className="text-center text-muted-foreground py-10 text-sm">No one has earned this badge yet.</p>
+          ) : (
+            <div className="space-y-2 mt-2">
+              {earnerList.map((entry, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-card gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-indigo-700">{idx + 1}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-foreground truncate">
+                        {entry.user ? `${entry.user.first_name || ''} ${entry.user.last_name || ''}`.trim() : 'Unknown User'}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                        {entry.user?.admission_number && (
+                          <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            Admn: {entry.user.admission_number}
+                          </span>
+                        )}
+                        {entry.user?.student_class && (
+                          <span className="text-[10px] text-muted-foreground">Class {entry.user.student_class}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0 space-y-0.5">
+                    {entry.award_type === 'manual' && entry.awarder ? (
+                      <p className="text-[10px] text-muted-foreground">
+                        Awarded by <span className="font-medium text-foreground">{entry.awarder.first_name} {entry.awarder.last_name}</span>
+                      </p>
+                    ) : entry.award_type === 'auto' ? (
+                      <Badge variant="outline" className="text-[9px]">
+                        <CheckCircle className="h-2.5 w-2.5 mr-1 text-green-500" />Auto-qualified
+                      </Badge>
+                    ) : null}
+                    {entry.awarded_at && (
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(entry.awarded_at).toLocaleDateString()}
+                      </p>
+                    )}
+                    {entry.note && (
+                      <p className="text-[10px] italic text-muted-foreground max-w-[120px] truncate" title={entry.note}>"{entry.note}"</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
