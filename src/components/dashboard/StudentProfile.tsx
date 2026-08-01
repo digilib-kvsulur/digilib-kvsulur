@@ -400,8 +400,9 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
             </div>
             <div>
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Admission Number</Label>
-              <Input value={formData.admission_number} onChange={e => setFormData(f => ({ ...f, admission_number: e.target.value }))} disabled={!isEditing} className="rounded-lg mt-1 border-border/60" />
+              <Input value={formData.admission_number} disabled className="rounded-lg mt-1 bg-muted/40 border-border/40 text-muted-foreground" />
             </div>
+
           </div>
 
           <div>
