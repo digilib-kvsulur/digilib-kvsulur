@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw, Loader2, GraduationCap, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw, Loader2, GraduationCap, Trash2, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AddUserDialog from "./AddUserDialog";
 import BulkImportStudents from "./BulkImportStudents";
+import StudentDetailModal from "./StudentDetailModal";
 
 interface PendingUser {
   id: string;
@@ -23,6 +24,8 @@ interface PendingUser {
   roll_number?: string;
   username?: string;
   phone?: string;
+  admission_number?: string;
+  points?: number;
   created_at: string;
   is_approved: boolean;
   approved_at?: string;
@@ -44,6 +47,7 @@ const UserApproval = () => {
   const [newClassVal, setNewClassVal] = useState("");
   const [updatingClass, setUpdatingClass] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [detailUser, setDetailUser] = useState<any | null>(null);
   const { toast } = useToast();
 
   useEffect(() => { init(); }, []);
@@ -332,6 +336,9 @@ const UserApproval = () => {
                       <TableCell className="text-xs">{new Date(u.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
+                          <Button size="sm" variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50" onClick={() => setDetailUser(u)}>
+                            <Eye className="h-3.5 w-3.5 mr-1" />Details
+                          </Button>
                           <Button size="sm" onClick={() => setApproval([u.id], true)} className="bg-green-600 hover:bg-green-700">
                             <CheckCircle className="h-4 w-4 mr-1" />Approve
                           </Button>
@@ -391,6 +398,10 @@ const UserApproval = () => {
                             <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setDetailUser(u)}>
+                              <Eye className="h-4 w-4 mr-2" />View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => openResetDialog(u)}>
                               <KeyRound className="h-4 w-4 mr-2" />Reset password
                             </DropdownMenuItem>
@@ -419,6 +430,9 @@ const UserApproval = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Student / User Detail Modal */}
+      <StudentDetailModal user={detailUser} onClose={() => setDetailUser(null)} />
 
       {/* Reset Password Dialog */}
       <Dialog open={!!resetTarget} onOpenChange={(open) => { if (!open && !resetting) setResetTarget(null); }}>

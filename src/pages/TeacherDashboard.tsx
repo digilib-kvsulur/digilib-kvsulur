@@ -182,7 +182,7 @@ const TeacherDashboard = () => {
       { data: activeIssues },
       { data: streaks }
     ] = await Promise.all([
-      supabase.from("reading_history").select("*").eq("user_id", student.id).order("completed_date", { ascending: false }),
+      supabase.from("reading_history").select("*").eq("user_id", student.id).eq("status", "approved").order("completed_date", { ascending: false }),
       supabase.from("quiz_results").select("*, quizzes(title)").eq("user_id", student.id).order("completed_at", { ascending: false }),
       supabase.from("book_issues").select("*, books(title, author)").eq("user_id", student.id).eq("status", "issued"),
       supabase.from("login_streaks").select("*").eq("user_id", student.id).maybeSingle()
@@ -669,6 +669,7 @@ const TeacherDashboard = () => {
                       <div>
                         <span className="font-semibold">{i.books?.title}</span>
                         <span className="text-muted-foreground ml-2">by {i.books?.author}</span>
+                        {i.accession_number && <span className="ml-2 font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded">#{i.accession_number}</span>}
                       </div>
                       <Badge variant={new Date(i.due_date) < new Date() ? "destructive" : "outline"}>
                         Due {new Date(i.due_date).toLocaleDateString()}

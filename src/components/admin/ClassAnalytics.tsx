@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BookOpen, Trophy, GraduationCap, Award, Search, FileSpreadsheet, ArrowUpRight } from "lucide-react";
+import { Users, BookOpen, Trophy, GraduationCap, Award, Search, FileSpreadsheet, ArrowUpRight, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Papa from "papaparse";
+import StudentDetailModal from "./StudentDetailModal";
 
 interface StudentAnalytic {
   id: string;
@@ -29,6 +30,8 @@ const ClassAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [detailUser, setDetailUser] = useState<any | null>(null);
+  const [rawProfiles, setRawProfiles] = useState<Record<string, any>>({});
 
   useEffect(() => {
     loadClassAnalytics();
@@ -43,7 +46,7 @@ const ClassAnalytics = () => {
       while (true) {
         const { data, error } = await supabase
           .from("profiles")
-          .select("id, first_name, last_name, student_class, points, admission_number")
+          .select("id, first_name, last_name, student_class, points, admission_number, roll_number, role")
           .eq("role", "student")
           .eq("is_approved", true)
           .range(from, from + PAGE - 1);
@@ -53,6 +56,10 @@ const ClassAnalytics = () => {
         if (data.length < PAGE) break;
         from += PAGE;
       }
+      // Store raw profiles for detail modal
+      const profileMap: Record<string, any> = {};
+      allStudents.forEach((s: any) => { profileMap[s.id] = s; });
+      setRawProfiles(profileMap);
 
       // Get reading history
       let allReading: any[] = [];
@@ -347,12 +354,17 @@ const ClassAnalytics = () => {
                           <th className="py-3 px-4">Admission #</th>
                           <th className="py-3 px-4 text-center">Books</th>
                           <th className="py-3 px-4 text-center">Quizzes</th>
-                          <th className="py-3 px-4 text-right pr-6">XP points</th>
+                          <th className="py-3 px-4 text-right pr-4">XP points</th>
+                          <th className="py-3 pr-3 w-6"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredStudents.map((s, idx) => (
-                          <tr key={s.id} className="border-b last:border-0 hover:bg-slate-50/50 transition-colors">
+                          <tr
+                            key={s.id}
+                            className="border-b last:border-0 hover:bg-indigo-50/40 transition-colors cursor-pointer group"
+                            onClick={() => setDetailUser(rawProfiles[s.id] || { id: s.id, first_name: s.name, last_name: '', admission_number: s.admission_number, points: s.points, role: 'student' })}
+                          >
                             <td className="py-3 px-4 text-center font-bold text-slate-600">
                               {idx + 1 === 1 ? (
                                 <span className="inline-flex w-5 h-5 bg-amber-100 text-amber-700 rounded-full items-center justify-center text-[10px]">🥇</span>
@@ -368,13 +380,16 @@ const ClassAnalytics = () => {
                             <td className="py-3 px-4 font-mono text-slate-500">{s.admission_number}</td>
                             <td className="py-3 px-4 text-center font-semibold text-slate-700">{s.books_count}</td>
                             <td className="py-3 px-4 text-center font-semibold text-slate-700">{s.quiz_count}</td>
-                            <td className="py-3 px-4 text-right font-black text-indigo-600 pr-6">{s.points.toLocaleString()}</td>
+                            <td className="py-3 px-4 text-right font-black text-indigo-600 pr-4">{s.points.toLocaleString()}</td>
+                            <td className="py-2 pr-3 text-right">
+                              <Eye className="h-3.5 w-3.5 text-indigo-300 group-hover:text-indigo-500 transition-colors" />
+                            </td>
                           </tr>
                         ))}
 
                         {filteredStudents.length === 0 && (
                           <tr>
-                            <td colSpan={6} className="text-center py-10 text-slate-500">
+                            <td colSpan={7} className="text-center py-10 text-slate-500">
                               No students match your search filter.
                             </td>
                           </tr>
@@ -389,6 +404,9 @@ const ClassAnalytics = () => {
 
         </div>
       )}
+
+      {/* Student Detail Modal */}
+      <StudentDetailModal user={detailUser} onClose={() => setDetailUser(null)} />
     </div>
   );
 };
