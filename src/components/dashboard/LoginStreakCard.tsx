@@ -62,7 +62,7 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
       setClaimedToday(true);
       toast({
         title: "Daily Streak Bonus Claimed!",
-        description: `Day ${currentStreak}: you earned +${earned || pointsPerStreak * currentStreak} points!`,
+        description: `Day ${currentStreak}: you earned +${earned || pointsPerStreak} points!`,
       });
       onPointsClaimed?.();
     } catch (e: any) {
