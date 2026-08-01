@@ -1110,6 +1110,8 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          media_type: string | null
+          media_url: string | null
           title: string
           updated_at: string
           user_id: string
@@ -1118,6 +1120,8 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -1126,6 +1130,8 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           title?: string
           updated_at?: string
           user_id?: string
