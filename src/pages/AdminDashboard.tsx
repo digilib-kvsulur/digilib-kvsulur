@@ -7,7 +7,8 @@ import { getAvatarUrl } from "@/lib/utils";
 import {
   BookOpen, LogOut, Users, Target, Home, BookCheck, BookUp, Award,
   Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText,
-  Calendar, RefreshCw, Star, AlertTriangle
+  Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText,
+  Calendar, RefreshCw, Star, AlertTriangle, Barcode
 } from "lucide-react";
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
@@ -37,9 +38,10 @@ import ExportReports from "@/components/admin/ExportReports";
 import GalleryManager from "@/components/admin/GalleryManager";
 import BookShelfData from "@/components/admin/BookShelfData";
 import BookCondemnation from "@/components/admin/BookCondemnation";
+import BarcodeGenerator from "@/components/admin/BarcodeGenerator";
 import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "condemnation";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "condemnation" | "barcodes";
 
 const navSections = [
   {
@@ -68,6 +70,7 @@ const navSections = [
       { id: "overdue" as Tab, label: "Overdue", icon: AlertTriangle },
       { id: "condemnation" as Tab, label: "Condemnation", icon: ShieldAlert },
       { id: "shelf-data" as Tab, label: "Shelf Data", icon: HardDriveDownload },
+      { id: "barcodes" as Tab, label: "Barcode Stickers", icon: Barcode },
       { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
       { id: "reviews" as Tab, label: "Reviews", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
@@ -327,6 +330,7 @@ const AdminDashboard = () => {
           {activeTab === "notifications" && <NotificationSender />}
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
           {activeTab === "materials" && <StudyMaterialsManager />}
+          {activeTab === "barcodes" && <BarcodeGenerator />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>
