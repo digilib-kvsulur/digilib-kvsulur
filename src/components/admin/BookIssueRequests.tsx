@@ -47,10 +47,10 @@ const BookIssueRequests = () => {
         (data || []).map(async (req: any) => {
           let book = null;
           if (req.book_id) {
-            const { data: b } = await supabase.from('books').select('title, author, available_copies').eq('id', req.book_id).maybeSingle();
+            const { data: b } = await supabase.from('books').select('title, author, available_copies, accession_number, accession_numbers').eq('id', req.book_id).maybeSingle();
             book = b;
           }
-          const { data: p } = await supabase.from('profiles').select('first_name, last_name, student_class').eq('id', req.user_id).maybeSingle();
+          const { data: p } = await supabase.from('profiles').select('first_name, last_name, student_class, admission_number, employee_code').eq('id', req.user_id).maybeSingle();
           return { ...req, book, profile: p };
         })
       );
@@ -150,6 +150,11 @@ const BookIssueRequests = () => {
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground truncate">{request.profile?.first_name || 'Unknown'} {request.profile?.last_name || ''}</p>
             <p className="text-xs text-muted-foreground">{request.profile?.student_class ? `Class ${request.profile.student_class}` : 'N/A'}</p>
+            {(request.profile?.admission_number || request.profile?.employee_code) && (
+              <p className="text-[10px] text-muted-foreground font-mono">
+                {request.profile.admission_number ? `Admn: ${request.profile.admission_number}` : `Emp: ${request.profile.employee_code}`}
+              </p>
+            )}
           </div>
         </div>
         {getStatusBadge(request.status)}
@@ -160,6 +165,9 @@ const BookIssueRequests = () => {
           <p className="text-sm font-semibold text-foreground truncate">{request.book?.title || 'No title'}</p>
           <p className="text-xs text-muted-foreground truncate">by {request.book?.author || 'Unknown'}</p>
           {request.book && <p className="text-xs text-muted-foreground">Available: {request.book.available_copies}</p>}
+          {request.book?.accession_number && (
+            <p className="text-[10px] text-muted-foreground font-mono">Acc: {request.book.accession_number}</p>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-1 text-xs text-muted-foreground">

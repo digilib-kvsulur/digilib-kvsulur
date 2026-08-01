@@ -67,6 +67,8 @@ const BookManager = () => {
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [missingAccessionInputs, setMissingAccessionInputs] = useState<Record<string, string>>({});
   const [newAccessionInput, setNewAccessionInput] = useState("");
+  // Per-book manual accession inputs for multi-copy verifier (bookId -> string[])
+  const [multiCopyManualAccessions, setMultiCopyManualAccessions] = useState<Record<string, string[]>>({});
   const { toast } = useToast();
 
   useEffect(() => { loadBooks(); }, []);
@@ -356,27 +358,30 @@ const BookManager = () => {
     setBulkBusy(false);
   };
 
-  // Convert a multi-copy row into a single row with accession_numbers array
-  const handleConvertToMultiAccession = async (book: Book) => {
-    if (!confirm(`This will store all ${book.total_copies} copy accession numbers inside one row for "${book.title}", keeping it as a single catalog entry. Proceed?`)) return;
+  // Save manually entered accession numbers to the book's accession_numbers array
+  const handleSaveManualAccessions = async (book: Book) => {
+    const inputs = multiCopyManualAccessions[book.id] || [];
+    const accessions = inputs.map(a => a.trim()).filter(Boolean);
+    if (accessions.length === 0) {
+      toast({ title: "No accessions entered", description: "Please type at least one accession number.", variant: "destructive" });
+      return;
+    }
+    if (!confirm(`Save ${accessions.length} accession number(s) for "${book.title}"? This will update the catalog.`)) return;
     setBulkBusy(true);
     try {
-      const baseAcc = book.accession_number?.trim() || `ACC-${Math.floor(Math.random() * 100000)}`;
-      const accessions: string[] = [];
-      for (let i = 1; i <= book.total_copies; i++) {
-        accessions.push(`${baseAcc}-${i}`);
-      }
       const { error } = await supabase.from("books").update({
         accession_numbers: accessions,
         accession_number: accessions[0],
-        total_copies: book.total_copies,
-        available_copies: book.available_copies,
+        total_copies: Math.max(book.total_copies, accessions.length),
+        available_copies: Math.max(book.available_copies, 0),
       }).eq("id", book.id);
       if (error) throw error;
-      toast({ title: "Converted", description: `${book.total_copies} accessions stored in one catalog row.` });
+      toast({ title: "Saved!", description: `${accessions.length} accession number(s) stored for "${book.title}".` });
+      // Clear the local inputs for this book
+      setMultiCopyManualAccessions(prev => { const n = { ...prev }; delete n[book.id]; return n; });
       loadBooks();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message || "Failed to convert.", variant: "destructive" });
+      toast({ title: "Error", description: e.message || "Failed to save.", variant: "destructive" });
     } finally {
       setBulkBusy(false);
     }
@@ -849,38 +854,57 @@ const BookManager = () => {
               {multiCopyBooks.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">All books have individual single-copy rows! Excellent!</div>
               ) : (
-                <div className="border rounded-lg overflow-hidden max-h-[50vh] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Author</TableHead>
-                        <TableHead>Current Copies</TableHead>
-                        <TableHead>Base Accession</TableHead>
-                        <TableHead>Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {multiCopyBooks.map(b => (
-                        <TableRow key={b.id}>
-                          <TableCell className="text-xs font-semibold">{b.title}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{b.author}</TableCell>
-                          <TableCell className="text-xs font-bold text-indigo-600">{b.total_copies}</TableCell>
-                          <TableCell className="text-xs font-mono">{b.accession_number || "None"}</TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              className="h-8 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
-                              onClick={() => handleConvertToMultiAccession(b)}
-                              disabled={bulkBusy}
-                            >
-                              Convert to Multi-Accession
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="border rounded-lg overflow-hidden max-h-[55vh] overflow-y-auto divide-y">
+                  {multiCopyBooks.map(b => {
+                    // Build initial slots from existing array or fallback to empty slots equal to total_copies
+                    const existingAccs = Array.isArray(b.accession_numbers) && b.accession_numbers.length > 0
+                      ? b.accession_numbers
+                      : Array(b.total_copies).fill("");
+                    const currentInputs = multiCopyManualAccessions[b.id] ?? existingAccs;
+                    return (
+                      <div key={b.id} className="p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-semibold text-foreground">{b.title}</p>
+                            <p className="text-[10px] text-muted-foreground">{b.author} · {b.total_copies} copies</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
+                            onClick={() => handleSaveManualAccessions(b)}
+                            disabled={bulkBusy}
+                          >
+                            Save Accessions
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                          {currentInputs.map((acc: string, idx: number) => (
+                            <div key={idx} className="flex items-center gap-1">
+                              <span className="text-[10px] text-muted-foreground w-5 shrink-0">#{idx + 1}</span>
+                              <Input
+                                value={acc}
+                                onChange={e => {
+                                  const updated = [...currentInputs];
+                                  updated[idx] = e.target.value;
+                                  setMultiCopyManualAccessions(prev => ({ ...prev, [b.id]: updated }));
+                                }}
+                                placeholder={`Copy ${idx + 1} accession`}
+                                className="h-7 text-xs font-mono"
+                              />
+                            </div>
+                          ))}
+                          {/* Add extra copy slot */}
+                          <button
+                            type="button"
+                            className="h-7 px-2 text-[10px] border border-dashed border-indigo-300 text-indigo-600 rounded hover:bg-indigo-50 flex items-center gap-1"
+                            onClick={() => setMultiCopyManualAccessions(prev => ({ ...prev, [b.id]: [...currentInputs, ""] }))}
+                          >
+                            <span>+</span> Add Copy
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>

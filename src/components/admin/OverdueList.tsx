@@ -13,7 +13,7 @@ export default function OverdueList() {
 
   const load = async () => {
     const { data, error } = await supabase.from("book_issues")
-      .select("id, due_date, user_id, books(title)")
+      .select("id, due_date, user_id, accession_number, books(title, accession_number, accession_numbers)")
       .eq("status", "issued").lt("due_date", today).order("due_date", { ascending: true });
     if (error) {
       console.error(error);
@@ -24,7 +24,7 @@ export default function OverdueList() {
     let profileMap: Record<string, any> = {};
     if (userIds.length) {
       const { data: profs } = await supabase.from("profiles")
-        .select("id, first_name, last_name, student_class, roll_number").in("id", userIds);
+        .select("id, first_name, last_name, student_class, roll_number, admission_number, employee_code").in("id", userIds);
       (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
     }
     setRows((data || []).map((r: any) => ({ ...r, profiles: profileMap[r.user_id] })));
@@ -60,6 +60,12 @@ export default function OverdueList() {
                   <p className="font-medium text-sm">{r.books?.title}</p>
                   <p className="text-xs text-muted-foreground">
                     {r.profiles?.first_name} {r.profiles?.last_name} · Class {r.profiles?.student_class || "—"} · Roll {r.profiles?.roll_number || "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {r.profiles?.admission_number ? `Admn: ${r.profiles.admission_number}` : r.profiles?.employee_code ? `Emp: ${r.profiles.employee_code}` : ""}
+                    {(r.accession_number || r.books?.accession_number) && (
+                      <span className="ml-2 font-mono">Acc: {r.accession_number || r.books?.accession_number}</span>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

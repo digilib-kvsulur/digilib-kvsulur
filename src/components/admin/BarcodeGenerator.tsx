@@ -89,6 +89,12 @@ const BarcodeGenerator = () => {
   const [printQueue, setPrintQueue] = useState<PrintItem[]>([]);
   const [stickerColumns, setStickerColumns] = useState("3");
   const [stickerPadding, setStickerPadding] = useState("6");
+  // Series generator state
+  const [seriesPrefix, setSeriesPrefix] = useState("");
+  const [seriesStart, setSeriesStart] = useState("");
+  const [seriesEnd, setSeriesEnd] = useState("");
+  const [seriesTitle, setSeriesTitle] = useState("");
+  const [seriesAuthor, setSeriesAuthor] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -108,6 +114,39 @@ const BarcodeGenerator = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddSeries = () => {
+    const start = parseInt(seriesStart);
+    const end = parseInt(seriesEnd);
+    if (!seriesPrefix.trim()) {
+      toast({ title: "Prefix required", description: "Enter a prefix like KV-ACC-", variant: "destructive" });
+      return;
+    }
+    if (isNaN(start) || isNaN(end) || start > end) {
+      toast({ title: "Invalid range", description: "Start must be <= End and both must be numbers.", variant: "destructive" });
+      return;
+    }
+    if (end - start > 999) {
+      toast({ title: "Too many", description: "Maximum 1000 at a time.", variant: "destructive" });
+      return;
+    }
+    const next = [...printQueue];
+    let added = 0;
+    for (let n = start; n <= end; n++) {
+      const acc = `${seriesPrefix.trim()}${n}`;
+      if (!next.some(x => x.accession === acc)) {
+        next.push({
+          id: `series-${acc}`,
+          title: seriesTitle.trim() || seriesPrefix.trim(),
+          author: seriesAuthor.trim() || "",
+          accession: acc,
+        });
+        added++;
+      }
+    }
+    setPrintQueue(next);
+    toast({ title: `${added} barcodes added`, description: `Range ${seriesPrefix}${start} → ${seriesPrefix}${end}` });
   };
 
   const handleAddToQueue = (book: any, accession: string) => {
@@ -216,8 +255,53 @@ const BarcodeGenerator = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 no-print">
-        {/* Left Side: Book List Selection */}
-        <Card className="lg:col-span-5 border-border/50">
+        {/* Left column: Series Generator + Book selector stacked */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+        {/* Series Generator Card */}
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><Barcode className="h-5 w-5 text-indigo-500" /> Generate Accession Series</CardTitle>
+            <CardDescription>Quickly add a numbered series of accession barcodes (e.g. KV-ACC-1001 to KV-ACC-1050)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 pb-5">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs font-semibold">Prefix</Label>
+                <Input value={seriesPrefix} onChange={e => setSeriesPrefix(e.target.value)} placeholder="e.g. KV-ACC-" className="font-mono text-sm h-9" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Start #</Label>
+                <Input type="number" value={seriesStart} onChange={e => setSeriesStart(e.target.value)} placeholder="1001" className="font-mono text-sm h-9" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">End #</Label>
+                <Input type="number" value={seriesEnd} onChange={e => setSeriesEnd(e.target.value)} placeholder="1050" className="font-mono text-sm h-9" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Count</Label>
+                <div className="h-9 rounded-md border bg-muted/40 px-3 flex items-center text-sm font-mono text-muted-foreground">
+                  {seriesStart && seriesEnd && !isNaN(parseInt(seriesStart)) && !isNaN(parseInt(seriesEnd)) ? Math.max(0, parseInt(seriesEnd) - parseInt(seriesStart) + 1) : "—"}
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Label / Title (optional)</Label>
+                <Input value={seriesTitle} onChange={e => setSeriesTitle(e.target.value)} placeholder="e.g. KV Library" className="text-sm h-9" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Sub-label (optional)</Label>
+                <Input value={seriesAuthor} onChange={e => setSeriesAuthor(e.target.value)} placeholder="e.g. General Reference" className="text-sm h-9" />
+              </div>
+            </div>
+            <Button onClick={handleAddSeries} className="w-full gradient-primary border-0 shadow-sm text-sm h-9">
+              <Plus className="h-4 w-4 mr-2" /> Add Series to Print Layout
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Book List Selection Card */}
+        <Card className="border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2"><LayoutGrid className="h-5 w-5 text-indigo-500" /> Choose Books</CardTitle>
             <CardDescription>Search titles, authors, or barcodes and add copies to print queue</CardDescription>
@@ -283,6 +367,7 @@ const BarcodeGenerator = () => {
             </div>
           </CardContent>
         </Card>
+        </div>{/* end left column */}
 
         {/* Right Side: Print Config & Preview Grid */}
         <Card className="lg:col-span-7 border-border/50">

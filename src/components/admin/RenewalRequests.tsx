@@ -22,7 +22,7 @@ export default function RenewalRequests() {
     let profileMap: Record<string, any> = {};
     if (userIds.length) {
       const { data: profs } = await supabase.from("profiles")
-        .select("id, first_name, last_name, student_class").in("id", userIds);
+        .select("id, first_name, last_name, student_class, admission_number, employee_code").in("id", userIds);
       (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
     }
     setRows((data || []).map((r: any) => ({ ...r, profiles: profileMap[r.user_id] })));
@@ -69,6 +69,11 @@ export default function RenewalRequests() {
               <p className="text-xs text-muted-foreground">
                 {r.profiles?.first_name} {r.profiles?.last_name} · Class {r.profiles?.student_class || "—"} · +{r.requested_days} days
               </p>
+              {(r.profiles?.admission_number || r.profiles?.employee_code) && (
+                <p className="text-xs text-muted-foreground font-mono">
+                  {r.profiles.admission_number ? `Admn: ${r.profiles.admission_number}` : `Emp: ${r.profiles.employee_code}`}
+                </p>
+              )}
               {r.student_note && <p className="text-sm mt-1 italic">"{r.student_note}"</p>}
             </div>
             <div className="flex gap-2">
