@@ -33,9 +33,11 @@ import CirculationDashboard from "@/components/admin/CirculationDashboard";
 import InventoryAuditManager from "@/components/admin/InventoryAuditManager";
 import ExportReports from "@/components/admin/ExportReports";
 import GalleryManager from "@/components/admin/GalleryManager";
-import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon } from "lucide-react";
+import BookShelfData from "@/components/admin/BookShelfData";
+import BookCondemnation from "@/components/admin/BookCondemnation";
+import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "condemnation";
 
 const navSections = [
   {
