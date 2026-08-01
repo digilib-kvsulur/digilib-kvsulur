@@ -61,16 +61,40 @@ export default function BadgeManager() {
     const { data } = await supabase.from("badges").select("*").order("created_at", { ascending: false });
     setBadges((data as any) || []);
 
-    // Get real award count for manual and auto criteria
-    const [{ data: awards }, { data: allUsers }, { data: posts }, { data: comments }, { data: friendships }, { data: issues }, { data: reviews }] = await Promise.all([
+    // Fetch all data in parallel with flat queries (nested relations are unreliable without named FK)
+    const [
+      { data: awards },
+      { data: allUsers },
+      { data: readings },
+      { data: quizResults },
+      { data: loginStreaks },
+      { data: posts },
+      { data: comments },
+      { data: friendships },
+      { data: issues },
+      { data: reviews }
+    ] = await Promise.all([
       supabase.from("badge_awards").select("badge_id, user_id"),
-      supabase.from("profiles").select("id, points, reading_history(id,status), quiz_results(id), login_streaks(current_streak)").eq("role", "student"),
+      supabase.from("profiles").select("id, points").eq("role", "student").eq("is_approved", true),
+      supabase.from("reading_history").select("user_id").eq("status", "approved"),
+      supabase.from("quiz_results").select("user_id"),
+      supabase.from("login_streaks").select("user_id, current_streak"),
       supabase.from("posts").select("user_id"),
       supabase.from("post_comments").select("user_id"),
       supabase.from("friendships").select("requester_id, addressee_id").eq("status", "accepted"),
       supabase.from("book_issues").select("user_id"),
-      supabase.from("book_reviews").select("user_id")
+      supabase.from("book_reviews").select("user_id"),
     ]);
+
+    // Build per-user count maps for each criteria type
+    const readingMap: Record<string, number> = {};
+    (readings || []).forEach((r: any) => { readingMap[r.user_id] = (readingMap[r.user_id] || 0) + 1; });
+
+    const quizMap: Record<string, number> = {};
+    (quizResults || []).forEach((q: any) => { quizMap[q.user_id] = (quizMap[q.user_id] || 0) + 1; });
+
+    const streakMap: Record<string, number> = {};
+    (loginStreaks || []).forEach((s: any) => { streakMap[s.user_id] = s.current_streak || 0; });
 
     const postsMap: Record<string, number> = {};
     (posts || []).forEach(p => { postsMap[p.user_id] = (postsMap[p.user_id] || 0) + 1; });
@@ -90,6 +114,8 @@ export default function BadgeManager() {
     const reviewsMap: Record<string, number> = {};
     (reviews || []).forEach(r => { reviewsMap[r.user_id] = (reviewsMap[r.user_id] || 0) + 1; });
 
+    const allMaps = { readingMap, quizMap, streakMap, postsMap, commentsMap, friendsMap, issuesMap, reviewsMap };
+
     const counts: Record<string, number> = {};
     const manualAwards = awards || [];
     const activeBadges = (data as any) || [];
@@ -99,29 +125,23 @@ export default function BadgeManager() {
       if (b.criteria_type === "manual" || !b.criteria_type) {
         count = manualAwards.filter((a: any) => a.badge_id === b.id).length;
       } else {
-        // Evaluate auto-criteria count
         (allUsers || []).forEach((u: any) => {
-          // Manual check
+          // Count also users who were manually awarded this auto-badge
           const hasManual = manualAwards.some((a: any) => a.badge_id === b.id && a.user_id === u.id);
-          if (hasManual) {
-            count++;
-            return;
-          }
+          if (hasManual) { count++; return; }
 
           let val = 0;
-          if (b.criteria_type === "points") val = u.points || 0;
-          else if (b.criteria_type === "books_read") val = (u.reading_history?.filter((r: any) => r.status === "approved")?.length) || 0;
-          else if (b.criteria_type === "quizzes_completed") val = u.quiz_results?.length || 0;
-          else if (b.criteria_type === "login_streak") val = u.login_streaks?.[0]?.current_streak || 0;
-          else if (b.criteria_type === "posts_count") val = postsMap[u.id] || 0;
-          else if (b.criteria_type === "comments_count") val = commentsMap[u.id] || 0;
-          else if (b.criteria_type === "friends_count") val = friendsMap[u.id] || 0;
-          else if (b.criteria_type === "books_issued") val = issuesMap[u.id] || 0;
-          else if (b.criteria_type === "reviews_count") val = reviewsMap[u.id] || 0;
+          if (b.criteria_type === "points")            val = u.points || 0;
+          else if (b.criteria_type === "books_read")          val = readingMap[u.id] || 0;
+          else if (b.criteria_type === "quizzes_completed")   val = quizMap[u.id] || 0;
+          else if (b.criteria_type === "login_streak")        val = streakMap[u.id] || 0;
+          else if (b.criteria_type === "posts_count")         val = postsMap[u.id] || 0;
+          else if (b.criteria_type === "comments_count")      val = commentsMap[u.id] || 0;
+          else if (b.criteria_type === "friends_count")       val = friendsMap[u.id] || 0;
+          else if (b.criteria_type === "books_issued")        val = issuesMap[u.id] || 0;
+          else if (b.criteria_type === "reviews_count")       val = reviewsMap[u.id] || 0;
 
-          if (val >= (b.criteria_value || 0)) {
-            count++;
-          }
+          if (val >= (b.criteria_value || 0)) count++;
         });
       }
       counts[b.id] = count;
@@ -129,9 +149,9 @@ export default function BadgeManager() {
 
     setAwardCounts(counts);
 
-    // Cache data for earner drilldowns
+    // Cache for earner drilldown
     setCachedAllUsers(allUsers || []);
-    setCachedHelperMaps({ postsMap, commentsMap, friendsMap, issuesMap, reviewsMap, manualAwards });
+    setCachedHelperMaps({ ...allMaps, manualAwards });
 
     setLoading(false);
   };
@@ -212,9 +232,9 @@ export default function BadgeManager() {
       const qualifying = cachedAllUsers.filter((u: any) => {
         let val = 0;
         if (b.criteria_type === "points") val = u.points || 0;
-        else if (b.criteria_type === "books_read") val = (u.reading_history?.filter((r: any) => r.status === "approved")?.length) || 0;
-        else if (b.criteria_type === "quizzes_completed") val = u.quiz_results?.length || 0;
-        else if (b.criteria_type === "login_streak") val = u.login_streaks?.[0]?.current_streak || 0;
+        else if (b.criteria_type === "books_read") val = maps.readingMap?.[u.id] || 0;
+        else if (b.criteria_type === "quizzes_completed") val = maps.quizMap?.[u.id] || 0;
+        else if (b.criteria_type === "login_streak") val = maps.streakMap?.[u.id] || 0;
         else if (b.criteria_type === "posts_count") val = maps.postsMap?.[u.id] || 0;
         else if (b.criteria_type === "comments_count") val = maps.commentsMap?.[u.id] || 0;
         else if (b.criteria_type === "friends_count") val = maps.friendsMap?.[u.id] || 0;
