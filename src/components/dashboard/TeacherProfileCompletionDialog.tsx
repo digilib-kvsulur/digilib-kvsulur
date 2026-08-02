@@ -30,8 +30,8 @@ export default function TeacherProfileCompletionDialog({ open, user, onComplete 
     e.preventDefault();
     setErrorMsg("");
 
-    if (!firstName.trim() || !lastName.trim() || !phone.trim() || !email.trim() || !username.trim() || !password.trim()) {
-      setErrorMsg("Please fill in all fields.");
+    if (!firstName.trim() || !phone.trim() || !email.trim() || !username.trim() || !password.trim()) {
+      setErrorMsg("Please fill in all required fields.");
       return;
     }
 
@@ -124,7 +124,7 @@ export default function TeacherProfileCompletionDialog({ open, user, onComplete 
                 <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First Name" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Last Name *</Label>
+                <Label className="text-xs">Last Name (Optional)</Label>
                 <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last Name" />
               </div>
             </div>

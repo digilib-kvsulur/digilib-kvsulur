@@ -783,9 +783,15 @@ const BookManager = () => {
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="category">Catalogue / Category (optional)</Label>
-              <Input id="category" value={formData.category} onChange={(e) => setFormData(p => ({ ...p, category: e.target.value }))} placeholder="e.g. Fiction, Science" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="category">Catalogue / Category (optional)</Label>
+                <Input id="category" value={formData.category} onChange={(e) => setFormData(p => ({ ...p, category: e.target.value }))} placeholder="e.g. Fiction, Science" />
+              </div>
+              <div>
+                <Label htmlFor="language">Language (optional)</Label>
+                <Input id="language" value={formData.language} onChange={(e) => setFormData(p => ({ ...p, language: e.target.value }))} placeholder="e.g. English, Hindi" />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

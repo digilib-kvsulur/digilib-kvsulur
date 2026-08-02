@@ -45,10 +45,10 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
   };
 
   const handleSave = async () => {
-    if (!formData.first_name.trim() || !formData.last_name.trim()) {
+    if (!formData.first_name.trim()) {
       toast({
         title: "Validation Error",
-        description: "First name and last name are required",
+        description: "First name is required",
         variant: "destructive",
       });
       return;
@@ -147,7 +147,7 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
             />
           </div>
           <div>
-            <Label htmlFor="last_name">Last Name *</Label>
+            <Label htmlFor="last_name">Last Name (Optional)</Label>
             <Input
               id="last_name"
               value={formData.last_name}

@@ -155,8 +155,8 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
   };
 
   const handleSave = async () => {
-    if (!formData.first_name.trim() || !formData.last_name.trim()) {
-      toast({ title: "Validation Error", description: "First name and last name are required", variant: "destructive" });
+    if (!formData.first_name.trim()) {
+      toast({ title: "Validation Error", description: "First name is required", variant: "destructive" });
       return;
     }
     try {

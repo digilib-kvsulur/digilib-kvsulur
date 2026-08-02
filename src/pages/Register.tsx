@@ -34,7 +34,8 @@ const Register = () => {
 
   const handleInputChange = (field: string, value: string) => setFormData(prev => ({ ...prev, [field]: value }));
 
-  const canProceedStep1 = formData.firstName && formData.lastName && formData.email && formData.role;
+  const canProceedStep1 = formData.firstName.trim() && formData.email.trim() && formData.role &&
+    (formData.role === "teacher" || (formData.studentClass && formData.rollNumber.trim() && formData.admissionNumber.trim()));
   const canProceedStep2 = formData.password && formData.confirmPassword && formData.password === formData.confirmPassword;
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -174,8 +175,8 @@ const Register = () => {
                     <Input placeholder="John" value={formData.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} className="h-11 rounded-xl" required />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Last Name *</Label>
-                    <Input placeholder="Doe" value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} className="h-11 rounded-xl" required />
+                    <Label className="text-xs font-medium">Last Name (Optional)</Label>
+                    <Input placeholder="Doe" value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} className="h-11 rounded-xl" />
                   </div>
                 </div>
                 <div className="space-y-1.5">

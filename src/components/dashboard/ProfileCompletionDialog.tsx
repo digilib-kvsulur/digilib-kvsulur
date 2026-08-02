@@ -32,8 +32,8 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
     e.preventDefault();
     setErrorMsg("");
 
-    if (!firstName.trim() || !lastName.trim() || !studentClass.trim() || !rollNumber.trim() || !phone.trim() || !email.trim() || !username.trim() || !password.trim()) {
-      setErrorMsg("Please fill in all fields.");
+    if (!firstName.trim() || !studentClass.trim() || !rollNumber.trim() || !phone.trim() || !email.trim() || !username.trim() || !password.trim()) {
+      setErrorMsg("Please fill in all required fields.");
       return;
     }
 
