@@ -482,7 +482,7 @@ const Catalog = () => {
                         {book.class_level && <span className="text-[8px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1 py-0.5 rounded border border-slate-200/50">Cl {book.class_level}</span>}
                       </div>
                       
-                      {(r || borrowCounts[book.id]) && (
+                      {!!(r || borrowCounts[book.id] > 0) && (
                         <div className="flex items-center justify-between text-[9px] text-slate-500 font-medium mb-1.5 mt-auto">
                           {r && (
                             <div className="flex items-center gap-0.5 text-amber-600">
