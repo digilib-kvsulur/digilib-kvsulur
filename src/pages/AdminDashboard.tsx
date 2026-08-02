@@ -41,7 +41,7 @@ import BookCondemnation from "@/components/admin/BookCondemnation";
 import BarcodeGenerator from "@/components/admin/BarcodeGenerator";
 import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "condemnation" | "barcodes";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes";
 
 const navSections = [
   {
@@ -70,6 +70,7 @@ const navSections = [
       { id: "overdue" as Tab, label: "Overdue", icon: AlertTriangle },
       { id: "condemnation" as Tab, label: "Condemnation", icon: ShieldAlert },
       { id: "shelf-data" as Tab, label: "Shelf Data", icon: HardDriveDownload },
+      { id: "cover-data" as Tab, label: "Cover Pages", icon: ImageIcon },
       { id: "barcodes" as Tab, label: "Barcode Stickers", icon: Barcode },
       { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
       { id: "reviews" as Tab, label: "Reviews", icon: Star },
@@ -317,6 +318,7 @@ const AdminDashboard = () => {
           {activeTab === "overdue" && <OverdueList />}
           {activeTab === "condemnation" && <BookCondemnation />}
           {activeTab === "shelf-data" && <BookShelfData />}
+          {activeTab === "cover-data" && <BookCoverData />}
           {activeTab === "renewals" && <RenewalRequests />}
           {activeTab === "reviews" && <ReviewsModeration />}
           {activeTab === "events" && <EventsManager />}
