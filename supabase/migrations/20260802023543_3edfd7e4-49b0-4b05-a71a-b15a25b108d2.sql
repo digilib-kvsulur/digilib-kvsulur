@@ -9,6 +9,8 @@ CREATE INDEX IF NOT EXISTS books_author_lower_idx ON public.books (lower(author)
 CREATE INDEX IF NOT EXISTS books_accession_idx ON public.books (accession_number);
 CREATE INDEX IF NOT EXISTS books_issue_count_idx ON public.books (issue_count DESC);
 
+DROP FUNCTION IF EXISTS public.get_distinct_book_filters();
+
 CREATE OR REPLACE FUNCTION public.get_distinct_book_filters()
 RETURNS jsonb
 LANGUAGE sql
