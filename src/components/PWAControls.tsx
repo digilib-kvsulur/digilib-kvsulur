@@ -20,6 +20,9 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 interface PWAControlsProps {
   userId?: string | null;
+  className?: string;
+  buttonClassName?: string;
+  showText?: boolean;
 }
 
 /**
@@ -27,7 +30,7 @@ interface PWAControlsProps {
  * - "Install App" button when the browser supports PWA installation.
  * - "Enable Notifications" button when push permission hasn't been granted yet.
  */
-export function PWAControls({ userId }: PWAControlsProps) {
+export function PWAControls({ userId, className = "flex items-center gap-1", buttonClassName = "", showText = false }: PWAControlsProps) {
   const { toast } = useToast();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
@@ -113,17 +116,17 @@ export function PWAControls({ userId }: PWAControlsProps) {
   if (!isInstallable && !showNotifButton) return null;
 
   return (
-    <div className="flex items-center gap-1">
+    <div className={className}>
       {isInstallable && (
         <Button
           onClick={handleInstall}
           size="sm"
           variant="outline"
-          className="gap-1.5 h-8 text-xs font-semibold border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+          className={`gap-1.5 h-8 text-xs font-semibold border-indigo-200 text-indigo-700 hover:bg-indigo-50 ${buttonClassName}`}
           title="Install App"
         >
           <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Install App</span>
+          {(showText || window.innerWidth > 640) && <span>Install App</span>}
         </Button>
       )}
 
@@ -132,7 +135,7 @@ export function PWAControls({ userId }: PWAControlsProps) {
           onClick={handleEnableNotifications}
           size="sm"
           variant="outline"
-          className="gap-1.5 h-8 text-xs font-semibold border-amber-200 text-amber-700 hover:bg-amber-50"
+          className={`gap-1.5 h-8 text-xs font-semibold border-amber-200 text-amber-700 hover:bg-amber-50 ${buttonClassName}`}
           title="Enable push notifications"
         >
           {notifPermission === "denied" ? (
@@ -140,9 +143,11 @@ export function PWAControls({ userId }: PWAControlsProps) {
           ) : (
             <BellRing className="w-3.5 h-3.5" />
           )}
-          <span className="hidden sm:inline">
-            {notifPermission === "denied" ? "Notifications Blocked" : "Enable Alerts"}
-          </span>
+          {(showText || window.innerWidth > 640) && (
+            <span>
+              {notifPermission === "denied" ? "Notifications Blocked" : "Enable Alerts"}
+            </span>
+          )}
         </Button>
       )}
     </div>

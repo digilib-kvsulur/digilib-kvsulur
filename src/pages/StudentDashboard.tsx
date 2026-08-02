@@ -331,8 +331,8 @@ const StudentDashboard = () => {
           ))}
         </nav>
 
-        <div className="shrink-0 p-4 border-t border-border">
-          <div className="flex items-center gap-3 mb-3">
+        <div className="shrink-0 p-4 border-t border-border space-y-3">
+          <div className="flex items-center gap-3">
             <Avatar className="h-9 w-9 border border-border">
               {user?.avatar_url && <AvatarImage src={getAvatarUrl(user.avatar_url)} className="object-cover" />}
               <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-sm">
@@ -343,9 +343,9 @@ const StudentDashboard = () => {
               <p className="text-sm font-medium text-foreground truncate">{user?.first_name} {user?.last_name}</p>
               <p className="text-xs text-muted-foreground">Class {user?.student_class}</p>
             </div>
-            <PWAControls userId={user?.id} />
             <NotificationBell />
           </div>
+          <PWAControls userId={user?.id} className="w-full flex flex-col gap-1.5" buttonClassName="w-full justify-center h-8" showText={true} />
           <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" /> Logout
           </Button>
