@@ -1451,6 +1451,10 @@ export type Database = {
       }
       get_active_quizzes_count: { Args: never; Returns: number }
       get_active_users_count: { Args: never; Returns: number }
+      get_available_accessions: {
+        Args: { p_book_id: string }
+        Returns: string[]
+      }
       get_book_borrow_counts: {
         Args: never
         Returns: {
