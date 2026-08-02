@@ -362,14 +362,14 @@ const StudentDashboard = () => {
             <span className="font-bold text-sm text-foreground">KV Sulur Library</span>
           </div>
           <div className="flex items-center gap-1">
-            <PWAControls userId={user?.id} />
             <NotificationBell />
             <Button variant="ghost" size="sm" onClick={() => navigate('/catalog')}><Search className="h-4 w-4" /></Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>
           </div>
         </div>
         {mobileNavOpen && (
-          <div className="bg-card border-b border-border px-4 pb-3 space-y-1">
+          <div className="bg-card border-b border-border px-4 pb-3 space-y-2">
+            <PWAControls userId={user?.id} className="w-full flex flex-col gap-1.5 pt-2" buttonClassName="w-full justify-center h-9" showText={true} />
             {navItems.map(item => (
               <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${activeTab === item.id ? 'gradient-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>

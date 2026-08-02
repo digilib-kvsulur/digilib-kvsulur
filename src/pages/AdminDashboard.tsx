@@ -219,13 +219,13 @@ const AdminDashboard = () => {
             <span className="font-bold text-sm text-foreground">Admin Panel</span>
           </div>
           <div className="flex items-center gap-1">
-            <PWAControls userId={user?.id} />
             <NotificationBell />
             <Button variant="ghost" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>
           </div>
         </div>
         {mobileNavOpen && (
           <div className="bg-card border-b border-border px-4 pb-3 max-h-[70vh] overflow-y-auto space-y-3">
+            <PWAControls userId={user?.id} className="w-full flex flex-col gap-1.5 pt-2" buttonClassName="w-full justify-center h-9" showText={true} />
             {navSections.map(section => (
               <div key={section.title}>
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{section.title}</p>
