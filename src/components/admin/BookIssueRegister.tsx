@@ -71,10 +71,11 @@ const BookIssueRegister = () => {
   useEffect(() => {
     if (selectedBook) {
       (async () => {
-        const { data, error } = await supabase.rpc('get_available_accessions', { p_book_id: selectedBook });
+        const { data, error } = await (supabase as any).rpc('get_available_accessions', { p_book_id: selectedBook });
         if (!error && data) {
-          setAvailableAccessions(data);
-          setSelectedAccession(data[0] || "");
+          const list = (data as string[]) || [];
+          setAvailableAccessions(list);
+          setSelectedAccession(list[0] || "");
         } else {
           setAvailableAccessions([]);
           setSelectedAccession("");

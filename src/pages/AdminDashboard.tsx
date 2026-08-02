@@ -7,7 +7,6 @@ import { getAvatarUrl } from "@/lib/utils";
 import {
   BookOpen, LogOut, Users, Target, Home, BookCheck, BookUp, Award,
   Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText,
-  Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText,
   Calendar, RefreshCw, Star, AlertTriangle, Barcode
 } from "lucide-react";
 import Community from "@/components/community/Community";

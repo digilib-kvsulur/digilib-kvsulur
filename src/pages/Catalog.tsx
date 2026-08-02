@@ -90,8 +90,9 @@ const Catalog = () => {
 
   const loadFilterOptions = async () => {
     try {
-      const { data, error } = await supabase.rpc("get_distinct_book_filters");
+      const { data: raw, error } = await supabase.rpc("get_distinct_book_filters");
       if (error) throw error;
+      const data: any = raw;
       if (data) {
         setGenres(data.categories || []);
         setSubjects(data.subjects || []);

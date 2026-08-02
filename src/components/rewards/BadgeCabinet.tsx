@@ -43,7 +43,7 @@ export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
         supabase.from("login_streaks").select("current_streak").eq("user_id", userId).maybeSingle(),
         supabase.rpc("get_user_activity_stats", { _user_id: userId }),
       ]);
-      const act = (actStats || [])[0] || {};
+      const act: any = ((actStats as any) || [])[0] || {};
       setBadges((bs as any) || []);
       setAwards(new Set((aw || []).map((a: any) => a.badge_id)));
       setStats({
