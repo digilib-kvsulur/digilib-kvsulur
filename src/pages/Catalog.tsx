@@ -510,7 +510,7 @@ const Catalog = () => {
                   </div>
                 );
               })}
-            </div>iv>
+            </div>
 
             {totalCount > pageSize && (
               <div className="flex justify-center items-center gap-3 pt-6 border-t border-slate-200/60">
