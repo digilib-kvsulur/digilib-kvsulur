@@ -56,6 +56,8 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
           {book.category && <Badge variant="outline">{book.category}</Badge>}
           {book.subject && <Badge variant="outline">{book.subject}</Badge>}
           {book.class_level && <Badge variant="outline">Class {book.class_level}</Badge>}
+          {book.cupboard_number && <Badge variant="outline" className="border-emerald-200 text-emerald-700 bg-emerald-50">Cupboard {book.cupboard_number}</Badge>}
+          {book.shelf_number && <Badge variant="outline" className="border-emerald-200 text-emerald-700 bg-emerald-50">Shelf {book.shelf_number}</Badge>}
           {book.language && <Badge variant="outline">{book.language}</Badge>}
         </div>
 

@@ -110,20 +110,21 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl p-6 rounded-2xl select-none [&>button]:hidden">
-        <DialogHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-2">
-            <Sparkles className="h-6 w-6 animate-pulse" />
+      <DialogContent className="w-[calc(100vw-1.5rem)] sm:w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl p-4 sm:p-6 rounded-2xl [&>button]:hidden">
+        <DialogHeader className="text-center space-y-1.5">
+          <div className="mx-auto w-11 h-11 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-1">
+            <Sparkles className="h-5 w-5 animate-pulse" />
           </div>
-          <DialogTitle className="text-2xl font-black tracking-tight text-foreground">
+          <DialogTitle className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
             Complete Your Profile
           </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+          <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
             Welcome to KV Sulur Digital Library! Let's complete your registration to get started.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSave} className="space-y-4 mt-2">
+        <form onSubmit={handleSave} className="space-y-3.5 mt-2">
+
           {errorMsg && (
             <Alert variant="destructive" className="rounded-xl border-destructive/20 bg-destructive/5 py-2">
               <AlertDescription className="text-xs">{errorMsg}</AlertDescription>

@@ -19,8 +19,8 @@ interface BookRequest {
   requested_author?: string | null;
   requested_isbn?: string | null;
   requested_description?: string | null;
-  book?: { title: string; author: string; available_copies: number } | null;
-  profile?: { first_name: string; last_name: string; student_class?: string } | null;
+  book?: { title: string; author: string; available_copies: number; accession_number?: string | null } | null;
+  profile?: { first_name: string; last_name: string; student_class?: string; role?: string; admission_number?: string | null; employee_code?: string | null } | null;
 }
 
 const BookIssueRequests = () => {

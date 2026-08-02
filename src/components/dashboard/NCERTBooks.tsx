@@ -114,7 +114,7 @@ const NCERTBooks = () => {
         ))}
         {filtered.length === 0 && <p className="col-span-full text-center text-sm text-muted-foreground py-8">No books match your filter.</p>}
       </div>
-    </div>
+
       
       {/* Material Viewer Popup */}
       <Dialog open={!!viewMaterial} onOpenChange={() => setViewMaterial(null)}>

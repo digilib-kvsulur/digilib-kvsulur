@@ -471,6 +471,7 @@ export type Database = {
       books: {
         Row: {
           accession_number: string | null
+          accession_numbers: string[]
           author: string
           available_copies: number
           category: string | null
@@ -478,11 +479,14 @@ export type Database = {
           condemned_copies: number
           cover_url: string | null
           created_at: string
+          cupboard_number: string | null
           description: string | null
           first_added_at: string | null
           id: string
           isbn: string | null
+          issue_count: number
           language: string | null
+          shelf_number: string | null
           subject: string | null
           title: string
           total_copies: number
@@ -490,6 +494,7 @@ export type Database = {
         }
         Insert: {
           accession_number?: string | null
+          accession_numbers?: string[]
           author: string
           available_copies?: number
           category?: string | null
@@ -497,11 +502,14 @@ export type Database = {
           condemned_copies?: number
           cover_url?: string | null
           created_at?: string
+          cupboard_number?: string | null
           description?: string | null
           first_added_at?: string | null
           id?: string
           isbn?: string | null
+          issue_count?: number
           language?: string | null
+          shelf_number?: string | null
           subject?: string | null
           title: string
           total_copies?: number
@@ -509,6 +517,7 @@ export type Database = {
         }
         Update: {
           accession_number?: string | null
+          accession_numbers?: string[]
           author?: string
           available_copies?: number
           category?: string | null
@@ -516,11 +525,14 @@ export type Database = {
           condemned_copies?: number
           cover_url?: string | null
           created_at?: string
+          cupboard_number?: string | null
           description?: string | null
           first_added_at?: string | null
           id?: string
           isbn?: string | null
+          issue_count?: number
           language?: string | null
+          shelf_number?: string | null
           subject?: string | null
           title?: string
           total_copies?: number
@@ -1439,6 +1451,10 @@ export type Database = {
       }
       get_active_quizzes_count: { Args: never; Returns: number }
       get_active_users_count: { Args: never; Returns: number }
+      get_available_accessions: {
+        Args: { p_book_id: string }
+        Returns: string[]
+      }
       get_book_borrow_counts: {
         Args: never
         Returns: {
@@ -1455,6 +1471,7 @@ export type Database = {
           total_points: number
         }[]
       }
+      get_distinct_book_filters: { Args: never; Returns: Json }
       get_leaderboard_data: {
         Args: { class_filter?: string }
         Returns: {

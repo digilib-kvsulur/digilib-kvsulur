@@ -234,7 +234,7 @@ const StudentDashboard = () => {
       ]);
       
       const manualAwards = new Set((awards || []).map((a: any) => a.badge_id));
-      const act = (actStats || [])[0] || {};
+      const act: any = ((actStats as any) || [])[0] || {};
       const stats = {
         points: user.points || 0,
         booksRead: books || 0,

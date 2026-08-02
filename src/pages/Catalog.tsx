@@ -90,8 +90,9 @@ const Catalog = () => {
 
   const loadFilterOptions = async () => {
     try {
-      const { data, error } = await supabase.rpc("get_distinct_book_filters");
+      const { data: raw, error } = await supabase.rpc("get_distinct_book_filters");
       if (error) throw error;
+      const data: any = raw;
       if (data) {
         setGenres(data.categories || []);
         setSubjects(data.subjects || []);
@@ -109,8 +110,9 @@ const Catalog = () => {
     try {
       let query = supabase
         .from("books")
-        .select("*", { count: "exact" })
+        .select("id,title,author,category,subject,class_level,language,cover_url,total_copies,available_copies,first_added_at,created_at,accession_number,issue_count,shelf_number,cupboard_number", { count: "exact" })
         .gt("total_copies", 0);
+
 
       if (debouncedSearch.trim()) {
         const s = `%${debouncedSearch.trim()}%`;
@@ -151,33 +153,31 @@ const Catalog = () => {
 
       setBooks(data || []);
       setTotalCount(count || 0);
+      setLoading(false);
 
-      // Load ratings, borrows & recs in parallel for the displayed page
+      // Enrich the visible page in the background (does not block rendering)
       if (data && data.length > 0) {
         const bookIds = data.map(b => b.id);
-        const { data: rev } = await supabase.from("book_reviews").select("book_id, rating").in("book_id", bookIds).eq("is_hidden", false);
-        const agg: Record<string, { sum: number; count: number }> = {};
-        (rev || []).forEach((r: any) => {
-          agg[r.book_id] = agg[r.book_id] || { sum: 0, count: 0 };
-          agg[r.book_id].sum += r.rating; agg[r.book_id].count++;
-        });
-        const map: Record<string, { avg: number; count: number }> = {};
-        Object.entries(agg).forEach(([k, v]) => { map[k] = { avg: v.sum / v.count, count: v.count }; });
-        setRatings(map);
-
-        const [{ data: countsData }, { data: recs }] = await Promise.all([
-          supabase.rpc('get_book_borrow_counts'),
-          supabase.from("class_book_recommendations").select("book_id").in("book_id", bookIds),
-        ]);
-        const issueMap: Record<string, number> = {};
-        (countsData || []).forEach((item: any) => {
-          if (item.book_id) issueMap[item.book_id] = Number(item.borrow_count) || 0;
-        });
-        const recMap: Record<string, number> = {};
-        (recs || []).forEach((r: any) => { if (r.book_id) recMap[r.book_id] = (recMap[r.book_id] || 0) + 1; });
-        setBorrowCounts(issueMap);
-        setRecommendCounts(recMap);
+        setBorrowCounts(Object.fromEntries(data.map((b: any) => [b.id, b.issue_count || 0])));
+        void (async () => {
+          const [{ data: rev }, { data: recs }] = await Promise.all([
+            supabase.from("book_reviews").select("book_id, rating").in("book_id", bookIds).eq("is_hidden", false),
+            supabase.from("class_book_recommendations").select("book_id").in("book_id", bookIds),
+          ]);
+          const agg: Record<string, { sum: number; count: number }> = {};
+          (rev || []).forEach((r: any) => {
+            agg[r.book_id] = agg[r.book_id] || { sum: 0, count: 0 };
+            agg[r.book_id].sum += r.rating; agg[r.book_id].count++;
+          });
+          const map: Record<string, { avg: number; count: number }> = {};
+          Object.entries(agg).forEach(([k, v]) => { map[k] = { avg: v.sum / v.count, count: v.count }; });
+          setRatings(map);
+          const recMap: Record<string, number> = {};
+          (recs || []).forEach((r: any) => { if (r.book_id) recMap[r.book_id] = (recMap[r.book_id] || 0) + 1; });
+          setRecommendCounts(recMap);
+        })();
       }
+
     } catch (e) {
       console.error(e);
       toast({ title: "Error", description: "Failed to load catalog", variant: "destructive" });
@@ -226,7 +226,21 @@ const Catalog = () => {
     toast({ title: "Request submitted" });
   };
 
-  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin h-10 w-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full" /></div>;
+  const skeletonGrid = (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i} className="bg-white rounded-2.5xl border border-slate-200/80 p-1.5 animate-pulse">
+          <div className="aspect-[2/3] w-full rounded-2xl bg-slate-200/70 mb-3" />
+          <div className="px-1.5 space-y-2 pb-2">
+            <div className="h-3 rounded bg-slate-200/70" />
+            <div className="h-3 w-2/3 rounded bg-slate-200/70" />
+            <div className="h-7 rounded-lg bg-slate-100" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-indigo-500/20 selection:text-indigo-900 overflow-x-hidden pb-12">
@@ -326,11 +340,11 @@ const Catalog = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-black text-slate-900 tracking-tight">Catalog Results</h2>
           <Badge variant="outline" className="bg-white text-slate-600 border-slate-200 font-bold px-3 py-1 rounded-full shadow-sm">
-            {totalCount} book{totalCount !== 1 ? "s" : ""}
+            {loading ? "Loading…" : `${totalCount} book${totalCount !== 1 ? "s" : ""}`}
           </Badge>
         </div>
 
-        {filteredBooks.length > 0 ? (
+        {loading ? skeletonGrid : filteredBooks.length > 0 ? (
           <div className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
               {filteredBooks.map(book => {
@@ -370,6 +384,11 @@ const Catalog = () => {
                       <div className="flex flex-wrap gap-1 mb-2">
                         {book.category && <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100">{book.category}</span>}
                         {book.class_level && <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">Class {book.class_level}</span>}
+                        {(book.shelf_number || book.cupboard_number) && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                            {book.cupboard_number ? `Cup ${book.cupboard_number}` : ""}{book.cupboard_number && book.shelf_number ? " · " : ""}{book.shelf_number ? `Shelf ${book.shelf_number}` : ""}
+                          </span>
+                        )}
                       </div>
                       
                       {(r || borrowCounts[book.id]) && (

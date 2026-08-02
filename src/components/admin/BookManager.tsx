@@ -425,7 +425,7 @@ const BookManager = () => {
 
       // Reassign foreign keys
       for (const table of ['book_issues', 'book_requests', 'book_reviews']) {
-        const { error: fkeyError } = await supabase.from(table).update({ book_id: primaryBook.id }).in('book_id', dupIds);
+        const { error: fkeyError } = await (supabase as any).from(table).update({ book_id: primaryBook.id }).in('book_id', dupIds);
         // Ignore errors for tables that might not exist or be empty
         if (fkeyError && fkeyError.code !== '42P01') console.error(`Error updating ${table}:`, fkeyError);
       }
