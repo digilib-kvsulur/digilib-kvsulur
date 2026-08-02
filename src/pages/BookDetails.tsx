@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  ArrowLeft, Star, Bookmark, BookmarkCheck, BookOpen, 
-  Languages, GraduationCap, ClipboardList, Info, HelpCircle, Loader2, Sparkles, Wand2
+  ArrowLeft, Star, Bookmark, BookmarkCheck, BookOpen, MapPin,
+  Languages, GraduationCap, ClipboardList, Info, HelpCircle, Loader2, Sparkles, Wand2, Layers
 } from "lucide-react";
 import { fetchBookByQuery, generateSmartBookDescription } from "@/lib/bookApi";
 
@@ -269,9 +269,10 @@ export default function BookDetails() {
     }
   };
 
+  // Fix: only show numeric average when reviews exist
   const averageRating = reviews.length
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-    : "No reviews";
+    : null;
 
   if (loading) {
     return (
@@ -286,61 +287,64 @@ export default function BookDetails() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 pb-20 selection:bg-indigo-500/20 selection:text-indigo-900">
-      {/* Soft light header banner */}
-      <div className="relative h-64 w-full overflow-hidden border-b border-indigo-100 bg-gradient-to-r from-indigo-50 via-slate-100 to-blue-50">
+      {/* Header Banner */}
+      <div className="relative h-48 sm:h-64 w-full overflow-hidden border-b border-indigo-100 bg-gradient-to-r from-indigo-50 via-slate-100 to-blue-50">
         {book.cover_url ? (
           <img src={book.cover_url} alt="" className="w-full h-full object-cover blur-2xl scale-110 opacity-20" />
         ) : (
           <div className="w-full h-full bg-indigo-100/40" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-transparent to-transparent" />
-        <div className="absolute top-6 left-6 z-10">
-          <Button variant="outline" onClick={() => navigate(-1)} className="rounded-xl border-slate-200 bg-white/90 text-slate-800 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 font-bold shadow-xs transition-colors">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Catalog
+        <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10">
+          <Button variant="outline" onClick={() => navigate(-1)} className="rounded-xl border-slate-200 bg-white/90 text-slate-800 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 font-bold shadow-xs transition-colors text-sm h-9">
+            <ArrowLeft className="h-4 w-4 mr-1.5" /> Back
           </Button>
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto px-6 -mt-36 relative z-10 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 -mt-28 sm:-mt-36 relative z-10 space-y-6 sm:space-y-8">
+        {/* Top Grid: Cover + Info */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 items-start">
           {/* Left Column - Cover & Actions */}
-          <div className="md:col-span-4 space-y-5">
-            <div className="aspect-[2/3] w-full rounded-2xl border border-slate-200 overflow-hidden shadow-xl bg-white relative group">
+          <div className="md:col-span-4 space-y-4">
+            {/* Cover image – constrained width on mobile */}
+            <div className="w-40 sm:w-full mx-auto md:mx-0 aspect-[2/3] rounded-2xl border border-slate-200 overflow-hidden shadow-xl bg-white">
               {book.cover_url ? (
                 <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-indigo-50 to-blue-50">
-                  <BookOpen className="h-12 w-12 text-indigo-400 mb-3" />
-                  <span className="text-sm font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
+                  <BookOpen className="h-10 w-10 text-indigo-400 mb-2" />
+                  <span className="text-xs font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
                 </div>
               )}
             </div>
 
+            {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <Button 
                 onClick={requestOrBorrow} 
                 disabled={actionLoading}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 rounded-xl font-bold h-12 shadow-md hover:shadow-lg transition-all"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 rounded-xl font-bold h-11 shadow-md hover:shadow-lg transition-all text-sm"
               >
-                {book.available_copies > 0 ? (isRequested ? "Requested" : "Borrow Book") : (isReserved ? "Waitlisted" : "Join Waitlist")}
+                {book.available_copies > 0 ? (isRequested ? "Requested ✓" : "Borrow Book") : (isReserved ? "Waitlisted ✓" : "Join Waitlist")}
               </Button>
               <Button 
                 onClick={toggleWishlist}
                 variant="outline" 
                 disabled={actionLoading}
-                className={`rounded-xl border-slate-200 bg-white font-semibold h-12 text-slate-800 shadow-xs transition-colors ${inWishlist ? "hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300" : "hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300"}`}
+                className={`rounded-xl border-slate-200 bg-white font-semibold h-11 text-sm transition-colors ${inWishlist ? "hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-indigo-700 border-indigo-200" : "text-slate-800 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300"}`}
               >
                 {inWishlist ? (
-                  <><BookmarkCheck className="h-4 w-4 mr-2 text-indigo-600" /> Saved</>
+                  <><BookmarkCheck className="h-4 w-4 mr-1.5 text-indigo-600" /> Saved</>
                 ) : (
-                  <><Bookmark className="h-4 w-4 mr-2 text-slate-500" /> Wishlist</>
+                  <><Bookmark className="h-4 w-4 mr-1.5 text-slate-500" /> Wishlist</>
                 )}
               </Button>
             </div>
 
-            {/* Copies status widget */}
+            {/* Copies status */}
             <Card className="border-slate-200/80 bg-white rounded-2xl shadow-xs">
-              <CardContent className="p-4.5 space-y-3.5">
+              <CardContent className="p-4 space-y-3">
                 <div className="flex justify-between items-center text-xs font-bold text-slate-600">
                   <span>Available Copies</span>
                   <span className="text-slate-900 font-extrabold text-sm">{book.available_copies} / {book.total_copies}</span>
@@ -348,60 +352,93 @@ export default function BookDetails() {
                 <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-indigo-600 to-blue-600 transition-all duration-500" 
-                    style={{ width: `${Math.min(100, (book.available_copies / book.total_copies) * 100)}%` }}
+                    style={{ width: `${book.total_copies > 0 ? Math.min(100, (book.available_copies / book.total_copies) * 100) : 0}%` }}
                   />
                 </div>
                 <p className="text-[11px] text-slate-500 font-medium">
                   {book.available_copies === 0 
-                    ? "⚠️ All copies currently checked out. Click Join Waitlist to reserve."
-                    : `🟢 ${book.available_copies} copies ready to borrow immediately.`}
+                    ? "⚠️ All copies currently checked out."
+                    : `🟢 ${book.available_copies} cop${book.available_copies > 1 ? "ies" : "y"} ready to borrow.`}
                 </p>
               </CardContent>
             </Card>
+
+            {/* Shelf & Row Location */}
+            {(book.shelf_number || book.row_number) && (
+              <Card className="border-indigo-200/80 bg-indigo-50/60 rounded-2xl shadow-xs">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                    <MapPin className="h-4.5 w-4.5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Library Location</p>
+                    <p className="text-sm font-extrabold text-indigo-900">
+                      {book.shelf_number && <span>Shelf&nbsp;<span className="font-mono">{book.shelf_number}</span></span>}
+                      {book.shelf_number && book.row_number && <span className="mx-1.5 text-indigo-300">·</span>}
+                      {book.row_number && <span>Row&nbsp;<span className="font-mono">{book.row_number}</span></span>}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Right Column - Information */}
-          <div className="md:col-span-8 space-y-6">
-            <div className="space-y-3">
-              <h2 className="text-3.5xl font-black text-slate-900 tracking-tight leading-tight">{book.title}</h2>
-              <p className="text-lg font-bold text-indigo-600">by {book.author}</p>
+          <div className="md:col-span-8 space-y-5">
+            {/* Title + Badges */}
+            <div className="space-y-2 pt-2">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">{book.title}</h1>
+              <p className="text-base sm:text-lg font-bold text-indigo-600">by {book.author}</p>
               
-              <div className="flex flex-wrap gap-2 pt-1">
-                {book.category && <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 font-bold border-indigo-100">{book.category}</Badge>}
-                {book.subject && <Badge variant="secondary" className="bg-purple-50 text-purple-700 font-bold border-purple-100">{book.subject}</Badge>}
-                {book.class_level && <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 font-bold border-emerald-100">Class {book.class_level}</Badge>}
-                {book.language && <Badge variant="secondary" className="bg-amber-50 text-amber-700 font-bold border-amber-100">{book.language}</Badge>}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {book.category && <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 font-bold border-indigo-100 text-[11px]">{book.category}</Badge>}
+                {book.subject && <Badge variant="secondary" className="bg-purple-50 text-purple-700 font-bold border-purple-100 text-[11px]">{book.subject}</Badge>}
+                {book.class_level && <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 font-bold border-emerald-100 text-[11px]">Class {book.class_level}</Badge>}
+                {book.language && <Badge variant="secondary" className="bg-amber-50 text-amber-700 font-bold border-amber-100 text-[11px]">{book.language}</Badge>}
               </div>
             </div>
 
-            {/* Book Info Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-200">
-              <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 text-center sm:text-left shadow-xs">
-                <ClipboardList className="h-4 w-4 text-indigo-600 mb-1 mx-auto sm:mx-0" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Accession #</span>
-                <span className="text-sm font-black text-slate-900 font-mono">{book.accession_number || "—"}</span>
+            {/* Book Info Grid — responsive 2-col on mobile, 4-col on sm */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-200">
+              <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs">
+                <ClipboardList className="h-4 w-4 text-indigo-600 mb-1" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Accession #</span>
+                <span className="text-xs sm:text-sm font-black text-slate-900 font-mono break-all">{book.accession_number || "—"}</span>
               </div>
-              <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 text-center sm:text-left shadow-xs">
-                <Languages className="h-4 w-4 text-purple-600 mb-1 mx-auto sm:mx-0" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Language</span>
-                <span className="text-sm font-black text-slate-900">{book.language || "English"}</span>
+              <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs">
+                <Languages className="h-4 w-4 text-purple-600 mb-1" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Language</span>
+                <span className="text-xs sm:text-sm font-black text-slate-900">{book.language || "English"}</span>
               </div>
-              <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 text-center sm:text-left shadow-xs">
-                <GraduationCap className="h-4 w-4 text-emerald-600 mb-1 mx-auto sm:mx-0" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Grade Class</span>
-                <span className="text-sm font-black text-slate-900">{book.class_level ? `Class ${book.class_level}` : "All Grades"}</span>
+              <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs">
+                <GraduationCap className="h-4 w-4 text-emerald-600 mb-1" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Grade</span>
+                <span className="text-xs sm:text-sm font-black text-slate-900">{book.class_level ? `Class ${book.class_level}` : "All"}</span>
               </div>
-              <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 text-center sm:text-left shadow-xs">
-                <Star className="h-4 w-4 text-amber-500 mb-1 mx-auto sm:mx-0 fill-amber-500/20" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">User Rating</span>
-                <span className="text-sm font-black text-slate-900">{averageRating}</span>
+              <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-xs">
+                <Star className="h-4 w-4 text-amber-500 mb-1 fill-amber-200" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Rating</span>
+                <span className="text-xs sm:text-sm font-black text-slate-900">
+                  {averageRating ? (
+                    <span className="flex items-center gap-1">{averageRating} <Star className="h-3 w-3 fill-amber-400 text-amber-400" /></span>
+                  ) : (
+                    <span className="text-slate-400 font-semibold text-[11px]">No reviews</span>
+                  )}
+                </span>
               </div>
             </div>
+
+            {/* Shelf Location inline if not shown in left column on desktop (always show in right column on mobile) */}
+            {(book.shelf_number || book.row_number) && (
+              <div className="md:hidden">
+                {/* Already shown in left column on desktop, handled by conditional above */}
+              </div>
+            )}
 
             {/* Description */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                   <Info className="h-4 w-4 text-indigo-600" /> Book Overview
                 </h3>
                 <Button 
@@ -412,11 +449,11 @@ export default function BookDetails() {
                   className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
                 >
                   {generatingAi ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Wand2 className="h-3.5 w-3.5 mr-1" />}
-                  AI Auto-generate Details
+                  AI Auto-generate
                 </Button>
               </div>
               
-              <div className="text-sm text-slate-600 leading-relaxed bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+              <div className="text-sm text-slate-600 leading-relaxed bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs">
                 {book.description || generateSmartBookDescription(book.title, book.author, book.category)}
               </div>
             </div>
@@ -425,13 +462,13 @@ export default function BookDetails() {
             {userId && (
               <Card className="border-slate-200/80 bg-white rounded-2xl shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
-                  <CardTitle className="text-base font-extrabold flex items-center gap-2 text-slate-900">
+                  <CardTitle className="text-sm sm:text-base font-extrabold flex items-center gap-2 text-slate-900">
                     <Sparkles className="h-4 w-4 text-amber-500" /> {myReviewId ? "Update your Review" : "Write a Review"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-4">
-                  <div className="flex gap-1.5 items-center">
-                    <span className="text-xs font-bold text-slate-500 mr-2 uppercase tracking-wider">Your Rating</span>
+                  <div className="flex gap-1.5 items-center flex-wrap">
+                    <span className="text-xs font-bold text-slate-500 mr-1 uppercase tracking-wider">Your Rating</span>
                     {[1, 2, 3, 4, 5].map((n) => (
                       <button key={n} onClick={() => setMyRating(n)} type="button" className="hover:scale-110 transition-transform">
                         <Star className={`h-5 w-5 ${myRating >= n ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
@@ -462,7 +499,12 @@ export default function BookDetails() {
 
             {/* Review List */}
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-slate-900">Student Reviews ({reviews.length})</h3>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                Student Reviews ({reviews.length})
+                {averageRating && (
+                  <span className="ml-2 text-sm font-bold text-amber-500">{averageRating} ★</span>
+                )}
+              </h3>
               {reviews.length === 0 ? (
                 <p className="text-xs text-slate-500 italic bg-white p-4 rounded-xl border border-dashed border-slate-200">No student reviews written yet. Be the first to share your thoughts!</p>
               ) : (
@@ -470,8 +512,8 @@ export default function BookDetails() {
                   {reviews.map((r) => {
                     const authorInitials = `${(r.profiles?.first_name?.[0] || "").toUpperCase()}${(r.profiles?.last_name?.[0] || "").toUpperCase()}`;
                     return (
-                      <div key={r.id} className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex gap-4 items-start">
-                        <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xs font-black text-indigo-600 shrink-0">
+                      <div key={r.id} className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex gap-3 sm:gap-4 items-start">
+                        <div className="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xs font-black text-indigo-600 shrink-0">
                           {authorInitials || <HelpCircle className="h-4 w-4" />}
                         </div>
                         <div className="space-y-1.5 flex-1 min-w-0">
@@ -481,10 +523,13 @@ export default function BookDetails() {
                               {Array.from({ length: r.rating }).map((_, i) => (
                                 <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
                               ))}
+                              {Array.from({ length: 5 - r.rating }).map((_, i) => (
+                                <Star key={`e${i}`} className="h-3 w-3 text-slate-200" />
+                              ))}
                             </div>
                             <span className="text-[10px] text-slate-400 font-medium ml-auto">{new Date(r.created_at).toLocaleDateString()}</span>
                           </div>
-                          {r.review_text && <p className="text-sm text-slate-600 leading-relaxed font-medium">{r.review_text}</p>}
+                          {r.review_text && <p className="text-sm text-slate-600 leading-relaxed">{r.review_text}</p>}
                         </div>
                       </div>
                     );
@@ -497,9 +542,9 @@ export default function BookDetails() {
 
         {/* Related Books */}
         {relatedBooks.length > 0 && (
-          <div className="border-t border-slate-200 pt-10 space-y-6">
-            <h3 className="text-xl font-black text-slate-900">Recommended For You</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+          <div className="border-t border-slate-200 pt-8 space-y-5">
+            <h3 className="text-lg sm:text-xl font-black text-slate-900">Recommended For You</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-5">
               {relatedBooks.map((b) => (
                 <div key={b.id} onClick={() => navigate(`/book/${b.id}`)} className="group cursor-pointer space-y-2">
                   <div className="aspect-[2/3] w-full rounded-2xl border border-slate-200 bg-white overflow-hidden relative shadow-md group-hover:shadow-lg transition-all">
