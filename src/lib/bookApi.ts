@@ -21,13 +21,28 @@ const ROMAN_MAP: Record<string, string> = {
 
 const inferClassLevel = (title: string, subjects: string[] = []): string => {
   const text = `${title} ${subjects.join(" ")}`.toLowerCase();
-  const digitMatch = text.match(/(?:class|grade|standard|std)\s*(\d{1,2})\b/i);
-  if (digitMatch) return digitMatch[1];
   
-  const romanMatch = text.match(/(?:class|grade|standard|std)\s*(xi{0,2}|ix|vi{0,3}|iv|i{1,3})\b/i);
-  if (romanMatch && ROMAN_MAP[romanMatch[1]]) {
-    return ROMAN_MAP[romanMatch[1]];
+  // 1. Explicit matches (e.g. "Class 10", "Grade IX")
+  const explicitDigitMatch = text.match(/(?:class|grade|standard|std)\s*(\d{1,2})\b/i);
+  if (explicitDigitMatch) return explicitDigitMatch[1];
+  
+  const explicitRomanMatch = text.match(/(?:class|grade|standard|std)\s*(xi{0,2}|ix|vi{0,3}|iv|i{1,3})\b/i);
+  if (explicitRomanMatch && ROMAN_MAP[explicitRomanMatch[1]]) {
+    return ROMAN_MAP[explicitRomanMatch[1]];
   }
+
+  // 2. Trailing matches (e.g. "Mathematics X", "Science 10")
+  const trailingRomanMatch = text.match(/\b(xi{0,2}|ix|vi{0,3}|iv|i{1,3})(?:th)?\b\s*$/i);
+  if (trailingRomanMatch && ROMAN_MAP[trailingRomanMatch[1]]) {
+    return ROMAN_MAP[trailingRomanMatch[1]];
+  }
+  
+  const trailingDigitMatch = text.match(/\b(\d{1,2})(?:th|st|nd|rd)?\b\s*$/i);
+  if (trailingDigitMatch) {
+    const num = parseInt(trailingDigitMatch[1]);
+    if (num >= 1 && num <= 12) return trailingDigitMatch[1];
+  }
+
   return "";
 };
 
@@ -51,6 +66,8 @@ const mapLanguage = (langCode: string): string => {
 
 const inferCategory = (title: string, subjects: string[] = []): string => {
   const text = `${title} ${subjects.join(" ")}`.toLowerCase();
+  
+  // Reference Books
   if (
     text.includes("dictionary") ||
     text.includes("encyclopedia") ||
@@ -58,9 +75,35 @@ const inferCategory = (title: string, subjects: string[] = []): string => {
     text.includes("atlas") ||
     text.includes("reference") ||
     text.includes("handbook") ||
-    text.includes("thesaurus")
+    text.includes("thesaurus") ||
+    text.includes("guide") ||
+    text.includes("manual") ||
+    text.includes("workbook") ||
+    text.includes("solution") ||
+    text.includes("key")
   ) {
-    return "Reference";
+    return "Reference Book";
+  }
+
+  // Novels and Fiction
+  if (
+    text.includes("novel") || 
+    text.includes("fiction") || 
+    text.includes("story") || 
+    text.includes("stories") || 
+    text.includes("tale")
+  ) {
+    return "Novel";
+  }
+
+  // Literature
+  if (
+    text.includes("literature") || 
+    text.includes("classic") || 
+    text.includes("prose") || 
+    text.includes("essay")
+  ) {
+    return "Literature";
   }
 
   const found = CATEGORY_KEYWORDS.find(kw => 

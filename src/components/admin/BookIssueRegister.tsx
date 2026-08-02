@@ -103,12 +103,32 @@ const BookIssueRegister = () => {
         })
       );
 
-      const { data: booksData } = await supabase.from('books').select('id, title, author, accession_number, accession_numbers, available_copies, total_copies').order('title').limit(10000);
-      const { data: usersData } = await supabase.from('profiles').select('id, first_name, last_name, admission_number, student_class, role').eq('is_approved', true).in('role', ['student', 'teacher']).order('first_name').limit(10000);
+      // Fetch books with pagination
+      let allBooks: any[] = [];
+      let fromBooks = 0;
+      const PAGE_SIZE = 1000;
+      while (true) {
+        const { data } = await supabase.from('books').select('id, title, author, accession_number, accession_numbers, available_copies, total_copies').order('title').range(fromBooks, fromBooks + PAGE_SIZE - 1);
+        if (!data || data.length === 0) break;
+        allBooks = [...allBooks, ...data];
+        if (data.length < PAGE_SIZE) break;
+        fromBooks += PAGE_SIZE;
+      }
+
+      // Fetch profiles with pagination
+      let allUsers: any[] = [];
+      let fromUsers = 0;
+      while (true) {
+        const { data } = await supabase.from('profiles').select('id, first_name, last_name, admission_number, student_class, role').eq('is_approved', true).in('role', ['student', 'teacher']).order('first_name').range(fromUsers, fromUsers + PAGE_SIZE - 1);
+        if (!data || data.length === 0) break;
+        allUsers = [...allUsers, ...data];
+        if (data.length < PAGE_SIZE) break;
+        fromUsers += PAGE_SIZE;
+      }
 
       setBookIssues(issuesWithProfiles || []);
-      setBooks(booksData || []);
-      setUsers(usersData || []);
+      setBooks(allBooks);
+      setUsers(allUsers);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({ title: "Error", description: "Failed to load book issue data", variant: "destructive" });
