@@ -110,8 +110,9 @@ const Catalog = () => {
     try {
       let query = supabase
         .from("books")
-        .select("*", { count: "exact" })
+        .select("id,title,author,category,subject,class_level,language,cover_url,total_copies,available_copies,first_added_at,created_at,accession_number,issue_count,shelf_number,cupboard_number", { count: "exact" })
         .gt("total_copies", 0);
+
 
       if (debouncedSearch.trim()) {
         const s = `%${debouncedSearch.trim()}%`;
@@ -152,33 +153,31 @@ const Catalog = () => {
 
       setBooks(data || []);
       setTotalCount(count || 0);
+      setLoading(false);
 
-      // Load ratings, borrows & recs in parallel for the displayed page
+      // Enrich the visible page in the background (does not block rendering)
       if (data && data.length > 0) {
         const bookIds = data.map(b => b.id);
-        const { data: rev } = await supabase.from("book_reviews").select("book_id, rating").in("book_id", bookIds).eq("is_hidden", false);
-        const agg: Record<string, { sum: number; count: number }> = {};
-        (rev || []).forEach((r: any) => {
-          agg[r.book_id] = agg[r.book_id] || { sum: 0, count: 0 };
-          agg[r.book_id].sum += r.rating; agg[r.book_id].count++;
-        });
-        const map: Record<string, { avg: number; count: number }> = {};
-        Object.entries(agg).forEach(([k, v]) => { map[k] = { avg: v.sum / v.count, count: v.count }; });
-        setRatings(map);
-
-        const [{ data: countsData }, { data: recs }] = await Promise.all([
-          supabase.rpc('get_book_borrow_counts'),
-          supabase.from("class_book_recommendations").select("book_id").in("book_id", bookIds),
-        ]);
-        const issueMap: Record<string, number> = {};
-        (countsData || []).forEach((item: any) => {
-          if (item.book_id) issueMap[item.book_id] = Number(item.borrow_count) || 0;
-        });
-        const recMap: Record<string, number> = {};
-        (recs || []).forEach((r: any) => { if (r.book_id) recMap[r.book_id] = (recMap[r.book_id] || 0) + 1; });
-        setBorrowCounts(issueMap);
-        setRecommendCounts(recMap);
+        setBorrowCounts(Object.fromEntries(data.map((b: any) => [b.id, b.issue_count || 0])));
+        void (async () => {
+          const [{ data: rev }, { data: recs }] = await Promise.all([
+            supabase.from("book_reviews").select("book_id, rating").in("book_id", bookIds).eq("is_hidden", false),
+            supabase.from("class_book_recommendations").select("book_id").in("book_id", bookIds),
+          ]);
+          const agg: Record<string, { sum: number; count: number }> = {};
+          (rev || []).forEach((r: any) => {
+            agg[r.book_id] = agg[r.book_id] || { sum: 0, count: 0 };
+            agg[r.book_id].sum += r.rating; agg[r.book_id].count++;
+          });
+          const map: Record<string, { avg: number; count: number }> = {};
+          Object.entries(agg).forEach(([k, v]) => { map[k] = { avg: v.sum / v.count, count: v.count }; });
+          setRatings(map);
+          const recMap: Record<string, number> = {};
+          (recs || []).forEach((r: any) => { if (r.book_id) recMap[r.book_id] = (recMap[r.book_id] || 0) + 1; });
+          setRecommendCounts(recMap);
+        })();
       }
+
     } catch (e) {
       console.error(e);
       toast({ title: "Error", description: "Failed to load catalog", variant: "destructive" });
