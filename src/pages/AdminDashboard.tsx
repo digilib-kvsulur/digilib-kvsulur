@@ -14,6 +14,7 @@ import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePushSubscription } from "@/hooks/usePushSubscription";
 
 import UserApproval from "@/components/admin/UserApproval";
 import BookManager from "@/components/admin/BookManager";
@@ -106,6 +107,8 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, booksIssued: 0, activeQuizzes: 0 });
+
+  usePushSubscription(user?.id);
 
   useEffect(() => { checkAuth(); fetchStats(); }, []);
 

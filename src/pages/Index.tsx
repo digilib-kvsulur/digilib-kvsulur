@@ -12,6 +12,7 @@ import event1Img from "@/assets/landing-event-1.jpg";
 import event2Img from "@/assets/landing-event-2.jpg";
 import libraryEventImg from "@/assets/library-event.jpg";
 import EventDetailModal from "@/components/dashboard/EventDetailModal";
+import { InstallPWA } from "@/components/InstallPWA";
 
 interface Book {
   id: string;
@@ -243,6 +244,7 @@ const Index = () => {
             <a href="#events" className="hover:text-indigo-600 transition-colors px-2 py-1">Events</a>
           </nav>
           <div className="flex items-center space-x-4">
+            <InstallPWA />
             {loading ? (
               <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
             ) : user && profile ? (

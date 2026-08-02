@@ -14,6 +14,8 @@ interface Notification {
   type: string;
   is_read: boolean;
   created_at: string;
+  image_url: string | null;
+  action_link: string | null;
 }
 
 const NotificationBell = () => {
@@ -80,6 +82,16 @@ const NotificationBell = () => {
                 {!n.is_read && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
               </div>
               <p className="text-xs text-muted-foreground mt-1">{n.message}</p>
+              {n.image_url && (
+                <div className="mt-2 relative h-24 w-full rounded overflow-hidden border border-border/50">
+                  <img src={n.image_url} alt="attachment" className="absolute inset-0 w-full h-full object-cover" />
+                </div>
+              )}
+              {n.action_link && (
+                <Button size="sm" variant="outline" className="mt-2 h-7 text-[10px] w-full" onClick={(e) => { e.stopPropagation(); window.open(n.action_link, "_blank"); }}>
+                  View Link
+                </Button>
+              )}
               <p className="text-[10px] text-muted-foreground mt-2">{new Date(n.created_at).toLocaleString()}</p>
             </div>
           ))}

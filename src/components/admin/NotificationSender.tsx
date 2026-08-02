@@ -18,6 +18,8 @@ interface Notification {
   target_user_id: string | null;
   created_at: string;
   is_read: boolean;
+  image_url: string | null;
+  action_link: string | null;
 }
 
 interface Student {
@@ -32,6 +34,8 @@ const NotificationSender = () => {
   const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [actionLink, setActionLink] = useState("");
   const [type, setType] = useState("info");
   const [targetType, setTargetType] = useState<"all" | "class" | "specific">("all");
   const [targetClass, setTargetClass] = useState("");
@@ -87,6 +91,8 @@ const NotificationSender = () => {
           title,
           message,
           type,
+          image_url: imageUrl.trim() || null,
+          action_link: actionLink.trim() || null,
           target_user_id: null,
           sent_by: user.id,
         }];
@@ -102,6 +108,8 @@ const NotificationSender = () => {
           title,
           message,
           type,
+          image_url: imageUrl.trim() || null,
+          action_link: actionLink.trim() || null,
           target_user_id: s.id,
           sent_by: user.id,
         }));
@@ -116,6 +124,8 @@ const NotificationSender = () => {
           title,
           message,
           type,
+          image_url: imageUrl.trim() || null,
+          action_link: actionLink.trim() || null,
           target_user_id: uid,
           sent_by: user.id,
         }));
@@ -133,6 +143,8 @@ const NotificationSender = () => {
       toast({ title: "Sent!", description: `Notification dispatched to ${insertRows.length} user(s).` });
       setTitle("");
       setMessage("");
+      setImageUrl("");
+      setActionLink("");
       setType("info");
       setTargetType("all");
       setTargetClass("");
@@ -193,7 +205,17 @@ const NotificationSender = () => {
             </div>
             <div>
               <Label>Message</Label>
-              <Textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Write your message..." rows={4} />
+              <Textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Write your message..." rows={3} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Image URL (Optional)</Label>
+                <Input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://..." />
+              </div>
+              <div>
+                <Label>Action Link (Optional)</Label>
+                <Input value={actionLink} onChange={e => setActionLink(e.target.value)} placeholder="https://..." />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -264,6 +286,34 @@ const NotificationSender = () => {
             <Button onClick={handleSend} disabled={sending} className="w-full gradient-primary border-0">
               <Send className="h-4 w-4 mr-2" /> {sending ? "Sending..." : "Dispatch Notification"}
             </Button>
+            
+            {/* Live Preview */}
+            {(title || message) && (
+              <div className="mt-4 pt-4 border-t border-border/50">
+                <Label className="text-muted-foreground mb-2 block">Live Preview</Label>
+                <div className="p-4 rounded-xl border border-border/50 bg-slate-50/50 shadow-sm relative overflow-hidden group">
+                  <div className="flex gap-3 relative z-10">
+                    <div className="mt-0.5 shrink-0 bg-white p-1.5 rounded-full shadow-sm border border-slate-100">{typeIcon(type)}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-800 text-sm">{title || "Notification Title"}</p>
+                      <p className="text-xs text-slate-600 mt-1">{message || "Your message will appear here..."}</p>
+                      
+                      {imageUrl && (
+                        <div className="mt-3 relative h-32 w-full rounded-lg overflow-hidden border border-slate-200">
+                          <img src={imageUrl} alt="preview" className="absolute inset-0 w-full h-full object-cover" />
+                        </div>
+                      )}
+                      
+                      {actionLink && (
+                        <Button size="sm" variant="outline" className="mt-3 h-7 text-xs bg-white hover:bg-slate-50" onClick={() => window.open(actionLink, "_blank")}>
+                          View Action Link
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

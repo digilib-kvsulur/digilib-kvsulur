@@ -658,7 +658,10 @@ const StudyMaterialsManager = () => {
                           {m.description && ` · ${m.description}`}
                         </p>
                       </div>
-                      <Button size="sm" variant="outline" className="h-8" onClick={() => setViewMaterial({ title: m.title, url: m.file_url })}>
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => {
+                        if (m.file_url.includes("ncert.nic.in") || m.file_url.includes("cbseacademic.nic.in")) window.open(m.file_url, "_blank");
+                        else setViewMaterial({ title: m.title, url: m.file_url });
+                      }}>
                         <BookOpen className="h-4 w-4" />
                       </Button>
                       <Button onClick={() => handleDeleteMaterial(m)} variant="ghost" size="sm" className="text-destructive h-8">
@@ -845,7 +848,10 @@ const StudyMaterialsManager = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline" className="h-8" onClick={() => setViewMaterial({ title: c.chapter_title, url: c.file_url })}>
+                            <Button size="sm" variant="outline" className="h-8" onClick={() => {
+                              if (c.file_url.includes("ncert.nic.in") || c.file_url.includes("cbseacademic.nic.in")) window.open(c.file_url, "_blank");
+                              else setViewMaterial({ title: c.chapter_title, url: c.file_url });
+                            }}>
                               <BookOpen className="h-4 w-4" />
                             </Button>
                             <Button onClick={() => { setEditingNcertId(c.id); setEditNcertForm(c); }} variant="outline" size="sm" className="h-8">
@@ -964,7 +970,10 @@ const StudyMaterialsManager = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="h-8" onClick={() => setViewMaterial({ title: entry.chapter_title, url: entry.file_url })}>
+                        <Button size="sm" variant="outline" className="h-8" onClick={() => {
+                          if (entry.file_url.includes("ncert.nic.in") || entry.file_url.includes("cbseacademic.nic.in")) window.open(entry.file_url, "_blank");
+                          else setViewMaterial({ title: entry.chapter_title, url: entry.file_url });
+                        }}>
                           <BookOpen className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="sm" className="h-8" onClick={() => {

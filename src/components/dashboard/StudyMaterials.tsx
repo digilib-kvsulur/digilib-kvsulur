@@ -348,7 +348,10 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
             {ncertBook?.chapters.map((ch, i) => (
               <button
                 key={i}
-                onClick={() => setViewMaterial({ title: `${ncertBook.name} - ${ch.title}`, url: ch.url })}
+                onClick={() => {
+                  if (ch.url.includes("ncert.nic.in")) window.open(ch.url, "_blank");
+                  else setViewMaterial({ title: `${ncertBook.name} - ${ch.title}`, url: ch.url });
+                }}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/60 transition-colors group border border-transparent hover:border-border/60 text-left w-full"
               >
                 <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
@@ -375,7 +378,10 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
             {cbseBook?.chapters.map((ch, i) => (
               <button
                 key={i}
-                onClick={() => setViewMaterial({ title: `${cbseBook.name} - ${ch.title}`, url: ch.url })}
+                onClick={() => {
+                  if (ch.url.includes("ncert.nic.in") || ch.url.includes("cbseacademic.nic.in")) window.open(ch.url, "_blank");
+                  else setViewMaterial({ title: `${cbseBook.name} - ${ch.title}`, url: ch.url });
+                }}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50/60 transition-colors group border border-transparent hover:border-indigo-200 text-left w-full"
               >
                 <span className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">

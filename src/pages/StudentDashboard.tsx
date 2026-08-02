@@ -13,6 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLoginStreak } from "@/hooks/useLoginStreak";
+import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { Progress } from "@/components/ui/progress";
 
 import LevelProgress from "@/components/dashboard/LevelProgress";
@@ -87,6 +88,7 @@ const StudentDashboard = () => {
   const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
 
   const streakData = useLoginStreak(user?.id);
+  usePushSubscription(user?.id);
 
   useEffect(() => { checkAuth(); }, []);
 
