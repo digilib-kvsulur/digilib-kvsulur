@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare, Wand2, Loader2, ShieldAlert, AlertTriangle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare, Wand2, Loader2, ShieldAlert, AlertTriangle, GitMerge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BulkImportBooks from "./BulkImportBooks";
@@ -67,6 +68,7 @@ const BookManager = () => {
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [missingAccessionInputs, setMissingAccessionInputs] = useState<Record<string, string>>({});
   const [newAccessionInput, setNewAccessionInput] = useState("");
+  const [selectedTitleKeys, setSelectedTitleKeys] = useState<Set<string>>(new Set());
   // Per-book manual accession inputs for multi-copy verifier (bookId -> string[])
   const [multiCopyManualAccessions, setMultiCopyManualAccessions] = useState<Record<string, string[]>>({});
   const { toast } = useToast();
@@ -447,6 +449,59 @@ const BookManager = () => {
       loadBooks();
     } catch (e: any) {
       toast({ title: "Error", description: e.message || "Failed to merge titles.", variant: "destructive" });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleBulkMergeSelected = async () => {
+    if (selectedTitleKeys.size === 0) return;
+    const groupsToMerge = sameTitleList.filter(item => selectedTitleKeys.has(item.title));
+    if (groupsToMerge.length === 0) return;
+    setBulkBusy(true);
+    let mergedCount = 0;
+    let errorCount = 0;
+    try {
+      for (const item of groupsToMerge) {
+        const primary = item.books[0];
+        const dupes = item.books.slice(1);
+        if (dupes.length === 0) continue;
+        try {
+          const dupIds = dupes.map(b => b.id);
+          const newAccessions = new Set<string>(primary.accession_numbers || []);
+          if (primary.accession_number) newAccessions.add(primary.accession_number);
+          let addTotal = 0;
+          let addAvailable = 0;
+          for (const dup of dupes) {
+            if (dup.accession_numbers) dup.accession_numbers.forEach(a => newAccessions.add(a));
+            if (dup.accession_number) newAccessions.add(dup.accession_number);
+            addTotal += dup.total_copies;
+            addAvailable += dup.available_copies;
+          }
+          for (const table of ['book_issues', 'book_requests', 'book_reviews']) {
+            await (supabase as any).from(table).update({ book_id: primary.id }).in('book_id', dupIds);
+          }
+          const { error: updateError } = await supabase.from('books').update({
+            total_copies: primary.total_copies + addTotal,
+            available_copies: primary.available_copies + addAvailable,
+            accession_numbers: Array.from(newAccessions).filter(Boolean),
+            accession_number: Array.from(newAccessions).filter(Boolean)[0] || null,
+          }).eq('id', primary.id);
+          if (updateError) throw updateError;
+          const { error: deleteError } = await supabase.from('books').delete().in('id', dupIds);
+          if (deleteError) throw deleteError;
+          mergedCount++;
+        } catch {
+          errorCount++;
+        }
+      }
+      toast({
+        title: `Bulk Merge Complete`,
+        description: `${mergedCount} title group(s) merged successfully.${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
+        variant: errorCount > 0 ? 'destructive' : 'default',
+      });
+      setSelectedTitleKeys(new Set());
+      loadBooks();
     } finally {
       setBulkBusy(false);
     }
@@ -971,49 +1026,92 @@ const BookManager = () => {
               {sameTitleList.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">No identical titles found!</div>
               ) : (
-                <div className="border rounded-lg overflow-hidden max-h-[50vh] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Conflicting Rows</TableHead>
-                        <TableHead>Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sameTitleList.map(item => (
-                        <TableRow key={item.title}>
-                          <TableCell className="font-semibold text-xs">{item.title}</TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              {item.books.map((b, idx) => (
-                                <div key={b.id} className="text-xs flex items-center gap-2">
-                                  <Badge variant="outline" className="text-[9px]">Row {idx + 1}</Badge>
-                                  <span>{b.author}</span>
-                                  <span className="text-muted-foreground">({b.total_copies} copies)</span>
-                                </div>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                              onClick={() => {
-                                const primary = item.books[0];
-                                const dupes = item.books.slice(1);
-                                handleMergeSameTitles(primary, dupes);
-                              }}
-                              disabled={bulkBusy}
-                            >
-                              Merge into one
-                            </Button>
-                          </TableCell>
+                <div className="space-y-3">
+                  {/* Bulk Action Bar */}
+                  <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-indigo-50/60 border border-indigo-100">
+                    <div className="flex items-center gap-2.5">
+                      <Checkbox
+                        id="select-all-titles"
+                        checked={selectedTitleKeys.size === sameTitleList.length && sameTitleList.length > 0}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedTitleKeys(new Set(sameTitleList.map(i => i.title)));
+                          } else {
+                            setSelectedTitleKeys(new Set());
+                          }
+                        }}
+                      />
+                      <label htmlFor="select-all-titles" className="text-xs font-semibold text-indigo-700 cursor-pointer select-none">
+                        Select All ({sameTitleList.length} groups)
+                      </label>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs gap-1.5"
+                      disabled={selectedTitleKeys.size === 0 || bulkBusy}
+                      onClick={handleBulkMergeSelected}
+                    >
+                      {bulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GitMerge className="h-3.5 w-3.5" />}
+                      Merge Selected ({selectedTitleKeys.size})
+                    </Button>
+                  </div>
+
+                  <div className="border rounded-lg overflow-hidden max-h-[42vh] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10"></TableHead>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Conflicting Rows</TableHead>
+                          <TableHead>Action</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {sameTitleList.map(item => (
+                          <TableRow key={item.title} className={selectedTitleKeys.has(item.title) ? "bg-indigo-50/40" : ""}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedTitleKeys.has(item.title)}
+                                onCheckedChange={(checked) => {
+                                  setSelectedTitleKeys(prev => {
+                                    const next = new Set(prev);
+                                    if (checked) next.add(item.title);
+                                    else next.delete(item.title);
+                                    return next;
+                                  });
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell className="font-semibold text-xs max-w-[160px]">
+                              <span className="line-clamp-2">{item.books[0].title}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {item.books.map((b, idx) => (
+                                  <div key={b.id} className="text-xs flex items-center gap-2">
+                                    <Badge variant="outline" className="text-[9px]">{idx === 0 ? 'Primary' : `Dup ${idx}`}</Badge>
+                                    <span className="text-muted-foreground truncate max-w-[100px]">{b.author}</span>
+                                    <span className="text-muted-foreground">({b.total_copies}c)</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 h-7 text-xs"
+                                onClick={() => handleMergeSameTitles(item.books[0], item.books.slice(1))}
+                                disabled={bulkBusy}
+                              >
+                                <GitMerge className="h-3 w-3 mr-1" /> Merge
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </TabsContent>
