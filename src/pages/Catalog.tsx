@@ -226,7 +226,21 @@ const Catalog = () => {
     toast({ title: "Request submitted" });
   };
 
-  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin h-10 w-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full" /></div>;
+  const skeletonGrid = (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i} className="bg-white rounded-2.5xl border border-slate-200/80 p-1.5 animate-pulse">
+          <div className="aspect-[2/3] w-full rounded-2xl bg-slate-200/70 mb-3" />
+          <div className="px-1.5 space-y-2 pb-2">
+            <div className="h-3 rounded bg-slate-200/70" />
+            <div className="h-3 w-2/3 rounded bg-slate-200/70" />
+            <div className="h-7 rounded-lg bg-slate-100" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-indigo-500/20 selection:text-indigo-900 overflow-x-hidden pb-12">
