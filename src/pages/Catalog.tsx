@@ -340,11 +340,11 @@ const Catalog = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-black text-slate-900 tracking-tight">Catalog Results</h2>
           <Badge variant="outline" className="bg-white text-slate-600 border-slate-200 font-bold px-3 py-1 rounded-full shadow-sm">
-            {totalCount} book{totalCount !== 1 ? "s" : ""}
+            {loading ? "Loading…" : `${totalCount} book${totalCount !== 1 ? "s" : ""}`}
           </Badge>
         </div>
 
-        {filteredBooks.length > 0 ? (
+        {loading ? skeletonGrid : filteredBooks.length > 0 ? (
           <div className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
               {filteredBooks.map(book => {
