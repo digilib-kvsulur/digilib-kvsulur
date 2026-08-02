@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Upload, Trash2, Download, BookOpen, Loader2, Plus, GraduationCap, Link2, Edit2, RefreshCw, Save, X, Database } from "lucide-react";
+import { FileText, Upload, Trash2, Download, BookOpen, Loader2, Plus, GraduationCap, Link2, Edit2, RefreshCw, Save, X, Database, ExternalLink } from "lucide-react";
 import BulkImportMaterials from "./BulkImportMaterials";
 import BulkImportCbse from "./BulkImportCbse";
 
