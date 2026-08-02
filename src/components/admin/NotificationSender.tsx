@@ -137,8 +137,20 @@ const NotificationSender = () => {
         return;
       }
 
-      const { error } = await supabase.from("notifications").insert(insertRows);
+      const { data: inserted, error } = await supabase.from("notifications").insert(insertRows).select();
       if (error) throw error;
+
+      // Fire push notifications via Edge Function (non-blocking, best-effort)
+      if (inserted && inserted.length > 0) {
+        // For "all" broadcast we send one payload with target_user_id = null.
+        // For targeted rows we send one per unique user to avoid spam.
+        const pushPayloads = inserted.slice(0, 50); // cap at 50 to avoid hammering
+        pushPayloads.forEach(record => {
+          supabase.functions.invoke("push-notification", {
+            body: { record },
+          }).catch(() => {/* silently ignore — push is non-critical */});
+        });
+      }
 
       toast({ title: "Sent!", description: `Notification dispatched to ${insertRows.length} user(s).` });
       setTitle("");

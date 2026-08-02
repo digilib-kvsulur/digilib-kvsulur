@@ -12,6 +12,7 @@ import {
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import NotificationBell from "@/components/dashboard/NotificationBell";
+import { PWAControls } from "@/components/PWAControls";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
@@ -218,6 +219,7 @@ const AdminDashboard = () => {
             <span className="font-bold text-sm text-foreground">Admin Panel</span>
           </div>
           <div className="flex items-center gap-1">
+            <PWAControls userId={user?.id} />
             <NotificationBell />
             <Button variant="ghost" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>
           </div>
@@ -251,7 +253,10 @@ const AdminDashboard = () => {
                   <h2 className="text-2xl font-bold text-foreground">Dashboard Overview</h2>
                   <p className="text-muted-foreground text-sm">Welcome back, {user?.first_name}!</p>
                 </div>
-                <div className="hidden lg:block"><NotificationBell /></div>
+                <div className="hidden lg:flex items-center gap-2">
+                  <PWAControls userId={user?.id} />
+                  <NotificationBell />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

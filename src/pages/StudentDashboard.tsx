@@ -30,6 +30,7 @@ import { StudentQuiz } from "@/components/quiz/StudentQuiz";
 
 import QuickBookmarks from "@/components/dashboard/QuickBookmarks";
 import NotificationBell from "@/components/dashboard/NotificationBell";
+import { PWAControls } from "@/components/PWAControls";
 import StudentNotes from "@/components/dashboard/StudentNotes";
 import NCERTBooks from "@/components/dashboard/NCERTBooks";
 import StudyMaterials from "@/components/dashboard/StudyMaterials";
@@ -342,6 +343,7 @@ const StudentDashboard = () => {
               <p className="text-sm font-medium text-foreground truncate">{user?.first_name} {user?.last_name}</p>
               <p className="text-xs text-muted-foreground">Class {user?.student_class}</p>
             </div>
+            <PWAControls userId={user?.id} />
             <NotificationBell />
           </div>
           <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
@@ -360,6 +362,7 @@ const StudentDashboard = () => {
             <span className="font-bold text-sm text-foreground">KV Sulur Library</span>
           </div>
           <div className="flex items-center gap-1">
+            <PWAControls userId={user?.id} />
             <NotificationBell />
             <Button variant="ghost" size="sm" onClick={() => navigate('/catalog')}><Search className="h-4 w-4" /></Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>
