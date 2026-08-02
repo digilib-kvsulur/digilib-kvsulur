@@ -8,9 +8,15 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Check if running in PWA standalone display mode
+const isStandalone = typeof window !== 'undefined' && (
+  window.matchMedia('(display-mode: standalone)').matches || 
+  (window.navigator as any).standalone === true
+);
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: isStandalone ? localStorage : sessionStorage,
     persistSession: true,
     autoRefreshToken: true,
   }
