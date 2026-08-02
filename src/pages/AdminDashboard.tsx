@@ -36,6 +36,7 @@ import InventoryAuditManager from "@/components/admin/InventoryAuditManager";
 import ExportReports from "@/components/admin/ExportReports";
 import GalleryManager from "@/components/admin/GalleryManager";
 import BookShelfData from "@/components/admin/BookShelfData";
+import BookCoverData from "@/components/admin/BookCoverData";
 import BookCondemnation from "@/components/admin/BookCondemnation";
 import BarcodeGenerator from "@/components/admin/BarcodeGenerator";
 import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert } from "lucide-react";

@@ -384,6 +384,11 @@ const Catalog = () => {
                       <div className="flex flex-wrap gap-1 mb-2">
                         {book.category && <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100">{book.category}</span>}
                         {book.class_level && <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">Class {book.class_level}</span>}
+                        {(book.shelf_number || book.cupboard_number) && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                            {book.cupboard_number ? `Cup ${book.cupboard_number}` : ""}{book.cupboard_number && book.shelf_number ? " · " : ""}{book.shelf_number ? `Shelf ${book.shelf_number}` : ""}
+                          </span>
+                        )}
                       </div>
                       
                       {(r || borrowCounts[book.id]) && (
