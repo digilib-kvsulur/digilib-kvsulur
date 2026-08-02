@@ -363,19 +363,22 @@ export default function BookDetails() {
               </CardContent>
             </Card>
 
-            {/* Shelf & Row Location */}
-            {(book.shelf_number || book.row_number) && (
+            {/* Shelf Location — combined code e.g. 11A (cupboard + shelf row) */}
+            {(book.cupboard_number || book.shelf_number) && (
               <Card className="border-indigo-200/80 bg-indigo-50/60 rounded-2xl shadow-xs">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                    <MapPin className="h-4.5 w-4.5 text-indigo-600" />
+                    <MapPin className="h-4 w-4 text-indigo-600" />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Library Location</p>
-                    <p className="text-sm font-extrabold text-indigo-900">
-                      {book.shelf_number && <span>Shelf&nbsp;<span className="font-mono">{book.shelf_number}</span></span>}
-                      {book.shelf_number && book.row_number && <span className="mx-1.5 text-indigo-300">·</span>}
-                      {book.row_number && <span>Row&nbsp;<span className="font-mono">{book.row_number}</span></span>}
+                    <p className="text-2xl font-black text-indigo-900 font-mono tracking-tight">
+                      {book.cupboard_number ?? ""}{book.shelf_number ?? ""}
+                    </p>
+                    <p className="text-[10px] text-indigo-400 font-medium">
+                      {book.cupboard_number && `Cupboard ${book.cupboard_number}`}
+                      {book.cupboard_number && book.shelf_number && " · "}
+                      {book.shelf_number && `Row ${book.shelf_number}`}
                     </p>
                   </div>
                 </CardContent>
