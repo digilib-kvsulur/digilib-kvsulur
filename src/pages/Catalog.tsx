@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, BookOpen, Plus, Bookmark, BookmarkCheck, Star, Clock, Library, Compass, Edit, Sparkles } from "lucide-react";
+import { Search, BookOpen, Plus, Bookmark, BookmarkCheck, Star, Clock, Library, Compass, Edit, Sparkles, SlidersHorizontal, X } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,7 @@ const Catalog = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [detailBook, setDetailBook] = useState<any>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -249,30 +250,30 @@ const Catalog = () => {
       
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate("/")}>
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center space-x-2.5 cursor-pointer" onClick={() => navigate("/")}>
             {/* Dual Logo Placeholders */}
-            <div className="flex items-center -space-x-2.5 shrink-0">
-              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs" title="PM SHRI Logo">
+            <div className="flex items-center -space-x-2 shrink-0">
+              <div className="relative w-8 h-8 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs" title="PM SHRI Logo">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
-                <Sparkles className="h-5 w-5 text-amber-500 absolute hidden" />
+                <Sparkles className="h-4 w-4 text-amber-500 absolute hidden" />
               </div>
-              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs z-10" title="KV Logo">
+              <div className="relative w-8 h-8 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs z-10" title="KV Logo">
                 <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
-                <BookOpen className="h-5 w-5 text-indigo-600 absolute hidden" />
+                <BookOpen className="h-4 w-4 text-indigo-600 absolute hidden" />
               </div>
             </div>
             <div>
-              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-tight">KV Sulur Library</h1>
-              <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">Digital Catalog</p>
+              <h1 className="text-xs font-black tracking-tight text-slate-900 leading-none">KV Sulur Library</h1>
+              <p className="text-[8px] text-indigo-600 font-bold uppercase tracking-wider mt-0.5">Catalog</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button onClick={handleRequestNewBook} variant="outline" className="rounded-xl border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 font-bold text-indigo-700 shadow-sm transition-all duration-200">
-              <Plus className="h-4 w-4 mr-2" /> Request Book
+          <div className="flex items-center gap-2">
+            <Button onClick={handleRequestNewBook} variant="outline" size="sm" className="rounded-xl border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 font-bold text-indigo-700 shadow-sm transition-all duration-200 text-xs px-3 py-1.5 h-8 sm:h-9">
+              <Plus className="h-3.5 w-3.5 mr-1" /> <span className="hidden sm:inline">Request Book</span><span className="sm:hidden">Request</span>
             </Button>
             <BookRequestForm open={showRequestDialog} onOpenChange={setShowRequestDialog} onSuccess={() => setShowRequestDialog(false)} />
-            <Button onClick={() => navigate("/")} variant="ghost" className="rounded-xl text-slate-600 font-bold hover:text-indigo-600 hover:bg-indigo-50">
+            <Button onClick={() => navigate("/")} variant="ghost" size="sm" className="rounded-xl text-slate-600 font-bold hover:text-indigo-600 hover:bg-indigo-50 text-xs px-3 py-1.5 h-8 sm:h-9">
               Home
             </Button>
           </div>
@@ -280,18 +281,31 @@ const Catalog = () => {
       </header>
 
       {/* Search and Filters Strip */}
-      <div className="bg-white border-b border-slate-200/80 shadow-sm relative z-30 mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
-            <Input 
-              placeholder="Search by title, author, ISBN, or subject..." 
-              value={searchTerm} 
-              onChange={e => setSearchTerm(e.target.value)} 
-              className="pl-12 pr-4 py-6 rounded-2xl border-slate-200 shadow-sm text-base focus-visible:ring-indigo-500 bg-slate-50/50 focus:bg-white transition-colors" 
-            />
+      <div className="bg-white border-b border-slate-200/80 shadow-xs relative z-30 mb-6">
+        <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
+          <div className="flex gap-2 max-w-2xl mx-auto">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 h-4.5 w-4.5" />
+              <Input 
+                placeholder="Search by title, author, ISBN..." 
+                value={searchTerm} 
+                onChange={e => setSearchTerm(e.target.value)} 
+                className="pl-10 pr-4 py-5 rounded-xl border-slate-200 shadow-xs text-sm focus-visible:ring-indigo-500 bg-slate-50/50 focus:bg-white transition-colors" 
+              />
+            </div>
+            
+            {/* Mobile filters button */}
+            <Button 
+              variant="outline" 
+              onClick={() => setShowMobileFilters(true)}
+              className="lg:hidden rounded-xl border-slate-200 px-3 h-10 bg-slate-50/50 hover:bg-slate-100"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </Button>
           </div>
-          <div className="flex flex-wrap justify-center gap-2">
+
+          {/* Desktop Filters (Hidden on Mobile) */}
+          <div className="hidden lg:flex flex-wrap justify-center gap-2">
             {[
               { val: selectedGenre, set: setSelectedGenre, lbl: "Genre", opts: genres },
               { val: selectedSubject, set: setSelectedSubject, lbl: "Subject", opts: subjects },
@@ -300,7 +314,7 @@ const Catalog = () => {
               { val: selectedAuthor, set: setSelectedAuthor, lbl: "Author", opts: authors.slice(0, 100) }
             ].map((filter, i) => (
               <Select key={i} value={filter.val} onValueChange={filter.set}>
-                <SelectTrigger className="w-32 sm:w-36 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-sm h-10">
+                <SelectTrigger className="w-36 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-xs h-9 text-xs">
                   <SelectValue placeholder={filter.lbl} />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl max-h-[300px]">
@@ -312,7 +326,7 @@ const Catalog = () => {
               </Select>
             ))}
             <Select value={availability} onValueChange={(v: any) => setAvailability(v)}>
-              <SelectTrigger className="w-36 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-sm h-10">
+              <SelectTrigger className="w-36 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-xs h-9 text-xs">
                 <SelectValue placeholder="Availability" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -322,7 +336,7 @@ const Catalog = () => {
               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-              <SelectTrigger className="w-40 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-sm h-10">
+              <SelectTrigger className="w-36 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-xs h-9 text-xs">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -336,6 +350,88 @@ const Catalog = () => {
         </div>
       </div>
 
+      {/* Mobile Filters Drawer / Modal */}
+      <Dialog open={showMobileFilters} onOpenChange={setShowMobileFilters}>
+        <DialogContent className="max-w-md w-[90%] rounded-2xl p-5 gap-4">
+          <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b">
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-indigo-600" /> Filter & Sort Books
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
+            {[
+              { val: selectedGenre, set: setSelectedGenre, lbl: "Genre", opts: genres },
+              { val: selectedSubject, set: setSelectedSubject, lbl: "Subject", opts: subjects },
+              { val: selectedClass, set: setSelectedClass, lbl: "Class Level", opts: classLevels, format: (v: string) => `Class ${v}` },
+              { val: selectedLang, set: setSelectedLang, lbl: "Language", opts: languages },
+              { val: selectedAuthor, set: setSelectedAuthor, lbl: "Author", opts: authors.slice(0, 100) }
+            ].map((filter, i) => (
+              <div key={i} className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{filter.lbl}</label>
+                <Select value={filter.val} onValueChange={filter.set}>
+                  <SelectTrigger className="w-full rounded-xl border-slate-200 bg-slate-50/50 font-medium text-slate-800 shadow-xs h-10 text-sm">
+                    <SelectValue placeholder={`Select ${filter.lbl}`} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl max-h-[250px]">
+                    <SelectItem value="all" className="font-semibold text-indigo-600">All {filter.lbl}s</SelectItem>
+                    {filter.opts.map((opt: string) => (
+                      <SelectItem key={opt} value={opt}>{filter.format ? filter.format(opt) : opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Availability</label>
+              <Select value={availability} onValueChange={(v: any) => setAvailability(v)}>
+                <SelectTrigger className="w-full rounded-xl border-slate-200 bg-slate-50/50 font-medium text-slate-800 shadow-xs h-10 text-sm">
+                  <SelectValue placeholder="Availability" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All books</SelectItem>
+                  <SelectItem value="available">Available now</SelectItem>
+                  <SelectItem value="new">New arrivals</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sort By</label>
+              <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                <SelectTrigger className="w-full rounded-xl border-slate-200 bg-slate-50/50 font-medium text-slate-800 shadow-xs h-10 text-sm">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="newest">Newest first</SelectItem>
+                  <SelectItem value="most_borrowed">Most borrowed</SelectItem>
+                  <SelectItem value="most_recommended">Most recommended</SelectItem>
+                  <SelectItem value="title_az">Title A-Z</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="pt-2 border-t flex flex-row gap-2 mt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSearchTerm(""); setSelectedGenre("all"); setSelectedSubject("all"); setSelectedClass("all"); setSelectedLang("all"); setSelectedAuthor("all"); setAvailability("all");
+                setShowMobileFilters(false);
+              }}
+              className="flex-1 rounded-xl text-xs"
+            >
+              Reset
+            </Button>
+            <Button 
+              onClick={() => setShowMobileFilters(false)}
+              className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs"
+            >
+              Apply Filters
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-black text-slate-900 tracking-tight">Catalog Results</h2>
@@ -345,74 +441,68 @@ const Catalog = () => {
         </div>
 
         {loading ? skeletonGrid : filteredBooks.length > 0 ? (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
+          <div className="space-y-6">            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
               {filteredBooks.map(book => {
                 const r = ratings[book.id];
                 const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
                 return (
-                  <div key={book.id} onClick={() => navigate(`/book/${book.id}`)} className="group cursor-pointer flex flex-col bg-white rounded-2.5xl shadow-sm hover:shadow-xl border border-slate-200/80 hover:border-indigo-300 transition-all overflow-hidden p-1.5 h-full">
-                    <div className="aspect-[2/3] w-full rounded-2xl bg-slate-100 overflow-hidden relative shadow-inner mb-3">
+                  <div key={book.id} onClick={() => navigate(`/book/${book.id}`)} className="group cursor-pointer flex flex-col bg-white rounded-2xl shadow-xs hover:shadow-lg border border-slate-200/80 hover:border-indigo-300 transition-all overflow-hidden p-2 h-full">
+                    <div className="aspect-[2/3] w-full rounded-xl bg-slate-100 overflow-hidden relative shadow-inner mb-2">
                       {book.cover_url ? (
                         <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-indigo-50 to-blue-50">
-                          <BookOpen className="h-8 w-8 text-indigo-400 mb-2" />
-                          <span className="text-xs font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
+                        <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-indigo-50 to-blue-50">
+                          <BookOpen className="h-6 w-6 text-indigo-400 mb-1" />
+                          <span className="text-[10px] font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
                         </div>
                       )}
                       {/* Status badges overlay */}
-                      <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1 pointer-events-none">
-                        <div className="flex flex-wrap gap-1">
-                          {isNew && <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider">NEW</span>}
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm uppercase tracking-wider ${book.available_copies > 0 ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-200"}`}>
-                            {book.available_copies > 0 ? `${book.available_copies} AVAIL` : "CHECKED OUT"}
+                      <div className="absolute top-1.5 left-1.5 right-1.5 flex items-start justify-between gap-1 pointer-events-none">
+                        <div className="flex flex-wrap gap-0.5">
+                          {isNew && <span className="bg-indigo-600 text-white text-[8px] px-1 py-0.5 rounded font-bold shadow-xs uppercase tracking-wider">NEW</span>}
+                          <span className={`text-[8px] px-1 py-0.5 rounded font-bold shadow-xs uppercase tracking-wider ${book.available_copies > 0 ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-200"}`}>
+                            {book.available_copies > 0 ? `${book.available_copies} AVAIL` : "OUT"}
                           </span>
                         </div>
                         {user?.role === 'admin' && (
-                          <Button size="icon" variant="secondary" className="h-6 w-6 rounded-md bg-white/90 shadow-sm hover:bg-white hover:text-indigo-700 text-indigo-600 z-10 pointer-events-auto shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/admin-dashboard'); }}>
-                            <Edit className="h-3.5 w-3.5" />
+                          <Button size="icon" variant="secondary" className="h-5 w-5 rounded bg-white/90 shadow-xs hover:bg-white hover:text-indigo-700 text-indigo-600 z-10 pointer-events-auto shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/admin-dashboard'); }}>
+                            <Edit className="h-3 w-3" />
                           </Button>
                         )}
                       </div>
                     </div>
                     
-                    <div className="px-1.5 flex-1 flex flex-col">
-                      <h4 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1">{book.title}</h4>
-                      <p className="text-xs text-slate-500 truncate mb-2 font-medium">by {book.author}</p>
+                    <div className="px-1 flex-1 flex flex-col">
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-0.5">{book.title}</h4>
+                      <p className="text-[10px] sm:text-xs text-slate-500 truncate mb-1.5 font-medium">by {book.author}</p>
                       
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {book.category && <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100">{book.category}</span>}
-                        {book.class_level && <span className="text-[9px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">Class {book.class_level}</span>}
-                        {(book.shelf_number || book.cupboard_number) && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
-                            {book.cupboard_number ? `Cup ${book.cupboard_number}` : ""}{book.cupboard_number && book.shelf_number ? " · " : ""}{book.shelf_number ? `Shelf ${book.shelf_number}` : ""}
-                          </span>
-                        )}
+                      <div className="flex flex-wrap gap-0.5 mb-1.5">
+                        {book.category && <span className="text-[8px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded border border-indigo-100/50 truncate max-w-[80px]">{book.category}</span>}
+                        {book.class_level && <span className="text-[8px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1 py-0.5 rounded border border-slate-200/50">Cl {book.class_level}</span>}
                       </div>
                       
                       {(r || borrowCounts[book.id]) && (
-                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium mb-2 mt-auto">
+                        <div className="flex items-center justify-between text-[9px] text-slate-500 font-medium mb-1.5 mt-auto">
                           {r && (
                             <div className="flex items-center gap-0.5 text-amber-600">
-                              <Star className="h-3 w-3 fill-amber-500" /> {r.avg.toFixed(1)}
+                              <Star className="h-2.5 w-2.5 fill-amber-500" /> {r.avg.toFixed(1)}
                             </div>
                           )}
                           {borrowCounts[book.id] > 0 && <span className="ml-auto">{borrowCounts[book.id]} borrows</span>}
                         </div>
                       )}
-
-                      <div className="grid grid-cols-2 gap-1.5 mt-auto pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                      
+                      <div className="flex gap-1 mt-auto pt-1.5 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
                         {book.available_copies > 0 ? (
-                          <Button size="sm" className="h-8 text-[10px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm border-0 px-0 w-full" onClick={() => requestBook(book.id)}>
+                          <Button size="sm" className="h-7 text-[9px] font-bold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs border-0 flex-1 px-1" onClick={() => requestBook(book.id)}>
                             Borrow
                           </Button>
                         ) : (
-                          <Button size="sm" variant="outline" className="h-8 text-[10px] font-bold rounded-lg border-slate-200 hover:bg-slate-50 text-slate-700 px-0 w-full" onClick={() => reserveBook(book.id)}>
-                            <Clock className="h-3 w-3 mr-1" /> Waitlist
+                          <Button size="sm" variant="outline" className="h-7 text-[9px] font-bold rounded-md border-slate-200 hover:bg-slate-50 text-slate-700 flex-1 px-1" onClick={() => reserveBook(book.id)}>
+                            Waitlist
                           </Button>
                         )}
-                        <Button size="sm" variant="outline" className={`h-8 text-[10px] font-bold rounded-lg px-0 w-full border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-50 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
+                        <Button size="sm" variant="outline" className={`h-7 text-[9px] font-bold rounded-md px-2 border-slate-200 shrink-0 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-50 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
                           {wishlist.has(book.id) ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
                         </Button>
                       </div>
@@ -420,7 +510,7 @@ const Catalog = () => {
                   </div>
                 );
               })}
-            </div>
+            </div>iv>
 
             {totalCount > pageSize && (
               <div className="flex justify-center items-center gap-3 pt-6 border-t border-slate-200/60">
