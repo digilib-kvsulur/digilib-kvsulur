@@ -30,7 +30,6 @@ import { StudentQuiz } from "@/components/quiz/StudentQuiz";
 
 import QuickBookmarks from "@/components/dashboard/QuickBookmarks";
 import NotificationBell from "@/components/dashboard/NotificationBell";
-import { PWAControls } from "@/components/PWAControls";
 import StudentNotes from "@/components/dashboard/StudentNotes";
 import NCERTBooks from "@/components/dashboard/NCERTBooks";
 import StudyMaterials from "@/components/dashboard/StudyMaterials";
@@ -345,7 +344,6 @@ const StudentDashboard = () => {
             </div>
             <NotificationBell />
           </div>
-          <PWAControls userId={user?.id} className="w-full flex flex-col gap-1.5" buttonClassName="w-full justify-center h-8" showText={true} />
           <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" /> Logout
           </Button>
@@ -368,8 +366,7 @@ const StudentDashboard = () => {
           </div>
         </div>
         {mobileNavOpen && (
-          <div className="bg-card border-b border-border px-4 pb-3 space-y-2">
-            <PWAControls userId={user?.id} className="w-full flex flex-col gap-1.5 pt-2" buttonClassName="w-full justify-center h-9" showText={true} />
+          <div className="bg-card border-b border-border px-4 pb-3 space-y-1">
             {navItems.map(item => (
               <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${activeTab === item.id ? 'gradient-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
@@ -557,12 +554,12 @@ const StudentDashboard = () => {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-foreground">My Books</h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => navigate('/catalog')}>
+                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold" onClick={() => navigate('/catalog')}>
                     <Search className="h-4 w-4 mr-2" /> Browse Catalog
                   </Button>
-                  <Button size="sm" className="gradient-primary border-0" onClick={() => setShowBookRequest(true)}>
-                    <BookPlus className="h-4 w-4 mr-2" /> Request Book
+                  <Button size="sm" variant="secondary" className="font-semibold text-slate-700 hover:bg-slate-200" onClick={() => setShowBookRequest(true)}>
+                    <BookPlus className="h-4 w-4 mr-2" /> Suggest Purchase
                   </Button>
                 </div>
               </div>

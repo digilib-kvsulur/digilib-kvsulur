@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +30,7 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingEntry, setEditingEntry] = useState<ReadingHistoryEntry | null>(null);
+  const [configuredPoints, setConfiguredPoints] = useState(25);
   const [formData, setFormData] = useState({
     book_title: '',
     book_author: '',
@@ -42,7 +42,23 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
 
   useEffect(() => {
     loadReadingHistory();
+    fetchPointsConfig();
   }, []);
+
+  const fetchPointsConfig = async () => {
+    try {
+      const { data } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'points_per_book_read')
+        .maybeSingle();
+      if (data && data.value) {
+        setConfiguredPoints(Number(data.value));
+      }
+    } catch (e) {
+      console.warn("Could not load points configuration settings:", e);
+    }
+  };
 
   const loadReadingHistory = async () => {
     try {
@@ -76,8 +92,8 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fixed points calculation based on rating
-      const pointsEarned = formData.rating * 5; // 1 star = 5 points, 5 stars = 25 points
+      // Award configured points instead of rating * 5
+      const pointsEarned = configuredPoints;
 
       const entryData = {
         ...formData,
@@ -172,7 +188,7 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
@@ -196,11 +212,11 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
               Add Book
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md w-[92%] rounded-2xl p-5">
             <DialogHeader>
               <DialogTitle>{editingEntry ? 'Edit' : 'Add'} Reading Entry</DialogTitle>
               <DialogDescription>
-                {editingEntry ? 'Update your reading entry' : 'Add a book you\'ve completed. An admin will review and award points after approval.'}
+                {editingEntry ? 'Update your reading entry' : "Add a book you've completed. An admin will review and award points after approval."}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -242,7 +258,7 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
                   value={formData.rating}
                   onChange={(e) => setFormData(prev => ({ ...prev, rating: Number(e.target.value) }))}
                 />
-                <p className="text-xs text-gray-500 mt-1">Points earned: {formData.rating * 5} points</p>
+                <p className="text-xs text-indigo-600 font-bold mt-1.5">Points to be earned: +{configuredPoints} XP (Admin configured)</p>
               </div>
               <div>
                 <Label htmlFor="notes">Notes (Optional)</Label>
@@ -251,10 +267,11 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Your thoughts about the book..."
+                  className="h-20"
                 />
               </div>
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
+                <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700">
                   {editingEntry ? 'Update' : 'Add'} Book
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
@@ -268,21 +285,21 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
 
       <div className="grid gap-4">
         {entries.map((entry) => (
-          <Card key={entry.id}>
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h4 className="font-semibold text-lg">{entry.book_title}</h4>
-                  <p className="text-gray-600 mb-2">by {entry.book_author}</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
+          <Card key={entry.id} className="border-border/60 shadow-xs">
+            <CardContent className="pt-5 pb-5">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-slate-800 text-sm sm:text-base">{entry.book_title}</h4>
+                  <p className="text-xs font-medium text-slate-500 mt-0.5">by {entry.book_author}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 mt-2">
                     <span>Completed: {new Date(entry.completed_date).toLocaleDateString()}</span>
                     {entry.rating && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`h-4 w-4 ${
-                              i < entry.rating! ? "text-yellow-400 fill-current" : "text-gray-300"
+                            className={`h-3 w-3 ${
+                              i < entry.rating! ? "text-amber-500 fill-amber-500" : "text-slate-200"
                             }`}
                           />
                         ))}
@@ -290,31 +307,32 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
                     )}
                   </div>
                   {entry.notes && (
-                    <p className="text-sm text-gray-700 mb-2">{entry.notes}</p>
+                    <p className="text-xs text-slate-600 mt-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">{entry.notes}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-end gap-2 shrink-0 self-end sm:self-start mt-2 sm:mt-0">
                   {entry.status === 'approved' ? (
-                    <Badge className="bg-success/10 text-success border-success/20">+{entry.points_earned} pts</Badge>
+                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-bold text-[10px]">+{entry.points_earned} pts</Badge>
                   ) : entry.status === 'rejected' ? (
-                    <Badge variant="destructive">Rejected</Badge>
+                    <Badge variant="destructive" className="font-bold text-[10px]">Rejected</Badge>
                   ) : (
-                    <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">⏳ Pending Approval</Badge>
+                    <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 font-bold text-[10px]">⏳ Pending</Badge>
                   )}
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg text-slate-500 border-slate-200 hover:bg-slate-50"
                     onClick={() => handleEdit(entry)}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg border-slate-200 text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-100"
                     onClick={() => handleDelete(entry.id)}
-                    className="text-red-600 hover:text-red-700"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
@@ -323,11 +341,11 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
         ))}
 
         {entries.length === 0 && (
-          <Card>
+          <Card className="border-dashed border-slate-200">
             <CardContent className="text-center py-12">
-              <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No reading history yet</h3>
-              <p className="text-gray-600 mb-4">Start adding books you've completed to earn points!</p>
+              <BookOpen className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-base font-bold text-slate-800 mb-1">No reading history yet</h3>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto mb-4">Start adding books you've completed to earn points!</p>
             </CardContent>
           </Card>
         )}

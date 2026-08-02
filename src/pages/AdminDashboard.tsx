@@ -12,7 +12,6 @@ import {
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import NotificationBell from "@/components/dashboard/NotificationBell";
-import { PWAControls } from "@/components/PWAControls";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
@@ -225,7 +224,6 @@ const AdminDashboard = () => {
         </div>
         {mobileNavOpen && (
           <div className="bg-card border-b border-border px-4 pb-3 max-h-[70vh] overflow-y-auto space-y-3">
-            <PWAControls userId={user?.id} className="w-full flex flex-col gap-1.5 pt-2" buttonClassName="w-full justify-center h-9" showText={true} />
             {navSections.map(section => (
               <div key={section.title}>
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{section.title}</p>
@@ -253,8 +251,7 @@ const AdminDashboard = () => {
                   <h2 className="text-2xl font-bold text-foreground">Dashboard Overview</h2>
                   <p className="text-muted-foreground text-sm">Welcome back, {user?.first_name}!</p>
                 </div>
-                <div className="hidden lg:flex items-center gap-2">
-                  <PWAControls userId={user?.id} />
+                <div className="hidden lg:block">
                   <NotificationBell />
                 </div>
               </div>

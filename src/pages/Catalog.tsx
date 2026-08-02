@@ -7,6 +7,7 @@ import { Search, BookOpen, Plus, Bookmark, BookmarkCheck, Star, Clock, Library, 
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import BookRequestForm from "@/components/BookRequestForm";
 import BookDetailDialog from "@/components/catalog/BookDetailDialog";
 
@@ -492,18 +493,18 @@ const Catalog = () => {
                         </div>
                       )}
                       
-                      <div className="flex gap-1 mt-auto pt-1.5 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-1 mt-auto pt-1.5 border-t border-slate-100 relative z-20" onClick={(e) => e.stopPropagation()}>
                         {book.available_copies > 0 ? (
-                          <Button size="sm" className="h-7 text-[9px] font-bold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs border-0 flex-1 px-1" onClick={() => requestBook(book.id)}>
+                          <Button size="sm" className="h-7 text-[9px] font-bold rounded-md bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-xs border-0 flex-1 px-1 transition-all duration-150" onClick={() => requestBook(book.id)}>
                             Borrow
                           </Button>
                         ) : (
-                          <Button size="sm" variant="outline" className="h-7 text-[9px] font-bold rounded-md border-slate-200 hover:bg-slate-50 text-slate-700 flex-1 px-1" onClick={() => reserveBook(book.id)}>
+                          <Button size="sm" variant="secondary" className="h-7 text-[9px] font-bold rounded-md bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex-1 px-1 transition-all duration-150" onClick={() => reserveBook(book.id)}>
                             Waitlist
                           </Button>
                         )}
-                        <Button size="sm" variant="outline" className={`h-7 text-[9px] font-bold rounded-md px-2 border-slate-200 shrink-0 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-50 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
-                          {wishlist.has(book.id) ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
+                        <Button size="sm" variant="outline" className={`h-7 text-[9px] font-bold rounded-md px-2 active:scale-95 transition-all duration-150 border-slate-200 shrink-0 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
+                          {wishlist.has(book.id) ? <BookmarkCheck className="h-3.5 w-3.5 text-indigo-600" /> : <Bookmark className="h-3.5 w-3.5" />}
                         </Button>
                       </div>
                     </div>

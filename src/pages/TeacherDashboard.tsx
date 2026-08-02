@@ -17,7 +17,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/utils";
 import { BookOpen, LogOut, Users, Trophy, GraduationCap, TrendingUp, Calendar, Target, Plus, Trash2, ListChecks, Star, BookMarked, Brain, FileText, User, AlertTriangle } from "lucide-react";
 import NotificationBell from "@/components/dashboard/NotificationBell";
-import { PWAControls } from "@/components/PWAControls";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import Community from "@/components/community/Community";
@@ -331,7 +330,6 @@ const TeacherDashboard = () => {
               </AvatarFallback>
             </Avatar>
             <NotificationBell />
-            <PWAControls userId={teacher?.id} />
             <Button variant="outline" size="sm" onClick={() => navigate("/catalog")}>Library Catalog</Button>
             <Button variant="outline" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>
           </div>

@@ -141,13 +141,13 @@ const CurrentBooks = ({ books = [] }: CurrentBooksProps) => {
         <Dialog open={catalogOpen} onOpenChange={setCatalogOpen}>
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl h-9 text-xs shadow-sm gap-2">
-              <Search className="w-3.5 h-3.5" /> Request a Book
+              <Search className="w-3.5 h-3.5" /> Borrow from Catalog
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md w-[92%] rounded-2xl p-5 gap-4">
             <DialogHeader>
               <DialogTitle className="text-base font-bold flex items-center gap-2">
-                <Search className="h-4.5 w-4.5 text-indigo-600" /> Quick Book Request
+                <Search className="h-4.5 w-4.5 text-indigo-600" /> Borrow from Catalog
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
