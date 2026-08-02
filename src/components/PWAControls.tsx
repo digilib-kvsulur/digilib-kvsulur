@@ -1,8 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { Download, Bell, BellOff, BellRing } from "lucide-react";
+import { Download, Bell, BellOff, BellRing, HelpCircle, Monitor, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -35,6 +43,7 @@ export function PWAControls({ userId, className = "flex items-center gap-1", but
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>("default");
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const subscribing = useRef(false);
 
   useEffect(() => {
@@ -112,12 +121,11 @@ export function PWAControls({ userId, className = "flex items-center gap-1", but
   };
 
   const showNotifButton = "Notification" in window && notifPermission !== "granted";
-
-  if (!isInstallable && !showNotifButton) return null;
+  const isSecure = window.location.protocol === "https:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
   return (
     <div className={className}>
-      {isInstallable && (
+      {isInstallable ? (
         <Button
           onClick={handleInstall}
           size="sm"
@@ -128,6 +136,69 @@ export function PWAControls({ userId, className = "flex items-center gap-1", but
           <Download className="w-3.5 h-3.5" />
           {(showText || window.innerWidth > 640) && <span>Install App</span>}
         </Button>
+      ) : (
+        /* Manual PWA installation guide trigger when automatic beforeinstallprompt hasn't fired */
+        <Dialog open={isGuideOpen} onOpenChange={setIsGuideOpen}>
+          <DialogTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              className={`gap-1.5 h-8 text-xs font-semibold border-indigo-100 text-slate-600 hover:bg-slate-50 ${buttonClassName}`}
+              title="How to install the App"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {(showText || window.innerWidth > 640) && <span>Download App</span>}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md w-[92%] rounded-2xl p-5 gap-4">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2">
+                <Download className="h-4.5 w-4.5 text-indigo-600" /> How to Download the App
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Follow these simple steps to install KV Sulur Digilib on your device.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 text-xs py-1">
+              {!isSecure && (
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 leading-normal">
+                  <strong>⚠️ Non-Secure Connection Detected:</strong> PWAs require a secure HTTPS connection. Please access the site using <strong>https://</strong> (or `localhost` for developers) to enable direct app downloads.
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <Smartphone className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-xs">On Mobile (Android / Chrome)</h4>
+                    <p className="text-slate-500 mt-0.5 leading-relaxed">Tap the browser's menu (three vertical dots at top-right) and select <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <Smartphone className="h-4 w-4 text-pink-600 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-xs">On Apple iOS (iPhone / Safari)</h4>
+                    <p className="text-slate-500 mt-0.5 leading-relaxed">Tap the <strong>Share</strong> button (square icon with an arrow pointing up) at the bottom toolbar, scroll down, and select <strong>"Add to Home Screen"</strong>.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <Monitor className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-xs">On Desktop (Chrome / Edge / Opera)</h4>
+                    <p className="text-slate-500 mt-0.5 leading-relaxed">Look at the right side of your address bar (next to the bookmark star) and click the **Install** icon, or go to Settings -> <strong>"Install KVS Digilib"</strong>.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Button onClick={() => setIsGuideOpen(false)} className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs">
+              Got it
+            </Button>
+          </DialogContent>
+        </Dialog>
       )}
 
       {showNotifButton && (
