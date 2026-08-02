@@ -188,7 +188,7 @@ export function PWAControls({ userId, className = "flex items-center gap-1", but
                   <Monitor className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-bold text-slate-800 text-xs">On Desktop (Chrome / Edge / Opera)</h4>
-                    <p className="text-slate-500 mt-0.5 leading-relaxed">Look at the right side of your address bar (next to the bookmark star) and click the **Install** icon, or go to Settings -> <strong>"Install KVS Digilib"</strong>.</p>
+                    <p className="text-slate-500 mt-0.5 leading-relaxed">Look at the right side of your address bar (next to the bookmark star) and click the <strong>Install</strong> icon, or go to Settings &rarr; <strong>"Install KVS Digilib"</strong>.</p>
                   </div>
                 </div>
               </div>
