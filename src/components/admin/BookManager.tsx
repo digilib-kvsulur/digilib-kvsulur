@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare, Wand2, Loader2, ShieldAlert, AlertTriangle, ChevronDown, ChevronRight, GitMerge } from "lucide-react";
+import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare, Wand2, Loader2, ShieldAlert, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BulkImportBooks from "./BulkImportBooks";
@@ -69,10 +69,6 @@ const BookManager = () => {
   const [newAccessionInput, setNewAccessionInput] = useState("");
   // Per-book manual accession inputs for multi-copy verifier (bookId -> string[])
   const [multiCopyManualAccessions, setMultiCopyManualAccessions] = useState<Record<string, string[]>>({});
-  // Same Titles merge UI state
-  const [expandedTitleGroup, setExpandedTitleGroup] = useState<string | null>(null);
-  const [selectedPrimaryId, setSelectedPrimaryId] = useState<Record<string, string>>({});   // titleKey -> bookId
-  const [selectedMergeIds, setSelectedMergeIds] = useState<Record<string, Set<string>>>({}); // titleKey -> Set<bookId>
   const { toast } = useToast();
 
   useEffect(() => { loadBooks(); }, []);
@@ -975,136 +971,49 @@ const BookManager = () => {
               {sameTitleList.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">No identical titles found!</div>
               ) : (
-                <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 flex gap-2">
-                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold">How to merge:</span> Click a title group to expand it. Select the <span className="font-bold">primary row</span> (the one to keep) and check the <span className="font-bold">rows to merge in</span>. Then click <em>Merge Selected</em>.
-                    </div>
-                  </div>
-
-                  {sameTitleList.map(item => {
-                    const titleKey = item.title.toLowerCase();
-                    const isExpanded = expandedTitleGroup === titleKey;
-                    const primaryId = selectedPrimaryId[titleKey] || item.books[0].id;
-                    const mergeSet = selectedMergeIds[titleKey] || new Set(item.books.slice(1).map(b => b.id));
-                    const canMerge = mergeSet.size > 0;
-
-                    const toggleMergeId = (bookId: string) => {
-                      setSelectedMergeIds(prev => {
-                        const next = { ...prev };
-                        const s = new Set(next[titleKey] || item.books.slice(1).map(b => b.id));
-                        if (s.has(bookId)) s.delete(bookId); else s.add(bookId);
-                        next[titleKey] = s;
-                        return next;
-                      });
-                    };
-                    const setPrimary = (bookId: string) => {
-                      setSelectedPrimaryId(prev => ({ ...prev, [titleKey]: bookId }));
-                      // Remove the new primary from merge set if it was there
-                      setSelectedMergeIds(prev => {
-                        const next = { ...prev };
-                        const s = new Set(next[titleKey] || item.books.slice(1).map(b => b.id));
-                        s.delete(bookId);
-                        next[titleKey] = s;
-                        return next;
-                      });
-                    };
-
-                    return (
-                      <div key={item.title} className="border border-border/60 rounded-xl overflow-hidden">
-                        {/* Header row */}
-                        <button
-                          type="button"
-                          onClick={() => setExpandedTitleGroup(isExpanded ? null : titleKey)}
-                          className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/60 transition-colors text-left"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
-                            <span className="font-semibold text-sm text-foreground truncate">{item.books[0].title}</span>
-                            <Badge variant="outline" className="text-[10px] shrink-0">{item.books.length} rows</Badge>
-                          </div>
-                          <span className="text-xs text-muted-foreground shrink-0 pl-2">{item.books.reduce((s, b) => s + b.total_copies, 0)} total copies</span>
-                        </button>
-
-                        {/* Expanded book list */}
-                        {isExpanded && (
-                          <div className="divide-y divide-border/40">
-                            {item.books.map((b, idx) => {
-                              const isPrimary = b.id === primaryId;
-                              const isMerging = mergeSet.has(b.id);
-                              return (
-                                <div
-                                  key={b.id}
-                                  className={`flex items-start gap-3 px-4 py-3 text-xs transition-colors ${
-                                    isPrimary ? 'bg-emerald-50/60 border-l-4 border-l-emerald-500' :
-                                    isMerging ? 'bg-indigo-50/40 border-l-4 border-l-indigo-400' : 'bg-white'
-                                  }`}
-                                >
-                                  {/* Merge checkbox — only for non-primary */}
-                                  {!isPrimary && (
-                                    <input
-                                      type="checkbox"
-                                      checked={isMerging}
-                                      onChange={() => toggleMergeId(b.id)}
-                                      className="mt-0.5 h-4 w-4 rounded accent-indigo-600 cursor-pointer shrink-0"
-                                      title="Include this row in the merge"
-                                    />
-                                  )}
-                                  {isPrimary && <div className="w-4 h-4 shrink-0" />}
-
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      {isPrimary && <Badge className="text-[9px] bg-emerald-600 text-white px-1.5 py-0 h-4">Primary (Keep)</Badge>}
-                                      {!isPrimary && isMerging && <Badge variant="outline" className="text-[9px] border-indigo-400 text-indigo-700 px-1.5 py-0 h-4">Merge In</Badge>}
-                                      {!isPrimary && !isMerging && <Badge variant="outline" className="text-[9px] text-muted-foreground px-1.5 py-0 h-4">Skip</Badge>}
-                                    </div>
-                                    <p className="font-semibold text-foreground mt-0.5">{b.author}</p>
-                                    <p className="text-muted-foreground">
-                                      {b.total_copies} {b.total_copies === 1 ? 'copy' : 'copies'} · acc: {b.accession_numbers?.join(', ') || b.accession_number || '—'}
-                                    </p>
-                                  </div>
-
-                                  {/* Set as primary */}
-                                  {!isPrimary && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setPrimary(b.id)}
-                                      className="text-[10px] font-semibold text-emerald-700 border border-emerald-300 rounded px-2 py-0.5 hover:bg-emerald-50 shrink-0"
-                                    >
-                                      Set Primary
-                                    </button>
-                                  )}
+                <div className="border rounded-lg overflow-hidden max-h-[50vh] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Conflicting Rows</TableHead>
+                        <TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sameTitleList.map(item => (
+                        <TableRow key={item.title}>
+                          <TableCell className="font-semibold text-xs">{item.title}</TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              {item.books.map((b, idx) => (
+                                <div key={b.id} className="text-xs flex items-center gap-2">
+                                  <Badge variant="outline" className="text-[9px]">Row {idx + 1}</Badge>
+                                  <span>{b.author}</span>
+                                  <span className="text-muted-foreground">({b.total_copies} copies)</span>
                                 </div>
-                              );
-                            })}
-
-                            {/* Action bar */}
-                            <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20">
-                              <p className="text-xs text-muted-foreground">
-                                {mergeSet.size} row(s) will be merged into primary
-                              </p>
-                              <Button
-                                size="sm"
-                                disabled={!canMerge || bulkBusy}
-                                className="h-8 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
-                                onClick={() => {
-                                  const primary = item.books.find(b => b.id === primaryId) || item.books[0];
-                                  const dupes = item.books.filter(b => mergeSet.has(b.id));
-                                  if (dupes.length === 0) { toast({ title: "Nothing to merge", description: "Check at least one row to merge in.", variant: "destructive" }); return; }
-                                  if (!confirm(`Merge ${dupes.length} row(s) into "${primary.title}" by ${primary.author}? The selected rows will be deleted after merging copies.`)) return;
-                                  handleMergeSameTitles(primary, dupes);
-                                }}
-                              >
-                                <GitMerge className="h-3.5 w-3.5 mr-1.5" />
-                                Merge Selected
-                              </Button>
+                              ))}
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                              onClick={() => {
+                                const primary = item.books[0];
+                                const dupes = item.books.slice(1);
+                                handleMergeSameTitles(primary, dupes);
+                              }}
+                              disabled={bulkBusy}
+                            >
+                              Merge into one
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </TabsContent>
