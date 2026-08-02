@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, Upload, Image as ImageIcon, Database, Loader2, CheckCircle2 } from "lucide-react";
+import { Download, Upload, Database, Loader2, CheckCircle2, Search, Save, LibraryBig } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -11,7 +12,7 @@ const csvEscape = (v: any) => {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
-const download = (name: string, rows: any[], cols: string[]) => {
+export const downloadCsv = (name: string, rows: any[], cols: string[]) => {
   const csv = [cols.join(","), ...rows.map(r => cols.map(c => csvEscape(r[c])).join(","))].join("\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
   const a = document.createElement("a");
@@ -21,7 +22,7 @@ const download = (name: string, rows: any[], cols: string[]) => {
   URL.revokeObjectURL(url);
 };
 
-const parseCsv = (text: string): Record<string, string>[] => {
+export const parseCsv = (text: string): Record<string, string>[] => {
   const rows: string[][] = [];
   let cur = "", row: string[] = [], inQuotes = false;
   for (let i = 0; i < text.length; i++) {
@@ -42,9 +43,21 @@ const parseCsv = (text: string): Record<string, string>[] => {
     .map(r => Object.fromEntries(header.map((h, i) => [h, (r[i] ?? "").trim()])));
 };
 
+export const fetchAllBooks = async () => {
+  const all: any[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase.from("books").select("*").order("title").range(from, from + 999);
+    if (error) throw error;
+    all.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return all;
+};
+
 const SHELF_COLS = [
   "accession_number", "title", "author", "category", "subject", "language",
-  "class_level", "description", "total_copies", "available_copies", "cover_url",
+  "class_level", "description", "total_copies", "available_copies",
+  "shelf_number", "cupboard_number",
 ];
 
 export default function BookShelfData() {
@@ -52,40 +65,20 @@ export default function BookShelfData() {
   const [busy, setBusy] = useState<string | null>(null);
   const [result, setResult] = useState<{ updated: number; skipped: number; errors: string[] } | null>(null);
   const shelfInput = useRef<HTMLInputElement>(null);
-  const coverInput = useRef<HTMLInputElement>(null);
 
-  const fetchAllBooks = async () => {
-    const all: any[] = [];
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await supabase.from("books").select("*").order("title").range(from, from + 999);
-      if (error) throw error;
-      all.push(...(data || []));
-      if (!data || data.length < 1000) break;
-    }
-    return all;
-  };
+  // quick individual editing
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [matches, setMatches] = useState<any[]>([]);
+  const [edits, setEdits] = useState<Record<string, { shelf_number: string; cupboard_number: string }>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const exportShelf = async () => {
     setBusy("shelf-export");
     try {
       const books = await fetchAllBooks();
-      download(`book-shelf-${new Date().toISOString().slice(0, 10)}.csv`, books, SHELF_COLS);
+      downloadCsv(`book-shelf-${new Date().toISOString().slice(0, 10)}.csv`, books, SHELF_COLS);
       toast({ title: "Export ready", description: `${books.length} books exported.` });
-    } catch (e: any) {
-      toast({ title: "Export failed", description: e.message, variant: "destructive" });
-    } finally { setBusy(null); }
-  };
-
-  const exportCoverSheet = async () => {
-    setBusy("cover-export");
-    try {
-      const books = await fetchAllBooks();
-      download(
-        `book-covers-${new Date().toISOString().slice(0, 10)}.csv`,
-        books,
-        ["accession_number", "title", "author", "cover_url"]
-      );
-      toast({ title: "Cover sheet ready", description: "Fill the cover_url column and re-import." });
     } catch (e: any) {
       toast({ title: "Export failed", description: e.message, variant: "destructive" });
     } finally { setBusy(null); }
@@ -101,20 +94,6 @@ export default function BookShelfData() {
       for (const r of rows) {
         const acc = (r.accession_number || "").trim();
         if (!acc || !r.title) { skipped++; continue; }
-        const payload: any = {
-          accession_number: acc,
-          title: r.title,
-          author: r.author || "Unknown",
-          category: r.category || null,
-          subject: r.subject || null,
-          language: r.language || null,
-          class_level: r.class_level || null,
-          description: r.description || null,
-          cover_url: r.cover_url || null,
-          updated_at: new Date().toISOString(),
-        };
-        if (r.total_copies) payload.total_copies = Number(r.total_copies) || 1;
-        if (r.available_copies) payload.available_copies = Number(r.available_copies) || 0;
 
         const { data: existing } = await supabase
           .from("books")
@@ -122,44 +101,39 @@ export default function BookShelfData() {
           .ilike("title", r.title.trim())
           .maybeSingle();
 
+        const meta = {
+          category: r.category || null,
+          subject: r.subject || null,
+          language: r.language || null,
+          class_level: r.class_level || null,
+          description: r.description || null,
+          shelf_number: r.shelf_number || null,
+          cupboard_number: r.cupboard_number || null,
+          updated_at: new Date().toISOString(),
+        };
+
         if (existing) {
           const currentAccs = Array.isArray(existing.accession_numbers) ? existing.accession_numbers : [];
           const newAccs = acc && !currentAccs.includes(acc) ? [...currentAccs, acc] : currentAccs;
           const copiesToAdd = Number(r.total_copies) || 1;
-          const { error } = await supabase
-            .from("books")
-            .update({
-              accession_numbers: newAccs,
-              accession_number: newAccs[0] || acc,
-              total_copies: existing.total_copies + copiesToAdd,
-              available_copies: existing.available_copies + (Number(r.available_copies) || copiesToAdd),
-              category: r.category || null,
-              subject: r.subject || null,
-              language: r.language || null,
-              class_level: r.class_level || null,
-              description: r.description || null,
-              cover_url: r.cover_url || null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", existing.id);
+          const { error } = await supabase.from("books").update({
+            ...meta,
+            accession_numbers: newAccs,
+            accession_number: newAccs[0] || acc,
+            total_copies: existing.total_copies + copiesToAdd,
+            available_copies: existing.available_copies + (Number(r.available_copies) || copiesToAdd),
+          }).eq("id", existing.id);
           if (error) errors.push(`${acc}: ${error.message}`); else updated++;
         } else {
-          const payload: any = {
+          const { error } = await supabase.from("books").insert({
+            ...meta,
             accession_number: acc,
             accession_numbers: acc ? [acc] : [],
             title: r.title,
             author: r.author || "Unknown",
-            category: r.category || null,
-            subject: r.subject || null,
-            language: r.language || null,
-            class_level: r.class_level || null,
-            description: r.description || null,
-            cover_url: r.cover_url || null,
             total_copies: Number(r.total_copies) || 1,
             available_copies: Number(r.available_copies) || 1,
-            updated_at: new Date().toISOString(),
-          };
-          const { error } = await supabase.from("books").insert(payload);
+          });
           if (error) errors.push(`${acc}: ${error.message}`); else updated++;
         }
       }
@@ -170,25 +144,44 @@ export default function BookShelfData() {
     } finally { setBusy(null); }
   };
 
-  const importCovers = async (file: File) => {
-    setBusy("cover-import");
-    setResult(null);
+  const runSearch = async () => {
+    const q = query.trim();
+    if (!q) return;
+    setSearching(true);
     try {
-      const rows = parseCsv(await file.text());
-      let updated = 0, skipped = 0;
-      const errors: string[] = [];
-      for (const r of rows) {
-        const acc = (r.accession_number || "").trim();
-        const cover = (r.cover_url || "").trim();
-        if (!acc || !cover) { skipped++; continue; }
-        const { error } = await supabase.from("books").update({ cover_url: cover }).eq("accession_number", acc);
-        if (error) errors.push(`${acc}: ${error.message}`); else updated++;
-      }
-      setResult({ updated, skipped, errors });
-      toast({ title: "Covers updated", description: `${updated} book covers set.` });
+      const { data, error } = await supabase
+        .from("books")
+        .select("id, title, author, accession_number, shelf_number, cupboard_number")
+        .or(`title.ilike.%${q}%,author.ilike.%${q}%,accession_number.ilike.%${q}%`)
+        .order("title")
+        .limit(25);
+      if (error) throw error;
+      setMatches(data || []);
+      setEdits(Object.fromEntries((data || []).map((b: any) => [b.id, {
+        shelf_number: b.shelf_number || "",
+        cupboard_number: b.cupboard_number || "",
+      }])));
+      if (!data?.length) toast({ title: "No books found", description: `Nothing matched "${q}".` });
     } catch (e: any) {
-      toast({ title: "Import failed", description: e.message, variant: "destructive" });
-    } finally { setBusy(null); }
+      toast({ title: "Search failed", description: e.message, variant: "destructive" });
+    } finally { setSearching(false); }
+  };
+
+  const saveOne = async (id: string) => {
+    setSavingId(id);
+    try {
+      const e = edits[id];
+      const { error } = await supabase.from("books").update({
+        shelf_number: e.shelf_number.trim() || null,
+        cupboard_number: e.cupboard_number.trim() || null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", id);
+      if (error) throw error;
+      setMatches(m => m.map(b => b.id === id ? { ...b, ...e } : b));
+      toast({ title: "Saved", description: "Shelf location updated." });
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    } finally { setSavingId(null); }
   };
 
   return (
@@ -197,15 +190,69 @@ export default function BookShelfData() {
         <Database className="h-6 w-6 text-primary" />
         <div>
           <h2 className="text-2xl font-bold text-foreground">Book Shelf Data</h2>
-          <p className="text-sm text-muted-foreground">Export and import your full shelf catalogue and cover images.</p>
+          <p className="text-sm text-muted-foreground">Manage shelf and cupboard locations — in bulk or one book at a time.</p>
         </div>
       </div>
+
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2"><LibraryBig className="h-4 w-4" /> Quick Shelf Entry</CardTitle>
+          <CardDescription>Search a book by title, author or accession number and set its shelf / cupboard instantly.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Search book title, author or accession number…"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") runSearch(); }}
+              />
+            </div>
+            <Button onClick={runSearch} disabled={searching || !query.trim()}>
+              {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+              Search
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {matches.map(b => (
+              <div key={b.id} className="flex flex-col md:flex-row md:items-center gap-2 p-3 rounded-xl border border-border/50 bg-card">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold truncate">{b.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {b.author} {b.accession_number ? `· Acc: ${b.accession_number}` : ""}
+                  </p>
+                </div>
+                <Input
+                  className="md:w-32"
+                  placeholder="Shelf no."
+                  value={edits[b.id]?.shelf_number ?? ""}
+                  onChange={e => setEdits(s => ({ ...s, [b.id]: { ...s[b.id], shelf_number: e.target.value } }))}
+                />
+                <Input
+                  className="md:w-36"
+                  placeholder="Cupboard no."
+                  value={edits[b.id]?.cupboard_number ?? ""}
+                  onChange={e => setEdits(s => ({ ...s, [b.id]: { ...s[b.id], cupboard_number: e.target.value } }))}
+                />
+                <Button size="sm" onClick={() => saveOne(b.id)} disabled={savingId === b.id}>
+                  {savingId === b.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  <span className="ml-2 md:hidden">Save</span>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2"><Download className="h-4 w-4" /> Export Shelf Data</CardTitle>
-            <CardDescription>Download every book with accession number, copies and metadata as CSV.</CardDescription>
+            <CardDescription>Download every book with accession number, copies, shelf and cupboard numbers.</CardDescription>
           </CardHeader>
           <CardContent>
             <Button className="w-full" onClick={exportShelf} disabled={busy !== null}>
@@ -218,7 +265,7 @@ export default function BookShelfData() {
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2"><Upload className="h-4 w-4" /> Import Shelf Data</CardTitle>
-            <CardDescription>Upload the same CSV back — books are matched and updated by accession number.</CardDescription>
+            <CardDescription>Upload the same CSV back — includes shelf_number and cupboard_number columns.</CardDescription>
           </CardHeader>
           <CardContent>
             <input ref={shelfInput} type="file" accept=".csv" className="hidden"
@@ -226,34 +273,6 @@ export default function BookShelfData() {
             <Button variant="outline" className="w-full" onClick={() => shelfInput.current?.click()} disabled={busy !== null}>
               {busy === "shelf-import" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
               Upload Shelf CSV
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Export Cover Sheet</CardTitle>
-            <CardDescription>Bulk cover workflow: export accession number, title and current cover URL.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" onClick={exportCoverSheet} disabled={busy !== null}>
-              {busy === "cover-export" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-              Export Cover Sheet
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Import Cover Pages</CardTitle>
-            <CardDescription>Upload the cover sheet with cover_url filled to set cover pages in bulk.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <input ref={coverInput} type="file" accept=".csv" className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) importCovers(f); e.target.value = ""; }} />
-            <Button variant="outline" className="w-full" onClick={() => coverInput.current?.click()} disabled={busy !== null}>
-              {busy === "cover-import" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-              Upload Cover CSV
             </Button>
           </CardContent>
         </Card>
