@@ -35,9 +35,15 @@ export default function CirculationDashboard() {
         i => i.status === "returned" && i.return_date && i.return_date >= todayStr
       );
 
-      const overdueData = activeIssues.filter(
-        i => i.due_date && new Date(i.due_date) < new Date()
-      );
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const overdueData = activeIssues.filter(i => {
+        if (!i.due_date) return false;
+        const due = new Date(i.due_date);
+        due.setHours(0, 0, 0, 0);
+        return due < today;
+      });
 
       // 2. Fetch pending book requests
       const { count: pendingReqs } = await supabase

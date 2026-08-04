@@ -181,7 +181,7 @@ const StudentDashboard = () => {
 
   const fetchQuizResults = async () => {
     if (!user?.id) return;
-    const { data } = await supabase.from('quiz_results').select('*, quizzes (title, description, subject, difficulty)').eq('user_id', user.id).order('completed_at', { ascending: false });
+    const { data } = await supabase.from('quiz_results').select('*, quizzes (title, description, subject, difficulty, questions)').eq('user_id', user.id).order('completed_at', { ascending: false });
     setQuizResults(data || []); setQuizResultsCount(data?.length || 0);
   };
 
@@ -226,6 +226,9 @@ const StudentDashboard = () => {
   const fetchBadgesCount = async () => {
     if (!user?.id) return;
     try {
+      // Ensure auto-badges are awarded in real-time
+      await supabase.rpc('check_and_award_badges', { p_user_id: user.id });
+
       const [{ data: allBadges }, { data: awards }, { count: books }, { count: quizzes }, { data: streak }, { data: actStats }] = await Promise.all([
         supabase.from("badges").select("*").eq("is_active", true),
         supabase.from("badge_awards").select("badge_id").eq("user_id", user.id),

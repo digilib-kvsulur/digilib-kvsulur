@@ -2,9 +2,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Clock, Award, TrendingUp, Star, Play, Sparkles, HelpCircle, Calendar, CheckCircle2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Trophy, Clock, Award, TrendingUp, Star, Play, Sparkles, HelpCircle, Calendar, CheckCircle2, Check, X, Eye } from "lucide-react";
 import { Quiz, QuizResult } from "@/types/quiz";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface QuizPageProps {
   quizzes: Quiz[];
@@ -14,6 +16,7 @@ interface QuizPageProps {
 
 const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
   const { toast } = useToast();
+  const [selectedReview, setSelectedReview] = useState<any | null>(null);
 
   const handleStartQuiz = (quiz: Quiz) => {
     try {
@@ -45,6 +48,8 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
         return "bg-slate-500/10 text-slate-700 border-slate-500/20";
     }
   };
+
+  const OPTION_LABELS = ["A", "B", "C", "D", "E"];
 
   return (
     <div className="space-y-6">
@@ -169,7 +174,8 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
                     const score = result.score || 0;
                     const completedAt = result.completedAt || (result as any).completed_at;
                     const pointsEarned = result.pointsEarned || (result as any).points_earned || 0;
-                    const totalQuestions = result.totalQuestions || (result as any).quizzes?.questions?.length || 0;
+                    const qList = (result as any).quizzes?.questions || [];
+                    const totalQuestions = result.totalQuestions || qList.length || 0;
                     const correctAnswers = result.correctAnswers !== undefined ? result.correctAnswers : Math.round((score / 100) * totalQuestions);
 
                     return (
@@ -192,6 +198,16 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
                         </div>
                         
                         <div className="flex items-center gap-3.5 self-end sm:self-center">
+                          {qList.length > 0 && result.answers && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-xs h-8 text-indigo-600 hover:text-indigo-700"
+                              onClick={() => setSelectedReview(result)}
+                            >
+                              <Eye className="h-3.5 w-3.5 mr-1" /> Analysis
+                            </Button>
+                          )}
                           <div className="text-right">
                             <span className="text-xs text-muted-foreground block">Score</span>
                             <span className={`font-black text-sm ${score >= 75 ? 'text-green-600' : score >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
@@ -212,6 +228,91 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Quiz Analysis Review Modal */}
+      {selectedReview && (
+        <Dialog open={!!selectedReview} onOpenChange={(o) => !o && setSelectedReview(null)}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-black flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-indigo-600" />
+                Quiz Analysis: {selectedReview.quizTitle || selectedReview.quizzes?.title}
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Review your answers, correct answers, and explanations.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-3 gap-3 text-center border-b pb-4">
+                <div className="bg-slate-50 p-2 rounded-xl">
+                  <p className="text-lg font-black text-slate-800">{selectedReview.score}%</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Your Score</p>
+                </div>
+                <div className="bg-emerald-50 p-2 rounded-xl">
+                  <p className="text-lg font-black text-emerald-700">
+                    {selectedReview.correctAnswers !== undefined 
+                      ? selectedReview.correctAnswers 
+                      : Math.round((selectedReview.score / 100) * (selectedReview.quizzes?.questions?.length || 0))}
+                    /{selectedReview.quizzes?.questions?.length || 0}
+                  </p>
+                  <p className="text-[10px] text-emerald-600 uppercase font-bold">Correct</p>
+                </div>
+                <div className="bg-amber-50 p-2 rounded-xl">
+                  <p className="text-lg font-black text-amber-700">+{selectedReview.pointsEarned || selectedReview.points_earned} XP</p>
+                  <p className="text-[10px] text-amber-600 uppercase font-bold">Earned</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {((selectedReview.quizzes?.questions as any[]) || []).map((q, i) => {
+                  const userAnswer = selectedReview.answers?.[i];
+                  const isCorrect = userAnswer === q.correctAnswer;
+                  
+                  return (
+                    <div 
+                      key={i} 
+                      className={`rounded-2xl border p-4 space-y-3 ${isCorrect ? "border-emerald-200 bg-emerald-50/30" : "border-red-200 bg-red-50/30"}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 ${isCorrect ? "bg-emerald-500" : "bg-red-500"}`}>
+                          {isCorrect ? <Check className="h-3.5 w-3.5 text-white" /> : <X className="h-3.5 w-3.5 text-white" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground leading-snug">Q{i + 1}. {q.question}</p>
+                        </div>
+                      </div>
+                      <div className="grid gap-1.5 pl-8">
+                        {(q.options as string[]).map((opt, j) => {
+                          const optionIsCorrect = j === q.correctAnswer;
+                          const optionIsSelected = j === userAnswer;
+                          const cls = optionIsCorrect
+                            ? "bg-emerald-100 border-emerald-400 text-emerald-800"
+                            : optionIsSelected
+                            ? "bg-red-100 border-red-400 text-red-800"
+                            : "bg-background border-border/40 text-muted-foreground";
+
+                          return (
+                            <div key={j} className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm ${cls}`}>
+                              <span className="font-bold text-xs">{OPTION_LABELS[j]}</span>
+                              <span className="flex-1 truncate">{opt}</span>
+                              {optionIsCorrect && <Check className="h-3 w-3 shrink-0" />}
+                              {!optionIsCorrect && optionIsSelected && <X className="h-3 w-3 shrink-0" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {q.explanation && (
+                        <p className="text-xs text-muted-foreground pl-8 italic border-t border-border/30 pt-2">{q.explanation}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

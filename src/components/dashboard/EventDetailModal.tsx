@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Users, Download, FileText, Eye, Clock, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Calendar, MapPin, Users, Download, FileText, Eye, Clock, X, CloudUpload, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
 
 interface ScheduleFile {
   name: string;
@@ -36,6 +37,38 @@ export default function EventDetailModal({
 }: EventDetailModalProps) {
   const { toast } = useToast();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  
+  // Student report submissions state
+  const [submissions, setSubmissions] = useState<Record<number, any>>({});
+  const [uploadingDay, setUploadingDay] = useState<number | null>(null);
+  const [submittingNote, setSubmittingNote] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (open && event && isRegistered && event.allow_submissions) {
+      loadUserSubmissions();
+    }
+  }, [open, event?.id, isRegistered]);
+
+  const loadUserSubmissions = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from("event_submissions")
+        .select("*")
+        .eq("event_id", event.id)
+        .eq("user_id", user.id);
+      
+      if (error) throw error;
+      
+      const map: Record<number, any> = {};
+      (data || []).forEach((s: any) => { map[s.day_number] = s; });
+      setSubmissions(map);
+    } catch (e) {
+      console.error("Error loading submissions:", e);
+    }
+  };
 
   if (!event) return null;
 
@@ -59,6 +92,47 @@ export default function EventDetailModal({
       a.click();
     } catch (e) {
       toast({ title: "Download failed", variant: "destructive" });
+    }
+  };
+
+  const handleFileUpload = async (dayNum: number, file: File) => {
+    if (!file) return;
+    setUploadingDay(dayNum);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const ext = file.name.split(".").pop();
+      const safeName = file.name.replace(/[^a-z0-9._-]/gi, "_");
+      const path = `${user.id}/${event.id}/day-${dayNum}-${Date.now()}-${safeName}`;
+
+      // Upload file to Supabase storage bucket "event-submissions"
+      const { error: upErr } = await supabase.storage
+        .from("event-submissions")
+        .upload(path, file, { contentType: file.type, upsert: true });
+
+      if (upErr) throw upErr;
+
+      const { data: pub } = supabase.storage.from("event-submissions").getPublicUrl(path);
+
+      // Save submission entry to database
+      const { error: dbErr } = await supabase.from("event_submissions").upsert({
+        event_id: event.id,
+        user_id: user.id,
+        day_number: dayNum,
+        file_url: pub.publicUrl,
+        file_type: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "pdf",
+      }, { onConflict: "event_id,user_id,day_number" });
+
+      if (dbErr) throw dbErr;
+
+      toast({ title: `Day ${dayNum} activity report uploaded successfully!` });
+      loadUserSubmissions();
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setUploadingDay(null);
     }
   };
 
@@ -92,11 +166,20 @@ export default function EventDetailModal({
     }
   };
 
+  // Determine accepted file formats string
+  const allowedFormats = event.submission_types || ["image", "pdf"];
+  const acceptedTypes = allowedFormats.map((fmt: string) => {
+    if (fmt === "image") return "image/*";
+    if (fmt === "video") return "video/*";
+    if (fmt === "pdf") return ".pdf";
+    return "";
+  }).filter(Boolean).join(",");
+
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl">
-          {/* Cover image — full-bleed banner outside padded content */}
+          {/* Cover image */}
           {event.image_url && (
             <div className="w-full overflow-hidden rounded-t-2xl relative" style={{ height: 260 }}>
               <img
@@ -206,9 +289,66 @@ export default function EventDetailModal({
               </div>
             )}
 
-            {scheduleFiles.length === 0 && (
-              <div className="text-center py-3 text-xs text-slate-400 italic border border-dashed border-slate-200 rounded-xl">
-                No schedule files uploaded for this event yet.
+            {/* Day-wise activity reports upload block (visible only to registered students) */}
+            {isRegistered && event.allow_submissions && (
+              <div className="space-y-3.5 border-t pt-4">
+                <h4 className="text-sm font-bold text-slate-850 uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="h-4.5 w-4.5 text-indigo-600 animate-pulse" />
+                  Day-wise Activity Submissions
+                </h4>
+                <p className="text-xs text-muted-foreground">Submit your day-wise reports, images, or files as requested.</p>
+
+                <div className="space-y-2.5">
+                  {Array.from({ length: event.max_submission_days || 1 }).map((_, i) => {
+                    const dayNum = i + 1;
+                    const sub = submissions[dayNum];
+                    
+                    return (
+                      <div key={dayNum} className="border border-slate-150 rounded-xl p-3.5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-indigo-150 transition-colors">
+                        <div className="space-y-1">
+                          <span className="text-xs font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                            Day {dayNum}
+                          </span>
+                          {sub ? (
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                              <a href={sub.file_url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-indigo-600 hover:underline truncate max-w-[180px]">
+                                View Submitted Report
+                              </a>
+                              <span className="text-[10px] text-slate-400">({sub.file_type})</span>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-500 italic mt-1.5">No report uploaded yet</p>
+                          )}
+                        </div>
+
+                        <div>
+                          {uploadingDay === dayNum ? (
+                            <Button disabled size="sm" className="h-8.5 rounded-xl text-xs gap-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" /> Uploading...
+                            </Button>
+                          ) : (
+                            <div className="relative">
+                              <input
+                                type="file"
+                                accept={acceptedTypes}
+                                onChange={e => {
+                                  const f = e.target.files?.[0];
+                                  if (f) handleFileUpload(dayNum, f);
+                                }}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              />
+                              <Button size="sm" variant="outline" className="h-8.5 rounded-xl text-xs gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50">
+                                <CloudUpload className="h-3.5 w-3.5 text-slate-500" />
+                                {sub ? "Replace File" : "Upload Report"}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

@@ -278,7 +278,11 @@ const BookIssueRegister = () => {
 
   const isOverdue = (dueDate: string, status: string) => {
     if (status !== 'issued') return false;
-    return new Date(dueDate) < new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate);
+    due.setHours(0, 0, 0, 0);
+    return due < today;
   };
 
   const filteredIssues = bookIssues.filter(issue => {
