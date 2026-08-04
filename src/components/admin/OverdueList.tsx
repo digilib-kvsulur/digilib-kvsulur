@@ -9,12 +9,18 @@ import { AlertTriangle, Send } from "lucide-react";
 export default function OverdueList() {
   const { toast } = useToast();
   const [rows, setRows] = useState<any[]>([]);
-  const today = new Date().toISOString().split("T")[0];
+  // Use start-of-today in local time converted to ISO so comparison is correct
+  const getTodayISO = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  };
 
   const load = async () => {
+    const startOfToday = getTodayISO();
     const { data, error } = await supabase.from("book_issues")
       .select("id, due_date, user_id, accession_number, books(title, accession_number, accession_numbers)")
-      .eq("status", "issued").lt("due_date", today).order("due_date", { ascending: true });
+      .eq("status", "issued").lt("due_date", startOfToday).order("due_date", { ascending: true });
     if (error) {
       console.error(error);
       toast({ title: "Error", description: error.message || "Failed to load overdue books.", variant: "destructive" });

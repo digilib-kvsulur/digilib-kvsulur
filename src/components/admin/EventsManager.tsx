@@ -43,7 +43,7 @@ export default function EventsManager() {
     setSelectedEventTitle(title);
     const { data, error } = await supabase
       .from("event_submissions")
-      .select("*, profiles:user_id(first_name, last_name, student_class, roll_number)")
+      .select("*")
       .eq("event_id", eventId)
       .order("day_number", { ascending: true })
       .order("created_at", { ascending: false });
@@ -51,9 +51,19 @@ export default function EventsManager() {
       toast({ title: "Error loading submissions", description: error.message, variant: "destructive" });
       return;
     }
-    setEventSubmissions(data || []);
+    const userIds = Array.from(new Set((data || []).map((s: any) => s.user_id).filter(Boolean)));
+    let profileMap: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, student_class, roll_number")
+        .in("id", userIds);
+      (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
+    }
+    setEventSubmissions((data || []).map((s: any) => ({ ...s, profiles: profileMap[s.user_id] })));
     setSubmissionsOpen(true);
   };
+
 
   const load = async () => {
     const { data } = await supabase.from("library_events").select("*").order("event_date", { ascending: true });
