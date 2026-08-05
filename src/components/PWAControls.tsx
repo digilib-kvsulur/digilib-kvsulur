@@ -101,12 +101,12 @@ export function PWAControls({ userId, className = "flex items-center gap-1", but
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
       });
 
       if (userId) {
         await supabase.from("push_subscriptions").upsert(
-          { user_id: userId, subscription_object: subscription.toJSON() },
+          { user_id: userId, subscription_object: subscription.toJSON() as any },
           { onConflict: "user_id" }
         );
       }
