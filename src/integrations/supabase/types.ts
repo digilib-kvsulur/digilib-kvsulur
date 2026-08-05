@@ -1672,6 +1672,7 @@ export type Database = {
         Returns: string
       }
       approve_reading_entry: { Args: { p_reading_id: string }; Returns: number }
+      check_and_award_badges: { Args: { p_user_id: string }; Returns: number }
       claim_streak_points: { Args: never; Returns: number }
       condemn_book: {
         Args: {
