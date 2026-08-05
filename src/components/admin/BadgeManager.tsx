@@ -162,14 +162,16 @@ export default function BadgeManager() {
 
   const save = async () => {
     if (!form.name?.trim()) { toast({ title: "Name is required", variant: "destructive" }); return; }
+    const criteriaType = form.criteria_type || "manual";
     const payload = {
       name: form.name!.trim(),
       description: form.description || null,
       icon_name: form.icon_name || "Award",
       color: form.color || "text-primary",
       points: Number(form.points) || 0,
-      criteria_type: form.criteria_type || "manual",
-      criteria_value: Number(form.criteria_value) || 0,
+      criteria_type: criteriaType,
+      // Manual badges must not use a numeric target (0 caused auto-award for everyone)
+      criteria_value: criteriaType === "manual" ? null : (Number(form.criteria_value) || 0),
       is_active: form.is_active ?? true,
     };
     const { error } = editing

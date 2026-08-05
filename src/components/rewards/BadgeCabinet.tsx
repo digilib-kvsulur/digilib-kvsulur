@@ -79,7 +79,9 @@ export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
   const isUnlocked = (b: BadgeRow) => {
     if (awards.has(b.id)) return true;
     if (b.criteria_type === "manual" || !b.criteria_type) return false;
-    return getStat(b.criteria_type) >= (b.criteria_value || 0);
+    const target = b.criteria_value ?? 0;
+    if (target <= 0) return false;
+    return getStat(b.criteria_type) >= target;
   };
 
   const unlockedCount = badges.filter(isUnlocked).length;

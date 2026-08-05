@@ -304,7 +304,9 @@ const StudentDashboard = () => {
       const unlockedCount = (allBadges || []).filter((b: any) => {
         if (manualAwards.has(b.id)) return true;
         if (b.criteria_type === "manual" || !b.criteria_type) return false;
-        return getStatValue(b.criteria_type) >= (b.criteria_value || 0);
+        const target = b.criteria_value ?? 0;
+        if (target <= 0) return false;
+        return getStatValue(b.criteria_type) >= target;
       }).length;
       
       setBadgesEarnedCount(unlockedCount);
