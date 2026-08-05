@@ -19,7 +19,7 @@ import {
   type CertificateLayout,
   type CertFieldLayout,
 } from "@/lib/librarySettings";
-import CertificateCanvas from "@/components/certificates/CertificateCanvas";
+import CertificateCanvas, { CERT_FIELD_LABELS, type CertFieldKey } from "@/components/certificates/CertificateCanvas";
 
 interface CertificateRow {
   id: string;
@@ -32,15 +32,6 @@ interface CertificateRow {
   profiles?: { first_name: string | null; last_name: string | null; admission_number: string | null; student_class: string | null };
 }
 
-const FIELD_LABELS: { key: keyof CertificateLayout; label: string }[] = [
-  { key: "name", label: "Student name" },
-  { key: "className", label: "Class" },
-  { key: "event", label: "Event name" },
-  { key: "title", label: "Certificate title" },
-  { key: "description", label: "Description" },
-  { key: "date", label: "Date" },
-];
-
 export default function CertificateManager() {
   const { toast } = useToast();
   const [rows, setRows] = useState<CertificateRow[]>([]);
@@ -50,6 +41,7 @@ export default function CertificateManager() {
   const [events, setEvents] = useState<any[]>([]);
   const [templateUrl, setTemplateUrl] = useState<string | null>(null);
   const [layout, setLayout] = useState<CertificateLayout>(DEFAULT_CERTIFICATE_LAYOUT);
+  const [selectedField, setSelectedField] = useState<CertFieldKey>("name");
   const [savingLayout, setSavingLayout] = useState(false);
   const [search, setSearch] = useState("");
   const [issuing, setIssuing] = useState(false);
@@ -167,8 +159,12 @@ export default function CertificateManager() {
     }
   };
 
-  const updateField = (key: keyof CertificateLayout, patch: Partial<CertFieldLayout>) => {
+  const updateField = (key: CertFieldKey, patch: Partial<CertFieldLayout>) => {
     setLayout((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+  };
+
+  const moveField = (key: CertFieldKey, x: number, y: number) => {
+    setLayout((prev) => ({ ...prev, [key]: { ...prev[key], x, y } }));
   };
 
   const handleSaveLayout = async () => {
@@ -191,6 +187,8 @@ export default function CertificateManager() {
     );
   }
 
+  const selected = layout[selectedField];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -199,7 +197,7 @@ export default function CertificateManager() {
             <Award className="h-6 w-6" /> Certificates
           </h2>
           <p className="text-sm text-muted-foreground">
-            Issue certificates and position name, class, event, and other fields on your template.
+            Issue certificates and drag fields onto your template design.
           </p>
         </div>
         <Button onClick={openIssueDialog}>
@@ -256,79 +254,92 @@ export default function CertificateManager() {
         <TabsContent value="layout" className="mt-4 space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Position fields on template</CardTitle>
+              <CardTitle className="text-base">Drag fields on the certificate</CardTitle>
               <CardDescription>
-                Adjust X/Y (percent of certificate), font size, and visibility so text matches your design.
+                Click a field, then drag it with your cursor (or finger) to place it. Use the panel for size, align, and show/hide.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                {FIELD_LABELS.map(({ key, label }) => {
-                  const f = layout[key];
-                  return (
-                    <div key={key} className="rounded-lg border p-3 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <Label className="font-medium">{label}</Label>
-                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <input
-                            type="checkbox"
-                            checked={f.visible}
-                            onChange={(e) => updateField(key, { visible: e.target.checked })}
-                          />
-                          Show
-                        </label>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground">X %</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={f.x}
-                            onChange={(e) => updateField(key, { x: Number(e.target.value) || 0 })}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground">Y %</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={f.y}
-                            onChange={(e) => updateField(key, { y: Number(e.target.value) || 0 })}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground">Size</Label>
-                          <Input
-                            type="number"
-                            min={8}
-                            max={72}
-                            value={f.fontSize}
-                            onChange={(e) => updateField(key, { fontSize: Number(e.target.value) || 12 })}
-                          />
-                        </div>
-                      </div>
-                      <Select value={f.align} onValueChange={(v) => updateField(key, { align: v as CertFieldLayout["align"] })}>
-                        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="left">Left</SelectItem>
-                          <SelectItem value="center">Center</SelectItem>
-                          <SelectItem value="right">Right</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  );
-                })}
-                <Button onClick={handleSaveLayout} disabled={savingLayout}>
+            <CardContent className="grid grid-cols-1 xl:grid-cols-[280px_1fr] gap-6">
+              <div className="space-y-4 order-2 xl:order-1">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Fields</Label>
+                  <div className="flex flex-col gap-1">
+                    {CERT_FIELD_LABELS.map(({ key, label }) => {
+                      const active = selectedField === key;
+                      const shown = layout[key].visible;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setSelectedField(key)}
+                          className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                            active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                          } ${!shown ? "opacity-50" : ""}`}
+                        >
+                          <span className="font-medium">{label}</span>
+                          <label
+                            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={shown}
+                              onChange={(e) => updateField(key, { visible: e.target.checked })}
+                            />
+                            Show
+                          </label>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-3 space-y-3">
+                  <p className="text-sm font-semibold">
+                    {CERT_FIELD_LABELS.find((f) => f.key === selectedField)?.label}
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Font size ({selected.fontSize}px)</Label>
+                    <Input
+                      type="range"
+                      min={10}
+                      max={48}
+                      value={selected.fontSize}
+                      onChange={(e) => updateField(selectedField, { fontSize: Number(e.target.value) || 14 })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Align</Label>
+                    <Select
+                      value={selected.align}
+                      onValueChange={(v) => updateField(selectedField, { align: v as CertFieldLayout["align"] })}
+                    >
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="left">Left</SelectItem>
+                        <SelectItem value="center">Center</SelectItem>
+                        <SelectItem value="right">Right</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Position: {selected.x.toFixed(0)}% × {selected.y.toFixed(0)}% (set by dragging)
+                  </p>
+                </div>
+
+                <Button onClick={handleSaveLayout} disabled={savingLayout} className="w-full">
                   <Save className="h-4 w-4 mr-2" /> {savingLayout ? "Saving…" : "Save layout"}
                 </Button>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm">Live preview</Label>
+
+              <div className="space-y-2 order-1 xl:order-2">
+                <Label className="text-sm">Interactive preview</Label>
                 <CertificateCanvas
+                  editable
                   layout={layout}
+                  selectedField={selectedField}
+                  onSelectField={setSelectedField}
+                  onMoveField={moveField}
                   data={{
                     studentName: "Sample Student",
                     studentClass: "7D",
