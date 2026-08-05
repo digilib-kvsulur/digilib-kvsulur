@@ -21,6 +21,8 @@ import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import Community from "@/components/community/Community";
 import MyRequests from "@/components/dashboard/MyRequests";
+import SupportCenter from "@/components/support/SupportCenter";
+import { LifeBuoy } from "lucide-react";
 import NetworkTab from "@/components/dashboard/NetworkTab";
 import TeacherProfileCompletionDialog from "@/components/dashboard/TeacherProfileCompletionDialog";
 
@@ -402,6 +404,7 @@ const TeacherDashboard = () => {
             <TabsTrigger value="network" className="flex items-center gap-2"><Star className="h-4 w-4" /> Network</TabsTrigger>
             <TabsTrigger value="book-requests" className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> Requests</TabsTrigger>
             <TabsTrigger value="materials" className="flex items-center gap-2"><BookMarked className="h-4 w-4" /> Study Materials</TabsTrigger>
+            <TabsTrigger value="support" className="flex items-center gap-2"><LifeBuoy className="h-4 w-4" /> Support</TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2"><User className="h-4 w-4" /> My Profile</TabsTrigger>
           </TabsList>
 
@@ -631,6 +634,10 @@ const TeacherDashboard = () => {
 
           <TabsContent value="book-requests">
             {teacher?.id && <MyRequests userId={teacher.id} />}
+          </TabsContent>
+
+          <TabsContent value="support">
+            {teacher?.id && <SupportCenter user={teacher} />}
           </TabsContent>
         </Tabs>
       </main>

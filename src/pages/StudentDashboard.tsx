@@ -42,8 +42,10 @@ import MyRequests from "@/components/dashboard/MyRequests";
 import NetworkTab from "@/components/dashboard/NetworkTab";
 import ProfileCompletionDialog from "@/components/dashboard/ProfileCompletionDialog";
 import ReturnedBookReviewPrompt from "@/components/dashboard/ReturnedBookReviewPrompt";
+import SupportCenter from "@/components/support/SupportCenter";
+import { LifeBuoy } from "lucide-react";
 
-type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "network" | "profile";
+type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "network" | "support" | "profile";
 
 const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -58,6 +60,7 @@ const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "badges", label: "Badge Cabinet", icon: Award },
   { id: "rankings", label: "Rankings", icon: Medal },
   { id: "network", label: "Network", icon: Users },
+  { id: "support", label: "Help & Support", icon: LifeBuoy },
   { id: "profile", label: "Profile", icon: User },
 ];
 
@@ -610,6 +613,8 @@ const StudentDashboard = () => {
 
           {/* Network Tab */}
           {activeTab === "network" && user?.id && <NetworkTab user={user} />}
+
+          {activeTab === "support" && user?.id && <SupportCenter user={user} />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && <StudentProfile user={user} onProfileUpdate={handleProfileUpdate} />}
