@@ -40,9 +40,11 @@ import BookShelfData from "@/components/admin/BookShelfData";
 import BookCoverData from "@/components/admin/BookCoverData";
 import BookCondemnation from "@/components/admin/BookCondemnation";
 import BarcodeGenerator from "@/components/admin/BarcodeGenerator";
+import SupportTicketsManager from "@/components/admin/SupportTicketsManager";
+import { LifeBuoy } from "lucide-react";
 import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "support";
 
 const navSections = [
   {
@@ -51,6 +53,7 @@ const navSections = [
       { id: "overview" as Tab, label: "Overview", icon: Home },
       { id: "analytics" as Tab, label: "Analytics", icon: BarChart3 },
       { id: "reports" as Tab, label: "Export Reports", icon: FileSpreadsheet },
+      { id: "support" as Tab, label: "Support Tickets", icon: LifeBuoy },
     ],
   },
   {
@@ -338,6 +341,7 @@ const AdminDashboard = () => {
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
           {activeTab === "materials" && <StudyMaterialsManager />}
           {activeTab === "barcodes" && <BarcodeGenerator />}
+          {activeTab === "support" && <SupportTicketsManager />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>
