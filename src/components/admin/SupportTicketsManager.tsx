@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LifeBuoy, Loader2, Search, Send, Trash2, Mail, GraduationCap, Hash } from "lucide-react";
 import { statusMeta, TICKET_CATEGORIES } from "@/components/support/SupportCenter";
+import { sendTicketEmail } from "@/lib/ticketEmail";
 
 export default function SupportTicketsManager() {
   const { toast } = useToast();
@@ -39,7 +40,7 @@ export default function SupportTicketsManager() {
     if (category !== "all" && t.category !== category) return false;
     if (q.trim()) {
       const s = q.toLowerCase();
-      return [t.subject, t.full_name, t.admission_number, t.email, t.description].some((v: any) => (v || "").toLowerCase().includes(s));
+      return [t.ticket_number, t.subject, t.full_name, t.admission_number, t.email, t.description].some((v: any) => (v || "").toLowerCase().includes(s));
     }
     return true;
   }), [tickets, status, category, q]);
@@ -65,7 +66,20 @@ export default function SupportTicketsManager() {
     setSaving(false);
     if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Ticket updated" });
-    setActive({ ...active, ...patch });
+    const next = { ...active, ...patch };
+    setActive(next);
+    if (active.email && (patch.status || patch.admin_response)) {
+      sendTicketEmail({
+        type: "updated",
+        ticket_id: active.id,
+        ticket_number: active.ticket_number,
+        to_email: active.email,
+        full_name: active.full_name,
+        subject: active.subject,
+        status: patch.status || active.status,
+        admin_response: patch.admin_response ?? active.admin_response,
+      });
+    }
     load();
   };
 
@@ -76,6 +90,18 @@ export default function SupportTicketsManager() {
       ticket_id: active.id, sender_id: user?.id, sender_name: "Library Team", is_staff: true, message: reply.trim().slice(0, 1000),
     });
     if (error) { toast({ title: "Could not send", description: error.message, variant: "destructive" }); return; }
+    if (active.email) {
+      sendTicketEmail({
+        type: "reply",
+        ticket_id: active.id,
+        ticket_number: active.ticket_number,
+        to_email: active.email,
+        full_name: active.full_name,
+        subject: active.subject,
+        status: active.status,
+        message: reply.trim(),
+      });
+    }
     setReply("");
     openTicket(active);
   };
@@ -147,7 +173,12 @@ export default function SupportTicketsManager() {
                   <button key={t.id} onClick={() => openTicket(t)}
                     className="text-left p-4 rounded-xl border border-border/50 bg-card hover:shadow-md hover:border-primary/30 transition-all">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="font-semibold text-sm truncate flex-1">{t.subject}</p>
+                      <div className="min-w-0 flex-1">
+                        {t.ticket_number && (
+                          <p className="font-mono text-[10px] font-bold text-primary mb-0.5">{t.ticket_number}</p>
+                        )}
+                        <p className="font-semibold text-sm truncate">{t.subject}</p>
+                      </div>
                       <Badge variant="outline" className={`text-[10px] shrink-0 ${meta.className}`}>{meta.label}</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5">{t.description}</p>
@@ -170,6 +201,9 @@ export default function SupportTicketsManager() {
           <DialogHeader><DialogTitle className="text-base pr-6">{active?.subject}</DialogTitle></DialogHeader>
           {active && (
             <div className="space-y-4">
+              {active.ticket_number && (
+                <p className="font-mono text-sm font-bold text-primary">Ticket {active.ticket_number}</p>
+              )}
               <div className="grid gap-2 text-xs sm:grid-cols-2">
                 <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-[10px] text-muted-foreground">Reported by</p><p className="font-semibold">{active.full_name}</p></div>
                 <div className="rounded-lg bg-muted/50 px-3 py-2"><p className="text-[10px] text-muted-foreground">Admission no.</p><p className="font-semibold">{active.admission_number || "—"}</p></div>

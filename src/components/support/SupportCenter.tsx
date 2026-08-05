@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LifeBuoy, Send, MessageSquare, Loader2, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { LifeBuoy, Send, MessageSquare, Loader2, CheckCircle2, Clock, AlertCircle, Copy } from "lucide-react";
+import { sendTicketEmail } from "@/lib/ticketEmail";
 
 export const TICKET_CATEGORIES = [
   { value: "book_issue", label: "Book issue / return problem" },
@@ -47,10 +48,11 @@ export default function SupportCenter({ user }: Props) {
   const load = async () => {
     if (!user?.id) return;
     setLoading(true);
+    await supabase.rpc("link_my_support_tickets").catch(() => undefined);
     const { data } = await supabase
       .from("support_tickets")
       .select("*")
-      .eq("user_id", user.id)
+      .or(`user_id.eq.${user.id},admission_number.eq.${user.admission_number || "__none__"}`)
       .order("created_at", { ascending: false });
     setTickets(data || []);
     setLoading(false);
@@ -74,7 +76,7 @@ export default function SupportCenter({ user }: Props) {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("support_tickets").insert({
+    const { data, error } = await supabase.from("support_tickets").insert({
       user_id: user.id,
       admission_number: user.admission_number || null,
       full_name: fullName,
@@ -85,13 +87,27 @@ export default function SupportCenter({ user }: Props) {
       priority: form.priority,
       subject: form.subject.trim().slice(0, 150),
       description: form.description.trim().slice(0, 2000),
-    });
+    }).select("id, ticket_number, email, full_name, subject, status").single();
     setSaving(false);
     if (error) {
       toast({ title: "Could not submit ticket", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Ticket submitted", description: "The library team will respond soon." });
+    toast({
+      title: "Ticket submitted",
+      description: `Ticket number: ${data.ticket_number}. Save it for future reference.`,
+    });
+    if (data.email) {
+      sendTicketEmail({
+        type: "created",
+        ticket_id: data.id,
+        ticket_number: data.ticket_number,
+        to_email: data.email,
+        full_name: data.full_name,
+        subject: data.subject,
+        status: data.status,
+      });
+    }
     setForm({ category: "general", priority: "normal", subject: "", description: "" });
     load();
   };
@@ -203,7 +219,10 @@ export default function SupportCenter({ user }: Props) {
                   <button key={t.id} onClick={() => openTicket(t)}
                     className="text-left p-4 rounded-xl border border-border/50 bg-card hover:shadow-md hover:border-primary/30 transition-all">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="font-semibold text-sm truncate flex-1">{t.subject}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-[10px] text-primary font-bold">{t.ticket_number || "—"}</p>
+                        <p className="font-semibold text-sm truncate">{t.subject}</p>
+                      </div>
                       <Badge variant="outline" className={`text-[10px] shrink-0 ${meta.className}`}>
                         <Icon className="h-3 w-3 mr-1" />{meta.label}
                       </Badge>
@@ -230,6 +249,9 @@ export default function SupportCenter({ user }: Props) {
           </DialogHeader>
           {active && (
             <div className="space-y-3">
+              {active.ticket_number && (
+                <p className="text-xs font-mono font-bold text-primary">Ticket {active.ticket_number}</p>
+              )}
               <Badge variant="outline" className={`text-[10px] ${(statusMeta[active.status] || statusMeta.open).className}`}>
                 {(statusMeta[active.status] || statusMeta.open).label}
               </Badge>

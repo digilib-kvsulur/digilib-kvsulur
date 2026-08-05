@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,6 @@ import StudentCertificates from "@/components/dashboard/StudentCertificates";
 import MyFines from "@/components/dashboard/MyFines";
 import Periodicals from "@/components/dashboard/Periodicals";
 import IssuedBooksHub from "@/components/dashboard/IssuedBooksHub";
-import BookSuggestions from "@/components/dashboard/BookSuggestions";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
 
 type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "fines" | "periodicals";
@@ -61,7 +60,6 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "community", label: "Community", icon: Users },
   { id: "quizzes", label: "Quizzes", icon: Brain },
   { id: "badges", label: "Badge Cabinet", icon: Award },
-  { id: "certificates", label: "Certificates", icon: Award },
   { id: "rankings", label: "Rankings", icon: Medal },
   { id: "network", label: "Network", icon: Users },
   { id: "support", label: "Help & Support", icon: LifeBuoy },
@@ -98,16 +96,31 @@ const StudentDashboard = () => {
   const [hasAnyFines, setHasAnyFines] = useState(false);
   const [periodicalsVisible, setPeriodicalsVisible] = useState(false);
   const [issueHistory, setIssueHistory] = useState<any[]>([]);
+  const [hasCertificates, setHasCertificates] = useState(false);
 
   const streakData = useLoginStreak(user?.id);
   usePushSubscription(user?.id);
 
-  const navItems = [
-    ...baseNavItems.slice(0, 3),
-    ...(hasAnyFines ? [{ id: "fines" as Tab, label: "My Fines", icon: IndianRupee }] : []),
-    ...(periodicalsVisible ? [{ id: "periodicals" as Tab, label: "Periodicals", icon: Newspaper }] : []),
-    ...baseNavItems.slice(3),
-  ];
+  const navItems = useMemo(() => {
+    const items = [...baseNavItems];
+    const badgesIdx = items.findIndex((i) => i.id === "badges");
+    if (hasCertificates && badgesIdx >= 0) {
+      items.splice(badgesIdx + 1, 0, { id: "certificates" as Tab, label: "Certificates", icon: Award });
+    }
+    const issuedIdx = items.findIndex((i) => i.id === "issued");
+    if (hasAnyFines && issuedIdx >= 0) {
+      items.splice(issuedIdx + 1, 0, { id: "fines" as Tab, label: "My Fines", icon: IndianRupee });
+    }
+    if (periodicalsVisible) {
+      const eventsIdx = items.findIndex((i) => i.id === "events");
+      items.splice(eventsIdx >= 0 ? eventsIdx + 1 : items.length, 0, {
+        id: "periodicals" as Tab,
+        label: "Periodicals",
+        icon: Newspaper,
+      });
+    }
+    return items;
+  }, [hasAnyFines, periodicalsVisible, hasCertificates]);
 
   useEffect(() => { checkAuth(); }, []);
 
@@ -328,6 +341,11 @@ const StudentDashboard = () => {
         .eq("user_id", user.id)
         .order("issue_date", { ascending: false })
         .then(({ data }) => setIssueHistory(data || []));
+      supabase
+        .from("issued_certificates")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .then(({ count }) => setHasCertificates((count || 0) > 0));
     }
   }, [user?.id]);
 
@@ -660,18 +678,6 @@ const StudentDashboard = () => {
                   })}
                 </CardContent>
               </Card>
-
-              {user?.id && (
-                <Card className="border-border/50">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Suggest a purchase</CardTitle>
-                    <CardDescription>Recommend a title for the library to buy</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <BookSuggestions userId={user.id} embedded />
-                  </CardContent>
-                </Card>
-              )}
             </div>
           )}
 
@@ -708,7 +714,7 @@ const StudentDashboard = () => {
           {activeTab === "badges" && user?.id && <BadgeCabinet userId={user.id} />}
 
           {/* Certificates Tab */}
-          {activeTab === "certificates" && user?.id && (
+          {activeTab === "certificates" && user?.id && hasCertificates && (
             <StudentCertificates
               userId={user.id}
               userName={`${user.first_name || ""} ${user.last_name || ""}`.trim()}
