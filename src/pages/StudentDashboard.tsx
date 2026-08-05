@@ -43,9 +43,12 @@ import NetworkTab from "@/components/dashboard/NetworkTab";
 import ProfileCompletionDialog from "@/components/dashboard/ProfileCompletionDialog";
 import ReturnedBookReviewPrompt from "@/components/dashboard/ReturnedBookReviewPrompt";
 import SupportCenter from "@/components/support/SupportCenter";
+import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
+import StudentCertificates from "@/components/dashboard/StudentCertificates";
+import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
 import { LifeBuoy } from "lucide-react";
 
-type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "rankings" | "network" | "support" | "profile";
+type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile";
 
 const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -58,6 +61,7 @@ const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "community", label: "Community", icon: Users },
   { id: "quizzes", label: "Quizzes", icon: Brain },
   { id: "badges", label: "Badge Cabinet", icon: Award },
+  { id: "certificates", label: "Certificates", icon: Award },
   { id: "rankings", label: "Rankings", icon: Medal },
   { id: "network", label: "Network", icon: Users },
   { id: "support", label: "Help & Support", icon: LifeBuoy },
@@ -89,6 +93,7 @@ const StudentDashboard = () => {
   const [profileSetupComplete, setProfileSetupComplete] = useState(false);
 
   const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
+  const [schoolReadingGoal, setSchoolReadingGoal] = useState(3);
 
   const streakData = useLoginStreak(user?.id);
   usePushSubscription(user?.id);
@@ -222,8 +227,12 @@ const StudentDashboard = () => {
   const fetchMonthlyBooksRead = async () => {
     if (!user?.id) return;
     const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-    const { data } = await supabase.from('reading_history').select('*').eq('user_id', user.id).gte('completed_date', start);
+    const [{ data }, goal] = await Promise.all([
+      supabase.from('reading_history').select('*').eq('user_id', user.id).eq('status', 'approved').gte('completed_date', start),
+      fetchMonthlyReadingGoal(),
+    ]);
     setMonthlyBooksRead(data?.length || 0);
+    setSchoolReadingGoal(goal);
   };
 
   const fetchBadgesCount = async () => {
@@ -456,7 +465,7 @@ const StudentDashboard = () => {
                 {[
                   { label: "Books Reading", value: currentBooksCount, icon: BookOpen, color: "text-primary", bg: "bg-primary/10", tab: "books" },
                   { label: "Quizzes Taken", value: quizResultsCount, icon: Brain, color: "text-accent", bg: "bg-accent/10", tab: "quizzes" },
-                  { label: "Monthly Goal", value: `${monthlyBooksRead}/5`, icon: Target, color: "text-success", bg: "bg-success/10", tab: null },
+                  { label: "Monthly Goal", value: `${monthlyBooksRead}/${schoolReadingGoal}`, icon: Target, color: "text-success", bg: "bg-success/10", tab: null },
                   { label: "Badges Earned", value: badgesEarnedCount, icon: Award, color: "text-warning", bg: "bg-warning/10", tab: "badges" },
                 ].map((s, i) => (
                   <Card key={i} className={`border-border/50 hover-lift ${s.tab ? "cursor-pointer" : ""}`} onClick={() => s.tab && setActiveTab(s.tab)}>
@@ -501,6 +510,7 @@ const StudentDashboard = () => {
                   </CardContent>
                 </Card>
                 <QuickBookmarks currentBooks={currentBooks} monthlyBooksRead={monthlyBooksRead} totalPoints={user?.points || 0} />
+                {user?.id && <MonthlyGoalsWidget userId={user.id} />}
               </div>
 
               {/* Recent Activity */}
@@ -607,6 +617,14 @@ const StudentDashboard = () => {
 
           {/* Badges Tab */}
           {activeTab === "badges" && user?.id && <BadgeCabinet userId={user.id} />}
+
+          {/* Certificates Tab */}
+          {activeTab === "certificates" && user?.id && (
+            <StudentCertificates
+              userId={user.id}
+              userName={`${user.first_name || ""} ${user.last_name || ""}`.trim()}
+            />
+          )}
 
           {/* Rankings Tab */}
           {activeTab === "rankings" && <Rankings user={user} />}

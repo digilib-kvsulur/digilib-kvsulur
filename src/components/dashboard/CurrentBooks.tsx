@@ -6,9 +6,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, BookOpen, Clock, RefreshCw, AlertCircle, Bookmark, Search, Check, Sparkles, AlertTriangle } from "lucide-react";
+import { Calendar, BookOpen, Clock, RefreshCw, AlertCircle, Bookmark, Search, Check, Sparkles, AlertTriangle, IndianRupee } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  buildUpiPaymentLink,
+  calculateFine,
+  fetchFineSettings,
+  getDaysOverdue,
+  type LibraryFineSettings,
+} from "@/lib/librarySettings";
 
 interface CurrentBooksProps {
   books: any[];
@@ -20,6 +27,7 @@ const CurrentBooks = ({ books = [] }: CurrentBooksProps) => {
   const [days, setDays] = useState(7);
   const [note, setNote] = useState("");
   const [renewals, setRenewals] = useState<any[]>([]);
+  const [fineSettings, setFineSettings] = useState<LibraryFineSettings | null>(null);
 
   // Search catalog state
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -49,6 +57,10 @@ const CurrentBooks = ({ books = [] }: CurrentBooksProps) => {
   useEffect(() => {
     fetchRenewals();
   }, [books]);
+
+  useEffect(() => {
+    fetchFineSettings().then(setFineSettings).catch(console.error);
+  }, []);
 
   // Search catalog function
   useEffect(() => {
@@ -235,7 +247,20 @@ const CurrentBooks = ({ books = [] }: CurrentBooksProps) => {
               : 0;
             const isOverdue = daysLeft < 0;
             const isUrgent = daysLeft >= 0 && daysLeft <= 3;
-            
+            const daysOverdue = dueDate ? getDaysOverdue(dueDate) : 0;
+            const fineAmount = fineSettings
+              ? calculateFine(daysOverdue, fineSettings.finePerDay)
+              : 0;
+            const payLink =
+              fineSettings && fineAmount > 0
+                ? buildUpiPaymentLink({
+                    upiId: fineSettings.upiId,
+                    payeeName: fineSettings.upiPayeeName,
+                    amount: fineAmount,
+                    note: `Fine: ${title}`,
+                  })
+                : null;
+
             const progressPercent = isOverdue ? 100 : Math.max(0, 100 - (daysLeft / totalDays) * 100);
 
             const pendingRenewal = renewals.find(
@@ -306,6 +331,23 @@ const CurrentBooks = ({ books = [] }: CurrentBooksProps) => {
                     <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200/30">
                       <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                       <span className="font-semibold truncate">Renewal pending (+{pendingRenewal.requested_days} days)</span>
+                    </div>
+                  )}
+
+                  {isOverdue && fineAmount > 0 && (
+                    <div className="mt-2.5 flex flex-col gap-1.5 text-[10px] text-red-800 bg-red-50 px-2 py-1.5 rounded-lg border border-red-200/40">
+                      <div className="flex items-center gap-1.5 font-semibold">
+                        <IndianRupee className="h-3.5 w-3.5 shrink-0" />
+                        Fine: ₹{fineAmount} ({daysOverdue}d × ₹{fineSettings?.finePerDay}/day)
+                      </div>
+                      {payLink && (
+                        <a
+                          href={payLink}
+                          className="inline-flex items-center justify-center h-7 rounded-lg bg-red-600 text-white text-[10px] font-bold hover:bg-red-700"
+                        >
+                          Pay via UPI
+                        </a>
+                      )}
                     </div>
                   )}
 

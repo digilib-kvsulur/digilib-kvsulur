@@ -891,6 +891,50 @@ export type Database = {
         }
         Relationships: []
       }
+      issued_certificates: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_id: string | null
+          id: string
+          issued_at: string
+          issued_by: string | null
+          template_url: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          template_url?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          template_url?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issued_certificates_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "library_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gallery_images: {
         Row: {
           caption: string | null

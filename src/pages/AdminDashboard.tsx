@@ -41,10 +41,12 @@ import BookCoverData from "@/components/admin/BookCoverData";
 import BookCondemnation from "@/components/admin/BookCondemnation";
 import BarcodeGenerator from "@/components/admin/BarcodeGenerator";
 import SupportTicketsManager from "@/components/admin/SupportTicketsManager";
+import LibrarySettings from "@/components/admin/LibrarySettings";
+import CertificateManager from "@/components/admin/CertificateManager";
 import { LifeBuoy } from "lucide-react";
 import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "support";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "support" | "settings" | "certificates";
 
 const navSections = [
   {
@@ -87,6 +89,7 @@ const navSections = [
     items: [
       { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
       { id: "badges" as Tab, label: "Badges", icon: Award },
+      { id: "certificates" as Tab, label: "Certificates", icon: Award },
       { id: "events" as Tab, label: "Events", icon: Calendar },
       { id: "gallery" as Tab, label: "Gallery", icon: ImageIcon },
       { id: "levels" as Tab, label: "Levels", icon: Layers },
@@ -97,6 +100,7 @@ const navSections = [
   {
     title: "Settings",
     items: [
+      { id: "settings" as Tab, label: "Library Settings", icon: Settings },
       { id: "profile" as Tab, label: "My Profile", icon: User },
     ],
   },
@@ -342,6 +346,8 @@ const AdminDashboard = () => {
           {activeTab === "materials" && <StudyMaterialsManager />}
           {activeTab === "barcodes" && <BarcodeGenerator />}
           {activeTab === "support" && <SupportTicketsManager />}
+          {activeTab === "certificates" && <CertificateManager />}
+          {activeTab === "settings" && <LibrarySettings />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>

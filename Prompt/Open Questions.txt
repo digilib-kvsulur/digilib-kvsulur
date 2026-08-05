@@ -1,0 +1,10 @@
+Questions
+UPI ID — What's the library's GPay/UPI ID for the fine payment links?
+Fine rate — ₹1/day overdue fine, or different?
+Certificate design — Should I generate a styled template, or do you have a school logo/layout preference?
+Reading Goal — Student sets their own target, or admin sets school-wide target for all?
+Due date reminders — Manual trigger by admin (works on free Supabase tier) or automated daily cron (needs Supabase Pro)?
+UPI ID - any free medium
+Fine rate — ₹1/day overdue fine, or custom by admin
+Certificate design - uploaded by admin
+Reading Goal - admin
