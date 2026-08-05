@@ -20,6 +20,7 @@ const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
 const BookDetails = lazy(() => import("./pages/BookDetails"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Support = lazy(() => import("./pages/Support"));
 
 const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
