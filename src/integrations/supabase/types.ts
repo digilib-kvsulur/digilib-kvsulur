@@ -145,44 +145,81 @@ export type Database = {
       book_condemnations: {
         Row: {
           accession_number: string | null
+          batch_id: string | null
           book_condition: string | null
           book_id: string | null
           book_title: string
           condemned_at: string
           condemned_by: string | null
           copies: number
+          cost: number
           created_at: string
+          date_became_unserviceable: string | null
+          depreciation_amount: number
+          discount_amount: number
+          discount_pct: number
+          fund_source: string | null
           id: string
+          net_value: number
           notes: string | null
+          rate: number
           reason: string
+          year_of_purchase: number | null
         }
         Insert: {
           accession_number?: string | null
+          batch_id?: string | null
           book_condition?: string | null
           book_id?: string | null
           book_title?: string
           condemned_at?: string
           condemned_by?: string | null
           copies?: number
+          cost?: number
           created_at?: string
+          date_became_unserviceable?: string | null
+          depreciation_amount?: number
+          discount_amount?: number
+          discount_pct?: number
+          fund_source?: string | null
           id?: string
+          net_value?: number
           notes?: string | null
+          rate?: number
           reason?: string
+          year_of_purchase?: number | null
         }
         Update: {
           accession_number?: string | null
+          batch_id?: string | null
           book_condition?: string | null
           book_id?: string | null
           book_title?: string
           condemned_at?: string
           condemned_by?: string | null
           copies?: number
+          cost?: number
           created_at?: string
+          date_became_unserviceable?: string | null
+          depreciation_amount?: number
+          discount_amount?: number
+          discount_pct?: number
+          fund_source?: string | null
           id?: string
+          net_value?: number
           notes?: string | null
+          rate?: number
           reason?: string
+          year_of_purchase?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "book_condemnations_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "condemnation_batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "book_condemnations_book_id_fkey"
             columns: ["book_id"]
@@ -730,6 +767,30 @@ export type Database = {
         }
         Relationships: []
       }
+      condemnation_batches: {
+        Row: {
+          batch_number: string
+          created_at: string
+          created_by: string | null
+          fund_source: string
+          id: string
+        }
+        Insert: {
+          batch_number: string
+          created_at?: string
+          created_by?: string | null
+          fund_source?: string
+          id?: string
+        }
+        Update: {
+          batch_number?: string
+          created_at?: string
+          created_by?: string | null
+          fund_source?: string
+          id?: string
+        }
+        Relationships: []
+      }
       event_registrations: {
         Row: {
           created_at: string
@@ -752,6 +813,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "library_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_submissions: {
+        Row: {
+          created_at: string
+          day_number: number
+          event_id: string
+          file_type: string | null
+          file_url: string | null
+          id: string
+          note: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_number?: number
+          event_id: string
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          note?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_number?: number
+          event_id?: string
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          note?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_submissions_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "library_events"
@@ -851,6 +956,7 @@ export type Database = {
       }
       library_events: {
         Row: {
+          allow_submissions: boolean
           capacity: number | null
           created_at: string
           created_by: string | null
@@ -862,11 +968,14 @@ export type Database = {
           image_url: string | null
           is_published: boolean
           location: string | null
+          max_submission_days: number
           schedule_files: string | null
+          submission_types: string[]
           title: string
           updated_at: string
         }
         Insert: {
+          allow_submissions?: boolean
           capacity?: number | null
           created_at?: string
           created_by?: string | null
@@ -878,11 +987,14 @@ export type Database = {
           image_url?: string | null
           is_published?: boolean
           location?: string | null
+          max_submission_days?: number
           schedule_files?: string | null
+          submission_types?: string[]
           title: string
           updated_at?: string
         }
         Update: {
+          allow_submissions?: boolean
           capacity?: number | null
           created_at?: string
           created_by?: string | null
@@ -894,7 +1006,9 @@ export type Database = {
           image_url?: string | null
           is_published?: boolean
           location?: string | null
+          max_submission_days?: number
           schedule_files?: string | null
+          submission_types?: string[]
           title?: string
           updated_at?: string
         }
@@ -1025,8 +1139,10 @@ export type Database = {
       }
       notifications: {
         Row: {
+          action_link: string | null
           created_at: string
           id: string
+          image_url: string | null
           is_read: boolean
           message: string
           sent_by: string | null
@@ -1035,8 +1151,10 @@ export type Database = {
           type: string
         }
         Insert: {
+          action_link?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           is_read?: boolean
           message: string
           sent_by?: string | null
@@ -1045,8 +1163,10 @@ export type Database = {
           type?: string
         }
         Update: {
+          action_link?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           is_read?: boolean
           message?: string
           sent_by?: string | null
@@ -1216,6 +1336,30 @@ export type Database = {
           student_class?: string | null
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          subscription_object: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          subscription_object: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          subscription_object?: Json
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1536,6 +1680,19 @@ export type Database = {
           p_copies: number
           p_notes?: string
           p_reason: string
+        }
+        Returns: string
+      }
+      condemn_book_v2: {
+        Args: {
+          p_accession_number: string
+          p_batch_id: string
+          p_book_id: string
+          p_cost: number
+          p_fund: string
+          p_reason: string
+          p_title: string
+          p_year: number
         }
         Returns: string
       }
