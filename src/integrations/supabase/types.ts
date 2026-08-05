@@ -1380,6 +1380,104 @@ export type Database = {
         }
         Relationships: []
       }
+      support_ticket_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_staff: boolean
+          message: string
+          sender_id: string | null
+          sender_name: string | null
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          message: string
+          sender_id?: string | null
+          sender_name?: string | null
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          message?: string
+          sender_id?: string | null
+          sender_name?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          admin_response: string | null
+          admission_number: string | null
+          assigned_to: string | null
+          category: string
+          created_at: string
+          description: string
+          email: string | null
+          full_name: string
+          id: string
+          priority: string
+          resolved_at: string | null
+          role: string | null
+          status: string
+          student_class: string | null
+          subject: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_response?: string | null
+          admission_number?: string | null
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          description: string
+          email?: string | null
+          full_name: string
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          role?: string | null
+          status?: string
+          student_class?: string | null
+          subject: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_response?: string | null
+          admission_number?: string | null
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          role?: string | null
+          status?: string
+          student_class?: string | null
+          subject?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           key: string
@@ -1594,6 +1692,14 @@ export type Database = {
       issue_book_to_user: {
         Args: { p_book_id: string; p_issue_date?: string; p_user_id: string }
         Returns: string
+      }
+      lookup_member_by_admission: {
+        Args: { p_admission: string }
+        Returns: {
+          full_name: string
+          role: string
+          student_class: string
+        }[]
       }
       notify_user: {
         Args: {
