@@ -15,6 +15,8 @@ export default function MyFines({ userId }: MyFinesProps) {
   const [upi, setUpi] = useState({ upi_id: "", upi_payee_name: "KV Library" });
 
   const load = async () => {
+    // Refresh accruing overdue fines (days × rate) before listing
+    await supabase.rpc("sync_overdue_fines" as any).then(() => {}).catch(() => undefined);
     const [{ data }, { data: fs }] = await Promise.all([
       supabase.from("library_fines").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
       supabase.from("fine_settings").select("upi_id, upi_payee_name").eq("id", 1).maybeSingle(),
@@ -61,9 +63,15 @@ export default function MyFines({ userId }: MyFinesProps) {
                     <p className="font-medium text-sm">{r.book_title || "Library fine"}</p>
                     <p className="text-xs text-muted-foreground">
                       {r.days_overdue} days overdue · ₹{r.total_amount}
+                      {r.accruing ? " · accruing until return" : ""}
                     </p>
                   </div>
-                  <Badge variant={r.status === "pending" ? "destructive" : "secondary"}>{r.status}</Badge>
+                  <div className="flex items-center gap-2">
+                    {r.accruing && r.status === "pending" && (
+                      <Badge variant="outline" className="text-[10px]">Accruing</Badge>
+                    )}
+                    <Badge variant={r.status === "pending" ? "destructive" : "secondary"}>{r.status}</Badge>
+                  </div>
                 </div>
                 {r.status === "pending" && (
                   <div className="flex flex-wrap gap-2">

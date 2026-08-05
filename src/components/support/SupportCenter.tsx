@@ -48,14 +48,31 @@ export default function SupportCenter({ user }: Props) {
   const load = async () => {
     if (!user?.id) return;
     setLoading(true);
-    await supabase.rpc("link_my_support_tickets").catch(() => undefined);
-    const { data } = await supabase
-      .from("support_tickets")
-      .select("*")
-      .or(`user_id.eq.${user.id},admission_number.eq.${user.admission_number || "__none__"}`)
-      .order("created_at", { ascending: false });
-    setTickets(data || []);
-    setLoading(false);
+    try {
+      // Link guest tickets that match this student's admission number
+      const { error: linkErr } = await supabase.rpc("link_my_support_tickets");
+      if (linkErr) console.warn("link_my_support_tickets:", linkErr.message);
+
+      const { data, error } = await supabase
+        .from("support_tickets")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("support_tickets load:", error);
+        toast({
+          title: "Could not load tickets",
+          description: error.message,
+          variant: "destructive",
+        });
+        setTickets([]);
+        return;
+      }
+      setTickets(data || []);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [user?.id]);

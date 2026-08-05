@@ -36,6 +36,7 @@ export default function FineManager() {
   });
 
   const load = async () => {
+    await supabase.rpc("sync_overdue_fines" as any).then(() => {}).catch(() => undefined);
     const [{ data }, { data: fs }, { data: studs }] = await Promise.all([
       supabase.from("library_fines").select("*").order("created_at", { ascending: false }),
       supabase.from("fine_settings").select("*").eq("id", 1).maybeSingle(),
@@ -363,6 +364,7 @@ export default function FineManager() {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {r.days_overdue}d × ₹{r.rate_per_day} = ₹{r.total_amount}
+                  {r.accruing && r.status === "pending" ? " · accruing" : ""}
                   {r.payment_ref === "pending_confirmation" ? " · Student marked paid" : ""}
                 </p>
               </div>
