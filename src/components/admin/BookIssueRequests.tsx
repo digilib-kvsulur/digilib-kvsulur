@@ -193,9 +193,24 @@ const BookIssueRequests = () => {
 
   if (loading) return <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" /></div>;
 
-  const borrowRequests = requests.filter(r => r.book_id);
-  const customRequests = requests.filter(r => !r.book_id);
+  const hasPurchaseText = (r: BookRequest) =>
+    !!(r.requested_title?.trim() || r.requested_author?.trim() || r.requested_description?.trim() || r.requested_isbn?.trim());
+
+  // Catalog borrows (or orphaned when book was deleted). Purchase = custom title fields present.
+  const borrowRequests = requests.filter(r => r.book_id || (!r.book_id && !hasPurchaseText(r)));
+  const customRequests = requests.filter(r => !r.book_id && hasPurchaseText(r));
   const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
+
+  const purchaseTitle = (r: BookRequest) =>
+    r.requested_title?.trim()
+    || r.requested_author?.trim()
+    || r.requested_description?.trim()
+    || "Untitled suggestion";
+
+  const borrowTitle = (r: BookRequest) =>
+    r.book?.title?.trim()
+    || (r.fromWaitlist ? "Waitlist book (catalog title unavailable)" : null)
+    || "Catalog book (removed from library)";
 
   const renderBorrowRequestCard = (request: BookRequest) => (
     <div key={request.id} className="p-4 rounded-xl border border-border/50 bg-card hover:shadow-sm transition-all space-y-3">
@@ -224,8 +239,11 @@ const BookIssueRequests = () => {
       <div className="flex items-start gap-2">
         <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{request.book?.title || 'No title'}</p>
+          <p className="text-sm font-semibold text-foreground truncate">{borrowTitle(request)}</p>
           <p className="text-xs text-muted-foreground truncate">by {request.book?.author || 'Unknown'}</p>
+          {!request.book_id && (
+            <p className="text-[10px] text-amber-700">Original catalog book was deleted — review or delete this request.</p>
+          )}
           {request.book && <p className="text-xs text-muted-foreground">Available: {request.book.available_copies}</p>}
           {request.book?.accession_number && (
             <p className="text-[10px] text-muted-foreground font-mono">Acc: {request.book.accession_number}</p>
@@ -249,9 +267,13 @@ const BookIssueRequests = () => {
             className="text-xs resize-none"
           />
           <div className="flex gap-2">
-            {request.book_id && (
+            {request.book_id ? (
               <Button size="sm" className="flex-1" onClick={() => handleApproveRequest(request.id, request.book_id!, request.user_id)}>
                 <CheckCircle className="h-3.5 w-3.5 mr-1" /> Issue Book
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" className="flex-1" onClick={() => handleDeleteRequest(request.id)} disabled={deletingIds.has(request.id)}>
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
               </Button>
             )}
             <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleRejectRequest(request.id, request.user_id)}>
@@ -283,7 +305,7 @@ const BookIssueRequests = () => {
         {getStatusBadge(request.status)}
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-foreground">{request.requested_title || 'No title given'}</p>
+        <p className="text-sm font-semibold text-foreground">{purchaseTitle(request)}</p>
         {request.requested_author && <p className="text-xs text-muted-foreground">Author: {request.requested_author}</p>}
         {request.requested_isbn && <p className="text-xs text-muted-foreground">ISBN: {request.requested_isbn}</p>}
         {request.requested_description && <p className="text-xs text-muted-foreground line-clamp-2">{request.requested_description}</p>}
@@ -333,7 +355,7 @@ const BookIssueRequests = () => {
         {getStatusBadge(r.status)}
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-foreground">{r.title}</p>
+        <p className="text-sm font-semibold text-foreground">{r.title?.trim() || "Untitled suggestion"}</p>
         {r.author && <p className="text-xs text-muted-foreground">Author: {r.author}</p>}
         {r.reason && <p className="text-xs text-muted-foreground line-clamp-2">{r.reason}</p>}
       </div>

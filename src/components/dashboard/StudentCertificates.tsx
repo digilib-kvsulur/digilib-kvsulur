@@ -7,14 +7,24 @@ import { Award, Download, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import CertificateCanvas from "@/components/certificates/CertificateCanvas";
+import {
+  DEFAULT_CERTIFICATE_LAYOUT,
+  fetchCertificateLayout,
+  type CertificateLayout,
+} from "@/lib/librarySettings";
 
 interface StudentCertificatesProps {
   userId: string;
   userName?: string;
+  studentClass?: string;
 }
 
-export default function StudentCertificates({ userId, userName }: StudentCertificatesProps) {
+export default function StudentCertificates({ userId, userName, studentClass }: StudentCertificatesProps) {
   const [certs, setCerts] = useState<any[]>([]);
+  const [events, setEvents] = useState<Record<string, string>>({});
+  const [layout, setLayout] = useState<CertificateLayout>(DEFAULT_CERTIFICATE_LAYOUT);
+  const [profileClass, setProfileClass] = useState<string | null>(studentClass || null);
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<any | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -24,15 +34,32 @@ export default function StudentCertificates({ userId, userName }: StudentCertifi
     if (!userId) return;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("issued_certificates")
-        .select("*")
-        .eq("user_id", userId)
-        .order("issued_at", { ascending: false });
-      setCerts(data || []);
+      const [{ data }, lay, { data: prof }] = await Promise.all([
+        supabase
+          .from("issued_certificates")
+          .select("*")
+          .eq("user_id", userId)
+          .order("issued_at", { ascending: false }),
+        fetchCertificateLayout(),
+        studentClass
+          ? Promise.resolve({ data: null })
+          : supabase.from("profiles").select("student_class").eq("id", userId).maybeSingle(),
+      ]);
+      setLayout(lay);
+      if (!studentClass && prof?.student_class) setProfileClass(prof.student_class);
+
+      const list = data || [];
+      setCerts(list);
+      const eventIds = Array.from(new Set(list.map((c: any) => c.event_id).filter(Boolean)));
+      if (eventIds.length) {
+        const { data: evts } = await supabase.from("library_events").select("id, title").in("id", eventIds);
+        const map: Record<string, string> = {};
+        (evts || []).forEach((e: any) => { map[e.id] = e.title; });
+        setEvents(map);
+      }
       setLoading(false);
     })();
-  }, [userId]);
+  }, [userId, studentClass]);
 
   const downloadPdf = async () => {
     if (!certRef.current || !preview) return;
@@ -102,25 +129,19 @@ export default function StudentCertificates({ userId, userName }: StudentCertifi
           </DialogHeader>
           {preview && (
             <div className="space-y-4">
-              <div
-                ref={certRef}
-                className="relative aspect-[1.414] w-full overflow-hidden rounded-lg border bg-white"
-                style={
-                  preview.template_url
-                    ? { backgroundImage: `url(${preview.template_url})`, backgroundSize: "cover", backgroundPosition: "center" }
-                    : { background: "linear-gradient(135deg,#f8fafc,#e2e8f0)" }
-                }
-              >
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-white/40">
-                  <p className="text-xs uppercase tracking-[0.2em] font-semibold text-slate-700 mb-2">Certificate of Recognition</p>
-                  <p className="text-3xl font-serif font-bold text-slate-900 mb-1">{userName || "Student"}</p>
-                  <p className="text-sm text-slate-700 max-w-md mb-3">{preview.description || `Awarded for: ${preview.title}`}</p>
-                  <p className="text-base font-semibold text-slate-800">{preview.title}</p>
-                  <p className="text-xs text-slate-600 mt-4">
-                    {new Date(preview.issued_at).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
-                  </p>
-                </div>
-              </div>
+              <CertificateCanvas
+                canvasRef={certRef}
+                layout={layout}
+                data={{
+                  studentName: userName || "Student",
+                  studentClass: profileClass,
+                  eventName: preview.event_id ? events[preview.event_id] : null,
+                  title: preview.title,
+                  description: preview.description,
+                  issuedAt: preview.issued_at,
+                  templateUrl: preview.template_url,
+                }}
+              />
               <div className="flex gap-2">
                 <Button onClick={downloadPdf} disabled={downloading} className="flex-1">
                   <Download className="h-4 w-4 mr-2" /> {downloading ? "Generating..." : "Download PDF"}

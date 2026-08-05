@@ -7,8 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { IndianRupee, Save, Send, Download, Check, Ban } from "lucide-react";
+import { IndianRupee, Save, Send, Download, Check, Ban, Plus, ChevronsUpDown } from "lucide-react";
 import { buildUpiPaymentLink } from "@/lib/librarySettings";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 export default function FineManager() {
   const { toast } = useToast();
@@ -22,11 +25,27 @@ export default function FineManager() {
     upi_payee_name: "PM SHRI KV AFS Sulur Library",
   });
   const [saving, setSaving] = useState(false);
+  const [students, setStudents] = useState<any[]>([]);
+  const [openStudent, setOpenStudent] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [fineForm, setFineForm] = useState({
+    user_id: "",
+    book_title: "",
+    days_overdue: "0",
+    total_amount: "",
+  });
 
   const load = async () => {
-    const [{ data }, { data: fs }] = await Promise.all([
+    const [{ data }, { data: fs }, { data: studs }] = await Promise.all([
       supabase.from("library_fines").select("*").order("created_at", { ascending: false }),
       supabase.from("fine_settings").select("*").eq("id", 1).maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("id, first_name, last_name, student_class, admission_number")
+        .eq("is_approved", true)
+        .in("role", ["student", "teacher"])
+        .order("first_name")
+        .limit(2000),
     ]);
     if (fs) {
       setSettings({
@@ -36,6 +55,7 @@ export default function FineManager() {
         upi_payee_name: fs.upi_payee_name || "PM SHRI KV AFS Sulur Library",
       });
     }
+    setStudents(studs || []);
     const list = data || [];
     const ids = Array.from(new Set(list.map((r: any) => r.user_id)));
     let map: Record<string, any> = {};
@@ -133,6 +153,52 @@ export default function FineManager() {
     a.click();
   };
 
+  const selectedStudent = students.find((s) => s.id === fineForm.user_id);
+
+  const addFine = async () => {
+    const amount = parseFloat(fineForm.total_amount);
+    if (!fineForm.user_id) {
+      toast({ title: "Select a student", variant: "destructive" });
+      return;
+    }
+    if (!amount || amount <= 0) {
+      toast({ title: "Enter a valid amount", variant: "destructive" });
+      return;
+    }
+    setAdding(true);
+    try {
+      const days = Math.max(0, parseInt(fineForm.days_overdue) || 0);
+      const rate = settings.rate_per_day || 1;
+      const { error } = await supabase.from("library_fines").insert({
+        user_id: fineForm.user_id,
+        book_issue_id: null,
+        days_overdue: days,
+        rate_per_day: rate,
+        total_amount: amount,
+        status: "pending",
+        book_title: fineForm.book_title.trim() || "Manual fine",
+      });
+      if (error) throw error;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("notifications").insert({
+        target_user_id: fineForm.user_id,
+        sent_by: user!.id,
+        title: "Library fine added",
+        message: `A fine of ₹${amount.toFixed(2)} was added${fineForm.book_title.trim() ? ` for "${fineForm.book_title.trim()}"` : ""}. Pay via My Fines.`,
+        type: "warning",
+      });
+
+      toast({ title: "Fine added" });
+      setFineForm({ user_id: "", book_title: "", days_overdue: "0", total_amount: "" });
+      load();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
@@ -146,6 +212,96 @@ export default function FineManager() {
           <Download className="h-4 w-4 mr-2" /> Export CSV
         </Button>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2"><Plus className="h-4 w-4" /> Add Fine</CardTitle>
+          <CardDescription>Manually add a fine for a student or teacher (lost book, damage, etc.).</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5 md:col-span-2">
+            <Label>User</Label>
+            <Popover open={openStudent} onOpenChange={setOpenStudent}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                  {selectedStudent
+                    ? `${selectedStudent.first_name} ${selectedStudent.last_name}${selectedStudent.student_class ? ` · ${selectedStudent.student_class}` : ""}`
+                    : "Search student / teacher…"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[360px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Name, class, admission…" />
+                  <CommandList className="max-h-72">
+                    <CommandEmpty>No user found.</CommandEmpty>
+                    <CommandGroup>
+                      {students.map((s) => (
+                        <CommandItem
+                          key={s.id}
+                          value={`${s.first_name} ${s.last_name} ${s.admission_number || ""} ${s.student_class || ""}`}
+                          onSelect={() => {
+                            setFineForm((f) => ({ ...f, user_id: s.id }));
+                            setOpenStudent(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", fineForm.user_id === s.id ? "opacity-100" : "opacity-0")} />
+                          {s.first_name} {s.last_name}
+                          {s.admission_number ? ` · ${s.admission_number}` : ""}
+                          {s.student_class ? ` · ${s.student_class}` : ""}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Reason / book title</Label>
+            <Input
+              value={fineForm.book_title}
+              onChange={(e) => setFineForm((f) => ({ ...f, book_title: e.target.value }))}
+              placeholder="e.g. Lost book / Damaged cover"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Amount (₹)</Label>
+            <Input
+              type="number"
+              min={0.01}
+              step="0.01"
+              value={fineForm.total_amount}
+              onChange={(e) => setFineForm((f) => ({ ...f, total_amount: e.target.value }))}
+              placeholder="e.g. 50"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Days overdue (optional)</Label>
+            <Input
+              type="number"
+              min={0}
+              value={fineForm.days_overdue}
+              onChange={(e) => {
+                const days = e.target.value;
+                setFineForm((f) => {
+                  const next = { ...f, days_overdue: days };
+                  const d = parseInt(days) || 0;
+                  if (d > 0 && !f.total_amount) {
+                    next.total_amount = String(d * (settings.rate_per_day || 1));
+                  }
+                  return next;
+                });
+              }}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Button onClick={addFine} disabled={adding}>
+              <Plus className="h-4 w-4 mr-2" /> {adding ? "Adding…" : "Add Fine"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
