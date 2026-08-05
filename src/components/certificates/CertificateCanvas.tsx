@@ -152,6 +152,7 @@ export default function CertificateCanvas({
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== e.pointerId) return;
+    e.preventDefault();
     updateFromPointer(drag.key, e.clientX, e.clientY);
   };
 
@@ -169,7 +170,6 @@ export default function CertificateCanvas({
 
   const visibleKeys = CERT_FIELD_LABELS.map((f) => f.key).filter((key) => {
     if (!layout[key].visible) return false;
-    // In edit mode show placeholders even if sample data empty
     if (editable) return true;
     if (key === "className") return !!data.studentClass;
     if (key === "event") return !!data.eventName;
@@ -185,9 +185,6 @@ export default function CertificateCanvas({
         className
       )}
       style={bg}
-      onPointerMove={editable ? onPointerMove : undefined}
-      onPointerUp={editable ? endDrag : undefined}
-      onPointerCancel={editable ? endDrag : undefined}
     >
       {editable && (
         <div className="absolute inset-x-0 top-0 z-30 pointer-events-none bg-gradient-to-b from-black/45 to-transparent px-3 py-2">
@@ -205,6 +202,9 @@ export default function CertificateCanvas({
             key={key}
             style={fieldBoxStyle(f, editable, selected)}
             onPointerDown={(e) => onPointerDown(key, e)}
+            onPointerMove={editable ? onPointerMove : undefined}
+            onPointerUp={editable ? endDrag : undefined}
+            onPointerCancel={editable ? endDrag : undefined}
             className={cn(dragging === key && "cursor-grabbing")}
             title={editable ? CERT_FIELD_LABELS.find((x) => x.key === key)?.label : undefined}
           >
