@@ -4,10 +4,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bookmark, Trash2 } from "lucide-react";
+import { Star, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export default function Wishlist({ userId }: { userId: string }) {
+export default function Wishlist({ userId, compact = false }: { userId: string; compact?: boolean }) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [rows, setRows] = useState<any[]>([]);
@@ -28,13 +28,22 @@ export default function Wishlist({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2"><Bookmark className="h-6 w-6" /> My Wishlist</h2>
-        <p className="text-sm text-muted-foreground">Books you've saved for later.</p>
-      </div>
+      {!compact && (
+        <div>
+          <h2 className="text-2xl font-bold flex items-center gap-2"><Star className="h-6 w-6" /> Wishlist</h2>
+          <p className="text-sm text-muted-foreground">
+            Books you saved to read later — not a queue. Use Waitlist when a book has 0 copies.
+          </p>
+        </div>
+      )}
+      {compact && (
+        <p className="text-sm text-muted-foreground">
+          Saved for later. This is not a borrow queue — see <strong>Waitlist</strong> for unavailable books.
+        </p>
+      )}
       {rows.length === 0 && (
         <Card><CardContent className="p-8 text-center">
-          <Bookmark className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+          <Star className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground mb-3">No saved books yet.</p>
           <Button onClick={() => navigate("/catalog")}>Browse catalog</Button>
         </CardContent></Card>
@@ -46,7 +55,7 @@ export default function Wishlist({ userId }: { userId: string }) {
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{r.books?.title}</p>
                 <p className="text-xs text-muted-foreground">{r.books?.author}</p>
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex gap-2 flex-wrap">
                   {r.books?.category && <Badge variant="outline" className="text-[10px]">{r.books.category}</Badge>}
                   <Badge className={r.books?.available_copies > 0 ? "gradient-primary text-primary-foreground" : ""} variant={r.books?.available_copies > 0 ? "default" : "secondary"}>
                     {r.books?.available_copies > 0 ? "Available now" : "Not available"}

@@ -34,7 +34,7 @@ const iconFor = (type: RequestItem["type"], status: string) => {
   return Clock;
 };
 
-export default function MyRequests({ userId }: { userId: string }) {
+export default function MyRequests({ userId, hideWaitlist = false }: { userId: string; hideWaitlist?: boolean }) {
   const [items, setItems] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,7 +44,9 @@ export default function MyRequests({ userId }: { userId: string }) {
       const [bookRequests, renewals, reservations] = await Promise.all([
         supabase.from("book_requests").select("id, status, created_at, admin_notes, requested_title, requested_author, books(title, author)").eq("user_id", userId).order("created_at", { ascending: false }),
         supabase.from("book_renewals").select("*, book_issues(due_date, books(title, author))").eq("user_id", userId).order("created_at", { ascending: false }),
-        supabase.from("book_reservations").select("*, books(title, author)").eq("user_id", userId).order("created_at", { ascending: false }),
+        hideWaitlist
+          ? Promise.resolve({ data: [] as any[] })
+          : supabase.from("book_reservations").select("*, books(title, author)").eq("user_id", userId).order("created_at", { ascending: false }),
       ]);
 
       const bookItems: RequestItem[] = (bookRequests.data || []).map((r: any) => ({
@@ -67,15 +69,17 @@ export default function MyRequests({ userId }: { userId: string }) {
         note: r.admin_note || r.student_note,
       }));
 
-      const waitlistItems: RequestItem[] = (reservations.data || []).map((r: any) => ({
-        id: `waitlist-${r.id}`,
-        type: "waitlist",
-        title: r.books?.title || "Waitlist request",
-        subtitle: r.books?.author || "Reserved book",
-        status: r.status || "pending",
-        created_at: r.created_at,
-        note: r.note,
-      }));
+      const waitlistItems: RequestItem[] = hideWaitlist
+        ? []
+        : (reservations.data || []).map((r: any) => ({
+            id: `waitlist-${r.id}`,
+            type: "waitlist" as const,
+            title: r.books?.title || "Waitlist request",
+            subtitle: r.books?.author || "Reserved book",
+            status: r.status || "pending",
+            created_at: r.created_at,
+            note: r.note,
+          }));
 
       setItems([...bookItems, ...renewalItems, ...waitlistItems].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
     } finally {
@@ -83,7 +87,7 @@ export default function MyRequests({ userId }: { userId: string }) {
     }
   };
 
-  useEffect(() => { loadRequests(); }, [userId]);
+  useEffect(() => { loadRequests(); }, [userId, hideWaitlist]);
 
   const renderList = (list: RequestItem[]) => {
     if (loading) return <div className="py-10 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" /></div>;
@@ -128,7 +132,11 @@ export default function MyRequests({ userId }: { userId: string }) {
     <Card className="border-border/50">
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> My Requests</CardTitle>
-        <CardDescription>Book requests, renewals, and waitlist status</CardDescription>
+        <CardDescription>
+          {hideWaitlist
+            ? "Borrow and renewal requests"
+            : "Book requests, renewals, and waitlist status"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="all" className="space-y-4">

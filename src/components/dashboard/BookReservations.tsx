@@ -4,11 +4,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bookmark } from "lucide-react";
+import { ListOrdered } from "lucide-react";
 
-interface Props { userId: string }
+interface Props { userId: string; compact?: boolean }
 
-export default function BookReservations({ userId }: Props) {
+export default function BookReservations({ userId, compact = false }: Props) {
   const { toast } = useToast();
   const [rows, setRows] = useState<any[]>([]);
 
@@ -29,16 +29,31 @@ export default function BookReservations({ userId }: Props) {
   const cancel = async (id: string) => {
     const { error } = await supabase.from("book_reservations").update({ status: "cancelled" }).eq("id", id).eq("user_id", userId);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Reservation cancelled" }); load(); }
+    else { toast({ title: "Removed from waitlist" }); load(); }
   };
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold flex items-center gap-2"><Bookmark className="h-5 w-5" /> My Reservations</h2>
-        <p className="text-sm text-muted-foreground">Books you waitlisted when unavailable.</p>
-      </div>
-      {rows.length === 0 && <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No reservations yet.</CardContent></Card>}
+      {!compact && (
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2"><ListOrdered className="h-5 w-5" /> Waitlist</h2>
+          <p className="text-sm text-muted-foreground">
+            Queue for books with 0 copies. You are notified when one is returned. Different from Wishlist (saved for later).
+          </p>
+        </div>
+      )}
+      {compact && (
+        <p className="text-sm text-muted-foreground">
+          Borrow queue for unavailable books. Not the same as Wishlist.
+        </p>
+      )}
+      {rows.length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center text-sm text-muted-foreground">
+            No waitlist entries. Join the waitlist from the catalog when a book shows 0 copies.
+          </CardContent>
+        </Card>
+      )}
       <div className="space-y-2">
         {rows.map((r) => (
           <Card key={r.id}>
@@ -49,9 +64,9 @@ export default function BookReservations({ userId }: Props) {
                 <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary">{r.status}</Badge>
+                <Badge variant="secondary">{r.status === "pending" ? "In queue" : r.status}</Badge>
                 {r.status === "pending" && (
-                  <Button size="sm" variant="outline" onClick={() => cancel(r.id)}>Cancel</Button>
+                  <Button size="sm" variant="outline" onClick={() => cancel(r.id)}>Leave queue</Button>
                 )}
               </div>
             </CardContent>

@@ -9,7 +9,7 @@ import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award,
-  LifeBuoy, IndianRupee, Lightbulb, AlertTriangle, Newspaper
+  LifeBuoy, IndianRupee, AlertTriangle, Newspaper, BookCheck
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +18,6 @@ import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { Progress } from "@/components/ui/progress";
 
 import LevelProgress from "@/components/dashboard/LevelProgress";
-import CurrentBooks from "@/components/dashboard/CurrentBooks";
 import QuizPage from "@/components/dashboard/QuizPage";
 import LoginStreakCard from "@/components/dashboard/LoginStreakCard";
 import ReadingChallenges from "@/components/rewards/ReadingChallenges";
@@ -35,11 +34,9 @@ import StudentNotes from "@/components/dashboard/StudentNotes";
 import NCERTBooks from "@/components/dashboard/NCERTBooks";
 import StudyMaterials from "@/components/dashboard/StudyMaterials";
 import Community from "@/components/community/Community";
-import Wishlist from "@/components/dashboard/Wishlist";
 import EventsList from "@/components/dashboard/EventsList";
 import Recommendations from "@/components/dashboard/Recommendations";
 import BadgeCabinet from "@/components/rewards/BadgeCabinet";
-import MyRequests from "@/components/dashboard/MyRequests";
 import NetworkTab from "@/components/dashboard/NetworkTab";
 import ProfileCompletionDialog from "@/components/dashboard/ProfileCompletionDialog";
 import ReturnedBookReviewPrompt from "@/components/dashboard/ReturnedBookReviewPrompt";
@@ -47,26 +44,17 @@ import SupportCenter from "@/components/support/SupportCenter";
 import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
 import StudentCertificates from "@/components/dashboard/StudentCertificates";
 import MyFines from "@/components/dashboard/MyFines";
-import BookReservations from "@/components/dashboard/BookReservations";
-import BookSuggestions from "@/components/dashboard/BookSuggestions";
-import LostBookReport from "@/components/dashboard/LostBookReport";
 import Periodicals from "@/components/dashboard/Periodicals";
-import BookClubs from "@/components/dashboard/BookClubs";
+import IssuedBooksHub from "@/components/dashboard/IssuedBooksHub";
+import BookSuggestions from "@/components/dashboard/BookSuggestions";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
 
-type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "fines" | "reservations" | "suggestions" | "lost" | "periodicals" | "clubs";
+type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "fines" | "periodicals";
 
-const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
+const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
-  { id: "books", label: "My Books", icon: BookOpen },
-  { id: "fines", label: "My Fines", icon: IndianRupee },
-  { id: "reservations", label: "Reservations", icon: Bookmark },
-  { id: "requests", label: "My Requests", icon: BookPlus },
-  { id: "wishlist", label: "Wishlist", icon: Star },
-  { id: "suggestions", label: "Suggest Book", icon: Lightbulb },
-  { id: "lost", label: "Lost Book", icon: AlertTriangle },
-  { id: "periodicals", label: "Periodicals", icon: Newspaper },
-  { id: "clubs", label: "Book Clubs", icon: Users },
+  { id: "books", label: "Books", icon: BookOpen },
+  { id: "issued", label: "Book Issued", icon: BookCheck },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "notes", label: "My Notes", icon: StickyNote },
@@ -107,9 +95,19 @@ const StudentDashboard = () => {
   const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
   const [schoolReadingGoal, setSchoolReadingGoal] = useState(3);
   const [pendingFines, setPendingFines] = useState(0);
+  const [hasAnyFines, setHasAnyFines] = useState(false);
+  const [periodicalsVisible, setPeriodicalsVisible] = useState(false);
+  const [issueHistory, setIssueHistory] = useState<any[]>([]);
 
   const streakData = useLoginStreak(user?.id);
   usePushSubscription(user?.id);
+
+  const navItems = [
+    ...baseNavItems.slice(0, 3),
+    ...(hasAnyFines ? [{ id: "fines" as Tab, label: "My Fines", icon: IndianRupee }] : []),
+    ...(periodicalsVisible ? [{ id: "periodicals" as Tab, label: "Periodicals", icon: Newspaper }] : []),
+    ...baseNavItems.slice(3),
+  ];
 
   useEffect(() => { checkAuth(); }, []);
 
@@ -312,9 +310,24 @@ const StudentDashboard = () => {
     if (user?.id) {
       fetchCurrentBooks(); fetchQuizResults(); fetchAvailableQuizzes(); fetchChallenges();
       fetchRecentActivities(); fetchMonthlyBooksRead(); fetchBadgesCount();
-      supabase.from("library_fines").select("id", { count: "exact", head: true })
-        .eq("user_id", user.id).eq("status", "pending")
-        .then(({ count }) => setPendingFines(count || 0));
+      supabase.from("library_fines").select("id, status")
+        .eq("user_id", user.id)
+        .then(({ data }) => {
+          const rows = data || [];
+          setHasAnyFines(rows.length > 0);
+          setPendingFines(rows.filter((r) => r.status === "pending").length);
+        });
+      supabase.from("system_settings").select("value").eq("key", "periodicals_visible_to_students").maybeSingle()
+        .then(({ data }) => {
+          const v = data?.value;
+          setPeriodicalsVisible(v === true || v === "true" || (typeof v === "string" && String(v).replace(/"/g, "") === "true"));
+        });
+      supabase
+        .from("book_issues")
+        .select("id, status, issue_date, due_date, return_date, accession_number, books(title, author)")
+        .eq("user_id", user.id)
+        .order("issue_date", { ascending: false })
+        .then(({ data }) => setIssueHistory(data || []));
     }
   }, [user?.id]);
 
@@ -420,12 +433,12 @@ const StudentDashboard = () => {
           {activeTab === "overview" && (
             <div className="space-y-6">
               {pendingFines > 0 && (
-                <Card className="border-destructive/40 bg-destructive/5 cursor-pointer" onClick={() => setActiveTab("fines")}>
+                <Card className="border-destructive/40 bg-destructive/5 cursor-pointer" onClick={() => setActiveTab("issued")}>
                   <CardContent className="p-4 flex items-center gap-3">
                     <AlertTriangle className="h-5 w-5 text-destructive" />
                     <div>
                       <p className="text-sm font-semibold text-destructive">You have {pendingFines} pending fine(s)</p>
-                      <p className="text-xs text-muted-foreground">Tap to view and pay via UPI</p>
+                      <p className="text-xs text-muted-foreground">Open Book Issued → Fines to pay via UPI</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -523,7 +536,7 @@ const StudentDashboard = () => {
                         { label: "Study Materials", icon: FileText, tab: "materials", color: "text-indigo-600", bg: "bg-indigo-50" },
                         { label: "Library Events", icon: CalendarDays, tab: "events", color: "text-rose-600", bg: "bg-rose-50" },
                         { label: "Community", icon: Users, tab: "community", color: "text-amber-600", bg: "bg-amber-50" },
-                        { label: "Network", icon: Bookmark, tab: "network", color: "text-purple-600", bg: "bg-purple-50" },
+                        { label: "Book Issued", icon: BookCheck, tab: "issued", color: "text-purple-600", bg: "bg-purple-50" },
                       ].map(a => (
                         <button
                           key={a.tab}
@@ -590,34 +603,80 @@ const StudentDashboard = () => {
             </div>
           )}
 
-          {activeTab === "requests" && user?.id && <MyRequests userId={user.id} />}
-          {activeTab === "wishlist" && user?.id && <Wishlist userId={user.id} />}
           {activeTab === "events" && user?.id && <EventsList userId={user.id} />}
 
-
-          {/* Books Tab */}
+          {/* Books Tab — reading history + issue history */}
           {activeTab === "books" && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-foreground">My Books</h2>
-                 <div className="flex gap-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h2 className="text-xl font-bold text-foreground">Books</h2>
+                  <p className="text-sm text-muted-foreground">Your reading log and borrow history</p>
+                </div>
+                <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold" onClick={() => navigate('/catalog')}>
                     <Search className="h-4 w-4 mr-2" /> Browse Catalog
                   </Button>
-                  <Button size="sm" variant="secondary" className="font-semibold text-slate-700 hover:bg-slate-200" onClick={() => setShowBookRequest(true)}>
-                    <BookPlus className="h-4 w-4 mr-2" /> Suggest Purchase
+                  <Button size="sm" variant="secondary" onClick={() => setActiveTab("issued")}>
+                    <BookCheck className="h-4 w-4 mr-2" /> Book Issued hub
                   </Button>
                 </div>
               </div>
+
               <Card className="border-border/50">
-                <CardHeader><CardTitle className="text-lg">Currently Borrowed</CardTitle><CardDescription>Books checked out from the library</CardDescription></CardHeader>
-                <CardContent><CurrentBooks books={currentBooks} /></CardContent>
-              </Card>
-              <Card className="border-border/50">
-                <CardHeader><CardTitle className="text-lg">Reading History</CardTitle><CardDescription>Track and manage your reading progress</CardDescription></CardHeader>
+                <CardHeader>
+                  <CardTitle className="text-lg">Reading History</CardTitle>
+                  <CardDescription>Books you logged as read (for points & goals)</CardDescription>
+                </CardHeader>
                 <CardContent><ReadingHistoryManager /></CardContent>
               </Card>
+
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Issued book history</CardTitle>
+                  <CardDescription>Every book the library has issued to you</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {issueHistory.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-8">No issued books yet.</p>
+                  )}
+                  {issueHistory.map((i) => {
+                    const overdue = i.status === "issued" && i.due_date && new Date(i.due_date) < new Date();
+                    return (
+                      <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border text-sm">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{i.books?.title || "Book"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {i.books?.author || "—"}
+                            {i.issue_date ? ` · Issued ${new Date(i.issue_date).toLocaleDateString()}` : ""}
+                            {i.return_date ? ` · Returned ${new Date(i.return_date).toLocaleDateString()}` : i.due_date ? ` · Due ${new Date(i.due_date).toLocaleDateString()}` : ""}
+                          </p>
+                        </div>
+                        <Badge variant={overdue ? "destructive" : i.status === "returned" ? "secondary" : "default"}>
+                          {overdue ? "Overdue" : i.status}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              {user?.id && (
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Suggest a purchase</CardTitle>
+                    <CardDescription>Recommend a title for the library to buy</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <BookSuggestions userId={user.id} embedded />
+                  </CardContent>
+                </Card>
+              )}
             </div>
+          )}
+
+          {activeTab === "issued" && user?.id && (
+            <IssuedBooksHub userId={user.id} currentBooks={currentBooks} />
           )}
 
           {/* Notes */}
@@ -626,7 +685,7 @@ const StudentDashboard = () => {
           {/* Study Materials */}
           {activeTab === "materials" && <StudyMaterials studentClass={user?.student_class} />}
 
-          {/* Community */}
+          {/* Community (includes Book Clubs tab) */}
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={false} />}
 
           {/* Quizzes Tab */}
@@ -656,12 +715,8 @@ const StudentDashboard = () => {
             />
           )}
 
-          {activeTab === "fines" && user?.id && <MyFines userId={user.id} />}
-          {activeTab === "reservations" && user?.id && <BookReservations userId={user.id} />}
-          {activeTab === "suggestions" && user?.id && <BookSuggestions userId={user.id} />}
-          {activeTab === "lost" && user?.id && <LostBookReport userId={user.id} />}
-          {activeTab === "periodicals" && <Periodicals />}
-          {activeTab === "clubs" && user?.id && <BookClubs userId={user.id} />}
+          {activeTab === "fines" && user?.id && hasAnyFines && <MyFines userId={user.id} />}
+          {activeTab === "periodicals" && periodicalsVisible && <Periodicals />}
 
           {/* Rankings Tab */}
           {activeTab === "rankings" && <Rankings user={user} />}

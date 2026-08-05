@@ -16,10 +16,16 @@ export default function PeriodicalManager() {
   const [selected, setSelected] = useState<string>("");
   const [form, setForm] = useState({ title: "", type: "magazine", frequency: "", publisher: "" });
   const [issueForm, setIssueForm] = useState({ issue_date: "", volume: "", issue_number: "", notes: "" });
+  const [studentVisible, setStudentVisible] = useState(false);
 
   const load = async () => {
-    const { data } = await supabase.from("periodicals").select("*").order("title");
+    const [{ data }, { data: setting }] = await Promise.all([
+      supabase.from("periodicals").select("*").order("title"),
+      supabase.from("system_settings").select("value").eq("key", "periodicals_visible_to_students").maybeSingle(),
+    ]);
     setItems(data || []);
+    const v = setting?.value;
+    setStudentVisible(v === true || v === "true" || (typeof v === "string" && v.replace(/"/g, "") === "true"));
   };
 
   const loadIssues = async (id: string) => {
@@ -70,6 +76,29 @@ export default function PeriodicalManager() {
         <h2 className="text-2xl font-bold flex items-center gap-2"><Newspaper className="h-6 w-6" /> Periodicals</h2>
         <p className="text-sm text-muted-foreground">Newspapers, magazines, and journals.</p>
       </div>
+
+      <Card>
+        <CardContent className="p-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Show to students</p>
+            <p className="text-xs text-muted-foreground">
+              When off, Newspapers & Magazines stay hidden on the student dashboard.
+            </p>
+          </div>
+          <Switch
+            checked={studentVisible}
+            onCheckedChange={async (checked) => {
+              setStudentVisible(checked);
+              await supabase.from("system_settings").upsert(
+                [{ key: "periodicals_visible_to_students", value: checked as any }],
+                { onConflict: "key" }
+              );
+              toast({ title: checked ? "Visible to students" : "Hidden from students" });
+            }}
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader><CardTitle className="text-base">Add periodical</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">

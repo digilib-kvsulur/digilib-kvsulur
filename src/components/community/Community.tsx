@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
 import { getAvatarUrl } from "@/lib/utils";
+import BookClubs from "@/components/dashboard/BookClubs";
 
 
 interface Post { id: string; title: string; content: string; user_id: string; created_at: string; author?: any; likes: number; liked: boolean; comment_count: number; media_url?: string; media_type?: string; }
@@ -214,6 +215,15 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           <h2 className="text-xl font-bold flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Community</h2>
           <p className="text-sm text-muted-foreground">Share thoughts, connect with classmates & teachers</p>
         </div>
+      </div>
+
+      <Tabs defaultValue="feed" className="w-full">
+        <TabsList>
+          <TabsTrigger value="feed">Feed</TabsTrigger>
+          <TabsTrigger value="clubs">Book Clubs</TabsTrigger>
+        </TabsList>
+        <TabsContent value="feed" className="space-y-4 mt-4">
+      <div className="flex items-center justify-end flex-wrap gap-2">
         <div className="flex gap-2">
           <Dialog open={friendsOpen} onOpenChange={setFriendsOpen}>
             <DialogTrigger asChild>
@@ -352,6 +362,12 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           ))}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="clubs" className="mt-4">
+          <BookClubs userId={currentUserId} />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={!!profileDialogUser} onOpenChange={(o) => !o && setProfileDialogUser(null)}>
         <DialogContent className="max-w-lg p-0 overflow-hidden">

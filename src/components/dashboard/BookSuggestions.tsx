@@ -9,9 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Lightbulb } from "lucide-react";
 
-interface Props { userId: string }
+interface Props { userId: string; embedded?: boolean }
 
-export default function BookSuggestions({ userId }: Props) {
+export default function BookSuggestions({ userId, embedded = false }: Props) {
   const { toast } = useToast();
   const [rows, setRows] = useState<any[]>([]);
   const [form, setForm] = useState({ title: "", author: "", reason: "" });
@@ -47,13 +47,15 @@ export default function BookSuggestions({ userId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold flex items-center gap-2"><Lightbulb className="h-5 w-5" /> Suggest a Book</h2>
-        <p className="text-sm text-muted-foreground">Recommend titles for the library to procure.</p>
-      </div>
+      {!embedded && (
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2"><Lightbulb className="h-5 w-5" /> Suggest a Book</h2>
+          <p className="text-sm text-muted-foreground">Recommend titles for the library to procure.</p>
+        </div>
+      )}
       <Card>
-        <CardHeader><CardTitle className="text-base">New suggestion</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
+        {embedded ? null : <CardHeader><CardTitle className="text-base">New suggestion</CardTitle></CardHeader>}
+        <CardContent className={`space-y-3 ${embedded ? "pt-0" : ""}`}>
           <div className="space-y-1.5"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} /></div>
           <div className="space-y-1.5"><Label>Author</Label><Input value={form.author} onChange={(e) => setForm((f) => ({ ...f, author: e.target.value }))} /></div>
           <div className="space-y-1.5"><Label>Reason</Label><Textarea value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} rows={2} /></div>
