@@ -104,3 +104,73 @@ export async function fetchCertificateTemplateUrl(): Promise<string | null> {
   if (!raw || raw === "null") return null;
   return raw;
 }
+
+export type CertAlign = "left" | "center" | "right";
+
+export interface CertFieldLayout {
+  x: number;
+  y: number;
+  fontSize: number;
+  visible: boolean;
+  align: CertAlign;
+}
+
+export interface CertificateLayout {
+  name: CertFieldLayout;
+  className: CertFieldLayout;
+  event: CertFieldLayout;
+  title: CertFieldLayout;
+  description: CertFieldLayout;
+  date: CertFieldLayout;
+}
+
+export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
+  name: { x: 50, y: 42, fontSize: 28, visible: true, align: "center" },
+  className: { x: 50, y: 50, fontSize: 14, visible: true, align: "center" },
+  event: { x: 50, y: 56, fontSize: 16, visible: true, align: "center" },
+  title: { x: 50, y: 64, fontSize: 18, visible: true, align: "center" },
+  description: { x: 50, y: 72, fontSize: 13, visible: true, align: "center" },
+  date: { x: 50, y: 82, fontSize: 12, visible: true, align: "center" },
+};
+
+function parseFieldLayout(raw: unknown, fallback: CertFieldLayout): CertFieldLayout {
+  if (!raw || typeof raw !== "object") return { ...fallback };
+  const o = raw as Record<string, unknown>;
+  const align = o.align === "left" || o.align === "right" || o.align === "center" ? o.align : fallback.align;
+  return {
+    x: typeof o.x === "number" ? o.x : fallback.x,
+    y: typeof o.y === "number" ? o.y : fallback.y,
+    fontSize: typeof o.fontSize === "number" ? o.fontSize : fallback.fontSize,
+    visible: typeof o.visible === "boolean" ? o.visible : fallback.visible,
+    align,
+  };
+}
+
+export async function fetchCertificateLayout(): Promise<CertificateLayout> {
+  const { data } = await supabase
+    .from("system_settings")
+    .select("value")
+    .eq("key", "certificate_layout")
+    .maybeSingle();
+  let raw: any = data?.value;
+  if (typeof raw === "string") {
+    try { raw = JSON.parse(raw); } catch { raw = null; }
+  }
+  if (!raw || typeof raw !== "object") return { ...DEFAULT_CERTIFICATE_LAYOUT };
+  return {
+    name: parseFieldLayout(raw.name, DEFAULT_CERTIFICATE_LAYOUT.name),
+    className: parseFieldLayout(raw.className, DEFAULT_CERTIFICATE_LAYOUT.className),
+    event: parseFieldLayout(raw.event, DEFAULT_CERTIFICATE_LAYOUT.event),
+    title: parseFieldLayout(raw.title, DEFAULT_CERTIFICATE_LAYOUT.title),
+    description: parseFieldLayout(raw.description, DEFAULT_CERTIFICATE_LAYOUT.description),
+    date: parseFieldLayout(raw.date, DEFAULT_CERTIFICATE_LAYOUT.date),
+  };
+}
+
+export async function saveCertificateLayout(layout: CertificateLayout): Promise<void> {
+  const { error } = await supabase.from("system_settings").upsert(
+    { key: "certificate_layout", value: layout as any },
+    { onConflict: "key" }
+  );
+  if (error) throw error;
+}
