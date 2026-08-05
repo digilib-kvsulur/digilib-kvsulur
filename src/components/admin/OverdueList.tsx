@@ -13,47 +13,82 @@ import {
   type LibraryFineSettings,
 } from "@/lib/librarySettings";
 
+function localTodayISODate() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function isIssueOverdue(dueDate: string | null | undefined, status: string) {
+  if (!dueDate || status === "returned") return false;
+  if (status !== "issued" && status !== "overdue") return false;
+  return String(dueDate).slice(0, 10) < localTodayISODate();
+}
+
 export default function OverdueList() {
   const { toast } = useToast();
   const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fineSettings, setFineSettings] = useState<LibraryFineSettings | null>(null);
   const [bulkSending, setBulkSending] = useState(false);
 
-  const getTodayISO = () => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
-  };
-
   const load = async () => {
-    const startOfToday = getTodayISO();
-    const [{ data, error }, settings] = await Promise.all([
-      supabase
-        .from("book_issues")
-        .select("id, due_date, user_id, accession_number, books(title, accession_number, accession_numbers)")
-        .eq("status", "issued")
-        .lt("due_date", startOfToday)
-        .order("due_date", { ascending: true }),
-      fetchFineSettings(),
-    ]);
-    setFineSettings(settings);
-    if (error) {
-      console.error(error);
-      toast({ title: "Error", description: error.message || "Failed to load overdue books.", variant: "destructive" });
-      return;
+    setLoading(true);
+    try {
+      const [{ data, error }, settings] = await Promise.all([
+        supabase
+          .from("book_issues")
+          .select("id, due_date, user_id, book_id, status, accession_number")
+          .in("status", ["issued", "overdue"])
+          .order("due_date", { ascending: true }),
+        fetchFineSettings(),
+      ]);
+      setFineSettings(settings);
+      if (error) {
+        console.error(error);
+        toast({ title: "Error", description: error.message || "Failed to load overdue books.", variant: "destructive" });
+        setRows([]);
+        return;
+      }
+
+      const overdue = (data || []).filter((r: any) => isIssueOverdue(r.due_date, r.status));
+      const userIds = Array.from(new Set(overdue.map((r: any) => r.user_id).filter(Boolean)));
+      const bookIds = Array.from(new Set(overdue.map((r: any) => r.book_id).filter(Boolean)));
+
+      let profileMap: Record<string, any> = {};
+      let bookMap: Record<string, any> = {};
+
+      if (userIds.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, student_class, roll_number, admission_number, role")
+          .in("id", userIds);
+        (profs || []).forEach((p: any) => {
+          profileMap[p.id] = p;
+        });
+      }
+      if (bookIds.length) {
+        const { data: books } = await supabase
+          .from("books")
+          .select("id, title, accession_number, accession_numbers")
+          .in("id", bookIds);
+        (books || []).forEach((b: any) => {
+          bookMap[b.id] = b;
+        });
+      }
+
+      setRows(
+        overdue.map((r: any) => ({
+          ...r,
+          profiles: profileMap[r.user_id],
+          books: bookMap[r.book_id],
+        }))
+      );
+    } finally {
+      setLoading(false);
     }
-    const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id).filter(Boolean)));
-    let profileMap: Record<string, any> = {};
-    if (userIds.length) {
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, student_class, roll_number, admission_number, role")
-        .in("id", userIds);
-      (profs || []).forEach((p: any) => {
-        profileMap[p.id] = p;
-      });
-    }
-    setRows((data || []).map((r: any) => ({ ...r, profiles: profileMap[r.user_id] })));
   };
 
   useEffect(() => {
@@ -121,6 +156,14 @@ export default function OverdueList() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between flex-wrap gap-3">
@@ -133,21 +176,24 @@ export default function OverdueList() {
             {fineSettings ? ` · ₹${fineSettings.finePerDay}/day fine` : ""}.
           </p>
         </div>
-        {rows.length > 0 && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={async () => {
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={async () => {
               const { data, error } = await supabase.rpc("send_due_soon_reminders" as any, { p_days: 2 });
               if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
               else toast({ title: "Due-soon reminders sent", description: `${data || 0} notification(s).` });
-            }}>
-              Due Soon Reminders
-            </Button>
+            }}
+          >
+            Due Soon Reminders
+          </Button>
+          {rows.length > 0 && (
             <Button variant="outline" onClick={remindAll} disabled={bulkSending}>
               <Users className="h-4 w-4 mr-2" />
               {bulkSending ? "Sending..." : "Remind All Overdue"}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       {rows.length === 0 && <p className="text-sm text-muted-foreground">Nothing overdue.</p>}
       <div className="space-y-2">
@@ -157,14 +203,15 @@ export default function OverdueList() {
             <Card key={r.id}>
               <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <p className="font-medium text-sm">{r.books?.title}</p>
+                  <p className="font-medium text-sm">{r.books?.title || "Unknown title"}</p>
                   <p className="text-xs text-muted-foreground">
                     {r.profiles?.first_name} {r.profiles?.last_name} · Class {r.profiles?.student_class || "—"} · Roll{" "}
                     {r.profiles?.roll_number || "—"}
                   </p>
                   <p className="text-xs text-muted-foreground">
+                    Due {r.due_date}
                     {r.profiles?.admission_number && (
-                      <span>
+                      <span className="ml-2">
                         {r.profiles.role === "teacher" ? "Emp Code" : "Admn"}: {r.profiles.admission_number}
                       </span>
                     )}

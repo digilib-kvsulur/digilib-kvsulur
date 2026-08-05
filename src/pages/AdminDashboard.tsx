@@ -44,16 +44,13 @@ import SupportTicketsManager from "@/components/admin/SupportTicketsManager";
 import LibrarySettings from "@/components/admin/LibrarySettings";
 import CertificateManager from "@/components/admin/CertificateManager";
 import FineManager from "@/components/admin/FineManager";
-import ReservationManager from "@/components/admin/ReservationManager";
-import SuggestionManager from "@/components/admin/SuggestionManager";
 import LostBooksManager from "@/components/admin/LostBooksManager";
 import PeriodicalManager from "@/components/admin/PeriodicalManager";
 import BookClubManager from "@/components/admin/BookClubManager";
-import DuplicateDetector from "@/components/admin/DuplicateDetector";
 import { LifeBuoy } from "lucide-react";
-import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert, IndianRupee, BookmarkCheck, Lightbulb, Newspaper, Users as UsersIcon, Copy } from "lucide-react";
+import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert, IndianRupee, Newspaper, Users as UsersIcon } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "support" | "settings" | "certificates" | "fines" | "reservations" | "suggestions" | "lost-books" | "periodicals" | "clubs" | "duplicates";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs";
 
 const navSections = [
   {
@@ -82,10 +79,7 @@ const navSections = [
       { id: "book-issues" as Tab, label: "Book Issues", icon: BookCheck },
       { id: "overdue" as Tab, label: "Overdue", icon: AlertTriangle },
       { id: "fines" as Tab, label: "Fines", icon: IndianRupee },
-      { id: "reservations" as Tab, label: "Reservations", icon: BookmarkCheck },
-      { id: "suggestions" as Tab, label: "Suggestions", icon: Lightbulb },
       { id: "lost-books" as Tab, label: "Lost Books", icon: AlertTriangle },
-      { id: "duplicates" as Tab, label: "Duplicates", icon: Copy },
       { id: "condemnation" as Tab, label: "Condemnation", icon: ShieldAlert },
       { id: "shelf-data" as Tab, label: "Shelf Data", icon: HardDriveDownload },
       { id: "cover-data" as Tab, label: "Cover Pages", icon: ImageIcon },
@@ -343,10 +337,7 @@ const AdminDashboard = () => {
           {activeTab === "book-issues" && <BookIssueRegister />}
           {activeTab === "overdue" && <OverdueList />}
           {activeTab === "fines" && <FineManager />}
-          {activeTab === "reservations" && <ReservationManager />}
-          {activeTab === "suggestions" && <SuggestionManager />}
           {activeTab === "lost-books" && <LostBooksManager />}
-          {activeTab === "duplicates" && <DuplicateDetector />}
           {activeTab === "condemnation" && <BookCondemnation />}
           {activeTab === "periodicals" && <PeriodicalManager />}
           {activeTab === "clubs" && <BookClubManager />}

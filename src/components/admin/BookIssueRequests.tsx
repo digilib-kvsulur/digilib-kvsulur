@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Trash2, BookOpen, User, Clock, MessageSquare, Send, BookMarked } from "lucide-react";
+import { CheckCircle, XCircle, Trash2, BookOpen, User, Clock, MessageSquare, Send, BookMarked, Lightbulb, Check, X } from "lucide-react";
 
 interface BookRequest {
   id: string;
@@ -21,21 +21,44 @@ interface BookRequest {
   requested_description?: string | null;
   book?: { title: string; author: string; available_copies: number; accession_number?: string | null } | null;
   profile?: { first_name: string; last_name: string; student_class?: string; role?: string; admission_number?: string | null; employee_code?: string | null } | null;
+  fromWaitlist?: boolean;
+}
+
+interface BookSuggestion {
+  id: string;
+  user_id: string;
+  title: string;
+  author?: string | null;
+  reason?: string | null;
+  status: string;
+  admin_note?: string | null;
+  created_at: string;
+  profile?: { first_name: string; last_name: string; student_class?: string } | null;
 }
 
 const BookIssueRequests = () => {
   const [requests, setRequests] = useState<BookRequest[]>([]);
+  const [suggestions, setSuggestions] = useState<BookSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [replyingIds, setReplyingIds] = useState<Set<string>>(new Set());
+  const [suggestionNotes, setSuggestionNotes] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
-  useEffect(() => { loadRequests(); }, []);
+  useEffect(() => { loadAll(); }, []);
+
+  const loadAll = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([loadRequests(), loadSuggestions()]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadRequests = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('book_requests')
         .select('*')
@@ -51,14 +74,31 @@ const BookIssueRequests = () => {
             book = b;
           }
           const { data: p } = await supabase.from('profiles').select('first_name, last_name, student_class, admission_number, role').eq('id', req.user_id).maybeSingle();
-          return { ...req, book, profile: p };
+          const fromWaitlist = typeof req.admin_notes === 'string' && req.admin_notes.toLowerCase().includes('waitlist');
+          return { ...req, book, profile: p, fromWaitlist };
         })
       );
       setRequests(enriched);
     } catch (error) {
       console.error('Error loading requests:', error);
       toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
-    } finally { setLoading(false); }
+    }
+  };
+
+  const loadSuggestions = async () => {
+    const { data, error } = await supabase.from("book_suggestions").select("*").order("created_at", { ascending: false });
+    if (error) {
+      console.error(error);
+      return;
+    }
+    const list = data || [];
+    const ids = Array.from(new Set(list.map((r: any) => r.user_id)));
+    let map: Record<string, any> = {};
+    if (ids.length) {
+      const { data: p } = await supabase.from("profiles").select("id, first_name, last_name, student_class").in("id", ids);
+      (p || []).forEach((x) => { map[x.id] = x; });
+    }
+    setSuggestions(list.map((r: any) => ({ ...r, profile: map[r.user_id] })));
   };
 
   const handleApproveRequest = async (requestId: string, _bookId: string, userId: string) => {
@@ -71,14 +111,13 @@ const BookIssueRequests = () => {
         p_due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       });
       if (approvalError) throw approvalError;
-      // Send notification
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('notifications').insert({ 
-        target_user_id: userId, 
-        sent_by: user!.id, 
-        title: 'Borrow request approved', 
-        message: customReply || 'Your book request has been approved and the book has been issued to you.', 
-        type: 'success' 
+      await supabase.from('notifications').insert({
+        target_user_id: userId,
+        sent_by: user!.id,
+        title: 'Borrow request approved',
+        message: customReply || 'Your book request has been approved and the book has been issued to you.',
+        type: 'success'
       });
       toast({ title: "Success", description: "Book request approved and issued." });
       setReplyText(prev => { const c = { ...prev }; delete c[requestId]; return c; });
@@ -91,7 +130,6 @@ const BookIssueRequests = () => {
       const reply = replyText[requestId]?.trim() || 'Request rejected by admin';
       const { error } = await supabase.from('book_requests').update({ status: 'rejected', admin_notes: reply }).eq('id', requestId);
       if (error) throw error;
-      // Send notification
       const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('notifications').insert({ target_user_id: userId, sent_by: user!.id, title: 'Request rejected', message: reply, type: 'info' });
       toast({ title: "Success", description: "Book request rejected." });
@@ -126,6 +164,24 @@ const BookIssueRequests = () => {
     finally { setDeletingIds(prev => { const s = new Set(prev); s.delete(requestId); return s; }); }
   };
 
+  const decideSuggestion = async (r: BookSuggestion, status: "approved" | "rejected") => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const admin_note = suggestionNotes[r.id] || null;
+    const { error } = await supabase.from("book_suggestions").update({ status, admin_note }).eq("id", r.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    await supabase.from("notifications").insert({
+      target_user_id: r.user_id,
+      sent_by: user!.id,
+      title: status === "approved" ? "Book suggestion approved" : "Book suggestion rejected",
+      message: status === "approved"
+        ? `Your suggestion "${r.title}" was approved.${admin_note ? ` Note: ${admin_note}` : ""}`
+        : `Your suggestion "${r.title}" was not accepted.${admin_note ? ` Note: ${admin_note}` : ""}`,
+      type: status === "approved" ? "success" : "info",
+    });
+    toast({ title: status === "approved" ? "Approved" : "Rejected" });
+    loadSuggestions();
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending': return <Badge className="bg-warning/10 text-warning border-warning/20">Pending</Badge>;
@@ -139,6 +195,7 @@ const BookIssueRequests = () => {
 
   const borrowRequests = requests.filter(r => r.book_id);
   const customRequests = requests.filter(r => !r.book_id);
+  const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
 
   const renderBorrowRequestCard = (request: BookRequest) => (
     <div key={request.id} className="p-4 rounded-xl border border-border/50 bg-card hover:shadow-sm transition-all space-y-3">
@@ -157,7 +214,12 @@ const BookIssueRequests = () => {
             )}
           </div>
         </div>
-        {getStatusBadge(request.status)}
+        <div className="flex flex-col items-end gap-1">
+          {getStatusBadge(request.status)}
+          {request.fromWaitlist && request.status === 'pending' && (
+            <Badge variant="outline" className="text-[10px]">From waitlist</Badge>
+          )}
+        </div>
       </div>
       <div className="flex items-start gap-2">
         <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -256,15 +318,61 @@ const BookIssueRequests = () => {
     </div>
   );
 
+  const renderSuggestionCard = (r: BookSuggestion) => (
+    <div key={`sug-${r.id}`} className="p-4 rounded-xl border border-border/50 bg-card hover:shadow-sm transition-all space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+            <Lightbulb className="h-4 w-4 text-amber-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">{r.profile?.first_name || 'Unknown'} {r.profile?.last_name || ''}</p>
+            <p className="text-xs text-muted-foreground">{r.profile?.student_class ? `Class ${r.profile.student_class}` : 'N/A'}</p>
+          </div>
+        </div>
+        {getStatusBadge(r.status)}
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-semibold text-foreground">{r.title}</p>
+        {r.author && <p className="text-xs text-muted-foreground">Author: {r.author}</p>}
+        {r.reason && <p className="text-xs text-muted-foreground line-clamp-2">{r.reason}</p>}
+      </div>
+      {r.admin_note && (
+        <p className="text-xs text-muted-foreground italic border-t border-border/30 pt-2">{r.admin_note}</p>
+      )}
+      {r.status === 'pending' && (
+        <div className="space-y-2 pt-1">
+          <Textarea
+            placeholder="Admin note (optional)..."
+            value={suggestionNotes[r.id] || ''}
+            onChange={e => setSuggestionNotes(prev => ({ ...prev, [r.id]: e.target.value }))}
+            rows={2}
+            className="text-xs resize-none"
+          />
+          <div className="flex gap-2">
+            <Button size="sm" className="flex-1" onClick={() => decideSuggestion(r, 'approved')}>
+              <Check className="h-3.5 w-3.5 mr-1" /> Approve
+            </Button>
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => decideSuggestion(r, 'rejected')}>
+              <X className="h-3.5 w-3.5 mr-1" /> Reject
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const pendingBorrow = borrowRequests.filter(r => r.status === 'pending');
   const processedBorrow = borrowRequests.filter(r => r.status !== 'pending');
-  const pendingCustom = customRequests.filter(r => r.status === 'pending');
+  const purchaseItemsCount = customRequests.length + suggestions.length;
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-foreground">Book Requests</h2>
-        <p className="text-sm text-muted-foreground">Manage borrow requests and student book purchase suggestions.</p>
+        <p className="text-sm text-muted-foreground">
+          Borrow requests (including waitlist when a book returns), and purchase suggestions.
+        </p>
       </div>
 
       <Tabs defaultValue="borrow">
@@ -275,7 +383,11 @@ const BookIssueRequests = () => {
           </TabsTrigger>
           <TabsTrigger value="custom" className="gap-2">
             <MessageSquare className="h-4 w-4" /> Purchase Suggestions
-            {pendingCustom.length > 0 && <Badge className="ml-1 bg-violet-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{pendingCustom.length}</Badge>}
+            {(pendingSuggestions.length + customRequests.filter(r => r.status === 'pending').length) > 0 && (
+              <Badge className="ml-1 bg-violet-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                {pendingSuggestions.length + customRequests.filter(r => r.status === 'pending').length}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -283,7 +395,9 @@ const BookIssueRequests = () => {
           <Card>
             <CardHeader>
               <CardTitle>Pending Borrow Requests ({pendingBorrow.length})</CardTitle>
-              <CardDescription>Approve or reject student book borrowing requests</CardDescription>
+              <CardDescription>
+                Approve or reject borrow requests. Waitlist items appear here automatically when the book is returned.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {pendingBorrow.length === 0 ? (
@@ -315,14 +429,15 @@ const BookIssueRequests = () => {
         <TabsContent value="custom" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Purchase Suggestions ({customRequests.length})</CardTitle>
-              <CardDescription>Books students want the library to buy. Reply to notify the student.</CardDescription>
+              <CardTitle>Purchase Suggestions ({purchaseItemsCount})</CardTitle>
+              <CardDescription>Books students want the library to buy. Reply or approve/reject.</CardDescription>
             </CardHeader>
             <CardContent>
-              {customRequests.length === 0 ? (
+              {purchaseItemsCount === 0 ? (
                 <p className="text-center text-muted-foreground py-8">No book purchase suggestions yet</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {suggestions.map(r => renderSuggestionCard(r))}
                   {customRequests.map(r => renderCustomRequestCard(r))}
                 </div>
               )}

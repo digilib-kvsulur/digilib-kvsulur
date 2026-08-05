@@ -31,14 +31,18 @@ function parseNumberSetting(value: unknown, fallback: number): number {
   return fallback;
 }
 
-/** Days overdue: starts counting the day after due date (midnight-aligned). */
+/** Days overdue: calendar-date comparison (avoids UTC midnight skew). */
 export function getDaysOverdue(dueDate: string | Date): number {
-  const due = new Date(dueDate);
-  due.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diff = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
-  return Math.max(0, diff);
+  const dueStr =
+    typeof dueDate === "string"
+      ? dueDate.slice(0, 10)
+      : `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, "0")}-${String(dueDate.getDate()).padStart(2, "0")}`;
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const dueMs = Date.parse(`${dueStr}T00:00:00`);
+  const todayMs = Date.parse(`${todayStr}T00:00:00`);
+  if (Number.isNaN(dueMs) || Number.isNaN(todayMs)) return 0;
+  return Math.max(0, Math.floor((todayMs - dueMs) / (1000 * 60 * 60 * 24)));
 }
 
 export function calculateFine(daysOverdue: number, finePerDay: number): number {
