@@ -305,6 +305,9 @@ const CurrentBooks = ({ books = [] }: CurrentBooksProps) => {
                       <p className="text-[10px] sm:text-xs font-medium text-slate-500 mt-0.5 truncate">by {author}</p>
                     </div>
                     {book.category && <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-[8px] sm:text-[10px] whitespace-nowrap px-1.5 py-0 shrink-0">{book.category}</Badge>}
+                    {!isOverdue && isUrgent && (
+                      <Badge className="bg-amber-500 text-white text-[8px] sm:text-[10px] shrink-0">Due soon</Badge>
+                    )}
                   </div>
 
                   {/* Progress Bar */}

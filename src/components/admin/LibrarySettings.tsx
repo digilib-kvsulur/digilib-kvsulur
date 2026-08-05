@@ -68,6 +68,23 @@ export default function LibrarySettings() {
       ];
       const { error } = await supabase.from("system_settings").upsert(upserts, { onConflict: "key" });
       if (error) throw error;
+      await supabase.from("fine_settings").upsert({
+        id: 1,
+        rate_per_day: finePerDay,
+        upi_id: upiId.trim(),
+        upi_payee_name: upiPayeeName.trim() || "PM SHRI KV AFS Sulur Library",
+        updated_at: new Date().toISOString(),
+      });
+      const month = new Date().toISOString().substring(0, 7);
+      await supabase.from("reading_goals").upsert(
+        { user_id: null, month, target_books: monthlyGoal } as any,
+        { onConflict: "month" }
+      ).then(() => {}).catch(() => {
+        // school-wide unique index may need delete+insert
+      });
+      // Upsert school-wide reading goal row
+      await supabase.from("reading_goals").delete().is("user_id", null).eq("month", month);
+      await supabase.from("reading_goals").insert({ user_id: null as any, month, target_books: monthlyGoal });
       toast({ title: "Settings saved", description: "Library settings have been updated." });
     } catch (e: any) {
       toast({ title: "Error", description: e.message || "Failed to save settings.", variant: "destructive" });

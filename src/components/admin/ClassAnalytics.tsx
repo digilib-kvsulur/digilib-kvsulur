@@ -407,8 +407,99 @@ const ClassAnalytics = () => {
 
       {/* Student Detail Modal */}
       <StudentDetailModal user={detailUser} onClose={() => setDetailUser(null)} />
+
+      {/* Popular books heatmap: class × month borrow counts */}
+      <BorrowHeatmap />
     </div>
   );
 };
+
+function BorrowHeatmap() {
+  const [cells, setCells] = useState<{ className: string; month: string; count: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const { data: issues } = await supabase
+        .from("book_issues")
+        .select("user_id, issue_date")
+        .gte("issue_date", new Date(new Date().getFullYear(), 0, 1).toISOString());
+      const userIds = Array.from(new Set((issues || []).map((i) => i.user_id)));
+      let classMap: Record<string, string> = {};
+      if (userIds.length) {
+        const { data: profs } = await supabase.from("profiles").select("id, student_class").in("id", userIds);
+        (profs || []).forEach((p) => { classMap[p.id] = p.student_class || "Unknown"; });
+      }
+      const map = new Map<string, number>();
+      (issues || []).forEach((i) => {
+        const cls = classMap[i.user_id] || "Unknown";
+        const month = (i.issue_date || "").substring(0, 7);
+        if (!month) return;
+        const key = `${cls}|${month}`;
+        map.set(key, (map.get(key) || 0) + 1);
+      });
+      setCells(Array.from(map.entries()).map(([k, count]) => {
+        const [className, month] = k.split("|");
+        return { className, month, count };
+      }));
+      setLoading(false);
+    })();
+  }, []);
+
+  const classes = Array.from(new Set(cells.map((c) => c.className))).sort();
+  const months = Array.from(new Set(cells.map((c) => c.month))).sort();
+  const max = Math.max(1, ...cells.map((c) => c.count));
+  const lookup = (cls: string, m: string) => cells.find((c) => c.className === cls && c.month === m)?.count || 0;
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="text-lg">Popular Books by Class (Heatmap)</CardTitle>
+        <CardDescription>Borrow counts by class and month (this year)</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="h-24 flex items-center justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
+        ) : months.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No borrow data yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="text-xs border-collapse">
+              <thead>
+                <tr>
+                  <th className="p-2 text-left">Class</th>
+                  {months.map((m) => <th key={m} className="p-2 font-medium">{m.slice(5)}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {classes.map((cls) => (
+                  <tr key={cls}>
+                    <td className="p-2 font-medium whitespace-nowrap">{cls}</td>
+                    {months.map((m) => {
+                      const n = lookup(cls, m);
+                      const intensity = n / max;
+                      return (
+                        <td key={m} className="p-1">
+                          <div
+                            className="w-10 h-8 rounded flex items-center justify-center text-[10px] font-semibold"
+                            style={{ backgroundColor: `rgba(79, 70, 229, ${0.12 + intensity * 0.75})`, color: intensity > 0.55 ? "#fff" : "#312e81" }}
+                            title={`${cls} ${m}: ${n}`}
+                          >
+                            {n || ""}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default ClassAnalytics;

@@ -13,37 +13,40 @@ export default function MonthlyGoalsWidget({ userId }: MonthlyGoalsWidgetProps) 
   const [targetValue, setTargetValue] = useState(0);
   const [booksReadThisMonth, setBooksReadThisMonth] = useState(0);
   const [loading, setLoading] = useState(true);
-
   const monthName = new Date().toLocaleString("default", { month: "long", year: "numeric" });
-
-  const loadData = async () => {
-    if (!userId) return;
-    try {
-      setLoading(true);
-      const goal = await fetchMonthlyReadingGoal();
-      setTargetValue(goal);
-
-      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-        .toISOString()
-        .split("T")[0];
-      const { data: history } = await supabase
-        .from("reading_history")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("status", "approved")
-        .gte("completed_date", startOfMonth);
-
-      setBooksReadThisMonth(history?.length || 0);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const monthKey = new Date().toISOString().substring(0, 7);
 
   useEffect(() => {
-    loadData();
-  }, [userId]);
+    if (!userId) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.rpc("get_reading_goal_progress" as any, {
+          p_user_id: userId,
+          p_month: monthKey,
+        });
+        if (!error && data && Array.isArray(data) && data[0]) {
+          setTargetValue(Number(data[0].target_books) || 0);
+          setBooksReadThisMonth(Number(data[0].books_read) || 0);
+        } else {
+          const goal = await fetchMonthlyReadingGoal();
+          setTargetValue(goal);
+          const start = `${monthKey}-01`;
+          const { data: history } = await supabase
+            .from("reading_history")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("status", "approved")
+            .gte("completed_date", start);
+          setBooksReadThisMonth(history?.length || 0);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [userId, monthKey]);
 
   if (loading) {
     return (
@@ -66,7 +69,7 @@ export default function MonthlyGoalsWidget({ userId }: MonthlyGoalsWidgetProps) 
             <Target className="h-4 w-4 text-primary" />
             Monthly Reading Goal
           </CardTitle>
-          <CardDescription className="text-xs">{monthName} · School target</CardDescription>
+          <CardDescription className="text-xs">{monthName} · School target (set by admin)</CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -76,14 +79,12 @@ export default function MonthlyGoalsWidget({ userId }: MonthlyGoalsWidgetProps) 
           <div className="space-y-3.5">
             <div className="flex items-end justify-between">
               <div className="space-y-0.5">
-                <p className="text-2xl font-extrabold text-foreground tracking-tight">
+                <p className="text-2xl font-extrabold tracking-tight">
                   {booksReadThisMonth}{" "}
                   <span className="text-sm font-medium text-muted-foreground">/ {targetValue} books</span>
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {isGoalMet
-                    ? "Goal met! Outstanding job!"
-                    : `${targetValue - booksReadThisMonth} books to reach the school goal`}
+                  {isGoalMet ? "Goal met! Outstanding job!" : `${targetValue - booksReadThisMonth} books to reach the school goal`}
                 </p>
               </div>
               {isGoalMet && (
@@ -92,11 +93,7 @@ export default function MonthlyGoalsWidget({ userId }: MonthlyGoalsWidgetProps) 
                 </div>
               )}
             </div>
-            <Progress
-              value={progressPercent}
-              className={`h-2.5 ${isGoalMet ? "bg-yellow-100" : ""}`}
-              indicatorClassName={isGoalMet ? "bg-yellow-500" : "bg-primary"}
-            />
+            <Progress value={progressPercent} className={`h-2.5 ${isGoalMet ? "bg-yellow-100" : ""}`} indicatorClassName={isGoalMet ? "bg-yellow-500" : "bg-primary"} />
           </div>
         )}
       </CardContent>

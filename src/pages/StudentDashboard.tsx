@@ -8,7 +8,8 @@ import { getAvatarUrl } from "@/lib/utils";
 import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
-  StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award
+  StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award,
+  LifeBuoy, IndianRupee, Lightbulb, AlertTriangle, Newspaper
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -45,16 +46,27 @@ import ReturnedBookReviewPrompt from "@/components/dashboard/ReturnedBookReviewP
 import SupportCenter from "@/components/support/SupportCenter";
 import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
 import StudentCertificates from "@/components/dashboard/StudentCertificates";
+import MyFines from "@/components/dashboard/MyFines";
+import BookReservations from "@/components/dashboard/BookReservations";
+import BookSuggestions from "@/components/dashboard/BookSuggestions";
+import LostBookReport from "@/components/dashboard/LostBookReport";
+import Periodicals from "@/components/dashboard/Periodicals";
+import BookClubs from "@/components/dashboard/BookClubs";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
-import { LifeBuoy } from "lucide-react";
 
-type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile";
+type Tab = "overview" | "books" | "requests" | "wishlist" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "fines" | "reservations" | "suggestions" | "lost" | "periodicals" | "clubs";
 
 const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
   { id: "books", label: "My Books", icon: BookOpen },
+  { id: "fines", label: "My Fines", icon: IndianRupee },
+  { id: "reservations", label: "Reservations", icon: Bookmark },
   { id: "requests", label: "My Requests", icon: BookPlus },
-  { id: "wishlist", label: "Wishlist", icon: Bookmark },
+  { id: "wishlist", label: "Wishlist", icon: Star },
+  { id: "suggestions", label: "Suggest Book", icon: Lightbulb },
+  { id: "lost", label: "Lost Book", icon: AlertTriangle },
+  { id: "periodicals", label: "Periodicals", icon: Newspaper },
+  { id: "clubs", label: "Book Clubs", icon: Users },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "notes", label: "My Notes", icon: StickyNote },
@@ -94,6 +106,7 @@ const StudentDashboard = () => {
 
   const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
   const [schoolReadingGoal, setSchoolReadingGoal] = useState(3);
+  const [pendingFines, setPendingFines] = useState(0);
 
   const streakData = useLoginStreak(user?.id);
   usePushSubscription(user?.id);
@@ -296,7 +309,13 @@ const StudentDashboard = () => {
   };
 
   useEffect(() => {
-    if (user?.id) { fetchCurrentBooks(); fetchQuizResults(); fetchAvailableQuizzes(); fetchChallenges(); fetchRecentActivities(); fetchMonthlyBooksRead(); fetchBadgesCount(); }
+    if (user?.id) {
+      fetchCurrentBooks(); fetchQuizResults(); fetchAvailableQuizzes(); fetchChallenges();
+      fetchRecentActivities(); fetchMonthlyBooksRead(); fetchBadgesCount();
+      supabase.from("library_fines").select("id", { count: "exact", head: true })
+        .eq("user_id", user.id).eq("status", "pending")
+        .then(({ count }) => setPendingFines(count || 0));
+    }
   }, [user?.id]);
 
   if (loading) return (
@@ -400,6 +419,17 @@ const StudentDashboard = () => {
           {/* Overview Tab */}
           {activeTab === "overview" && (
             <div className="space-y-6">
+              {pendingFines > 0 && (
+                <Card className="border-destructive/40 bg-destructive/5 cursor-pointer" onClick={() => setActiveTab("fines")}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">You have {pendingFines} pending fine(s)</p>
+                      <p className="text-xs text-muted-foreground">Tap to view and pay via UPI</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
               {/* Welcome Banner */}
               <Card className="overflow-hidden border-0 shadow-lg">
                 <div className="gradient-primary p-6 sm:p-8">
@@ -625,6 +655,13 @@ const StudentDashboard = () => {
               userName={`${user.first_name || ""} ${user.last_name || ""}`.trim()}
             />
           )}
+
+          {activeTab === "fines" && user?.id && <MyFines userId={user.id} />}
+          {activeTab === "reservations" && user?.id && <BookReservations userId={user.id} />}
+          {activeTab === "suggestions" && user?.id && <BookSuggestions userId={user.id} />}
+          {activeTab === "lost" && user?.id && <LostBookReport userId={user.id} />}
+          {activeTab === "periodicals" && <Periodicals />}
+          {activeTab === "clubs" && user?.id && <BookClubs userId={user.id} />}
 
           {/* Rankings Tab */}
           {activeTab === "rankings" && <Rankings user={user} />}

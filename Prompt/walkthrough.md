@@ -1,28 +1,33 @@
-# Walkthrough — Fines, Certificates & Reading Goals
+# Feature Implementation Walkthrough — DigiLib KV Sulur
 
-Built from answered open questions in `Prompt/Open Questions.txt`.
+All **7 phases** implemented in code. Apply migrations with `supabase db push`, then verify with `npm run build`.
 
-## Decisions applied
-| Question | Answer | Implementation |
+## Open Questions (applied)
+| Question | Decision |
+|---|---|
+| UPI ID | Admin-configurable (any free UPI medium) |
+| Fine rate | ₹1/day default, custom via Fine Manager / Library Settings |
+| Certificate design | Admin-uploaded template + PDF download (jsPDF) |
+| Reading goal | **Admin school-wide** target (not student-set) |
+| Due reminders | **Manual** admin trigger (free-tier safe) + RPC `send_due_soon_reminders` |
+
+## Phase status
+
+| Phase | Status | Key artifacts |
 |---|---|---|
-| UPI ID | Any free medium | Admin enters any UPI ID in Library Settings |
-| Fine rate | ₹1/day default, or custom by admin | `fine_per_day` in `system_settings` |
-| Certificate design | Uploaded by admin | Template image upload + issue flow |
-| Reading goal | Admin sets school-wide | `monthly_reading_goal` setting; students track only |
-| Due date reminders | (unanswered) | Manual **Remind** / **Remind All** (free-tier safe) |
+| 1 Reading anti-abuse | Done | `20260805100000_reading_history_limits.sql` — max 2/day, 7-day title cooldown, 2nd flagged `suspicious` |
+| 2 Fines + GPay | Done | `20260805101000_fines.sql`, `FineManager`, `MyFines`, auto-fine on return |
+| 3 Reservations | Done | `20260805102000_reservations.sql`, max 3, notify on return, `ReservationManager`, `BookReservations` |
+| 4 Suggestions + lost | Done | `20260805103000_suggestions_and_lost.sql` + student/admin UIs |
+| 5 Periodicals + goals + clubs | Done | `20260805104000_periodicals_goals_clubs.sql` + managers/widgets (goal = admin school-wide) |
+| 6 PDF certs + heatmap + dupes | Done | jsPDF/html2canvas, ClassAnalytics heatmap, `DuplicateDetector` |
+| 7 Auto notifications | Done | `20260805107000_notification_triggers.sql` — return confirm, wishlist alert, due-soon RPC, Due soon badge |
 
-## Migration
-Apply: `supabase/migrations/20260805040000_fines_certificates_goals.sql`
+## Earlier migrations (also apply)
+- `20260805040000_fines_certificates_goals.sql` — certificates bucket + issued_certificates + settings seeds
 
-- Seeds `fine_per_day`, `upi_id`, `upi_payee_name`, `monthly_reading_goal`, `certificate_template_url`
-- Creates `issued_certificates` + `certificates` storage bucket
-
-## Admin
-- **Library Settings** — UPI ID, fine/day, school reading goal, certificate template upload
-- **Certificates** — issue certificates to students (uses uploaded template)
-- **Overdue** — shows fine amount; Remind / Remind All includes fine info
-
-## Student
-- **My Books** — overdue cards show fine + **Pay via UPI** deep link
-- **Overview** — school-wide monthly reading goal progress (not editable)
-- **Certificates** — view / print awarded certificates
+## Deploy checklist
+1. `supabase db push --include-all` (or run the new SQL files in order)
+2. `npm run build`
+3. Admin → Library Settings / Fine Manager: set UPI ID
+4. Manual checks per plan verification section

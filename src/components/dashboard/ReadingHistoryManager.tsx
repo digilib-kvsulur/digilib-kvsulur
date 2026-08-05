@@ -138,11 +138,14 @@ const ReadingHistoryManager = ({ onPointsUpdate }: ReadingHistoryManagerProps) =
       });
       loadReadingHistory();
       onPointsUpdate?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving reading history:', error);
+      const msg = error?.message || "Failed to save reading history";
       toast({
         title: "Error",
-        description: "Failed to save reading history",
+        description: msg.includes("Daily reading limit") || msg.includes("Cooldown")
+          ? msg
+          : msg,
         variant: "destructive",
       });
     }

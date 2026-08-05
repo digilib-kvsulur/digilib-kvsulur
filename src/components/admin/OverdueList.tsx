@@ -134,10 +134,19 @@ export default function OverdueList() {
           </p>
         </div>
         {rows.length > 0 && (
-          <Button variant="outline" onClick={remindAll} disabled={bulkSending}>
-            <Users className="h-4 w-4 mr-2" />
-            {bulkSending ? "Sending..." : "Remind All"}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={async () => {
+              const { data, error } = await supabase.rpc("send_due_soon_reminders" as any, { p_days: 2 });
+              if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+              else toast({ title: "Due-soon reminders sent", description: `${data || 0} notification(s).` });
+            }}>
+              Due Soon Reminders
+            </Button>
+            <Button variant="outline" onClick={remindAll} disabled={bulkSending}>
+              <Users className="h-4 w-4 mr-2" />
+              {bulkSending ? "Sending..." : "Remind All Overdue"}
+            </Button>
+          </div>
         )}
       </div>
       {rows.length === 0 && <p className="text-sm text-muted-foreground">Nothing overdue.</p>}
