@@ -64,7 +64,7 @@ export default function BookCondemnation() {
   const loadBatches = async () => {
     setLoading(true);
     const { data } = await supabase
-      .from("condemnation_batches" as any)
+      .from("condemnation_batches")
       .select("*")
       .order("created_at", { ascending: false });
     setBatches(data || []);
@@ -73,7 +73,7 @@ export default function BookCondemnation() {
 
   const loadEntries = async (batchId: string) => {
     const { data } = await supabase
-      .from("book_condemnations" as any)
+      .from("book_condemnations")
       .select("*")
       .eq("batch_id", batchId)
       .order("created_at", { ascending: true });
@@ -85,7 +85,7 @@ export default function BookCondemnation() {
     const batchNumber = `COND-${new Date().toISOString().replace(/\D/g, "").slice(0, 14)}`;
     
     const { data, error } = await supabase
-      .from("condemnation_batches" as any)
+      .from("condemnation_batches")
       .insert({
         batch_number: batchNumber,
         fund_source: fundSource,
@@ -148,7 +148,7 @@ export default function BookCondemnation() {
         // Simplified approach: just rely on the RPC and load entries. The RPC doesn't take discount in args currently, 
         // but we can update it immediately after
         const { data: latestEntry } = await supabase
-          .from("book_condemnations" as any)
+          .from("book_condemnations")
           .select("id")
           .eq("batch_id", activeBatch.id)
           .eq("accession_number", accession)
@@ -157,7 +157,7 @@ export default function BookCondemnation() {
           .single();
           
         if (latestEntry && discount > 0) {
-           await supabase.from("book_condemnations" as any).update({ discount_pct: discount }).eq("id", latestEntry.id);
+           await supabase.from("book_condemnations").update({ discount_pct: discount }).eq("id", latestEntry.id);
         }
         
         toast({ title: "Added", description: "Book added to condemnation list." });
@@ -213,7 +213,7 @@ export default function BookCondemnation() {
             });
             
             const { data: latestEntry } = await supabase
-              .from("book_condemnations" as any)
+              .from("book_condemnations")
               .select("id")
               .eq("batch_id", activeBatch.id)
               .eq("accession_number", acc)
@@ -222,7 +222,7 @@ export default function BookCondemnation() {
               .single();
               
             if (latestEntry && disc > 0) {
-               await supabase.from("book_condemnations" as any).update({ discount_pct: disc }).eq("id", latestEntry.id);
+               await supabase.from("book_condemnations").update({ discount_pct: disc }).eq("id", latestEntry.id);
             }
             successCount++;
           } catch(err) {
@@ -253,7 +253,7 @@ export default function BookCondemnation() {
 
   const removeEntry = async (id: string) => {
     if (!confirm("Remove this book from the batch?")) return;
-    await supabase.from("book_condemnations" as any).delete().eq("id", id);
+    await supabase.from("book_condemnations").delete().eq("id", id);
     if (activeBatch) loadEntries(activeBatch.id);
   };
   

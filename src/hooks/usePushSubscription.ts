@@ -52,14 +52,14 @@ export function usePushSubscription(userId: string | null | undefined) {
         // 3. Subscribe to push
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
         });
 
         // 4. Upsert subscription to Supabase
         const { error } = await supabase.from('push_subscriptions').upsert(
           {
             user_id: userId,
-            subscription_object: subscription.toJSON(),
+            subscription_object: subscription.toJSON() as any,
           },
           { onConflict: 'user_id' }
         );
