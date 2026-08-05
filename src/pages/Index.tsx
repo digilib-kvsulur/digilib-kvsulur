@@ -5,6 +5,7 @@ import {
   BookOpen, BarChart3, Trophy, Target, Zap, ArrowRight, LayoutDashboard,
   Award, Clock, Sparkles, MapPin, Mail, ChevronRight, Star, Loader2
 } from "lucide-react";
+import { LifeBuoy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import heroImg from "@/assets/landing-hero.jpg";
@@ -514,6 +515,7 @@ const Index = () => {
               <h4 className="text-sm font-bold text-white uppercase tracking-wider">Helpful Navigation</h4>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <button onClick={() => navigate("/catalog")} className="hover:text-indigo-400 transition-colors text-left py-1">Book Catalog</button>
+                <button onClick={() => navigate("/support")} className="hover:text-indigo-400 transition-colors text-left py-1">Help &amp; Support</button>
                 <button onClick={() => navigate("/login")} className="hover:text-indigo-400 transition-colors text-left py-1">Student Dashboard</button>
                 <a href="#about" className="hover:text-indigo-400 transition-colors py-1">Key Features</a>
                 <a href="#events" className="hover:text-indigo-400 transition-colors py-1">Weekly Events</a>
