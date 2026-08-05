@@ -24,16 +24,21 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.event_submissions TO authenticate
 GRANT ALL ON public.event_submissions TO service_role;
 ALTER TABLE public.event_submissions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Own or staff view submissions" ON public.event_submissions;
 CREATE POLICY "Own or staff view submissions" ON public.event_submissions FOR SELECT TO authenticated
 USING (user_id = auth.uid() OR public.is_staff_or_admin(auth.uid()));
+DROP POLICY IF EXISTS "Users add own submissions" ON public.event_submissions;
 CREATE POLICY "Users add own submissions" ON public.event_submissions FOR INSERT TO authenticated
 WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "Users update own submissions" ON public.event_submissions;
 CREATE POLICY "Users update own submissions" ON public.event_submissions FOR UPDATE TO authenticated
 USING (user_id = auth.uid() OR public.is_staff_or_admin(auth.uid()))
 WITH CHECK (user_id = auth.uid() OR public.is_staff_or_admin(auth.uid()));
+DROP POLICY IF EXISTS "Users delete own submissions" ON public.event_submissions;
 CREATE POLICY "Users delete own submissions" ON public.event_submissions FOR DELETE TO authenticated
 USING (user_id = auth.uid() OR public.is_staff_or_admin(auth.uid()));
 
+DROP TRIGGER IF EXISTS trg_event_submissions_updated ON public.event_submissions;
 CREATE TRIGGER trg_event_submissions_updated BEFORE UPDATE ON public.event_submissions
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -50,9 +55,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.push_subscriptions TO authenticat
 GRANT ALL ON public.push_subscriptions TO service_role;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own push subscription" ON public.push_subscriptions;
 CREATE POLICY "Users manage own push subscription" ON public.push_subscriptions FOR ALL TO authenticated
 USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
+DROP TRIGGER IF EXISTS trg_push_subscriptions_updated ON public.push_subscriptions;
 CREATE TRIGGER trg_push_subscriptions_updated BEFORE UPDATE ON public.push_subscriptions
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -69,8 +76,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.condemnation_batches TO authentic
 GRANT ALL ON public.condemnation_batches TO service_role;
 ALTER TABLE public.condemnation_batches ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Staff view batches" ON public.condemnation_batches;
 CREATE POLICY "Staff view batches" ON public.condemnation_batches FOR SELECT TO authenticated
 USING (public.is_staff_or_admin(auth.uid()));
+DROP POLICY IF EXISTS "Staff manage batches" ON public.condemnation_batches;
 CREATE POLICY "Staff manage batches" ON public.condemnation_batches FOR ALL TO authenticated
 USING (public.is_staff_or_admin(auth.uid())) WITH CHECK (public.is_staff_or_admin(auth.uid()));
 
@@ -85,6 +94,7 @@ ALTER TABLE public.book_condemnations ADD COLUMN IF NOT EXISTS year_of_purchase 
 ALTER TABLE public.book_condemnations ADD COLUMN IF NOT EXISTS date_became_unserviceable date DEFAULT CURRENT_DATE;
 ALTER TABLE public.book_condemnations ADD COLUMN IF NOT EXISTS fund_source text;
 
+DROP FUNCTION IF EXISTS public.condemn_book_v2(uuid, uuid, text, text, integer, numeric, text, text);
 CREATE OR REPLACE FUNCTION public.condemn_book_v2(
   p_batch_id uuid,
   p_book_id uuid,

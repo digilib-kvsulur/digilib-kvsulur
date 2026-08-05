@@ -1,3 +1,5 @@
+-- Drop old version first (return type changed from void to integer)
+DROP FUNCTION IF EXISTS public.check_and_award_badges(uuid);
 CREATE OR REPLACE FUNCTION public.check_and_award_badges(p_user_id uuid)
 RETURNS integer
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$

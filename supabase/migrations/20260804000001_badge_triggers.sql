@@ -61,7 +61,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- Expose function as RPC for frontend calls
 GRANT EXECUTE ON FUNCTION public.check_and_award_badges(uuid) TO authenticated;
 
--- Trigger functions for auto-awarding on inserts/updates
+-- Trigger function for tables that have a user_id column
 CREATE OR REPLACE FUNCTION public.tg_check_user_badges()
 RETURNS trigger AS $$
 BEGIN
@@ -74,12 +74,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+-- Separate trigger function for the profiles table (PK is "id", not "user_id")
+CREATE OR REPLACE FUNCTION public.tg_check_profile_badges()
+RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    PERFORM public.check_and_award_badges(OLD.id);
+    RETURN OLD;
+  END IF;
+  PERFORM public.check_and_award_badges(NEW.id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- Triggers for various tables
 DROP TRIGGER IF EXISTS trg_profile_points_badge ON public.profiles;
 CREATE TRIGGER trg_profile_points_badge
   AFTER UPDATE OF points ON public.profiles
   FOR EACH ROW
-  EXECUTE FUNCTION public.tg_check_user_badges();
+  EXECUTE FUNCTION public.tg_check_profile_badges();
+
 
 DROP TRIGGER IF EXISTS trg_reading_badge ON public.reading_history;
 CREATE TRIGGER trg_reading_badge
