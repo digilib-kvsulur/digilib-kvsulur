@@ -527,6 +527,12 @@ const Index = () => {
                 Air Force Station Sulur, Coimbatore - 641401<br />
                 Phone: +91 422 2682215
               </p>
+              <button
+                onClick={() => navigate("/support")}
+                className="inline-flex items-center gap-2 rounded-lg bg-indigo-500/15 px-3.5 py-2 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/25 transition-colors"
+              >
+                <LifeBuoy className="h-4 w-4" /> Help &amp; Support Desk
+              </button>
             </div>
           </div>
           
