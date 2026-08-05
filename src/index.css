@@ -140,6 +140,15 @@
   .animate-scroll:hover {
     animation-play-state: paused;
   }
+
+  /* Hide scrollbar but keep horizontal scroll (chip navs, filters) */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes float {

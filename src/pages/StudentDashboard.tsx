@@ -9,7 +9,7 @@ import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award,
-  LifeBuoy, IndianRupee, AlertTriangle, Newspaper, BookCheck
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -43,12 +43,11 @@ import ReturnedBookReviewPrompt from "@/components/dashboard/ReturnedBookReviewP
 import SupportCenter from "@/components/support/SupportCenter";
 import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
 import StudentCertificates from "@/components/dashboard/StudentCertificates";
-import MyFines from "@/components/dashboard/MyFines";
 import Periodicals from "@/components/dashboard/Periodicals";
 import IssuedBooksHub from "@/components/dashboard/IssuedBooksHub";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
 
-type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "fines" | "periodicals";
+type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -93,7 +92,6 @@ const StudentDashboard = () => {
   const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
   const [schoolReadingGoal, setSchoolReadingGoal] = useState(3);
   const [pendingFines, setPendingFines] = useState(0);
-  const [hasAnyFines, setHasAnyFines] = useState(false);
   const [periodicalsVisible, setPeriodicalsVisible] = useState(false);
   const [issueHistory, setIssueHistory] = useState<any[]>([]);
   const [hasCertificates, setHasCertificates] = useState(false);
@@ -107,10 +105,6 @@ const StudentDashboard = () => {
     if (hasCertificates && badgesIdx >= 0) {
       items.splice(badgesIdx + 1, 0, { id: "certificates" as Tab, label: "Certificates", icon: Award });
     }
-    const issuedIdx = items.findIndex((i) => i.id === "issued");
-    if (hasAnyFines && issuedIdx >= 0) {
-      items.splice(issuedIdx + 1, 0, { id: "fines" as Tab, label: "My Fines", icon: IndianRupee });
-    }
     if (periodicalsVisible) {
       const eventsIdx = items.findIndex((i) => i.id === "events");
       items.splice(eventsIdx >= 0 ? eventsIdx + 1 : items.length, 0, {
@@ -120,7 +114,7 @@ const StudentDashboard = () => {
       });
     }
     return items;
-  }, [hasAnyFines, periodicalsVisible, hasCertificates]);
+  }, [periodicalsVisible, hasCertificates]);
 
   useEffect(() => { checkAuth(); }, []);
 
@@ -329,7 +323,6 @@ const StudentDashboard = () => {
         .eq("user_id", user.id)
         .then(({ data }) => {
           const rows = data || [];
-          setHasAnyFines(rows.length > 0);
           setPendingFines(rows.filter((r) => r.status === "pending").length);
         });
       supabase.from("system_settings").select("value").eq("key", "periodicals_visible_to_students").maybeSingle()
@@ -723,7 +716,6 @@ const StudentDashboard = () => {
             />
           )}
 
-          {activeTab === "fines" && user?.id && hasAnyFines && <MyFines userId={user.id} />}
           {activeTab === "periodicals" && periodicalsVisible && <Periodicals />}
 
           {/* Rankings Tab */}

@@ -128,8 +128,8 @@ export default function IssuedBooksHub({ userId, currentBooks }: Props) {
       </Card>
 
       {/* Mobile-friendly section chips */}
-      <div className="-mx-1 px-1 overflow-x-auto scrollbar-none">
-        <div className="flex gap-1.5 min-w-max pb-1">
+      <div className="-mx-1 px-1 overflow-x-auto no-scrollbar">
+        <div className="flex gap-1.5 min-w-max">
           {nav.map((item) => {
             const Icon = item.icon;
             const active = section === item.id;
