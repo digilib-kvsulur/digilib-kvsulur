@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Calendar, MapPin, Users, Download, FileText, Eye, Clock, X, CloudUpload, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import { formatDeadline, isRegistrationClosed, isSubmissionClosed } from "@/lib/eventDeadlines";
 
 interface ScheduleFile {
   name: string;
@@ -95,13 +96,19 @@ export default function EventDetailModal({
     }
   };
 
-  const submissionClosed = !!(event.submission_deadline && new Date(event.submission_deadline) < new Date());
-  const registrationClosed = !!(event.registration_deadline && new Date(event.registration_deadline) < new Date());
+  const submissionClosed = isSubmissionClosed(event);
+  const registrationClosed = isRegistrationClosed(event);
 
   const handleFileUpload = async (dayNum: number, file: File) => {
     if (!file) return;
     if (submissionClosed) {
-      toast({ title: "Submissions closed", description: "The submission deadline has passed.", variant: "destructive" });
+      toast({
+        title: "Submissions closed",
+        description: event.submission_deadline
+          ? `Deadline was ${formatDeadline(event.submission_deadline)}.`
+          : "The submission window for this event has ended.",
+        variant: "destructive",
+      });
       return;
     }
     setUploadingDay(dayNum);
@@ -242,14 +249,14 @@ export default function EventDetailModal({
               {event.registration_deadline && (
                 <div className={`flex items-center gap-2 font-medium ${registrationClosed ? "text-rose-600" : "text-slate-500"}`}>
                   <Clock className="h-4 w-4" />
-                  Register by {new Date(event.registration_deadline).toLocaleString("en-IN")}
+                  Register by {formatDeadline(event.registration_deadline)}
                   {registrationClosed ? " (closed)" : ""}
                 </div>
               )}
               {event.submission_deadline && (
                 <div className={`flex items-center gap-2 font-medium ${submissionClosed ? "text-rose-600" : "text-slate-500"}`}>
                   <Clock className="h-4 w-4" />
-                  Submit by {new Date(event.submission_deadline).toLocaleString("en-IN")}
+                  Submit by {formatDeadline(event.submission_deadline)}
                   {submissionClosed ? " (closed)" : ""}
                 </div>
               )}
@@ -320,7 +327,13 @@ export default function EventDetailModal({
                 <p className="text-xs text-muted-foreground">Submit your day-wise reports, images, or files as requested.</p>
                 {submissionClosed && (
                   <p className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
-                    Submission deadline has passed — uploads are closed.
+                    Submission deadline has passed
+                    {event.submission_deadline ? ` (${formatDeadline(event.submission_deadline)})` : ""} — uploads are closed.
+                  </p>
+                )}
+                {!submissionClosed && event.submission_deadline && (
+                  <p className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                    Uploads open until {formatDeadline(event.submission_deadline)}.
                   </p>
                 )}
 
@@ -380,8 +393,8 @@ export default function EventDetailModal({
               </div>
             )}
 
-            {/* Registration button */}
-            {onToggleRegister && !isPast && (
+            {/* Registration button — driven by registration_deadline, not event start */}
+            {onToggleRegister && (isRegistered || !registrationClosed) && (
               <div className="pt-2 border-t border-slate-100">
                 <Button
                   className={`w-full h-11 font-bold rounded-xl text-sm ${
@@ -400,6 +413,14 @@ export default function EventDetailModal({
                         ? "Registration Closed"
                         : "Register for Event"}
                 </Button>
+              </div>
+            )}
+            {onToggleRegister && !isRegistered && registrationClosed && (
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-center text-sm font-semibold text-rose-600 py-2">
+                  Registration closed
+                  {event.registration_deadline ? ` on ${formatDeadline(event.registration_deadline)}` : ""}.
+                </p>
               </div>
             )}
           </div>

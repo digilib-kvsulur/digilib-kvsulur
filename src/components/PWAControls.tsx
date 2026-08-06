@@ -163,32 +163,36 @@ export function PWAControls({ userId, className = "flex items-center gap-1", but
             <div className="space-y-4 text-xs py-1">
               {!isSecure && (
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 leading-normal">
-                  <strong>⚠️ Non-Secure Connection Detected:</strong> PWAs require a secure HTTPS connection. Please access the site using <strong>https://</strong> (or `localhost` for developers) to enable direct app downloads.
+                  <strong>Non-secure connection:</strong> Install only works over <strong>https://</strong> (or localhost). Open the live site with HTTPS.
                 </div>
               )}
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-600 leading-relaxed">
+                Digilib is a <strong>web app</strong>. You install it from the browser (Add to Home Screen) — there is no separate APK/EXE store file. That gives you an app icon and full-screen mode without Play Store / Windows Store publishing.
+              </div>
 
               <div className="space-y-3">
                 <div className="flex items-start gap-2.5">
                   <Smartphone className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-bold text-slate-800 text-xs">On Mobile (Android / Chrome)</h4>
-                    <p className="text-slate-500 mt-0.5 leading-relaxed">Tap the browser's menu (three vertical dots at top-right) and select <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.</p>
+                    <p className="text-slate-500 mt-0.5 leading-relaxed">Tap the browser menu (⋮) → <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
                   <Smartphone className="h-4 w-4 text-pink-600 shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-bold text-slate-800 text-xs">On Apple iOS (iPhone / Safari)</h4>
-                    <p className="text-slate-500 mt-0.5 leading-relaxed">Tap the <strong>Share</strong> button (square icon with an arrow pointing up) at the bottom toolbar, scroll down, and select <strong>"Add to Home Screen"</strong>.</p>
+                    <h4 className="font-bold text-slate-800 text-xs">On Apple iOS (Safari)</h4>
+                    <p className="text-slate-500 mt-0.5 leading-relaxed">Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>.</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
                   <Monitor className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-bold text-slate-800 text-xs">On Desktop (Chrome / Edge / Opera)</h4>
-                    <p className="text-slate-500 mt-0.5 leading-relaxed">Look at the right side of your address bar (next to the bookmark star) and click the <strong>Install</strong> icon, or go to Settings &rarr; <strong>"Install KVS Digilib"</strong>.</p>
+                    <h4 className="font-bold text-slate-800 text-xs">On Desktop (Chrome / Edge)</h4>
+                    <p className="text-slate-500 mt-0.5 leading-relaxed">Click the install icon in the address bar, or menu → <strong>Install KV Sulur DLMS</strong>.</p>
                   </div>
                 </div>
               </div>

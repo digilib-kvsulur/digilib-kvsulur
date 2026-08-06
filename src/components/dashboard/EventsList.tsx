@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, MapPin, Users, FileText, Paperclip, ChevronRight } from "lucide-react";
 import EventDetailModal from "@/components/dashboard/EventDetailModal";
+import { formatDeadline, isRegistrationClosed } from "@/lib/eventDeadlines";
 
 export default function EventsList({ userId }: { userId: string }) {
   const { toast } = useToast();
@@ -28,20 +29,29 @@ export default function EventsList({ userId }: { userId: string }) {
     const c: Record<string, number> = {};
     (r || []).forEach((x: any) => { c[x.event_id] = (c[x.event_id] || 0) + 1; });
     setCounts(c);
+
+    // Keep selected event in sync with fresh deadlines from DB
+    if (selectedEvent?.id && ev) {
+      const fresh = ev.find((x: any) => x.id === selectedEvent.id);
+      if (fresh) setSelectedEvent(fresh);
+    }
   };
 
   useEffect(() => { if (userId) load(); }, [userId]);
-
-  const isRegClosed = (ev: any) =>
-    !!(ev.registration_deadline && new Date(ev.registration_deadline) < new Date());
 
   const toggle = async (ev: any) => {
     if (mine.has(ev.id)) {
       await supabase.from("event_registrations").delete().eq("event_id", ev.id).eq("user_id", userId);
       toast({ title: "Registration cancelled" });
     } else {
-      if (isRegClosed(ev)) {
-        toast({ title: "Registration closed", description: "The registration deadline has passed.", variant: "destructive" });
+      if (isRegistrationClosed(ev)) {
+        toast({
+          title: "Registration closed",
+          description: ev.registration_deadline
+            ? `Deadline was ${formatDeadline(ev.registration_deadline)}.`
+            : "The registration window for this event has ended.",
+          variant: "destructive",
+        });
         return;
       }
       if (ev.capacity && (counts[ev.id] || 0) >= ev.capacity) {
@@ -80,7 +90,8 @@ export default function EventsList({ userId }: { userId: string }) {
   const visibleEvents = getFilteredEvents();
   const selectedRegistered = selectedEvent ? mine.has(selectedEvent.id) : false;
   const selectedFull = selectedEvent ? (selectedEvent.capacity && (counts[selectedEvent.id] || 0) >= selectedEvent.capacity && !selectedRegistered) : false;
-  const selectedPast = selectedEvent ? new Date(selectedEvent.event_date) < now : false;
+  const selectedPast = selectedEvent ? new Date(selectedEvent.end_date || selectedEvent.event_date) < now : false;
+  const selectedRegClosed = selectedEvent ? isRegistrationClosed(selectedEvent, now) : false;
 
   return (
     <div className="space-y-5">
@@ -107,8 +118,8 @@ export default function EventsList({ userId }: { userId: string }) {
               {visibleEvents.map(ev => {
                 const registered = mine.has(ev.id);
                 const full = ev.capacity && (counts[ev.id] || 0) >= ev.capacity && !registered;
-                const isPast = new Date(ev.event_date) < now;
-                const regClosed = isRegClosed(ev);
+                const isPast = new Date(ev.end_date || ev.event_date) < now;
+                const regClosed = isRegistrationClosed(ev, now);
                 const fileCount = getScheduleFileCount(ev);
 
                 return (
@@ -129,6 +140,11 @@ export default function EventsList({ userId }: { userId: string }) {
                         {isPast && (
                           <span className="absolute top-2 right-2 bg-slate-500 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow">
                             Completed
+                          </span>
+                        )}
+                        {!registered && regClosed && (
+                          <span className="absolute top-2 right-2 bg-rose-500 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow">
+                            Reg. closed
                           </span>
                         )}
                       </div>
@@ -164,8 +180,13 @@ export default function EventsList({ userId }: { userId: string }) {
                         )}
                         {ev.registration_deadline && (
                           <p className={`text-[10px] font-semibold ${regClosed ? "text-rose-600" : "text-slate-500"}`}>
-                            Register by {new Date(ev.registration_deadline).toLocaleDateString("en-IN")}
+                            Register by {formatDeadline(ev.registration_deadline)}
                             {regClosed ? " · closed" : ""}
+                          </p>
+                        )}
+                        {ev.submission_deadline && (
+                          <p className="text-[10px] font-semibold text-slate-500">
+                            Submit by {formatDeadline(ev.submission_deadline)}
                           </p>
                         )}
                         {ev.description && (
@@ -183,7 +204,7 @@ export default function EventsList({ userId }: { userId: string }) {
                             </Badge>
                           )}
                         </div>
-                        {!isPast ? (
+                        {(registered || !regClosed) ? (
                           <Button
                             size="sm"
                             variant={registered ? "outline" : "default"}
@@ -191,10 +212,10 @@ export default function EventsList({ userId }: { userId: string }) {
                             onClick={e => { e.stopPropagation(); toggle(ev); }}
                             className="h-8 text-xs font-bold rounded-xl px-4"
                           >
-                            {registered ? "Cancel" : full ? "Full" : regClosed ? "Closed" : "Register"}
+                            {registered ? "Cancel" : full ? "Full" : "Register"}
                           </Button>
                         ) : (
-                          <span className="text-xs text-slate-400 italic">Past event</span>
+                          <span className="text-xs text-rose-500 font-semibold">Reg. closed</span>
                         )}
                       </div>
                     </CardContent>

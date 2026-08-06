@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar, Plus, Trash2, Users, Upload, FileText, Eye, Download, X, Paperclip, ClipboardCheck } from "lucide-react";
 import EventDetailModal from "@/components/dashboard/EventDetailModal";
+import { fromLocalDatetimeInput, toLocalDatetimeInput } from "@/lib/eventDeadlines";
 
 interface ScheduleFile { name: string; url: string; type?: string; }
 
@@ -134,10 +135,10 @@ export default function EventsManager() {
       const payload = {
         title: form.title,
         description: form.description || null,
-        event_date: new Date(form.event_date).toISOString(),
-        end_date: form.end_date ? new Date(form.end_date).toISOString() : null,
-        registration_deadline: form.registration_deadline ? new Date(form.registration_deadline).toISOString() : null,
-        submission_deadline: form.submission_deadline ? new Date(form.submission_deadline).toISOString() : null,
+        event_date: fromLocalDatetimeInput(form.event_date) || new Date(form.event_date).toISOString(),
+        end_date: fromLocalDatetimeInput(form.end_date),
+        registration_deadline: fromLocalDatetimeInput(form.registration_deadline),
+        submission_deadline: fromLocalDatetimeInput(form.submission_deadline),
         location: form.location || null,
         capacity: form.capacity ? parseInt(form.capacity) : null,
         image_orientation: form.image_orientation,
@@ -176,10 +177,10 @@ export default function EventsManager() {
     setForm({
       title: ev.title,
       description: ev.description || "",
-      event_date: new Date(ev.event_date).toISOString().slice(0, 16),
-      end_date: ev.end_date ? new Date(ev.end_date).toISOString().slice(0, 16) : "",
-      registration_deadline: ev.registration_deadline ? new Date(ev.registration_deadline).toISOString().slice(0, 16) : "",
-      submission_deadline: ev.submission_deadline ? new Date(ev.submission_deadline).toISOString().slice(0, 16) : "",
+      event_date: toLocalDatetimeInput(ev.event_date),
+      end_date: toLocalDatetimeInput(ev.end_date),
+      registration_deadline: toLocalDatetimeInput(ev.registration_deadline),
+      submission_deadline: toLocalDatetimeInput(ev.submission_deadline),
       location: ev.location || "",
       capacity: ev.capacity ? String(ev.capacity) : "",
       image_orientation: ev.image_orientation || "horizontal",
@@ -246,12 +247,12 @@ export default function EventsManager() {
                 <div>
                   <Label>Registration deadline</Label>
                   <Input type="datetime-local" value={form.registration_deadline} onChange={e => setForm({ ...form, registration_deadline: e.target.value })} />
-                  <p className="text-[10px] text-muted-foreground mt-1">Students cannot register after this time.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Students can register only until this date/time (local).</p>
                 </div>
                 <div>
-                  <Label>Submission deadline</Label>
+                  <Label>Submission / upload deadline</Label>
                   <Input type="datetime-local" value={form.submission_deadline} onChange={e => setForm({ ...form, submission_deadline: e.target.value })} />
-                  <p className="text-[10px] text-muted-foreground mt-1">Activity reports close after this time.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Activity report uploads close after this date/time (local).</p>
                 </div>
               </div>
               <div><Label>Location</Label><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>

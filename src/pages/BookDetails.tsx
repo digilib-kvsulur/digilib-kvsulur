@@ -41,6 +41,7 @@ export default function BookDetails() {
   const [isRequested, setIsRequested] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
+  const [autofetching, setAutofetching] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -75,29 +76,44 @@ export default function BookDetails() {
         triggerAutofetch(bookData);
       }
 
-      // Check wishlist / reservation status
-      if (uid) {
-        const [{ data: wl }, { data: rs }, { data: rq }] = await Promise.all([
-          supabase.from("book_wishlist").select("id").eq("user_id", uid).eq("book_id", id).maybeSingle(),
-          supabase.from("book_reservations").select("id").eq("user_id", uid).eq("book_id", id).eq("status", "pending").maybeSingle(),
-          supabase.from("book_requests").select("id").eq("user_id", uid).eq("book_id", id).eq("status", "pending").maybeSingle(),
-        ]);
-        setInWishlist(!!wl);
-        setIsReserved(!!rs);
-        setIsRequested(!!rq);
-      }
+      // Parallel: wishlist/reservation + reviews + related
+      const userQueries = uid
+        ? Promise.all([
+            supabase.from("book_wishlist").select("id").eq("user_id", uid).eq("book_id", id).maybeSingle(),
+            supabase.from("book_reservations").select("id").eq("user_id", uid).eq("book_id", id).eq("status", "pending").maybeSingle(),
+            supabase.from("book_requests").select("id").eq("user_id", uid).eq("book_id", id).eq("status", "pending").maybeSingle(),
+          ])
+        : Promise.resolve([null, null, null] as const);
 
-      // Load reviews
-      const { data: revs } = await supabase
+      const reviewsQ = supabase
         .from("book_reviews")
-        .select("*, profiles:user_id(first_name,last_name,avatar_url)")
+        .select("id, rating, review_text, created_at, user_id, profiles:user_id(first_name,last_name,avatar_url)")
         .eq("book_id", id)
         .eq("is_hidden", false)
         .order("created_at", { ascending: false });
-      
+
+      const relatedQ = bookData.category
+        ? supabase
+            .from("books")
+            .select("id, title, author, cover_url, category")
+            .eq("category", bookData.category)
+            .neq("id", id)
+            .limit(4)
+        : Promise.resolve({ data: [] as any[] });
+
+      const [userResults, revsRes, relsRes] = await Promise.all([userQueries, reviewsQ, relatedQ]);
+
+      if (uid && Array.isArray(userResults)) {
+        const [wl, rs, rq] = userResults as any[];
+        setInWishlist(!!wl?.data);
+        setIsReserved(!!rs?.data);
+        setIsRequested(!!rq?.data);
+      }
+
+      const revs = revsRes.data;
       const castRevs = (revs || []).map((r: any) => ({
         ...r,
-        profiles: Array.isArray(r.profiles) ? r.profiles[0] || null : r.profiles || null
+        profiles: Array.isArray(r.profiles) ? r.profiles[0] || null : r.profiles || null,
       })) as Review[];
 
       setReviews(castRevs);
@@ -115,16 +131,7 @@ export default function BookDetails() {
         }
       }
 
-      // Load related books (by category)
-      if (bookData.category) {
-        const { data: rels } = await supabase
-          .from("books")
-          .select("id, title, author, cover_url, category")
-          .eq("category", bookData.category)
-          .neq("id", id)
-          .limit(4);
-        setRelatedBooks(rels || []);
-      }
+      setRelatedBooks(relsRes.data || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -133,8 +140,13 @@ export default function BookDetails() {
   };
 
   const triggerAutofetch = async (currentBook: any) => {
+    setAutofetching(true);
     try {
-      const details = await fetchBookByQuery(currentBook.title, currentBook.author);
+      const details = await fetchBookByQuery(
+        currentBook.title,
+        currentBook.author,
+        currentBook.isbn || currentBook.isbn_13 || currentBook.isbn_10
+      );
       const updates: any = {};
 
       if (details) {
@@ -145,10 +157,11 @@ export default function BookDetails() {
         if (!currentBook.category && details.category) updates.category = details.category;
         if (!currentBook.subject && details.subject) updates.subject = details.subject;
         if (!currentBook.language && details.language) updates.language = details.language;
+        if (!currentBook.class_level && details.class_level) updates.class_level = details.class_level;
       }
 
       // If still missing description, generate smart AI summary
-      if (!currentBook.description && !updates.description) {
+      if ((!currentBook.description || currentBook.description.trim().length < 20) && !updates.description) {
         updates.description = generateSmartBookDescription(currentBook.title, currentBook.author, currentBook.category);
       }
       if (!currentBook.category && !updates.category) {
@@ -166,6 +179,8 @@ export default function BookDetails() {
       }
     } catch (err) {
       console.error("Autofetch failed in details view:", err);
+    } finally {
+      setAutofetching(false);
     }
   };
 
@@ -173,18 +188,25 @@ export default function BookDetails() {
     if (!book) return;
     setGeneratingAi(true);
     try {
-      const smartDesc = generateSmartBookDescription(book.title, book.author, book.category);
+      const details = await fetchBookByQuery(
+        book.title,
+        book.author,
+        book.isbn || book.isbn_13 || book.isbn_10
+      );
       const updates: any = {
-        description: smartDesc,
-        category: book.category || "General Literature",
-        language: book.language || "English"
+        description: details?.description || generateSmartBookDescription(book.title, book.author, book.category),
+        category: details?.category || book.category || "General Literature",
+        language: details?.language || book.language || "English",
       };
+      if (details?.cover_url && !book.cover_url) updates.cover_url = details.cover_url;
+      if (details?.subject && !book.subject) updates.subject = details.subject;
+      if (details?.class_level && !book.class_level) updates.class_level = details.class_level;
 
       const { error } = await supabase.from("books").update(updates).eq("id", book.id);
       if (error) throw error;
 
       setBook((prev: any) => ({ ...prev, ...updates }));
-      toast({ title: "AI Details Generated!", description: "Book overview and metadata have been refreshed." });
+      toast({ title: "Details refreshed", description: "Cover, overview and metadata updated from online catalogues." });
     } catch (e: any) {
       toast({ title: "Generation failed", description: e.message, variant: "destructive" });
     } finally {
@@ -446,18 +468,24 @@ export default function BookDetails() {
                 </h3>
                 <Button 
                   onClick={handleAiRegenerateDetails} 
-                  disabled={generatingAi} 
+                  disabled={generatingAi || autofetching} 
                   variant="ghost" 
                   size="sm" 
                   className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
                 >
-                  {generatingAi ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Wand2 className="h-3.5 w-3.5 mr-1" />}
-                  AI Auto-generate
+                  {(generatingAi || autofetching) ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Wand2 className="h-3.5 w-3.5 mr-1" />}
+                  {autofetching ? "Fetching details…" : generatingAi ? "Refreshing…" : "Refresh details"}
                 </Button>
               </div>
               
               <div className="text-sm text-slate-600 leading-relaxed bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-xs">
-                {book.description || generateSmartBookDescription(book.title, book.author, book.category)}
+                {autofetching && !book.description ? (
+                  <span className="flex items-center gap-2 text-slate-400 italic">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Looking up cover &amp; description…
+                  </span>
+                ) : (
+                  book.description || generateSmartBookDescription(book.title, book.author, book.category)
+                )}
               </div>
             </div>
 

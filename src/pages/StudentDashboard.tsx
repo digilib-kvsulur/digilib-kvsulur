@@ -407,7 +407,6 @@ const StudentDashboard = () => {
             </div>
             <NotificationBell />
           </div>
-          <PWAControls userId={user?.id} showText className="flex items-center gap-1 w-full" buttonClassName="flex-1" />
           <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" /> Logout
           </Button>

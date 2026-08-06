@@ -1,10 +1,13 @@
 // Minimal Service Worker for installability, caching, and push notifications.
-const CACHE_NAME = 'kvsulur-dlms-v3';
+const CACHE_NAME = 'kvsulur-dlms-v4';
 const ASSETS = [
   '/',
   '/index.html',
   '/favicon.png',
-  '/manifest.json'
+  '/manifest.json',
+  '/pwa-192x192.png',
+  '/pwa-512x512.png',
+  '/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
