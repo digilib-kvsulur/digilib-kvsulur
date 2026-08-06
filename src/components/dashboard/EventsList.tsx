@@ -32,11 +32,18 @@ export default function EventsList({ userId }: { userId: string }) {
 
   useEffect(() => { if (userId) load(); }, [userId]);
 
+  const isRegClosed = (ev: any) =>
+    !!(ev.registration_deadline && new Date(ev.registration_deadline) < new Date());
+
   const toggle = async (ev: any) => {
     if (mine.has(ev.id)) {
       await supabase.from("event_registrations").delete().eq("event_id", ev.id).eq("user_id", userId);
       toast({ title: "Registration cancelled" });
     } else {
+      if (isRegClosed(ev)) {
+        toast({ title: "Registration closed", description: "The registration deadline has passed.", variant: "destructive" });
+        return;
+      }
       if (ev.capacity && (counts[ev.id] || 0) >= ev.capacity) {
         toast({ title: "Event full", variant: "destructive" }); return;
       }
@@ -101,6 +108,7 @@ export default function EventsList({ userId }: { userId: string }) {
                 const registered = mine.has(ev.id);
                 const full = ev.capacity && (counts[ev.id] || 0) >= ev.capacity && !registered;
                 const isPast = new Date(ev.event_date) < now;
+                const regClosed = isRegClosed(ev);
                 const fileCount = getScheduleFileCount(ev);
 
                 return (
@@ -154,6 +162,12 @@ export default function EventsList({ userId }: { userId: string }) {
                             <MapPin className="h-3.5 w-3.5 text-primary" />{ev.location}
                           </p>
                         )}
+                        {ev.registration_deadline && (
+                          <p className={`text-[10px] font-semibold ${regClosed ? "text-rose-600" : "text-slate-500"}`}>
+                            Register by {new Date(ev.registration_deadline).toLocaleDateString("en-IN")}
+                            {regClosed ? " · closed" : ""}
+                          </p>
+                        )}
                         {ev.description && (
                           <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{ev.description}</p>
                         )}
@@ -173,11 +187,11 @@ export default function EventsList({ userId }: { userId: string }) {
                           <Button
                             size="sm"
                             variant={registered ? "outline" : "default"}
-                            disabled={!!full}
+                            disabled={!registered && (!!full || regClosed)}
                             onClick={e => { e.stopPropagation(); toggle(ev); }}
                             className="h-8 text-xs font-bold rounded-xl px-4"
                           >
-                            {registered ? "Cancel" : full ? "Full" : "Register"}
+                            {registered ? "Cancel" : full ? "Full" : regClosed ? "Closed" : "Register"}
                           </Button>
                         ) : (
                           <span className="text-xs text-slate-400 italic">Past event</span>

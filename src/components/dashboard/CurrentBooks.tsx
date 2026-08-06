@@ -354,17 +354,26 @@ const CurrentBooks = ({ books = [] }: CurrentBooksProps) => {
                     </div>
                   )}
 
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 mt-auto flex items-center justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={`h-7 text-[10px] font-bold rounded-lg ${isOverdue ? 'opacity-50 cursor-not-allowed text-slate-400' : 'text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700'}`}
-                      onClick={() => setRenewOpen(issue.id)}
-                      disabled={isOverdue || hasPending}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      {isOverdue ? "Overdue" : hasPending ? "Requested" : "Renew"}
-                    </Button>
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 mt-auto flex items-center justify-end gap-2 flex-wrap">
+                    {/* Renew only when due within 3 days (and not overdue / no pending request) */}
+                    {!isOverdue && isUrgent && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="h-7 text-[10px] font-bold rounded-lg bg-amber-500 hover:bg-amber-600 text-white border-0"
+                        onClick={() => setRenewOpen(issue.id)}
+                        disabled={hasPending}
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        {hasPending ? "Renewal pending" : "Renew now"}
+                      </Button>
+                    )}
+                    {!isOverdue && !isUrgent && hasPending && (
+                      <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-200">Renewal pending</Badge>
+                    )}
+                    {isOverdue && (
+                      <span className="text-[10px] font-semibold text-red-500">Return overdue — renew unavailable</span>
+                    )}
                   </div>
 
                   <Dialog open={renewOpen === issue.id} onOpenChange={o => !o && setRenewOpen(null)}>

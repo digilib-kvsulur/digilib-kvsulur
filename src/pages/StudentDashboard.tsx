@@ -9,7 +9,7 @@ import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, Timer
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +33,7 @@ import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudentNotes from "@/components/dashboard/StudentNotes";
 import NCERTBooks from "@/components/dashboard/NCERTBooks";
 import StudyMaterials from "@/components/dashboard/StudyMaterials";
+import StudyTracker from "@/components/dashboard/StudyTracker";
 import Community from "@/components/community/Community";
 import EventsList from "@/components/dashboard/EventsList";
 import Recommendations from "@/components/dashboard/Recommendations";
@@ -45,9 +46,10 @@ import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
 import StudentCertificates from "@/components/dashboard/StudentCertificates";
 import Periodicals from "@/components/dashboard/Periodicals";
 import IssuedBooksHub from "@/components/dashboard/IssuedBooksHub";
+import { PWAControls } from "@/components/PWAControls";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
 
-type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals";
+type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -55,6 +57,7 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "issued", label: "Book Issued", icon: BookCheck },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
+  { id: "study", label: "Study Tracker", icon: Timer },
   { id: "notes", label: "My Notes", icon: StickyNote },
   { id: "community", label: "Community", icon: Users },
   { id: "quizzes", label: "Quizzes", icon: Brain },
@@ -404,6 +407,7 @@ const StudentDashboard = () => {
             </div>
             <NotificationBell />
           </div>
+          <PWAControls userId={user?.id} showText className="flex items-center gap-1 w-full" buttonClassName="flex-1" />
           <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" /> Logout
           </Button>
@@ -420,6 +424,7 @@ const StudentDashboard = () => {
             <span className="font-bold text-sm text-foreground">KV Sulur Library</span>
           </div>
           <div className="flex items-center gap-1">
+            <PWAControls userId={user?.id} />
             <NotificationBell />
             <Button variant="ghost" size="sm" onClick={() => navigate('/catalog')}><Search className="h-4 w-4" /></Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>
@@ -546,6 +551,7 @@ const StudentDashboard = () => {
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Actions</p>
                     <div className="space-y-2">
                       {[
+                        { label: "Study Tracker", icon: Timer, tab: "study", color: "text-teal-600", bg: "bg-teal-50" },
                         { label: "Study Materials", icon: FileText, tab: "materials", color: "text-indigo-600", bg: "bg-indigo-50" },
                         { label: "Library Events", icon: CalendarDays, tab: "events", color: "text-rose-600", bg: "bg-rose-50" },
                         { label: "Community", icon: Users, tab: "community", color: "text-amber-600", bg: "bg-amber-50" },
@@ -685,6 +691,11 @@ const StudentDashboard = () => {
 
           {/* Study Materials */}
           {activeTab === "materials" && <StudyMaterials studentClass={user?.student_class} />}
+
+          {/* Study Tracker */}
+          {activeTab === "study" && user?.id && (
+            <StudyTracker userId={user.id} studentClass={user?.student_class} />
+          )}
 
           {/* Community (includes Book Clubs tab) */}
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={false} />}

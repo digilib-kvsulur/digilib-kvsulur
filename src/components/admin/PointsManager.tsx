@@ -59,6 +59,9 @@ const PointsManager = () => {
     points_per_quiz_passed: 50,
     points_per_daily_streak: 10,
     points_per_review: 15,
+    points_per_issue: 100,
+    points_per_timely_return: 100,
+    points_per_study_minute: 1,
   });
   const [savingRules, setSavingRules] = useState(false);
 
@@ -346,6 +349,7 @@ const PointsManager = () => {
   const loadPointsRules = async () => {
     const { data } = await supabase.from("system_settings").select("key, value").in("key", [
       "points_per_book_read", "points_per_quiz_passed", "points_per_daily_streak", "points_per_review",
+      "points_per_issue", "points_per_timely_return", "points_per_study_minute",
     ]);
     if (data && data.length > 0) {
       const rules: Record<string, number> = {};
@@ -757,6 +761,9 @@ const PointsManager = () => {
                   { key: "points_per_quiz_passed", label: "Max Points per Quiz" },
                   { key: "points_per_daily_streak", label: "Points per Daily Streak" },
                   { key: "points_per_review", label: "Points per Book Review" },
+                  { key: "points_per_issue", label: "Points when a book is issued" },
+                  { key: "points_per_timely_return", label: "Points for timely return" },
+                  { key: "points_per_study_minute", label: "Study Tracker XP per minute" },
                 ] as const).map(({ key, label }) => (
                   <div key={key} className="space-y-1">
                     <Label htmlFor={key}>{label}</Label>

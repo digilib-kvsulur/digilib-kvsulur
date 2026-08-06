@@ -26,6 +26,7 @@ export default function EventsManager() {
   const [viewEvent, setViewEvent] = useState<any | null>(null);
   const [form, setForm] = useState({
     title: "", description: "", event_date: "", end_date: "", location: "", capacity: "",
+    registration_deadline: "", submission_deadline: "",
     image_orientation: "horizontal",
     allow_submissions: false,
     submission_types: ["image", "pdf"] as string[],
@@ -78,6 +79,7 @@ export default function EventsManager() {
   const resetForm = () => {
     setForm({
       title: "", description: "", event_date: "", end_date: "", location: "", capacity: "",
+      registration_deadline: "", submission_deadline: "",
       image_orientation: "horizontal",
       allow_submissions: false,
       submission_types: ["image", "pdf"],
@@ -134,6 +136,8 @@ export default function EventsManager() {
         description: form.description || null,
         event_date: new Date(form.event_date).toISOString(),
         end_date: form.end_date ? new Date(form.end_date).toISOString() : null,
+        registration_deadline: form.registration_deadline ? new Date(form.registration_deadline).toISOString() : null,
+        submission_deadline: form.submission_deadline ? new Date(form.submission_deadline).toISOString() : null,
         location: form.location || null,
         capacity: form.capacity ? parseInt(form.capacity) : null,
         image_orientation: form.image_orientation,
@@ -174,6 +178,8 @@ export default function EventsManager() {
       description: ev.description || "",
       event_date: new Date(ev.event_date).toISOString().slice(0, 16),
       end_date: ev.end_date ? new Date(ev.end_date).toISOString().slice(0, 16) : "",
+      registration_deadline: ev.registration_deadline ? new Date(ev.registration_deadline).toISOString().slice(0, 16) : "",
+      submission_deadline: ev.submission_deadline ? new Date(ev.submission_deadline).toISOString().slice(0, 16) : "",
       location: ev.location || "",
       capacity: ev.capacity ? String(ev.capacity) : "",
       image_orientation: ev.image_orientation || "horizontal",
@@ -235,6 +241,18 @@ export default function EventsManager() {
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>Start Date &amp; time *</Label><Input type="datetime-local" value={form.event_date} onChange={e => setForm({ ...form, event_date: e.target.value })} /></div>
                 <div><Label>End Date &amp; time (optional)</Label><Input type="datetime-local" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Registration deadline</Label>
+                  <Input type="datetime-local" value={form.registration_deadline} onChange={e => setForm({ ...form, registration_deadline: e.target.value })} />
+                  <p className="text-[10px] text-muted-foreground mt-1">Students cannot register after this time.</p>
+                </div>
+                <div>
+                  <Label>Submission deadline</Label>
+                  <Input type="datetime-local" value={form.submission_deadline} onChange={e => setForm({ ...form, submission_deadline: e.target.value })} />
+                  <p className="text-[10px] text-muted-foreground mt-1">Activity reports close after this time.</p>
+                </div>
               </div>
               <div><Label>Location</Label><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
               <div><Label>Capacity (optional)</Label><Input type="number" value={form.capacity} onChange={e => setForm({ ...form, capacity: e.target.value })} /></div>

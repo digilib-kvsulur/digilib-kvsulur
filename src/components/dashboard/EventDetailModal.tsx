@@ -95,8 +95,15 @@ export default function EventDetailModal({
     }
   };
 
+  const submissionClosed = !!(event.submission_deadline && new Date(event.submission_deadline) < new Date());
+  const registrationClosed = !!(event.registration_deadline && new Date(event.registration_deadline) < new Date());
+
   const handleFileUpload = async (dayNum: number, file: File) => {
     if (!file) return;
+    if (submissionClosed) {
+      toast({ title: "Submissions closed", description: "The submission deadline has passed.", variant: "destructive" });
+      return;
+    }
     setUploadingDay(dayNum);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -232,6 +239,20 @@ export default function EventDetailModal({
                   {registrationCount ?? 0}{event.capacity ? ` / ${event.capacity}` : ""} registered
                 </div>
               )}
+              {event.registration_deadline && (
+                <div className={`flex items-center gap-2 font-medium ${registrationClosed ? "text-rose-600" : "text-slate-500"}`}>
+                  <Clock className="h-4 w-4" />
+                  Register by {new Date(event.registration_deadline).toLocaleString("en-IN")}
+                  {registrationClosed ? " (closed)" : ""}
+                </div>
+              )}
+              {event.submission_deadline && (
+                <div className={`flex items-center gap-2 font-medium ${submissionClosed ? "text-rose-600" : "text-slate-500"}`}>
+                  <Clock className="h-4 w-4" />
+                  Submit by {new Date(event.submission_deadline).toLocaleString("en-IN")}
+                  {submissionClosed ? " (closed)" : ""}
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -297,6 +318,11 @@ export default function EventDetailModal({
                   Day-wise Activity Submissions
                 </h4>
                 <p className="text-xs text-muted-foreground">Submit your day-wise reports, images, or files as requested.</p>
+                {submissionClosed && (
+                  <p className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                    Submission deadline has passed — uploads are closed.
+                  </p>
+                )}
 
                 <div className="space-y-2.5">
                   {Array.from({ length: event.max_submission_days || 1 }).map((_, i) => {
@@ -323,7 +349,9 @@ export default function EventDetailModal({
                         </div>
 
                         <div>
-                          {uploadingDay === dayNum ? (
+                          {submissionClosed ? (
+                            <span className="text-[10px] font-semibold text-slate-400">Closed</span>
+                          ) : uploadingDay === dayNum ? (
                             <Button disabled size="sm" className="h-8.5 rounded-xl text-xs gap-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200">
                               <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" /> Uploading...
                             </Button>
@@ -361,10 +389,16 @@ export default function EventDetailModal({
                       ? "bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100"
                       : "bg-indigo-600 hover:bg-indigo-700 text-white"
                   }`}
-                  disabled={!!isFull}
+                  disabled={!isRegistered && (!!isFull || registrationClosed)}
                   onClick={() => { onToggleRegister(event); onClose(); }}
                 >
-                  {isRegistered ? "Cancel Registration" : isFull ? "Event Full" : "Register for Event"}
+                  {isRegistered
+                    ? "Cancel Registration"
+                    : isFull
+                      ? "Event Full"
+                      : registrationClosed
+                        ? "Registration Closed"
+                        : "Register for Event"}
                 </Button>
               </div>
             )}
