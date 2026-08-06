@@ -16,7 +16,7 @@ export default function MyFines({ userId }: MyFinesProps) {
 
   const load = async () => {
     // Refresh accruing overdue fines (days × rate) before listing
-    await supabase.rpc("sync_overdue_fines" as any).then(() => {}).catch(() => undefined);
+    try { await supabase.rpc("sync_overdue_fines" as any); } catch { /* non-blocking */ }
     const [{ data }, { data: fs }] = await Promise.all([
       supabase.from("library_fines").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
       supabase.from("fine_settings").select("upi_id, upi_payee_name").eq("id", 1).maybeSingle(),

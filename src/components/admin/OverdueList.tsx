@@ -36,7 +36,7 @@ export default function OverdueList() {
 
   const load = async () => {
     // Keep overdue fines in sync whenever admin opens Overdue
-    await supabase.rpc("sync_overdue_fines" as any).then(() => {}).catch(() => undefined);
+    try { await supabase.rpc("sync_overdue_fines" as any); } catch { /* non-blocking */ }
     setLoading(true);
     try {
       const [{ data, error }, settings] = await Promise.all([

@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, BookOpen, Star, Compass, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+type Scored = { book: any; score: number; reasons: string[] };
+
 export default function Recommendations({ userId, studentClass }: { userId: string; studentClass?: string }) {
   const navigate = useNavigate();
-  const [personalizedBooks, setPersonalizedBooks] = useState<any[]>([]);
+  const [personalizedBooks, setPersonalizedBooks] = useState<Scored[]>([]);
+  const [trending, setTrending] = useState<any[]>([]);
   const [teacherPicks, setTeacherPicks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,89 +35,102 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
         }
       }
 
-      // 2. Fetch history categories & subjects
+      // 2. Fetch signals: history, wishlist, quizzes, ratings
       const [
         { data: issues },
-        { data: history },
         { data: wishlist },
-        { data: quizResults }
+        { data: quizResults },
+        { data: reviews },
       ] = await Promise.all([
-        supabase.from("book_issues").select("book_id, books(category, subject)").eq("user_id", userId),
-        supabase.from("reading_history").select("book_title, rating"),
-        supabase.from("book_wishlist").select("book_id, books(category, subject)").eq("user_id", userId),
-        supabase.from("quiz_results").select("*, quizzes(subject)").eq("user_id", userId)
+        supabase.from("book_issues").select("book_id, books(category, subject, author)").eq("user_id", userId),
+        supabase.from("book_wishlist").select("book_id, books(category, subject, author)").eq("user_id", userId),
+        supabase.from("quiz_results").select("quiz_id, quizzes(subject)").eq("user_id", userId),
+        supabase.from("book_reviews").select("book_id, rating").eq("user_id", userId),
       ]);
 
-      // Extract current active book IDs so we don't recommend them
-      const issuedBookIds = new Set<string>();
-      issues?.forEach((i: any) => { if (i.book_id) issuedBookIds.add(i.book_id); });
-      wishlist?.forEach((w: any) => { if (w.book_id) issuedBookIds.add(w.book_id); });
+      // Books to exclude (already borrowed / wishlisted / reviewed)
+      const seenBookIds = new Set<string>();
+      issues?.forEach((i: any) => i.book_id && seenBookIds.add(i.book_id));
+      wishlist?.forEach((w: any) => w.book_id && seenBookIds.add(w.book_id));
+      reviews?.forEach((r: any) => r.book_id && seenBookIds.add(r.book_id));
 
-      // Gather categories & subjects of interest
-      const interestedCategories = new Set<string>();
-      const interestedSubjects = new Set<string>();
+      // Weighted interest maps
+      const catWeights: Record<string, number> = {};
+      const subjWeights: Record<string, number> = {};
+      const authorWeights: Record<string, number> = {};
+      const bump = (map: Record<string, number>, key?: string | null, by = 1) => {
+        if (key) map[key] = (map[key] || 0) + by;
+      };
 
       issues?.forEach((i: any) => {
-        if (i.books?.category) interestedCategories.add(i.books.category);
-        if (i.books?.subject) interestedSubjects.add(i.books.subject);
+        bump(catWeights, i.books?.category, 2);
+        bump(subjWeights, i.books?.subject, 2);
+        bump(authorWeights, i.books?.author, 2);
       });
-
       wishlist?.forEach((w: any) => {
-        if (w.books?.category) interestedCategories.add(w.books.category);
-        if (w.books?.subject) interestedSubjects.add(w.books.subject);
+        bump(catWeights, w.books?.category, 1);
+        bump(subjWeights, w.books?.subject, 1);
+        bump(authorWeights, w.books?.author, 1);
       });
+      quizResults?.forEach((q: any) => bump(subjWeights, q.quizzes?.subject, 2));
 
-      quizResults?.forEach((q: any) => {
-        if (q.quizzes?.subject) interestedSubjects.add(q.quizzes.subject);
-      });
+      // 3. Candidate pool — popular + newest available books
+      const [{ data: popular }, { data: fresh }] = await Promise.all([
+        supabase.from("books").select("*").gt("available_copies", 0).order("issue_count", { ascending: false }).limit(40),
+        supabase.from("books").select("*").gt("available_copies", 0).order("first_added_at", { ascending: false }).limit(30),
+      ]);
 
-      // 3. Fetch books matching these categories & subjects OR student class level
-      let query = supabase.from("books").select("*").gt("available_copies", 0).limit(20);
+      const poolMap = new Map<string, any>();
+      [...(popular || []), ...(fresh || [])].forEach((b: any) => poolMap.set(b.id, b));
+      const pool = Array.from(poolMap.values());
 
-      const { data: matchedBooks } = await query;
-
-      if (matchedBooks) {
-        // Score each book based on parameters
-        const scored = matchedBooks.map(b => {
-          let score = 0;
-
-          // Exclude already checked out or wishlisted
-          if (issuedBookIds.has(b.id)) return null;
-
-          // Points for class level match
-          if (studentClass && b.class_level === studentClass) score += 5;
-
-          // Points for matching user categories
-          if (b.category && interestedCategories.has(b.category)) score += 3;
-
-          // Points for matching quiz subjects
-          if (b.subject && interestedSubjects.has(b.subject)) score += 4;
-
-          return { book: b, score };
-        })
-        .filter(Boolean) as { book: any; score: number }[];
-
-        // Sort by score desc
-        scored.sort((a, b) => b.score - a.score);
-        
-        let finalRecs = scored.map(s => s.book).slice(0, 6);
-
-        // Fallback if not enough recommendations
-        if (finalRecs.length < 3) {
-          const { data: fallbackBooks } = await supabase
-            .from("books")
-            .select("*")
-            .gt("available_copies", 0)
-            .order("first_added_at", { ascending: false })
-            .limit(6);
-          
-          const existingIds = new Set(finalRecs.map(r => r.id));
-          const addOn = (fallbackBooks || []).filter(b => !existingIds.has(b.id) && !issuedBookIds.has(b.id));
-          finalRecs = [...finalRecs, ...addOn].slice(0, 6);
-        }
-
-        setPersonalizedBooks(finalRecs);
+      // Average community rating per candidate book
+      const ratingMap: Record<string, { sum: number; n: number }> = {};
+      if (pool.length) {
+        const { data: allReviews } = await supabase
+          .from("book_reviews")
+          .select("book_id, rating")
+          .in("book_id", pool.map((b) => b.id))
+          .eq("is_hidden", false);
+        (allReviews || []).forEach((r: any) => {
+          const e = (ratingMap[r.book_id] ||= { sum: 0, n: 0 });
+          e.sum += r.rating; e.n += 1;
+        });
       }
+
+      const maxIssues = Math.max(1, ...pool.map((b: any) => b.issue_count || 0));
+
+      const scored: Scored[] = pool
+        .filter((b: any) => !seenBookIds.has(b.id))
+        .map((b: any) => {
+          let score = 0;
+          const reasons: string[] = [];
+
+          if (studentClass && b.class_level === studentClass) { score += 6; reasons.push("Class pick"); }
+          if (b.subject && subjWeights[b.subject]) { score += 3 * subjWeights[b.subject]; reasons.push(b.subject); }
+          if (b.category && catWeights[b.category]) { score += 2 * catWeights[b.category]; reasons.push(b.category); }
+          if (b.author && authorWeights[b.author]) { score += 4; reasons.push("Author you read"); }
+
+          const rt = ratingMap[b.id];
+          if (rt && rt.n > 0) {
+            const avg = rt.sum / rt.n;
+            score += avg;
+            if (avg >= 4) reasons.push(`${avg.toFixed(1)}★ rated`);
+          }
+
+          score += 3 * ((b.issue_count || 0) / maxIssues);
+          if ((b.issue_count || 0) >= maxIssues * 0.6 && maxIssues > 1) reasons.push("Popular");
+
+          return { book: b, score, reasons: reasons.slice(0, 3) };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      setPersonalizedBooks(scored.slice(0, 6));
+      setTrending(
+        [...(popular || [])]
+          .filter((b: any) => (b.issue_count || 0) > 0)
+          .slice(0, 6)
+      );
     } catch (e) {
       console.error("Error generating recommendations:", e);
     } finally {
@@ -125,6 +141,7 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
   useEffect(() => {
     loadRecommendations();
   }, [userId, studentClass]);
+
 
   if (loading) {
     return (
@@ -190,7 +207,7 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {personalizedBooks.map(b => (
+              {personalizedBooks.map(({ book: b, reasons }) => (
                 <div key={b.id} className="p-3.5 rounded-xl border bg-card flex flex-col justify-between hover:shadow-sm transition-all border-border/50">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 mb-1">
