@@ -36,7 +36,7 @@ export default function FineManager() {
   });
 
   const load = async () => {
-    await supabase.rpc("sync_overdue_fines" as any).then(() => {}).catch(() => undefined);
+    try { await supabase.rpc("sync_overdue_fines" as any); } catch { /* non-blocking */ }
     const [{ data }, { data: fs }, { data: studs }] = await Promise.all([
       supabase.from("library_fines").select("*").order("created_at", { ascending: false }),
       supabase.from("fine_settings").select("*").eq("id", 1).maybeSingle(),

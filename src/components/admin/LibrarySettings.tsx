@@ -76,12 +76,6 @@ export default function LibrarySettings() {
         updated_at: new Date().toISOString(),
       });
       const month = new Date().toISOString().substring(0, 7);
-      await supabase.from("reading_goals").upsert(
-        { user_id: null, month, target_books: monthlyGoal } as any,
-        { onConflict: "month" }
-      ).then(() => {}).catch(() => {
-        // school-wide unique index may need delete+insert
-      });
       // Upsert school-wide reading goal row
       await supabase.from("reading_goals").delete().is("user_id", null).eq("month", month);
       await supabase.from("reading_goals").insert({ user_id: null as any, month, target_books: monthlyGoal });

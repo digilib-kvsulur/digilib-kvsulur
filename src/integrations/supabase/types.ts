@@ -142,6 +142,105 @@ export type Database = {
           },
         ]
       }
+      book_club_members: {
+        Row: {
+          club_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_club_members_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "book_clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_club_messages: {
+        Row: {
+          club_id: string
+          created_at: string
+          id: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          id?: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_club_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "book_clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_clubs: {
+        Row: {
+          book_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          book_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          book_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_clubs_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       book_condemnations: {
         Row: {
           accession_number: string | null
@@ -475,6 +574,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      book_suggestions: {
+        Row: {
+          admin_note: string | null
+          author: string | null
+          created_at: string
+          id: string
+          reason: string | null
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          author?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          author?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       book_wishlist: {
         Row: {
@@ -864,6 +996,33 @@ export type Database = {
           },
         ]
       }
+      fine_settings: {
+        Row: {
+          grace_period_days: number
+          id: number
+          rate_per_day: number
+          updated_at: string
+          upi_id: string | null
+          upi_payee_name: string | null
+        }
+        Insert: {
+          grace_period_days?: number
+          id?: number
+          rate_per_day?: number
+          updated_at?: string
+          upi_id?: string | null
+          upi_payee_name?: string | null
+        }
+        Update: {
+          grace_period_days?: number
+          id?: number
+          rate_per_day?: number
+          updated_at?: string
+          upi_id?: string | null
+          upi_payee_name?: string | null
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           addressee_id: string
@@ -891,50 +1050,6 @@ export type Database = {
         }
         Relationships: []
       }
-      issued_certificates: {
-        Row: {
-          created_at: string
-          description: string | null
-          event_id: string | null
-          id: string
-          issued_at: string
-          issued_by: string | null
-          template_url: string | null
-          title: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          event_id?: string | null
-          id?: string
-          issued_at?: string
-          issued_by?: string | null
-          template_url?: string | null
-          title: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          event_id?: string | null
-          id?: string
-          issued_at?: string
-          issued_by?: string | null
-          template_url?: string | null
-          title?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "issued_certificates_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "library_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       gallery_images: {
         Row: {
           caption: string | null
@@ -958,6 +1073,47 @@ export type Database = {
           is_active?: boolean
         }
         Relationships: []
+      }
+      issued_certificates: {
+        Row: {
+          description: string | null
+          event_id: string | null
+          id: string
+          issued_at: string
+          issued_by: string | null
+          template_url: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          template_url?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          template_url?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issued_certificates_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "library_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       levels: {
         Row: {
@@ -1013,7 +1169,9 @@ export type Database = {
           is_published: boolean
           location: string | null
           max_submission_days: number
+          registration_deadline: string | null
           schedule_files: string | null
+          submission_deadline: string | null
           submission_types: string[]
           title: string
           updated_at: string
@@ -1032,7 +1190,9 @@ export type Database = {
           is_published?: boolean
           location?: string | null
           max_submission_days?: number
+          registration_deadline?: string | null
           schedule_files?: string | null
+          submission_deadline?: string | null
           submission_types?: string[]
           title: string
           updated_at?: string
@@ -1051,12 +1211,70 @@ export type Database = {
           is_published?: boolean
           location?: string | null
           max_submission_days?: number
+          registration_deadline?: string | null
           schedule_files?: string | null
+          submission_deadline?: string | null
           submission_types?: string[]
           title?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      library_fines: {
+        Row: {
+          book_issue_id: string | null
+          book_title: string | null
+          created_at: string
+          days_overdue: number
+          id: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_ref: string | null
+          rate_per_day: number
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_issue_id?: string | null
+          book_title?: string | null
+          created_at?: string
+          days_overdue?: number
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_ref?: string | null
+          rate_per_day?: number
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_issue_id?: string | null
+          book_title?: string | null
+          created_at?: string
+          days_overdue?: number
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_ref?: string | null
+          rate_per_day?: number
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_fines_book_issue_id_fkey"
+            columns: ["book_issue_id"]
+            isOneToOne: false
+            referencedRelation: "book_issues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       login_streaks: {
         Row: {
@@ -1090,6 +1308,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      lost_book_reports: {
+        Row: {
+          accession_number: string | null
+          admin_note: string | null
+          book_issue_id: string | null
+          book_title: string
+          id: string
+          replacement_cost: number
+          reported_at: string
+          settled_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          accession_number?: string | null
+          admin_note?: string | null
+          book_issue_id?: string | null
+          book_title: string
+          id?: string
+          replacement_cost?: number
+          reported_at?: string
+          settled_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          accession_number?: string | null
+          admin_note?: string | null
+          book_issue_id?: string | null
+          book_title?: string
+          id?: string
+          replacement_cost?: number
+          reported_at?: string
+          settled_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lost_book_reports_book_issue_id_fkey"
+            columns: ["book_issue_id"]
+            isOneToOne: false
+            referencedRelation: "book_issues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monthly_reading_goals: {
         Row: {
@@ -1220,6 +1485,148 @@ export type Database = {
         }
         Relationships: []
       }
+      periodical_issues: {
+        Row: {
+          created_at: string
+          id: string
+          issue_date: string
+          issue_number: string | null
+          notes: string | null
+          on_shelf: boolean
+          periodical_id: string
+          volume: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issue_date: string
+          issue_number?: string | null
+          notes?: string | null
+          on_shelf?: boolean
+          periodical_id: string
+          volume?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issue_date?: string
+          issue_number?: string | null
+          notes?: string | null
+          on_shelf?: boolean
+          periodical_id?: string
+          volume?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "periodical_issues_periodical_id_fkey"
+            columns: ["periodical_id"]
+            isOneToOne: false
+            referencedRelation: "periodicals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      periodicals: {
+        Row: {
+          created_at: string
+          frequency: string | null
+          id: string
+          is_active: boolean
+          publisher: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          frequency?: string | null
+          id?: string
+          is_active?: boolean
+          publisher?: string | null
+          title: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          frequency?: string | null
+          id?: string
+          is_active?: boolean
+          publisher?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      poll_options: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          post_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          post_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          post_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_options_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_id: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_comments: {
         Row: {
           content: string
@@ -1286,8 +1693,11 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_pinned: boolean
           media_type: string | null
           media_url: string | null
+          pinned_at: string | null
+          post_type: string
           title: string
           updated_at: string
           user_id: string
@@ -1296,8 +1706,11 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_pinned?: boolean
           media_type?: string | null
           media_url?: string | null
+          pinned_at?: string | null
+          post_type?: string
           title: string
           updated_at?: string
           user_id: string
@@ -1306,8 +1719,11 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_pinned?: boolean
           media_type?: string | null
           media_url?: string | null
+          pinned_at?: string | null
+          post_type?: string
           title?: string
           updated_at?: string
           user_id?: string
@@ -1487,9 +1903,37 @@ export type Database = {
         }
         Relationships: []
       }
+      reading_goals: {
+        Row: {
+          created_at: string
+          id: string
+          month: string
+          target_books: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: string
+          target_books?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: string
+          target_books?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       reading_history: {
         Row: {
           book_author: string
+          book_id: string | null
           book_title: string
           completed_date: string
           created_at: string
@@ -1502,6 +1946,7 @@ export type Database = {
         }
         Insert: {
           book_author: string
+          book_id?: string | null
           book_title: string
           completed_date?: string
           created_at?: string
@@ -1514,6 +1959,7 @@ export type Database = {
         }
         Update: {
           book_author?: string
+          book_id?: string | null
           book_title?: string
           completed_date?: string
           created_at?: string
@@ -1524,7 +1970,15 @@ export type Database = {
           status?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reading_history_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       study_materials: {
         Row: {
@@ -1565,6 +2019,48 @@ export type Database = {
           title?: string
           updated_at?: string
           uploaded_by?: string
+        }
+        Relationships: []
+      }
+      study_sessions: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          ended_at: string | null
+          id: string
+          material_id: string | null
+          material_title: string | null
+          notes: string | null
+          points_earned: number
+          session_type: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string | null
+          id?: string
+          material_id?: string | null
+          material_title?: string | null
+          notes?: string | null
+          points_earned?: number
+          session_type?: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string | null
+          id?: string
+          material_id?: string | null
+          material_title?: string | null
+          notes?: string | null
+          points_earned?: number
+          session_type?: string
+          started_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1623,6 +2119,7 @@ export type Database = {
           status: string
           student_class: string | null
           subject: string
+          ticket_number: string | null
           updated_at: string
           user_id: string | null
         }
@@ -1642,6 +2139,7 @@ export type Database = {
           status?: string
           student_class?: string | null
           subject: string
+          ticket_number?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1661,6 +2159,7 @@ export type Database = {
           status?: string
           student_class?: string | null
           subject?: string
+          ticket_number?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1718,6 +2217,16 @@ export type Database = {
       approve_reading_entry: { Args: { p_reading_id: string }; Returns: number }
       check_and_award_badges: { Args: { p_user_id: string }; Returns: number }
       claim_streak_points: { Args: never; Returns: number }
+      complete_study_session: {
+        Args: {
+          p_duration_seconds: number
+          p_material_id: string
+          p_material_title: string
+          p_notes: string
+          p_session_id: string
+        }
+        Returns: number
+      }
       condemn_book: {
         Args: {
           p_book_id: string
@@ -1833,6 +2342,13 @@ export type Database = {
           username: string
         }[]
       }
+      get_reading_goal_progress: {
+        Args: { p_month: string; p_user_id: string }
+        Returns: {
+          books_read: number
+          target_books: number
+        }[]
+      }
       get_school_leaderboard_stats: {
         Args: never
         Returns: {
@@ -1895,12 +2411,27 @@ export type Database = {
         Args: { p_book_id: string; p_issue_date?: string; p_user_id: string }
         Returns: string
       }
+      link_my_support_tickets: { Args: never; Returns: number }
       lookup_member_by_admission: {
         Args: { p_admission: string }
         Returns: {
           full_name: string
           role: string
           student_class: string
+        }[]
+      }
+      lookup_ticket_status: {
+        Args: { p_admission: string; p_ticket_number: string }
+        Returns: {
+          admin_response: string
+          category: string
+          created_at: string
+          id: string
+          priority: string
+          resolved_at: string
+          status: string
+          subject: string
+          ticket_number: string
         }[]
       }
       notify_user: {
@@ -1920,6 +2451,7 @@ export type Database = {
           total_login_days: number
         }[]
       }
+      scrap_reading_entry: { Args: { p_reading_id: string }; Returns: number }
       search_public_profiles: {
         Args: { _exclude: string; _q: string }
         Returns: {
@@ -1932,7 +2464,26 @@ export type Database = {
           username: string
         }[]
       }
+      send_due_soon_reminders: { Args: { p_days?: number }; Returns: number }
+      submit_public_support_ticket: {
+        Args: {
+          p_admission: string
+          p_category: string
+          p_description: string
+          p_email: string
+          p_full_name: string
+          p_priority: string
+          p_role: string
+          p_student_class: string
+          p_subject: string
+        }
+        Returns: {
+          id: string
+          ticket_number: string
+        }[]
+      }
       sync_missing_auth_profiles: { Args: never; Returns: number }
+      sync_overdue_fines: { Args: never; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
