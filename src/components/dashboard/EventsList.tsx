@@ -91,7 +91,6 @@ export default function EventsList({ userId }: { userId: string }) {
   const selectedRegistered = selectedEvent ? mine.has(selectedEvent.id) : false;
   const selectedFull = selectedEvent ? (selectedEvent.capacity && (counts[selectedEvent.id] || 0) >= selectedEvent.capacity && !selectedRegistered) : false;
   const selectedPast = selectedEvent ? new Date(selectedEvent.end_date || selectedEvent.event_date) < now : false;
-  const selectedRegClosed = selectedEvent ? isRegistrationClosed(selectedEvent, now) : false;
 
   return (
     <div className="space-y-5">
