@@ -22,6 +22,7 @@ import BookIssueRegister from "@/components/admin/BookIssueRegister";
 import BookIssueRequests from "@/components/admin/BookIssueRequests";
 import PointsManager from "@/components/admin/PointsManager";
 import QuizManager from "@/components/quiz/QuizManager";
+import GamesManager from "@/components/admin/GamesManager";
 import BadgeManager from "@/components/admin/BadgeManager";
 import WishlistView from "@/components/admin/WishlistView";
 import AdminProfile from "@/components/admin/AdminProfile";
@@ -50,7 +51,7 @@ import BookClubManager from "@/components/admin/BookClubManager";
 import { LifeBuoy } from "lucide-react";
 import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert, IndianRupee, Newspaper, Users as UsersIcon } from "lucide-react";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games";
 
 const navSections = [
   {
@@ -95,6 +96,7 @@ const navSections = [
     items: [
       { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
       { id: "badges" as Tab, label: "Badges", icon: Award },
+      { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
       { id: "certificates" as Tab, label: "Certificates", icon: Award },
       { id: "periodicals" as Tab, label: "Periodicals", icon: Newspaper },
       { id: "clubs" as Tab, label: "Book Clubs", icon: UsersIcon },
@@ -352,6 +354,7 @@ const AdminDashboard = () => {
           {activeTab === "points" && <PointsManager />}
           {activeTab === "quizzes" && <QuizManager />}
           {activeTab === "badges" && <BadgeManager />}
+          {activeTab === "games" && <GamesManager />}
           {activeTab === "wishlist" && <WishlistView />}
           {activeTab === "levels" && <LevelManager />}
           {activeTab === "analytics" && <ClassAnalytics />}

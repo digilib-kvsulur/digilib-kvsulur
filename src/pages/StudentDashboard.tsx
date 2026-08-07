@@ -34,6 +34,7 @@ import StudentNotes from "@/components/dashboard/StudentNotes";
 import NCERTBooks from "@/components/dashboard/NCERTBooks";
 import StudyMaterials from "@/components/dashboard/StudyMaterials";
 import StudyTracker from "@/components/dashboard/StudyTracker";
+import GamesCorner from "@/components/games/GamesCorner";
 import Community from "@/components/community/Community";
 import EventsList from "@/components/dashboard/EventsList";
 import Recommendations from "@/components/dashboard/Recommendations";
@@ -49,7 +50,7 @@ import IssuedBooksHub from "@/components/dashboard/IssuedBooksHub";
 import { PWAControls } from "@/components/PWAControls";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
 
-type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals";
+type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -58,6 +59,7 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "study", label: "Study Tracker", icon: Timer },
+  { id: "games", label: "Games Corner", icon: Gamepad2 },
   { id: "notes", label: "My Notes", icon: StickyNote },
   { id: "community", label: "Community", icon: Users },
   { id: "quizzes", label: "Quizzes", icon: Brain },
@@ -690,6 +692,9 @@ const StudentDashboard = () => {
 
           {/* Study Materials */}
           {activeTab === "materials" && <StudyMaterials studentClass={user?.student_class} />}
+
+          {/* Games Corner */}
+          {activeTab === "games" && user?.id && <GamesCorner userId={user.id} />}
 
           {/* Study Tracker */}
           {activeTab === "study" && user?.id && (
