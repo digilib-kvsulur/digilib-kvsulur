@@ -10,7 +10,7 @@ import {
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award,
   LifeBuoy, AlertTriangle, Newspaper, BookCheck, Timer
-} from "lucide-react";
+, Gamepad2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLoginStreak } from "@/hooks/useLoginStreak";
