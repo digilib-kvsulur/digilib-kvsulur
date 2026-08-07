@@ -435,15 +435,25 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                 <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span className="leading-snug text-left">{viewMaterial?.title}</span>
               </DialogTitle>
-              {viewMaterial?.url?.toLowerCase().includes('.pdf') && (
-                <Button asChild variant="outline" size="sm" className="h-8 shrink-0">
-                  <a href={viewMaterial.url} download target="_blank" rel="noopener noreferrer">
-                    <Download className="h-3.5 w-3.5 sm:mr-2" />
-                    <span className="hidden sm:inline">Download</span>
-                  </a>
-                </Button>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant="secondary" className="h-8 px-2.5 gap-1.5 font-mono text-xs">
+                  <Timer className="h-3.5 w-3.5 text-primary" />
+                  {String(Math.floor(readSeconds / 60)).padStart(2, "0")}:{String(readSeconds % 60).padStart(2, "0")}
+                </Badge>
+                {viewMaterial?.url?.toLowerCase().includes('.pdf') && (
+                  <Button asChild variant="outline" size="sm" className="h-8">
+                    <a href={viewMaterial.url} download target="_blank" rel="noopener noreferrer">
+                      <Download className="h-3.5 w-3.5 sm:mr-2" />
+                      <span className="hidden sm:inline">Download</span>
+                    </a>
+                  </Button>
+                )}
+              </div>
             </div>
+            <p className="text-[11px] text-muted-foreground pt-1 text-left">
+              Keep reading — you earn XP for every full minute you spend on this material.
+            </p>
+
           </DialogHeader>
           <div className="flex-1 bg-muted/10 w-full h-full relative">
             {viewMaterial && (
