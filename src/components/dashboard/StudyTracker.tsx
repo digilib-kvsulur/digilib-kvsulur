@@ -43,6 +43,10 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
   const [mode, setMode] = useState<SessionMode>("pomodoro");
   const [pomodoroMins, setPomodoroMins] = useState(25);
   const [ptsPerMin, setPtsPerMin] = useState(1);
+  const [dailyGoalMins, setDailyGoalMins] = useState<number>(() => {
+    const v = Number(localStorage.getItem("study_daily_goal_mins"));
+    return v > 0 ? v : 60;
+  });
   const [notes, setNotes] = useState("");
 
   const [running, setRunning] = useState(false);
