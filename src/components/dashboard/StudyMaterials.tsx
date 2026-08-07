@@ -99,6 +99,34 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
   const [readAward, setReadAward] = useState<number | null>(null);
   const [dbCbse, setDbCbse] = useState<any[]>([]);
 
+  // Reading timer — awards XP for time spent studying a material
+  useEffect(() => {
+    if (!viewMaterial) return;
+    setReadSeconds(0);
+    setReadAward(null);
+    const t = window.setInterval(() => setReadSeconds((s) => s + 1), 1000);
+    return () => window.clearInterval(t);
+  }, [viewMaterial]);
+
+  const closeViewer = async () => {
+    const secs = readSeconds;
+    const mat = viewMaterial;
+    setViewMaterial(null);
+    if (!mat || secs < 60) return;
+    const { data, error } = await supabase.rpc("award_material_reading", {
+      p_material_id: mat.id ?? null,
+      p_material_title: mat.title,
+      p_seconds: secs,
+    });
+    if (error) return;
+    const pts = Number(data) || 0;
+    toast({
+      title: pts > 0 ? `+${pts} XP for reading!` : "Reading time logged",
+      description: `You studied "${mat.title}" for ${Math.floor(secs / 60)} min.`,
+    });
+  };
+
+
   const baseClass = getBaseClass(studentClass);
 
   useEffect(() => {
