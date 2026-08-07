@@ -273,7 +273,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                       </div>
                       {m.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{m.description}</p>}
                       <div className="mt-3">
-                        <Button size="sm" variant="outline" className="h-8 text-xs font-semibold px-3" onClick={() => setViewMaterial({ title: m.title, url: m.file_url })}>
+                        <Button size="sm" variant="outline" className="h-8 text-xs font-semibold px-3" onClick={() => setViewMaterial({ title: m.title, url: m.file_url, id: m.id })}>
                           <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Open
                         </Button>
                       </div>
@@ -427,7 +427,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
         </DialogContent>
       </Dialog>
       {/* Material Viewer Popup */}
-      <Dialog open={!!viewMaterial} onOpenChange={() => setViewMaterial(null)}>
+      <Dialog open={!!viewMaterial} onOpenChange={(o) => { if (!o) void closeViewer(); }}>
         <DialogContent className="max-w-5xl w-full h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-4 border-b bg-muted/20 shrink-0">
             <div className="flex items-start justify-between gap-3">
