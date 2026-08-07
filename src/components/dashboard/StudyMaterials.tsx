@@ -87,6 +87,7 @@ const SUBJECT_COLORS: Record<string, string> = {
 };
 
 const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
+  const { toast } = useToast();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [dbNcert, setDbNcert] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
