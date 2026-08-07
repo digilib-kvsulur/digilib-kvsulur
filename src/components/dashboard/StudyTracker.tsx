@@ -246,7 +246,13 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><Timer className="h-3.5 w-3.5" /> Today</p>
+            <p className="text-xl font-bold mt-1">{Math.floor(todaySecs / 60)} min</p>
+          </CardContent>
+        </Card>
         <Card className="border-border/50">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="h-3.5 w-3.5" /> Total study</p>
@@ -259,13 +265,65 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
             <p className="text-xl font-bold mt-1">{totalXp}</p>
           </CardContent>
         </Card>
-        <Card className="border-border/50 col-span-2 sm:col-span-1">
+        <Card className="border-border/50">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" /> Sessions</p>
             <p className="text-xl font-bold mt-1">{sessions.filter((s) => s.ended_at).length}</p>
           </CardContent>
         </Card>
       </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-border/50">
+          <CardContent className="p-5 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold">Daily study goal</p>
+              <div className="flex items-center gap-1">
+                {[30, 60, 90, 120].map((g) => (
+                  <Button
+                    key={g}
+                    size="sm"
+                    variant={dailyGoalMins === g ? "default" : "outline"}
+                    className="h-7 px-2 text-[11px]"
+                    onClick={() => {
+                      setDailyGoalMins(g);
+                      localStorage.setItem("study_daily_goal_mins", String(g));
+                    }}
+                  >
+                    {g}m
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <Progress value={goalPct} className="h-2.5" />
+            <p className="text-xs text-muted-foreground">
+              {Math.floor(todaySecs / 60)} of {dailyGoalMins} min done
+              {goalPct >= 100 ? " — goal smashed! 🎉" : ` · ${Math.max(dailyGoalMins - Math.floor(todaySecs / 60), 0)} min to go`}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardContent className="p-5">
+            <p className="text-sm font-semibold mb-3">Last 7 days</p>
+            <div className="flex items-end justify-between gap-2 h-24">
+              {week.map((w, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full flex-1 flex items-end">
+                    <div
+                      className="w-full rounded-t-md bg-gradient-to-t from-primary/60 to-primary transition-all"
+                      style={{ height: `${Math.max((w.mins / weekMax) * 100, w.mins > 0 ? 8 : 3)}%` }}
+                      title={`${w.mins} min`}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{w.label}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
 
       <Card className="border-border/50 overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
