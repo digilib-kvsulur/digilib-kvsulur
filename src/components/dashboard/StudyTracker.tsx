@@ -215,6 +215,22 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
   const progressPct = targetSeconds > 0 ? Math.min(100, (elapsed / targetSeconds) * 100) : 0;
   const displayRemaining = mode === "focus" ? elapsed : Math.max(0, targetSeconds - elapsed);
 
+  const todaySecs = sessions
+    .filter((s) => s.session_type !== "break" && s.ended_at && new Date(s.started_at).toDateString() === new Date().toDateString())
+    .reduce((a, s) => a + (s.duration_seconds || 0), 0);
+  const goalPct = dailyGoalMins > 0 ? Math.min(100, (todaySecs / 60 / dailyGoalMins) * 100) : 0;
+
+  const week = [...Array(7)].map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const secs = sessions
+      .filter((s) => s.session_type !== "break" && s.ended_at && new Date(s.started_at).toDateString() === d.toDateString())
+      .reduce((a, s) => a + (s.duration_seconds || 0), 0);
+    return { label: d.toLocaleDateString(undefined, { weekday: "narrow" }), mins: Math.round(secs / 60) };
+  });
+  const weekMax = Math.max(...week.map((w) => w.mins), 1);
+
+
   return (
     <div className="space-y-6">
       <div>
