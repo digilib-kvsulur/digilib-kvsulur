@@ -94,7 +94,9 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
   const [filterSubject, setFilterSubject] = useState("all");
   const [ncertBook, setNcertBook] = useState<{ name: string; chapters: { title: string; url: string }[] } | null>(null);
   const [cbseBook, setCbseBook] = useState<{ name: string; chapters: { title: string; url: string }[] } | null>(null);
-  const [viewMaterial, setViewMaterial] = useState<{title: string, url: string} | null>(null);
+  const [viewMaterial, setViewMaterial] = useState<{title: string, url: string, id?: string | null} | null>(null);
+  const [readSeconds, setReadSeconds] = useState(0);
+  const [readAward, setReadAward] = useState<number | null>(null);
   const [dbCbse, setDbCbse] = useState<any[]>([]);
 
   const baseClass = getBaseClass(studentClass);
