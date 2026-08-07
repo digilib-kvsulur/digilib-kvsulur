@@ -1074,6 +1074,101 @@ export type Database = {
         }
         Relationships: []
       }
+      game_plays: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          game_id: string | null
+          game_key: string
+          id: string
+          is_win: boolean
+          played_at: string
+          points_earned: number
+          score: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number
+          game_id?: string | null
+          game_key: string
+          id?: string
+          is_win?: boolean
+          played_at?: string
+          points_earned?: number
+          score?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          game_id?: string | null
+          game_key?: string
+          id?: string
+          is_win?: boolean
+          played_at?: string
+          points_earned?: number
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_plays_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          category: string
+          created_at: string
+          daily_play_limit: number
+          description: string | null
+          icon_name: string
+          id: string
+          is_enabled: boolean
+          key: string
+          max_points_per_day: number
+          name: string
+          points_per_win: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          daily_play_limit?: number
+          description?: string | null
+          icon_name?: string
+          id?: string
+          is_enabled?: boolean
+          key: string
+          max_points_per_day?: number
+          name: string
+          points_per_win?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          daily_play_limit?: number
+          description?: string | null
+          icon_name?: string
+          id?: string
+          is_enabled?: boolean
+          key?: string
+          max_points_per_day?: number
+          name?: string
+          points_per_win?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       issued_certificates: {
         Row: {
           description: string | null
@@ -2215,6 +2310,14 @@ export type Database = {
         Returns: string
       }
       approve_reading_entry: { Args: { p_reading_id: string }; Returns: number }
+      award_material_reading: {
+        Args: {
+          p_material_id: string
+          p_material_title: string
+          p_seconds: number
+        }
+        Returns: number
+      }
       check_and_award_badges: { Args: { p_user_id: string }; Returns: number }
       claim_streak_points: { Args: never; Returns: number }
       complete_study_session: {
@@ -2442,6 +2545,19 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      record_game_play: {
+        Args: {
+          p_duration_seconds?: number
+          p_game_key: string
+          p_is_win: boolean
+          p_score: number
+        }
+        Returns: {
+          message: string
+          plays_left: number
+          points_awarded: number
+        }[]
       }
       record_login_streak: {
         Args: { p_user_id: string }

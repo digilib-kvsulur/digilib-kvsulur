@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExternalLink, BookOpen, Search, FileText, Download, Loader2, ChevronRight, GraduationCap } from "lucide-react";
+import { ExternalLink, BookOpen, Search, FileText, Download, Loader2, ChevronRight, GraduationCap, Timer } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Material {
   id: string;
@@ -86,6 +87,7 @@ const SUBJECT_COLORS: Record<string, string> = {
 };
 
 const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
+  const { toast } = useToast();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [dbNcert, setDbNcert] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,8 +96,38 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
   const [filterSubject, setFilterSubject] = useState("all");
   const [ncertBook, setNcertBook] = useState<{ name: string; chapters: { title: string; url: string }[] } | null>(null);
   const [cbseBook, setCbseBook] = useState<{ name: string; chapters: { title: string; url: string }[] } | null>(null);
-  const [viewMaterial, setViewMaterial] = useState<{title: string, url: string} | null>(null);
+  const [viewMaterial, setViewMaterial] = useState<{title: string, url: string, id?: string | null} | null>(null);
+  const [readSeconds, setReadSeconds] = useState(0);
+  const [readAward, setReadAward] = useState<number | null>(null);
   const [dbCbse, setDbCbse] = useState<any[]>([]);
+
+  // Reading timer — awards XP for time spent studying a material
+  useEffect(() => {
+    if (!viewMaterial) return;
+    setReadSeconds(0);
+    setReadAward(null);
+    const t = window.setInterval(() => setReadSeconds((s) => s + 1), 1000);
+    return () => window.clearInterval(t);
+  }, [viewMaterial]);
+
+  const closeViewer = async () => {
+    const secs = readSeconds;
+    const mat = viewMaterial;
+    setViewMaterial(null);
+    if (!mat || secs < 60) return;
+    const { data, error } = await supabase.rpc("award_material_reading", {
+      p_material_id: mat.id ?? null,
+      p_material_title: mat.title,
+      p_seconds: secs,
+    });
+    if (error) return;
+    const pts = Number(data) || 0;
+    toast({
+      title: pts > 0 ? `+${pts} XP for reading!` : "Reading time logged",
+      description: `You studied "${mat.title}" for ${Math.floor(secs / 60)} min.`,
+    });
+  };
+
 
   const baseClass = getBaseClass(studentClass);
 
@@ -241,7 +273,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                       </div>
                       {m.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{m.description}</p>}
                       <div className="mt-3">
-                        <Button size="sm" variant="outline" className="h-8 text-xs font-semibold px-3" onClick={() => setViewMaterial({ title: m.title, url: m.file_url })}>
+                        <Button size="sm" variant="outline" className="h-8 text-xs font-semibold px-3" onClick={() => setViewMaterial({ title: m.title, url: m.file_url, id: m.id })}>
                           <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Open
                         </Button>
                       </div>
@@ -395,7 +427,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
         </DialogContent>
       </Dialog>
       {/* Material Viewer Popup */}
-      <Dialog open={!!viewMaterial} onOpenChange={() => setViewMaterial(null)}>
+      <Dialog open={!!viewMaterial} onOpenChange={(o) => { if (!o) void closeViewer(); }}>
         <DialogContent className="max-w-5xl w-full h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-4 border-b bg-muted/20 shrink-0">
             <div className="flex items-start justify-between gap-3">
@@ -403,15 +435,25 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                 <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span className="leading-snug text-left">{viewMaterial?.title}</span>
               </DialogTitle>
-              {viewMaterial?.url?.toLowerCase().includes('.pdf') && (
-                <Button asChild variant="outline" size="sm" className="h-8 shrink-0">
-                  <a href={viewMaterial.url} download target="_blank" rel="noopener noreferrer">
-                    <Download className="h-3.5 w-3.5 sm:mr-2" />
-                    <span className="hidden sm:inline">Download</span>
-                  </a>
-                </Button>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant="secondary" className="h-8 px-2.5 gap-1.5 font-mono text-xs">
+                  <Timer className="h-3.5 w-3.5 text-primary" />
+                  {String(Math.floor(readSeconds / 60)).padStart(2, "0")}:{String(readSeconds % 60).padStart(2, "0")}
+                </Badge>
+                {viewMaterial?.url?.toLowerCase().includes('.pdf') && (
+                  <Button asChild variant="outline" size="sm" className="h-8">
+                    <a href={viewMaterial.url} download target="_blank" rel="noopener noreferrer">
+                      <Download className="h-3.5 w-3.5 sm:mr-2" />
+                      <span className="hidden sm:inline">Download</span>
+                    </a>
+                  </Button>
+                )}
+              </div>
             </div>
+            <p className="text-[11px] text-muted-foreground pt-1 text-left">
+              Keep reading — you earn XP for every full minute you spend on this material.
+            </p>
+
           </DialogHeader>
           <div className="flex-1 bg-muted/10 w-full h-full relative">
             {viewMaterial && (
