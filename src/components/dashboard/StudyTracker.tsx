@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import useQueueStatus from "@/hooks/use-queue-status";
+import { startSessionLocal, completeSessionLocal } from "@/lib/offline";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,7 @@ const formatTime = (totalSeconds: number) => {
 
 export default function StudyTracker({ userId, studentClass }: { userId: string; studentClass?: string }) {
   const { toast } = useToast();
+  const { count: queueCount } = useQueueStatus();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [materialId, setMaterialId] = useState<string>("none");
@@ -116,8 +119,347 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
 
   const startSession = async () => {
     if (running) return;
-    const { data, error } = await supabase.from("study_sessions").insert({
+      const payload = {
       user_id: userId,
+      material_id: materialId !== "none" ? materialId : null,
+      material_title: materialTitle(),
+      duration_seconds: 1,
+      points_earned: 0,
+      session_type: mode,
+      notes: notes.trim() || null,
+      started_at: new Date().toISOString(),
+      };
+
+      const res = await startSessionLocal(payload);
+      if (!res) {
+        toast({ title: "Could not start session", description: "Unknown error", variant: "destructive" });
+        return;
+      }
+
+      setActiveSessionId(res.id);
+      accruedRef.current = 0;
+      startTsRef.current = Date.now();
+      setElapsed(0);
+      setPaused(false);
+      setRunning(true);
+
+      if (!res.success) {
+        toast({ title: mode === "break" ? "Break started (offline)" : "Study session started (offline)", description: "Session queued and will sync when online." });
+      } else {
+        toast({ title: mode === "break" ? "Break started" : "Study session started", description: "Focus time — you've got this!" });
+      }
+    };
+
+  const pauseSession = () => {
+    if (!running || paused) return;
+    if (startTsRef.current != null) {
+      accruedRef.current += Math.floor((Date.now() - startTsRef.current) / 1000);
+      startTsRef.current = null;
+    }
+    setPaused(true);
+  };
+
+  const resumeSession = () => {
+    if (!running || !paused) return;
+    startTsRef.current = Date.now();
+    setPaused(false);
+  };
+
+  const finishSession = async (finalSecs?: number) => {
+      if (!activeSessionId || saving) return;
+      setSaving(true);
+      if (startTsRef.current != null) {
+        accruedRef.current += Math.floor((Date.now() - startTsRef.current) / 1000);
+        startTsRef.current = null;
+      }
+      const duration = Math.max(finalSecs ?? accruedRef.current, 1);
+      setRunning(false);
+      setPaused(false);
+      if (tickRef.current) {
+        window.clearInterval(tickRef.current);
+        tickRef.current = null;
+      }
+
+      try {
+        const payload = {
+          p_session_id: activeSessionId,
+          p_duration_seconds: duration,
+          p_material_id: materialId !== "none" ? materialId : null,
+          p_material_title: materialTitle(),
+          p_notes: notes.trim() || null,
+        };
+        const res = await completeSessionLocal(payload);
+        if (res.success) {
+          const earned = res.pts ? Number(res.pts) : (mode === "break" ? 0 : Math.floor(duration / 60) * ptsPerMin);
+          toast({
+            title: mode === "break" ? "Break complete" : "Session complete!",
+            description: earned > 0 ? `+${earned} XP for ${formatTime(duration)} of study` : `Logged ${formatTime(duration)}`,
+          });
+        } else {
+          const earned = mode === "break" ? 0 : Math.floor(duration / 60) * ptsPerMin;
+          toast({
+            title: "Session saved (offline)",
+            description: earned > 0 ? `+${earned} XP (will sync)` : formatTime(duration),
+          });
+        }
+      } catch (e: any) {
+        toast({ title: "Could not save session", description: e?.message || String(e), variant: "destructive" });
+      } finally {
+        setActiveSessionId(null);
+        setElapsed(0);
+        accruedRef.current = 0;
+        setSaving(false);
+        load();
+      }
+    };
+
+  const totalStudySecs = sessions
+    .filter((s) => s.session_type !== "break" && s.ended_at)
+    .reduce((a, s) => a + (s.duration_seconds || 0), 0);
+  const totalXp = sessions.reduce((a, s) => a + (s.points_earned || 0), 0);
+  const progressPct = targetSeconds > 0 ? Math.min(100, (elapsed / targetSeconds) * 100) : 0;
+  const displayRemaining = mode === "focus" ? elapsed : Math.max(0, targetSeconds - elapsed);
+
+  const todaySecs = sessions
+    .filter((s) => s.session_type !== "break" && s.ended_at && new Date(s.started_at).toDateString() === new Date().toDateString())
+    .reduce((a, s) => a + (s.duration_seconds || 0), 0);
+  const goalPct = dailyGoalMins > 0 ? Math.min(100, (todaySecs / 60 / dailyGoalMins) * 100) : 0;
+
+  const week = [...Array(7)].map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const secs = sessions
+      .filter((s) => s.session_type !== "break" && s.ended_at && new Date(s.started_at).toDateString() === d.toDateString())
+      .reduce((a, s) => a + (s.duration_seconds || 0), 0);
+    return { label: d.toLocaleDateString(undefined, { weekday: "narrow" }), mins: Math.round(secs / 60) };
+  });
+  const weekMax = Math.max(...week.map((w) => w.mins), 1);
+
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Timer className="h-6 w-6 text-primary" /> Study Tracker {queueCount > 0 && (<span className="ml-2 text-sm text-muted-foreground">· Queued: {queueCount}</span>)}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Pomodoro timer, focus sessions, and XP for time spent studying ({ptsPerMin} XP / minute).
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><Timer className="h-3.5 w-3.5" /> Today</p>
+            <p className="text-xl font-bold mt-1">{Math.floor(todaySecs / 60)} min</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="h-3.5 w-3.5" /> Total study</p>
+            <p className="text-xl font-bold mt-1">{Math.floor(totalStudySecs / 60)} min</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><Zap className="h-3.5 w-3.5" /> XP earned</p>
+            <p className="text-xl font-bold mt-1">{totalXp}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" /> Sessions</p>
+            <p className="text-xl font-bold mt-1">{sessions.filter((s) => s.ended_at).length}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-border/50">
+          <CardContent className="p-5 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold">Daily study goal</p>
+              <div className="flex items-center gap-1">
+                {[30, 60, 90, 120].map((g) => (
+                  <Button
+                    key={g}
+                    size="sm"
+                    variant={dailyGoalMins === g ? "default" : "outline"}
+                    className="h-7 px-2 text-[11px]"
+                    onClick={() => {
+                      setDailyGoalMins(g);
+                      localStorage.setItem("study_daily_goal_mins", String(g));
+                    }}
+                  >
+                    {g}m
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <Progress value={goalPct} className="h-2.5" />
+            <p className="text-xs text-muted-foreground">
+              {Math.floor(todaySecs / 60)} of {dailyGoalMins} min done
+              {goalPct >= 100 ? " — goal smashed! 🎉" : ` · ${Math.max(dailyGoalMins - Math.floor(todaySecs / 60), 0)} min to go`}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardContent className="p-5">
+            <p className="text-sm font-semibold mb-3">Last 7 days</p>
+            <div className="flex items-end justify-between gap-2 h-24">
+              {week.map((w, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full flex-1 flex items-end">
+                    <div
+                      className="w-full rounded-t-md bg-gradient-to-t from-primary/60 to-primary transition-all"
+                      style={{ height: `${Math.max((w.mins / weekMax) * 100, w.mins > 0 ? 8 : 3)}%` }}
+                      title={`${w.mins} min`}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{w.label}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+
+      <Card className="border-border/50 overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Timer</CardTitle>
+          <CardDescription>Pick a mode, optional study material, then start.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {([
+              { id: "pomodoro" as const, label: `Pomodoro (${pomodoroMins}m)`, icon: Timer },
+              { id: "focus" as const, label: "Open focus", icon: Flame },
+              { id: "break" as const, label: "Break (5m)", icon: Coffee },
+            ]).map((m) => (
+              <Button
+                key={m.id}
+                type="button"
+                size="sm"
+                variant={mode === m.id ? "default" : "outline"}
+                disabled={running}
+                className="gap-1.5"
+                onClick={() => setMode(m.id)}
+              >
+                <m.icon className="h-3.5 w-3.5" /> {m.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Study material (optional)</Label>
+              <Select value={materialId} onValueChange={setMaterialId} disabled={running}>
+                <SelectTrigger><SelectValue placeholder="Select material" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None / custom</SelectItem>
+                  {materials.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.title}{m.subject ? ` · ${m.subject}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {materialId === "none" && (
+              <div className="space-y-1.5">
+                <Label>What are you studying?</Label>
+                <input
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={customMaterial}
+                  disabled={running}
+                  onChange={(e) => setCustomMaterial(e.target.value)}
+                  placeholder="e.g. Maths Ch. 5"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Session notes (optional)</Label>
+            <Textarea
+              value={notes}
+              disabled={running}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Goals for this session…"
+              className="h-16 resize-none"
+            />
+          </div>
+
+          <div className="rounded-2xl bg-muted/40 border border-border/60 p-6 text-center space-y-3">
+            <p className="text-5xl font-black tabular-nums tracking-tight text-foreground">
+              {mode === "focus" ? formatTime(elapsed) : formatTime(displayRemaining)}
+            </p>
+            {mode !== "focus" && (
+              <Progress value={progressPct} className="h-2" />
+            )}
+            <p className="text-xs text-muted-foreground">
+              {running
+                ? (paused ? "Paused" : mode === "break" ? "Break in progress" : "Studying…")
+                : `Est. +${Math.floor((mode === "break" ? 0 : (mode === "pomodoro" ? targetSeconds : 25 * 60)) / 60) * ptsPerMin} XP`}
+            </p>
+            <div className="flex justify-center gap-2 pt-1">
+              {!running ? (
+                <Button onClick={startSession} className="gap-1.5">
+                  <Play className="h-4 w-4" /> Start
+                </Button>
+              ) : (
+                <>
+                  {paused ? (
+                    <Button onClick={resumeSession} variant="secondary" className="gap-1.5">
+                      <Play className="h-4 w-4" /> Resume
+                    </Button>
+                  ) : (
+                    <Button onClick={pauseSession} variant="secondary" className="gap-1.5">
+                      <Pause className="h-4 w-4" /> Pause
+                    </Button>
+                  )}
+                  <Button onClick={() => finishSession()} disabled={saving} variant="outline" className="gap-1.5">
+                    <Square className="h-4 w-4" /> End &amp; save
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Recent sessions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {sessions.filter((s) => s.ended_at).length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">No completed sessions yet. Start a Pomodoro!</p>
+          )}
+          {sessions.filter((s) => s.ended_at).map((s) => (
+            <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl border border-border/50 text-sm">
+              <div className="min-w-0">
+                <p className="font-medium truncate">{s.material_title || "Study session"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(s.started_at).toLocaleString()} · {formatTime(s.duration_seconds)} · {s.session_type}
+                </p>
+              </div>
+              {s.points_earned > 0 ? (
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100">+{s.points_earned} XP</Badge>
+              ) : (
+                <Badge variant="outline">Break</Badge>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
       material_id: materialId !== "none" ? materialId : null,
       material_title: materialTitle(),
       duration_seconds: 1,

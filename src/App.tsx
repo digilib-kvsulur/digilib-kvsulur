@@ -1,6 +1,8 @@
 
 import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
+import { lazy, Suspense, useEffect } from "react";
+import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -9,14 +11,13 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
 
 const queryClient = new QueryClient();
-
+const Login = lazy(() => import("./pages/Login"));
 const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Catalog = lazy(() => import("./pages/Catalog"));
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
 const BookDetails = lazy(() => import("./pages/BookDetails"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -64,6 +65,14 @@ const App = () => {
                 element={(
                   <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/admin/queue-inspector"
+                element={(
+                  <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
+                    <QueueInspector />
                   </ProtectedRoute>
                 )}
               />
