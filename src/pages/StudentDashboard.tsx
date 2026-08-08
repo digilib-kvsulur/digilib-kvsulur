@@ -249,7 +249,17 @@ const StudentDashboard = () => {
     const { data: gp } = await supabase.from('game_plays').select('*').eq('user_id', user.id).order('played_at', { ascending: false }).limit(5);
     gp?.forEach(g => { const name = g.game_key.replace(/-/g,' ').replace(/\b\w/g,(c:string)=>c.toUpperCase()); activities.push({ type: 'game', title: `Played: ${name}`, time: g.played_at, points: g.points_earned }); });
 
-    activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    // Date-only strings (e.g. "2026-08-08" from reading_history.completed_date) parse to
+    // midnight UTC which in IST (+5:30) = 5:30 AM, pushing them above same-day activities.
+    // Treat date-only strings as noon local time so they sort naturally in the timeline.
+    const toMs = (t: string) => {
+      if (!t) return 0;
+      // ISO timestamp already has a 'T' — use as-is
+      if (t.includes('T') || t.includes(' ')) return new Date(t).getTime();
+      // Date-only string: append noon local time to avoid UTC midnight artifact
+      return new Date(`${t}T12:00:00`).getTime();
+    };
+    activities.sort((a, b) => toMs(b.time) - toMs(a.time));
     setRecentActivities(activities.slice(0, 15));
   };
 
