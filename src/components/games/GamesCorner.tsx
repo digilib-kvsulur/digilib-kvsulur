@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import useQueueStatus from "@/hooks/use-queue-status";
+import { recordGamePlayLocal } from "@/lib/offline";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +56,7 @@ const ACCENTS: Record<string, string> = {
 
 export default function GamesCorner({ userId }: { userId: string }) {
   const { toast } = useToast();
+  const { count: queueCount } = useQueueStatus();
   const [games, setGames] = useState<GameDef[]>([]);
   const [books, setBooks] = useState<GameBook[]>([]);
   const [plays, setPlays] = useState<any[]>([]);
@@ -101,22 +104,23 @@ export default function GamesCorner({ userId }: { userId: string }) {
   const handleComplete = async (win: boolean, score: number) => {
     if (!active) return;
     const duration = Math.floor((Date.now() - startedAt) / 1000);
-    const { data, error } = await supabase.rpc("record_game_play", {
+    const payload = {
       p_game_key: active.key,
       p_score: Math.round(score),
       p_is_win: win,
       p_duration_seconds: duration,
-    });
-    if (error) {
-      toast({ title: "Could not save your score", description: error.message, variant: "destructive" });
-      return;
+    };
+    const res = await recordGamePlayLocal(payload);
+    if (res.success) {
+      const row: any = Array.isArray(res.data) ? res.data[0] : res.data;
+      const pts = Number(row?.points_awarded) || 0;
+      toast({
+        title: pts > 0 ? `+${pts} XP earned!` : win ? "Well played!" : "Score saved",
+        description: pts > 0 ? row?.message : row?.message || "Keep playing to earn more XP.",
+      });
+    } else {
+      toast({ title: "Score saved (offline)", description: "Your play was queued and will sync when online." });
     }
-    const row: any = Array.isArray(data) ? data[0] : data;
-    const pts = Number(row?.points_awarded) || 0;
-    toast({
-      title: pts > 0 ? `+${pts} XP earned!` : win ? "Well played!" : "Score saved",
-      description: pts > 0 ? row?.message : row?.message || "Keep playing to earn more XP.",
-    });
     load();
   };
 
@@ -154,7 +158,7 @@ export default function GamesCorner({ userId }: { userId: string }) {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Gamepad2 className="h-6 w-6 text-primary" /> Games Corner
+          <Gamepad2 className="h-6 w-6 text-primary" /> Games Corner {queueCount > 0 && (<span className="ml-2 text-sm text-muted-foreground">· Queued: {queueCount}</span>)}
         </h2>
         <p className="text-sm text-muted-foreground">
           Book-based puzzles, word games and challenges. Win rounds to earn XP for your rank.
