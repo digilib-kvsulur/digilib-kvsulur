@@ -41,7 +41,7 @@ export default function SpeedTyping({ content, onComplete, onExit }: GameProps) 
     if (v.length >= passage.length) {
       setDone(true);
       const finalAcc = Math.round((v.split("").filter((c, i) => c === passage[i]).length / passage.length) * 100);
-      onComplete(finalAcc >= 90, wpm);
+      onComplete(finalAcc >= 90 && wpm >= 20, wpm);
     }
   };
 

@@ -42,7 +42,7 @@ export default function ReactionTest({ onComplete, onExit }: GameProps) {
       const avg = Math.round(next.reduce((a, b) => a + b, 0) / next.length);
       setPhase("done");
       setMessage(`Average reaction: ${avg} ms`);
-      onComplete(avg <= 450, Math.max(1000 - avg, 0));
+      onComplete(avg <= 400, Math.max(1000 - avg, 0));
     } else {
       setMessage(`${ms} ms — get ready…`);
       arm();

@@ -67,7 +67,8 @@ export default function QuickDraw({ content, onComplete, onExit }: GameProps) {
   const finish = () => {
     if (done) return;
     setDone(true);
-    const win = strokes.current >= 3;
+    // Win requires at least 3 strokes AND at least 10 seconds spent drawing (timeLeft <= 50)
+    const win = strokes.current >= 3 && timeLeft <= 50;
     onComplete(win, strokes.current);
   };
 
