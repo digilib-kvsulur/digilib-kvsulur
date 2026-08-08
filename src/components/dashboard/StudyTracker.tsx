@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import useQueueStatus from "@/hooks/use-queue-status";
+import { startSessionLocal, completeSessionLocal } from "@/lib/offline";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,7 @@ const formatTime = (totalSeconds: number) => {
 
 export default function StudyTracker({ userId, studentClass }: { userId: string; studentClass?: string }) {
   const { toast } = useToast();
+  const { count: queueCount } = useQueueStatus();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [materialId, setMaterialId] = useState<string>("none");
@@ -116,7 +119,7 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
 
   const startSession = async () => {
     if (running) return;
-    const { data, error } = await supabase.from("study_sessions").insert({
+      const payload = {
       user_id: userId,
       material_id: materialId !== "none" ? materialId : null,
       material_title: materialTitle(),
@@ -125,20 +128,27 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
       session_type: mode,
       notes: notes.trim() || null,
       started_at: new Date().toISOString(),
-    }).select("id").single();
+      };
 
-    if (error) {
-      toast({ title: "Could not start session", description: error.message, variant: "destructive" });
-      return;
-    }
-    setActiveSessionId(data.id);
-    accruedRef.current = 0;
-    startTsRef.current = Date.now();
-    setElapsed(0);
-    setPaused(false);
-    setRunning(true);
-    toast({ title: mode === "break" ? "Break started" : "Study session started", description: "Focus time — you've got this!" });
-  };
+      const res = await startSessionLocal(payload);
+      if (!res) {
+        toast({ title: "Could not start session", description: "Unknown error", variant: "destructive" });
+        return;
+      }
+
+      setActiveSessionId(res.id);
+      accruedRef.current = 0;
+      startTsRef.current = Date.now();
+      setElapsed(0);
+      setPaused(false);
+      setRunning(true);
+
+      if (!res.success) {
+        toast({ title: mode === "break" ? "Break started (offline)" : "Study session started (offline)", description: "Session queued and will sync when online." });
+      } else {
+        toast({ title: mode === "break" ? "Break started" : "Study session started", description: "Focus time — you've got this!" });
+      }
+    };
 
   const pauseSession = () => {
     if (!running || paused) return;
@@ -156,61 +166,52 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
   };
 
   const finishSession = async (finalSecs?: number) => {
-    if (!activeSessionId || saving) return;
-    setSaving(true);
-    if (startTsRef.current != null) {
-      accruedRef.current += Math.floor((Date.now() - startTsRef.current) / 1000);
-      startTsRef.current = null;
-    }
-    const duration = Math.max(finalSecs ?? accruedRef.current, 1);
-    setRunning(false);
-    setPaused(false);
-    if (tickRef.current) {
-      window.clearInterval(tickRef.current);
-      tickRef.current = null;
-    }
-
-    try {
-      const { data: pts, error } = await supabase.rpc("complete_study_session", {
-        p_session_id: activeSessionId,
-        p_duration_seconds: duration,
-        p_material_id: materialId !== "none" ? materialId : null,
-        p_material_title: materialTitle(),
-        p_notes: notes.trim() || null,
-      });
-      if (error) throw error;
-      const earned = Number(pts) || 0;
-      toast({
-        title: mode === "break" ? "Break complete" : "Session complete!",
-        description: earned > 0 ? `+${earned} XP for ${formatTime(duration)} of study` : `Logged ${formatTime(duration)}`,
-      });
-    } catch (e: any) {
-      // Fallback if RPC not yet migrated
-      const earned = mode === "break" ? 0 : Math.floor(duration / 60) * ptsPerMin;
-      await supabase.from("study_sessions").update({
-        duration_seconds: duration,
-        points_earned: earned,
-        material_id: materialId !== "none" ? materialId : null,
-        material_title: materialTitle(),
-        notes: notes.trim() || null,
-        ended_at: new Date().toISOString(),
-      }).eq("id", activeSessionId);
-      if (earned > 0) {
-        const { data: prof } = await supabase.from("profiles").select("points").eq("id", userId).single();
-        await supabase.from("profiles").update({ points: (prof?.points || 0) + earned }).eq("id", userId);
+      if (!activeSessionId || saving) return;
+      setSaving(true);
+      if (startTsRef.current != null) {
+        accruedRef.current += Math.floor((Date.now() - startTsRef.current) / 1000);
+        startTsRef.current = null;
       }
-      toast({
-        title: "Session saved",
-        description: earned > 0 ? `+${earned} XP` : formatTime(duration),
-      });
-    } finally {
-      setActiveSessionId(null);
-      setElapsed(0);
-      accruedRef.current = 0;
-      setSaving(false);
-      load();
-    }
-  };
+      const duration = Math.max(finalSecs ?? accruedRef.current, 1);
+      setRunning(false);
+      setPaused(false);
+      if (tickRef.current) {
+        window.clearInterval(tickRef.current);
+        tickRef.current = null;
+      }
+
+      try {
+        const payload = {
+          p_session_id: activeSessionId,
+          p_duration_seconds: duration,
+          p_material_id: materialId !== "none" ? materialId : null,
+          p_material_title: materialTitle(),
+          p_notes: notes.trim() || null,
+        };
+        const res = await completeSessionLocal(payload);
+        if (res.success) {
+          const earned = res.pts ? Number(res.pts) : (mode === "break" ? 0 : Math.floor(duration / 60) * ptsPerMin);
+          toast({
+            title: mode === "break" ? "Break complete" : "Session complete!",
+            description: earned > 0 ? `+${earned} XP for ${formatTime(duration)} of study` : `Logged ${formatTime(duration)}`,
+          });
+        } else {
+          const earned = mode === "break" ? 0 : Math.floor(duration / 60) * ptsPerMin;
+          toast({
+            title: "Session saved (offline)",
+            description: earned > 0 ? `+${earned} XP (will sync)` : formatTime(duration),
+          });
+        }
+      } catch (e: any) {
+        toast({ title: "Could not save session", description: e?.message || String(e), variant: "destructive" });
+      } finally {
+        setActiveSessionId(null);
+        setElapsed(0);
+        accruedRef.current = 0;
+        setSaving(false);
+        load();
+      }
+    };
 
   const totalStudySecs = sessions
     .filter((s) => s.session_type !== "break" && s.ended_at)
@@ -239,7 +240,7 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Timer className="h-6 w-6 text-primary" /> Study Tracker
+          <Timer className="h-6 w-6 text-primary" /> Study Tracker {queueCount > 0 && (<span className="ml-2 text-sm text-muted-foreground">· Queued: {queueCount}</span>)}
         </h2>
         <p className="text-sm text-muted-foreground">
           Pomodoro timer, focus sessions, and XP for time spent studying ({ptsPerMin} XP / minute).

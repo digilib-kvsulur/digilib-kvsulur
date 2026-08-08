@@ -16,6 +16,7 @@ const Register = lazy(() => import("./pages/Register"));
 const Catalog = lazy(() => import("./pages/Catalog"));
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const QueueInspector = lazy(() => import("./components/admin/QueueInspector"));
 const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
 const BookDetails = lazy(() => import("./pages/BookDetails"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -64,6 +65,14 @@ const App = () => {
                 element={(
                   <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/admin/queue-inspector"
+                element={(
+                  <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
+                    <QueueInspector />
                   </ProtectedRoute>
                 )}
               />

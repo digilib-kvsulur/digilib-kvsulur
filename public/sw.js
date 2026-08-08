@@ -90,3 +90,32 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+// ─── Background Sync & Message Bridge ─────────────────────────────────────────
+// When a background sync fires, notify all clients to attempt flushing the offline queue.
+self.addEventListener('sync', (event) => {
+  if (event.tag && event.tag.indexOf('study-sync') === 0) {
+    event.waitUntil((async () => {
+      const all = await self.clients.matchAll({ includeUncontrolled: true });
+      for (const client of all) {
+        client.postMessage('bg-sync');
+      }
+    })());
+  }
+});
+
+// Clients can also send a message 'trigger-sync' to request immediate sync notification
+self.addEventListener('message', (ev) => {
+  if (ev.data === 'trigger-sync') {
+    (async () => {
+      try {
+        // try to register a sync (may throw on unsupported browsers)
+        await self.registration.sync.register('study-sync');
+      } catch (e) {
+        // ignore failure
+      }
+      const all = await self.clients.matchAll({ includeUncontrolled: true });
+      for (const client of all) client.postMessage('bg-sync');
+    })();
+  }
+});
