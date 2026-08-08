@@ -36,13 +36,13 @@ REVOKE EXECUTE ON FUNCTION public.tg_notify_post_comment() FROM anon, authentica
 REVOKE EXECUTE ON FUNCTION public.tg_notify_post_like() FROM anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.tg_notify_ticket_update() FROM anon, authenticated;
 
--- 5. Social/profile definer functions: signed-in users only (no anonymous access)
-REVOKE EXECUTE ON FUNCTION public.get_public_posts_by_user(uuid, integer) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.get_public_profile_full(uuid) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.get_public_profiles(uuid[]) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.get_class_league() FROM anon;
-REVOKE EXECUTE ON FUNCTION public.get_available_accessions(uuid) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.get_book_borrow_counts() FROM anon;
+-- 5. Social/profile definer functions: keep anon access for public profile queries
+-- REVOKE EXECUTE ON FUNCTION public.get_public_posts_by_user(uuid, integer) FROM anon;
+-- REVOKE EXECUTE ON FUNCTION public.get_public_profile_full(uuid) FROM anon;
+-- REVOKE EXECUTE ON FUNCTION public.get_public_profiles(uuid[]) FROM anon;
+-- REVOKE EXECUTE ON FUNCTION public.get_class_league() FROM anon;
+-- REVOKE EXECUTE ON FUNCTION public.get_available_accessions(uuid) FROM anon;
+-- REVOKE EXECUTE ON FUNCTION public.get_book_borrow_counts() FROM anon;
 
 -- 6. Internal helpers not meant to be called from the client
 REVOKE EXECUTE ON FUNCTION public.notify_user(uuid, text, text, text) FROM anon, authenticated;

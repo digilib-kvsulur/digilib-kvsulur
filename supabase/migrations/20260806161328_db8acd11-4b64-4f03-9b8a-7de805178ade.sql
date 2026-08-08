@@ -37,9 +37,10 @@ REVOKE EXECUTE ON FUNCTION public.sync_overdue_fines() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.sync_overdue_fines() TO authenticated;
 
 -- Complete a study session
-CREATE OR REPLACE FUNCTION public.complete_study_session(
-  p_session_id uuid, p_duration_seconds integer, p_material_id uuid,
-  p_material_title text, p_notes text)
+DROP FUNCTION IF EXISTS public.complete_study_session(uuid, integer, uuid, text, text);
+CREATE FUNCTION public.complete_study_session(
+  p_session_id uuid, p_duration_seconds integer, p_material_id uuid DEFAULT NULL,
+  p_material_title text DEFAULT NULL, p_notes text DEFAULT NULL)
 RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_points integer; v_type text;
 BEGIN
@@ -52,9 +53,9 @@ BEGIN
 
   UPDATE public.study_sessions
   SET duration_seconds = GREATEST(p_duration_seconds, 0),
-      material_id = p_material_id,
-      material_title = p_material_title,
-      notes = p_notes,
+      material_id = COALESCE(p_material_id, material_id),
+      material_title = COALESCE(p_material_title, material_title),
+      notes = COALESCE(p_notes, notes),
       points_earned = v_points,
       ended_at = now()
   WHERE id = p_session_id AND user_id = auth.uid();
@@ -153,7 +154,8 @@ REVOKE EXECUTE ON FUNCTION public.submit_public_support_ticket(text,text,text,te
 GRANT EXECUTE ON FUNCTION public.submit_public_support_ticket(text,text,text,text,text,text,text,text,text) TO anon, authenticated;
 
 -- Public ticket lookup
-CREATE OR REPLACE FUNCTION public.lookup_ticket_status(p_ticket_number text, p_admission text)
+DROP FUNCTION IF EXISTS public.lookup_ticket_status(text, text);
+CREATE FUNCTION public.lookup_ticket_status(p_ticket_number text, p_admission text)
 RETURNS TABLE(id uuid, ticket_number text, subject text, category text, status text,
               priority text, admin_response text, created_at timestamptz, resolved_at timestamptz)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
