@@ -18,6 +18,8 @@ const BookDetails = lazy(() => import("./pages/BookDetails"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Support = lazy(() => import("./pages/Support"));
+const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
+const PointsHistory = lazy(() => import("./pages/PointsHistory"));
 
 const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
@@ -65,10 +67,10 @@ const App = () => {
                 )}
               />
               <Route
-                path="/admin/queue-inspector"
+                path="/points-history"
                 element={(
-                  <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
-                    <QueueInspector />
+                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                    <PointsHistory />
                   </ProtectedRoute>
                 )}
               />
