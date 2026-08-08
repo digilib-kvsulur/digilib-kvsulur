@@ -602,7 +602,6 @@ const StudentDashboard = () => {
                   </CardContent>
                 </Card>
                 <QuickBookmarks currentBooks={currentBooks} monthlyBooksRead={monthlyBooksRead} totalPoints={user?.points || 0} />
-                {user?.id && <MonthlyGoalsWidget userId={user.id} />}
               </div>
 
               {/* Recent Activity */}
