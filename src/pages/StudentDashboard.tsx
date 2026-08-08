@@ -9,8 +9,8 @@ import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck, Timer
-, Gamepad2 } from "lucide-react";
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, Timer, Gamepad2, Zap
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLoginStreak } from "@/hooks/useLoginStreak";
@@ -234,17 +234,23 @@ const StudentDashboard = () => {
   const fetchRecentActivities = async () => {
     if (!user?.id) return;
     const activities: any[] = [];
-    const { data: bookIssues } = await supabase.from('book_issues').select('*, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(4);
+    const { data: bookIssues } = await supabase.from('book_issues').select('*, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5);
     bookIssues?.forEach(i => activities.push({ type: 'book', title: `Started reading '${i.books?.title || 'Unknown'}'`, time: i.created_at }));
-    const { data: qr } = await supabase.from('quiz_results').select('*, quizzes (title)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(4);
-    qr?.forEach(r => activities.push({ type: 'quiz', title: `Completed quiz: ${r.quizzes?.title || 'Quiz'}`, time: r.completed_at, score: r.score }));
-    const { data: rh } = await supabase.from('reading_history').select('*').eq('user_id', user.id).order('completed_date', { ascending: false }).limit(4);
+    const { data: qr } = await supabase.from('quiz_results').select('*, quizzes (title)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(5);
+    qr?.forEach(r => activities.push({ type: 'quiz', title: `Completed quiz: ${r.quizzes?.title || 'Quiz'}`, time: r.completed_at, score: r.score, points: r.points_earned }));
+    const { data: rh } = await supabase.from('reading_history').select('*').eq('user_id', user.id).order('completed_date', { ascending: false }).limit(5);
     rh?.forEach(e => activities.push({ type: 'reading', title: `Finished reading '${e.book_title}'`, time: e.completed_date, points: e.points_earned }));
-    const { data: reqs } = await supabase.from('book_requests').select('*, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(4);
+    const { data: reqs } = await supabase.from('book_requests').select('*, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3);
     reqs?.forEach(r => activities.push({ type: 'request', title: `Requested book '${r.books?.title || 'Unknown'}'`, time: r.created_at, status: r.status }));
-    
+    // Study sessions
+    const { data: ss } = await supabase.from('study_sessions').select('*').eq('user_id', user.id).not('ended_at', 'is', null).order('ended_at', { ascending: false }).limit(5);
+    ss?.forEach(s => activities.push({ type: 'study', title: `Study session: ${s.material_title || 'General study'}`, time: s.ended_at, points: s.points_earned }));
+    // Game plays
+    const { data: gp } = await supabase.from('game_plays').select('*').eq('user_id', user.id).order('played_at', { ascending: false }).limit(5);
+    gp?.forEach(g => { const name = g.game_key.replace(/-/g,' ').replace(/\b\w/g,(c:string)=>c.toUpperCase()); activities.push({ type: 'game', title: `Played: ${name}`, time: g.played_at, points: g.points_earned }); });
+
     activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-    setRecentActivities(activities.slice(0, 10));
+    setRecentActivities(activities.slice(0, 15));
   };
 
   const fetchMonthlyBooksRead = async () => {
@@ -471,11 +477,13 @@ const StudentDashboard = () => {
                       <p className="text-primary-foreground/80 text-sm mt-1">Keep up your reading streak and earn more points!</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <button onClick={() => setActiveTab('rankings')} className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm hover:bg-primary-foreground/30 transition-colors">
+                      <button onClick={() => navigate('/points-history')} className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm hover:bg-primary-foreground/30 transition-colors group">
                         <p className="text-2xl font-bold text-primary-foreground">{user?.points || 0}</p>
-                        <p className="text-xs text-primary-foreground/80">Total Points</p>
+                        <p className="text-xs text-primary-foreground/80 flex items-center gap-1 justify-center">
+                          <Zap className="h-3 w-3" />Total Points
+                        </p>
                       </button>
-                      <button onClick={() => setActiveTab('rankings')} className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm hover:bg-primary-foreground/30 transition-colors">
+                      <button onClick={() => navigate('/points-history')} className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm hover:bg-primary-foreground/30 transition-colors">
                         <p className="text-2xl font-bold text-primary-foreground">#{classRank}</p>
                         <p className="text-xs text-primary-foreground/80">Class Rank</p>
                       </button>
@@ -522,21 +530,22 @@ const StudentDashboard = () => {
                 )}
               </div>
 
-              {/* Quick Stats */}
+              {/* Corner Navigation Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: "Books Reading", value: currentBooksCount, icon: BookOpen, color: "text-primary", bg: "bg-primary/10", tab: "books" },
-                  { label: "Quizzes Taken", value: quizResultsCount, icon: Brain, color: "text-accent", bg: "bg-accent/10", tab: "quizzes" },
-                  { label: "Monthly Goal", value: `${monthlyBooksRead}/${schoolReadingGoal}`, icon: Target, color: "text-success", bg: "bg-success/10", tab: null },
-                  { label: "Badges Earned", value: badgesEarnedCount, icon: Award, color: "text-warning", bg: "bg-warning/10", tab: "badges" },
+                  { label: "Games Corner", desc: "Play & earn XP", icon: Gamepad2, color: "text-blue-700", bg: "bg-blue-100", gradient: "from-blue-500 to-indigo-500", tab: "games" },
+                  { label: "Study Corner", desc: "Focus & track time", icon: Timer, color: "text-teal-700", bg: "bg-teal-100", gradient: "from-teal-500 to-emerald-500", tab: "study" },
+                  { label: "Quizzes", desc: `${quizResultsCount} taken`, icon: Brain, color: "text-purple-700", bg: "bg-purple-100", gradient: "from-purple-500 to-violet-500", tab: "quizzes" },
+                  { label: "Certificates", desc: "Your achievements", icon: Award, color: "text-amber-700", bg: "bg-amber-100", gradient: "from-amber-500 to-orange-500", tab: "certificates" },
                 ].map((s, i) => (
-                  <Card key={i} className={`border-border/50 hover-lift ${s.tab ? "cursor-pointer" : ""}`} onClick={() => s.tab && setActiveTab(s.tab)}>
+                  <Card key={i} className="border-border/50 hover-lift cursor-pointer overflow-hidden group" onClick={() => setActiveTab(s.tab as Tab)}>
+                    <div className={`h-1 bg-gradient-to-r ${s.gradient}`} />
                     <CardContent className="p-4">
-                      <div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center mb-2`}>
+                      <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
                         <s.icon className={`h-5 w-5 ${s.color}`} />
                       </div>
-                      <p className="text-2xl font-bold text-foreground">{s.value}</p>
-                      <p className="text-xs text-muted-foreground">{s.label}</p>
+                      <p className="text-sm font-bold text-foreground">{s.label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -579,7 +588,12 @@ const StudentDashboard = () => {
               {/* Recent Activity */}
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Recent Activity</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Recent Activity</CardTitle>
+                    <button onClick={() => navigate('/points-history')} className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
+                      <Zap className="h-3 w-3" /> Points History
+                    </button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {recentActivities.length > 0 ? (
@@ -587,14 +601,18 @@ const StudentDashboard = () => {
                       {recentActivities.map((a, i) => (
                         <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/60 transition-all border border-transparent hover:border-border/50">
                           <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                            a.type === 'book' ? 'bg-blue-100 text-blue-700' :
-                            a.type === 'quiz' ? 'bg-purple-100 text-purple-700' :
+                            a.type === 'book'    ? 'bg-blue-100 text-blue-700' :
+                            a.type === 'quiz'    ? 'bg-purple-100 text-purple-700' :
                             a.type === 'reading' ? 'bg-emerald-100 text-emerald-700' :
+                            a.type === 'study'   ? 'bg-teal-100 text-teal-700' :
+                            a.type === 'game'    ? 'bg-indigo-100 text-indigo-700' :
                             'bg-amber-100 text-amber-700'
                           }`}>
-                            {a.type === 'book' ? <BookOpen className="h-4 w-4" /> :
-                             a.type === 'quiz' ? <Brain className="h-4 w-4" /> :
+                            {a.type === 'book'    ? <BookOpen className="h-4 w-4" /> :
+                             a.type === 'quiz'    ? <Brain className="h-4 w-4" /> :
                              a.type === 'reading' ? <Medal className="h-4 w-4" /> :
+                             a.type === 'study'   ? <Timer className="h-4 w-4" /> :
+                             a.type === 'game'    ? <Gamepad2 className="h-4 w-4" /> :
                              <BookPlus className="h-4 w-4" />}
                           </div>
                           <div className="flex-1 min-w-0">
