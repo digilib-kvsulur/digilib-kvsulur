@@ -1074,6 +1074,45 @@ export type Database = {
         }
         Relationships: []
       }
+      game_content: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          extra: Json
+          game_key: string
+          hint: string | null
+          id: string
+          is_active: boolean
+          kind: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          extra?: Json
+          game_key: string
+          hint?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          extra?: Json
+          game_key?: string
+          hint?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       game_plays: {
         Row: {
           created_at: string

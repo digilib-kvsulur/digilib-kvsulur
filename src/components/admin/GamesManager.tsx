@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Gamepad2, Save, Users } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import GameContentManager from "./GameContentManager";
 
 interface GameRow {
   id: string;
@@ -94,6 +96,15 @@ export default function GamesManager() {
         </p>
       </div>
 
+      <Tabs defaultValue="settings" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="settings">Game settings</TabsTrigger>
+          <TabsTrigger value="content">Game content</TabsTrigger>
+        </TabsList>
+        <TabsContent value="content">
+          <GameContentManager games={games.map((g) => ({ key: g.key, name: g.name }))} />
+        </TabsContent>
+        <TabsContent value="settings" className="space-y-4">
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
@@ -169,6 +180,8 @@ export default function GamesManager() {
       <p className="text-xs text-muted-foreground">
         Set “Plays/day” or “Max XP/day” to 0 to remove that limit entirely.
       </p>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
