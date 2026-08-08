@@ -485,10 +485,10 @@ const StudentDashboard = () => {
                   <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
                   <div className="absolute -bottom-10 -left-10 w-52 h-52 rounded-full bg-white/5" />
                   <div className="absolute top-4 right-32 w-20 h-20 rounded-full bg-white/5" />
-                  <div className="relative p-6 sm:p-8">
+                  <div className="relative p-4 sm:p-8">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
                       <div className="flex items-center gap-4">
-                        <Avatar className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20 overflow-hidden">
+                        <Avatar className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20 overflow-hidden">
                           {user?.avatar_url ? (
                             <AvatarImage src={getAvatarUrl(user.avatar_url)} className="object-cover h-full w-full" />
                           ) : (
@@ -497,24 +497,24 @@ const StudentDashboard = () => {
                             </AvatarFallback>
                           )}
                         </Avatar>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h2 className="text-lg sm:text-2xl font-bold text-primary-foreground">Welcome back, {user?.first_name}! 👋</h2>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-lg sm:text-2xl font-bold text-primary-foreground truncate">Welcome back, {user?.first_name}! 👋</h2>
                           </div>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className="text-xs font-semibold text-primary-foreground/70 bg-white/15 px-2 py-0.5 rounded-full">Class {user?.student_class}</span>
                             <p className="text-primary-foreground/70 text-xs">Keep up your reading streak!</p>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <button onClick={() => navigate('/points-history')} className="text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-3 py-2 sm:px-4 sm:py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                        <button onClick={() => navigate('/points-history')} className="w-full sm:w-auto text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-3 py-2 sm:px-4 sm:py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
                           <p className="text-lg sm:text-xl font-black text-white">{(user?.points || 0).toLocaleString()}</p>
                           <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wide flex items-center gap-0.5 justify-center mt-0.5">
                             <Zap className="h-2.5 w-2.5" /> Total XP
                           </p>
                         </button>
-                        <button onClick={() => setActiveTab('rankings')} className="text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-3 py-2 sm:px-4 sm:py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                        <button onClick={() => setActiveTab('rankings')} className="w-full sm:w-auto text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-3 py-2 sm:px-4 sm:py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
                           <p className="text-lg sm:text-xl font-black text-white">#{classRank}</p>
                           <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wide mt-0.5">Class Rank</p>
                         </button>
