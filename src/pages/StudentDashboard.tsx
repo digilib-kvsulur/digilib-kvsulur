@@ -533,12 +533,13 @@ const StudentDashboard = () => {
               {/* Quick Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: "Books Reading", value: currentBooksCount, icon: BookOpen, color: "text-primary", bg: "bg-primary/10", tab: "books" },
-                  { label: "Quizzes Taken", value: quizResultsCount, icon: Brain, color: "text-accent", bg: "bg-accent/10", tab: "quizzes" },
-                  { label: "Monthly Goal", value: `${monthlyBooksRead}/${schoolReadingGoal}`, icon: Target, color: "text-success", bg: "bg-success/10", tab: null },
-                  { label: "Badges Earned", value: badgesEarnedCount, icon: Award, color: "text-warning", bg: "bg-warning/10", tab: "badges" },
+                  { label: "Books Reading", value: currentBooksCount, icon: BookOpen, color: "text-blue-700", bg: "bg-blue-100", gradient: "from-blue-500 to-indigo-500", tab: "books" },
+                  { label: "Quizzes Taken", value: quizResultsCount, icon: Brain, color: "text-purple-700", bg: "bg-purple-100", gradient: "from-purple-500 to-violet-500", tab: "quizzes" },
+                  { label: "Monthly Goal", value: `${monthlyBooksRead}/${schoolReadingGoal}`, icon: Target, color: "text-emerald-700", bg: "bg-emerald-100", gradient: "from-emerald-500 to-teal-500", tab: null },
+                  { label: "Badges Earned", value: badgesEarnedCount, icon: Award, color: "text-amber-700", bg: "bg-amber-100", gradient: "from-amber-500 to-orange-500", tab: "badges" },
                 ].map((s, i) => (
-                  <Card key={i} className={`border-border/50 hover-lift ${s.tab ? "cursor-pointer" : ""}`} onClick={() => s.tab && setActiveTab(s.tab as Tab)}>
+                  <Card key={i} className={`border-border/50 hover-lift overflow-hidden ${s.tab ? "cursor-pointer" : ""}`} onClick={() => s.tab && setActiveTab(s.tab as Tab)}>
+                    <div className={`h-1 bg-gradient-to-r ${s.gradient}`} />
                     <CardContent className="p-4">
                       <div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center mb-2`}>
                         <s.icon className={`h-5 w-5 ${s.color}`} />
@@ -550,59 +551,37 @@ const StudentDashboard = () => {
                 ))}
               </div>
 
-              {/* Corner Navigation Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: "Games Corner", desc: "Play & earn XP", icon: Gamepad2, color: "text-blue-700", bg: "bg-blue-100", gradient: "from-blue-500 to-indigo-500", tab: "games" },
-                  { label: "Study Corner", desc: "Focus & track time", icon: Timer, color: "text-teal-700", bg: "bg-teal-100", gradient: "from-teal-500 to-emerald-500", tab: "study" },
-                  { label: "Quizzes", desc: `${quizResultsCount} taken`, icon: Brain, color: "text-purple-700", bg: "bg-purple-100", gradient: "from-purple-500 to-violet-500", tab: "quizzes" },
-                  { label: "Certificates", desc: "Your achievements", icon: Award, color: "text-amber-700", bg: "bg-amber-100", gradient: "from-amber-500 to-orange-500", tab: "certificates" },
-                ].map((s, i) => (
-                  <Card key={i} className="border-border/50 hover-lift cursor-pointer overflow-hidden group" onClick={() => setActiveTab(s.tab as Tab)}>
-                    <div className={`h-1 bg-gradient-to-r ${s.gradient}`} />
-                    <CardContent className="p-4">
-                      <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                        <s.icon className={`h-5 w-5 ${s.color}`} />
-                      </div>
-                      <p className="text-sm font-bold text-foreground">{s.label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
 
-
-              {/* Quick Actions + Quick Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Quick Actions */}
-                <Card className="border-border/50 overflow-hidden">
-                  <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
-                  <CardContent className="p-4">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Actions</p>
-                    <div className="space-y-2">
-                      {[
-                        { label: "Study Tracker", icon: Timer, tab: "study", color: "text-teal-600", bg: "bg-teal-50" },
-                        { label: "Study Materials", icon: FileText, tab: "materials", color: "text-indigo-600", bg: "bg-indigo-50" },
-                        { label: "Library Events", icon: CalendarDays, tab: "events", color: "text-rose-600", bg: "bg-rose-50" },
-                        { label: "Community", icon: Users, tab: "community", color: "text-amber-600", bg: "bg-amber-50" },
-                        { label: "Book Issued", icon: BookCheck, tab: "issued", color: "text-purple-600", bg: "bg-purple-50" },
-                      ].map(a => (
-                        <button
-                          key={a.tab}
-                          onClick={() => setActiveTab(a.tab as Tab)}
-                          className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left group"
-                        >
-                          <div className={`w-7 h-7 rounded-lg ${a.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
-                            <a.icon className={`h-3.5 w-3.5 ${a.color}`} />
-                          </div>
-                          <span className="text-sm font-medium text-foreground">{a.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-                <QuickBookmarks currentBooks={currentBooks} monthlyBooksRead={monthlyBooksRead} totalPoints={user?.points || 0} />
-              </div>
+              {/* Quick Actions */}
+              <Card className="border-border/50 overflow-hidden">
+                <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+                <CardContent className="p-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Actions</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                    {[
+                      { label: "Games Corner",   icon: Gamepad2,    tab: "games",     color: "text-blue-600",   bg: "bg-blue-50" },
+                      { label: "Study Corner",   icon: Timer,       tab: "study",     color: "text-teal-600",   bg: "bg-teal-50" },
+                      { label: "Quizzes",         icon: Brain,       tab: "quizzes",   color: "text-purple-600", bg: "bg-purple-50" },
+                      { label: "Certificates",   icon: Award,       tab: "certificates", color: "text-amber-600", bg: "bg-amber-50" },
+                      { label: "Study Materials",icon: FileText,    tab: "materials", color: "text-indigo-600", bg: "bg-indigo-50" },
+                      { label: "Library Events", icon: CalendarDays,tab: "events",    color: "text-rose-600",   bg: "bg-rose-50" },
+                      { label: "Community",       icon: Users,       tab: "community", color: "text-orange-600", bg: "bg-orange-50" },
+                      { label: "Book Issued",     icon: BookCheck,   tab: "issued",   color: "text-violet-600", bg: "bg-violet-50" },
+                    ].map(a => (
+                      <button
+                        key={a.tab}
+                        onClick={() => setActiveTab(a.tab as Tab)}
+                        className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left group"
+                      >
+                        <div className={`w-7 h-7 rounded-lg ${a.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                          <a.icon className={`h-3.5 w-3.5 ${a.color}`} />
+                        </div>
+                        <span className="text-sm font-medium text-foreground">{a.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Recent Activity */}
               <Card className="border-border/50">
