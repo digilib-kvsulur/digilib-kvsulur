@@ -117,8 +117,18 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
     return "Log in daily to build your streak!";
   };
 
+  // Gradient top-line matches the streak multiplier tier
+  const getStreakGradient = (streak: number) => {
+    if (streak >= 28) return "from-rose-500 to-pink-600";
+    if (streak >= 14) return "from-purple-500 to-violet-600";
+    if (streak >= 7)  return "from-indigo-500 to-blue-500";
+    if (streak >= 3)  return "from-emerald-500 to-teal-500";
+    return "from-slate-400 to-slate-500";
+  };
+
   return (
     <div className="overflow-hidden rounded-2xl bg-card border border-border shadow-sm h-full flex flex-col justify-center">
+      <div className={`h-1 bg-gradient-to-r ${getStreakGradient(currentStreak)}`} />
       <div className="p-5 flex flex-col justify-center gap-3.5">
         {/* Top: flame + streak number */}
         <div className="flex items-center gap-3">

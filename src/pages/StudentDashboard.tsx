@@ -479,31 +479,48 @@ const StudentDashboard = () => {
                 </Card>
               )}
               {/* Welcome Banner */}
-              <Card className="overflow-hidden border-0 shadow-lg">
-                <div className="gradient-primary p-6 sm:p-8">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                      <h2 className="text-xl sm:text-2xl font-bold text-primary-foreground">Welcome back, {user?.first_name}! 👋</h2>
-                      <p className="text-primary-foreground/80 text-sm mt-1">Keep up your reading streak and earn more points!</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => navigate('/points-history')} className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm hover:bg-primary-foreground/30 transition-colors group">
-                        <p className="text-2xl font-bold text-primary-foreground">{user?.points || 0}</p>
-                        <p className="text-xs text-primary-foreground/80 flex items-center gap-1 justify-center">
-                          <Zap className="h-3 w-3" />Total Points
-                        </p>
-                      </button>
-                      <button onClick={() => navigate('/points-history')} className="text-center bg-primary-foreground/20 rounded-xl px-4 py-2 backdrop-blur-sm hover:bg-primary-foreground/30 transition-colors">
-                        <p className="text-2xl font-bold text-primary-foreground">#{classRank}</p>
-                        <p className="text-xs text-primary-foreground/80">Class Rank</p>
-                      </button>
+              <Card className="overflow-hidden border-0 shadow-xl">
+                <div className="gradient-primary relative overflow-hidden">
+                  {/* Decorative circles */}
+                  <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
+                  <div className="absolute -bottom-10 -left-10 w-52 h-52 rounded-full bg-white/5" />
+                  <div className="absolute top-4 right-32 w-20 h-20 rounded-full bg-white/5" />
+                  <div className="relative p-6 sm:p-8">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20">
+                          <span className="text-2xl font-black text-white">{user?.first_name?.[0]}</span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-xl sm:text-2xl font-bold text-primary-foreground">Welcome back, {user?.first_name}! 👋</h2>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs font-semibold text-primary-foreground/70 bg-white/15 px-2 py-0.5 rounded-full">Class {user?.student_class}</span>
+                            <p className="text-primary-foreground/70 text-xs">Keep up your reading streak!</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => navigate('/points-history')} className="text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-4 py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                          <p className="text-xl font-black text-white">{(user?.points || 0).toLocaleString()}</p>
+                          <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wide flex items-center gap-0.5 justify-center mt-0.5">
+                            <Zap className="h-2.5 w-2.5" />Total XP
+                          </p>
+                        </button>
+                        <button onClick={() => navigate('/points-history')} className="text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-4 py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                          <p className="text-xl font-black text-white">#{classRank}</p>
+                          <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wide mt-0.5">Class Rank</p>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </Card>
 
               {/* Catalog Search */}
-              <Card className="border-border/50">
+              <Card className="border-border/50 overflow-hidden">
+                <div className="h-1 bg-gradient-to-r from-primary to-accent" />
                 <CardContent className="p-4">
                   <form
                     onSubmit={(e) => {
@@ -517,12 +534,12 @@ const StudentDashboard = () => {
                       <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <input
                         name="q"
-                        placeholder="Search catalog by title, author or ISBN…"
-                        className="w-full h-10 pl-9 pr-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        placeholder="Search books by title, author or ISBN…"
+                        className="w-full h-10 pl-9 pr-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
                       />
                     </div>
-                    <Button type="submit" size="sm" className="gradient-primary border-0">Search</Button>
-                    <Button type="button" size="sm" variant="outline" onClick={() => navigate("/catalog")}>Browse All</Button>
+                    <Button type="submit" size="sm" className="gradient-primary border-0 shrink-0">Search</Button>
+                    <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => navigate("/catalog")}>Browse All</Button>
                   </form>
                 </CardContent>
               </Card>
