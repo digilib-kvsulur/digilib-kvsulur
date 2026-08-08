@@ -12,7 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Upload, Download, Search } from "lucide-react";
+import { Plus, Trash2, Upload, Download, Search, FileSpreadsheet, AlertCircle, X } from "lucide-react";
+import Papa from "papaparse";
 
 interface ContentRow {
   id: string;
@@ -49,6 +50,8 @@ export default function GameContentManager({ games }: { games: { key: string; na
   const [hint, setHint] = useState("");
   const [answer, setAnswer] = useState("");
   const [bulk, setBulk] = useState("");
+  const [previewRows, setPreviewRows] = useState<{ value: string; answer: string; hint: string }[]>([]);
+  const [fileLoading, setFileLoading] = useState(false);
 
   useEffect(() => {
     if (!gameKey && editable.length) setGameKey(editable[0].key);
@@ -106,6 +109,116 @@ export default function GameContentManager({ games }: { games: { key: string; na
     load();
   };
 
+  const downloadSampleCsv = () => {
+    if (!gameKey) return;
+    let headers = "value,hint";
+    let example = "NOVEL,A long work of fiction\nATLAS,A book of maps";
+    if (needsAnswer) {
+      headers = "value,answer,hint";
+      example = "What has keys but no locks?,piano,A musical instrument\nWhat has hands but cannot clap?,clock,Tells time";
+    } else if (kind === "passage") {
+      headers = "passage,hint";
+      example = "\"A book is a gift you can open again and again.\",Garrison Keillor\n\"Reading is to the mind what exercise is to the body.\",Joseph Addison";
+    } else if (kind === "prompt") {
+      headers = "prompt,hint";
+      example = "A library building in the future,A creative theme\nDraw a magical spell book,A fantasy theme";
+    } else if (kind === "place") {
+      headers = "place,answer,hint";
+      example = "Where is Sherlock Holmes' home?,221B Baker Street,London\nWhere is Hogwarts School of Witchcraft and Wizardry?,Scotland,Harry Potter setting";
+    } else if (kind === "word") {
+      headers = "word,hint";
+      example = "NOVEL,A long work of fiction\nATLAS,A book of maps";
+    }
+
+    const csvContent = `${headers}\n${example}`;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${gameKey}_sample.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const parsedData = results.data as any[];
+        if (!parsedData.length) {
+          toast({ title: "Empty file", description: "No data found in the CSV.", variant: "destructive" });
+          return;
+        }
+
+        const formatted = parsedData.map((row) => {
+          const keys = Object.keys(row);
+          const valKey = keys.find(k => ["value", "word", "passage", "prompt", "riddle", "place"].includes(k.toLowerCase().trim()));
+          const ansKey = keys.find(k => ["answer", "solution"].includes(k.toLowerCase().trim()));
+          const hintKey = keys.find(k => ["hint"].includes(k.toLowerCase().trim()));
+
+          const v = valKey ? row[valKey] : "";
+          const a = ansKey ? row[ansKey] : "";
+          const h = hintKey ? row[hintKey] : "";
+
+          return {
+            value: v || "",
+            answer: a || "",
+            hint: h || "",
+          };
+        }).filter(item => item.value.trim().length > 0);
+
+        if (!formatted.length) {
+          toast({ title: "No valid rows", description: "Could not find a value or content column (e.g. word, passage, riddle, etc.).", variant: "destructive" });
+          return;
+        }
+
+        setPreviewRows(formatted);
+        toast({ title: "CSV Parsed", description: `Found ${formatted.length} valid rows. Preview them below.` });
+        
+        // Clear file input
+        e.target.value = "";
+      },
+      error: (error) => {
+        toast({ title: "Error parsing CSV", description: error.message, variant: "destructive" });
+      }
+    });
+  };
+
+  const importPreviewRows = async () => {
+    if (!previewRows.length || !gameKey) return;
+    setFileLoading(true);
+
+    const payload = previewRows.map((row) => {
+      const v = row.value.trim();
+      const a = row.answer.trim();
+      const h = row.hint.trim();
+
+      return {
+        game_key: gameKey,
+        kind,
+        value: kind === "word" ? v.toUpperCase() : v,
+        hint: h || null,
+        extra: needsAnswer && a ? { answer: a } : {},
+      };
+    });
+
+    const { error } = await supabase.from("game_content").insert(payload);
+    setFileLoading(false);
+
+    if (error) {
+      toast({ title: "Import failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: `Imported ${payload.length} items successfully.` });
+      setPreviewRows([]);
+      load();
+    }
+  };
+
   const toggle = async (r: ContentRow, v: boolean) => {
     setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, is_active: v } : x)));
     await supabase.from("game_content").update({ is_active: v }).eq("id", r.id);
@@ -140,6 +253,20 @@ export default function GameContentManager({ games }: { games: { key: string; na
   };
 
   const filtered = rows.filter((r) => r.value.toLowerCase().includes(q.toLowerCase()));
+
+  if (editable.length === 0) {
+    return (
+      <Card className="border-border/50">
+        <CardContent className="p-8 text-center text-sm text-muted-foreground space-y-3">
+          <p className="font-semibold text-base">No games synced yet</p>
+          <p className="max-w-md mx-auto text-xs">
+            There are no games in the database that support custom content management yet.
+            Please go to the <strong>Game settings</strong> tab and click <strong>Sync Games</strong> to initialize the developed games list.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -184,13 +311,114 @@ export default function GameContentManager({ games }: { games: { key: string; na
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4 space-y-2">
-          <Label className="text-xs">Bulk import — one per line, format: <code>value | answer | hint</code></Label>
-          <Textarea rows={4} value={bulk} onChange={(e) => setBulk(e.target.value)} placeholder={"NOVEL | | A long work of fiction\nATLAS | | A book of maps"} />
-          <Button size="sm" onClick={importBulk} disabled={!bulk.trim()}><Upload className="h-4 w-4 mr-1" />Import items</Button>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <h3 className="font-semibold text-sm flex items-center gap-1.5">
+              <FileSpreadsheet className="h-4 w-4 text-primary" /> CSV File Import
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Import game content from a spreadsheet. Column headers can be: <code>word/passage/riddle/place</code>, <code>answer</code>, and <code>hint</code>.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCsvUpload}
+                  disabled={!gameKey}
+                  className="hidden"
+                  id="csv-file-upload"
+                />
+                <Button asChild variant="outline" size="sm" disabled={!gameKey}>
+                  <label htmlFor="csv-file-upload" className="cursor-pointer flex items-center gap-1.5">
+                    <Upload className="h-4 w-4" /> Upload CSV File
+                  </label>
+                </Button>
+              </div>
+              <Button variant="ghost" size="sm" onClick={downloadSampleCsv} disabled={!gameKey} className="text-xs">
+                <Download className="h-3.5 w-3.5 mr-1" /> Template CSV
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <h3 className="font-semibold text-sm flex items-center gap-1.5">
+              <Plus className="h-4 w-4 text-primary" /> Pipe-separated Bulk Paste
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Paste lines in format: <code>value | answer (optional) | hint (optional)</code>
+            </p>
+            <div className="space-y-2">
+              <Textarea
+                rows={2}
+                value={bulk}
+                onChange={(e) => setBulk(e.target.value)}
+                placeholder={needsAnswer ? "What tells time? | clock | A device" : "NOVEL | | A work of fiction"}
+                disabled={!gameKey}
+                className="text-xs"
+              />
+              <Button size="sm" onClick={importBulk} disabled={!bulk.trim() || !gameKey} className="w-full sm:w-auto">
+                <Upload className="h-4 w-4 mr-1.5" /> Import pasted items
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {previewRows.length > 0 && (
+        <Card className="border-primary bg-primary/5 dark:bg-primary/10">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-sm flex items-center gap-1.5 text-primary">
+                  <AlertCircle className="h-4 w-4" /> CSV Import Preview ({previewRows.length} items)
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Confirm the parsed data below before importing to database.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={importPreviewRows} disabled={fileLoading}>
+                  {fileLoading ? "Importing..." : "Confirm & Import"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setPreviewRows([])}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="max-h-60 overflow-y-auto border rounded-lg bg-background text-xs">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-muted border-b">
+                    <th className="p-2 font-medium">Value / Content</th>
+                    {needsAnswer && <th className="p-2 font-medium">Answer</th>}
+                    <th className="p-2 font-medium">Hint</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.slice(0, 10).map((row, idx) => (
+                    <tr key={idx} className="border-b last:border-0 hover:bg-muted/40">
+                      <td className="p-2 truncate max-w-xs">{row.value}</td>
+                      {needsAnswer && <td className="p-2 truncate max-w-xs">{row.answer}</td>}
+                      <td className="p-2 truncate max-w-xs">{row.hint || <span className="text-muted-foreground italic">None</span>}</td>
+                    </tr>
+                  ))}
+                  {previewRows.length > 10 && (
+                    <tr>
+                      <td colSpan={needsAnswer ? 3 : 2} className="p-2 text-center text-muted-foreground bg-muted/20 font-medium">
+                        ... and {previewRows.length - 10} more rows
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>

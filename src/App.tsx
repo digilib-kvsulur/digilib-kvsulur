@@ -1,6 +1,3 @@
-
-import { lazy, Suspense, useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
 import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,7 +10,6 @@ import { recoverInvalidAuthSession } from "@/lib/authCleanup";
 const queryClient = new QueryClient();
 const Login = lazy(() => import("./pages/Login"));
 const Index = lazy(() => import("./pages/Index"));
-const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Catalog = lazy(() => import("./pages/Catalog"));
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
