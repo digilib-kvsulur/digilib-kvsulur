@@ -54,7 +54,7 @@ const ACCENTS: Record<string, string> = {
   "reaction-test": "from-red-500 to-orange-600",
 };
 
-export default function GamesCorner({ userId }: { userId: string }) {
+export default function GamesCorner({ userId, onPointsEarned }: { userId: string; onPointsEarned?: () => void }) {
   const { toast } = useToast();
   const { count: queueCount } = useQueueStatus();
   const [games, setGames] = useState<GameDef[]>([]);
@@ -118,6 +118,7 @@ export default function GamesCorner({ userId }: { userId: string }) {
         title: pts > 0 ? `+${pts} XP earned!` : win ? "Well played!" : "Score saved",
         description: pts > 0 ? row?.message : row?.message || "Keep playing to earn more XP.",
       });
+      if (pts > 0) onPointsEarned?.();
     } else {
       toast({ title: "Score saved (offline)", description: "Your play was queued and will sync when online." });
     }

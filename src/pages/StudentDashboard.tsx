@@ -530,6 +530,26 @@ const StudentDashboard = () => {
                 )}
               </div>
 
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: "Books Reading", value: currentBooksCount, icon: BookOpen, color: "text-primary", bg: "bg-primary/10", tab: "books" },
+                  { label: "Quizzes Taken", value: quizResultsCount, icon: Brain, color: "text-accent", bg: "bg-accent/10", tab: "quizzes" },
+                  { label: "Monthly Goal", value: `${monthlyBooksRead}/${schoolReadingGoal}`, icon: Target, color: "text-success", bg: "bg-success/10", tab: null },
+                  { label: "Badges Earned", value: badgesEarnedCount, icon: Award, color: "text-warning", bg: "bg-warning/10", tab: "badges" },
+                ].map((s, i) => (
+                  <Card key={i} className={`border-border/50 hover-lift ${s.tab ? "cursor-pointer" : ""}`} onClick={() => s.tab && setActiveTab(s.tab as Tab)}>
+                    <CardContent className="p-4">
+                      <div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center mb-2`}>
+                        <s.icon className={`h-5 w-5 ${s.color}`} />
+                      </div>
+                      <p className="text-2xl font-bold text-foreground">{s.value}</p>
+                      <p className="text-xs text-muted-foreground">{s.label}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
               {/* Corner Navigation Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
@@ -712,7 +732,7 @@ const StudentDashboard = () => {
           {activeTab === "materials" && <StudyMaterials studentClass={user?.student_class} />}
 
           {/* Games Corner */}
-          {activeTab === "games" && user?.id && <GamesCorner userId={user.id} />}
+          {activeTab === "games" && user?.id && <GamesCorner userId={user.id} onPointsEarned={checkAuth} />}
 
           {/* Study Tracker */}
           {activeTab === "study" && user?.id && (
