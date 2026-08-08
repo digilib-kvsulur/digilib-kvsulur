@@ -9,16 +9,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles,
 } from "lucide-react";
-import { GameDef, GameBook } from "./gameTypes";
+import { GameDef, GameBook, GameContentItem } from "./gameTypes";
 import BookMatch from "./BookMatch";
 import LibraryBingo from "./LibraryBingo";
 import WordScramble from "./WordScramble";
 import SlidingPuzzle from "./SlidingPuzzle";
 import BookCards from "./BookCards";
 import MiniCrossword from "./MiniCrossword";
+import ReadingWordle from "./ReadingWordle";
+import BookHangman from "./BookHangman";
+import SpellBee from "./SpellBee";
+import WordChain from "./WordChain";
+import WordSearch from "./WordSearch";
+import SpeedTyping from "./SpeedTyping";
+import QuickDraw from "./QuickDraw";
+import SpotDifference from "./SpotDifference";
+import RiddleRounds from "./RiddleRounds";
+import LiteraryPlaces from "./LiteraryPlaces";
+import ReactionTest from "./ReactionTest";
 
 const ICONS: Record<string, React.ElementType> = {
-  Layers, Grid3x3, Shuffle, PuzzleIcon: Puzzle, Spade, Grid2x2, Gamepad2,
+  Layers, Grid3x3, Shuffle, PuzzleIcon: Puzzle, Puzzle, Spade, Grid2x2, Gamepad2, Zap, Sparkles, Trophy,
 };
 
 const ACCENTS: Record<string, string> = {
@@ -28,6 +39,17 @@ const ACCENTS: Record<string, string> = {
   "sliding-puzzle": "from-sky-500 to-blue-600",
   "book-cards": "from-rose-500 to-pink-600",
   crossword: "from-indigo-500 to-purple-600",
+  "reading-wordle": "from-emerald-500 to-lime-500",
+  "book-hangman": "from-slate-500 to-slate-700",
+  "spell-bee": "from-yellow-500 to-amber-600",
+  "word-chain": "from-cyan-500 to-sky-600",
+  "word-search": "from-teal-500 to-emerald-600",
+  "speed-typing": "from-orange-500 to-red-500",
+  "quick-draw": "from-pink-500 to-rose-500",
+  "spot-difference": "from-purple-500 to-violet-600",
+  "riddle-rounds": "from-indigo-500 to-blue-600",
+  "literary-places": "from-lime-500 to-green-600",
+  "reaction-test": "from-red-500 to-orange-600",
 };
 
 export default function GamesCorner({ userId }: { userId: string }) {
@@ -35,19 +57,22 @@ export default function GamesCorner({ userId }: { userId: string }) {
   const [games, setGames] = useState<GameDef[]>([]);
   const [books, setBooks] = useState<GameBook[]>([]);
   const [plays, setPlays] = useState<any[]>([]);
+  const [content, setContent] = useState<GameContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<GameDef | null>(null);
   const [startedAt, setStartedAt] = useState<number>(0);
 
   const load = useCallback(async () => {
-    const [{ data: g }, { data: b }, { data: p }] = await Promise.all([
+    const [{ data: g }, { data: b }, { data: p }, { data: c }] = await Promise.all([
       supabase.from("games").select("*").eq("is_enabled", true).order("sort_order"),
       supabase.from("books").select("id, title, author, cover_url, category").limit(120),
       supabase.from("game_plays").select("*").eq("user_id", userId).order("played_at", { ascending: false }).limit(100),
+      supabase.from("game_content").select("*").eq("is_active", true).limit(2000),
     ]);
     setGames((g || []) as GameDef[]);
     setBooks((b || []) as GameBook[]);
     setPlays(p || []);
+    setContent((c || []) as unknown as GameContentItem[]);
     setLoading(false);
   }, [userId]);
 
@@ -97,7 +122,12 @@ export default function GamesCorner({ userId }: { userId: string }) {
 
   const renderGame = () => {
     if (!active) return null;
-    const props = { books, onComplete: handleComplete, onExit: () => setActive(null) };
+    const props = {
+      books,
+      content: content.filter((c) => c.game_key === active.key),
+      onComplete: handleComplete,
+      onExit: () => setActive(null),
+    };
     switch (active.key) {
       case "book-match": return <BookMatch {...props} />;
       case "library-bingo": return <LibraryBingo {...props} />;
@@ -105,6 +135,17 @@ export default function GamesCorner({ userId }: { userId: string }) {
       case "sliding-puzzle": return <SlidingPuzzle {...props} />;
       case "book-cards": return <BookCards {...props} />;
       case "crossword": return <MiniCrossword {...props} />;
+      case "reading-wordle": return <ReadingWordle {...props} />;
+      case "book-hangman": return <BookHangman {...props} />;
+      case "spell-bee": return <SpellBee {...props} />;
+      case "word-chain": return <WordChain {...props} />;
+      case "word-search": return <WordSearch {...props} />;
+      case "speed-typing": return <SpeedTyping {...props} />;
+      case "quick-draw": return <QuickDraw {...props} />;
+      case "spot-difference": return <SpotDifference {...props} />;
+      case "riddle-rounds": return <RiddleRounds {...props} />;
+      case "literary-places": return <LiteraryPlaces {...props} />;
+      case "reaction-test": return <ReactionTest {...props} />;
       default: return <p className="text-sm text-muted-foreground">This game is coming soon.</p>;
     }
   };
