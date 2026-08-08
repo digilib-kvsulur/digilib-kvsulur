@@ -20,8 +20,19 @@ export interface GameBook {
   category?: string | null;
 }
 
+export interface GameContentItem {
+  id: string;
+  game_key: string;
+  kind: string;
+  value: string;
+  hint: string | null;
+  extra: Record<string, any> | null;
+  is_active: boolean;
+}
+
 export interface GameProps {
   books: GameBook[];
+  content: GameContentItem[];
   onComplete: (win: boolean, score: number) => void;
   onExit: () => void;
 }
@@ -37,3 +48,9 @@ export const shuffle = <T,>(arr: T[]): T[] => {
 
 export const formatClock = (s: number) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+export const normalise = (s: string) =>
+  s.trim().toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ");
+
+export const wordsFrom = (items: GameContentItem[], kind = "word") =>
+  items.filter((i) => i.kind === kind).map((i) => i.value.toUpperCase());
