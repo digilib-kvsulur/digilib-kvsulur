@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Gamepad2, Save, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GameContentManager from "./GameContentManager";
+import GameAnalytics from "./GameAnalytics";
 
 interface GameRow {
   id: string;
@@ -144,11 +145,15 @@ export default function GamesManager() {
         </p>
       </div>
 
-      <Tabs defaultValue="settings" className="space-y-4">
+      <Tabs defaultValue="analytics" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="settings">Game settings</TabsTrigger>
           <TabsTrigger value="content">Game content</TabsTrigger>
         </TabsList>
+        <TabsContent value="analytics">
+          <GameAnalytics />
+        </TabsContent>
         <TabsContent value="content">
           <GameContentManager games={games.map((g) => ({ key: g.key, name: g.name }))} />
         </TabsContent>
