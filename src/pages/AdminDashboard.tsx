@@ -8,7 +8,7 @@ import {
   BookOpen, LogOut, Users, Target, Home, BookCheck, BookUp, Award,
   Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText,
   Calendar, RefreshCw, Star, AlertTriangle, Barcode, HardDrive, Server
-, Gamepad2 } from "lucide-react";
+, Gamepad2, AlertCircle } from "lucide-react";
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import NotificationBell from "@/components/dashboard/NotificationBell";
