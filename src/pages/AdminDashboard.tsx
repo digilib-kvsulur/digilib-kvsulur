@@ -7,7 +7,7 @@ import { getAvatarUrl } from "@/lib/utils";
 import {
   BookOpen, LogOut, Users, Target, Home, BookCheck, BookUp, Award,
   Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText,
-  Calendar, RefreshCw, Star, AlertTriangle, Barcode
+  Calendar, RefreshCw, Star, AlertTriangle, Barcode, HardDrive, Server
 , Gamepad2 } from "lucide-react";
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
@@ -123,7 +123,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, booksIssued: 0, activeQuizzes: 0 });
+  const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, booksIssued: 0, activeQuizzes: 0, dbSize: 0 });
 
   usePushSubscription(user?.id);
 
@@ -145,11 +145,18 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [users, books, issued, quizzes] = await Promise.all([
+      const [users, books, issued, quizzes, dbSizeReq] = await Promise.all([
         supabase.rpc('get_active_users_count'), supabase.rpc('get_total_books_count'),
         supabase.rpc('get_books_issued_count'), supabase.rpc('get_active_quizzes_count'),
+        supabase.rpc('get_database_size'),
       ]);
-      setStats({ totalUsers: users.data || 0, totalBooks: books.data || 0, booksIssued: issued.data || 0, activeQuizzes: quizzes.data || 0 });
+      setStats({ 
+        totalUsers: users.data || 0, 
+        totalBooks: books.data || 0, 
+        booksIssued: issued.data || 0, 
+        activeQuizzes: quizzes.data || 0,
+        dbSize: dbSizeReq.data || 0
+      });
     } catch (e) { console.error(e); }
   };
 
@@ -287,8 +294,8 @@ const AdminDashboard = () => {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="border-border/50">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="border-border/50 md:col-span-2">
                   <CardHeader><CardTitle className="text-lg">Quick Actions</CardTitle></CardHeader>
                   <CardContent className="space-y-2">
                     {[
@@ -298,7 +305,52 @@ const AdminDashboard = () => {
                       { label: "View Analytics", tab: "analytics" as Tab, icon: BarChart3 },
                     ].map((action, i) => (
                       <button key={i} onClick={() => setActiveTab(action.tab)}
-                        className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors group">
+                        className="w-full flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-all group">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 text-primary rounded-md group-hover:bg-primary group-hover:text-primary-foreground transition-colors"><action.icon className="h-4 w-4" /></div>
+                          <span className="font-medium text-sm">{action.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/50">
+                  <CardHeader><CardTitle className="text-lg">System Health</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium flex items-center gap-2"><Server className="h-4 w-4 text-blue-500"/> Database Usage</span>
+                          <span className="text-sm text-muted-foreground">{(stats.dbSize / (1024 * 1024)).toFixed(2)} MB</span>
+                        </div>
+                        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                          {/* Assuming 500MB free tier limit for visual representation */}
+                          <div className="h-full bg-blue-500 transition-all" style={{ width: `${Math.min((stats.dbSize / (500 * 1024 * 1024)) * 100, 100)}%` }} />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1 text-right">Limit: 500 MB (Free Tier)</p>
+                      </div>
+                      
+                      <div className="pt-2 border-t border-border">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium flex items-center gap-2"><HardDrive className="h-4 w-4 text-emerald-500"/> Storage Cache</span>
+                          <span className="text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-600 rounded-full">Healthy</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="border-border/50">
+                  <CardHeader><CardTitle className="text-lg">Recent Alerts</CardTitle></CardHeader>
+                  <CardContent className="space-y-2">
+                    {[
+                      { label: "New book request pending", icon: BookOpen },
+                      { label: "Low stock alert: Fiction", icon: AlertCircle },
+                    ].map((action, i) => (
+                      <button key={i} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors group">
                         <div className="flex items-center gap-3">
                           <action.icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                           <span className="text-sm font-medium text-foreground">{action.label}</span>

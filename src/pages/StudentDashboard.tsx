@@ -486,37 +486,35 @@ const StudentDashboard = () => {
                   <div className="absolute -bottom-10 -left-10 w-52 h-52 rounded-full bg-white/5" />
                   <div className="absolute top-4 right-32 w-20 h-20 rounded-full bg-white/5" />
                   <div className="relative p-4 sm:p-8">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20 overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-5">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20 overflow-hidden">
                           {user?.avatar_url ? (
-                            <AvatarImage src={getAvatarUrl(user.avatar_url)} className="object-cover h-full w-full" />
+                            <img src={getAvatarUrl(user.avatar_url)} alt="Profile" className="w-full h-full object-cover" />
                           ) : (
-                            <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-sm">
-                              {user?.first_name?.[0]}{user?.last_name?.[0]}
-                            </AvatarFallback>
+                            <span className="text-xl sm:text-2xl font-black text-white">{user?.first_name?.[0]}</span>
                           )}
-                        </Avatar>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h2 className="text-lg sm:text-2xl font-bold text-primary-foreground truncate">Welcome back, {user?.first_name}! 👋</h2>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-lg sm:text-2xl font-bold text-primary-foreground leading-tight">Welcome back, {user?.first_name}! 👋</h2>
                           </div>
-                          <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            <span className="text-xs font-semibold text-primary-foreground/70 bg-white/15 px-2 py-0.5 rounded-full">Class {user?.student_class}</span>
-                            <p className="text-primary-foreground/70 text-xs">Keep up your reading streak!</p>
+                          <div className="flex items-center gap-2 mt-0.5 sm:mt-1 flex-wrap">
+                            <span className="text-[10px] sm:text-xs font-semibold text-primary-foreground/70 bg-white/15 px-2 py-0.5 rounded-full">Class {user?.student_class}</span>
+                            <p className="text-primary-foreground/70 text-[10px] sm:text-xs">Keep up your reading streak!</p>
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-                        <button onClick={() => navigate('/points-history')} className="w-full sm:w-auto text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-3 py-2 sm:px-4 sm:py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                      <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                        <button onClick={() => navigate('/points-history')} className="flex-1 sm:flex-none text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-2 py-2 sm:px-4 sm:py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
                           <p className="text-lg sm:text-xl font-black text-white">{(user?.points || 0).toLocaleString()}</p>
-                          <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wide flex items-center gap-0.5 justify-center mt-0.5">
-                            <Zap className="h-2.5 w-2.5" /> Total XP
+                          <p className="text-[9px] sm:text-[10px] text-white/70 font-semibold uppercase tracking-wide flex items-center gap-0.5 justify-center mt-0.5">
+                            <Zap className="h-2.5 w-2.5" />Total XP
                           </p>
                         </button>
-                        <button onClick={() => setActiveTab('rankings')} className="w-full sm:w-auto text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-3 py-2 sm:px-4 sm:py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                        <button onClick={() => setActiveTab('rankings')} className="flex-1 sm:flex-none text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-2 py-2 sm:px-4 sm:py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
                           <p className="text-lg sm:text-xl font-black text-white">#{classRank}</p>
-                          <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wide mt-0.5">Class Rank</p>
+                          <p className="text-[9px] sm:text-[10px] text-white/70 font-semibold uppercase tracking-wide mt-0.5">Class Rank</p>
                         </button>
                       </div>
                     </div>

@@ -11,34 +11,23 @@ export default function GameAnalytics() {
 
   useEffect(() => {
     const fetchAnalytics = async () => {
-      const { data: plays } = await supabase
-        .from("game_plays")
-        .select("game_key, is_win, points_earned, duration_seconds")
-        .limit(10000); 
+      const { data: plays, error } = await supabase.rpc('get_game_analytics');
 
-      if (!plays) {
+      if (!plays || plays.length === 0) {
         setLoading(false);
         return;
       }
 
-      const totalPlays = plays.length;
-      const totalXP = plays.reduce((acc, p) => acc + (p.points_earned || 0), 0);
-      const totalWins = plays.filter(p => p.is_win).length;
-      const totalTime = plays.reduce((acc, p) => acc + (p.duration_seconds || 0), 0);
+      const totalPlays = plays.reduce((acc: number, p: any) => acc + (Number(p.plays) || 0), 0);
+      const totalXP = plays.reduce((acc: number, p: any) => acc + (Number(p.xp_awarded) || 0), 0);
+      const totalWins = plays.reduce((acc: number, p: any) => acc + (Number(p.wins) || 0), 0);
+      const totalTime = plays.reduce((acc: number, p: any) => acc + (Number(p.total_time) || 0), 0);
       
-      const gameStats: Record<string, { plays: number, wins: number, xp: number }> = {};
-      plays.forEach(p => {
-        if (!gameStats[p.game_key]) gameStats[p.game_key] = { plays: 0, wins: 0, xp: 0 };
-        gameStats[p.game_key].plays += 1;
-        if (p.is_win) gameStats[p.game_key].wins += 1;
-        gameStats[p.game_key].xp += (p.points_earned || 0);
-      });
-
-      const chartData = Object.keys(gameStats).map(k => ({
-        name: k.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-        plays: gameStats[k].plays,
-        winRate: Math.round((gameStats[k].wins / gameStats[k].plays) * 100) || 0
-      })).sort((a, b) => b.plays - a.plays).slice(0, 10);
+      const chartData = plays.map((p: any) => ({
+        name: p.game_key.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        plays: Number(p.plays) || 0,
+        winRate: (Number(p.plays) > 0) ? Math.round((Number(p.wins) / Number(p.plays)) * 100) : 0
+      })).sort((a: any, b: any) => b.plays - a.plays).slice(0, 10);
 
       setStats({ totalPlays, totalXP, totalWins, totalTime, chartData });
       setLoading(false);
