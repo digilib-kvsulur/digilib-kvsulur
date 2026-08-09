@@ -120,7 +120,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     setLoading(true);
     const { data: postsData } = await supabase
       .from("posts")
-      .select("id, user_id, content, post_type, media_url, is_pinned, created_at")
+      .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at")
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(50);
