@@ -63,19 +63,31 @@ const BookIssueRequests = () => {
         .from('book_requests')
         .select(`
           *,
-          books (title, author, available_copies, accession_number, accession_numbers),
-          profiles (first_name, last_name, student_class, admission_number, role)
+          books (title, author, available_copies, accession_number, accession_numbers)
         `)
         .order('created_at', { ascending: false });
 
       if (error) { console.error('Error loading requests:', error); toast({ title: "Error", description: "Failed to load book requests.", variant: "destructive" }); return; }
+
+      const userIds = Array.from(new Set((data || []).map((req: any) => req.user_id).filter(Boolean)));
+      let profilesMap: Record<string, any> = {};
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, student_class, admission_number, role')
+          .in('id', userIds);
+        profilesMap = (profilesData || []).reduce((acc: any, p: any) => {
+          acc[p.id] = p;
+          return acc;
+        }, {});
+      }
 
       const enriched = (data || []).map((req: any) => {
         const fromWaitlist = typeof req.admin_notes === 'string' && req.admin_notes.toLowerCase().includes('waitlist');
         return { 
           ...req, 
           book: req.books, 
-          profile: req.profiles, 
+          profile: profilesMap[req.user_id], 
           fromWaitlist 
         };
       });

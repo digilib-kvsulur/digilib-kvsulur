@@ -218,9 +218,21 @@ const StudentDashboard = () => {
 
   const fetchAvailableQuizzes = async () => {
     const { data } = await supabase.from('quizzes')
-      .select('id, title, description, difficulty, time_limit, points_reward, completion_bonus, questions, is_active, created_at, created_by')
+      .select('id, title, description, difficulty, time_limit, points_reward, questions, is_active, created_at, created_by')
       .eq('is_active', true).order('created_at', { ascending: false });
-    setAvailableQuizzes(data?.map(q => ({ id: q.id, title: q.title, description: q.description || '', difficulty: q.difficulty, timeLimit: q.time_limit, pointsReward: q.points_reward, completionBonus: (q as any).completion_bonus ?? 10, questions: Array.isArray(q.questions) ? q.questions : [], isActive: q.is_active, createdAt: q.created_at, createdBy: q.created_by })) || []);
+    setAvailableQuizzes(data?.map(q => ({ 
+      id: q.id, 
+      title: q.title, 
+      description: q.description || '', 
+      difficulty: q.difficulty, 
+      timeLimit: q.time_limit, 
+      pointsReward: q.points_reward, 
+      completionBonus: (q as any).completion_bonus ?? 10, 
+      questions: Array.isArray(q.questions) ? q.questions : [], 
+      isActive: q.is_active, 
+      createdAt: q.created_at, 
+      createdBy: q.created_by 
+    })) || []);
   };
 
   const fetchChallenges = async () => {
