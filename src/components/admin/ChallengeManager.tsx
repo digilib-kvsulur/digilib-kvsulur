@@ -96,36 +96,22 @@ const ChallengeManager = () => {
         .from('challenge_progress')
         .select(`
           *,
-          challenges (title, target_value, reward_points)
+          challenges (title, target_value, reward_points),
+          profiles:user_id (first_name, last_name, admission_number, student_class)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Manually fetch profile data for each progress entry
-      const progressWithProfiles = await Promise.all(
-        (data || []).map(async (progress) => {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, admission_number, student_class')
-            .eq('id', progress.user_id)
-            .maybeSingle();
-
-          if (profileError) {
-            console.error('Error fetching profile:', profileError);
-          }
-
-          return {
-            ...progress,
-            profiles: profileData ? {
-              first_name: profileData.first_name || '',
-              last_name: profileData.last_name || '',
-              admission_number: profileData.admission_number || '',
-              student_class: profileData.student_class || ''
-            } : undefined
-          };
-        })
-      );
+      const progressWithProfiles = (data || []).map((progress: any) => ({
+        ...progress,
+        profiles: progress.profiles ? {
+          first_name: progress.profiles.first_name || '',
+          last_name: progress.profiles.last_name || '',
+          admission_number: progress.profiles.admission_number || '',
+          student_class: progress.profiles.student_class || ''
+        } : undefined
+      }));
 
       setChallengeProgress(progressWithProfiles);
     } catch (error) {

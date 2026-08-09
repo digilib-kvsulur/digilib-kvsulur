@@ -25,20 +25,23 @@ export default function CirculationDashboard() {
       setLoading(true);
       const todayStr = new Date().toISOString().split("T")[0];
 
-      // 1. Fetch current active issues & returned today
-      const { data: issuesData } = await supabase
+      // 1. Fetch current active issues
+      const { data: activeIssues } = await supabase
         .from("book_issues")
-        .select("*, books(title, author), profiles:user_id(first_name, last_name, student_class)");
+        .select("id, status, due_date, issue_date, books(title, author), profiles:user_id(first_name, last_name, student_class)")
+        .eq("status", "issued");
 
-      const activeIssues = (issuesData || []).filter(i => i.status === "issued");
-      const returnedTodayData = (issuesData || []).filter(
-        i => i.status === "returned" && i.return_date && i.return_date >= todayStr
-      );
+      // 1b. Fetch returned today
+      const { data: returnedTodayData } = await supabase
+        .from("book_issues")
+        .select("id, status, return_date, books(title, author), profiles:user_id(first_name, last_name, student_class)")
+        .eq("status", "returned")
+        .gte("return_date", todayStr);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const overdueData = activeIssues.filter(i => {
+      const overdueData = (activeIssues || []).filter(i => {
         if (!i.due_date) return false;
         const due = new Date(i.due_date);
         due.setHours(0, 0, 0, 0);
@@ -54,15 +57,20 @@ export default function CirculationDashboard() {
       // 3. Fetch books to count low stock
       const { data: booksData } = await supabase
         .from("books")
-        .select("*")
+        .select("id, title, author, available_copies, total_copies")
         .order("title");
 
       // Low stock: copies available is 0 or less than 20% of total copies (where total > 1) and available <= 2
-      const lowStockData = (booksData || []).filter(
-        b => b.available_copies <= 2 && b.available_copies < b.total_copies
+      const lowStockData = (booksData || []).filter(b => 
+        b.available_copies === 0 || 
+        (b.total_copies > 1 && b.available_copies <= 2 && (b.available_copies / b.total_copies) <= 0.2)
       );
 
       // 4. Calculate most borrowed books (analytics)
+      const { data: issuesData } = await supabase
+        .from("book_issues")
+        .select("book_id, books(title, author)");
+
       const bookBorrowedCounts: Record<string, { title: string; author: string; count: number }> = {};
       issuesData?.forEach(issue => {
         const bookId = issue.book_id;
@@ -79,14 +87,14 @@ export default function CirculationDashboard() {
         .slice(0, 5);
 
       setStats({
-        issuedCount: activeIssues.length,
+        issuedCount: activeIssues?.length || 0,
         overdueCount: overdueData.length,
-        returnedTodayCount: returnedTodayData.length,
+        returnedTodayCount: returnedTodayData?.length || 0,
         pendingRequestsCount: pendingReqs || 0,
         lowStockCount: lowStockData.length,
       });
 
-      setReturnedToday(returnedTodayData.slice(0, 10));
+      setReturnedToday((returnedTodayData || []).slice(0, 10));
       setOverdueList(overdueData.slice(0, 10));
       setLowStockList(lowStockData.slice(0, 10));
       setMostBorrowedList(sortedMostBorrowed);

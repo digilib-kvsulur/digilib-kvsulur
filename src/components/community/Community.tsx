@@ -60,7 +60,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const { toast } = useToast();
 
   const loadFriendshipsMap = async () => {
-    const { data } = await supabase.from("friendships").select("*").or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`);
+    const { data } = await supabase.from("friendships")
+      .select("requester_id, addressee_id, status")
+      .or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`);
     const m: Record<string, any> = {};
     (data || []).forEach((f: any) => {
       const other = f.requester_id === currentUserId ? f.addressee_id : f.requester_id;
@@ -118,9 +120,10 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     setLoading(true);
     const { data: postsData } = await supabase
       .from("posts")
-      .select("*")
+      .select("id, user_id, content, post_type, media_url, is_pinned, created_at")
       .order("is_pinned", { ascending: false })
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(50);
     if (!postsData) { setLoading(false); return; }
     const ids = postsData.map((p) => p.id);
     const userIds = Array.from(new Set(postsData.map((p) => p.user_id)));
@@ -262,7 +265,10 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   };
 
   const loadComments = async (postId: string) => {
-    const { data } = await supabase.from("post_comments").select("*").eq("post_id", postId).order("created_at", { ascending: true });
+    const { data } = await supabase.from("post_comments")
+      .select("id, post_id, user_id, content, created_at")
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true });
     if (!data) return;
     const userIds = Array.from(new Set(data.map((c: any) => c.user_id)));
     const { data: profs } = await supabase.rpc("get_public_profiles", { _ids: userIds });

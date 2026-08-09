@@ -37,7 +37,7 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
       const [{ data: full }, { data: extraStats }, { data: allBadges }, { data: awards }, { data: userPosts }, { data: actStats }] = await Promise.all([
         supabase.rpc("get_public_profile_full", { _id: userId }),
         supabase.rpc("get_public_profile_stats", { _id: userId }),
-        supabase.from("badges").select("*").eq("is_active", true),
+        supabase.from("badges").select("id, name, icon_name, color, criteria_type, criteria_value, is_active").eq("is_active", true),
         supabase.from("badge_awards").select("badge_id").eq("user_id", userId),
         supabase.rpc("get_public_posts_by_user", { _id: userId, _limit: 20 }),
         supabase.rpc("get_user_activity_stats", { _user_id: userId }),

@@ -212,19 +212,25 @@ const StudentDashboard = () => {
 
   const fetchQuizResults = async () => {
     if (!user?.id) return;
-    const { data } = await supabase.from('quiz_results').select('*, quizzes (title, description, subject, difficulty, questions)').eq('user_id', user.id).order('completed_at', { ascending: false });
+    const { data } = await supabase.from('quiz_results').select('*, quizzes (title, description, subject, difficulty, questions)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(50);
     setQuizResults(data || []); setQuizResultsCount(data?.length || 0);
   };
 
   const fetchAvailableQuizzes = async () => {
-    const { data } = await supabase.from('quizzes').select('*').eq('is_active', true).order('created_at', { ascending: false });
+    const { data } = await supabase.from('quizzes')
+      .select('id, title, description, difficulty, time_limit, points_reward, completion_bonus, questions, is_active, created_at, created_by')
+      .eq('is_active', true).order('created_at', { ascending: false });
     setAvailableQuizzes(data?.map(q => ({ id: q.id, title: q.title, description: q.description || '', difficulty: q.difficulty, timeLimit: q.time_limit, pointsReward: q.points_reward, completionBonus: (q as any).completion_bonus ?? 10, questions: Array.isArray(q.questions) ? q.questions : [], isActive: q.is_active, createdAt: q.created_at, createdBy: q.created_by })) || []);
   };
 
   const fetchChallenges = async () => {
-    const { data: challengeData } = await supabase.from('challenges').select('*').eq('is_active', true).order('created_at', { ascending: false });
+    const { data: challengeData } = await supabase.from('challenges')
+      .select('id, title, description, target_value, type, reward_points, deadline, is_active')
+      .eq('is_active', true).order('created_at', { ascending: false });
     if (!challengeData?.length) { setChallenges([]); return; }
-    const { data: progressData } = await supabase.from('challenge_progress').select('*').eq('user_id', user?.id).in('challenge_id', challengeData.map(c => c.id));
+    const { data: progressData } = await supabase.from('challenge_progress')
+      .select('challenge_id, current_progress, is_completed, completed_at, is_claimed')
+      .eq('user_id', user?.id).in('challenge_id', challengeData.map(c => c.id));
     setChallenges(challengeData.map(c => {
       const p = progressData?.find(pr => pr.challenge_id === c.id);
       return { id: c.id, title: c.title, description: c.description, targetValue: c.target_value, currentProgress: p?.current_progress || 0, type: c.type, reward: { points: c.reward_points }, deadline: c.deadline, isCompleted: p?.is_completed || false, completedAt: p?.completed_at, isClaimed: p?.is_claimed || false };
@@ -234,19 +240,29 @@ const StudentDashboard = () => {
   const fetchRecentActivities = async () => {
     if (!user?.id) return;
     const activities: any[] = [];
-    const { data: bookIssues } = await supabase.from('book_issues').select('*, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5);
-    bookIssues?.forEach(i => activities.push({ type: 'book', title: `Started reading '${i.books?.title || 'Unknown'}'`, time: i.created_at }));
-    const { data: qr } = await supabase.from('quiz_results').select('*, quizzes (title)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(5);
-    qr?.forEach(r => activities.push({ type: 'quiz', title: `Completed quiz: ${r.quizzes?.title || 'Quiz'}`, time: r.completed_at, score: r.score, points: r.points_earned }));
-    const { data: rh } = await supabase.from('reading_history').select('*').eq('user_id', user.id).order('completed_date', { ascending: false }).limit(5);
+    
+    // Fetch all activity types in parallel to eliminate sequential waterfall
+    const [
+      { data: bookIssues },
+      { data: qr },
+      { data: rh },
+      { data: reqs },
+      { data: ss },
+      { data: gp }
+    ] = await Promise.all([
+      supabase.from('book_issues').select('created_at, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
+      supabase.from('quiz_results').select('completed_at, score, points_earned, quizzes (title)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(5),
+      supabase.from('reading_history').select('book_title, completed_date, points_earned').eq('user_id', user.id).order('completed_date', { ascending: false }).limit(5),
+      supabase.from('book_requests').select('status, created_at, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
+      supabase.from('study_sessions').select('material_title, ended_at, points_earned').eq('user_id', user.id).not('ended_at', 'is', null).order('ended_at', { ascending: false }).limit(5),
+      supabase.from('game_plays').select('game_key, played_at, points_earned, is_win').eq('user_id', user.id).order('played_at', { ascending: false }).limit(5)
+    ]);
+
+    bookIssues?.forEach(i => activities.push({ type: 'book', title: `Started reading '${(i.books as any)?.title || 'Unknown'}'`, time: i.created_at }));
+    qr?.forEach(r => activities.push({ type: 'quiz', title: `Completed quiz: ${(r.quizzes as any)?.title || 'Quiz'}`, time: r.completed_at, score: r.score, points: r.points_earned }));
     rh?.forEach(e => activities.push({ type: 'reading', title: `Finished reading '${e.book_title}'`, time: e.completed_date, points: e.points_earned }));
-    const { data: reqs } = await supabase.from('book_requests').select('*, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3);
-    reqs?.forEach(r => activities.push({ type: 'request', title: `Requested book '${r.books?.title || 'Unknown'}'`, time: r.created_at, status: r.status }));
-    // Study sessions
-    const { data: ss } = await supabase.from('study_sessions').select('*').eq('user_id', user.id).not('ended_at', 'is', null).order('ended_at', { ascending: false }).limit(5);
+    reqs?.forEach(r => activities.push({ type: 'request', title: `Requested book '${(r.books as any)?.title || 'Unknown'}'`, time: r.created_at, status: r.status }));
     ss?.forEach(s => activities.push({ type: 'study', title: `Study session: ${s.material_title || 'General study'}`, time: s.ended_at, points: s.points_earned }));
-    // Game plays
-    const { data: gp } = await supabase.from('game_plays').select('*').eq('user_id', user.id).order('played_at', { ascending: false }).limit(5);
     gp?.forEach(g => { const name = g.game_key.replace(/-/g,' ').replace(/\b\w/g,(c:string)=>c.toUpperCase()); activities.push({ type: 'game', title: `Played: ${name}`, time: g.played_at, points: g.points_earned }); });
 
     // Date-only strings (e.g. "2026-08-08" from reading_history.completed_date) parse to
@@ -266,11 +282,14 @@ const StudentDashboard = () => {
   const fetchMonthlyBooksRead = async () => {
     if (!user?.id) return;
     const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-    const [{ data }, goal] = await Promise.all([
-      supabase.from('reading_history').select('*').eq('user_id', user.id).eq('status', 'approved').gte('completed_date', start),
+    // Use count-only query — sends zero row data, just a header count
+    const [{ count }, goal] = await Promise.all([
+      supabase.from('reading_history')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id).eq('status', 'approved').gte('completed_date', start),
       fetchMonthlyReadingGoal(),
     ]);
-    setMonthlyBooksRead(data?.length || 0);
+    setMonthlyBooksRead(count || 0);
     setSchoolReadingGoal(goal);
   };
 

@@ -31,7 +31,7 @@ const NotificationBell = () => {
     if (!user) return;
     const { data } = await supabase
       .from("notifications")
-      .select("*")
+      .select("id, title, message, type, is_read, created_at, target_user_id")
       .or(`target_user_id.eq.${user.id},target_user_id.is.null`)
       .order("created_at", { ascending: false })
       .limit(20);

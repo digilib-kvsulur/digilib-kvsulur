@@ -61,23 +61,24 @@ const BookIssueRequests = () => {
     try {
       const { data, error } = await supabase
         .from('book_requests')
-        .select('*')
+        .select(`
+          *,
+          books (title, author, available_copies, accession_number, accession_numbers),
+          profiles (first_name, last_name, student_class, admission_number, role)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) { console.error('Error loading requests:', error); toast({ title: "Error", description: "Failed to load book requests.", variant: "destructive" }); return; }
 
-      const enriched = await Promise.all(
-        (data || []).map(async (req: any) => {
-          let book = null;
-          if (req.book_id) {
-            const { data: b } = await supabase.from('books').select('title, author, available_copies, accession_number, accession_numbers').eq('id', req.book_id).maybeSingle();
-            book = b;
-          }
-          const { data: p } = await supabase.from('profiles').select('first_name, last_name, student_class, admission_number, role').eq('id', req.user_id).maybeSingle();
-          const fromWaitlist = typeof req.admin_notes === 'string' && req.admin_notes.toLowerCase().includes('waitlist');
-          return { ...req, book, profile: p, fromWaitlist };
-        })
-      );
+      const enriched = (data || []).map((req: any) => {
+        const fromWaitlist = typeof req.admin_notes === 'string' && req.admin_notes.toLowerCase().includes('waitlist');
+        return { 
+          ...req, 
+          book: req.books, 
+          profile: req.profiles, 
+          fromWaitlist 
+        };
+      });
       setRequests(enriched);
     } catch (error) {
       console.error('Error loading requests:', error);

@@ -60,7 +60,7 @@ const Overview = ({
     try {
       const { data: quizzes, error } = await supabase
         .from('quizzes')
-        .select('*')
+        .select('id, title, description, difficulty, time_limit, points_reward, questions')
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(3);
@@ -80,30 +80,40 @@ const Overview = ({
   const fetchRecentActivities = async () => {
     try {
       const activities: RecentActivity[] = [];
-      const { data: bookIssues } = await supabase.from('book_issues').select('*, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3);
+      
+      const [
+        { data: bookIssues },
+        { data: quizResults },
+        { data: readingHistory },
+        { data: challengeProgress }
+      ] = await Promise.all([
+        supabase.from('book_issues').select('created_at, books (title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
+        supabase.from('quiz_results').select('completed_at, score, quizzes (title)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(3),
+        supabase.from('reading_history').select('book_title, completed_date, points_earned').eq('user_id', user.id).order('completed_date', { ascending: false }).limit(2),
+        supabase.from('challenge_progress').select('completed_at, challenges (title, reward_points)').eq('user_id', user.id).eq('is_completed', true).order('completed_at', { ascending: false }).limit(2)
+      ]);
+
       if (bookIssues) {
         bookIssues.forEach(issue => {
-          activities.push({ type: 'book', title: `Started reading '${issue.books?.title || 'Unknown Book'}'`, time: getTimeAgo(issue.created_at) });
+          activities.push({ type: 'book', title: `Started reading '${(issue.books as any)?.title || 'Unknown Book'}'`, time: getTimeAgo(issue.created_at) });
         });
       }
-      const { data: quizResults } = await supabase.from('quiz_results').select('*, quizzes (title)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(3);
       if (quizResults) {
         quizResults.forEach(result => {
-          activities.push({ type: 'quiz', title: `Completed ${result.quizzes?.title || 'Quiz'}`, time: getTimeAgo(result.completed_at), score: result.score });
+          activities.push({ type: 'quiz', title: `Completed ${(result.quizzes as any)?.title || 'Quiz'}`, time: getTimeAgo(result.completed_at), score: result.score });
         });
       }
-      const { data: readingHistory } = await supabase.from('reading_history').select('*').eq('user_id', user.id).order('completed_date', { ascending: false }).limit(2);
       if (readingHistory) {
         readingHistory.forEach(entry => {
           activities.push({ type: 'reading', title: `Finished reading '${entry.book_title}'`, time: getTimeAgo(entry.completed_date), points: entry.points_earned });
         });
       }
-      const { data: challengeProgress } = await supabase.from('challenge_progress').select('*, challenges (title, reward_points)').eq('user_id', user.id).eq('is_completed', true).order('completed_at', { ascending: false }).limit(2);
       if (challengeProgress) {
         challengeProgress.forEach(progress => {
-          activities.push({ type: 'challenge', title: `Completed challenge: ${progress.challenges?.title || 'Challenge'}`, time: getTimeAgo(progress.completed_at), points: progress.challenges?.reward_points || 0 });
+          activities.push({ type: 'challenge', title: `Completed challenge: ${(progress.challenges as any)?.title || 'Challenge'}`, time: getTimeAgo(progress.completed_at), points: (progress.challenges as any)?.reward_points || 0 });
         });
       }
+      
       activities.sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
       setRecentActivities(activities.slice(0, 5));
     } catch (error) {
@@ -115,8 +125,11 @@ const Overview = ({
     try {
       const currentMonth = new Date();
       const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      const { data, error } = await supabase.from('reading_history').select('*').eq('user_id', user.id).gte('completed_date', startOfMonth.toISOString().split('T')[0]);
-      if (!error && data) setMonthlyBooksRead(data.length);
+      // HEAD-only count: no row data transferred at all
+      const { count, error } = await supabase.from('reading_history')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id).gte('completed_date', startOfMonth.toISOString().split('T')[0]);
+      if (!error) setMonthlyBooksRead(count || 0);
     } catch (error) {
       console.error('Error fetching monthly books read:', error);
     }
