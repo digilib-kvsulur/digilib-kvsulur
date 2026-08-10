@@ -129,7 +129,7 @@ export default function Maintenance() {
             className="text-sm font-semibold tracking-[0.2em] uppercase"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-            DigiLib · KV Sulur
+            DLMS · PM SHRI KV AFS Sulur
           </span>
         </div>
 
