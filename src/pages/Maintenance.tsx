@@ -1,97 +1,212 @@
 import { useState, useEffect } from "react";
-import { Clock, Wrench } from "lucide-react";
+import { Wrench, BookOpen, Clock } from "lucide-react";
+
+// Maintenance end: 14 Aug 2026, 4:00 PM IST (UTC+5:30 = 10:30 UTC)
+const MAINTENANCE_END = new Date("2026-08-14T10:30:00Z");
+
+function getTimeLeft() {
+  const diff = MAINTENANCE_END.getTime() - Date.now();
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+  };
+}
+
+const pad = (n: number) => n.toString().padStart(2, "0");
+
+interface TimerBlockProps {
+  value: number;
+  label: string;
+}
+
+const TimerBlock = ({ value, label }: TimerBlockProps) => (
+  <div className="flex flex-col items-center gap-2">
+    <div
+      className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center overflow-hidden"
+      style={{
+        background: "hsl(var(--card))",
+        border: "1px solid hsl(var(--border))",
+        boxShadow: "0 0 20px hsl(var(--primary) / 0.15), inset 0 1px 0 hsl(var(--primary) / 0.1)",
+      }}
+    >
+      {/* Shimmer overlay */}
+      <div
+        className="absolute inset-0 animate-shimmer pointer-events-none"
+        aria-hidden="true"
+      />
+      <span
+        className="relative z-10 text-3xl sm:text-4xl font-mono font-extrabold tracking-tight"
+        style={{ color: "hsl(var(--primary))" }}
+      >
+        {pad(value)}
+      </span>
+    </div>
+    <span
+      className="text-xs font-semibold uppercase tracking-widest"
+      style={{ color: "hsl(var(--muted-foreground))" }}
+    >
+      {label}
+    </span>
+  </div>
+);
+
+const Separator = () => (
+  <span
+    className="text-3xl sm:text-4xl font-mono font-bold mt-4 animate-pulse select-none"
+    style={{ color: "hsl(var(--primary) / 0.4)" }}
+  >
+    :
+  </span>
+);
 
 export default function Maintenance() {
-  const calculateTimeLeft = () => {
-    // Set target date for maintenance to end (e.g. 24 hours from now)
-    const difference = +new Date(Date.now() + 24 * 60 * 60 * 1000) - +new Date();
-    let timeLeft = {
-      hours: 24,
-      minutes: 0,
-      seconds: 0,
-    };
-
-    if (difference > 0) {
-      timeLeft = {
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / 1000 / 60) % 60),
-        seconds: Math.floor((difference / 1000) % 60),
-      };
-    }
-    return timeLeft;
-  };
-
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+  const [timeLeft, setTimeLeft] = useState(getTimeLeft());
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  });
+    const id = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background gradients */}
-      <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-      <div className="absolute top-0 -right-4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden"
+      style={{ background: "hsl(var(--background))" }}
+    >
+      {/* ── Ambient blobs using site's primary + accent colours ── */}
+      <div
+        className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-3xl opacity-[0.12] pointer-events-none"
+        style={{ background: "hsl(var(--primary))" }}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full blur-3xl opacity-[0.12] pointer-events-none"
+        style={{ background: "hsl(var(--accent))" }}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] rounded-full blur-3xl opacity-[0.05] pointer-events-none"
+        style={{ background: "hsl(var(--primary))" }}
+        aria-hidden="true"
+      />
 
-      <div className="max-w-2xl w-full backdrop-blur-xl bg-slate-900/50 p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl relative z-10 text-center space-y-8">
-        <div className="flex justify-center mb-6">
+      {/* ── Card ── */}
+      <div
+        className="glass-card relative z-10 w-full max-w-2xl rounded-3xl p-8 md:p-12 text-center space-y-8 animate-fade-in"
+        style={{
+          boxShadow:
+            "0 25px 50px -12px hsl(var(--primary) / 0.15), 0 0 0 1px hsl(var(--border) / 0.6)",
+        }}
+      >
+        {/* ── Logo / Icon ── */}
+        <div className="flex flex-col items-center gap-3 animate-float">
           <div className="relative">
-            <div className="absolute inset-0 bg-blue-500 blur-xl opacity-50 rounded-full"></div>
-            <div className="bg-slate-800 p-4 rounded-2xl relative">
-              <Wrench className="w-12 h-12 text-blue-400" />
+            <div
+              className="absolute inset-0 rounded-2xl blur-xl opacity-60"
+              style={{ background: "hsl(var(--primary))" }}
+              aria-hidden="true"
+            />
+            <div
+              className="relative flex items-center justify-center gap-2 px-5 py-4 rounded-2xl"
+              style={{
+                background: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+              }}
+            >
+              <BookOpen
+                className="w-8 h-8"
+                style={{ color: "hsl(var(--primary))" }}
+              />
+              <Wrench
+                className="w-5 h-5"
+                style={{ color: "hsl(var(--accent))" }}
+              />
             </div>
           </div>
+          <span
+            className="text-sm font-semibold tracking-[0.2em] uppercase"
+            style={{ color: "hsl(var(--muted-foreground))" }}
+          >
+            DigiLib · KV Sulur
+          </span>
         </div>
 
-        <div className="space-y-4">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+        {/* ── Heading ── */}
+        <div className="space-y-3">
+          <h1
+            className="text-4xl md:text-5xl font-extrabold tracking-tight animate-gradient bg-clip-text text-transparent"
+            style={{
+              backgroundImage: "var(--gradient-primary)",
+              backgroundSize: "200% 200%",
+            }}
+          >
             Site Under Maintenance
           </h1>
-          <p className="text-lg text-slate-400 max-w-lg mx-auto leading-relaxed">
-            We are currently upgrading our systems to serve you better. We'll be back online shortly!
+          <p
+            className="text-base md:text-lg leading-relaxed max-w-md mx-auto"
+            style={{ color: "hsl(var(--muted-foreground))" }}
+          >
+            We're upgrading DigiLib to bring you an even better library
+            experience. We'll be back on{" "}
+            <span
+              className="font-semibold"
+              style={{ color: "hsl(var(--foreground))" }}
+            >
+              14 Aug 2026 at 4:00 PM IST
+            </span>
+            .
           </p>
         </div>
 
-        <div className="pt-8 border-t border-slate-800">
-          <div className="flex items-center justify-center gap-2 mb-4 text-slate-400">
-            <Clock className="w-5 h-5" />
-            <span className="font-medium tracking-wider uppercase text-sm">Estimated Time Remaining</span>
+        {/* ── Countdown Timer ── */}
+        <div
+          className="pt-6 border-t"
+          style={{ borderColor: "hsl(var(--border))" }}
+        >
+          <div
+            className="flex items-center justify-center gap-2 mb-5"
+            style={{ color: "hsl(var(--muted-foreground))" }}
+          >
+            <Clock className="w-4 h-4" />
+            <span className="text-xs font-semibold tracking-[0.15em] uppercase">
+              Back online in
+            </span>
           </div>
-          
-          <div className="flex justify-center gap-4 sm:gap-6">
-            <div className="flex flex-col items-center">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-800/80 rounded-2xl border border-slate-700 flex items-center justify-center shadow-inner mb-2">
-                <span className="text-3xl sm:text-4xl font-mono font-bold text-blue-400">
-                  {timeLeft.hours.toString().padStart(2, '0')}
-                </span>
-              </div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Hours</span>
-            </div>
-            <div className="text-3xl sm:text-4xl font-mono font-bold text-slate-700 mt-4 sm:mt-6 animate-pulse">:</div>
-            <div className="flex flex-col items-center">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-800/80 rounded-2xl border border-slate-700 flex items-center justify-center shadow-inner mb-2">
-                <span className="text-3xl sm:text-4xl font-mono font-bold text-blue-400">
-                  {timeLeft.minutes.toString().padStart(2, '0')}
-                </span>
-              </div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Minutes</span>
-            </div>
-            <div className="text-3xl sm:text-4xl font-mono font-bold text-slate-700 mt-4 sm:mt-6 animate-pulse">:</div>
-            <div className="flex flex-col items-center">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-800/80 rounded-2xl border border-slate-700 flex items-center justify-center shadow-inner mb-2">
-                <span className="text-3xl sm:text-4xl font-mono font-bold text-purple-400">
-                  {timeLeft.seconds.toString().padStart(2, '0')}
-                </span>
-              </div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Seconds</span>
-            </div>
+
+          <div className="flex items-start justify-center gap-3 sm:gap-4">
+            <TimerBlock value={timeLeft.days} label="Days" />
+            <Separator />
+            <TimerBlock value={timeLeft.hours} label="Hours" />
+            <Separator />
+            <TimerBlock value={timeLeft.minutes} label="Mins" />
+            <Separator />
+            <TimerBlock value={timeLeft.seconds} label="Secs" />
           </div>
         </div>
+
+        {/* ── Footer note ── */}
+        <p
+          className="text-xs"
+          style={{ color: "hsl(var(--muted-foreground) / 0.7)" }}
+        >
+          This applies to all library locations. Thank you for your patience.
+        </p>
+      </div>
+
+      {/* ── Bottom brand strip ── */}
+      <div className="relative z-10 mt-6 flex items-center gap-2 opacity-50">
+        <BookOpen
+          className="w-4 h-4"
+          style={{ color: "hsl(var(--primary))" }}
+        />
+        <span
+          className="text-xs font-medium"
+          style={{ color: "hsl(var(--muted-foreground))" }}
+        >
+          Kendriya Vidyalaya Sulur Digital Library
+        </span>
       </div>
     </div>
   );
