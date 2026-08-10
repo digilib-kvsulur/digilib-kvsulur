@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Wrench, BookOpen, Clock, MessageCircle } from "lucide-react";
 
-// Maintenance end: 14 Aug 2026, 4:00 PM IST (UTC+5:30 → UTC: 10:30)
-const MAINTENANCE_END = new Date("2026-08-14T10:30:00Z");
+// Maintenance end: 13 Aug 2026, 4:00 PM IST (UTC+5:30 → UTC: 10:30)
+const MAINTENANCE_END = new Date("2026-08-13T10:30:00Z");
 
 function getTimeLeft() {
   const diff = MAINTENANCE_END.getTime() - Date.now();
@@ -151,7 +151,7 @@ export default function Maintenance() {
               className="font-semibold"
               style={{ color: "hsl(var(--foreground))" }}
             >
-              14 Aug 2026 at 4:00 PM IST
+              13 Aug 2026 at 4:00 PM IST
             </span>
             .
           </p>
