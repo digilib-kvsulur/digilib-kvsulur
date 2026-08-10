@@ -148,7 +148,7 @@ export default function Maintenance() {
             className="text-base md:text-lg leading-relaxed max-w-md mx-auto"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-            We're upgrading DigiLib to bring you an even better library
+            We're upgrading DLMS to bring you an even better library
             experience. We'll be back on{" "}
             <span
               className="font-semibold"
@@ -191,7 +191,7 @@ export default function Maintenance() {
           className="text-xs"
           style={{ color: "hsl(var(--muted-foreground) / 0.7)" }}
         >
-          This applies to all library locations. Thank you for your patience.
+          This applies to all. Thank you for your patience.
         </p>
       </div>
 
@@ -205,7 +205,8 @@ export default function Maintenance() {
           className="text-xs font-medium"
           style={{ color: "hsl(var(--muted-foreground))" }}
         >
-          Kendriya Vidyalaya Sulur Digital Library
+          PM SHRI Kendriya Vidyalaya Sulur Digital Library Management System Team
+          For Support Please click <a href="https://wa.me/919865190190">HERE</a>
         </span>
       </div>
     </div>
