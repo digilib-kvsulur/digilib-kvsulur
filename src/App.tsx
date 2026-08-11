@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
+import Maintenance from "./pages/Maintenance";
 
 const queryClient = new QueryClient();
 const Login = lazy(() => import("./pages/Login"));
@@ -42,53 +43,7 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/catalog" element={<Catalog />} />
-              <Route path="/support" element={<Support />} />
-              <Route
-                path="/student-dashboard"
-                element={(
-                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                    <StudentDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/admin-dashboard"
-                element={(
-                  <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/points-history"
-                element={(
-                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                    <PointsHistory />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/teacher-dashboard"
-                element={(
-                  <ProtectedRoute allowedRoles={TEACHER_ROLES}>
-                    <TeacherDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route path="/book/:id" element={<BookDetails />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
+        <Maintenance />
       </TooltipProvider>
     </QueryClientProvider>
   );
