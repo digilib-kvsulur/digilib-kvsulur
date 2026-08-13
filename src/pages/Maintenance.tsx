@@ -120,8 +120,9 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
           lifetime of uninterrupted DLMS experience
         </span>{" "}for everyone.
+        And, as you all were confused, all your data (Including XPs & Ranking) is safe and secure.
         <br /><br />
-        We expect the site to be back online by{" "}
+        We are working tirelessly to get the site back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
           Before 16th Aug 2026, Late Night
         </span>. Your patience and cooperation mean the world to us.
