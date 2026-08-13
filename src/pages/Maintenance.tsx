@@ -112,7 +112,7 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         className="text-sm sm:text-base leading-relaxed"
         style={{ color: "hsl(var(--muted-foreground))" }}
       >
-        Dear Students & Staff,
+        Dear Students,
         <br /><br />
         Due to the <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
           unexpectedly overwhelming response
@@ -123,7 +123,7 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         <br /><br />
         We expect the site to be back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
-          16th Aug 2026, Late Night
+          Before 16th Aug 2026, Late Night
         </span>. Your patience and cooperation mean the world to us.
         <br /><br />
         Thank you for being part of this journey. 🙏
@@ -138,7 +138,7 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         }}
       >
         <p className="text-xs sm:text-sm font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          — Tanish V.
+          — G V Tanish Vettrivel
         </p>
         <p className="text-[10px] sm:text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
           Developer, DLMS · PM SHRI KV AFS Sulur
@@ -235,9 +235,9 @@ export default function Maintenance() {
             className="text-sm sm:text-base md:text-lg leading-relaxed max-w-md mx-auto"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-            We're upgrading DLMS to bring you a better experience. Expected return:{" "}
+            We're upgrading DLMS to bring you a better experience. We are working tirelessly to get it running soon before:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-              16th Aug 2026, Late Night
+              16th Aug 2026, Midnight Night
             </span>
             .
           </p>
