@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Wrench, BookOpen, Clock, Mail, X, Sparkles } from "lucide-react";
+import { Wrench, BookOpen, Clock, Mail, X, Sparkles, Bell } from "lucide-react";
 
-// Maintenance end: 16 Aug 2026, Midnight IST (UTC+5:30 → 15 Aug 2026 18:30 UTC)
-const MAINTENANCE_END = new Date("2026-08-15T18:30:00Z");
+// 17 Aug 2026, 12:00 AM IST = 16 Aug 2026, 18:30 UTC
+const MAINTENANCE_END = new Date("2026-08-16T18:30:00Z");
 
 function getTimeLeft() {
   const diff = MAINTENANCE_END.getTime() - Date.now();
@@ -17,38 +17,35 @@ function getTimeLeft() {
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 
-interface TimerBlockProps {
-  value: number;
-  label: string;
-}
-
-const TimerBlock = ({ value, label }: TimerBlockProps) => (
-  <div className="flex flex-col items-center gap-1.5">
+const TimerBlock = ({ value, label }: { value: number; label: string }) => (
+  <div className="flex flex-col items-center gap-1 sm:gap-1.5">
     <div
-      className="relative w-16 h-16 xs:w-18 xs:h-18 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-xl sm:rounded-2xl flex items-center justify-center overflow-hidden"
+      className="relative rounded-lg sm:rounded-xl flex items-center justify-center overflow-hidden"
       style={{
+        width: "clamp(3rem, 16vw, 5.5rem)",
+        height: "clamp(3rem, 16vw, 5.5rem)",
         background: "hsl(var(--card))",
         border: "1px solid hsl(var(--border))",
-        boxShadow:
-          "0 0 20px hsl(var(--warning) / 0.15), inset 0 1px 0 hsl(var(--warning) / 0.1)",
-        minWidth: "4rem",
+        boxShadow: "0 0 18px hsl(var(--warning) / 0.18), inset 0 1px 0 hsl(var(--warning) / 0.12)",
       }}
     >
-      {/* Shimmer overlay */}
-      <div
-        className="absolute inset-0 animate-shimmer pointer-events-none"
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 animate-shimmer pointer-events-none" aria-hidden="true" />
       <span
-        className="relative z-10 text-2xl sm:text-3xl md:text-4xl font-mono font-extrabold tracking-tight"
-        style={{ color: "hsl(var(--warning))" }}
+        className="relative z-10 font-mono font-extrabold tracking-tight"
+        style={{
+          fontSize: "clamp(1.1rem, 5vw, 2.2rem)",
+          color: "hsl(var(--warning))",
+        }}
       >
         {pad(value)}
       </span>
     </div>
     <span
-      className="text-[10px] sm:text-xs font-semibold uppercase tracking-widest"
-      style={{ color: "hsl(var(--muted-foreground))" }}
+      className="font-semibold uppercase tracking-widest"
+      style={{
+        fontSize: "clamp(0.5rem, 2vw, 0.7rem)",
+        color: "hsl(var(--muted-foreground))",
+      }}
     >
       {label}
     </span>
@@ -57,11 +54,113 @@ const TimerBlock = ({ value, label }: TimerBlockProps) => (
 
 const Separator = () => (
   <span
-    className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold mt-3 sm:mt-4 animate-pulse select-none"
-    style={{ color: "hsl(var(--warning) / 0.35)" }}
+    className="font-mono font-bold animate-pulse select-none"
+    style={{
+      fontSize: "clamp(1.2rem, 5vw, 2.2rem)",
+      color: "hsl(var(--warning) / 0.35)",
+      marginTop: "clamp(0.4rem, 2vw, 1rem)",
+    }}
   >
     :
   </span>
+);
+
+const DevModal = ({ onClose }: { onClose: () => void }) => (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+    style={{ background: "hsl(var(--background) / 0.85)", backdropFilter: "blur(8px)" }}
+    onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+  >
+    <div
+      className="glass-card relative w-full max-w-lg p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl space-y-4"
+      style={{ border: "1px solid hsl(var(--warning) / 0.45)" }}
+    >
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-muted transition-colors"
+        style={{ color: "hsl(var(--muted-foreground))" }}
+        aria-label="Close"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* Header */}
+      <div className="flex items-center gap-3 pr-8">
+        <div
+          className="p-2 rounded-xl"
+          style={{
+            background: "hsl(var(--warning) / 0.15)",
+            border: "1px solid hsl(var(--warning) / 0.3)",
+          }}
+        >
+          <Sparkles className="w-6 h-6" style={{ color: "hsl(var(--warning))" }} />
+        </div>
+        <h2
+          className="text-lg sm:text-xl font-bold leading-tight"
+          style={{ color: "hsl(var(--foreground))" }}
+        >
+          Message from the Developer
+        </h2>
+      </div>
+
+      {/* Divider */}
+      <div style={{ borderTop: "1px solid hsl(var(--border))" }} />
+
+      {/* Body */}
+      <p
+        className="text-sm sm:text-base leading-relaxed"
+        style={{ color: "hsl(var(--muted-foreground))" }}
+      >
+        Dear Students & Staff,
+        <br /><br />
+        Due to the <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+          unexpectedly overwhelming response
+        </span> from our students, we are taking additional time to upgrade our database infrastructure — ensuring a{" "}
+        <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+          lifetime of uninterrupted DLMS experience
+        </span>{" "}for everyone.
+        <br /><br />
+        We expect the site to be back online by{" "}
+        <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
+          16th Aug 2026, Late Night
+        </span>. Your patience and cooperation mean the world to us.
+        <br /><br />
+        Thank you for being part of this journey. 🙏
+      </p>
+
+      {/* Signature */}
+      <div
+        className="rounded-xl p-3 sm:p-4"
+        style={{
+          background: "hsl(var(--warning) / 0.08)",
+          border: "1px solid hsl(var(--warning) / 0.2)",
+        }}
+      >
+        <p className="text-xs sm:text-sm font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+          — Tanish V.
+        </p>
+        <p className="text-[10px] sm:text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
+          Developer, DLMS · PM SHRI KV AFS Sulur
+        </p>
+      </div>
+
+      {/* CTA */}
+      <div className="flex justify-end pt-1">
+        <button
+          onClick={onClose}
+          className="px-5 py-2.5 rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95"
+          style={{
+            background: "var(--gradient-warm)",
+            color: "hsl(var(--warning-foreground))",
+            boxShadow: "0 4px 15px hsl(var(--warning) / 0.35)",
+          }}
+        >
+          Okay, got it! 👍
+        </button>
+      </div>
+    </div>
+  </div>
 );
 
 export default function Maintenance() {
@@ -78,66 +177,29 @@ export default function Maintenance() {
       className="min-h-screen flex flex-col items-center justify-center px-4 py-8 sm:py-12 relative overflow-hidden"
       style={{ background: "hsl(var(--background))" }}
     >
-      {/* ── Modal Popup ── */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
-          <div 
-            className="glass-card relative w-full max-w-lg p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl space-y-4"
-            style={{ border: "1px solid hsl(var(--warning) / 0.4)" }}
-          >
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="w-8 h-8" style={{ color: "hsl(var(--warning))" }} />
-              <h2 className="text-xl sm:text-2xl font-bold" style={{ color: "hsl(var(--foreground))" }}>
-                Message from the Developer
-              </h2>
-            </div>
-            <p className="text-sm sm:text-base leading-relaxed" style={{ color: "hsl(var(--muted-foreground))" }}>
-              Due to the unexpected very good response of the students, we are taking time in upgrading the Database to provide you all with a lifetime uninterrupted DLMS experience. We are expecting the site to be back online by this weekend. We request your cooperation.
-            </p>
-            <div className="pt-4 flex justify-end">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-6 py-2.5 rounded-xl font-semibold text-sm sm:text-base transition-all hover:scale-105 active:scale-95"
-                style={{
-                  background: "var(--gradient-warm)",
-                  color: "hsl(var(--warning-foreground))",
-                  boxShadow: "0 4px 15px hsl(var(--warning) / 0.3)",
-                }}
-              >
-                Okay, got it!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal */}
+      {showModal && <DevModal onClose={() => setShowModal(false)} />}
 
-      {/* ── Ambient blobs (Warm theme) ── */}
+      {/* Ambient blobs */}
       <div
-        className="absolute -top-24 -left-24 w-64 h-64 sm:w-96 sm:h-96 md:w-[500px] md:h-[500px] rounded-full blur-3xl opacity-[0.12] pointer-events-none"
+        className="absolute -top-24 -left-24 w-64 h-64 sm:w-96 sm:h-96 md:w-[500px] md:h-[500px] rounded-full blur-3xl opacity-[0.13] pointer-events-none"
         style={{ background: "hsl(var(--warning))" }}
         aria-hidden="true"
       />
       <div
-        className="absolute -bottom-24 -right-24 w-64 h-64 sm:w-96 sm:h-96 md:w-[500px] md:h-[500px] rounded-full blur-3xl opacity-[0.12] pointer-events-none"
+        className="absolute -bottom-24 -right-24 w-64 h-64 sm:w-96 sm:h-96 md:w-[500px] md:h-[500px] rounded-full blur-3xl opacity-[0.11] pointer-events-none"
         style={{ background: "hsl(var(--destructive))" }}
         aria-hidden="true"
       />
 
-      {/* ── Main card ── */}
+      {/* Main card */}
       <div
         className="glass-card relative z-10 w-full max-w-xl sm:max-w-2xl rounded-2xl sm:rounded-3xl px-5 py-8 sm:px-8 sm:py-10 md:px-12 md:py-12 text-center space-y-6 sm:space-y-8 animate-fade-in"
         style={{
-          boxShadow:
-            "0 25px 50px -12px hsl(var(--warning) / 0.15), 0 0 0 1px hsl(var(--border) / 0.6)",
+          boxShadow: "0 25px 50px -12px hsl(var(--warning) / 0.15), 0 0 0 1px hsl(var(--border) / 0.6)",
         }}
       >
-        {/* ── Logo / Icon ── */}
+        {/* Logo */}
         <div className="flex flex-col items-center gap-2 sm:gap-3 animate-float">
           <div className="relative">
             <div
@@ -147,19 +209,10 @@ export default function Maintenance() {
             />
             <div
               className="relative flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-4 rounded-xl sm:rounded-2xl"
-              style={{
-                background: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-              }}
+              style={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
             >
-              <BookOpen
-                className="w-7 h-7 sm:w-8 sm:h-8"
-                style={{ color: "hsl(var(--warning))" }}
-              />
-              <Wrench
-                className="w-4 h-4 sm:w-5 sm:h-5"
-                style={{ color: "hsl(var(--destructive))" }}
-              />
+              <BookOpen className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: "hsl(var(--warning))" }} />
+              <Wrench className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: "hsl(var(--destructive))" }} />
             </div>
           </div>
           <span
@@ -170,14 +223,11 @@ export default function Maintenance() {
           </span>
         </div>
 
-        {/* ── Heading ── */}
+        {/* Heading */}
         <div className="space-y-2 sm:space-y-3">
           <h1
             className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight animate-gradient bg-clip-text text-transparent leading-tight"
-            style={{
-              backgroundImage: "var(--gradient-warm)",
-              backgroundSize: "200% 200%",
-            }}
+            style={{ backgroundImage: "var(--gradient-warm)", backgroundSize: "200% 200%" }}
           >
             Site Under Maintenance
           </h1>
@@ -185,34 +235,27 @@ export default function Maintenance() {
             className="text-sm sm:text-base md:text-lg leading-relaxed max-w-md mx-auto"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-            We're upgrading DLMS to bring you an even better library experience.
-            We'll be back on{" "}
-            <span
-              className="font-semibold"
-              style={{ color: "hsl(var(--foreground))" }}
-            >
-              16 Aug 2026 at 12:00 AM IST (Midnight)
+            We're upgrading DLMS to bring you a better experience. Expected return:{" "}
+            <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+              16th Aug 2026, Late Night
             </span>
             .
           </p>
         </div>
 
-        {/* ── Countdown Timer ── */}
-        <div
-          className="pt-5 sm:pt-6 border-t"
-          style={{ borderColor: "hsl(var(--border))" }}
-        >
+        {/* Countdown Timer */}
+        <div className="pt-5 sm:pt-6 border-t" style={{ borderColor: "hsl(var(--border))" }}>
           <div
             className="flex items-center justify-center gap-1.5 sm:gap-2 mb-4 sm:mb-5"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
             <span className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase">
               Back online in
             </span>
           </div>
 
-          <div className="flex items-start justify-center gap-2 sm:gap-3 md:gap-4">
+          <div className="flex items-start justify-center" style={{ gap: "clamp(0.3rem, 2vw, 1rem)" }}>
             <TimerBlock value={timeLeft.days} label="Days" />
             <Separator />
             <TimerBlock value={timeLeft.hours} label="Hours" />
@@ -223,53 +266,61 @@ export default function Maintenance() {
           </div>
         </div>
 
-        {/* ── Footer note ── */}
-        <p
-          className="text-xs sm:text-sm"
-          style={{ color: "hsl(var(--muted-foreground))" }}
-        >
+        {/* Footer note */}
+        <p className="text-xs sm:text-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
           This applies to all library locations. Thank you for your patience.
         </p>
 
-        {/* ── Support CTA button (Email) ── */}
-        <div className="pt-1">
+        {/* Action buttons row */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+          {/* Developer message button */}
+          <button
+            id="view-dev-message-btn"
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+            style={{
+              background: "hsl(var(--card))",
+              color: "hsl(var(--warning))",
+              border: "1.5px solid hsl(var(--warning) / 0.5)",
+              boxShadow: "0 2px 12px hsl(var(--warning) / 0.15)",
+            }}
+          >
+            <Bell className="w-4 h-4 flex-shrink-0" />
+            <span>Developer Message</span>
+          </button>
+
+          {/* Contact button */}
           <a
             id="maintenance-support-btn"
             href="mailto:tanishvettrivel2010@gmail.com"
-            className="inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-3.5 rounded-xl font-semibold text-sm sm:text-base transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-2"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
             style={{
               background: "var(--gradient-warm)",
               color: "hsl(var(--warning-foreground))",
-              boxShadow:
-                "0 0 0 0 hsl(var(--warning) / 0), 0 4px 24px hsl(var(--warning) / 0.4)",
+              boxShadow: "0 4px 20px hsl(var(--warning) / 0.38)",
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-                "0 0 0 0 hsl(var(--warning) / 0), 0 8px 32px hsl(var(--warning) / 0.55)";
+                "0 6px 28px hsl(var(--warning) / 0.55)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-                "0 0 0 0 hsl(var(--warning) / 0), 0 4px 24px hsl(var(--warning) / 0.4)";
+                "0 4px 20px hsl(var(--warning) / 0.38)";
             }}
           >
-            <Mail className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <Mail className="w-4 h-4 flex-shrink-0" />
             <span>Contact Developer</span>
           </a>
-          <p
-            className="mt-2 text-[10px] sm:text-xs"
-            style={{ color: "hsl(var(--muted-foreground))" }}
-          >
-            Developer Contact: tanishvettrivel2010@gmail.com
-          </p>
         </div>
+
+        <p className="text-[10px] sm:text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
+          tanishvettrivel2010@gmail.com
+        </p>
       </div>
 
-      {/* ── Bottom brand strip ── */}
+      {/* Bottom brand strip */}
       <div className="relative z-10 mt-5 sm:mt-6 flex items-center gap-2 opacity-40">
-        <BookOpen
-          className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0"
-          style={{ color: "hsl(var(--warning))" }}
-        />
+        <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: "hsl(var(--warning))" }} />
         <span
           className="text-[10px] sm:text-xs font-medium text-center"
           style={{ color: "hsl(var(--muted-foreground))" }}
