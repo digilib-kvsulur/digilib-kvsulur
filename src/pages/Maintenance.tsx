@@ -113,21 +113,21 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         style={{ color: "hsl(var(--muted-foreground))" }}
       >
         Dear Students,
-        <br />
+        <br /><br />
         Due to the <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
           unexpectedly overwhelming response
         </span> from our students, we are taking additional time to upgrade our database infrastructure — ensuring a{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
           lifetime of uninterrupted DLMS experience
         </span>{" "}for everyone.
-        <br />
+        <br /><br />
         All your data (Including XPs & Ranking) is preserved in a safe and secure manner.
-        <br />
+        <br /><br />
         We are working tirelessly to get the site back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
           Before 16th Aug 2026, Late Night
         </span>. Your patience and cooperation mean the world to us.
-        <br />
+        <br /><br />
         Thank you for being part of this journey. 🙏
       </p>
 
