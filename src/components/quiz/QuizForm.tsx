@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Save, ArrowLeft, GripVertical, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Save, ArrowLeft, GripVertical, CheckCircle2, Wand2, Loader2 } from "lucide-react";
 import { Quiz, Question } from "@/types/quiz";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface QuizFormProps {
   quiz?: Quiz | null;
@@ -56,6 +58,57 @@ export const QuizForm = ({ quiz, onSave, onCancel }: QuizFormProps) => {
   const handleSave = () => {
     if (formData.title && formData.questions && formData.questions.length > 0) {
       onSave(formData as Quiz);
+    }
+  };
+
+  const [loadingAI, setLoadingAI] = useState(false);
+  const { toast } = useToast();
+  
+  const generateWithAI = async () => {
+    if (!formData.title) {
+      toast({ title: "Please enter a quiz title first", variant: "destructive" });
+      return;
+    }
+    setLoadingAI(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-quiz`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ 
+          title: formData.title, 
+          description: formData.description,
+          numQuestions: 5 
+        })
+      });
+
+      if (!res.ok) throw new Error("Failed to generate quiz");
+      const data = await res.json();
+      
+      if (data.questions && Array.isArray(data.questions)) {
+        const generatedQs: Question[] = data.questions.map((q: any) => ({
+          id: Date.now().toString() + Math.random().toString(36).substring(7),
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.options.indexOf(q.correctAnswer) !== -1 ? q.options.indexOf(q.correctAnswer) : 0,
+          explanation: q.explanation || "",
+          points: 10
+        }));
+        
+        setFormData(prev => ({ 
+          ...prev, 
+          questions: [...(prev.questions || []), ...generatedQs] 
+        }));
+        toast({ title: "Successfully generated questions with AI!" });
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Failed to generate AI quiz", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingAI(false);
     }
   };
 
@@ -126,9 +179,15 @@ export const QuizForm = ({ quiz, onSave, onCancel }: QuizFormProps) => {
             <Badge variant="secondary" className="text-xs">{formData.questions?.length || 0}</Badge>
           </div>
           {!showQuestionForm && (
-            <Button size="sm" onClick={() => setShowQuestionForm(true)} className="gradient-primary border-0">
-              <Plus className="h-4 w-4 mr-1" /> Add Question
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={generateWithAI} disabled={loadingAI} className="bg-purple-600 hover:bg-purple-700 text-white border-0">
+                {loadingAI ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wand2 className="h-4 w-4 mr-1" />}
+                Generate with AI
+              </Button>
+              <Button size="sm" onClick={() => setShowQuestionForm(true)} className="gradient-primary border-0">
+                <Plus className="h-4 w-4 mr-1" /> Add Question
+              </Button>
+            </div>
           )}
         </div>
 

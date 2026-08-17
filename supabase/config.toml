@@ -1,1 +1,22 @@
 project_id = "qbpnsqdtfuhdbiqajsfr"
+[functions.generate-quiz]
+enabled = true
+verify_jwt = false
+import_map = "./functions/generate-quiz/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/generate-quiz/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/generate-quiz/*.html" ]
+
+[functions.library-bot]
+enabled = true
+verify_jwt = false
+import_map = "./functions/library-bot/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/library-bot/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/library-bot/*.html" ]

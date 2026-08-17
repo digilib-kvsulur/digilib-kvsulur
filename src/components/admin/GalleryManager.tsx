@@ -8,46 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Trash2, Plus, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-const compressImage = (file: File, maxW: number, maxH: number, quality: number): Promise<File> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxW || height > maxH) {
-          if (width > height) {
-            height = Math.round((height * maxW) / width);
-            width = maxW;
-          } else {
-            width = Math.round((width * maxH) / height);
-            height = maxH;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx?.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(new File([blob], file.name, { type: "image/jpeg", lastModified: Date.now() }));
-            } else {
-              resolve(file);
-            }
-          },
-          "image/jpeg",
-          quality
-        );
-      };
-    };
-  });
-};
+import imageCompression from 'browser-image-compression';
 
 export default function GalleryManager() {
   const { toast } = useToast();
@@ -94,7 +55,12 @@ export default function GalleryManager() {
         if (!user) throw new Error("Not signed in");
         
         for (const f of files) {
-          const compressedFile = await compressImage(f, 2000, 2000, 0.85);
+          const options = {
+            maxSizeMB: 2,
+            maxWidthOrHeight: 2000,
+            useWebWorker: true
+          };
+          const compressedFile = await imageCompression(f, options);
           const ext = f.name.split(".").pop();
           const path = `gallery/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
           
