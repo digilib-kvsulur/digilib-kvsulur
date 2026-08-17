@@ -110,60 +110,77 @@ const Catalog = () => {
   const fetchBooks = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from("books")
-        .select("id,title,author,category,subject,class_level,language,cover_url,total_copies,available_copies,first_added_at,created_at,accession_number,issue_count,shelf_number,cupboard_number", { count: "exact" })
-        .gt("total_copies", 0);
-
+      let data: any[] | null = null;
+      let count = 0;
 
       if (debouncedSearch.trim()) {
-        const s = `%${debouncedSearch.trim()}%`;
-        query = query.or(`title.ilike.${s},author.ilike.${s},accession_number.ilike.${s},subject.ilike.${s}`);
-      }
-
-      if (selectedGenre !== "all") query = query.eq("category", selectedGenre);
-      if (selectedSubject !== "all") query = query.eq("subject", selectedSubject);
-      if (selectedClass !== "all") query = query.eq("class_level", selectedClass);
-      if (selectedLang !== "all") query = query.eq("language", selectedLang);
-      if (selectedAuthor !== "all") query = query.eq("author", selectedAuthor);
-
-      if (availability === "available") {
-        query = query.gt("available_copies", 0);
-      } else if (availability === "new") {
-        const oneMonthAgoIso = new Date(Date.now() - 30 * 86400_000).toISOString();
-        query = query.gte("first_added_at", oneMonthAgoIso);
-      }
-
-      // Primary: most issued (popular) books first, then books with covers, then user sort
-      query = query.order("issue_count", { ascending: false, nullsFirst: false });
-      query = query.order("cover_url", { ascending: false, nullsFirst: false });
-
-      if (sortBy === "newest") {
-        query = query.order("created_at", { ascending: false });
-      } else if (sortBy === "title_az") {
-        query = query.order("title", { ascending: true });
+        // Use RPC function for Full-Text Search (Feature 18)
+        const { data: searchResults, error: searchErr } = await supabase.rpc("search_books", {
+          search_query: debouncedSearch.trim(),
+          p_category: selectedGenre === "all" ? null : selectedGenre,
+          p_subject: selectedSubject === "all" ? null : selectedSubject,
+          p_class_level: selectedClass === "all" ? null : selectedClass,
+          p_language: selectedLang === "all" ? null : selectedLang,
+          p_author: selectedAuthor === "all" ? null : selectedAuthor,
+          p_availability: availability,
+          p_sort_by: sortBy,
+          p_limit: 1000 // Grab enough to virtualize locally or paginate
+        });
+        if (searchErr) throw searchErr;
+        data = searchResults;
+        count = searchResults?.length || 0;
       } else {
-        query = query.order("title", { ascending: true });
+        let query = supabase
+          .from("books")
+          .select("id,title,author,category,subject,class_level,language,cover_url,total_copies,available_copies,first_added_at,created_at,accession_number,issue_count,shelf_number,cupboard_number", { count: "exact" })
+          .gt("total_copies", 0);
+
+        if (selectedGenre !== "all") query = query.eq("category", selectedGenre);
+        if (selectedSubject !== "all") query = query.eq("subject", selectedSubject);
+        if (selectedClass !== "all") query = query.eq("class_level", selectedClass);
+        if (selectedLang !== "all") query = query.eq("language", selectedLang);
+        if (selectedAuthor !== "all") query = query.eq("author", selectedAuthor);
+
+        if (availability === "available") {
+          query = query.gt("available_copies", 0);
+        } else if (availability === "new") {
+          const oneMonthAgoIso = new Date(Date.now() - 30 * 86400_000).toISOString();
+          query = query.gte("first_added_at", oneMonthAgoIso);
+        }
+
+        // Primary: most issued (popular) books first, then books with covers, then user sort
+        query = query.order("issue_count", { ascending: false, nullsFirst: false });
+        query = query.order("cover_url", { ascending: false, nullsFirst: false });
+
+        if (sortBy === "newest") {
+          query = query.order("created_at", { ascending: false });
+        } else if (sortBy === "title_az") {
+          query = query.order("title", { ascending: true });
+        } else {
+          query = query.order("title", { ascending: true });
+        }
+
+        const from = (currentPage - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+
+        const { data: dbData, count: dbCount, error } = await query;
+        if (error) throw error;
+        data = dbData;
+        count = dbCount || 0;
       }
-
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
-      query = query.range(from, to);
-
-      const { data, count, error } = await query;
-      if (error) throw error;
 
       setBooks(data || []);
-      setTotalCount(count || 0);
+      setTotalCount(count);
       setLoading(false);
 
       // Enrich the visible page in the background (does not block rendering)
       if (data && data.length > 0) {
-        const bookIds = data.map(b => b.id);
+        const bookIds = data.slice(0, pageSize).map(b => b.id);
         setBorrowCounts(Object.fromEntries(data.map((b: any) => [b.id, b.issue_count || 0])));
         void (async () => {
           const [{ data: rev }, { data: recs }] = await Promise.all([
-            supabase.from("book_reviews").select("book_id, rating").in("book_id", bookIds).eq("is_hidden", false),
+            supabase.from("book_reviews").select("book_id, rating").in("book_id", bookIds).eq("is_approved", true),
             supabase.from("class_book_recommendations").select("book_id").in("book_id", bookIds),
           ]);
           const agg: Record<string, { sum: number; count: number }> = {};

@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { BookOpen, Calendar, Clock, RotateCcw, AlertTriangle, TrendingUp, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
+
 export default function CirculationDashboard() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -19,6 +21,7 @@ export default function CirculationDashboard() {
   const [overdueList, setOverdueList] = useState<any[]>([]);
   const [lowStockList, setLowStockList] = useState<any[]>([]);
   const [mostBorrowedList, setMostBorrowedList] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
 
   const loadCirculationData = async () => {
     try {
@@ -69,7 +72,7 @@ export default function CirculationDashboard() {
       // 4. Calculate most borrowed books (analytics)
       const { data: issuesData } = await supabase
         .from("book_issues")
-        .select("book_id, books(title, author)");
+        .select("book_id, issue_date, return_date, status, books(title, author)");
 
       const bookBorrowedCounts: Record<string, { title: string; author: string; count: number }> = {};
       issuesData?.forEach(issue => {
@@ -85,6 +88,29 @@ export default function CirculationDashboard() {
       const sortedMostBorrowed = Object.values(bookBorrowedCounts)
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
+
+      // Calculate recent 7 days trend for line chart
+      const trendMap: Record<string, { date: string; checkouts: number; returns: number }> = {};
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        const dStr = d.toISOString().split("T")[0];
+        trendMap[dStr] = { date: key, checkouts: 0, returns: 0 };
+      }
+
+      issuesData?.forEach(i => {
+        const issueDay = i.issue_date?.split("T")[0];
+        if (issueDay && trendMap[issueDay]) {
+          trendMap[issueDay].checkouts += 1;
+        }
+        const returnDay = i.return_date?.split("T")[0];
+        if (returnDay && trendMap[returnDay]) {
+          trendMap[returnDay].returns += 1;
+        }
+      });
+
+      setChartData(Object.values(trendMap));
 
       setStats({
         issuedCount: activeIssues?.length || 0,
@@ -146,6 +172,39 @@ export default function CirculationDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Circulation History Area Chart (Feature 3) */}
+      <Card className="border-border/50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-bold flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-indigo-600" /> Circulation History & Trends
+          </CardTitle>
+          <CardDescription className="text-xs">Daily checkouts vs returns comparison over the past 7 days</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4 h-[260px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorCheckouts" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
+                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorReturns" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="date" className="text-[10px] font-semibold" />
+              <YAxis allowDecimals={false} className="text-[10px] font-semibold" />
+              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+              <Legend wrapperStyle={{ fontSize: 11, fontWeight: "600" }} />
+              <Area type="monotone" dataKey="checkouts" name="Checkouts" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#colorCheckouts)" />
+              <Area type="monotone" dataKey="returns" name="Returns" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorReturns)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Two Column details layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

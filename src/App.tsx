@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
 
+import DeveloperMessagePopup from "@/components/global/DeveloperMessagePopup";
+
 const queryClient = new QueryClient();
 const Login = lazy(() => import("./pages/Login"));
 const Index = lazy(() => import("./pages/Index"));
@@ -20,6 +22,9 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Support = lazy(() => import("./pages/Support"));
 const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
 const PointsHistory = lazy(() => import("./pages/PointsHistory"));
+const StudentPortfolio = lazy(() => import("./pages/StudentPortfolio"));
+
+const Feedback = lazy(() => import("./pages/Feedback"));
 
 const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
@@ -40,6 +45,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <DeveloperMessagePopup />
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -50,6 +56,7 @@ const App = () => {
               <Route path="/register" element={<Register />} />
               <Route path="/catalog" element={<Catalog />} />
               <Route path="/support" element={<Support />} />
+              <Route path="/feedback" element={<Feedback />} />
               <Route
                 path="/student-dashboard"
                 element={(
@@ -71,6 +78,14 @@ const App = () => {
                 element={(
                   <ProtectedRoute allowedRoles={STUDENT_ROLES}>
                     <PointsHistory />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/student-portfolio"
+                element={(
+                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                    <StudentPortfolio />
                   </ProtectedRoute>
                 )}
               />

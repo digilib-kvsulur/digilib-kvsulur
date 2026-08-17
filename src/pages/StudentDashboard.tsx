@@ -23,6 +23,10 @@ import LoginStreakCard from "@/components/dashboard/LoginStreakCard";
 import ReadingChallenges from "@/components/rewards/ReadingChallenges";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import BookRequestForm from "@/components/BookRequestForm";
+import ReadingVelocity from "@/components/student/ReadingVelocity";
+import ClassCompetitions from "@/components/student/ClassCompetitions";
+import CurrentlyReading from "@/components/student/CurrentlyReading";
+import StudyPlan from "@/components/student/StudyPlan";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
 import LevelUpBanner from "@/components/rewards/LevelUpBanner";
 import Rankings from "@/components/dashboard/Rankings";
@@ -579,6 +583,9 @@ const StudentDashboard = () => {
                 </CardContent>
               </Card>
 
+              {/* Currently Reading Status */}
+              <CurrentlyReading user={user} onUpdate={checkAuth} />
+
               {/* Level + Streak Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <LevelProgress userPoints={user?.points || 0} />
@@ -591,6 +598,10 @@ const StudentDashboard = () => {
                   />
                 )}
               </div>
+
+              {user?.id && <ReadingVelocity userId={user.id} />}
+
+              {user?.student_class && <ClassCompetitions userClass={user.student_class} />}
 
               {/* Quick Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -621,6 +632,7 @@ const StudentDashboard = () => {
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Actions</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                     {[
+                      { label: "My Portfolio",    icon: FileText,    tab: "portfolio", color: "text-rose-600",   bg: "bg-rose-50" },
                       { label: "Games Corner",   icon: Gamepad2,    tab: "games",     color: "text-blue-600",   bg: "bg-blue-50" },
                       { label: "Study Corner",   icon: Timer,       tab: "study",     color: "text-teal-600",   bg: "bg-teal-50" },
                       { label: "Quizzes",         icon: Brain,       tab: "quizzes",   color: "text-purple-600", bg: "bg-purple-50" },
@@ -632,7 +644,13 @@ const StudentDashboard = () => {
                     ].map(a => (
                       <button
                         key={a.tab}
-                        onClick={() => setActiveTab(a.tab as Tab)}
+                        onClick={() => {
+                          if (a.tab === 'portfolio') {
+                            navigate('/student-portfolio');
+                          } else {
+                            setActiveTab(a.tab as Tab);
+                          }
+                        }}
                         className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left group"
                       >
                         <div className={`w-7 h-7 rounded-lg ${a.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
@@ -776,7 +794,14 @@ const StudentDashboard = () => {
 
           {/* Study Tracker */}
           {activeTab === "study" && user?.id && (
-            <StudyTracker userId={user.id} studentClass={user?.student_class} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+               <div className="lg:col-span-2">
+                 <StudyTracker userId={user.id} studentClass={user?.student_class} />
+               </div>
+               <div>
+                 <StudyPlan />
+               </div>
+            </div>
           )}
 
           {/* Community (includes Book Clubs tab) */}

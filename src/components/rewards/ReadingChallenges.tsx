@@ -2,7 +2,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Target, Clock, Trophy, CheckCircle, Sparkles } from "lucide-react";
+import { BookOpen, Target, Clock, Trophy, CheckCircle, Sparkles, Calendar as CalendarIcon } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 
 interface ReadingChallenge {
   id: string;
@@ -69,6 +71,38 @@ const ReadingChallenges = ({ challenges, onJoinChallenge, onClaimReward }: Readi
 
   return (
     <div className="space-y-8">
+      {/* Challenge Calendar */}
+      <Card className="border-border/50">
+         <div className="p-4 flex flex-col md:flex-row gap-6">
+            <div className="flex-1">
+               <h3 className="text-base font-semibold text-foreground mb-1 flex items-center gap-2">
+                 <CalendarIcon className="h-4 w-4 text-primary" /> Challenge Calendar
+               </h3>
+               <p className="text-xs text-muted-foreground mb-4">Keep track of upcoming deadlines</p>
+               <div className="space-y-2">
+                  {activeChallenges.slice(0,3).map(c => (
+                    <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-rose-500" />
+                        <span className="text-xs font-bold text-slate-800">{c.title}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500">{new Date(c.deadline).toLocaleDateString()}</span>
+                    </div>
+                  ))}
+               </div>
+            </div>
+            <div className="shrink-0 flex justify-center p-2 rounded-xl border bg-slate-50/50">
+               <DayPicker 
+                 mode="multiple" 
+                 selected={activeChallenges.map(c => new Date(c.deadline))}
+                 className="bg-transparent scale-90 origin-top"
+                 modifiers={{ deadline: activeChallenges.map(c => new Date(c.deadline)) }}
+                 modifiersClassNames={{ deadline: "bg-rose-100 text-rose-700 font-bold border border-rose-200 rounded-full" }}
+               />
+            </div>
+         </div>
+      </Card>
+
       {/* Active Challenges */}
       {activeChallenges.length > 0 && (
         <div>

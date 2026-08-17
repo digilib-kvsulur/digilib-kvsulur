@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { Star, MapPin } from "lucide-react";
+import BookShelfLocator from "@/components/student/BookShelfLocator";
 
 export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
   book: any; userId: string | null; open: boolean; onOpenChange: (o: boolean) => void;
@@ -41,10 +42,13 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
     toast({ title: "Review saved" }); load();
   };
 
+  const [showMap, setShowMap] = useState(false);
+
   const avg = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "—";
 
   if (!book) return null;
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
@@ -59,6 +63,12 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
           {book.cupboard_number && <Badge variant="outline" className="border-emerald-200 text-emerald-700 bg-emerald-50">Cupboard {book.cupboard_number}</Badge>}
           {book.shelf_number && <Badge variant="outline" className="border-emerald-200 text-emerald-700 bg-emerald-50">Shelf {book.shelf_number}</Badge>}
           {book.language && <Badge variant="outline">{book.language}</Badge>}
+        </div>
+
+        <div className="flex items-center gap-2">
+           <Button variant="outline" size="sm" className="rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold" onClick={() => setShowMap(true)}>
+             <MapPin className="h-4 w-4 mr-2" /> Locate on Library Map
+           </Button>
         </div>
 
         {book.description && <p className="text-sm text-muted-foreground">{book.description}</p>}
@@ -99,5 +109,15 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
         </div>
       </DialogContent>
     </Dialog>
+    
+    <BookShelfLocator 
+      isOpen={showMap} 
+      onClose={() => setShowMap(false)} 
+      bookTitle={book.title} 
+      shelfNumber={book.shelf_number}
+      cupboardNumber={book.cupboard_number}
+      category={book.category}
+    />
+    </>
   );
 }

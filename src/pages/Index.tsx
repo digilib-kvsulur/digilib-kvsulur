@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   BookOpen, BarChart3, Trophy, Target, Zap, ArrowRight, LayoutDashboard,
-  Award, Clock, Sparkles, MapPin, Mail, ChevronRight, Star, Loader2
+  Award, Clock, Sparkles, MapPin, Mail, ChevronRight, Star, Loader2, Crown
 } from "lucide-react";
 import { LifeBuoy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +38,9 @@ const Index = () => {
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const navigate = useNavigate();
   const galleryRef = useRef<HTMLDivElement>(null);
+  const [bookOfTheWeek, setBookOfTheWeek] = useState<any[]>([]);
+
+  const [bookOfTheWeek, setBookOfTheWeek] = useState<any[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -53,6 +56,7 @@ const Index = () => {
     loadStatistics();
     loadTrendingBooks();
     loadEvents();
+    loadBookOfTheWeek();
     loadGallery();
     return () => subscription.unsubscribe();
   }, []);
@@ -123,6 +127,18 @@ const Index = () => {
       }
     } catch (e) {
       console.error("Failed to load trending books:", e);
+    }
+  };
+
+  const loadBookOfTheWeek = async () => {
+    try {
+      const { data } = await supabase
+        .from("books")
+        .select("*")
+        .eq("is_book_of_the_week", true);
+      if (data) setBookOfTheWeek(data);
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -335,7 +351,35 @@ const Index = () => {
           </div>
         </div>
       </section>
-      
+
+      {/* Book of the Week Banner */}
+      {bookOfTheWeek.length > 0 && (
+        <section className="py-12 bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100">
+           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+             <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+               <div className="flex-1 space-y-4 text-center md:text-left">
+                 <div className="inline-flex items-center justify-center gap-2.5 bg-amber-100 text-amber-700 border border-amber-200 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider mx-auto md:mx-0">
+                   <Crown className="h-4 w-4" /> Book of the Week
+                 </div>
+                 <h3 className="text-3xl font-black text-slate-900">{bookOfTheWeek[0].title}</h3>
+                 <p className="text-lg text-slate-600 font-medium">by {bookOfTheWeek[0].author}</p>
+                 {bookOfTheWeek[0].description && <p className="text-sm text-slate-500 max-w-xl line-clamp-3 mx-auto md:mx-0">{bookOfTheWeek[0].description}</p>}
+                 <Button onClick={() => navigate("/catalog")} className="bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl mt-2 px-6 shadow-md shadow-amber-500/20">
+                   Check it out in Catalog
+                 </Button>
+               </div>
+               <div className="shrink-0 w-40 h-56 md:w-56 md:h-80 rounded-xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100 transform md:rotate-3 hover:rotate-0 transition-transform">
+                 {bookOfTheWeek[0].cover_url ? (
+                   <img src={bookOfTheWeek[0].cover_url} alt={bookOfTheWeek[0].title} className="w-full h-full object-cover" />
+                 ) : (
+                   <BookOpen className="w-12 h-12 text-slate-400 m-auto mt-20 md:mt-28" />
+                 )}
+               </div>
+             </div>
+           </div>
+        </section>
+      )}
+
       {/* Trending Books Showcase with generous padding */}
       {trendingBooks.length > 0 && (
         <section className="py-24 relative">

@@ -47,11 +47,10 @@ import CertificateManager from "@/components/admin/CertificateManager";
 import FineManager from "@/components/admin/FineManager";
 import LostBooksManager from "@/components/admin/LostBooksManager";
 import PeriodicalManager from "@/components/admin/PeriodicalManager";
-import BookClubManager from "@/components/admin/BookClubManager";
-import { LifeBuoy } from "lucide-react";
-import { FileSpreadsheet, ClipboardList, RefreshCcw as LibraryIcon, Image as ImageIcon, HardDriveDownload, ShieldAlert, IndianRupee, Newspaper, Users as UsersIcon } from "lucide-react";
+import FeedbackManager from "@/components/admin/FeedbackManager";
+import BookOfTheWeek from "@/components/admin/BookOfTheWeek";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
 
 const navSections = [
   {
@@ -61,6 +60,7 @@ const navSections = [
       { id: "analytics" as Tab, label: "Analytics", icon: BarChart3 },
       { id: "reports" as Tab, label: "Export Reports", icon: FileSpreadsheet },
       { id: "support" as Tab, label: "Support Tickets", icon: LifeBuoy },
+      { id: "feedback" as Tab, label: "User Feedback", icon: MessageSquare },
     ],
   },
   {
@@ -87,6 +87,7 @@ const navSections = [
       { id: "barcodes" as Tab, label: "Barcode Stickers", icon: Barcode },
       { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
       { id: "reviews" as Tab, label: "Reviews", icon: Star },
+      { id: "book-of-the-week" as Tab, label: "Book of the Week", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
       { id: "wishlist" as Tab, label: "Wishlists", icon: Star },
     ],
@@ -412,6 +413,7 @@ const AdminDashboard = () => {
           {activeTab === "cover-data" && <BookCoverData />}
           {activeTab === "renewals" && <RenewalRequests />}
           {activeTab === "reviews" && <ReviewsModeration />}
+          {activeTab === "book-of-the-week" && <BookOfTheWeek />}
           {activeTab === "events" && <EventsManager />}
           {activeTab === "gallery" && <GalleryManager />}
           {activeTab === "points" && <PointsManager />}
@@ -426,6 +428,7 @@ const AdminDashboard = () => {
           {activeTab === "materials" && <StudyMaterialsManager />}
           {activeTab === "barcodes" && <BarcodeGenerator />}
           {activeTab === "support" && <SupportTicketsManager />}
+          {activeTab === "feedback" && <FeedbackManager />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>

@@ -9,6 +9,11 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+      VITE_VAPID_PUBLIC_KEY: ${{ secrets.VITE_VAPID_PUBLIC_KEY }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -55,6 +60,10 @@ jobs:
     runs-on: windows-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+      VITE_VAPID_PUBLIC_KEY: ${{ secrets.VITE_VAPID_PUBLIC_KEY }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -67,10 +76,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Build Web App
-        run: npm run build
-
-      - name: Build EXE
+      - name: Build EXE (includes web build with Electron base path)
         run: npm run electron:build
 
       - name: Upload EXE Artifact
