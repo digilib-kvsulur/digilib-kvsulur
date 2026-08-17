@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Play, Pause, Trophy, FileText, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Play, Pause, Trophy, FileText, Upload, Users } from "lucide-react";
 import { Quiz } from "@/types/quiz";
 import { QuizForm } from "./QuizForm";
 import BulkImportQuiz from "./BulkImportQuiz";
+import { MultiplayerLobby } from "./MultiplayerLobby";
+import { LiveQuizRunner } from "./LiveQuizRunner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,7 +39,8 @@ const QuizManager = () => {
   const [showQuizForm, setShowQuizForm] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
-  const [resultsLoading, setResultsLoading] = useState(true);
+  const [hostingQuiz, setHostingQuiz] = useState<Quiz | null>(null);
+  const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -264,6 +267,33 @@ const QuizManager = () => {
     );
   }
 
+  if (hostingQuiz) {
+    if (liveSessionId) {
+      return (
+        <div className="space-y-6">
+          <Button variant="ghost" onClick={() => { setHostingQuiz(null); setLiveSessionId(null); }} className="mb-4">
+             End Session & Go Back
+          </Button>
+          <LiveQuizRunner
+            quiz={hostingQuiz}
+            sessionId={liveSessionId}
+            isHost={true}
+            onFinish={() => { setHostingQuiz(null); setLiveSessionId(null); toast({ title: "Quiz Session Ended" }) }}
+          />
+        </div>
+      );
+    }
+    return (
+      <MultiplayerLobby
+        quizId={hostingQuiz.id}
+        quizTitle={hostingQuiz.title}
+        isHost={true}
+        onStart={(id) => setLiveSessionId(id)}
+        onCancel={() => setHostingQuiz(null)}
+      />
+    );
+  }
+
   if (showQuizForm) {
     return (
       <QuizForm
@@ -326,6 +356,14 @@ const QuizManager = () => {
                       <CardDescription>{quiz.description}</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="bg-indigo-600 hover:bg-indigo-700"
+                        onClick={() => setHostingQuiz(quiz)}
+                      >
+                        <Users className="h-4 w-4 mr-2" /> Host Live
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"

@@ -32,6 +32,7 @@ import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager"
 import LevelUpBanner from "@/components/rewards/LevelUpBanner";
 import Rankings from "@/components/dashboard/Rankings";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
+import { LiveQuizAlert } from "@/components/quiz/LiveQuizAlert";
 
 import QuickBookmarks from "@/components/dashboard/QuickBookmarks";
 import NotificationBell from "@/components/dashboard/NotificationBell";
@@ -587,6 +588,8 @@ const StudentDashboard = () => {
               {/* Currently Reading Status */}
               <CurrentlyReading user={user} onUpdate={checkAuth} />
 
+              <LiveQuizAlert />
+              
               {/* Level + Streak Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <LevelProgress userPoints={user?.points || 0} />
@@ -860,6 +863,7 @@ const StudentDashboard = () => {
 
       {/* Book Request Dialog */}
       <BookRequestForm open={showBookRequest} onOpenChange={setShowBookRequest} onSuccess={() => setShowBookRequest(false)} />
+      <LibraryBot />
     </div>
   );
 };
