@@ -40,8 +40,6 @@ const Index = () => {
   const galleryRef = useRef<HTMLDivElement>(null);
   const [bookOfTheWeek, setBookOfTheWeek] = useState<any[]>([]);
 
-  const [bookOfTheWeek, setBookOfTheWeek] = useState<any[]>([]);
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
