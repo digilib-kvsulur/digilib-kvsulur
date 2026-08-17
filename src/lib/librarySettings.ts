@@ -174,3 +174,63 @@ export async function saveCertificateLayout(layout: CertificateLayout): Promise<
   );
   if (error) throw error;
 }
+
+export interface DevMessageSettings {
+  enable: boolean;
+  title: string;
+  message: string;
+}
+
+export const DEFAULT_DEV_MESSAGE: DevMessageSettings = {
+  enable: false,
+  title: "News & Updates",
+  message: "Welcome to the digital library!",
+};
+
+export async function fetchDevMessageSettings(): Promise<DevMessageSettings> {
+  const { data } = await supabase
+    .from("system_settings")
+    .select("key, value")
+    .in("key", ["dev_message_enabled", "dev_message_title", "dev_message_body"]);
+
+  const settings = { ...DEFAULT_DEV_MESSAGE };
+  (data || []).forEach((row) => {
+    if (row.key === "dev_message_enabled") {
+      const val = parseJsonSetting(row.value);
+      settings.enable = val === "true" || val === true;
+    }
+    if (row.key === "dev_message_title") settings.title = parseJsonSetting(row.value).replace(/^"|"$/g, "");
+    if (row.key === "dev_message_body") settings.message = parseJsonSetting(row.value).replace(/^"|"$/g, "");
+  });
+  return settings;
+}
+
+export interface GamesScheduleSettings {
+  enable: boolean;
+  start: string;
+  end: string;
+}
+
+export const DEFAULT_GAMES_SCHEDULE: GamesScheduleSettings = {
+  enable: false,
+  start: "09:00",
+  end: "17:00",
+};
+
+export async function fetchGamesScheduleSettings(): Promise<GamesScheduleSettings> {
+  const { data } = await supabase
+    .from("system_settings")
+    .select("key, value")
+    .in("key", ["enable_games_schedule", "games_schedule_start", "games_schedule_end"]);
+
+  const settings = { ...DEFAULT_GAMES_SCHEDULE };
+  (data || []).forEach((row) => {
+    if (row.key === "enable_games_schedule") {
+      const val = parseJsonSetting(row.value);
+      settings.enable = val === "true" || val === true;
+    }
+    if (row.key === "games_schedule_start") settings.start = parseJsonSetting(row.value).replace(/^"|"$/g, "");
+    if (row.key === "games_schedule_end") settings.end = parseJsonSetting(row.value).replace(/^"|"$/g, "");
+  });
+  return settings;
+}

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import useQueueStatus from "@/hooks/use-queue-status";
 import { recordGamePlayLocal } from "@/lib/offline";
+import { fetchGamesScheduleSettings } from "@/lib/librarySettings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,22 +65,57 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<GameDef | null>(null);
   const [startedAt, setStartedAt] = useState<number>(0);
+  const [scheduleMsg, setScheduleMsg] = useState("");
 
-  const load = useCallback(async () => {
-    const [{ data: g }, { data: b }, { data: p }, { data: c }] = await Promise.all([
-      supabase.from("games").select("*").eq("is_enabled", true).order("sort_order"),
-      supabase.from("books").select("id, title, author, cover_url, category").limit(120),
-      supabase.from("game_plays").select("*").eq("user_id", userId).order("played_at", { ascending: false }).limit(100),
-      supabase.from("game_content").select("*").eq("is_active", true).limit(2000),
-    ]);
-    setGames((g || []) as GameDef[]);
-    setBooks((b || []) as GameBook[]);
+  const loadStatic = useCallback(async () => {
+    try {
+      const sch = await fetchGamesScheduleSettings();
+      if (sch.enable) {
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        
+        const [startH, startM] = sch.start.split(":").map(Number);
+        const startTime = (startH || 0) * 60 + (startM || 0);
+        
+        const [endH, endM] = sch.end.split(":").map(Number);
+        const endTime = (endH || 0) * 60 + (endM || 0);
+        
+        if (currentTime < startTime || currentTime > endTime) {
+          setScheduleMsg(`Games are sleeping. Come back between ${sch.start} and ${sch.end}!`);
+          setLoading(false);
+          return;
+        }
+      }
+
+      const [{ data: g }, { data: b }, { data: c }] = await Promise.all([
+        supabase.from("games").select("*").eq("is_enabled", true).order("sort_order"),
+        supabase.from("books").select("id, title, author, cover_url, category").limit(120),
+        supabase.from("game_content").select("*").eq("is_active", true).limit(2000),
+      ]);
+      setGames((g || []) as GameDef[]);
+      setBooks((b || []) as GameBook[]);
+      setContent((c || []) as unknown as GameContentItem[]);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadPlays = useCallback(async () => {
+    const { data: p } = await supabase
+      .from("game_plays")
+      .select("*")
+      .eq("user_id", userId)
+      .order("played_at", { ascending: false })
+      .limit(100);
     setPlays(p || []);
-    setContent((c || []) as unknown as GameContentItem[]);
-    setLoading(false);
   }, [userId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    loadStatic();
+    loadPlays();
+  }, [loadStatic, loadPlays]);
 
   const todayPlays = useMemo(() => {
     const today = new Date().toDateString();
@@ -122,7 +158,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
     } else {
       toast({ title: "Score saved (offline)", description: "Your play was queued and will sync when online." });
     }
-    load();
+    loadPlays();
   };
 
   const renderGame = () => {
@@ -190,7 +226,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
         </div>
       ) : games.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground text-sm">
-          No games are switched on right now. Please check back later.
+          {scheduleMsg || "No games are switched on right now. Please check back later."}
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

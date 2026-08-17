@@ -11,7 +11,12 @@ import {
   fetchFineSettings,
   fetchMonthlyReadingGoal,
   fetchCertificateTemplateUrl,
+  fetchDevMessageSettings,
+  fetchGamesScheduleSettings,
 } from "@/lib/librarySettings";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Clock, MessageSquare, Megaphone } from "lucide-react";
 
 export default function LibrarySettings() {
   const { toast } = useToast();
@@ -24,19 +29,37 @@ export default function LibrarySettings() {
   const [templateUrl, setTemplateUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Dev Message / News Corner
+  const [devMessageEnabled, setDevMessageEnabled] = useState(false);
+  const [devMessageTitle, setDevMessageTitle] = useState("News & Updates");
+  const [devMessageBody, setDevMessageBody] = useState("");
+
+  // Games Schedule
+  const [gamesScheduleEnabled, setGamesScheduleEnabled] = useState(false);
+  const [gamesScheduleStart, setGamesScheduleStart] = useState("09:00");
+  const [gamesScheduleEnd, setGamesScheduleEnd] = useState("17:00");
+
   const load = async () => {
     setLoading(true);
     try {
-      const [fine, goal, cert] = await Promise.all([
+      const [fine, goal, cert, devMsg, gamesSch] = await Promise.all([
         fetchFineSettings(),
         fetchMonthlyReadingGoal(),
         fetchCertificateTemplateUrl(),
+        fetchDevMessageSettings(),
+        fetchGamesScheduleSettings(),
       ]);
       setFinePerDay(fine.finePerDay);
       setUpiId(fine.upiId);
       setUpiPayeeName(fine.upiPayeeName);
       setMonthlyGoal(goal);
       setTemplateUrl(cert);
+      setDevMessageEnabled(devMsg.enable);
+      setDevMessageTitle(devMsg.title);
+      setDevMessageBody(devMsg.message);
+      setGamesScheduleEnabled(gamesSch.enable);
+      setGamesScheduleStart(gamesSch.start);
+      setGamesScheduleEnd(gamesSch.end);
     } catch (e) {
       console.error(e);
     } finally {
@@ -65,6 +88,12 @@ export default function LibrarySettings() {
         { key: "upi_payee_name", value: (upiPayeeName.trim() || "PM SHRI KV AFS Sulur Library") as any },
         { key: "monthly_reading_goal", value: monthlyGoal as any },
         { key: "certificate_template_url", value: (templateUrl || null) as any },
+        { key: "dev_message_enabled", value: devMessageEnabled as any },
+        { key: "dev_message_title", value: devMessageTitle.trim() as any },
+        { key: "dev_message_body", value: devMessageBody.trim() as any },
+        { key: "enable_games_schedule", value: gamesScheduleEnabled as any },
+        { key: "games_schedule_start", value: gamesScheduleStart as any },
+        { key: "games_schedule_end", value: gamesScheduleEnd as any },
       ];
       const { error } = await supabase.from("system_settings").upsert(upserts, { onConflict: "key" });
       if (error) throw error;
@@ -217,6 +246,91 @@ export default function LibrarySettings() {
               onChange={(e) => setMonthlyGoal(parseInt(e.target.value) || 1)}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Megaphone className="h-4 w-4" /> Global News & Updates
+          </CardTitle>
+          <CardDescription>
+            Display a popup message across all dashboards (News Corner / Developer Message).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Enable News Corner Popup</Label>
+              <p className="text-sm text-muted-foreground">Turn on to show the popup.</p>
+            </div>
+            <Switch checked={devMessageEnabled} onCheckedChange={setDevMessageEnabled} />
+          </div>
+          {devMessageEnabled && (
+            <div className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="devMsgTitle">Title</Label>
+                <Input
+                  id="devMsgTitle"
+                  value={devMessageTitle}
+                  onChange={(e) => setDevMessageTitle(e.target.value)}
+                  placeholder="e.g. News & Updates"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="devMsgBody">Message Body</Label>
+                <Textarea
+                  id="devMsgBody"
+                  value={devMessageBody}
+                  onChange={(e) => setDevMessageBody(e.target.value)}
+                  placeholder="Enter the news or developer message..."
+                  rows={4}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Clock className="h-4 w-4" /> Games Schedule
+          </CardTitle>
+          <CardDescription>
+            Control when the Games Corner is accessible to students.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Enable Games Schedule</Label>
+              <p className="text-sm text-muted-foreground">If disabled, games are always available.</p>
+            </div>
+            <Switch checked={gamesScheduleEnabled} onCheckedChange={setGamesScheduleEnabled} />
+          </div>
+          {gamesScheduleEnabled && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="gamesStart">Start Time</Label>
+                <Input
+                  id="gamesStart"
+                  type="time"
+                  value={gamesScheduleStart}
+                  onChange={(e) => setGamesScheduleStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="gamesEnd">End Time</Label>
+                <Input
+                  id="gamesEnd"
+                  type="time"
+                  value={gamesScheduleEnd}
+                  onChange={(e) => setGamesScheduleEnd(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
