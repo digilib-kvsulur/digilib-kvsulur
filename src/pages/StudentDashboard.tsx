@@ -56,12 +56,14 @@ import IssuedBooksHub from "@/components/dashboard/IssuedBooksHub";
 import { PWAControls } from "@/components/PWAControls";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
 
-type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals";
+type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback";
 
-const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
+const baseNavItems: { id: Tab; label: string; icon: React.ElementType; isLink?: boolean; path?: string }[] = [
   { id: "overview", label: "Overview", icon: Home },
+  { id: "portfolio", label: "My Portfolio", icon: FileText, isLink: true, path: "/student-portfolio" },
   { id: "books", label: "Books", icon: BookOpen },
   { id: "issued", label: "Book Issued", icon: BookCheck },
+  { id: "challenges", label: "Challenges", icon: Target },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "study", label: "Study Tracker", icon: Timer },
@@ -74,6 +76,7 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "network", label: "Network", icon: Users },
   { id: "support", label: "Help & Support", icon: LifeBuoy },
   { id: "profile", label: "Profile", icon: User },
+  { id: "feedback", label: "Feedback", icon: MessageSquare, isLink: true, path: "/feedback" },
 ];
 
 const StudentDashboard = () => {
@@ -440,7 +443,10 @@ const StudentDashboard = () => {
 
         <nav className="flex-1 min-h-0 p-3 space-y-1 overflow-y-auto">
           {navItems.map(item => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)}
+            <button key={item.id} onClick={() => {
+              if (item.isLink && item.path) navigate(item.path);
+              else setActiveTab(item.id);
+            }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === item.id ? 'gradient-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
               <item.icon className="h-4 w-4 shrink-0" />
               {item.label}
@@ -487,7 +493,11 @@ const StudentDashboard = () => {
         {mobileNavOpen && (
           <div className="bg-card border-b border-border px-4 pb-3 space-y-1">
             {navItems.map(item => (
-              <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
+              <button key={item.id} onClick={() => {
+                if (item.isLink && item.path) navigate(item.path);
+                else setActiveTab(item.id);
+                setMobileNavOpen(false);
+              }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${activeTab === item.id ? 'gradient-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
                 <item.icon className="h-4 w-4" /> {item.label}
               </button>
