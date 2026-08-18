@@ -1,9 +1,9 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
 
@@ -40,16 +40,27 @@ const PageLoader = () => (
   </div>
 );
 
+import { SplashScreen } from "@/components/global/SplashScreen";
+
+const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
+const AppRouter = isNative ? HashRouter : BrowserRouter;
+
 const App = () => {
+  const [showSplash, setShowSplash] = useState(isNative); // only show splash in native apps by default
+
   useEffect(() => { recoverInvalidAuthSession(); }, []);
+
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <DeveloperMessagePopup />
         <Toaster />
-        <Sonner />
-        <BrowserRouter>
+        <Sonner position="top-right" richColors closeButton />
+        <AppRouter>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -106,7 +117,7 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
+        </AppRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );

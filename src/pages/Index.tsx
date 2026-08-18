@@ -42,16 +42,29 @@ const Index = () => {
   const [bookOfTheWeek, setBookOfTheWeek] = useState<any[]>([]);
 
   useEffect(() => {
+    const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
-      if (session?.user) loadUserProfile(session.user.id);
-      else setLoading(false);
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+      } else {
+        if (isNative) navigate("/login");
+        else setLoading(false);
+      }
     });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
-      if (session?.user) loadUserProfile(session.user.id);
-      else { setProfile(null); setLoading(false); }
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+      } else {
+        setProfile(null);
+        if (isNative) navigate("/login");
+        else setLoading(false);
+      }
     });
+
     loadStatistics();
     loadTrendingBooks();
     loadEvents();

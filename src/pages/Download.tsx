@@ -1,113 +1,129 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Monitor, Smartphone, Apple, ArrowRight, Share2, PlusSquare, Layout, Globe } from "lucide-react";
-import { fetchDownloadUrls } from "@/lib/librarySettings";
+import { Download as DownloadIcon, Smartphone, Monitor, ChevronRight } from "lucide-react";
 
-const REPO_URL = "https://github.com/digilib-kvsulur/digilib-kvsulur";
+export default function Download() {
+  const [guideOpen, setGuideOpen] = useState(false);
 
-export default function DownloadPage() {
-  const navigate = useNavigate();
-  const [platform, setPlatform] = useState<"android" | "ios" | "windows" | "mac" | "other">("other");
-  const [urls, setUrls] = useState({ apkUrl: "", exeUrl: "" });
+  const handleAndroidDownload = () => {
+    // Open the download link
+    window.location.href = "https://github.com/digilib-kvsulur/digilib-kvsulur/releases/latest/download/PM.SHRI.KV.SULUR.DLMS.apk";
+    // Show the guide
+    setGuideOpen(true);
+  };
 
-  useEffect(() => {
-    fetchDownloadUrls().then(setUrls).catch(console.error);
-
-    const ua = navigator.userAgent.toLowerCase();
-    if (/ipad|iphone|ipod/.test(ua)) setPlatform("ios");
-    else if (/android/.test(ua)) setPlatform("android");
-    else if (/win/.test(ua)) setPlatform("windows");
-    else if (/mac/.test(ua)) setPlatform("mac");
-    else setPlatform("other");
-  }, []);
-
-  const finalApkUrl = urls.apkUrl || `${REPO_URL}/releases/latest/download/app-debug.apk`;
-  const finalExeUrl = urls.exeUrl || `${REPO_URL}/releases/latest/download/PM.SHRI.KV.SULUR.Digital.Library.Setup.1.0.0.exe`;
+  const handleWindowsDownload = () => {
+    window.location.href = "https://github.com/digilib-kvsulur/digilib-kvsulur/releases/latest/download/PM.SHRI.KV.SULUR.Digital.Library.Setup.1.0.0.exe";
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-slate-800">
-      <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center mb-6 shadow-sm">
-        {platform === "windows" && <Monitor className="h-8 w-8 text-indigo-600" />}
-        {platform === "android" && <Smartphone className="h-8 w-8 text-indigo-600" />}
-        {(platform === "ios" || platform === "mac") && <Apple className="h-8 w-8 text-indigo-600" />}
-        {platform === "other" && <Monitor className="h-8 w-8 text-indigo-600" />}
-      </div>
-
-      <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">Download DLMS</h1>
-      <p className="text-slate-500 mb-10 max-w-md">
-        Get the best experience tailored for your device.
-      </p>
-
-      {platform === "windows" && (
-        <div className="space-y-4 w-full max-w-sm">
-          <a
-            href={finalExeUrl}
-            className="w-full inline-flex items-center justify-center gap-2 h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base rounded-2xl transition-all shadow-lg shadow-indigo-600/25"
-          >
-            <Download className="h-5 w-5" /> Download for Windows (.exe)
-          </a>
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <header className="p-4 border-b border-slate-200 bg-white flex items-center justify-between">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.history.back()}>
+          <ChevronRight className="w-5 h-5 rotate-180" />
+          <span className="font-semibold text-slate-800">Back</span>
         </div>
-      )}
-
-      {platform === "android" && (
-        <div className="space-y-4 w-full max-w-sm">
-          <a
-            href={finalApkUrl}
-            className="w-full inline-flex items-center justify-center gap-2 h-14 bg-purple-600 hover:bg-purple-700 text-white font-bold text-base rounded-2xl transition-all shadow-lg shadow-purple-600/25"
-          >
-            <Download className="h-5 w-5" /> Download for Android (.apk)
-          </a>
-        </div>
-      )}
-
-      {platform === "ios" && (
-        <div className="w-full max-w-sm bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-left">
-          <h3 className="font-bold text-slate-800 mb-4 text-center">Install on iPhone/iPad</h3>
-          <ul className="space-y-4 text-sm text-slate-600">
-            <li className="flex items-center gap-3"><Globe className="h-5 w-5 text-indigo-500 shrink-0" /> Open this page in Safari</li>
-            <li className="flex items-center gap-3"><Share2 className="h-5 w-5 text-indigo-500 shrink-0" /> Tap the Share icon (square with arrow)</li>
-            <li className="flex items-center gap-3"><PlusSquare className="h-5 w-5 text-indigo-500 shrink-0" /> Select "Add to Home Screen"</li>
-            <li className="flex items-center gap-3"><Layout className="h-5 w-5 text-indigo-500 shrink-0" /> Launch DLMS from your home screen</li>
-          </ul>
-        </div>
-      )}
-
-      {platform === "mac" && (
-        <div className="w-full max-w-sm bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center">
-          <h3 className="font-bold text-slate-800 mb-2">Use the Web App</h3>
-          <p className="text-sm text-slate-500 mb-6">
-            Currently, there is no native Mac app. You can use the web app directly in your browser.
+      </header>
+      <main className="flex-1 flex flex-col items-center justify-center p-4">
+        <div className="max-w-3xl w-full text-center space-y-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">
+            Take Your Library <span className="text-indigo-600">Everywhere</span>
+          </h1>
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            Experience the full power of PM SHRI KV SULUR DLMS on your favorite device. 
+            Enjoy offline features, instant notifications, and seamless studying.
           </p>
-          <Button
-            onClick={() => navigate("/login")}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl h-12 shadow-md shadow-indigo-600/20"
-          >
-            Launch Web App <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      )}
 
-      {platform === "other" && (
-        <div className="w-full max-w-sm bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center">
-          <h3 className="font-bold text-slate-800 mb-2">Unsupported Device</h3>
-          <p className="text-sm text-slate-500 mb-6">
-            Please use the web app on this device, or visit this page on Windows or Android to download the native apps.
-          </p>
-          <Button
-            onClick={() => navigate("/login")}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl h-12 shadow-md shadow-indigo-600/20"
-          >
-            Launch Web App <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      )}
+          <div className="bg-indigo-100 text-indigo-800 p-6 rounded-2xl shadow-sm border border-indigo-200 inline-block">
+            <h2 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2">
+              <span className="text-3xl">🎁</span> Native App Bonus!
+            </h2>
+            <p className="text-indigo-700 font-medium text-lg">
+              Install the app and log in to receive a <strong className="text-indigo-900">One-Time 500 Points Gift</strong> instantly!
+            </p>
+          </div>
 
-      <div className="mt-12 text-center">
-        <Button variant="ghost" onClick={() => navigate("/")} className="text-slate-500 hover:text-indigo-600">
-          Return to Home
-        </Button>
-      </div>
+          <div className="grid md:grid-cols-2 gap-6 mt-12 max-w-2xl mx-auto">
+            {/* Android Card */}
+            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col items-center hover:-translate-y-1 transition-transform">
+              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-6">
+                <Smartphone size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">Android App</h3>
+              <p className="text-slate-500 mb-8">Best experience for mobile users. Fast, light, and reliable.</p>
+              <Button size="lg" className="w-full bg-green-600 hover:bg-green-700 gap-2" onClick={handleAndroidDownload}>
+                <DownloadIcon size={20} />
+                Download APK
+              </Button>
+            </div>
+
+            {/* Windows Card */}
+            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col items-center hover:-translate-y-1 transition-transform">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
+                <Monitor size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">Windows App</h3>
+              <p className="text-slate-500 mb-8">Perfect for desktop studying and large screen reading.</p>
+              <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 gap-2" onClick={handleWindowsDownload}>
+                <DownloadIcon size={20} />
+                Download EXE
+              </Button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
+        <DialogContent className="max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              📱 Android Installation Guide
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              Follow these simple steps to install the app on your Android device:
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            <div className="flex gap-4 items-start">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0">1</div>
+              <div>
+                <h4 className="font-semibold text-slate-900">Wait for download</h4>
+                <p className="text-sm text-slate-600">The APK file is downloading to your device.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 items-start">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0">2</div>
+              <div>
+                <h4 className="font-semibold text-slate-900">Open the file</h4>
+                <p className="text-sm text-slate-600">Tap on the downloaded file in your notification panel or Downloads folder.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 items-start">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0">3</div>
+              <div>
+                <h4 className="font-semibold text-slate-900">Allow Unknown Sources</h4>
+                <p className="text-sm text-slate-600">If prompted, tap "Settings" and enable "Allow from this source" to permit the installation.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 items-start">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0">4</div>
+              <div>
+                <h4 className="font-semibold text-slate-900">Install & Claim Bonus</h4>
+                <p className="text-sm text-slate-600">Tap "Install". Once complete, open the app, log in, and your 500 bonus points will be added automatically!</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <Button onClick={() => setGuideOpen(false)} className="w-full">Got it!</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

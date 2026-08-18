@@ -59,12 +59,16 @@ jobs:
         working-directory: ./android
         run: ./gradlew assembleDebug
 
+      - name: Rename APK
+        working-directory: ./android/app/build/outputs/apk/debug
+        run: mv app-debug.apk PM.SHRI.KV.SULUR.DLMS.apk
+
       # Upload raw APK as artifact (accessible from Actions page without unzipping)
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug.apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: PM.SHRI.KV.SULUR.DLMS.apk
+          path: android/app/build/outputs/apk/debug/PM.SHRI.KV.SULUR.DLMS.apk
           # Single file — GitHub will not zip it, you download the APK directly
 
   # ─────────────────────────────────────────────────
@@ -117,7 +121,7 @@ jobs:
       - name: Download APK artifact
         uses: actions/download-artifact@v4
         with:
-          name: app-debug.apk
+          name: PM.SHRI.KV.SULUR.DLMS.apk
           path: release-assets/android
 
       - name: Download EXE artifact
@@ -143,12 +147,12 @@ jobs:
             ### Downloads
             | Platform | File |
             |----------|------|
-            | 🤖 Android | `app-debug.apk` |
+            | 🤖 Android | `PM.SHRI.KV.SULUR.DLMS.apk` |
             | 🪟 Windows | `PM.SHRI.KV.SULUR.Digital.Library.Setup.1.0.0.exe` |
 
             > Built automatically from the `main` branch on every push.
           files: |
-            release-assets/android/app-debug.apk
+            release-assets/android/PM.SHRI.KV.SULUR.DLMS.apk
             release-assets/windows/PM.SHRI.KV.SULUR.Digital.Library.Setup.1.0.0.exe
           prerelease: false
           make_latest: true
