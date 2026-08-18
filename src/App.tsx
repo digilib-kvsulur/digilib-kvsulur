@@ -89,6 +89,7 @@ const App = () => {
                   </ProtectedRoute>
                 )}
               />
+              <Route path="/portfolio/:username" element={<StudentPortfolio embedded={false} />} />
               <Route
                 path="/teacher-dashboard"
                 element={(

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,30 @@ export default function LibraryMapExplorer() {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedBook, setSelectedBook] = useState<any>(null);
+  const [areas, setAreas] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadZones = async () => {
+      const { data } = await supabase.from("system_settings").select("value").eq("key", "library_map_zones").maybeSingle();
+      if (data?.value) {
+        try {
+          const parsed = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
+          if (Array.isArray(parsed)) {
+            setAreas(parsed);
+            return;
+          }
+        } catch (e) { console.error(e); }
+      }
+      setAreas([
+        { label: "Fiction & Novels", color: "bg-blue-100 text-blue-800" },
+        { label: "Science & Math", color: "bg-emerald-100 text-emerald-800" },
+        { label: "History & Geography", color: "bg-amber-100 text-amber-800" },
+        { label: "NCERT & Textbooks", color: "bg-indigo-100 text-indigo-800" },
+        { label: "Reference & Encyclopedias", color: "bg-purple-100 text-purple-800" },
+      ]);
+    };
+    loadZones();
+  }, []);
 
   const searchBooks = async () => {
     if (!search.trim()) return;
@@ -24,14 +48,6 @@ export default function LibraryMapExplorer() {
     setResults(data || []);
     setLoading(false);
   };
-
-  const areas = [
-    { label: "Fiction & Novels", color: "bg-blue-100 text-blue-800" },
-    { label: "Science & Math", color: "bg-emerald-100 text-emerald-800" },
-    { label: "History & Geography", color: "bg-amber-100 text-amber-800" },
-    { label: "NCERT & Textbooks", color: "bg-indigo-100 text-indigo-800" },
-    { label: "Reference & Encyclopedias", color: "bg-purple-100 text-purple-800" },
-  ];
 
   return (
     <div className="space-y-6">

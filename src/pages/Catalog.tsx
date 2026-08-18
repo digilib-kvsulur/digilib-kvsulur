@@ -10,10 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import BookRequestForm from "@/components/BookRequestForm";
 import BookDetailDialog from "@/components/catalog/BookDetailDialog";
+import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
 
 const Catalog = () => {
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
+  const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
   useEffect(() => {
     const q = searchParams.get("q");
     if (q !== null) setSearchTerm(q);
@@ -287,6 +289,15 @@ const Catalog = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setViewMode(viewMode === "grid" ? "map" : "grid")}
+              variant="outline"
+              size="sm"
+              className="rounded-xl border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 font-bold text-indigo-700 shadow-sm transition-all duration-200 text-xs px-3 py-1.5 h-8 sm:h-9 gap-1"
+            >
+              <Compass className="h-3.5 w-3.5" />
+              {viewMode === "grid" ? "Library Map" : "View Books"}
+            </Button>
             <Button onClick={handleRequestNewBook} variant="outline" size="sm" className="rounded-xl border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 font-bold text-indigo-700 shadow-sm transition-all duration-200 text-xs px-3 py-1.5 h-8 sm:h-9">
               <Plus className="h-3.5 w-3.5 mr-1" /> <span className="hidden sm:inline">Request Book</span><span className="sm:hidden">Request</span>
             </Button>
@@ -451,122 +462,131 @@ const Catalog = () => {
       </Dialog>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-black text-slate-900 tracking-tight">Catalog Results</h2>
-          <Badge variant="outline" className="bg-white text-slate-600 border-slate-200 font-bold px-3 py-1 rounded-full shadow-sm">
-            {loading ? "Loading…" : `${totalCount} book${totalCount !== 1 ? "s" : ""}`}
-          </Badge>
-        </div>
-
-        {loading ? skeletonGrid : filteredBooks.length > 0 ? (
-          <div className="space-y-6">            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
-              {filteredBooks.map(book => {
-                const r = ratings[book.id];
-                const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
-                return (
-                  <div key={book.id} onClick={() => navigate(`/book/${book.id}`)} className="group cursor-pointer flex flex-col bg-white rounded-2xl shadow-xs hover:shadow-lg border border-slate-200/80 hover:border-indigo-300 transition-all overflow-hidden p-2 h-full">
-                    <div className="aspect-[2/3] w-full rounded-xl bg-slate-100 overflow-hidden relative shadow-inner mb-2">
-                      {book.cover_url ? (
-                        <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-indigo-50 to-blue-50">
-                          <BookOpen className="h-6 w-6 text-indigo-400 mb-1" />
-                          <span className="text-[10px] font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
-                        </div>
-                      )}
-                      {/* Status badges overlay */}
-                      <div className="absolute top-1.5 left-1.5 right-1.5 flex items-start justify-between gap-1 pointer-events-none">
-                        <div className="flex flex-wrap gap-0.5">
-                          {isNew && <span className="bg-indigo-600 text-white text-[8px] px-1 py-0.5 rounded font-bold shadow-xs uppercase tracking-wider">NEW</span>}
-                          <span className={`text-[8px] px-1 py-0.5 rounded font-bold shadow-xs uppercase tracking-wider ${book.available_copies > 0 ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-200"}`}>
-                            {book.available_copies > 0 ? `${book.available_copies} AVAIL` : "OUT"}
-                          </span>
-                        </div>
-                        {user?.role === 'admin' && (
-                          <Button size="icon" variant="secondary" className="h-5 w-5 rounded bg-white/90 shadow-xs hover:bg-white hover:text-indigo-700 text-indigo-600 z-10 pointer-events-auto shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/admin-dashboard'); }}>
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="px-1 flex-1 flex flex-col">
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-0.5">{book.title}</h4>
-                      <p className="text-[10px] sm:text-xs text-slate-500 truncate mb-1.5 font-medium">by {book.author}</p>
-                      
-                      <div className="flex flex-wrap gap-0.5 mb-1.5">
-                        {book.category && <span className="text-[8px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded border border-indigo-100/50 truncate max-w-[80px]">{book.category}</span>}
-                        {book.class_level && <span className="text-[8px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1 py-0.5 rounded border border-slate-200/50">Cl {book.class_level}</span>}
-                      </div>
-                      
-                      {!!(r || borrowCounts[book.id] > 0) && (
-                        <div className="flex items-center justify-between text-[9px] text-slate-500 font-medium mb-1.5 mt-auto">
-                          {r && (
-                            <div className="flex items-center gap-0.5 text-amber-600">
-                              <Star className="h-2.5 w-2.5 fill-amber-500" /> {r.avg.toFixed(1)}
-                            </div>
-                          )}
-                          {borrowCounts[book.id] > 0 && <span className="ml-auto">{borrowCounts[book.id]} borrows</span>}
-                        </div>
-                      )}
-                      
-                      <div className="flex gap-1 mt-auto pt-1.5 border-t border-slate-100 relative z-20" onClick={(e) => e.stopPropagation()}>
-                        {book.available_copies > 0 ? (
-                          <Button size="sm" className="h-7 text-[9px] font-bold rounded-md bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-xs border-0 flex-1 px-1 transition-all duration-150" onClick={() => requestBook(book.id)}>
-                            Borrow
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="secondary" className="h-7 text-[9px] font-bold rounded-md bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex-1 px-1 transition-all duration-150" onClick={() => reserveBook(book.id)}>
-                            Waitlist
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" className={`h-7 text-[9px] font-bold rounded-md px-2 active:scale-95 transition-all duration-150 border-slate-200 shrink-0 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
-                          {wishlist.has(book.id) ? <BookmarkCheck className="h-3.5 w-3.5 text-indigo-600" /> : <Bookmark className="h-3.5 w-3.5" />}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {totalCount > pageSize && (
-              <div className="flex justify-center items-center gap-3 pt-6 border-t border-slate-200/60">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  className="rounded-xl border-slate-200 h-9 font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  Previous
-                </Button>
-                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border">
-                  Page {currentPage} of {Math.ceil(totalCount / pageSize)}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage >= Math.ceil(totalCount / pageSize)}
-                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
-                  className="rounded-xl border-slate-200 h-9 font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  Next
-                </Button>
-              </div>
-            )}
+        {viewMode === "map" ? (
+          <div className="bg-white rounded-3xl p-6 border shadow-sm mb-8">
+            <LibraryMapExplorer />
           </div>
         ) : (
-          <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm max-w-2xl mx-auto">
-            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
-              <Compass className="h-8 w-8 text-slate-300" />
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">Catalog Results</h2>
+              <Badge variant="outline" className="bg-white text-slate-600 border-slate-200 font-bold px-3 py-1 rounded-full shadow-sm">
+                {loading ? "Loading…" : `${totalCount} book${totalCount !== 1 ? "s" : ""}`}
+              </Badge>
             </div>
-            <h3 className="text-xl font-black text-slate-900 mb-2">No books found</h3>
-            <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">We couldn't find any books matching your current filters. Try adjusting your search criteria or clearing filters.</p>
-            <Button variant="outline" onClick={() => {
-              setSearchTerm(""); setSelectedGenre("all"); setSelectedSubject("all"); setSelectedClass("all"); setSelectedLang("all"); setSelectedAuthor("all"); setAvailability("all");
-            }} className="rounded-xl font-bold text-slate-700">Clear All Filters</Button>
-          </div>
+
+            {loading ? skeletonGrid : filteredBooks.length > 0 ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
+                  {filteredBooks.map(book => {
+                    const r = ratings[book.id];
+                    const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
+                    return (
+                      <div key={book.id} onClick={() => navigate(`/book/${book.id}`)} className="group cursor-pointer flex flex-col bg-white rounded-2xl shadow-xs hover:shadow-lg border border-slate-200/80 hover:border-indigo-300 transition-all overflow-hidden p-2 h-full">
+                        <div className="aspect-[2/3] w-full rounded-xl bg-slate-100 overflow-hidden relative shadow-inner mb-2">
+                          {book.cover_url ? (
+                            <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-indigo-50 to-blue-50">
+                              <BookOpen className="h-6 w-6 text-indigo-400 mb-1" />
+                              <span className="text-[10px] font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
+                            </div>
+                          )}
+                          {/* Status badges overlay */}
+                          <div className="absolute top-1.5 left-1.5 right-1.5 flex items-start justify-between gap-1 pointer-events-none">
+                            <div className="flex flex-wrap gap-0.5">
+                              {isNew && <span className="bg-indigo-600 text-white text-[8px] px-1 py-0.5 rounded font-bold shadow-xs uppercase tracking-wider">NEW</span>}
+                              <span className={`text-[8px] px-1 py-0.5 rounded font-bold shadow-xs uppercase tracking-wider ${book.available_copies > 0 ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-200"}`}>
+                                {book.available_copies > 0 ? `${book.available_copies} AVAIL` : "OUT"}
+                              </span>
+                            </div>
+                            {user?.role === 'admin' && (
+                              <Button size="icon" variant="secondary" className="h-5 w-5 rounded bg-white/90 shadow-xs hover:bg-white hover:text-indigo-700 text-indigo-600 z-10 pointer-events-auto shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/admin-dashboard'); }}>
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="px-1 flex-1 flex flex-col">
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-0.5">{book.title}</h4>
+                          <p className="text-[10px] sm:text-xs text-slate-500 truncate mb-1.5 font-medium">by {book.author}</p>
+                          
+                          <div className="flex flex-wrap gap-0.5 mb-1.5">
+                            {book.category && <span className="text-[8px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded border border-indigo-100/50 truncate max-w-[80px]">{book.category}</span>}
+                            {book.class_level && <span className="text-[8px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1 py-0.5 rounded border border-slate-200/50">Cl {book.class_level}</span>}
+                          </div>
+                          
+                          {!!(r || borrowCounts[book.id] > 0) && (
+                            <div className="flex items-center justify-between text-[9px] text-slate-500 font-medium mb-1.5 mt-auto">
+                              {r && (
+                                <div className="flex items-center gap-0.5 text-amber-600">
+                                  <Star className="h-2.5 w-2.5 fill-amber-500" /> {r.avg.toFixed(1)}
+                                </div>
+                              )}
+                              {borrowCounts[book.id] > 0 && <span className="ml-auto">{borrowCounts[book.id]} borrows</span>}
+                            </div>
+                          )}
+                          
+                          <div className="flex gap-1 mt-auto pt-1.5 border-t border-slate-100 relative z-20" onClick={(e) => e.stopPropagation()}>
+                            {book.available_copies > 0 ? (
+                              <Button size="sm" className="h-7 text-[9px] font-bold rounded-md bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-xs border-0 flex-1 px-1 transition-all duration-150" onClick={() => requestBook(book.id)}>
+                                Borrow
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="secondary" className="h-7 text-[9px] font-bold rounded-md bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex-1 px-1 transition-all duration-150" onClick={() => reserveBook(book.id)}>
+                                Waitlist
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline" className={`h-7 text-[9px] font-bold rounded-md px-2 active:scale-95 transition-all duration-150 border-slate-200 shrink-0 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
+                              {wishlist.has(book.id) ? <BookmarkCheck className="h-3.5 w-3.5 text-indigo-600" /> : <Bookmark className="h-3.5 w-3.5" />}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {totalCount > pageSize && (
+                  <div className="flex justify-center items-center gap-3 pt-6 border-t border-slate-200/60">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      className="rounded-xl border-slate-200 h-9 font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border">
+                      Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+                      onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
+                      className="rounded-xl border-slate-200 h-9 font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm max-w-2xl mx-auto">
+                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                  <Compass className="h-8 w-8 text-slate-300" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 mb-2">No books found</h3>
+                <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">We couldn't find any books matching your current filters. Try adjusting your search criteria or clearing filters.</p>
+                <Button variant="outline" onClick={() => {
+                  setSearchTerm(""); setSelectedGenre("all"); setSelectedSubject("all"); setSelectedClass("all"); setSelectedLang("all"); setSelectedAuthor("all"); setAvailability("all");
+                }} className="rounded-xl font-bold text-slate-700">Clear All Filters</Button>
+              </div>
+            )}
+          </>
         )}
       </main>
 
