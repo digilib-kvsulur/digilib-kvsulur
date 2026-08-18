@@ -60,6 +60,33 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // App Install Bonus Effect
+  useEffect(() => {
+    if (!profile || !user) return;
+    
+    const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+    const isCapacitor = (window as any).Capacitor?.isNativePlatform?.() || false;
+    
+    if (isElectron || isCapacitor) {
+      const storageKey = `app_bonus_claimed_${user.id}`;
+      if (!localStorage.getItem(storageKey)) {
+        const giveBonus = async () => {
+          const newPoints = (profile.points || 0) + 500;
+          const { error } = await supabase.from('profiles').update({ points: newPoints }).eq('id', user.id);
+          
+          if (!error) {
+            localStorage.setItem(storageKey, 'true');
+            setProfile({ ...profile, points: newPoints });
+            import("sonner").then(({ toast }) => {
+              toast.success("🎉 You received 500 Bonus Points for using our Native App!");
+            });
+          }
+        };
+        giveBonus();
+      }
+    }
+  }, [profile, user]);
+
   // Auto-scroll gallery
   useEffect(() => {
     if (galleryImages.length <= 1) return;

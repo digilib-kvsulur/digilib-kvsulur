@@ -37,9 +37,6 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "public/logos/kv.png",
-      "uninstallerIcon": "public/logos/kv.png",
-      "installerHeaderIcon": "public/logos/kv.png",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "KV Sulur DLMS"
