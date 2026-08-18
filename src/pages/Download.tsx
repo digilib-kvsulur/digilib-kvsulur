@@ -10,6 +10,7 @@ import {
   Wifi, Shield, ArrowRight, Check, Globe, ExternalLink,
   PlusSquare, MoreHorizontal, Layout
 } from "lucide-react";
+import { fetchDownloadUrls } from "@/lib/librarySettings";
 
 const steps = {
   android: [
@@ -48,13 +49,19 @@ export default function DownloadPage() {
   const navigate = useNavigate();
   const [platform, setPlatform] = useState<"android" | "ios" | "desktop">("android");
   const [copied, setCopied] = useState(false);
+  const [urls, setUrls] = useState({ apkUrl: "", exeUrl: "" });
 
   useEffect(() => {
+    fetchDownloadUrls().then(setUrls).catch(console.error);
+
     const ua = navigator.userAgent.toLowerCase();
     if (/ipad|iphone|ipod/.test(ua)) setPlatform("ios");
     else if (/android/.test(ua)) setPlatform("android");
     else setPlatform("desktop");
   }, []);
+
+  const finalApkUrl = urls.apkUrl || `${REPO_URL}/releases/latest/download/app-debug.apk`;
+  const finalExeUrl = urls.exeUrl || `${REPO_URL}/releases/latest/download/PM.SHRI.KV.SULUR.Digital.Library.Setup.1.0.0.exe`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(SITE_URL);
@@ -177,7 +184,7 @@ export default function DownloadPage() {
                 </p>
                 <div className="space-y-3">
                   <a
-                    href={`${REPO_URL}/releases/latest/download/PM.SHRI.KV.SULUR.Digital.Library.Setup.1.0.0.exe`}
+                    href={finalExeUrl}
                     className="w-full inline-flex items-center justify-center gap-2 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-indigo-600/20"
                   >
                     <Download className="h-4 w-4" /> Download Windows App (.exe)
@@ -200,7 +207,7 @@ export default function DownloadPage() {
                 </p>
                 <div className="space-y-3">
                   <a
-                    href={`${REPO_URL}/releases/latest/download/app-debug.apk`}
+                    href={finalApkUrl}
                     className="w-full inline-flex items-center justify-center gap-2 h-11 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-purple-600/20"
                   >
                     <Download className="h-4 w-4" /> Download Android App (.apk)

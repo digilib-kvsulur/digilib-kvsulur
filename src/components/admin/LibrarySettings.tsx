@@ -332,6 +332,21 @@ export default function LibrarySettings() {
                   rows={4}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="globalNewsColor">Popup Color Theme</Label>
+                <Select value={globalNewsColor} onValueChange={setGlobalNewsColor}>
+                  <SelectTrigger id="globalNewsColor">
+                    <SelectValue placeholder="Select color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="blue">Blue (Info)</SelectItem>
+                    <SelectItem value="amber">Amber (Warning)</SelectItem>
+                    <SelectItem value="emerald">Emerald (Success)</SelectItem>
+                    <SelectItem value="purple">Purple (Event)</SelectItem>
+                    <SelectItem value="rose">Rose (Alert)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
         </CardContent>
@@ -493,6 +508,63 @@ export default function LibrarySettings() {
           <p className="text-xs text-muted-foreground">
             Issue certificates from the Certificates tab after uploading a design.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2 text-primary">
+            <DownloadCloud className="h-4 w-4" /> App Downloads
+          </CardTitle>
+          <CardDescription>
+            Configure the URLs for downloading the DLMS client apps.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="apkUrl">Android APK URL</Label>
+            <Input
+              id="apkUrl"
+              value={downloadApkUrl}
+              onChange={(e) => setDownloadApkUrl(e.target.value)}
+              placeholder="https://example.com/app.apk"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="exeUrl">Windows EXE URL</Label>
+            <Input
+              id="exeUrl"
+              value={downloadExeUrl}
+              onChange={(e) => setDownloadExeUrl(e.target.value)}
+              placeholder="https://example.com/app.exe"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2 text-primary">
+            <Key className="h-4 w-4" /> AI Integrations
+          </CardTitle>
+          <CardDescription>
+            Configure API keys for AI features like generative insights.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="googleAiKey">Google AI Studio API Key</Label>
+            <Input
+              id="googleAiKey"
+              type="password"
+              value={googleAiKey}
+              onChange={(e) => setGoogleAiKey(e.target.value)}
+              placeholder="Enter API key"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Used for library assistant and book recommendations.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
