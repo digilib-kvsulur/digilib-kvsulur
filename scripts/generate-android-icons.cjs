@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+// Script to generate android icons
 /**
  * generate-android-icons.js
  * Copies public/logos/kv.png into every Android mipmap/drawable slot.
