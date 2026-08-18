@@ -8,16 +8,20 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Check if running in PWA standalone display mode
-const isStandalone = typeof window !== 'undefined' && (
-  window.matchMedia('(display-mode: standalone)').matches || 
-  (window.navigator as any).standalone === true
+// Use localStorage for native apps (Capacitor/Electron) and PWA — so sessions survive app restarts.
+// Only fall back to sessionStorage for plain browser tabs.
+const isNativeOrPWA = typeof window !== 'undefined' && (
+  window.matchMedia('(display-mode: standalone)').matches ||
+  (window.navigator as any).standalone === true ||
+  navigator.userAgent.toLowerCase().includes('electron') ||
+  !!(window as any).Capacitor?.isNativePlatform?.()
 );
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: isStandalone ? localStorage : sessionStorage,
+    storage: localStorage, // always localStorage — sessionStorage clears on app close
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: !isNativeOrPWA, // skip URL hash detection in native apps
   }
 });

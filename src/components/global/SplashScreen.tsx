@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-
+import kvLogo from '/logos/kv.png';
 
 export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [fade, setFade] = useState(false);
@@ -16,7 +16,7 @@ export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   return (
     <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-indigo-900 transition-opacity duration-500 ${fade ? 'opacity-0' : 'opacity-100'}`}>
       <div className="flex flex-col items-center animate-in zoom-in duration-700">
-        <img src="/logos/kv.png" alt="KV Logo" className="w-32 h-32 md:w-48 md:h-48 mb-8 drop-shadow-2xl" />
+        <img src={kvLogo} alt="KV Logo" className="w-32 h-32 md:w-48 md:h-48 mb-8 drop-shadow-2xl" />
         <h1 className="text-2xl md:text-4xl font-bold text-white text-center max-w-2xl px-4 leading-tight">
           Welcome to India's First Student Centric DLMS
         </h1>

@@ -50,8 +50,16 @@ const App = () => {
 
   useEffect(() => { recoverInvalidAuthSession(); }, []);
 
+  // Check for Android updates after splash clears
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+    import('@/lib/androidUpdater').then(({ checkForAndroidUpdate }) => {
+      checkForAndroidUpdate();
+    });
+  };
+
   if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+    return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
   return (

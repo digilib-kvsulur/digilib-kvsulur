@@ -179,19 +179,23 @@ export interface DevMessageSettings {
   enable: boolean;
   title: string;
   message: string;
+  linkUrl?: string;
+  linkText?: string;
 }
 
 export const DEFAULT_DEV_MESSAGE: DevMessageSettings = {
   enable: false,
   title: "News & Updates",
   message: "Welcome to the digital library!",
+  linkUrl: "",
+  linkText: "",
 };
 
 export async function fetchDevMessageSettings(): Promise<DevMessageSettings> {
   const { data } = await supabase
     .from("system_settings")
     .select("key, value")
-    .in("key", ["dev_message_enabled", "dev_message_title", "dev_message_body"]);
+    .in("key", ["dev_message_enabled", "dev_message_title", "dev_message_body", "dev_message_link_url", "dev_message_link_text"]);
 
   const settings = { ...DEFAULT_DEV_MESSAGE };
   (data || []).forEach((row) => {
@@ -201,6 +205,8 @@ export async function fetchDevMessageSettings(): Promise<DevMessageSettings> {
     }
     if (row.key === "dev_message_title") settings.title = parseJsonSetting(row.value).replace(/^"|"$/g, "");
     if (row.key === "dev_message_body") settings.message = parseJsonSetting(row.value).replace(/^"|"$/g, "");
+    if (row.key === "dev_message_link_url") settings.linkUrl = parseJsonSetting(row.value).replace(/^"|"$/g, "");
+    if (row.key === "dev_message_link_text") settings.linkText = parseJsonSetting(row.value).replace(/^"|"$/g, "");
   });
   return settings;
 }

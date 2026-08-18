@@ -6,6 +6,8 @@ export default function DeveloperMessagePopup() {
   const [showModal, setShowModal] = useState(false);
   const [title, setTitle] = useState("News & Updates");
   const [message, setMessage] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
 
   useEffect(() => {
     const checkSettings = async () => {
@@ -18,6 +20,8 @@ export default function DeveloperMessagePopup() {
         if (settings.enable && settings.message.trim()) {
           setTitle(settings.title || "News & Updates");
           setMessage(settings.message);
+          setLinkUrl(settings.linkUrl || "");
+          setLinkText(settings.linkText || "Learn More");
           setShowModal(true);
         }
       } catch (err) {
@@ -87,7 +91,17 @@ export default function DeveloperMessagePopup() {
         </div>
 
         {/* CTA */}
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-end gap-3 pt-2">
+          {linkUrl && (
+            <a
+              href={linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5 rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95 border border-primary text-primary"
+            >
+              {linkText}
+            </a>
+          )}
           <button
             onClick={handleClose}
             className="px-5 py-2.5 rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95 text-primary-foreground bg-primary"

@@ -10,16 +10,23 @@ const path = require("path");
 
 const SRC = path.join(__dirname, "..", "public", "logos", "kv.png");
 const DSTS = [
+  // Standard launcher icons
   "android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
   "android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+  "android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",
   "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
   "android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+  "android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",
   "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
   "android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+  "android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",
   "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
   "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+  "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",
   "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
   "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+  "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
+  // Splash screens
   "android/app/src/main/res/drawable/splash.png",
   "android/app/src/main/res/drawable-port-mdpi/splash.png",
   "android/app/src/main/res/drawable-port-hdpi/splash.png",

@@ -524,7 +524,7 @@ const StudentDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-20 pb-24 lg:pb-0 lg:ml-64 lg:pt-10">
+      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-10 pb-24 lg:pb-0 lg:ml-64 lg:pt-4">
         <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 
