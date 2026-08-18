@@ -32,7 +32,6 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "public/logos/kv.png",
       "legalTrademarks": "PM SHRI Kendriya Vidyalaya Sulur"
     },
     "nsis": {

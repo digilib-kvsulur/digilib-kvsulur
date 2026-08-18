@@ -1,4 +1,4 @@
-﻿name: Build & Release Native Apps (APK + EXE)
+name: Build & Release Native Apps (APK + EXE)
 
 on:
   workflow_dispatch:
@@ -34,7 +34,7 @@ jobs:
 
       # Inject KV logo into all Android mipmap + splash slots
       - name: Inject App Icons & Splash Screen
-        run: node scripts/generate-android-icons.js
+        run: node scripts/generate-android-icons.cjs
 
       - name: Build Web App
         run: npm run build
