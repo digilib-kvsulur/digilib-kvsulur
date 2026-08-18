@@ -135,6 +135,10 @@ export default function LibrarySettings() {
         { key: "games_schedule_start", value: gamesScheduleStart as any },
         { key: "games_schedule_end", value: gamesScheduleEnd as any },
         { key: "library_map_zones", value: zones as any },
+        { key: "download_apk_url", value: downloadApkUrl.trim() as any },
+        { key: "download_exe_url", value: downloadExeUrl.trim() as any },
+        { key: "google_ai_api_key", value: googleAiKey.trim() as any },
+        { key: "global_news_color", value: globalNewsColor.trim() as any },
       ];
       const { error } = await supabase.from("system_settings").upsert(upserts, { onConflict: "key" });
       if (error) throw error;
