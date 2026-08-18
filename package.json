@@ -15,7 +15,9 @@
   },
   "build": {
     "appId": "com.kvsulur.dlms",
-    "productName": "KV Sulur DLMS",
+    "productName": "PM SHRI KV Sulur DLMS",
+    "copyright": "© 2024 PM SHRI Kendriya Vidyalaya Sulur. All rights reserved.",
+    "asar": true,
     "directories": {
       "output": "dist-electron"
     },
@@ -24,8 +26,26 @@
       "electron.cjs"
     ],
     "win": {
-      "target": "nsis"
-    }
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "public/logos/kv.png",
+      "legalTrademarks": "PM SHRI Kendriya Vidyalaya Sulur"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/logos/kv.png",
+      "uninstallerIcon": "public/logos/kv.png",
+      "installerHeaderIcon": "public/logos/kv.png",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "KV Sulur DLMS"
+    },
+    "publish": null
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -90,6 +110,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.5.0",
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",

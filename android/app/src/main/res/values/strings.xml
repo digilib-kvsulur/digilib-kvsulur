@@ -1,7 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">kvsulur-dlms</string>
-    <string name="title_activity_main">kvsulur-dlms</string>
+    <string name="app_name">KV Sulur DLMS</string>
+    <string name="title_activity_main">KV Sulur DLMS</string>
     <string name="package_name">com.kvsulur.dlms</string>
     <string name="custom_url_scheme">com.kvsulur.dlms</string>
+    <string name="app_developer">PM SHRI Kendriya Vidyalaya Sulur</string>
+    <string name="app_version">1.0.0</string>
 </resources>
