@@ -52,8 +52,10 @@ import LostBooksManager from "@/components/admin/LostBooksManager";
 import PeriodicalManager from "@/components/admin/PeriodicalManager";
 import FeedbackManager from "@/components/admin/FeedbackManager";
 import BookOfTheWeek from "@/components/admin/BookOfTheWeek";
+import BookClubManager from "@/components/admin/BookClubManager";
+import StudentBarcodeGenerator from "@/components/admin/StudentBarcodeGenerator";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
 
 const navSections = [
   {
@@ -71,6 +73,7 @@ const navSections = [
     items: [
       { id: "users" as Tab, label: "User Approval", icon: Users },
       { id: "points" as Tab, label: "Award Points", icon: Award },
+      { id: "student-barcodes" as Tab, label: "Student Barcodes", icon: Barcode },
     ],
   },
   {
@@ -430,6 +433,7 @@ const AdminDashboard = () => {
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
           {activeTab === "materials" && <StudyMaterialsManager />}
           {activeTab === "barcodes" && <BarcodeGenerator />}
+          {activeTab === "student-barcodes" && <StudentBarcodeGenerator />}
           {activeTab === "support" && <SupportTicketsManager />}
           {activeTab === "feedback" && <FeedbackManager />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}

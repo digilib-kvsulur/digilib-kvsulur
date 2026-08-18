@@ -85,7 +85,7 @@ const App = () => {
                 path="/student-portfolio"
                 element={(
                   <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                    <StudentPortfolio />
+                    <StudentPortfolio embedded={false} />
                   </ProtectedRoute>
                 )}
               />

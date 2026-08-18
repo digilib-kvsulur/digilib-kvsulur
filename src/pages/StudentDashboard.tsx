@@ -9,7 +9,7 @@ import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck, Timer, Gamepad2, Zap, MessageSquare
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, Timer, Gamepad2, Zap, MessageSquare, Compass
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -58,8 +58,10 @@ import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
 
 import StudentPortfolio from "./StudentPortfolio";
 import Feedback from "./Feedback";
+import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
+import MobileBottomNav, { mobileNavSections } from "@/components/dashboard/MobileBottomNav";
 
-type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback";
+type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -73,6 +75,8 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "notes", label: "My Notes", icon: StickyNote },
   { id: "community", label: "Community", icon: Users },
   { id: "quizzes", label: "Quizzes", icon: Brain },
+  { id: "challenges", label: "Challenges", icon: Target },
+  { id: "locator", label: "Library Map", icon: Compass },
   { id: "badges", label: "Badge Cabinet", icon: Award },
   { id: "rankings", label: "Rankings", icon: Medal },
   { id: "network", label: "Network", icon: Users },
@@ -490,19 +494,39 @@ const StudentDashboard = () => {
           </div>
         </div>
         {mobileNavOpen && (
-          <div className="bg-card border-b border-border px-4 pb-3 space-y-1">
-            {navItems.map(item => (
-              <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${activeTab === item.id ? 'gradient-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
-                <item.icon className="h-4 w-4" /> {item.label}
-              </button>
-            ))}
+          <div className="bg-card border-b border-border px-4 pb-3 max-h-[65vh] overflow-y-auto space-y-3">
+            {mobileNavSections.map((section) => {
+              const sectionItems = section.items.filter((item) =>
+                navItems.some((n) => n.id === item.id) || item.id === "locator" || item.id === "challenges"
+              );
+              if (sectionItems.length === 0) return null;
+              return (
+                <div key={section.title}>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">{section.title}</p>
+                  <div className="space-y-0.5">
+                    {sectionItems.map((item) => {
+                      const navItem = navItems.find((n) => n.id === item.id) || item;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => { setActiveTab(item.id as Tab); setMobileNavOpen(false); }}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${activeTab === item.id ? "gradient-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                        >
+                          <navItem.icon className="h-4 w-4 shrink-0" /> {navItem.label || item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* Main Content */}
-      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 lg:ml-64 lg:pt-0">
+      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 pb-20 lg:pb-0 lg:ml-64 lg:pt-0">
         <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 
@@ -653,13 +677,7 @@ const StudentDashboard = () => {
                     ].map(a => (
                       <button
                         key={a.tab}
-                        onClick={() => {
-                          if (a.tab === 'portfolio') {
-                            navigate('/student-portfolio');
-                          } else {
-                            setActiveTab(a.tab as Tab);
-                          }
-                        }}
+                        onClick={() => setActiveTab(a.tab as Tab)}
                         className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left group"
                       >
                         <div className={`w-7 h-7 rounded-lg ${a.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
@@ -853,8 +871,10 @@ const StudentDashboard = () => {
 
           {activeTab === "support" && user?.id && <SupportCenter user={user} />}
 
+          {activeTab === "locator" && <LibraryMapExplorer />}
+
           {/* Portfolio Tab */}
-          {activeTab === "portfolio" && <StudentPortfolio />}
+          {activeTab === "portfolio" && user?.id && <StudentPortfolio userId={user.id} embedded />}
 
           {/* Feedback Tab */}
           {activeTab === "feedback" && <Feedback isEmbedded={true} />}
@@ -875,6 +895,13 @@ const StudentDashboard = () => {
       {/* Book Request Dialog */}
       <BookRequestForm open={showBookRequest} onOpenChange={setShowBookRequest} onSuccess={() => setShowBookRequest(false)} />
       <LibraryBot />
+
+      <MobileBottomNav
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as Tab)}
+        onOpenMenu={() => setMobileNavOpen(true)}
+        onCatalog={() => navigate("/catalog")}
+      />
     </div>
   );
 };
