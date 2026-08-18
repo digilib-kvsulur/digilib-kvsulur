@@ -151,7 +151,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
       (badgeAwards || []).forEach((b: any) => {
         ms.push({
           icon: Award,
-          color: "text-amber-450",
+          color: "text-amber-500",
           title: b.badges?.name || "Badge Earned",
           description: b.badges?.description || "Achievement unlocked in the library program.",
         });
@@ -159,7 +159,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
       (completedChallenges || []).forEach((c: any) => {
         ms.push({
           icon: Target,
-          color: "text-emerald-450",
+          color: "text-emerald-500",
           title: c.challenges?.title || "Challenge Completed",
           description: `Earned ${c.challenges?.reward_points || 0} bonus points.`,
         });
@@ -167,7 +167,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
       if ((books || 0) >= 10) {
         ms.push({
           icon: BookOpen,
-          color: "text-blue-400",
+          color: "text-blue-500",
           title: "Avid Reader",
           description: `Logged ${books} books in your reading history.`,
         });
@@ -175,7 +175,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
       if ((quizzes || 0) >= 5) {
         ms.push({
           icon: Brain,
-          color: "text-purple-400",
+          color: "text-purple-500",
           title: "Quiz Champion",
           description: `Passed ${quizzes} library quizzes.`,
         });
@@ -199,7 +199,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
         scale: 2, 
         useCORS: true, 
         logging: false,
-        backgroundColor: "#0f172a" // Force high contrast dark gaming background for PDF
+        backgroundColor: "#ffffff" // Force clean white background for light themed PDF
       });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -219,8 +219,8 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 bg-slate-950 min-h-screen">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500" />
+      <div className="flex items-center justify-center py-20 bg-slate-50 min-h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
       </div>
     );
   }
@@ -228,7 +228,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
   const shareLink = `${window.location.origin}/portfolio/${user?.username || user?.id}`;
 
   return (
-    <div className={`mx-auto space-y-6 text-slate-100 ${embedded ? "max-w-5xl pb-24 lg:pb-8" : "max-w-5xl pb-12 px-4 sm:px-6 mt-8"}`}>
+    <div className={`mx-auto space-y-6 text-slate-800 ${embedded ? "max-w-5xl pb-24 lg:pb-8" : "max-w-5xl pb-12 px-4 sm:px-6 mt-8"}`}>
       <style>{`
         .gaming-mesh-banner {
           background: linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 50%, rgba(236, 72, 153, 0.95) 100%);
@@ -241,28 +241,19 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
           background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
           pointer-events: none;
         }
-        .neon-card-glow {
-          box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
-          border: 1px solid rgba(255, 255, 255, 0.08) !important;
-          background: rgba(30, 41, 59, 0.5) !important;
-          backdrop-filter: blur(12px);
-        }
-        .text-neon-cyan {
-          text-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
-        }
       `}</style>
 
       {/* Hero header — mobile-first colorful banner */}
-      <div className="relative overflow-hidden rounded-3xl gaming-mesh-banner text-white shadow-2xl border border-white/10">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-thread.png')] opacity-15" />
+      <div className="relative overflow-hidden rounded-3xl gaming-mesh-banner text-white shadow-xl border border-white/10">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-thread.png')] opacity-10" />
         <div className="relative p-6 sm:p-10">
           <div className="flex flex-col sm:flex-row sm:items-center gap-6">
             <div className="flex items-center gap-5">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white/20 bg-slate-900/60 overflow-hidden shrink-0 flex items-center justify-center shadow-lg relative">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white/20 bg-white/10 overflow-hidden shrink-0 flex items-center justify-center shadow-lg relative">
                 {user?.avatar_url ? (
                   <img src={getAvatarUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
                 ) : (
-                  <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">{user?.first_name?.[0]}</span>
+                  <span className="text-3xl font-black text-white">{user?.first_name?.[0]}</span>
                 )}
               </div>
               <div>
@@ -299,40 +290,40 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
             {[
-              { label: "Total XP", value: stats.points.toLocaleString(), icon: Zap, color: "text-amber-400" },
-              { label: "Class Rank", value: `#${classRank}`, icon: Medal, color: "text-cyan-400" },
-              { label: "Login Streak", value: `${stats.streak} Days`, icon: Flame, color: "text-orange-400" },
-              { label: "Books Read", value: `${stats.monthlyRead}/${stats.monthlyGoal}`, icon: Target, color: "text-pink-400" },
+              { label: "Total XP", value: stats.points.toLocaleString(), icon: Zap, color: "text-amber-300" },
+              { label: "Class Rank", value: `#${classRank}`, icon: Medal, color: "text-cyan-300" },
+              { label: "Login Streak", value: `${stats.streak} Days`, icon: Flame, color: "text-orange-300" },
+              { label: "Books Read", value: `${stats.monthlyRead}/${stats.monthlyGoal}`, icon: Target, color: "text-pink-300" },
             ].map((s) => (
-              <div key={s.label} className="rounded-2xl bg-slate-950/40 backdrop-blur-md border border-white/5 p-4 text-center hover:scale-102 transition-transform">
+              <div key={s.label} className="rounded-2xl bg-white/10 border border-white/10 p-4 text-center hover:scale-102 transition-transform">
                 <s.icon className={`h-5 w-5 mx-auto mb-1.5 ${s.color}`} />
                 <p className="text-xl sm:text-2xl font-black text-white">{s.value}</p>
-                <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mt-1">{s.label}</p>
+                <p className="text-[9px] text-indigo-150 uppercase tracking-widest font-bold mt-1">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Main Container to Export (Force theme variables to render colorfully in PDF) */}
-      <div id="portfolio-container" className="space-y-6 p-4 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl">
+      {/* Main Container to Export (Force light background for clean printing) */}
+      <div id="portfolio-container" className="space-y-6 p-4 sm:p-6 rounded-3xl bg-white border border-slate-200 shadow-xl">
         
         {/* Core Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Total Books Logged", value: stats.booksRead, icon: BookOpen, border: "border-blue-500/20", glow: "shadow-blue-500/5", color: "text-blue-400" },
-            { label: "Quizzes Completed", value: stats.quizzesPassed, icon: Brain, border: "border-purple-500/20", glow: "shadow-purple-500/5", color: "text-purple-400" },
-            { label: "Badges Awarded", value: stats.badges, icon: Award, border: "border-amber-500/20", glow: "shadow-amber-500/5", color: "text-amber-400" },
-            { label: "Reading Targets", value: stats.goalsCompleted, icon: TrendingUp, border: "border-emerald-500/20", glow: "shadow-emerald-500/5", color: "text-emerald-400" },
+            { label: "Total Books Logged", value: stats.booksRead, icon: BookOpen, border: "border-blue-100", bg: "bg-blue-50/55", color: "text-blue-600" },
+            { label: "Quizzes Completed", value: stats.quizzesPassed, icon: Brain, border: "border-purple-100", bg: "bg-purple-50/55", color: "text-purple-600" },
+            { label: "Badges Awarded", value: stats.badges, icon: Award, border: "border-amber-100", bg: "bg-amber-50/55", color: "text-amber-600" },
+            { label: "Reading Targets", value: stats.goalsCompleted, icon: TrendingUp, border: "border-emerald-100", bg: "bg-emerald-50/55", color: "text-emerald-600" },
           ].map((s) => (
-            <Card key={s.label} className={`border ${s.border} bg-slate-950/50 backdrop-blur-md shadow-lg ${s.glow}`}>
+            <Card key={s.label} className={`border ${s.border} ${s.bg} shadow-sm`}>
               <CardContent className="p-5 flex items-center gap-4">
-                <div className={`w-11 h-11 rounded-xl bg-slate-900 flex items-center justify-center shrink-0 border border-white/5`}>
+                <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 border border-slate-200">
                   <s.icon className={`h-6 w-6 ${s.color}`} />
                 </div>
                 <div>
-                  <p className="text-2xl font-black text-white">{s.value}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</p>
+                  <p className="text-2xl font-black text-slate-855">{s.value}</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{s.label}</p>
                 </div>
               </CardContent>
             </Card>
@@ -340,21 +331,20 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
         </div>
 
         {/* Reading Goal Progress Widget */}
-        <Card className="border border-slate-800 bg-slate-950/30">
+        <Card className="border border-slate-200 bg-slate-50/50">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2 text-white">
-              <Target className="h-5 w-5 text-emerald-400" /> School Reading Target Progress
+            <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+              <Target className="h-5 w-5 text-emerald-600" /> School Reading Target Progress
             </CardTitle>
-            <CardDescription className="text-slate-400 text-xs">
+            <CardDescription className="text-slate-550 text-xs">
               Currently read {stats.monthlyRead} out of school-wide {stats.monthlyGoal} books goal this month.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="relative">
-              <Progress value={monthlyProgress} className="h-3.5 bg-slate-850 rounded-full overflow-hidden border border-white/5" />
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 pointer-events-none" />
+              <Progress value={monthlyProgress} className="h-3.5 bg-slate-200 rounded-full overflow-hidden border border-slate-300" />
             </div>
-            <p className="text-xs text-emerald-400 font-bold mt-2.5 flex items-center gap-1.5">
+            <p className="text-xs text-emerald-600 font-bold mt-2.5 flex items-center gap-1.5">
               <span>🚀 {Math.round(monthlyProgress)}% Completed</span>
               <span className="text-slate-500 font-medium">· Keep exploring new categories!</span>
             </p>
@@ -366,40 +356,40 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
           <div className="lg:col-span-2 space-y-6">
             
             {/* Heatmap Card */}
-            <Card className="border border-slate-800 bg-slate-950/30 overflow-hidden">
+            <Card className="border border-slate-200 bg-slate-50/50 overflow-hidden">
               <CardContent className="p-4 sm:p-6">
-                <p className="text-sm font-bold text-white mb-3">Daily Reading Velocity Grid</p>
-                <div className="rounded-2xl p-2 bg-slate-950/50 border border-white/5">
+                <p className="text-sm font-bold text-slate-800 mb-3">Daily Reading Velocity Grid</p>
+                <div className="rounded-2xl p-2 bg-white border border-slate-200">
                   <ReadingHeatmap activityLog={activityLog} year={new Date().getFullYear()} />
                 </div>
               </CardContent>
             </Card>
 
             {/* Achievements Card */}
-            <Card className="border border-slate-800 bg-slate-950/30">
+            <Card className="border border-slate-200 bg-slate-50/50">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold text-white">Milestones & Badge Vault</CardTitle>
-                <CardDescription className="text-slate-400 text-xs">Track recently unlocked badges and reading challenge completion.</CardDescription>
+                <CardTitle className="text-base font-bold text-slate-800">Milestones & Badge Vault</CardTitle>
+                <CardDescription className="text-slate-500 text-xs">Track recently unlocked badges and reading challenge completion.</CardDescription>
               </CardHeader>
               <CardContent>
                 {milestones.length > 0 ? (
                   <div className="space-y-3">
                     {milestones.map((m, i) => (
-                      <div key={i} className="flex items-start gap-3.5 p-3 rounded-2xl bg-slate-950/50 border border-white/5 shadow-sm hover:border-slate-700 transition-colors">
-                        <div className="p-2 rounded-xl bg-slate-900 shrink-0">
+                      <div key={i} className="flex items-start gap-3.5 p-3 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-slate-355 transition-colors">
+                        <div className="p-2 rounded-xl bg-slate-50 shrink-0">
                           <m.icon className={`h-5 w-5 ${m.color}`} />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-white leading-tight">{m.title}</p>
-                          <p className="text-xs text-slate-400 mt-1">{m.description}</p>
+                          <p className="text-sm font-bold text-slate-800 leading-tight">{m.title}</p>
+                          <p className="text-xs text-slate-500 mt-1">{m.description}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-10 rounded-2xl bg-slate-950/20 border border-dashed border-slate-850">
-                    <Award className="h-11 w-11 mx-auto mb-3 text-slate-600" />
-                    <p className="text-sm font-bold text-slate-400">Unlock Achievements</p>
+                  <div className="text-center py-10 rounded-2xl bg-white border border-dashed border-slate-300">
+                    <Award className="h-11 w-11 mx-auto mb-3 text-slate-400" />
+                    <p className="text-sm font-bold text-slate-550">Unlock Achievements</p>
                     <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">Start borrow logs or complete library knowledge quizzes to start displaying milestones!</p>
                   </div>
                 )}
@@ -409,15 +399,15 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
 
           {/* Right sidebar Digital Library card */}
           <div className="space-y-6">
-            <Card className="border border-slate-800 bg-slate-950/30">
+            <Card className="border border-slate-200 bg-slate-50/50">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-bold text-white">Student Identification Card</CardTitle>
-                <CardDescription className="text-slate-400 text-xs">
+                <CardTitle className="text-base font-bold text-slate-800">Student Identification Card</CardTitle>
+                <CardDescription className="text-slate-500 text-xs">
                   {barcode ? `Barcode ID: ${barcode}` : "Unique Digital Library Identity"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center p-3 sm:p-4">
-                <div className="bg-slate-950 p-2 rounded-2xl border border-white/5 shadow-inner">
+                <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
                   <LibraryCard user={user} />
                 </div>
               </CardContent>

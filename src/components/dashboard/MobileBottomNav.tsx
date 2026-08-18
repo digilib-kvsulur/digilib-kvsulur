@@ -15,9 +15,10 @@ interface MobileBottomNavProps {
 
 const primaryTabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Home", icon: Home },
-  { id: "books", label: "Books", icon: BookOpen },
-  { id: "portfolio", label: "Portfolio", icon: FileText },
+  { id: "issued", label: "Books", icon: BookOpen },
   { id: "quizzes", label: "Quizzes", icon: Brain },
+  { id: "games", label: "Games", icon: Gamepad2 },
+  { id: "community", label: "Community", icon: Users },
 ];
 
 export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, onCatalog }: MobileBottomNavProps) {
@@ -42,14 +43,6 @@ export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, on
             </button>
           );
         })}
-        <button
-          type="button"
-          onClick={onCatalog}
-          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-muted-foreground"
-        >
-          <Search className="h-5 w-5" />
-          <span>Catalog</span>
-        </button>
         <button
           type="button"
           onClick={onOpenMenu}

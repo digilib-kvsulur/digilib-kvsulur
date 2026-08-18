@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   BookOpen, Sparkles, MapPin, Mail, Star, Download,
   Monitor, Smartphone, Tablet, Chrome, Apple, Share2,
@@ -41,6 +42,7 @@ const features = [
 ];
 
 const SITE_URL = window.location.origin;
+const REPO_URL = "https://github.com/digilib-kvsulur/digilib-kvsulur";
 
 export default function DownloadPage() {
   const navigate = useNavigate();
@@ -63,53 +65,57 @@ export default function DownloadPage() {
   const currentSteps = steps[platform];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden font-sans selection:bg-indigo-500/20">
-      {/* Animated Background */}
+    <div className="min-h-screen bg-slate-50 text-slate-800 overflow-x-hidden font-sans selection:bg-indigo-500/20 selection:text-indigo-900">
+      {/* Animated Background Blobs */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-indigo-600/10 blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-5%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/10 blur-[140px] animate-pulse" style={{ animationDelay: "1.5s" }} />
-        <div className="absolute top-[40%] left-[50%] w-[30%] h-[30%] rounded-full bg-pink-600/8 blur-[100px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
+        <div className="absolute top-[-5%] left-[-5%] w-[45%] h-[45%] rounded-full bg-indigo-150/30 blur-[130px]" />
+        <div className="absolute bottom-[5%] right-[-5%] w-[40%] h-[40%] rounded-full bg-purple-150/30 blur-[140px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f080_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f080_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
       </div>
 
       {/* Top bar */}
-      <div className="relative z-10 border-b border-white/5 bg-slate-950/80 backdrop-blur-md">
+      <div className="relative z-10 border-b border-indigo-100 bg-indigo-50/80 text-xs backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <MapPin className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
-            <span className="font-medium">PM SHRI KV AFS Sulur, Coimbatore</span>
-            <span className="hidden sm:inline text-slate-600 mx-2">·</span>
-            <span className="hidden sm:flex items-center gap-1.5 font-medium">
-              <Mail className="h-3.5 w-3.5 text-indigo-400" />
-              kvafssulurlibrary@gmail.com
+          <div className="flex items-center gap-6 text-slate-600">
+            <span className="flex items-center gap-2 font-medium">
+              <MapPin className="h-4 w-4 text-indigo-600 shrink-0" /> PM SHRI KV AFS Sulur, Coimbatore
+            </span>
+            <span className="h-3.5 w-px bg-slate-300 hidden md:block" />
+            <span className="flex items-center gap-2 hidden md:flex font-medium">
+              <Mail className="h-4 w-4 text-indigo-600" /> kvafssulurlibrary@gmail.com
             </span>
           </div>
-          <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold tracking-widest px-2.5 py-1 hidden sm:flex items-center gap-1">
-            <Sparkles className="h-3 w-3" /> PM SHRI Designated
-          </Badge>
+          <span className="flex items-center gap-2 text-indigo-900 font-bold px-3 py-1 bg-white/60 rounded-full border border-indigo-100 shadow-xs">
+            <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" /> PM SHRI National Excellence School
+          </span>
         </div>
       </div>
 
       {/* Header Nav */}
-      <header className="relative z-10 border-b border-white/5 bg-slate-950/60 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md transition-all shadow-xs">
         <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <BookOpen className="h-5 w-5 text-white" />
+            <div className="flex items-center -space-x-2 shrink-0">
+              <div className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-xs">
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain p-1" />
+              </div>
+              <div className="w-9 h-9 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-xs z-10">
+                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain p-1" />
+              </div>
             </div>
             <div>
-              <p className="text-sm font-black text-white tracking-tight leading-tight">PM SHRI KV SULUR</p>
-              <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-widest">Digital Library System</p>
+              <p className="text-sm font-black text-slate-900 tracking-tight leading-tight">PM SHRI KV SULUR</p>
+              <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-widest">Digital Library System</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/")} className="text-slate-400 hover:text-white text-sm font-semibold transition-colors px-3 py-2 rounded-lg hover:bg-white/5 hidden sm:block">
+            <button onClick={() => navigate("/")} className="text-slate-600 hover:text-indigo-600 text-sm font-semibold transition-colors px-3 py-2 rounded-lg hover:bg-slate-100 hidden sm:block">
               Home
             </button>
             <Button
               onClick={() => navigate("/login")}
               size="sm"
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl border-0 shadow-lg shadow-indigo-500/20 px-5 h-9"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl border-0 shadow-md shadow-indigo-600/20 px-5 h-9"
             >
               Open App <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
@@ -118,72 +124,129 @@ export default function DownloadPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-20 pb-16 sm:pt-28 sm:pb-24">
-        <div className="max-w-5xl mx-auto px-5 sm:px-8 text-center">
-          <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold uppercase tracking-widest rounded-full px-4 py-2 mb-7">
-            <Star className="h-3.5 w-3.5 fill-indigo-400 text-indigo-400" />
-            Available as a Web App — No App Store Needed
+      <section className="relative z-10 pt-16 pb-12 sm:pt-24 sm:pb-16 text-center">
+        <div className="max-w-4xl mx-auto px-5 sm:px-8">
+          <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-widest rounded-full px-4 py-1.5 mb-6 shadow-xs">
+            <Star className="h-3.5 w-3.5 fill-indigo-600 text-indigo-600" />
+            Native Apps & Packages Generated by GitHub Actions
           </div>
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-white mb-6">
-            Access DLMS
-            <span className="block bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mt-2">
-              Anywhere, Anytime.
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-none text-slate-900 mb-6">
+            Get the Native Apps for
+            <span className="block bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mt-2">
+              Windows & Android.
             </span>
           </h1>
-          <p className="text-base sm:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed mb-10 font-normal">
-            The PM SHRI KV Sulur Digital Library Management System (DLMS) is a full web app — install it on your phone or desktop like a native app. No download required from Play Store or App Store.
+          <p className="text-sm sm:text-base text-slate-600 max-w-xl mx-auto leading-relaxed mb-8">
+            Download KVSulur Digital Library installer for Windows to access from your PC, or get the direct Android APK package compiled securely through GitHub Actions builds.
           </p>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto">
             <Button
-              size="lg"
-              className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold rounded-2xl border-0 shadow-2xl shadow-indigo-600/30 px-10 py-6 text-base h-auto"
-              onClick={() => navigate("/login")}
-            >
-              <Download className="h-5 w-5 mr-2" /> Open & Install DLMS
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto border-white/10 bg-white/5 text-white hover:bg-white/10 font-bold rounded-2xl px-8 py-6 text-base h-auto"
               onClick={copyLink}
+              variant="outline"
+              className="w-full border-slate-200 bg-white hover:bg-slate-100 text-slate-800 font-bold rounded-2xl h-12 shadow-sm"
             >
-              {copied ? <Check className="h-5 w-5 mr-2 text-emerald-400" /> : <Share2 className="h-5 w-5 mr-2" />}
+              {copied ? <Check className="h-4 w-4 mr-2 text-emerald-600 animate-bounce" /> : <Share2 className="h-4 w-4 mr-2 text-indigo-600" />}
               {copied ? "Link Copied!" : "Copy App Link"}
             </Button>
+            <Button
+              onClick={() => navigate("/login")}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl h-12 shadow-md shadow-indigo-600/20"
+            >
+              Launch Web Portal <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
           </div>
+        </div>
+      </section>
 
-          {/* URL Copy chip */}
-          <div className="inline-flex items-center gap-3 bg-slate-900/80 border border-white/10 rounded-2xl px-5 py-3 text-sm font-mono text-slate-300 shadow-inner">
-            <Globe className="h-4 w-4 text-indigo-400 shrink-0" />
-            <span className="truncate max-w-[260px] sm:max-w-none">{SITE_URL}</span>
-            <button onClick={copyLink} className="text-indigo-400 hover:text-indigo-300 text-xs font-bold font-sans shrink-0 ml-1 transition-colors">
-              {copied ? "Copied ✓" : "Copy"}
-            </button>
+      {/* GitHub Native Apps Section */}
+      <section className="relative z-10 py-8 mb-12">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Windows EXE Installer */}
+            <Card className="border-indigo-100 bg-white shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+              <div className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
+              <CardContent className="p-6 sm:p-8">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-6">
+                  <Monitor className="h-6 w-6 text-indigo-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 mb-2">Windows Desktop Application</h2>
+                <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-150 mb-4 hover:bg-indigo-55">EXE Installer</Badge>
+                <p className="text-sm text-slate-500 leading-relaxed mb-6">
+                  Access the digital library natively on Windows with persistent logins, automatic background updates, and optimized multi-window layouts.
+                </p>
+                <div className="space-y-3">
+                  <a
+                    href={`${REPO_URL}/releases/latest/download/PM.SHRI.KV.SULUR.Digital.Library.Setup.1.0.0.exe`}
+                    className="w-full inline-flex items-center justify-center gap-2 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-indigo-600/20"
+                  >
+                    <Download className="h-4 w-4" /> Download Windows App (.exe)
+                  </a>
+                  <a
+                    href={`${REPO_URL}/actions`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 h-11 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm rounded-xl transition-all"
+                  >
+                    <ExternalLink className="h-4 w-4 text-slate-550" /> Latest Actions Artifact Build
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Android APK package */}
+            <Card className="border-purple-100 bg-white shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+              <div className="h-1.5 bg-gradient-to-r from-purple-500 to-pink-500" />
+              <CardContent className="p-6 sm:p-8">
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center mb-6">
+                  <Smartphone className="h-6 w-6 text-purple-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 mb-2">Android Mobile Package</h2>
+                <Badge className="bg-purple-50 text-purple-700 border border-purple-150 mb-4 hover:bg-purple-55">APK Package</Badge>
+                <p className="text-sm text-slate-500 leading-relaxed mb-6">
+                  Get the compiled application archive directly. Installs on any Android tablet or mobile phone without checking store accounts.
+                </p>
+                <div className="space-y-3">
+                  <a
+                    href={`${REPO_URL}/releases/latest/download/app-debug.apk`}
+                    className="w-full inline-flex items-center justify-center gap-2 h-11 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-purple-600/20"
+                  >
+                    <Download className="h-4 w-4" /> Download Android App (.apk)
+                  </a>
+                  <a
+                    href={`${REPO_URL}/actions`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 h-11 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm rounded-xl transition-all"
+                  >
+                    <ExternalLink className="h-4 w-4 text-slate-550" /> View Builds on GitHub Actions
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
       {/* Platform Tabs & Steps */}
-      <section className="relative z-10 py-16 sm:py-20 border-t border-white/5">
+      <section className="relative z-10 py-12 sm:py-16 border-t border-slate-200 bg-white/70">
         <div className="max-w-5xl mx-auto px-5 sm:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white mb-3">Install in 4 Simple Steps</h2>
-            <p className="text-slate-400 text-sm sm:text-base">Works on Android, iPhone, and Desktop — no app store needed.</p>
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">PWA Alternative Installation</h2>
+            <p className="text-slate-500 text-sm">Add the DLMS web portal straight to your home screen instantly.</p>
           </div>
 
           {/* Platform Selector Tabs */}
-          <div className="flex justify-center mb-10">
-            <div className="inline-flex bg-slate-900 border border-white/10 rounded-2xl p-1.5 gap-1">
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex bg-slate-100 border border-slate-200 rounded-2xl p-1 gap-1">
               {(["android", "ios", "desktop"] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPlatform(p)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                     platform === p
-                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/20"
-                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
                   }`}
                 >
                   {p === "android" && <Smartphone className="h-4 w-4" />}
@@ -200,81 +263,39 @@ export default function DownloadPage() {
             {currentSteps.map((step, idx) => (
               <div
                 key={idx}
-                className="relative group bg-slate-900/60 border border-white/8 rounded-2xl p-6 hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/5 transition-all"
+                className="relative group bg-white border border-slate-200 rounded-2xl p-5 hover:border-indigo-200 transition-all shadow-sm"
               >
-                <div className="absolute -top-3.5 -left-3.5 w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-lg">
+                <div className="absolute -top-3 -left-3 w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                   {idx + 1}
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <step.icon className="h-6 w-6 text-indigo-400" />
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                  <step.icon className="h-5 w-5 text-indigo-600" />
                 </div>
-                <h3 className="text-white font-bold text-sm mb-2">{step.title}</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">{step.desc}</p>
+                <h3 className="text-slate-800 font-bold text-sm mb-2">{step.title}</h3>
+                <p className="text-slate-500 text-xs leading-relaxed">{step.desc}</p>
               </div>
             ))}
-          </div>
-
-          {/* Quick access link block */}
-          <div className="mt-10 p-6 rounded-2xl bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/20 flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-            <div className="flex-1 text-center sm:text-left">
-              <p className="text-white font-bold text-sm sm:text-base mb-1">📱 Ready to Install?</p>
-              <p className="text-slate-400 text-xs sm:text-sm">
-                Open this link in your browser, then follow the steps above to install DLMS on your device.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <code className="bg-slate-950/60 border border-white/10 rounded-xl px-4 py-2 text-xs font-mono text-indigo-300 hidden sm:block">
-                {SITE_URL}
-              </code>
-              <Button
-                onClick={() => navigate("/login")}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl border-0 shadow-lg h-10 px-5 text-sm"
-              >
-                Open Now <ArrowRight className="h-4 w-4 ml-1.5" />
-              </Button>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Why PWA — Benefits strip */}
-      <section className="relative z-10 py-12 sm:py-16 border-t border-white/5">
+      {/* Benefit Cards */}
+      <section className="relative z-10 py-12 sm:py-16 border-t border-slate-200 bg-slate-50/50">
         <div className="max-w-5xl mx-auto px-5 sm:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {[
-              { icon: Wifi, title: "Works Offline", desc: "Cached resources load even without a network connection.", color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20" },
-              { icon: Shield, title: "Safe & Secure", desc: "Runs over HTTPS with Supabase-powered Row Level Security.", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
-              { icon: Zap, title: "Lightning Fast", desc: "Optimized Vite build with lazy-loaded routes for instant speed.", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" },
+              { icon: Wifi, title: "Offline Storage Support", desc: "Check books, access local reading logs, and show your ID card without internet access.", color: "text-blue-600", bg: "bg-blue-50 border-blue-100" },
+              { icon: Shield, title: "Secure Communications", desc: "Data synchronization powered by HTTPS standard and Supabase RLS protocols.", color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
+              { icon: Zap, title: "Zero Latency Layouts", desc: "Extremely fast loads and fluid tabs optimized for responsive layout targets.", color: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
             ].map((b) => (
-              <div key={b.title} className={`rounded-2xl border ${b.bg} p-6 flex items-start gap-4`}>
-                <div className={`w-11 h-11 rounded-xl ${b.bg} border flex items-center justify-center shrink-0`}>
+              <div key={b.title} className={`rounded-2xl border ${b.bg} p-5 flex items-start gap-4 shadow-xs`}>
+                <div className={`w-10 h-10 rounded-xl bg-white border flex items-center justify-center shrink-0`}>
                   <b.icon className={`h-5 w-5 ${b.color}`} />
                 </div>
                 <div>
-                  <p className="text-white font-bold text-sm mb-1">{b.title}</p>
-                  <p className="text-slate-400 text-xs leading-relaxed">{b.desc}</p>
+                  <p className="text-slate-800 font-bold text-sm mb-1">{b.title}</p>
+                  <p className="text-slate-550 text-xs leading-relaxed">{b.desc}</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Highlights */}
-      <section className="relative z-10 py-16 sm:py-20 border-t border-white/5">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white mb-3">Everything Students Need</h2>
-            <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto">A complete gamified library experience — from borrowing books to earning badges and sharing your reading portfolio.</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
-            {features.map((f) => (
-              <div key={f.title} className="group bg-slate-900/50 border border-white/8 rounded-2xl p-5 hover:border-white/15 hover:-translate-y-1 transition-all">
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-                  <f.icon className="h-5 w-5 text-white" />
-                </div>
-                <p className="text-white font-bold text-sm mb-1.5">{f.title}</p>
-                <p className="text-slate-500 text-xs leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -282,67 +303,40 @@ export default function DownloadPage() {
       </section>
 
       {/* QR Code Section */}
-      <section className="relative z-10 py-16 sm:py-20 border-t border-white/5">
+      <section className="relative z-10 py-12 border-t border-slate-200 bg-white">
         <div className="max-w-3xl mx-auto px-5 sm:px-8 text-center">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-4">Scan to Open on Your Phone</h2>
-          <p className="text-slate-400 text-sm mb-8">Use any QR scanner or your phone's camera to open the DLMS portal instantly.</p>
-          <div className="inline-block bg-white p-4 rounded-2xl shadow-2xl shadow-indigo-500/10 border border-white/5">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">Scan to Open</h2>
+          <p className="text-slate-500 text-sm mb-6">Open this QR code to load the app directly on your phone camera.</p>
+          <div className="inline-block bg-white p-3 rounded-2xl shadow-md border border-slate-200">
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(SITE_URL)}&color=4338ca&bgcolor=ffffff&format=png&qzone=1`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(SITE_URL)}&color=4f46e5&bgcolor=ffffff&format=png&qzone=1`}
               alt="QR Code for DLMS"
-              className="w-48 h-48 sm:w-56 sm:h-56 rounded-xl"
+              className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl"
             />
           </div>
-          <p className="text-slate-500 text-xs mt-5 font-mono">{SITE_URL}</p>
+          <p className="text-slate-500 text-xs mt-4 font-mono">{SITE_URL}</p>
         </div>
       </section>
 
-      {/* CTA Footer */}
-      <section className="relative z-10 py-16 sm:py-24 border-t border-white/5">
-        <div className="max-w-4xl mx-auto px-5 sm:px-8 text-center">
-          <div className="bg-gradient-to-r from-indigo-600/15 to-purple-600/15 border border-indigo-500/20 rounded-3xl p-10 sm:p-14">
-            <Sparkles className="h-10 w-10 mx-auto mb-5 text-amber-400" />
-            <h2 className="text-3xl sm:text-5xl font-black text-white mb-4 leading-tight">
-              Start Your Reading Journey Today!
-            </h2>
-            <p className="text-slate-400 text-sm sm:text-base mb-8 max-w-lg mx-auto">
-              Open the DLMS portal, register with your school admission number, and earn XP for every book you read.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold rounded-2xl border-0 shadow-2xl shadow-indigo-600/30 px-10 py-6 text-base h-auto"
-                onClick={() => navigate("/login")}
-              >
-                Login / Register Now <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10 font-bold rounded-2xl px-8 py-6 text-base h-auto"
-                onClick={() => navigate("/catalog")}
-              >
-                Browse Book Catalog <ExternalLink className="h-5 w-5 ml-2" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Minimal Footer */}
-      <footer className="relative z-10 border-t border-white/5 py-8">
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-slate-200 bg-slate-50 py-8">
         <div className="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <BookOpen className="h-4 w-4 text-white" />
+            <div className="flex items-center -space-x-1.5 shrink-0">
+              <div className="w-6 h-6 rounded-full bg-slate-50 border border-slate-250 flex items-center justify-center overflow-hidden">
+                <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain p-0.5" />
+              </div>
+              <div className="w-6 h-6 rounded-full bg-slate-50 border border-slate-250 flex items-center justify-center overflow-hidden z-10">
+                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain p-0.5" />
+              </div>
             </div>
-            <span className="text-sm font-bold text-slate-400">PM SHRI KV Sulur DLMS</span>
+            <span className="text-xs font-bold text-slate-500">PM SHRI KV Sulur DLMS</span>
           </div>
-          <p className="text-slate-600 text-xs">© {new Date().getFullYear()} KV AFS Sulur Library · All rights reserved.</p>
+          <p className="text-slate-500 text-xs">© {new Date().getFullYear()} KV AFS Sulur Library · All rights reserved.</p>
           <div className="flex items-center gap-5 text-xs text-slate-500 font-semibold">
-            <button onClick={() => navigate("/")} className="hover:text-white transition-colors">Home</button>
-            <button onClick={() => navigate("/catalog")} className="hover:text-white transition-colors">Catalog</button>
-            <button onClick={() => navigate("/support")} className="hover:text-white transition-colors">Support</button>
+            <button onClick={() => navigate("/")} className="hover:text-indigo-600 transition-colors">Home</button>
+            <button onClick={() => navigate("/catalog")} className="hover:text-indigo-600 transition-colors">Catalog</button>
+            <button onClick={() => navigate("/support")} className="hover:text-indigo-600 transition-colors">Support</button>
           </div>
         </div>
       </footer>

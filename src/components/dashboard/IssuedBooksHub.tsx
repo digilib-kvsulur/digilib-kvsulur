@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ interface Props {
 type Section = "issued" | "requests" | "wishlist" | "waitlist" | "lost" | "fines";
 
 export default function IssuedBooksHub({ userId, currentBooks }: Props) {
+  const navigate = useNavigate();
   const [allIssues, setAllIssues] = useState<any[]>([]);
   const [counts, setCounts] = useState({ requests: 0, wishlist: 0, waitlist: 0, lost: 0, fines: 0 });
   const [section, setSection] = useState<Section>("issued");
@@ -96,7 +98,7 @@ export default function IssuedBooksHub({ userId, currentBooks }: Props) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" className="flex-1 sm:flex-none h-9" onClick={() => (window.location.href = "/catalog")}>
+          <Button size="sm" variant="outline" className="flex-1 sm:flex-none h-9" onClick={() => navigate("/catalog")}>
             <Search className="h-3.5 w-3.5 mr-1.5" /> Catalog
           </Button>
           <Button size="sm" className="flex-1 sm:flex-none h-9" onClick={() => setShowRequest(true)}>

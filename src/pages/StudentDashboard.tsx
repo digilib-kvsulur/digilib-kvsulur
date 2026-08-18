@@ -524,7 +524,7 @@ const StudentDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 pb-20 lg:pb-0 lg:ml-64 lg:pt-0">
+      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-20 pb-24 lg:pb-0 lg:ml-64 lg:pt-0">
         <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 
@@ -749,16 +749,16 @@ const StudentDashboard = () => {
           {/* Books Tab — reading history + issue history */}
           {activeTab === "books" && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-bold text-foreground">Books</h2>
                   <p className="text-sm text-muted-foreground">Your reading log and borrow history</p>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold" onClick={() => navigate('/catalog')}>
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold h-9" onClick={() => navigate('/catalog')}>
                     <Search className="h-4 w-4 mr-2" /> Browse Catalog
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => setActiveTab("issued")}>
+                  <Button size="sm" variant="secondary" className="flex-1 sm:flex-none h-9" onClick={() => setActiveTab("issued")}>
                     <BookCheck className="h-4 w-4 mr-2" /> Book Issued hub
                   </Button>
                 </div>

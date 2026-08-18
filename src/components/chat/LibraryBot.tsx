@@ -60,7 +60,7 @@ export const LibraryBot = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50">
       {isOpen ? (
         <div className="bg-background border shadow-2xl rounded-2xl w-[350px] max-w-[calc(100vw-2rem)] h-[450px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
           {/* Header */}
