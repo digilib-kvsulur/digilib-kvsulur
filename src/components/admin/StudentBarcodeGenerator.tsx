@@ -38,6 +38,9 @@ const StudentBarcodeGenerator = () => {
   const [printQueue, setPrintQueue] = useState<PrintItem[]>([]);
   const [stickerColumns, setStickerColumns] = useState("3");
   const [generating, setGenerating] = useState(false);
+  const [barcodeWidth, setBarcodeWidth] = useState(2);
+  const [barcodeHeight, setBarcodeHeight] = useState(40);
+  const [barcodeFontSize, setBarcodeFontSize] = useState(14);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,15 +50,21 @@ const StudentBarcodeGenerator = () => {
   const loadStudents = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, student_class, admission_number, library_card_barcode")
-        .eq("role", "student")
-        .eq("is_approved", true)
-        .order("student_class")
-        .order("first_name");
-      if (error) throw error;
-      setStudents((data as StudentRow[]) || []);
+      const all: StudentRow[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, student_class, admission_number, library_card_barcode")
+          .eq("role", "student")
+          .eq("is_approved", true)
+          .order("student_class")
+          .order("first_name")
+          .range(from, from + 999);
+        if (error) throw error;
+        all.push(...(data as StudentRow[] || []));
+        if (!data || data.length < 1000) break;
+      }
+      setStudents(all);
     } catch (e: any) {
       toast({ title: "Error", description: e.message || "Failed to load students", variant: "destructive" });
     } finally {
