@@ -2,8 +2,9 @@ import { useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, Upload, Database, Loader2, CheckCircle2, Search, Save, LibraryBig } from "lucide-react";
+import { Download, Upload, Database, Loader2, CheckCircle2, Search, Save, LibraryBig, ScanBarcode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -72,6 +73,12 @@ export default function BookShelfData() {
   const [matches, setMatches] = useState<any[]>([]);
   const [edits, setEdits] = useState<Record<string, { shelf_number: string; cupboard_number: string }>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  // rapid scan mode
+  const [rapidCupboard, setRapidCupboard] = useState("");
+  const [rapidShelf, setRapidShelf] = useState("");
+  const [rapidBarcode, setRapidBarcode] = useState("");
+  const [rapidStatus, setRapidStatus] = useState<{msg: string, type: "success"|"error"} | null>(null);
 
   const exportShelf = async () => {
     setBusy("shelf-export");
@@ -184,6 +191,41 @@ export default function BookShelfData() {
     } finally { setSavingId(null); }
   };
 
+  const runRapidScan = async () => {
+    const acc = rapidBarcode.trim();
+    if (!acc) return;
+    
+    // Optimistically clear barcode for next scan
+    setRapidBarcode("");
+    setRapidStatus(null);
+    
+    try {
+      const { data, error } = await supabase
+        .from("books")
+        .select("id, title")
+        .eq("accession_number", acc)
+        .maybeSingle();
+        
+      if (error) throw error;
+      if (!data) {
+        setRapidStatus({ msg: `Book with accession ${acc} not found.`, type: "error" });
+        return;
+      }
+      
+      const { error: upErr } = await supabase.from("books").update({
+        cupboard_number: rapidCupboard.trim() || null,
+        shelf_number: rapidShelf.trim() || null,
+        updated_at: new Date().toISOString()
+      }).eq("id", data.id);
+      
+      if (upErr) throw upErr;
+      
+      setRapidStatus({ msg: `Updated: ${data.title} (${acc})`, type: "success" });
+    } catch (err: any) {
+      setRapidStatus({ msg: err.message, type: "error" });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -244,6 +286,55 @@ export default function BookShelfData() {
                 </Button>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 border-indigo-200 shadow-sm">
+        <CardHeader className="bg-indigo-50/50 pb-4 border-b border-indigo-100 rounded-t-xl">
+          <CardTitle className="text-lg flex items-center gap-2 text-indigo-700">
+            <ScanBarcode className="h-5 w-5" /> Rapid Barcode Scanner
+          </CardTitle>
+          <CardDescription>Lock a cupboard and shelf, then scan book barcodes sequentially to auto-assign them.</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Target Cupboard</Label>
+              <Input 
+                placeholder="e.g. C-12" 
+                value={rapidCupboard} 
+                onChange={e => setRapidCupboard(e.target.value)} 
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Target Shelf</Label>
+              <Input 
+                placeholder="e.g. S-3" 
+                value={rapidShelf} 
+                onChange={e => setRapidShelf(e.target.value)} 
+                className="font-mono"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-1.5 p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-inner">
+            <Label className="text-sm font-semibold">Scan Barcode (Accession Number)</Label>
+            <Input 
+              placeholder="Scan or type and press Enter..." 
+              value={rapidBarcode}
+              onChange={e => setRapidBarcode(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") runRapidScan(); }}
+              className="font-mono text-lg h-12 bg-white focus:border-indigo-500 focus:ring-indigo-500"
+              autoFocus
+            />
+            {rapidStatus && (
+              <p className={`text-sm mt-2 font-medium flex items-center gap-1 ${rapidStatus.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+                {rapidStatus.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : null}
+                {rapidStatus.msg}
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

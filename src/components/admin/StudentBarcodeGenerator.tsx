@@ -318,7 +318,7 @@ const StudentBarcodeGenerator = () => {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3 mt-3 max-w-xs">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
               <div className="space-y-1">
                 <Label className="text-xs">Columns</Label>
                 <Select value={stickerColumns} onValueChange={setStickerColumns}>
@@ -327,8 +327,21 @@ const StudentBarcodeGenerator = () => {
                     <SelectItem value="2">2</SelectItem>
                     <SelectItem value="3">3</SelectItem>
                     <SelectItem value="4">4</SelectItem>
+                    <SelectItem value="5">5</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between"><Label className="text-xs">Width</Label><span className="text-[10px]">{barcodeWidth}</span></div>
+                <input type="range" min="1" max="4" step="0.5" value={barcodeWidth} onChange={e => setBarcodeWidth(Number(e.target.value))} className="w-full" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between"><Label className="text-xs">Height</Label><span className="text-[10px]">{barcodeHeight}px</span></div>
+                <input type="range" min="20" max="100" step="5" value={barcodeHeight} onChange={e => setBarcodeHeight(Number(e.target.value))} className="w-full" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between"><Label className="text-xs">Font Size</Label><span className="text-[10px]">{barcodeFontSize}px</span></div>
+                <input type="range" min="8" max="24" step="1" value={barcodeFontSize} onChange={e => setBarcodeFontSize(Number(e.target.value))} className="w-full" />
               </div>
             </div>
           </CardHeader>
@@ -349,7 +362,7 @@ const StudentBarcodeGenerator = () => {
                     <p className="text-[10px] font-black uppercase truncate">{item.name}</p>
                     <p className="text-[9px] text-muted-foreground">Class {item.studentClass} · {item.admissionNumber}</p>
                     <div className="mt-2">
-                      <BarcodeSVG value={item.barcode} />
+                      <BarcodeSVG value={item.barcode} width={barcodeWidth} height={barcodeHeight} fontSize={barcodeFontSize} />
                     </div>
                     <button
                       type="button"
@@ -375,7 +388,7 @@ const StudentBarcodeGenerator = () => {
             <div key={item.id} className="text-center bg-white border p-3" style={{ pageBreakInside: "avoid" }}>
               <p className="text-[10px] font-black uppercase">{item.name}</p>
               <p className="text-[8px] text-gray-600">Class {item.studentClass} · Adm {item.admissionNumber}</p>
-              <BarcodeSVG value={item.barcode} />
+              <BarcodeSVG value={item.barcode} width={barcodeWidth} height={barcodeHeight} fontSize={barcodeFontSize} />
             </div>
           ))}
         </div>

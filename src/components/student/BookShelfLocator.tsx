@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,39 +15,53 @@ interface ShelfLocatorProps {
 }
 
 export default function BookShelfLocator({ shelfNumber, cupboardNumber, bookTitle, category, isOpen, onClose }: ShelfLocatorProps) {
-  // SVG grid dimensions
+  const [areas, setAreas] = useState<any[]>([]);
+  
+  useEffect(() => {
+    if (!isOpen) return;
+    const loadZones = async () => {
+      const { data } = await supabase.from("system_settings").select("value").eq("key", "library_map_zones").maybeSingle();
+      if (data?.value) {
+        try {
+          const parsed = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setAreas(parsed);
+            return;
+          }
+        } catch (e) {}
+      }
+      // Fallback
+      setAreas([
+        { id: "fiction", label: "Fiction & Novels", x: 50, y: 50, w: 200, h: 200, color: "fill-blue-100 stroke-blue-300", cupboards: "" }
+      ]);
+    };
+    loadZones();
+  }, [isOpen]);
+
   const gridWidth = 800;
   const gridHeight = 600;
-  
-  // Library areas
-  const areas = [
-    { id: "fiction", label: "Fiction & Novels", x: 50, y: 50, w: 200, h: 200, color: "fill-blue-100 stroke-blue-300" },
-    { id: "science", label: "Science & Math", x: 300, y: 50, w: 250, h: 150, color: "fill-emerald-100 stroke-emerald-300" },
-    { id: "history", label: "History & Geography", x: 600, y: 50, w: 150, h: 250, color: "fill-amber-100 stroke-amber-300" },
-    { id: "ncert", label: "NCERT & Textbooks", x: 50, y: 300, w: 300, h: 150, color: "fill-indigo-100 stroke-indigo-300" },
-    { id: "reference", label: "Reference & Encyclopedias", x: 400, y: 350, w: 350, h: 150, color: "fill-purple-100 stroke-purple-300" },
-  ];
 
-  // Map the provided shelf/cupboard to coordinates
   const getTargetCoordinates = () => {
-    // Basic heuristic: map category or shelf to a zone
-    let targetArea = areas.find(a => a.id === "fiction"); // Default
+    let targetArea = areas.find(a => {
+      if (!cupboardNumber || !a.cupboards) return false;
+      const cups = a.cupboards.split(",").map((c:string) => c.trim().toLowerCase());
+      return cups.includes(cupboardNumber.trim().toLowerCase());
+    });
     
-    if (category) {
+    // Fallback: match by category string as before if cupboard didn't match
+    if (!targetArea && category) {
        const lowerCat = category.toLowerCase();
-       if (lowerCat.includes("science") || lowerCat.includes("math")) targetArea = areas.find(a => a.id === "science");
-       else if (lowerCat.includes("history") || lowerCat.includes("geography")) targetArea = areas.find(a => a.id === "history");
-       else if (lowerCat.includes("textbook") || lowerCat.includes("ncert")) targetArea = areas.find(a => a.id === "ncert");
-       else if (lowerCat.includes("reference") || lowerCat.includes("dictionary")) targetArea = areas.find(a => a.id === "reference");
+       targetArea = areas.find(a => a.label.toLowerCase().includes(lowerCat));
     }
     
-    // Fallback if not found
-    if (!targetArea) targetArea = areas[0];
+    // Final Fallback
+    if (!targetArea) targetArea = areas[0] || { x: 50, y: 50, w: 200, h: 200, label: "Unknown Area" };
 
     return {
-      x: targetArea.x + targetArea.w / 2,
-      y: targetArea.y + targetArea.h / 2,
-      areaName: targetArea.label
+      x: (targetArea.x || 50) + (targetArea.w || 200) / 2,
+      y: (targetArea.y || 50) + (targetArea.h || 200) / 2,
+      areaName: targetArea.label,
+      targetArea // save full area config for rendering
     };
   };
 
@@ -104,25 +119,32 @@ export default function BookShelfLocator({ shelfNumber, cupboardNumber, bookTitl
               <text x="400" y="485" fontSize="16" fontWeight="bold" fill="#64748b" textAnchor="middle">Librarian Desk</text>
 
               {/* Render Shelf Areas */}
-              {areas.map(area => (
-                <g key={area.id}>
+              {areas.map(area => {
+                const fillClass = (area.color || "").replace("bg-", "fill-").replace("text-", "stroke-") || "fill-indigo-100 stroke-indigo-300";
+                const ax = area.x || 50;
+                const ay = area.y || 50;
+                const aw = area.w || 200;
+                const ah = area.h || 200;
+                
+                return (
+                <g key={area.label || Math.random()}>
                   <rect 
-                    x={area.x} 
-                    y={area.y} 
-                    width={area.w} 
-                    height={area.h} 
-                    className={`${area.color} stroke-2 transition-all duration-300`} 
+                    x={ax} 
+                    y={ay} 
+                    width={aw} 
+                    height={ah} 
+                    className={`${fillClass} stroke-2 transition-all duration-300`} 
                     rx="8"
                     opacity={target.areaName === area.label ? 1 : 0.4}
                   />
                   {/* Faux book stacks inside area */}
-                  <rect x={area.x + 20} y={area.y + 20} width={area.w - 40} height="20" fill="#cbd5e1" rx="2" opacity="0.5" />
-                  <rect x={area.x + 20} y={area.y + 60} width={area.w - 40} height="20" fill="#cbd5e1" rx="2" opacity="0.5" />
-                  <rect x={area.x + 20} y={area.y + 100} width={area.w - 40} height="20" fill="#cbd5e1" rx="2" opacity="0.5" />
+                  {ah > 60 && <rect x={ax + 20} y={ay + 20} width={aw - 40} height="20" fill="#cbd5e1" rx="2" opacity="0.5" />}
+                  {ah > 100 && <rect x={ax + 20} y={ay + 60} width={aw - 40} height="20" fill="#cbd5e1" rx="2" opacity="0.5" />}
+                  {ah > 140 && <rect x={ax + 20} y={ay + 100} width={aw - 40} height="20" fill="#cbd5e1" rx="2" opacity="0.5" />}
                   
                   <text 
-                    x={area.x + area.w / 2} 
-                    y={area.y + area.h - 20} 
+                    x={ax + aw / 2} 
+                    y={ay + ah - 20} 
                     fontSize="16" 
                     fontWeight="bold" 
                     fill="#334155" 
@@ -131,7 +153,7 @@ export default function BookShelfLocator({ shelfNumber, cupboardNumber, bookTitl
                     {area.label}
                   </text>
                 </g>
-              ))}
+              )})}
 
               {/* Target Marker */}
               <g className="animate-bounce" style={{ transformOrigin: `${target.x}px ${target.y}px`, transform: 'translateY(-10px)' }}>
