@@ -24,7 +24,7 @@ export default function ReadingHeatmap({ activityLog, year }: HeatmapProps) {
     let currentWeek: any[] = [];
     let currentDate = new Date(firstDay);
 
-    while (currentDate <= endDate || currentWeek.length > 0) {
+    while (currentDate <= endDate) {
       if (currentWeek.length === 7) {
         weeks.push(currentWeek);
         currentWeek = [];
