@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, Star } from "lucide-react";
 
-export default function Feedback() {
+export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
@@ -76,11 +76,13 @@ export default function Feedback() {
   };
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-14">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5">
-          <ArrowLeft className="h-4 w-4" /> Back to home
-        </Link>
+    <main className={isEmbedded ? "" : "min-h-screen bg-background"}>
+      <div className={`mx-auto w-full max-w-2xl ${isEmbedded ? 'pb-8' : 'px-4 py-8 sm:py-14'}`}>
+        {!isEmbedded && (
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5">
+            <ArrowLeft className="h-4 w-4" /> Back to home
+          </Link>
+        )}
 
         <div className="text-center mb-7">
           <div className="w-14 h-14 rounded-2xl gradient-primary mx-auto flex items-center justify-center mb-3">

@@ -56,11 +56,14 @@ import IssuedBooksHub from "@/components/dashboard/IssuedBooksHub";
 import { PWAControls } from "@/components/PWAControls";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
 
+import StudentPortfolio from "./StudentPortfolio";
+import Feedback from "./Feedback";
+
 type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback";
 
-const baseNavItems: { id: Tab; label: string; icon: React.ElementType; isLink?: boolean; path?: string }[] = [
+const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
-  { id: "portfolio", label: "My Portfolio", icon: FileText, isLink: true, path: "/student-portfolio" },
+  { id: "portfolio", label: "My Portfolio", icon: FileText },
   { id: "books", label: "Books", icon: BookOpen },
   { id: "issued", label: "Book Issued", icon: BookCheck },
   { id: "challenges", label: "Challenges", icon: Target },
@@ -76,7 +79,7 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType; isLink?: 
   { id: "network", label: "Network", icon: Users },
   { id: "support", label: "Help & Support", icon: LifeBuoy },
   { id: "profile", label: "Profile", icon: User },
-  { id: "feedback", label: "Feedback", icon: MessageSquare, isLink: true, path: "/feedback" },
+  { id: "feedback", label: "Feedback", icon: MessageSquare },
 ];
 
 const StudentDashboard = () => {
@@ -443,10 +446,7 @@ const StudentDashboard = () => {
 
         <nav className="flex-1 min-h-0 p-3 space-y-1 overflow-y-auto">
           {navItems.map(item => (
-            <button key={item.id} onClick={() => {
-              if (item.isLink && item.path) navigate(item.path);
-              else setActiveTab(item.id);
-            }}
+            <button key={item.id} onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === item.id ? 'gradient-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
               <item.icon className="h-4 w-4 shrink-0" />
               {item.label}
@@ -493,11 +493,7 @@ const StudentDashboard = () => {
         {mobileNavOpen && (
           <div className="bg-card border-b border-border px-4 pb-3 space-y-1">
             {navItems.map(item => (
-              <button key={item.id} onClick={() => {
-                if (item.isLink && item.path) navigate(item.path);
-                else setActiveTab(item.id);
-                setMobileNavOpen(false);
-              }}
+              <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${activeTab === item.id ? 'gradient-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
                 <item.icon className="h-4 w-4" /> {item.label}
               </button>
@@ -857,6 +853,12 @@ const StudentDashboard = () => {
           {activeTab === "network" && user?.id && <NetworkTab user={user} />}
 
           {activeTab === "support" && user?.id && <SupportCenter user={user} />}
+
+          {/* Portfolio Tab */}
+          {activeTab === "portfolio" && <StudentPortfolio />}
+
+          {/* Feedback Tab */}
+          {activeTab === "feedback" && <Feedback isEmbedded={true} />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && <StudentProfile user={user} onProfileUpdate={handleProfileUpdate} />}
