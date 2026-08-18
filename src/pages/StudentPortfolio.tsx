@@ -142,7 +142,11 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
         scale: 2, 
         useCORS: true, 
         logging: false,
-        backgroundColor: "#ffffff" // Force clean white background for light themed PDF
+        backgroundColor: "#ffffff",
+        onclone: (doc) => {
+          const hideEls = doc.querySelectorAll('.pdf-hide');
+          hideEls.forEach(el => { (el as HTMLElement).style.display = 'none'; });
+        }
       });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -220,7 +224,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2.5 sm:ml-auto w-full sm:w-auto">
+            <div className="flex flex-wrap gap-2.5 sm:ml-auto w-full sm:w-auto pdf-hide">
               <Button
                 size="sm"
                 variant="secondary"

@@ -211,7 +211,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
       </div>
 
       <Tabs defaultValue="materials">
-        <TabsList className="bg-slate-100 p-1 rounded-xl">
+        <TabsList className="bg-slate-100 p-1 rounded-xl flex-wrap h-auto">
           <TabsTrigger value="materials">Reference Materials</TabsTrigger>
           {hasNcert && <TabsTrigger value="ncert">NCERT Books (Class {baseClass})</TabsTrigger>}
           <TabsTrigger value="cbse">CBSE Curriculum</TabsTrigger>
