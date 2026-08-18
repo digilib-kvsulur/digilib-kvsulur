@@ -49,13 +49,13 @@ export default function LibrarySettings() {
   const [downloadApkUrl, setDownloadApkUrl] = useState("");
   const [downloadExeUrl, setDownloadExeUrl] = useState("");
 
-  // AI
   const [googleAiKey, setGoogleAiKey] = useState("");
+  const [libraryBotVisible, setLibraryBotVisible] = useState(true);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [fine, goal, cert, devMsg, gamesSch, downloads, aiKey, newsColor] = await Promise.all([
+      const [fine, goal, cert, devMsg, gamesSch, downloads, aiKey, newsColor, botVisible] = await Promise.all([
         fetchFineSettings(),
         fetchMonthlyReadingGoal(),
         fetchCertificateTemplateUrl(),
@@ -63,7 +63,11 @@ export default function LibrarySettings() {
         fetchGamesScheduleSettings(),
         fetchDownloadUrls(),
         fetchGoogleAiApiKey(),
-        fetchGlobalNewsColor()
+        fetchGlobalNewsColor(),
+        supabase.from("system_settings").select("value").eq("key", "library_bot_visible").maybeSingle().then(res => {
+          if (!res.data?.value) return true;
+          return res.data.value === "true" || res.data.value === true;
+        })
       ]);
       setFinePerDay(fine.finePerDay);
       setUpiId(fine.upiId);
@@ -80,6 +84,7 @@ export default function LibrarySettings() {
       setDownloadApkUrl(downloads.apkUrl);
       setDownloadExeUrl(downloads.exeUrl);
       setGoogleAiKey(aiKey);
+      setLibraryBotVisible(botVisible);
 
       const { data: zonesData } = await supabase.from("system_settings").select("value").eq("key", "library_map_zones").maybeSingle();
       if (zonesData?.value) {

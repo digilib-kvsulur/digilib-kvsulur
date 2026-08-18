@@ -257,3 +257,11 @@ export async function fetchGlobalNewsColor(): Promise<string> {
   if (!data?.value) return "blue"; // default color
   return parseJsonSetting(data.value).replace(/^"|"$/g, "");
 }
+
+export async function fetchLibraryBotVisible(): Promise<boolean> {
+  const { data } = await supabase.from("system_settings").select("value").eq("key", "library_bot_visible").maybeSingle();
+  if (!data?.value) return true; // Default to visible
+  const val = parseJsonSetting(data.value);
+  return val === "true" || val === true;
+}
+
