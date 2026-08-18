@@ -25,48 +25,48 @@ export default function Download() {
           <span className="font-semibold text-slate-800">Back</span>
         </div>
       </header>
-      <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="max-w-3xl w-full text-center space-y-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight">
+      <main className="flex-1 flex flex-col items-center justify-center py-8 px-4 md:p-8">
+        <div className="max-w-3xl w-full text-center space-y-6 md:space-y-8">
+          <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
             Take Your Library <span className="text-indigo-600">Everywhere</span>
           </h1>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          <p className="text-sm md:text-lg text-slate-600 max-w-2xl mx-auto px-2">
             Experience the full power of PM SHRI KV SULUR DLMS on your favorite device. 
             Enjoy offline features, instant notifications, and seamless studying.
           </p>
 
-          <div className="bg-indigo-100 text-indigo-800 p-6 rounded-2xl shadow-sm border border-indigo-200 inline-block">
-            <h2 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2">
-              <span className="text-3xl">🎁</span> Native App Bonus!
+          <div className="bg-indigo-50 text-indigo-900 p-4 md:p-6 rounded-2xl border border-indigo-100 shadow-xs inline-block max-w-md mx-auto">
+            <h2 className="text-lg md:text-xl font-bold mb-1 flex items-center justify-center gap-2">
+              <span className="text-2xl">🎁</span> Native App Bonus!
             </h2>
-            <p className="text-indigo-700 font-medium text-lg">
+            <p className="text-indigo-700 font-medium text-xs md:text-sm">
               Install the app and log in to receive a <strong className="text-indigo-900">One-Time 500 Points Gift</strong> instantly!
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 mt-12 max-w-2xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-12 max-w-2xl mx-auto">
             {/* Android Card */}
-            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col items-center hover:-translate-y-1 transition-transform">
-              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-6">
-                <Smartphone size={32} />
+            <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-md border border-slate-100 flex flex-col items-center hover:-translate-y-1 transition-transform">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-green-100 text-green-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6">
+                <Smartphone className="w-6 h-6 md:w-8 md:h-8" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">Android App</h3>
-              <p className="text-slate-500 mb-8">Best experience for mobile users. Fast, light, and reliable.</p>
-              <Button size="lg" className="w-full bg-green-600 hover:bg-green-700 gap-2" onClick={handleAndroidDownload}>
-                <DownloadIcon size={20} />
+              <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-1">Android App</h3>
+              <p className="text-xs md:text-sm text-slate-500 mb-6 md:mb-8">Best experience for mobile users. Fast, light, and reliable.</p>
+              <Button size="lg" className="w-full bg-green-600 hover:bg-green-700 gap-2 h-11 md:h-12 text-sm md:text-base font-bold" onClick={handleAndroidDownload}>
+                <DownloadIcon className="w-4 h-4 md:w-5 md:h-5" />
                 Download APK
               </Button>
             </div>
 
             {/* Windows Card */}
-            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col items-center hover:-translate-y-1 transition-transform">
-              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
-                <Monitor size={32} />
+            <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-md border border-slate-100 flex flex-col items-center hover:-translate-y-1 transition-transform">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-100 text-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6">
+                <Monitor className="w-6 h-6 md:w-8 md:h-8" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">Windows App</h3>
-              <p className="text-slate-500 mb-8">Perfect for desktop studying and large screen reading.</p>
-              <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 gap-2" onClick={handleWindowsDownload}>
-                <DownloadIcon size={20} />
+              <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-1">Windows App</h3>
+              <p className="text-xs md:text-sm text-slate-500 mb-6 md:mb-8">Perfect for desktop studying and large screen reading.</p>
+              <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 gap-2 h-11 md:h-12 text-sm md:text-base font-bold" onClick={handleWindowsDownload}>
+                <DownloadIcon className="w-4 h-4 md:w-5 md:h-5" />
                 Download EXE
               </Button>
             </div>

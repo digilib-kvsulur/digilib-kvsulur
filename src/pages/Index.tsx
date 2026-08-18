@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   BookOpen, BarChart3, Trophy, Target, Zap, ArrowRight, LayoutDashboard,
   Award, Clock, Sparkles, MapPin, Mail, ChevronRight, Star, Loader2, Crown, Download
@@ -73,6 +74,8 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const [showBonusDialog, setShowBonusDialog] = useState(false);
+
   // App Install Bonus Effect
   useEffect(() => {
     if (!profile || !user) return;
@@ -82,17 +85,22 @@ const Index = () => {
     
     if (isElectron || isCapacitor) {
       const storageKey = `app_bonus_claimed_${user.id}`;
-      if (!localStorage.getItem(storageKey)) {
+      // Double check metadata to ensure we don't grant it again if localStorage is cleared
+      const metadataClaimed = user.user_metadata?.app_bonus_claimed === true;
+
+      if (!localStorage.getItem(storageKey) && !metadataClaimed) {
         const giveBonus = async () => {
           const newPoints = (profile.points || 0) + 500;
           const { error } = await supabase.from('profiles').update({ points: newPoints }).eq('id', user.id);
           
           if (!error) {
+            // Permanently flag this in metadata
+            await supabase.auth.updateUser({
+              data: { app_bonus_claimed: true }
+            });
             localStorage.setItem(storageKey, 'true');
             setProfile({ ...profile, points: newPoints });
-            import("sonner").then(({ toast }) => {
-              toast.success("🎉 You received 500 Bonus Points for using our Native App!");
-            });
+            setShowBonusDialog(true);
           }
         };
         giveBonus();
@@ -637,6 +645,27 @@ const Index = () => {
         open={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
       />
+
+      <Dialog open={showBonusDialog} onOpenChange={setShowBonusDialog}>
+        <DialogContent className="max-w-md p-6 text-center rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-3xl font-extrabold text-indigo-600 flex flex-col items-center gap-2">
+              <span className="text-5xl animate-bounce">🎁</span>
+              Congratulations!
+            </DialogTitle>
+            <DialogDescription className="text-slate-600 text-lg pt-4">
+              You've successfully installed and logged into the **PM SHRI KV SULUR DLMS** Native App!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="my-6 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
+            <p className="text-indigo-900 font-bold text-2xl">+500 Points</p>
+            <p className="text-indigo-700 text-sm mt-1">First-Time App Login Bonus Credited</p>
+          </div>
+          <Button onClick={() => setShowBonusDialog(false)} className="w-full bg-indigo-600 hover:bg-indigo-700 rounded-xl h-11 text-base font-bold">
+            Start Exploring! 🚀
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       <LibraryBot suggestedPrompts={["How do I login?", "What is my admission number?", "How to reset password?", "I am a guest"]} />
     </div>
