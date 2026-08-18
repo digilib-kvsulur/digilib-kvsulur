@@ -39,6 +39,7 @@ const QuizManager = () => {
   const [showQuizForm, setShowQuizForm] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resultsLoading, setResultsLoading] = useState(true);
   const [hostingQuiz, setHostingQuiz] = useState<Quiz | null>(null);
   const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
   const { toast } = useToast();
