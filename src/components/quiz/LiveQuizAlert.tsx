@@ -29,7 +29,7 @@ export const LiveQuizAlert = () => {
       .eq('status', 'waiting')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
     
     if (data) {
       setActiveSession(data);
