@@ -27,21 +27,33 @@ export default function StudentPortfolio() {
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
     try {
+      console.log("Fetching portfolio data...");
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        console.log("No session found");
+        return;
+      }
       
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      console.log("User session:", session.user.id);
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+      }
+      
       setUser(profile);
 
       if (profile) {
+        console.log("Fetching stats for user...");
         // Fetch stats
         const [{ count: books }, { count: quizzes }, { count: badges }] = await Promise.all([
           supabase.from('reading_history').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
           supabase.from('quiz_results').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
           supabase.from('user_badges').select('*', { count: 'exact', head: true }).eq('user_id', profile.id)
         ]);
+
+        console.log("Stats fetched:", { books, quizzes, badges });
 
         setStats({
           booksRead: books || 0,
@@ -52,16 +64,22 @@ export default function StudentPortfolio() {
 
         // Mocking some heatmap data for demonstration based on history or generated
         // In a real scenario, this would group reading_history by date
-        const { data: history } = await supabase
+        const { data: history, error: historyError } = await supabase
           .from('reading_history')
           .select('completed_date')
           .eq('user_id', profile.id)
           .not('completed_date', 'is', null);
           
+        if (historyError) {
+          console.error("History fetch error:", historyError);
+        }
+          
         const grouped: Record<string, number> = {};
         (history || []).forEach(h => {
-           const d = h.completed_date.split('T')[0];
-           grouped[d] = (grouped[d] || 0) + 1;
+           if (h.completed_date) {
+             const d = h.completed_date.split('T')[0];
+             grouped[d] = (grouped[d] || 0) + 1;
+           }
         });
         
         // Ensure at least some data exists for visual demonstration if empty
@@ -72,9 +90,10 @@ export default function StudentPortfolio() {
 
         const log = Object.entries(grouped).map(([date, value]) => ({ date, value }));
         setActivityLog(log);
+        console.log("Portfolio data load complete.");
       }
     } catch (e) {
-      console.error(e);
+      console.error("Error in portfolio fetch:", e);
     } finally {
       setLoading(false);
     }

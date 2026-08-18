@@ -66,7 +66,6 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "portfolio", label: "My Portfolio", icon: FileText },
   { id: "books", label: "Books", icon: BookOpen },
   { id: "issued", label: "Book Issued", icon: BookCheck },
-  { id: "challenges", label: "Challenges", icon: Target },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "study", label: "Study Tracker", icon: Timer },
