@@ -50,7 +50,7 @@ export default function StudentPortfolio() {
         const [{ count: books }, { count: quizzes }, { count: badges }] = await Promise.all([
           supabase.from('reading_history').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
           supabase.from('quiz_results').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
-          supabase.from('user_badges').select('*', { count: 'exact', head: true }).eq('user_id', profile.id)
+          supabase.from('badge_awards').select('*', { count: 'exact', head: true }).eq('user_id', profile.id)
         ]);
 
         console.log("Stats fetched:", { books, quizzes, badges });
