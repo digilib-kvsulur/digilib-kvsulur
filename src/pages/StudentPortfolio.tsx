@@ -93,94 +93,35 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
 
       setUser(profile);
 
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const monthlyGoal = await fetchMonthlyReadingGoal();
 
-      const [
-        { count: books },
-        { count: quizzes },
-        { count: badges },
-        { count: goalsCompleted },
-        { count: monthlyRead },
-        { data: history },
-        { data: badgeAwards },
-        { data: completedChallenges },
-        { data: streakRow },
-      ] = await Promise.all([
-        supabase.from("reading_history").select("*", { count: "exact", head: true }).eq("user_id", targetUserId),
-        supabase.from("quiz_results").select("*", { count: "exact", head: true }).eq("user_id", targetUserId),
-        supabase.from("badge_awards").select("*", { count: "exact", head: true }).eq("user_id", targetUserId),
-        supabase.from("challenge_progress").select("*", { count: "exact", head: true }).eq("user_id", targetUserId).eq("is_completed", true),
-        supabase.from("reading_history").select("*", { count: "exact", head: true }).eq("user_id", targetUserId).gte("completed_date", monthStart),
-        supabase.from("reading_history").select("completed_date").eq("user_id", targetUserId).not("completed_date", "is", null),
-        supabase.from("badge_awards").select("awarded_at, badges(name, description, icon_name)").eq("user_id", targetUserId).order("awarded_at", { ascending: false }).limit(3),
-        supabase.from("challenge_progress").select("completed_at, challenges(title, reward_points)").eq("user_id", targetUserId).eq("is_completed", true).order("completed_at", { ascending: false }).limit(2),
-        supabase.from("login_streaks").select("current_streak").eq("user_id", targetUserId).maybeSingle(),
-      ]);
+      const { data: statsData } = await supabase.rpc("get_public_portfolio_data", {
+        target_user_id: targetUserId,
+      });
 
-      if (profile.student_class && profile.points != null) {
-        const { data: rankData } = await supabase.rpc("get_user_class_rank", {
-          user_class: profile.student_class,
-          user_points: profile.points || 0,
+      if (statsData) {
+        setStats({
+          booksRead: statsData.booksRead || 0,
+          quizzesPassed: statsData.quizzesPassed || 0,
+          points: statsData.points || 0,
+          badges: statsData.badges || 0,
+          goalsCompleted: statsData.goalsCompleted || 0,
+          monthlyRead: statsData.monthlyRead || 0,
+          monthlyGoal: monthlyGoal,
+          streak: statsData.streak || 0,
         });
-        if (rankData != null) setClassRank(rankData);
+
+        setClassRank(statsData.classRank || "—");
+        setActivityLog(statsData.activityLog || []);
+
+        const mappedMilestones = (statsData.milestones || []).map((m: any) => ({
+          icon: m.type === "badge" ? Award : Target,
+          color: m.type === "badge" ? "text-amber-500" : "text-emerald-500",
+          title: m.title,
+          description: m.description,
+        }));
+        setMilestones(mappedMilestones);
       }
-
-      setStats({
-        booksRead: books || 0,
-        quizzesPassed: quizzes || 0,
-        points: profile.points || 0,
-        badges: badges || 0,
-        goalsCompleted: goalsCompleted || 0,
-        monthlyRead: monthlyRead || 0,
-        monthlyGoal: monthlyGoal,
-        streak: streakRow?.current_streak || 0,
-      });
-
-      const grouped: Record<string, number> = {};
-      (history || []).forEach((h) => {
-        if (h.completed_date) {
-          const d = h.completed_date.split("T")[0];
-          grouped[d] = (grouped[d] || 0) + 1;
-        }
-      });
-      setActivityLog(Object.entries(grouped).map(([date, value]) => ({ date, value })));
-
-      const ms: Milestone[] = [];
-      (badgeAwards || []).forEach((b: any) => {
-        ms.push({
-          icon: Award,
-          color: "text-amber-500",
-          title: b.badges?.name || "Badge Earned",
-          description: b.badges?.description || "Achievement unlocked in the library program.",
-        });
-      });
-      (completedChallenges || []).forEach((c: any) => {
-        ms.push({
-          icon: Target,
-          color: "text-emerald-500",
-          title: c.challenges?.title || "Challenge Completed",
-          description: `Earned ${c.challenges?.reward_points || 0} bonus points.`,
-        });
-      });
-      if ((books || 0) >= 10) {
-        ms.push({
-          icon: BookOpen,
-          color: "text-blue-500",
-          title: "Avid Reader",
-          description: `Logged ${books} books in your reading history.`,
-        });
-      }
-      if ((quizzes || 0) >= 5) {
-        ms.push({
-          icon: Brain,
-          color: "text-purple-500",
-          title: "Quiz Champion",
-          description: `Passed ${quizzes} library quizzes.`,
-        });
-      }
-      setMilestones(ms.slice(0, 5));
     } catch (e) {
       console.error("Portfolio fetch error:", e);
     } finally {
