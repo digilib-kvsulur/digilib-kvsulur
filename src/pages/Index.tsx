@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   BookOpen, BarChart3, Trophy, Target, Zap, ArrowRight, LayoutDashboard,
-  Award, Clock, Sparkles, MapPin, Mail, ChevronRight, Star, Loader2, Crown
+  Award, Clock, Sparkles, MapPin, Mail, ChevronRight, Star, Loader2, Crown, Download
 } from "lucide-react";
 import { LifeBuoy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -256,6 +256,9 @@ const Index = () => {
             <button onClick={() => navigate("/login")} className="hover:text-indigo-600 transition-colors px-2 py-1">Quizzes</button>
             <a href="#about" className="hover:text-indigo-600 transition-colors px-2 py-1">Features</a>
             <a href="#events" className="hover:text-indigo-600 transition-colors px-2 py-1">Events</a>
+            <button onClick={() => navigate("/download")} className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors px-2 py-1">
+              <Download className="h-3.5 w-3.5" /> Get the App
+            </button>
           </nav>
           <div className="flex items-center space-x-4">
             {loading ? (

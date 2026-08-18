@@ -25,6 +25,7 @@ const PointsHistory = lazy(() => import("./pages/PointsHistory"));
 const StudentPortfolio = lazy(() => import("./pages/StudentPortfolio"));
 
 const Feedback = lazy(() => import("./pages/Feedback"));
+const Download = lazy(() => import("./pages/Download"));
 
 const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
@@ -57,6 +58,7 @@ const App = () => {
               <Route path="/catalog" element={<Catalog />} />
               <Route path="/support" element={<Support />} />
               <Route path="/feedback" element={<Feedback />} />
+              <Route path="/download" element={<Download />} />
               <Route
                 path="/student-dashboard"
                 element={(
