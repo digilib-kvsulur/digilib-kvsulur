@@ -34,11 +34,11 @@ export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, on
               key={item.id}
               type="button"
               onClick={() => onTabChange(item.id)}
-              className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors ${
-                active ? "text-primary" : "text-muted-foreground"
+              className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-all active:scale-95 rounded-xl mx-0.5 ${
+                active ? "text-primary bg-primary/8" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
             >
-              <item.icon className={`h-5 w-5 ${active ? "text-primary" : ""}`} />
+              <item.icon className={`h-5 w-5 transition-transform ${active ? "text-primary scale-110" : ""}`} />
               <span className="truncate max-w-[56px]">{item.label}</span>
             </button>
           );
@@ -46,17 +46,18 @@ export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, on
         <button
           type="button"
           onClick={onOpenMenu}
-          className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold ${
-            !isPrimaryActive ? "text-primary" : "text-muted-foreground"
+          className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-all active:scale-95 rounded-xl mx-0.5 ${
+            !isPrimaryActive ? "text-primary bg-primary/8" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
           }`}
         >
-          <Menu className="h-5 w-5" />
+          <Menu className={`h-5 w-5 transition-transform ${!isPrimaryActive ? "scale-110" : ""}`} />
           <span>More</span>
         </button>
       </div>
     </nav>
   );
 }
+
 
 export const mobileNavSections: { title: string; items: { id: Tab; label: string; icon: React.ElementType }[] }[] = [
   {

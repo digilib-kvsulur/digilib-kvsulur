@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { getAvatarUrl } from "@/lib/utils";
-import { Download, Share2, Award, BookOpen, Brain, Flame, Target, TrendingUp, Zap, Medal } from "lucide-react";
+import { Download, Share2, Award, BookOpen, Brain, Flame, Target, TrendingUp, Zap, Medal, Trophy, Star, CheckCircle2 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import LibraryCard from "@/components/student/LibraryCard";
@@ -23,6 +23,7 @@ interface PortfolioProps {
 interface Milestone {
   icon: React.ElementType;
   color: string;
+  glowColor: string;
   title: string;
   description: string;
 }
@@ -117,6 +118,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
         const mappedMilestones = (statsData.milestones || []).map((m: any) => ({
           icon: m.type === "badge" ? Award : Target,
           color: m.type === "badge" ? "text-amber-500" : "text-emerald-500",
+          glowColor: m.type === "badge" ? "shadow-amber-500/40" : "shadow-emerald-500/40",
           title: m.title,
           description: m.description,
         }));
@@ -182,6 +184,17 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
           background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
           pointer-events: none;
         }
+        .stat-glow-blue { box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2); }
+        .stat-glow-purple { box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2); }
+        .stat-glow-amber { box-shadow: 0 4px 20px rgba(245, 158, 11, 0.2); }
+        .stat-glow-emerald { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2); }
+        .timeline-glow-amber { box-shadow: 0 0 12px rgba(245, 158, 11, 0.4); }
+        .timeline-glow-emerald { box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+        @keyframes progress-glow {
+          0%, 100% { box-shadow: 0 0 8px rgba(99, 102, 241, 0.4); }
+          50% { box-shadow: 0 0 18px rgba(139, 92, 246, 0.7); }
+        }
+        .progress-glow-bar { animation: progress-glow 2.5s ease-in-out infinite; }
       `}</style>
 
       {/* Hero header — mobile-first colorful banner */}
@@ -219,9 +232,9 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
               >
                 <Share2 className="h-4 w-4 mr-1.5" /> Share Profile
               </Button>
-              <Button 
-                size="sm" 
-                className="rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 border-0 text-white flex-1 sm:flex-none h-10 font-bold transition-all shadow-lg shadow-rose-500/25" 
+              <Button
+                size="sm"
+                className="rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 border-0 text-white flex-1 sm:flex-none h-10 font-bold transition-all shadow-lg shadow-rose-500/25"
                 onClick={exportPortfolio}
               >
                 <Download className="h-4 w-4 mr-1.5" /> Export PDF
@@ -229,17 +242,20 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
             </div>
           </div>
 
+          {/* 4-col futuristic quick stats strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
             {[
-              { label: "Total XP", value: stats.points.toLocaleString(), icon: Zap, color: "text-amber-300" },
-              { label: "Class Rank", value: `#${classRank}`, icon: Medal, color: "text-cyan-300" },
-              { label: "Login Streak", value: `${stats.streak} Days`, icon: Flame, color: "text-orange-300" },
-              { label: "Books Read", value: `${stats.monthlyRead}/${stats.monthlyGoal}`, icon: Target, color: "text-pink-300" },
+              { label: "Total XP",     value: stats.points.toLocaleString(), icon: Zap,    gradient: "from-amber-400 to-orange-400" },
+              { label: "Class Rank",   value: `#${classRank}`,              icon: Medal,  gradient: "from-cyan-400 to-blue-400"   },
+              { label: "Login Streak", value: `${stats.streak} Days`,       icon: Flame,  gradient: "from-orange-400 to-red-400"  },
+              { label: "Books Read",   value: `${stats.monthlyRead}/${stats.monthlyGoal}`, icon: Target, gradient: "from-pink-400 to-rose-400" },
             ].map((s) => (
-              <div key={s.label} className="rounded-2xl bg-white/10 border border-white/10 p-4 text-center hover:scale-102 transition-transform">
-                <s.icon className={`h-5 w-5 mx-auto mb-1.5 ${s.color}`} />
+              <div key={s.label} className="rounded-2xl bg-white/10 border border-white/10 p-4 text-center hover:bg-white/15 transition-all group">
+                <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${s.gradient} flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:scale-110 transition-transform`}>
+                  <s.icon className="h-4 w-4 text-white" />
+                </div>
                 <p className="text-xl sm:text-2xl font-black text-white">{s.value}</p>
-                <p className="text-[9px] text-indigo-150 uppercase tracking-widest font-bold mt-1">{s.label}</p>
+                <p className="text-[9px] text-indigo-200 uppercase tracking-widest font-bold mt-1">{s.label}</p>
               </div>
             ))}
           </div>
@@ -248,111 +264,164 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
 
       {/* Main Container to Export (Force light background for clean printing) */}
       <div id="portfolio-container" className="space-y-6 p-4 sm:p-6 rounded-3xl bg-white border border-slate-200 shadow-xl">
-        
-        {/* Core Stats Grid */}
+
+        {/* Futuristic Core Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Total Books Logged", value: stats.booksRead, icon: BookOpen, border: "border-blue-100", bg: "bg-blue-50/55", color: "text-blue-600" },
-            { label: "Quizzes Completed", value: stats.quizzesPassed, icon: Brain, border: "border-purple-100", bg: "bg-purple-50/55", color: "text-purple-600" },
-            { label: "Badges Awarded", value: stats.badges, icon: Award, border: "border-amber-100", bg: "bg-amber-50/55", color: "text-amber-600" },
-            { label: "Reading Targets", value: stats.goalsCompleted, icon: TrendingUp, border: "border-emerald-100", bg: "bg-emerald-50/55", color: "text-emerald-600" },
+            {
+              label: "Total Books Logged", value: stats.booksRead,     icon: BookOpen,
+              gradient: "from-blue-500 to-indigo-600", bg: "bg-blue-50", border: "border-blue-100",
+              iconBg: "bg-blue-100", iconColor: "text-blue-600", glow: "stat-glow-blue"
+            },
+            {
+              label: "Quizzes Completed", value: stats.quizzesPassed, icon: Brain,
+              gradient: "from-purple-500 to-violet-600", bg: "bg-purple-50", border: "border-purple-100",
+              iconBg: "bg-purple-100", iconColor: "text-purple-600", glow: "stat-glow-purple"
+            },
+            {
+              label: "Badges Awarded",    value: stats.badges,         icon: Award,
+              gradient: "from-amber-500 to-orange-500", bg: "bg-amber-50", border: "border-amber-100",
+              iconBg: "bg-amber-100", iconColor: "text-amber-600", glow: "stat-glow-amber"
+            },
+            {
+              label: "Reading Targets",   value: stats.goalsCompleted, icon: TrendingUp,
+              gradient: "from-emerald-500 to-teal-600", bg: "bg-emerald-50", border: "border-emerald-100",
+              iconBg: "bg-emerald-100", iconColor: "text-emerald-600", glow: "stat-glow-emerald"
+            },
           ].map((s) => (
-            <Card key={s.label} className={`border ${s.border} ${s.bg} shadow-sm`}>
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 border border-slate-200">
-                  <s.icon className={`h-6 w-6 ${s.color}`} />
-                </div>
-                <div>
-                  <p className="text-2xl font-black text-slate-855">{s.value}</p>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{s.label}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div key={s.label} className={`relative overflow-hidden rounded-2xl border ${s.border} ${s.bg} ${s.glow} transition-shadow hover:shadow-lg p-5`}>
+              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${s.gradient} rounded-t-2xl`} />
+              <div className={`w-11 h-11 rounded-xl ${s.iconBg} flex items-center justify-center mb-3`}>
+                <s.icon className={`h-6 w-6 ${s.iconColor}`} />
+              </div>
+              <p className="text-3xl font-black text-slate-800">{s.value}</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">{s.label}</p>
+            </div>
           ))}
         </div>
 
-        {/* Reading Goal Progress Widget */}
-        <Card className="border border-slate-200 bg-slate-50/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
-              <Target className="h-5 w-5 text-emerald-600" /> School Reading Target Progress
-            </CardTitle>
-            <CardDescription className="text-slate-550 text-xs">
-              Currently read {stats.monthlyRead} out of school-wide {stats.monthlyGoal} books goal this month.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="relative">
-              <Progress value={monthlyProgress} className="h-3.5 bg-slate-200 rounded-full overflow-hidden border border-slate-300" />
+        {/* Animated Reading Goal Progress Widget */}
+        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-purple-50 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <Target className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">School Reading Target</p>
+                <p className="text-xs text-slate-500">Monthly goal progress</p>
+              </div>
             </div>
-            <p className="text-xs text-emerald-600 font-bold mt-2.5 flex items-center gap-1.5">
-              <span>🚀 {Math.round(monthlyProgress)}% Completed</span>
-              <span className="text-slate-500 font-medium">· Keep exploring new categories!</span>
-            </p>
-          </CardContent>
-        </Card>
+            <div className="text-right">
+              <p className="text-2xl font-black text-indigo-600">{Math.round(monthlyProgress)}%</p>
+              <p className="text-[10px] text-slate-500 font-medium">{stats.monthlyRead} of {stats.monthlyGoal} books</p>
+            </div>
+          </div>
+          <div className="relative h-3.5 rounded-full bg-slate-200 overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full progress-glow-bar transition-all duration-1000"
+              style={{ width: `${monthlyProgress}%` }}
+            />
+          </div>
+          <p className="text-xs text-emerald-600 font-bold mt-2.5 flex items-center gap-1.5">
+            {monthlyProgress >= 100
+              ? <><CheckCircle2 className="h-3.5 w-3.5" /> Goal completed! 🎉</>
+              : <><span>🚀 Keep going! {Math.max(0, stats.monthlyGoal - stats.monthlyRead)} more book(s) to reach your target.</span></>
+            }
+          </p>
+        </div>
 
         {/* Heatmap & Milestones Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            
+
             {/* Heatmap Card */}
-            <Card className="border border-slate-200 bg-slate-50/50 overflow-hidden">
-              <CardContent className="p-4 sm:p-6">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+              <div className="p-4 sm:p-6">
                 <p className="text-sm font-bold text-slate-800 mb-3">Daily Reading Velocity Grid</p>
                 <div className="rounded-2xl p-2 bg-white border border-slate-200">
                   <ReadingHeatmap activityLog={activityLog} year={new Date().getFullYear()} />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Achievements Card */}
-            <Card className="border border-slate-200 bg-slate-50/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold text-slate-800">Milestones & Badge Vault</CardTitle>
-                <CardDescription className="text-slate-500 text-xs">Track recently unlocked badges and reading challenge completion.</CardDescription>
-              </CardHeader>
-              <CardContent>
+            {/* Milestone Timeline */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+              <div className="p-4 sm:p-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <Trophy className="h-4 w-4 text-amber-500" />
+                  <p className="text-sm font-bold text-slate-800">Milestones &amp; Badge Vault</p>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">Recently unlocked badges and reading challenge completions.</p>
                 {milestones.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="relative space-y-1">
+                    {/* Vertical timeline line */}
+                    <div className="absolute left-5 top-5 bottom-5 w-px bg-gradient-to-b from-amber-200 via-indigo-200 to-emerald-200 hidden sm:block" />
                     {milestones.map((m, i) => (
-                      <div key={i} className="flex items-start gap-3.5 p-3 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-slate-355 transition-colors">
-                        <div className="p-2 rounded-xl bg-slate-50 shrink-0">
+                      <div key={i} className="flex items-start gap-4 p-3 rounded-2xl hover:bg-white hover:border hover:border-slate-200 transition-all group relative">
+                        {/* Glowing node */}
+                        <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-md ${m.glowColor} ${
+                          m.color.includes("amber") ? "bg-amber-50 timeline-glow-amber" : "bg-emerald-50 timeline-glow-emerald"
+                        }`}>
                           <m.icon className={`h-5 w-5 ${m.color}`} />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0 pt-1">
                           <p className="text-sm font-bold text-slate-800 leading-tight">{m.title}</p>
-                          <p className="text-xs text-slate-500 mt-1">{m.description}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{m.description}</p>
                         </div>
+                        <Star className={`h-3.5 w-3.5 shrink-0 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity ${m.color}`} />
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-10 rounded-2xl bg-white border border-dashed border-slate-300">
                     <Award className="h-11 w-11 mx-auto mb-3 text-slate-400" />
-                    <p className="text-sm font-bold text-slate-550">Unlock Achievements</p>
+                    <p className="text-sm font-bold text-slate-500">Unlock Achievements</p>
                     <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">Start borrow logs or complete library knowledge quizzes to start displaying milestones!</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* Right sidebar Digital Library card */}
+          {/* Right sidebar — Library card + XP summary */}
           <div className="space-y-6">
-            <Card className="border border-slate-200 bg-slate-50/50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-bold text-slate-800">Student Identification Card</CardTitle>
-                <CardDescription className="text-slate-500 text-xs">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+              <div className="p-4 pb-2">
+                <p className="text-sm font-bold text-slate-800">Student Identification Card</p>
+                <p className="text-xs text-slate-500 mt-0.5">
                   {barcode ? `Barcode ID: ${barcode}` : "Unique Digital Library Identity"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center p-3 sm:p-4">
+                </p>
+              </div>
+              <div className="flex justify-center p-3 sm:p-4">
                 <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
                   <LibraryCard user={user} />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+
+            {/* XP Summary mini card */}
+            <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-violet-50 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="h-4 w-4 text-indigo-600" />
+                <p className="text-sm font-bold text-slate-800">XP Summary</p>
+              </div>
+              <p className="text-4xl font-black text-indigo-700">{stats.points.toLocaleString()}</p>
+              <p className="text-xs text-indigo-500 font-semibold uppercase tracking-wider mt-1">Total Experience Points</p>
+              <div className="mt-4 space-y-2">
+                {[
+                  { label: "Books Logged",   value: stats.booksRead,       color: "bg-blue-500"    },
+                  { label: "Quizzes Done",   value: stats.quizzesPassed,   color: "bg-purple-500"  },
+                  { label: "Goals Achieved", value: stats.goalsCompleted,  color: "bg-emerald-500" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full ${item.color} shrink-0`} />
+                    <p className="text-xs text-slate-600 font-medium flex-1">{item.label}</p>
+                    <p className="text-xs font-black text-slate-800">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
