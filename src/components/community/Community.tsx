@@ -323,32 +323,33 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       </div>
 
       <Tabs defaultValue="feed" className="w-full">
-        <TabsList>
-          <TabsTrigger value="feed">Feed</TabsTrigger>
-          <TabsTrigger value="clubs">Book Clubs</TabsTrigger>
-        </TabsList>
-        <TabsContent value="feed" className="space-y-4 mt-4">
-      <div className="flex items-center justify-end flex-wrap gap-2">
-        <div className="flex gap-2">
-          <Dialog open={friendsOpen} onOpenChange={setFriendsOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline"><UserPlus className="h-4 w-4 mr-2" />Friends</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>My Network</DialogTitle></DialogHeader>
-              <FriendsPanel
-                currentUserId={currentUserId}
-                friendshipsMap={friendshipsMap}
-                reload={loadFriendshipsMap}
-                openProfile={(id) => { setFriendsOpen(false); setProfileDialogUser(id); }}
-              />
-            </DialogContent>
-          </Dialog>
-          <Button size="sm" className="gradient-primary border-0" onClick={() => setShowNew((s) => !s)}>
-            <Plus className="h-4 w-4 mr-2" />New Post
-          </Button>
+        <div className="flex justify-between items-center flex-wrap gap-4 mb-4">
+          <TabsList>
+            <TabsTrigger value="feed">Feed</TabsTrigger>
+            <TabsTrigger value="clubs">Book Clubs</TabsTrigger>
+          </TabsList>
+          <div className="flex gap-2">
+            <Dialog open={friendsOpen} onOpenChange={setFriendsOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline"><UserPlus className="h-4 w-4 mr-2" />Friends</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader><DialogTitle>My Network</DialogTitle></DialogHeader>
+                <FriendsPanel
+                  currentUserId={currentUserId}
+                  friendshipsMap={friendshipsMap}
+                  reload={loadFriendshipsMap}
+                  openProfile={(id) => { setFriendsOpen(false); setProfileDialogUser(id); }}
+                />
+              </DialogContent>
+            </Dialog>
+            <Button size="sm" className="gradient-primary border-0" onClick={() => setShowNew((s) => !s)}>
+              <Plus className="h-4 w-4 mr-2" />New Post
+            </Button>
+          </div>
         </div>
-      </div>
+
+        <TabsContent value="feed" className="space-y-4">
 
       {showNew && (
         <Card className="border-primary/30">

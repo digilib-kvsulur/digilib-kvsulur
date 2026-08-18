@@ -234,3 +234,26 @@ export async function fetchGamesScheduleSettings(): Promise<GamesScheduleSetting
   });
   return settings;
 }
+
+export async function fetchDownloadUrls(): Promise<{ apkUrl: string; exeUrl: string }> {
+  const { data } = await supabase.from("system_settings").select("key, value").in("key", ["download_apk_url", "download_exe_url"]);
+  let apkUrl = "";
+  let exeUrl = "";
+  (data || []).forEach((row) => {
+    if (row.key === "download_apk_url") apkUrl = parseJsonSetting(row.value).replace(/^"|"$/g, "");
+    if (row.key === "download_exe_url") exeUrl = parseJsonSetting(row.value).replace(/^"|"$/g, "");
+  });
+  return { apkUrl, exeUrl };
+}
+
+export async function fetchGoogleAiApiKey(): Promise<string> {
+  const { data } = await supabase.from("system_settings").select("value").eq("key", "google_ai_api_key").maybeSingle();
+  if (!data?.value) return "";
+  return parseJsonSetting(data.value).replace(/^"|"$/g, "");
+}
+
+export async function fetchGlobalNewsColor(): Promise<string> {
+  const { data } = await supabase.from("system_settings").select("value").eq("key", "global_news_color").maybeSingle();
+  if (!data?.value) return "blue"; // default color
+  return parseJsonSetting(data.value).replace(/^"|"$/g, "");
+}

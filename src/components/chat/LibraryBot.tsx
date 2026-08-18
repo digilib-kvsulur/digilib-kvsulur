@@ -9,7 +9,7 @@ interface Message {
   content: string;
 }
 
-export const LibraryBot = () => {
+export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Hi there! I am LibraryBot. How can I help you today?' }
@@ -26,13 +26,14 @@ export const LibraryBot = () => {
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  const sendMessage = async (overrideText?: string) => {
+    const textToSend = overrideText || input;
+    if (!textToSend.trim()) return;
 
-    const userMessage: Message = { role: 'user', content: input };
+    const userMessage: Message = { role: 'user', content: textToSend };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
-    setInput("");
+    if (!overrideText) setInput("");
     setLoading(true);
 
     try {
@@ -107,7 +108,17 @@ export const LibraryBot = () => {
           </div>
 
           {/* Input */}
-          <div className="p-3 bg-muted/30 border-t flex gap-2">
+          <div className="p-3 bg-muted/30 border-t flex flex-col gap-2">
+            {suggestedPrompts && suggestedPrompts.length > 0 && messages.length < 3 && (
+              <div className="flex flex-wrap gap-2 mb-1">
+                {suggestedPrompts.map((p, idx) => (
+                  <Button key={idx} variant="outline" size="sm" className="text-xs py-1 h-auto rounded-full" onClick={() => sendMessage(p)}>
+                    {p}
+                  </Button>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
             <Input 
               value={input} 
               onChange={e => setInput(e.target.value)} 
@@ -118,6 +129,7 @@ export const LibraryBot = () => {
             <Button size="icon" onClick={sendMessage} disabled={!input.trim() || loading} className="rounded-full shrink-0">
               <Send className="h-4 w-4" />
             </Button>
+            </div>
           </div>
         </div>
       ) : (

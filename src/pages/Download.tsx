@@ -182,14 +182,6 @@ export default function DownloadPage() {
                   >
                     <Download className="h-4 w-4" /> Download Windows App (.exe)
                   </a>
-                  <a
-                    href={`${REPO_URL}/actions`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-2 h-11 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm rounded-xl transition-all"
-                  >
-                    <ExternalLink className="h-4 w-4 text-slate-550" /> Latest Actions Artifact Build
-                  </a>
                 </div>
               </CardContent>
             </Card>
@@ -212,14 +204,6 @@ export default function DownloadPage() {
                     className="w-full inline-flex items-center justify-center gap-2 h-11 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-purple-600/20"
                   >
                     <Download className="h-4 w-4" /> Download Android App (.apk)
-                  </a>
-                  <a
-                    href={`${REPO_URL}/actions`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-2 h-11 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm rounded-xl transition-all"
-                  >
-                    <ExternalLink className="h-4 w-4 text-slate-550" /> View Builds on GitHub Actions
                   </a>
                 </div>
               </CardContent>

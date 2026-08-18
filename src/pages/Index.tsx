@@ -13,6 +13,7 @@ import event1Img from "@/assets/landing-event-1.jpg";
 import event2Img from "@/assets/landing-event-2.jpg";
 import libraryEventImg from "@/assets/library-event.jpg";
 import EventDetailModal from "@/components/dashboard/EventDetailModal";
+import { LibraryBot } from "@/components/chat/LibraryBot";
 
 interface Book {
   id: string;
@@ -305,8 +306,8 @@ const Index = () => {
                     <Button onClick={() => navigate("/login")} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
                       Open Account <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
-                    <Button onClick={() => navigate("/catalog")} variant="outline" size="lg" className="text-base px-9 py-3.5 h-14 border-slate-300 bg-white hover:bg-indigo-50/50 hover:text-indigo-600 hover:border-indigo-300 text-slate-800 rounded-xl font-bold shadow-sm transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
-                      Browse Books
+                    <Button onClick={() => navigate("/download")} variant="outline" size="lg" className="text-base px-9 py-3.5 h-14 border-slate-300 bg-white hover:bg-indigo-50/50 hover:text-indigo-600 hover:border-indigo-300 text-slate-800 rounded-xl font-bold shadow-sm transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
+                      <Download className="mr-2 h-5 w-5" /> Download App
                     </Button>
                   </>
                 ) : (
@@ -596,6 +597,8 @@ const Index = () => {
         open={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
       />
+
+      <LibraryBot suggestedPrompts={["How do I login?", "What is my admission number?", "How to reset password?", "I am a guest"]} />
     </div>
   );
 };

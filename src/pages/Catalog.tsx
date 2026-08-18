@@ -296,7 +296,7 @@ const Catalog = () => {
               className="rounded-xl border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 font-bold text-indigo-700 shadow-sm transition-all duration-200 text-xs px-3 py-1.5 h-8 sm:h-9 gap-1"
             >
               <Compass className="h-3.5 w-3.5" />
-              {viewMode === "grid" ? "Library Map" : "View Books"}
+              <span className="hidden sm:inline">{viewMode === "grid" ? "Library Map" : "View Books"}</span>
             </Button>
             <Button onClick={handleRequestNewBook} variant="outline" size="sm" className="rounded-xl border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 font-bold text-indigo-700 shadow-sm transition-all duration-200 text-xs px-3 py-1.5 h-8 sm:h-9">
               <Plus className="h-3.5 w-3.5 mr-1" /> <span className="hidden sm:inline">Request Book</span><span className="sm:hidden">Request</span>

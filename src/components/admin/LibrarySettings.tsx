@@ -13,10 +13,13 @@ import {
   fetchCertificateTemplateUrl,
   fetchDevMessageSettings,
   fetchGamesScheduleSettings,
+  fetchDownloadUrls,
+  fetchGoogleAiApiKey,
+  fetchGlobalNewsColor
 } from "@/lib/librarySettings";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, MessageSquare, Megaphone } from "lucide-react";
+import { Clock, MessageSquare, Megaphone, DownloadCloud, Key } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function LibrarySettings() {
@@ -35,21 +38,32 @@ export default function LibrarySettings() {
   const [devMessageEnabled, setDevMessageEnabled] = useState(false);
   const [devMessageTitle, setDevMessageTitle] = useState("News & Updates");
   const [devMessageBody, setDevMessageBody] = useState("");
+  const [globalNewsColor, setGlobalNewsColor] = useState("blue");
 
   // Games Schedule
   const [gamesScheduleEnabled, setGamesScheduleEnabled] = useState(false);
   const [gamesScheduleStart, setGamesScheduleStart] = useState("09:00");
   const [gamesScheduleEnd, setGamesScheduleEnd] = useState("17:00");
 
+  // App Downloads
+  const [downloadApkUrl, setDownloadApkUrl] = useState("");
+  const [downloadExeUrl, setDownloadExeUrl] = useState("");
+
+  // AI
+  const [googleAiKey, setGoogleAiKey] = useState("");
+
   const load = async () => {
     setLoading(true);
     try {
-      const [fine, goal, cert, devMsg, gamesSch] = await Promise.all([
+      const [fine, goal, cert, devMsg, gamesSch, downloads, aiKey, newsColor] = await Promise.all([
         fetchFineSettings(),
         fetchMonthlyReadingGoal(),
         fetchCertificateTemplateUrl(),
         fetchDevMessageSettings(),
         fetchGamesScheduleSettings(),
+        fetchDownloadUrls(),
+        fetchGoogleAiApiKey(),
+        fetchGlobalNewsColor()
       ]);
       setFinePerDay(fine.finePerDay);
       setUpiId(fine.upiId);
@@ -59,9 +73,13 @@ export default function LibrarySettings() {
       setDevMessageEnabled(devMsg.enable);
       setDevMessageTitle(devMsg.title);
       setDevMessageBody(devMsg.message);
+      setGlobalNewsColor(newsColor);
       setGamesScheduleEnabled(gamesSch.enable);
       setGamesScheduleStart(gamesSch.start);
       setGamesScheduleEnd(gamesSch.end);
+      setDownloadApkUrl(downloads.apkUrl);
+      setDownloadExeUrl(downloads.exeUrl);
+      setGoogleAiKey(aiKey);
 
       const { data: zonesData } = await supabase.from("system_settings").select("value").eq("key", "library_map_zones").maybeSingle();
       if (zonesData?.value) {
