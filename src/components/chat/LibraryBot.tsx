@@ -11,6 +11,7 @@ interface Message {
 
 export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Hi there! I am LibraryBot. How can I help you today?' }
   ]);
@@ -21,6 +22,16 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  useEffect(() => {
+    supabase.from("system_settings").select("value").eq("key", "library_bot_visible").maybeSingle()
+      .then(res => {
+        if (res.data?.value) {
+           const v = res.data.value;
+           setIsVisible(v === "true" || v === true);
+        }
+      });
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -59,6 +70,8 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       setLoading(false);
     }
   };
+
+  if (!isVisible) return null;
 
   return (
     <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50">

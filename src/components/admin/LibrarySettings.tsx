@@ -144,6 +144,7 @@ export default function LibrarySettings() {
         { key: "download_exe_url", value: downloadExeUrl.trim() as any },
         { key: "google_ai_api_key", value: googleAiKey.trim() as any },
         { key: "global_news_color", value: globalNewsColor.trim() as any },
+        { key: "library_bot_visible", value: libraryBotVisible as any },
       ];
       const { error } = await supabase.from("system_settings").upsert(upserts, { onConflict: "key" });
       if (error) throw error;
@@ -606,6 +607,15 @@ export default function LibrarySettings() {
             <p className="text-xs text-muted-foreground mt-1">
               Used for library assistant and book recommendations.
             </p>
+          </div>
+          <div className="space-y-1.5 pt-4 border-t border-border mt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Enable LibraryBot</Label>
+                <p className="text-xs text-muted-foreground">Show the AI chat assistant in the student dashboard and home page.</p>
+              </div>
+              <Switch checked={libraryBotVisible} onCheckedChange={setLibraryBotVisible} />
+            </div>
           </div>
         </CardContent>
       </Card>
