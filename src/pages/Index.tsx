@@ -79,33 +79,41 @@ const Index = () => {
   // App Install Bonus Effect
   useEffect(() => {
     if (!profile || !user) return;
-    
+
     const isElectron = navigator.userAgent.toLowerCase().includes('electron');
     const isCapacitor = (window as any).Capacitor?.isNativePlatform?.() || false;
-    
-    if (isElectron || isCapacitor) {
-      const storageKey = `app_bonus_claimed_${user.id}`;
-      // Double check metadata to ensure we don't grant it again if localStorage is cleared
-      const metadataClaimed = user.user_metadata?.app_bonus_claimed === true;
 
-      if (!localStorage.getItem(storageKey) && !metadataClaimed) {
-        const giveBonus = async () => {
-          const newPoints = (profile.points || 0) + 500;
-          const { error } = await supabase.from('profiles').update({ points: newPoints }).eq('id', user.id);
-          
-          if (!error) {
-            // Permanently flag this in metadata
-            await supabase.auth.updateUser({
-              data: { app_bonus_claimed: true }
-            });
-            localStorage.setItem(storageKey, 'true');
-            setProfile({ ...profile, points: newPoints });
-            setShowBonusDialog(true);
-          }
-        };
-        giveBonus();
+    if (!isElectron && !isCapacitor) return;
+
+    const checkAndGiveBonus = async () => {
+      // Always fetch FRESH user data from the server — the cached session object
+      // has stale metadata after a reinstall, so we must hit the API directly.
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      if (!freshUser) return;
+
+      // Server-side flag — survives uninstall/reinstall, localStorage wipes, etc.
+      const serverClaimed = freshUser.user_metadata?.app_bonus_claimed === true;
+      if (serverClaimed) return; // already claimed — stop here
+
+      // Grant the bonus
+      const newPoints = (profile.points || 0) + 500;
+      const { error } = await supabase
+        .from('profiles')
+        .update({ points: newPoints })
+        .eq('id', freshUser.id);
+
+      if (!error) {
+        // Write the permanent server-side flag FIRST, so even if the app is killed
+        // immediately after, the flag is already persisted on the server.
+        await supabase.auth.updateUser({ data: { app_bonus_claimed: true } });
+        // Also set localStorage as a fast local cache to skip the API call on next open
+        localStorage.setItem(`app_bonus_claimed_${freshUser.id}`, 'true');
+        setProfile({ ...profile, points: newPoints });
+        setShowBonusDialog(true);
       }
-    }
+    };
+
+    checkAndGiveBonus();
   }, [profile, user]);
 
   // Auto-scroll gallery
