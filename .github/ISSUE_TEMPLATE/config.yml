@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Community Discussion
+    url: https://github.com/YOUR_USERNAME/digilib-kvsulur/discussions
+    about: Ask questions or share ideas in our GitHub Discussions.
+  - name: 🔒 Security Vulnerability
+    url: https://github.com/YOUR_USERNAME/digilib-kvsulur/security/advisories/new
+    about: Please report security vulnerabilities via a private Security Advisory, not a public issue.
