@@ -246,7 +246,7 @@ The system serves three distinct user roles — **Students**, **Teachers**, and 
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/digilib-kvsulur.git
+git clone https://github.com/digilib-kvsulur/digilib-kvsulur.git
 cd digilib-kvsulur
 
 # 2. Install dependencies
