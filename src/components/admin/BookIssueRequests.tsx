@@ -43,8 +43,6 @@ interface BookSuggestion {
   profile?: { first_name: string; last_name: string; student_class?: string } | null;
 }
 
-const BLOCKED_CLASSES = ["6", "7"];
-
 const BookIssueRequests = () => {
   const [requests, setRequests] = useState<BookRequest[]>([]);
   const [suggestions, setSuggestions] = useState<BookSuggestion[]>([]);
@@ -132,7 +130,11 @@ const BookIssueRequests = () => {
     setSuggestions(list.map((r: any) => ({ ...r, profile: map[r.user_id] })));
   };
 
-  const isClass67 = (cls?: string) => BLOCKED_CLASSES.includes((cls || "").trim());
+  const isClass67 = (cls?: string) => {
+    if (!cls) return false;
+    const trimmed = cls.trim().toUpperCase();
+    return trimmed.startsWith("6") || trimmed.startsWith("7");
+  };
 
   /** Get all unique classes for the filter dropdown */
   const availableClasses = useMemo(() => {
@@ -570,20 +572,22 @@ const BookIssueRequests = () => {
             </div>
 
             {/* Bulk delete button */}
-            <div className="flex flex-col gap-1">
-              <Button
-                variant="destructive"
-                className="gap-2 whitespace-nowrap"
-                disabled={bulkDeleting || class67RequestCount === 0}
-                onClick={handleBulkDeleteClass67}
-              >
-                <Trash2 className="h-4 w-4" />
-                {bulkDeleting ? "Deleting…" : `Delete All Class 6 & 7 Requests (${class67RequestCount})`}
-              </Button>
-              <p className="text-[10px] text-muted-foreground text-center">
-                Permanently removes all borrow &amp; purchase requests from Class 6 &amp; 7 students.
-              </p>
-            </div>
+            {class67RequestCount > 0 && (
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="destructive"
+                  className="gap-2 whitespace-nowrap"
+                  disabled={bulkDeleting}
+                  onClick={handleBulkDeleteClass67}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {bulkDeleting ? "Deleting…" : `Delete All Class 6 & 7 Requests (${class67RequestCount})`}
+                </Button>
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Permanently removes all borrow &amp; purchase requests from Class 6 &amp; 7 students.
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
