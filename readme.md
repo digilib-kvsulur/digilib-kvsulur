@@ -1,6 +1,6 @@
 <!-- Banner -->
 <p align="center">
-  <img src="https://raw.githubusercontent.com/YOUR_USERNAME/digilib-kvsulur/main/public/logos/kv-banner.jpg" alt="KV Sulur DLMS Banner" width="100%"/>
+  <img src="https://raw.githubusercontent.com/digilib-kvsulur/digilib-kvsulur/main/public/logos/kv-banner.jpg" alt="KV Sulur DLMS Banner" width="100%"/>
 </p>
 
 <h1 align="center">KV Sulur DLMS</h1>
