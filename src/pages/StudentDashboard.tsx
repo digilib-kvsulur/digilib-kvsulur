@@ -9,7 +9,7 @@ import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck, Timer, Gamepad2, Zap, MessageSquare, Compass
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -62,7 +62,7 @@ import Feedback from "./Feedback";
 import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
 import MobileBottomNav, { mobileNavSections } from "@/components/dashboard/MobileBottomNav";
 
-type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator";
+type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -72,6 +72,7 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "study", label: "Study Tracker", icon: Timer },
+  { id: "study-guide", label: "AI Study Guide", icon: Sparkles },
   { id: "games", label: "Games Corner", icon: Gamepad2 },
   { id: "notes", label: "My Notes", icon: StickyNote },
   { id: "community", label: "Community", icon: Users },
@@ -828,6 +829,11 @@ const StudentDashboard = () => {
                  <StudyPlan userId={user.id} studentClass={user?.student_class} />
                </div>
             </div>
+          )}
+
+          {/* AI Study Guide Tab */}
+          {activeTab === "study-guide" && user?.id && (
+            <StudyGuide userId={user.id} studentClass={user?.student_class} />
           )}
 
           {/* Community (includes Book Clubs tab) */}
