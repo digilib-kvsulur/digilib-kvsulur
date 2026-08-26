@@ -201,73 +201,78 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
         .progress-glow-bar { animation: progress-glow 2.5s ease-in-out infinite; }
       `}</style>
 
-      {/* Hero header — mobile-first colorful banner */}
-      <div className="relative overflow-hidden rounded-3xl gaming-mesh-banner text-white shadow-xl border border-white/10">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-thread.png')] opacity-10" />
-        <div className="relative p-6 sm:p-10">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-            <div className="flex items-center gap-5">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white/20 bg-white/10 overflow-hidden shrink-0 flex items-center justify-center shadow-lg relative">
-                {user?.avatar_url ? (
-                  <img src={getAvatarUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
-                ) : (
-                  <span className="text-3xl font-black text-white">{user?.first_name?.[0]}</span>
-                )}
-              </div>
-              <div>
-                <Badge className="bg-white/20 hover:bg-white/30 border-0 text-white text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 mb-2">DLMS Scholar Portfolio</Badge>
-                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-none drop-shadow-md">
-                  {user?.first_name} {user?.last_name}
-                </h1>
-                <p className="text-indigo-100 text-xs sm:text-sm font-semibold mt-1.5 opacity-90">
-                  Class {user?.student_class || "—"} · Adm {user?.admission_number || "—"}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2.5 sm:ml-auto w-full sm:w-auto pdf-hide">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 flex-1 sm:flex-none h-10 font-bold transition-all"
-                onClick={() => {
-                  navigator.clipboard.writeText(shareLink);
-                  toast({ title: "Link copied!", description: "Share your portfolio using your username link." });
-                }}
-              >
-                <Share2 className="h-4 w-4 mr-1.5" /> Share Profile
-              </Button>
-              <Button
-                size="sm"
-                className="rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 border-0 text-white flex-1 sm:flex-none h-10 font-bold transition-all shadow-lg shadow-rose-500/25"
-                onClick={exportPortfolio}
-              >
-                <Download className="h-4 w-4 mr-1.5" /> Export PDF
-              </Button>
-            </div>
-          </div>
-
-          {/* 4-col futuristic quick stats strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
-            {[
-              { label: "Total XP",     value: stats.points.toLocaleString(), icon: Zap,    gradient: "from-amber-400 to-orange-400" },
-              { label: "Class Rank",   value: `#${classRank}`,              icon: Medal,  gradient: "from-cyan-400 to-blue-400"   },
-              { label: "Login Streak", value: `${stats.streak} Days`,       icon: Flame,  gradient: "from-orange-400 to-red-400"  },
-              { label: "Books Read",   value: `${stats.monthlyRead}/${stats.monthlyGoal}`, icon: Target, gradient: "from-pink-400 to-rose-400" },
-            ].map((s) => (
-              <div key={s.label} className="rounded-2xl bg-white/10 border border-white/10 p-4 text-center hover:bg-white/15 transition-all group">
-                <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${s.gradient} flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:scale-110 transition-transform`}>
-                  <s.icon className="h-4 w-4 text-white" />
-                </div>
-                <p className="text-xl sm:text-2xl font-black text-white">{s.value}</p>
-                <p className="text-[9px] text-indigo-200 uppercase tracking-widest font-bold mt-1">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Main Container to Export (Force light background for clean printing) */}
       <div id="portfolio-container" className="space-y-6 p-4 sm:p-6 rounded-3xl bg-white border border-slate-200 shadow-xl">
+        {/* Print-only Header */}
+        <div className="hidden print:block text-center border-b pb-4 mb-4">
+          <h2 className="text-2xl font-black text-slate-900">PM SHRI KENDRIYA VIDYALAYA AFS SULUR</h2>
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">Student Reading Portfolio</p>
+        </div>
+
+        {/* Hero header — mobile-first colorful banner */}
+        <div className="relative overflow-hidden rounded-3xl gaming-mesh-banner text-white shadow-xl border border-white/10">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-thread.png')] opacity-10" />
+          <div className="relative p-6 sm:p-10">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+              <div className="flex items-center gap-5">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white/20 bg-white/10 overflow-hidden shrink-0 flex items-center justify-center shadow-lg relative">
+                  {user?.avatar_url ? (
+                    <img src={getAvatarUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                  ) : (
+                    <span className="text-3xl font-black text-white">{user?.first_name?.[0]}</span>
+                  )}
+                </div>
+                <div>
+                  <Badge className="bg-white/20 hover:bg-white/30 border-0 text-white text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 mb-2">DLMS Scholar Portfolio</Badge>
+                  <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-none drop-shadow-md">
+                    {user?.first_name} {user?.last_name}
+                  </h1>
+                  <p className="text-indigo-100 text-xs sm:text-sm font-semibold mt-1.5 opacity-90">
+                    Class {user?.student_class || "—"} · Adm {user?.admission_number || "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2.5 sm:ml-auto w-full sm:w-auto pdf-hide">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 flex-1 sm:flex-none h-10 font-bold transition-all"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareLink);
+                    toast({ title: "Link copied!", description: "Share your portfolio using your username link." });
+                  }}
+                >
+                  <Share2 className="h-4 w-4 mr-1.5" /> Share Profile
+                </Button>
+                <Button
+                  size="sm"
+                  className="rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 border-0 text-white flex-1 sm:flex-none h-10 font-bold transition-all shadow-lg shadow-rose-500/25"
+                  onClick={exportPortfolio}
+                >
+                  <Download className="h-4 w-4 mr-1.5" /> Export PDF
+                </Button>
+              </div>
+            </div>
+
+            {/* 4-col futuristic quick stats strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
+              {[
+                { label: "Total XP",     value: stats.points.toLocaleString(), icon: Zap,    gradient: "from-amber-400 to-orange-400" },
+                { label: "Class Rank",   value: `#${classRank}`,              icon: Medal,  gradient: "from-cyan-400 to-blue-400"   },
+                { label: "Login Streak", value: `${stats.streak} Days`,       icon: Flame,  gradient: "from-orange-400 to-red-400"  },
+                { label: "Books Read",   value: `${stats.monthlyRead}/${stats.monthlyGoal}`, icon: Target, gradient: "from-pink-400 to-rose-400" },
+              ].map((s) => (
+                <div key={s.label} className="rounded-2xl bg-white/10 border border-white/10 p-4 text-center hover:bg-white/15 transition-all group">
+                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${s.gradient} flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:scale-110 transition-transform`}>
+                    <s.icon className="h-4 w-4 text-white" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-white">{s.value}</p>
+                  <p className="text-[9px] text-indigo-200 uppercase tracking-widest font-bold mt-1">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Futuristic Core Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

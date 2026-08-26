@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, X, Send, Loader2, Bot, User } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, Bot, User, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
@@ -59,17 +59,26 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         body: JSON.stringify({ messages: newMessages })
       });
 
-      if (!res.ok) throw new Error("Failed to get response");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server responded with status ${res.status}`);
+      }
       
       const data = await res.json();
       setMessages([...newMessages, { role: 'assistant', content: data.reply }]);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setMessages([...newMessages, { role: 'assistant', content: 'Oops! I am having trouble connecting right now.' }]);
+      const errMsg = e.message || "";
+      let userFriendlyMsg = "Oops! I am having trouble connecting right now. Please check if GEMINI_API_KEY is configured in Supabase secrets.";
+      if (errMsg.includes("GEMINI_API_KEY")) {
+        userFriendlyMsg = "AI Bot connection failed: GEMINI_API_KEY secret is not set in Supabase. Please configure it in your settings.";
+      }
+      setMessages([...newMessages, { role: 'assistant', content: userFriendlyMsg }]);
     } finally {
       setLoading(false);
     }
   };
+
 
   if (!isVisible) return null;
 
@@ -102,8 +111,26 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
                     <Bot className="h-4 w-4 text-primary" />
                   </div>
                 )}
-                <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${m.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-muted rounded-bl-sm'}`}>
-                  {m.content}
+                <div className="flex flex-col gap-1.5 max-w-[80%]">
+                  <div className={`px-4 py-2 rounded-2xl text-sm ${m.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-muted rounded-bl-sm'}`}>
+                    {m.content}
+                  </div>
+                  {m.role === 'assistant' && i === messages.length - 1 && (m.content.includes("trouble") || m.content.includes("failed")) && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        const lastUserMsg = [...messages].reverse().find(msg => msg.role === 'user');
+                        if (lastUserMsg) {
+                          setMessages(prev => prev.slice(0, -1));
+                          sendMessage(lastUserMsg.content);
+                        }
+                      }} 
+                      className="text-[10px] self-start gap-1 py-1 px-2.5 h-auto rounded-full bg-background border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <RefreshCw className="h-3 w-3" /> Retry Connection
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

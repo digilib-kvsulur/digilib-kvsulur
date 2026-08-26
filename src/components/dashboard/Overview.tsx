@@ -47,14 +47,35 @@ const Overview = ({
   const [loading, setLoading] = useState(true);
   const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
 
+  const [totalLibraryCopies, setTotalLibraryCopies] = useState(0);
+  const [totalAllTimeIssued, setTotalAllTimeIssued] = useState(0);
+
   useEffect(() => {
     if (user?.id) {
       fetchRecentActivities();
       fetchMonthlyBooksRead();
       fetchAvailableQuizzes();
+      fetchLibraryStats();
       setLoading(false);
     }
   }, [user?.id]);
+
+  const fetchLibraryStats = async () => {
+    try {
+      // 1. Get total copies count (optimised fields list)
+      const { data: booksData } = await supabase.from('books').select('total_copies');
+      const sum = booksData?.reduce((acc, book) => acc + (book.total_copies || 0), 0) || 0;
+      setTotalLibraryCopies(sum);
+
+      // 2. Get total ever issued count
+      const { count } = await supabase
+        .from('book_issues')
+        .select('id', { count: 'exact', head: true });
+      setTotalAllTimeIssued(count || 0);
+    } catch (error) {
+      console.error('Error fetching library stats:', error);
+    }
+  };
 
   const fetchAvailableQuizzes = async () => {
     try {
@@ -125,7 +146,6 @@ const Overview = ({
     try {
       const currentMonth = new Date();
       const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      // HEAD-only count: no row data transferred at all
       const { count, error } = await supabase.from('reading_history')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id).gte('completed_date', startOfMonth.toISOString().split('T')[0]);
@@ -256,34 +276,34 @@ const Overview = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Books Reading</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Books (Copies)</CardTitle>
             <BookOpen className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currentBooksCount}</div>
-            <p className="text-xs text-muted-foreground">Currently issued</p>
+            <div className="text-2xl font-bold">{totalLibraryCopies.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Total copies in library</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Issued Books</CardTitle>
+            <Trophy className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalAllTimeIssued.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Total ever issued</p>
           </CardContent>
         </Card>
 
         <Card className="border-border/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Quizzes Taken</CardTitle>
-            <Trophy className="h-4 w-4 text-success" />
+            <TrendingUp className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{quizResultsCount}</div>
             <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Activity Streak</CardTitle>
-            <TrendingUp className="h-4 w-4 text-warning" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{streakData?.currentStreak || 0}</div>
-            <p className="text-xs text-muted-foreground">days active</p>
           </CardContent>
         </Card>
       </div>

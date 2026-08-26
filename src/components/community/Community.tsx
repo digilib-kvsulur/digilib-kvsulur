@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
 import { getAvatarUrl } from "@/lib/utils";
 import BookClubs from "@/components/dashboard/BookClubs";
+import SuggestionVoting from "./SuggestionVoting";
 
 
 interface PollOption { id: string; label: string; sort_order: number; votes: number }
@@ -327,6 +328,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           <TabsList>
             <TabsTrigger value="feed">Feed</TabsTrigger>
             <TabsTrigger value="clubs">Book Clubs</TabsTrigger>
+            <TabsTrigger value="survey">Suggestions Survey</TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
             <Dialog open={friendsOpen} onOpenChange={setFriendsOpen}>
@@ -573,6 +575,10 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
         <TabsContent value="clubs" className="mt-4">
           <BookClubs userId={currentUserId} />
+        </TabsContent>
+
+        <TabsContent value="survey" className="mt-4">
+          <SuggestionVoting userId={currentUserId} isAdmin={isAdmin} />
         </TabsContent>
       </Tabs>
 

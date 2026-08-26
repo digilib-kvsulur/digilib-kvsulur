@@ -41,6 +41,7 @@ const PageLoader = () => (
 );
 
 import { SplashScreen } from "@/components/global/SplashScreen";
+import UpdateBanner from "@/components/global/UpdateBanner";
 
 const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
 const AppRouter = isNative ? HashRouter : BrowserRouter;
@@ -69,6 +70,7 @@ const App = () => {
         <Toaster />
         <Sonner position="top-right" richColors closeButton />
         <AppRouter>
+          <UpdateBanner />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />

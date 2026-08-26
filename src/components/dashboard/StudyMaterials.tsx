@@ -86,6 +86,31 @@ const SUBJECT_COLORS: Record<string, string> = {
   General: "bg-slate-100 text-slate-700",
 };
 
+const formatGoogleDriveUrl = (url: string) => {
+  if (!url) return "";
+  if (!url.includes("drive.google.com")) return url;
+  try {
+    let fileId = "";
+    if (url.includes("/file/d/")) {
+      const parts = url.split("/file/d/");
+      if (parts[1]) {
+        fileId = parts[1].split("/")[0].split("?")[0];
+      }
+    } else if (url.includes("open?id=")) {
+      const parts = url.split("open?id=");
+      if (parts[1]) {
+        fileId = parts[1].split("&")[0];
+      }
+    }
+    if (fileId) {
+      return `https://drive.google.com/file/d/${fileId}/preview`;
+    }
+  } catch (e) {
+    console.error("Error formatting Google Drive URL:", e);
+  }
+  return url;
+};
+
 const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
   const { toast } = useToast();
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -448,8 +473,21 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                     </a>
                   </Button>
                 )}
+                {viewMaterial?.url && (
+                  <Button asChild size="sm" className="h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
+                    <a href={viewMaterial.url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5 sm:mr-1.5" />
+                      <span>Open Directly</span>
+                    </a>
+                  </Button>
+                )}
               </div>
             </div>
+            {viewMaterial?.url?.includes("drive.google.com") && (
+              <p className="text-[11px] text-amber-600 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 p-2 rounded-lg mt-2 text-left font-medium leading-normal">
+                ⚠️ If you see a &quot;You need access&quot; message from Google Drive below, please click the <strong>Open Directly</strong> button above to request access or sign in to your authorized student Google account.
+              </p>
+            )}
             <p className="text-[11px] text-muted-foreground pt-1 text-left">
               Keep reading — you earn XP for every full minute you spend on this material.
             </p>
@@ -458,7 +496,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
           <div className="flex-1 bg-muted/10 w-full h-full relative">
             {viewMaterial && (
               <iframe
-                src={viewMaterial.url}
+                src={formatGoogleDriveUrl(viewMaterial.url)}
                 className="w-full h-full border-0 absolute inset-0"
                 title={viewMaterial.title}
                 allow="autoplay"

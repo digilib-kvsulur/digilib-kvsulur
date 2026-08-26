@@ -824,7 +824,7 @@ const StudentDashboard = () => {
                  <StudyTracker userId={user.id} studentClass={user?.student_class} />
                </div>
                <div>
-                 <StudyPlan />
+                 <StudyPlan userId={user.id} studentClass={user?.student_class} />
                </div>
             </div>
           )}
