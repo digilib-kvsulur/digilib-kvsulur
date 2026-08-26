@@ -42,42 +42,10 @@ ALTER TABLE public.study_materials
 CREATE INDEX IF NOT EXISTS idx_study_materials_type        ON public.study_materials(type);
 CREATE INDEX IF NOT EXISTS idx_study_materials_class_level ON public.study_materials(class_level);
 
--- ──────────────────────────────────────────────────────────────
--- 3. posts table: ensure post_type column allows suggestion types
---    SuggestionVoting inserts posts with post_type IN
---    ('suggestion_book', 'suggestion_feature')
---    The posts table has a post_type column; if it has a CHECK
---    constraint we need to expand it.
--- ──────────────────────────────────────────────────────────────
-DO $$
-BEGIN
-  -- Drop the existing post_type check constraint if it exists
-  IF EXISTS (
-    SELECT 1 FROM information_schema.constraint_column_usage
-    WHERE table_name = 'posts'
-      AND column_name = 'post_type'
-      AND constraint_name LIKE '%check%'
-  ) THEN
-    ALTER TABLE public.posts DROP CONSTRAINT IF EXISTS posts_post_type_check;
-  END IF;
-
-  -- Add a new permissive constraint that includes suggestion types
-  ALTER TABLE public.posts
-    DROP CONSTRAINT IF EXISTS posts_post_type_check;
-
-  ALTER TABLE public.posts
-    ADD CONSTRAINT posts_post_type_check
-      CHECK (post_type IN (
-        'post', 'review', 'poll', 'event', 'announcement',
-        'suggestion_book', 'suggestion_feature'
-      ));
-
-EXCEPTION
-  WHEN others THEN
-    -- If the column has no existing constraint, just move on
-    NULL;
-END;
-$$;
+-- 3. posts: drop any restrictive post_type CHECK so suggestion types work
+--    We do NOT re-add a CHECK — existing rows may have arbitrary types.
+--    An index is enough for query performance.
+ALTER TABLE public.posts DROP CONSTRAINT IF EXISTS posts_post_type_check;
 
 -- Ensure title column exists on posts (SuggestionVoting writes title)
 ALTER TABLE public.posts
