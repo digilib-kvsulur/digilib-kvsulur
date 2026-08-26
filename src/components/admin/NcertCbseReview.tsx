@@ -27,6 +27,7 @@ const SUBJECTS = [
 
 interface NcertBook {
   id: string;
+  sourceType: "ncert" | "cbse";
   class: string;
   subject: string;
   title: string;
@@ -49,28 +50,39 @@ export default function NcertCbseReview() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Form state
-  const [form, setForm] = useState({ class: "", subject: "", title: "", url: "" });
+  const [form, setForm] = useState<{sourceType: "ncert"|"cbse", class: string, subject: string, title: string, url: string}>({ sourceType: "ncert", class: "", subject: "", title: "", url: "" });
 
   useEffect(() => { loadBooks(); }, []);
 
   const loadBooks = async () => {
     setLoading(true);
-    // Uses 'study_materials' table with type = 'ncert' 
-    const { data, error } = await supabase
-      .from("study_materials")
-      .select("id, class_level, subject, title, url, created_at")
-      .eq("type", "ncert")
-      .order("class_level", { ascending: true });
-    if (error) { toast.error("Failed to load NCERT data"); setLoading(false); return; }
-    const mapped: NcertBook[] = (data || []).map((r: any) => ({
+    
+    const { data: ncertData, error: err1 } = await supabase.from("ncert_books").select("*").order("class_number", { ascending: true });
+    const { data: cbseData, error: err2 } = await supabase.from("cbse_curriculum").select("*").order("class_number", { ascending: true });
+    
+    if (err1 || err2) { toast.error("Failed to load NCERT/CBSE data"); setLoading(false); return; }
+
+    const mappedNcert: NcertBook[] = (ncertData || []).map((r: any) => ({
       id: r.id,
-      class: r.class_level,
+      sourceType: "ncert",
+      class: r.class_number,
       subject: r.subject,
-      title: r.title,
-      url: r.url,
+      title: r.chapter_title || r.book_name || "Untitled",
+      url: r.file_url,
       status: "unchecked",
     }));
-    setBooks(mapped);
+
+    const mappedCbse: NcertBook[] = (cbseData || []).map((r: any) => ({
+      id: r.id,
+      sourceType: "cbse",
+      class: r.class_number,
+      subject: r.subject,
+      title: r.chapter_title || r.category || "Untitled",
+      url: r.file_url,
+      status: "unchecked",
+    }));
+
+    setBooks([...mappedNcert, ...mappedCbse]);
     setLoading(false);
   };
 
@@ -79,31 +91,41 @@ export default function NcertCbseReview() {
       toast.error("All fields are required");
       return;
     }
-    const payload = {
-      type: "ncert",
-      class_level: form.class,
+    
+    const table = form.sourceType === "ncert" ? "ncert_books" : "cbse_curriculum";
+    const payload = form.sourceType === "ncert" ? {
+      class_number: form.class,
       subject: form.subject,
-      title: form.title,
-      url: form.url,
+      chapter_title: form.title,
+      file_url: form.url,
+      book_name: form.title, // fallback
+    } : {
+      class_number: form.class,
+      subject: form.subject,
+      chapter_title: form.title,
+      file_url: form.url,
+      category: "Manual Entry", // fallback
     };
+
     if (editBook) {
-      const { error } = await supabase.from("study_materials").update(payload).eq("id", editBook.id);
+      const { error } = await supabase.from(table).update(payload).eq("id", editBook.id);
       if (error) { toast.error("Update failed"); return; }
       toast.success("Book updated successfully");
       setEditBook(null);
     } else {
-      const { error } = await supabase.from("study_materials").insert({ ...payload });
+      const { error } = await supabase.from(table).insert(payload);
       if (error) { toast.error("Insert failed"); return; }
       toast.success("Book added successfully");
       setAddOpen(false);
     }
-    setForm({ class: "", subject: "", title: "", url: "" });
+    setForm({ sourceType: "ncert", class: "", subject: "", title: "", url: "" });
     loadBooks();
   };
 
   const handleDelete = async () => {
     if (!deleteBook) return;
-    const { error } = await supabase.from("study_materials").delete().eq("id", deleteBook.id);
+    const table = deleteBook.sourceType === "ncert" ? "ncert_books" : "cbse_curriculum";
+    const { error } = await supabase.from(table).delete().eq("id", deleteBook.id);
     if (error) { toast.error("Delete failed"); return; }
     toast.success("Deleted successfully");
     setDeleteBook(null);
@@ -159,8 +181,8 @@ export default function NcertCbseReview() {
         if (parts.length < 4) continue;
         const [cls, subject, title, url] = parts;
         if (!cls || !subject || !title || !url) continue;
-        const { error } = await supabase.from("study_materials").insert({
-          type: "ncert", class_level: cls, subject, title, url
+        const { error } = await supabase.from("ncert_books").insert({
+          class_number: cls, subject, chapter_title: title, book_name: title, file_url: url
         });
         if (!error) count++;
       }
@@ -206,12 +228,12 @@ export default function NcertCbseReview() {
   });
 
   const openEdit = (book: NcertBook) => {
-    setForm({ class: book.class, subject: book.subject, title: book.title, url: book.url });
+    setForm({ sourceType: book.sourceType, class: book.class, subject: book.subject, title: book.title, url: book.url });
     setEditBook(book);
   };
 
   const openAdd = () => {
-    setForm({ class: "", subject: "", title: "", url: "" });
+    setForm({ sourceType: "ncert", class: "", subject: "", title: "", url: "" });
     setAddOpen(true);
   };
 
@@ -328,7 +350,14 @@ export default function NcertCbseReview() {
                   <TableRow><TableCell colSpan={5} className="text-center py-10 text-muted-foreground">No NCERT books found. Click "Add Book" to add one.</TableCell></TableRow>
                 ) : filtered.map(book => (
                   <TableRow key={book.id}>
-                    <TableCell className="font-bold">Class {book.class}</TableCell>
+                    <TableCell className="font-bold">
+                      <div className="flex flex-col items-start gap-1">
+                        <Badge variant="outline" className={`text-[10px] uppercase tracking-wider ${book.sourceType === 'ncert' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
+                          {book.sourceType}
+                        </Badge>
+                        <span>Class {book.class}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>{book.subject}</TableCell>
                     <TableCell className="max-w-[240px]">
                       <div className="truncate font-medium">{book.title}</div>
@@ -374,10 +403,22 @@ export default function NcertCbseReview() {
       <Dialog open={addOpen || !!editBook} onOpenChange={(open) => { if (!open) { setAddOpen(false); setEditBook(null); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editBook ? "Edit NCERT Book" : "Add NCERT/CBSE Book"}</DialogTitle>
-            <DialogDescription>Fill in the book details and provide the PDF/Drive link.</DialogDescription>
+            <DialogTitle>{editBook ? "Edit Material" : "Add NCERT/CBSE Material"}</DialogTitle>
+            <DialogDescription>Fill in the details and provide the PDF/Drive link.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {!editBook && (
+              <div className="space-y-1.5">
+                <Label>Source Type</Label>
+                <Select value={form.sourceType} onValueChange={(v: "ncert"|"cbse") => setForm(f => ({ ...f, sourceType: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ncert">NCERT Book Chapter</SelectItem>
+                    <SelectItem value="cbse">CBSE Curriculum Material</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Class</Label>

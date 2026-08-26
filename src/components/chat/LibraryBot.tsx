@@ -69,7 +69,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     } catch (e: any) {
       console.error(e);
       const errMsg = e.message || "";
-      let userFriendlyMsg = "Oops! I am having trouble connecting right now. Please check if GEMINI_API_KEY is configured in Supabase secrets.";
+      let userFriendlyMsg = `Oops! I am having trouble connecting right now. Details: ${errMsg}`;
       if (errMsg.includes("GEMINI_API_KEY")) {
         userFriendlyMsg = "AI Bot connection failed: GEMINI_API_KEY secret is not set in Supabase. Please configure it in your settings.";
       }
