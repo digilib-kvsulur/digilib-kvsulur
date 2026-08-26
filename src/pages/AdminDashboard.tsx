@@ -54,8 +54,9 @@ import FeedbackManager from "@/components/admin/FeedbackManager";
 import BookOfTheWeek from "@/components/admin/BookOfTheWeek";
 import BookClubManager from "@/components/admin/BookClubManager";
 import StudentBarcodeGenerator from "@/components/admin/StudentBarcodeGenerator";
+import NcertCbseReview from "@/components/admin/NcertCbseReview";
 
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "ncert-cbse";
 
 const navSections = [
   {
@@ -95,6 +96,7 @@ const navSections = [
       { id: "reviews" as Tab, label: "Reviews", icon: Star },
       { id: "book-of-the-week" as Tab, label: "Book of the Week", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
+      { id: "ncert-cbse" as Tab, label: "NCERT & CBSE Data", icon: BookOpen },
       { id: "wishlist" as Tab, label: "Wishlists", icon: Star },
     ],
   },
@@ -436,6 +438,7 @@ const AdminDashboard = () => {
           {activeTab === "student-barcodes" && <StudentBarcodeGenerator />}
           {activeTab === "support" && <SupportTicketsManager />}
           {activeTab === "feedback" && <FeedbackManager />}
+          {activeTab === "ncert-cbse" && <NcertCbseReview />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>

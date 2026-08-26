@@ -27,6 +27,7 @@ import ReadingVelocity from "@/components/student/ReadingVelocity";
 import ClassCompetitions from "@/components/student/ClassCompetitions";
 import CurrentlyReading from "@/components/student/CurrentlyReading";
 import StudyPlan from "@/components/student/StudyPlan";
+import StudyGuide from "@/components/student/StudyGuide";
 import { LibraryBot } from "@/components/chat/LibraryBot";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
 import LevelUpBanner from "@/components/rewards/LevelUpBanner";
