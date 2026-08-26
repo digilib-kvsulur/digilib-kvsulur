@@ -37,8 +37,8 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async (overrideText?: string) => {
-    const textToSend = overrideText || input;
+  const sendMessage = async (overrideText?: string | React.MouseEvent) => {
+    const textToSend = typeof overrideText === 'string' ? overrideText : input;
     if (!textToSend.trim()) return;
 
     const userMessage: Message = { role: 'user', content: textToSend };

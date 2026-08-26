@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { AlertCircle, Download, ExternalLink } from "lucide-react";
 
 // Current build version of the app
-const CURRENT_VERSION = "1.0.0";
+const CURRENT_VERSION = "1.0.2";
 
 export default function UpdateBanner() {
   const navigate = useNavigate();

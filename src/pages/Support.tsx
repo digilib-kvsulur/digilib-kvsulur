@@ -118,8 +118,8 @@ export default function Support() {
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-14">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5">
-          <ArrowLeft className="h-4 w-4" /> Back to home
+        <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5">
+          <ArrowLeft className="h-4 w-4" /> Back to dashboard
         </Link>
 
         <div className="text-center mb-7">

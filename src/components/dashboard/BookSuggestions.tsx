@@ -36,6 +36,17 @@ export default function BookSuggestions({ userId, embedded = false }: Props) {
       author: form.author.trim() || null,
       reason: form.reason.trim() || null,
     });
+    
+    // Also auto-add to community survey for voting
+    if (!error) {
+      await supabase.from("posts").insert({
+        title: form.title.trim(),
+        content: `[STATUS:voting] Author: ${form.author.trim() || 'Unknown'}\n\nReason: ${form.reason.trim()}`,
+        post_type: "suggestion_book",
+        user_id: userId
+      });
+    }
+
     setSaving(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else {

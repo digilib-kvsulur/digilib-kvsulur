@@ -77,6 +77,16 @@ export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
 
       if (error) throw error;
       
+      // Auto-add feature suggestions to the community survey
+      if (form.category === "suggestion") {
+        await supabase.from("posts").insert({
+          title: form.subject.trim(),
+          content: `[STATUS:voting] ${form.description.trim()}`,
+          post_type: "suggestion_feature",
+          user_id: user?.id || null
+        });
+      }
+
       setReferenceNumber(refId);
       setSubmitted(true);
       toast({ title: "Thank you! 🎉", description: "Your feedback has been submitted successfully." });
@@ -124,8 +134,8 @@ export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
     <main className={isEmbedded ? "" : "min-h-screen bg-background"}>
       <div className={`mx-auto w-full max-w-2xl ${isEmbedded ? 'pb-8' : 'px-4 py-8 sm:py-14'}`}>
         {!isEmbedded && (
-          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5">
-            <ArrowLeft className="h-4 w-4" /> Back to home
+          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5">
+            <ArrowLeft className="h-4 w-4" /> Back to dashboard
           </Link>
         )}
 
@@ -156,8 +166,8 @@ export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
                 </div>
               )}
               <div className="flex justify-center gap-3 pt-3">
-                <Button onClick={() => navigate("/")} variant="outline">
-                  Go to Home
+                <Button onClick={() => navigate("/dashboard")} variant="outline">
+                  Go to Dashboard
                 </Button>
                 <Button
                   onClick={() => {

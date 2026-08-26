@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 /**
  * Converts a base64url string to a Uint8Array (needed to pass VAPID public key to PushManager).
@@ -19,11 +21,9 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 /**
  * Hook that:
- * 1. Requests notification permission from the browser (once per user session).
- * 2. Subscribes the browser to Web Push using the VAPID public key.
- * 3. Saves the PushSubscription object to Supabase's `push_subscriptions` table.
- *
- * Requires VITE_VAPID_PUBLIC_KEY to be set in your .env / deployment environment.
+ * 1. Requests notification permission (web or native mobile).
+ * 2. Registers push subscription (VAPID web push or Capacitor FCM token).
+ * 3. Saves it to push_subscriptions table in Supabase.
  */
 export function usePushSubscription(userId: string | null | undefined) {
   const subscribed = useRef(false);
@@ -31,6 +31,47 @@ export function usePushSubscription(userId: string | null | undefined) {
   useEffect(() => {
     if (!userId || subscribed.current) return;
 
+    // --- CASE A: Native Platform (Capacitor APK/iOS) ---
+    if (Capacitor.isNativePlatform()) {
+      const registerNative = async () => {
+        try {
+          let permStatus = await PushNotifications.checkPermissions();
+          if (permStatus.receive === 'prompt') {
+            permStatus = await PushNotifications.requestPermissions();
+          }
+          if (permStatus.receive !== 'granted') return;
+
+          await PushNotifications.register();
+
+          PushNotifications.addListener('registration', async (token) => {
+            const { error } = await supabase.from('push_subscriptions').upsert(
+              {
+                user_id: userId,
+                subscription_object: { type: 'capacitor', token: token.value } as any,
+              },
+              { onConflict: 'user_id' }
+            );
+
+            if (error) {
+              console.warn('Failed to save native FCM token:', error.message);
+            } else {
+              subscribed.current = true;
+            }
+          });
+
+          PushNotifications.addListener('registrationError', (err) => {
+            console.error('Capacitor push registration error:', err);
+          });
+        } catch (e) {
+          console.warn('Native push registration failed:', e);
+        }
+      };
+
+      registerNative();
+      return;
+    }
+
+    // --- CASE B: Web Browser (PWA/Website) ---
     const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
     if (!VAPID_PUBLIC_KEY) {
       // VAPID key not configured yet; skip silently.
@@ -42,7 +83,7 @@ export function usePushSubscription(userId: string | null | undefined) {
 
     const subscribe = async () => {
       try {
-        // 1. Request permission (browser may show its own prompt the first time)
+        // 1. Request permission
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') return;
 
@@ -70,7 +111,6 @@ export function usePushSubscription(userId: string | null | undefined) {
           subscribed.current = true;
         }
       } catch (err) {
-        // Silently fail — push is a non-critical enhancement.
         console.warn('Push subscription failed:', err);
       }
     };

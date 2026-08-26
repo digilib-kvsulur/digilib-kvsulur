@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { FileText, Upload, Trash2, Download, BookOpen, Loader2, Plus, GraduationCap, Link2, Edit2, RefreshCw, Save, X, Database, ExternalLink } from "lucide-react";
 import BulkImportMaterials from "./BulkImportMaterials";
 import BulkImportCbse from "./BulkImportCbse";
+import NcertCbseReview from "./NcertCbseReview";
 
 interface Material {
   id: string;
@@ -587,6 +588,7 @@ const StudyMaterialsManager = () => {
           <TabsTrigger value="materials">Reference Materials</TabsTrigger>
           <TabsTrigger value="ncert">NCERT Books</TabsTrigger>
           <TabsTrigger value="cbse">CBSE Curriculum</TabsTrigger>
+          <TabsTrigger value="review">NCERT & CBSE Link Review</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Reference Materials */}
@@ -992,6 +994,9 @@ const StudyMaterialsManager = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="review" className="space-y-6 mt-0">
+          <NcertCbseReview />
         </TabsContent>
       </Tabs>
 

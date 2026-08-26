@@ -146,13 +146,20 @@ const Index = () => {
       const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
       if (!error && data) {
         setProfile(data);
-        setTimeout(() => {
+        const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
+        const doRedirect = () => {
           switch (data.role) {
             case "admin": navigate("/admin-dashboard", { replace: true }); break;
             case "teacher": navigate("/teacher-dashboard", { replace: true }); break;
             case "student": navigate("/student-dashboard", { replace: true }); break;
+            default: navigate("/student-dashboard", { replace: true }); break;
           }
-        }, 500);
+        };
+        if (isNative) {
+          doRedirect();
+        } else {
+          setTimeout(doRedirect, 500);
+        }
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -262,6 +269,17 @@ const Index = () => {
     { icon: Target, title: "Monthly Goals", desc: "Set personal reading challenges and participate in classroom book marathons.", color: "bg-purple-50 text-purple-600 border-purple-100" },
     { icon: Award, title: "Quizzes & Badges", desc: "Test your comprehension with integrated book quizzes and showcase awards on your cabinet.", color: "bg-cyan-50 text-cyan-600 border-cyan-100" },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto mb-4" />
+          <p className="text-sm text-slate-500 font-medium">Loading DLMS...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-indigo-500/20 selection:text-indigo-900 overflow-x-hidden">

@@ -60,6 +60,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [profileDialogUser, setProfileDialogUser] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const [activeTab, setActiveTab] = useState("feed");
+  const [hasClubs, setHasClubs] = useState(true);
+
   const loadFriendshipsMap = async () => {
     const { data } = await supabase.from("friendships")
       .select("requester_id, addressee_id, status")
@@ -119,6 +122,11 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   const load = async () => {
     setLoading(true);
+    
+    // Check if there are any book clubs
+    const { count: clubCount } = await supabase.from("book_clubs").select("*", { count: 'exact', head: true }).eq("is_active", true);
+    setHasClubs((clubCount || 0) > 0);
+
     const { data: postsData } = await supabase
       .from("posts")
       .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at")
@@ -323,11 +331,11 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         </div>
       </div>
 
-      <Tabs defaultValue="feed" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex justify-between items-center flex-wrap gap-4 mb-4">
           <TabsList>
             <TabsTrigger value="feed">Feed</TabsTrigger>
-            <TabsTrigger value="clubs">Book Clubs</TabsTrigger>
+            {hasClubs && <TabsTrigger value="clubs">Book Clubs</TabsTrigger>}
             <TabsTrigger value="survey">Suggestions Survey</TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
@@ -345,9 +353,11 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 />
               </DialogContent>
             </Dialog>
-            <Button size="sm" className="gradient-primary border-0" onClick={() => setShowNew((s) => !s)}>
-              <Plus className="h-4 w-4 mr-2" />New Post
-            </Button>
+            {activeTab === "feed" && (
+              <Button size="sm" className="gradient-primary border-0" onClick={() => setShowNew((s) => !s)}>
+                <Plus className="h-4 w-4 mr-2" />New Post
+              </Button>
+            )}
           </div>
         </div>
 

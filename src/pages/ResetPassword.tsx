@@ -66,7 +66,7 @@ const ResetPassword = () => {
             <BookOpen className="h-7 w-7 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-foreground">KV Sulur Library</h1>
+            <h1 className="text-lg font-bold text-foreground">DLMS KV Sulur</h1>
             <p className="text-xs text-muted-foreground">Digital Library System</p>
           </div>
         </div>

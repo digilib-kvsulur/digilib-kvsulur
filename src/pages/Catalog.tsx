@@ -271,7 +271,7 @@ const Catalog = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md shadow-xs">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center space-x-2.5 cursor-pointer" onClick={() => navigate("/")}>
+          <div className="flex items-center space-x-2.5 cursor-pointer" onClick={() => navigate("/dashboard")}>
             {/* Dual Logo Placeholders */}
             <div className="flex items-center -space-x-2 shrink-0">
               <div className="relative w-8 h-8 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs" title="PM SHRI Logo">
@@ -284,7 +284,7 @@ const Catalog = () => {
               </div>
             </div>
             <div>
-              <h1 className="text-xs font-black tracking-tight text-slate-900 leading-none">KV Sulur Library</h1>
+              <h1 className="text-xs font-black tracking-tight text-slate-900 leading-none">DLMS KV Sulur</h1>
               <p className="text-[8px] text-indigo-600 font-bold uppercase tracking-wider mt-0.5">Catalog</p>
             </div>
           </div>
@@ -302,8 +302,8 @@ const Catalog = () => {
               <Plus className="h-3.5 w-3.5 mr-1" /> <span className="hidden sm:inline">Request Book</span><span className="sm:hidden">Request</span>
             </Button>
             <BookRequestForm open={showRequestDialog} onOpenChange={setShowRequestDialog} onSuccess={() => setShowRequestDialog(false)} />
-            <Button onClick={() => navigate("/")} variant="ghost" size="sm" className="rounded-xl text-slate-600 font-bold hover:text-indigo-600 hover:bg-indigo-50 text-xs px-3 py-1.5 h-8 sm:h-9">
-              Home
+            <Button onClick={() => navigate("/dashboard")} variant="ghost" size="sm" className="rounded-xl text-slate-600 font-bold hover:text-indigo-600 hover:bg-indigo-50 text-xs px-3 py-1.5 h-8 sm:h-9">
+              Dashboard
             </Button>
           </div>
         </div>

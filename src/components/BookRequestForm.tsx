@@ -48,6 +48,23 @@ const BookRequestForm = ({ open, onOpenChange, onSuccess }: BookRequestFormProps
       });
       if (error) throw error;
 
+      // Auto-add to book_suggestions table
+      await supabase.from("book_suggestions").insert({
+        title: formData.title,
+        author: formData.author || null,
+        reason: formData.reason || formData.description || null,
+        user_id: user.id,
+        status: "pending"
+      });
+
+      // Auto-add to posts table for survey
+      await supabase.from("posts").insert({
+        title: formData.title,
+        content: `[STATUS:voting] Author: ${formData.author}\n\nReason: ${formData.reason || formData.description || 'Request via Catalog'}`,
+        post_type: "suggestion_book",
+        user_id: user.id
+      });
+
       toast({ title: "Request Submitted! 🎉", description: "Your book request has been sent to the admin for review." });
       resetForm();
       onOpenChange(false);

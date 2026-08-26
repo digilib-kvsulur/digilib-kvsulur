@@ -3,9 +3,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
+import { supabase } from "@/integrations/supabase/client";
 
 import DeveloperMessagePopup from "@/components/global/DeveloperMessagePopup";
 
@@ -46,6 +47,32 @@ import UpdateBanner from "@/components/global/UpdateBanner";
 const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
 const AppRouter = isNative ? HashRouter : BrowserRouter;
 
+const DashboardRedirect = () => {
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      if (session) {
+        supabase.from("profiles").select("role").eq("id", session.user.id).single()
+          .then(({ data }) => {
+            if (!mounted) return;
+            if (data?.role === "admin") setRedirectTo("/admin-dashboard");
+            else if (data?.role === "teacher") setRedirectTo("/teacher-dashboard");
+            else setRedirectTo("/student-dashboard");
+          });
+      } else {
+        setRedirectTo("/");
+      }
+    });
+    return () => { mounted = false; };
+  }, []);
+
+  if (!redirectTo) return <PageLoader />;
+  return <Navigate to={redirectTo} replace />;
+};
+
 const App = () => {
   const [showSplash, setShowSplash] = useState(isNative); // only show splash in native apps by default
 
@@ -74,6 +101,7 @@ const App = () => {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<DashboardRedirect />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/catalog" element={<Catalog />} />

@@ -1,7 +1,7 @@
 import {
   Home, BookOpen, Search, FileText, Menu, Target, Brain, User,
   BookCheck, Compass, Timer, Award, Medal, CalendarDays, Users,
-  StickyNote, LifeBuoy, MessageSquare, Gamepad2, GraduationCap
+  StickyNote, LifeBuoy, MessageSquare, Gamepad2, GraduationCap, Sparkles
 } from "lucide-react";
 
 type Tab = string;
@@ -74,6 +74,7 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
     title: "Learning",
     items: [
       { id: "materials", label: "Study Materials", icon: GraduationCap },
+      { id: "study-guide", label: "AI Study Guide", icon: Sparkles },
       { id: "study", label: "Study Tracker", icon: Timer },
       { id: "quizzes", label: "Quizzes", icon: Brain },
       { id: "badges", label: "Badge Cabinet", icon: Award },

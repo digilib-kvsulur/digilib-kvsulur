@@ -484,7 +484,7 @@ const StudentDashboard = () => {
             <button onClick={() => setMobileNavOpen(!mobileNavOpen)} className="p-1.5 rounded-lg hover:bg-muted">
               {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <span className="font-bold text-sm text-foreground">KV Sulur Library</span>
+            <span className="font-bold text-sm text-foreground">DLMS KV Sulur</span>
           </div>
           <div className="flex items-center gap-1">
             <PWAControls userId={user?.id} />
@@ -526,7 +526,7 @@ const StudentDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-10 pb-24 lg:pb-0 lg:ml-64 lg:pt-4">
+      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-16 pb-24 lg:pb-0 lg:ml-64 lg:pt-4">
         <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 

@@ -54,9 +54,7 @@ import FeedbackManager from "@/components/admin/FeedbackManager";
 import BookOfTheWeek from "@/components/admin/BookOfTheWeek";
 import BookClubManager from "@/components/admin/BookClubManager";
 import StudentBarcodeGenerator from "@/components/admin/StudentBarcodeGenerator";
-import NcertCbseReview from "@/components/admin/NcertCbseReview";
-
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "ncert-cbse";
+type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
 
 const navSections = [
   {
@@ -96,7 +94,6 @@ const navSections = [
       { id: "reviews" as Tab, label: "Reviews", icon: Star },
       { id: "book-of-the-week" as Tab, label: "Book of the Week", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
-      { id: "ncert-cbse" as Tab, label: "NCERT & CBSE Data", icon: BookOpen },
       { id: "wishlist" as Tab, label: "Wishlists", icon: Star },
     ],
   },
@@ -275,7 +272,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0">
+      <main className="flex-1 lg:ml-64 pt-16 lg:pt-0">
         <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
 
           {/* Overview */}
@@ -438,7 +435,6 @@ const AdminDashboard = () => {
           {activeTab === "student-barcodes" && <StudentBarcodeGenerator />}
           {activeTab === "support" && <SupportTicketsManager />}
           {activeTab === "feedback" && <FeedbackManager />}
-          {activeTab === "ncert-cbse" && <NcertCbseReview />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>
