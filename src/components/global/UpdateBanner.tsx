@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { AlertCircle, Download, ExternalLink } from "lucide-react";
+import { Download, ExternalLink } from "lucide-react";
 
 // Current build version of the app
 const CURRENT_VERSION = "1.0.2";
@@ -61,30 +61,65 @@ export default function UpdateBanner() {
   if (isForced) {
     return (
       <Dialog open={true}>
-        <DialogContent className="max-w-md p-6 [&>button]:hidden">
-          <DialogHeader className="flex flex-col items-center text-center space-y-3">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-950/20 text-red-600 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 animate-pulse" />
+        <DialogContent className="
+          p-0 overflow-hidden border-0 shadow-2xl
+          w-[calc(100vw-2rem)] max-w-sm mx-auto
+          rounded-2xl
+          [&>button]:hidden
+          bottom-4 sm:bottom-auto
+          fixed sm:relative
+        ">
+          {/* Gradient top strip */}
+          <div className="bg-gradient-to-br from-indigo-600 via-indigo-500 to-violet-600 px-6 pt-8 pb-10 text-center relative overflow-hidden">
+            {/* Decorative rings */}
+            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
+            <div className="absolute -bottom-8 -left-4 w-24 h-24 rounded-full bg-white/10" />
+
+            {/* Icon */}
+            <div className="relative z-10 mx-auto mb-4 w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center ring-4 ring-white/30">
+              <Download className="w-8 h-8 text-white" />
             </div>
-            <DialogTitle className="text-xl font-black text-slate-900 dark:text-slate-100">
+
+            {/* Version badge */}
+            <span className="relative z-10 inline-block bg-white/25 text-white text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-3">
+              v{serverVersion} Available
+            </span>
+
+            <DialogTitle className="relative z-10 text-white text-xl font-black leading-tight">
               Update Required 🚀
             </DialogTitle>
-            <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
-              A newer, critical version of PM SHRI KV Sulur Digital Library App (v{serverVersion}) is available. 
-              Please download and install it to continue using the library.
+            <DialogDescription className="relative z-10 text-indigo-100 text-sm mt-2 leading-relaxed">
+              A critical new version of the DLMS app is ready. Please update to continue.
             </DialogDescription>
-          </DialogHeader>
-          <div className="pt-4 flex flex-col gap-2.5">
-            <Button onClick={handleUpdate} size="lg" className="w-full gap-2 font-bold bg-indigo-600 hover:bg-indigo-700">
-              <Download className="w-4 h-4" /> Update Now
+          </div>
+
+          {/* Body */}
+          <div className="bg-white dark:bg-slate-900 px-5 py-5 space-y-3">
+            {/* What's changed callout */}
+            <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 rounded-xl px-4 py-3">
+              <p className="text-xs font-bold text-indigo-700 dark:text-indigo-400 mb-1">Why update?</p>
+              <ul className="text-xs text-indigo-600 dark:text-indigo-300 space-y-0.5 list-disc list-inside">
+                <li>New features &amp; improvements</li>
+                <li>Bug fixes &amp; stability</li>
+                <li>Security enhancements</li>
+              </ul>
+            </div>
+
+            {/* CTA buttons */}
+            <Button
+              onClick={handleUpdate}
+              size="lg"
+              className="w-full gap-2 font-bold bg-indigo-600 hover:bg-indigo-700 text-white h-12 rounded-xl text-base"
+            >
+              <Download className="w-5 h-5" /> Update Now
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full text-xs" 
+
+            <button
+              className="w-full flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 py-1 transition-colors"
               onClick={() => window.open("https://github.com/digilib-kvsulur/digilib-kvsulur/releases", "_blank")}
             >
-              View Releases <ExternalLink className="w-3.5 h-3.5 ml-1" />
-            </Button>
+              View release notes <ExternalLink className="w-3 h-3" />
+            </button>
           </div>
         </DialogContent>
       </Dialog>
