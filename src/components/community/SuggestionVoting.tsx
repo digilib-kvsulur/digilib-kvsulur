@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, Check, X, ThumbsUp, Plus, Lightbulb, BookOpen, Clock, Loader2, Trash2 } from "lucide-react";
+import { Flame, Check, X, ThumbsUp, Plus, Lightbulb, BookOpen, Clock, Loader2, Trash2, Settings } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface SuggestionPost {
   id: string;
@@ -24,16 +25,33 @@ interface SuggestionPost {
   cleanContent: string;
 }
 
+interface Category {
+  id: string;
+  label: string;
+  icon?: string; // 'book' | 'feature' | 'event' | 'other'
+}
+
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: "book", label: "Book Suggestions", icon: "book" },
+  { id: "feature", label: "Feature Suggestions", icon: "feature" }
+];
+
 export default function SuggestionVoting({ userId, isAdmin }: { userId: string; isAdmin: boolean }) {
   const { toast } = useToast();
   const [suggestions, setSuggestions] = useState<SuggestionPost[]>([]);
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
+  const [activeSubTab, setActiveSubTab] = useState<string>("book");
   const [loading, setLoading] = useState(true);
-  const [activeSubTab, setActiveSubTab] = useState<"book" | "feature">("book");
-  
+
   // Form states
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ title: "", author: "", details: "" });
+
+  // Admin Manage Categories States
+  const [showManageModal, setShowManageModal] = useState(false);
+  const [newCatId, setNewCatId] = useState("");
+  const [newCatLabel, setNewCatLabel] = useState("");
 
   const getStatusAndContent = (content: string) => {
     if (content.startsWith("[STATUS:")) {
@@ -45,14 +63,39 @@ export default function SuggestionVoting({ userId, isAdmin }: { userId: string; 
     return { status: "voting", cleanContent: content };
   };
 
+  const loadCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "suggestion_categories")
+        .maybeSingle();
+      if (data?.value) {
+        const parsed = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCategories(parsed);
+          // Auto select first category if current isn't in list
+          if (!parsed.some(c => c.id === activeSubTab)) {
+            setActiveSubTab(parsed[0].id);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error loading categories:", e);
+    }
+  };
+
   const loadSuggestions = async () => {
     setLoading(true);
     try {
-      // 1. Fetch suggestions from posts table
+      // 1. Fetch categories
+      await loadCategories();
+
+      // 2. Fetch suggestions from posts table matching suggestion_%
       const { data: postsData, error } = await supabase
         .from("posts")
         .select("id, title, content, user_id, created_at, post_type")
-        .in("post_type", ["suggestion_book", "suggestion_feature"])
+        .like("post_type", "suggestion_%")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -131,7 +174,7 @@ export default function SuggestionVoting({ userId, isAdmin }: { userId: string; 
 
     setSubmitting(true);
     try {
-      const type = activeSubTab === "book" ? "suggestion_book" : "suggestion_feature";
+      const type = `suggestion_${activeSubTab}`;
       const displayContent = activeSubTab === "book" 
         ? `[STATUS:voting] Author: ${form.author.trim() || 'Unknown'}\n\nReason: ${form.details.trim()}`
         : `[STATUS:voting] ${form.details.trim()}`;
@@ -211,34 +254,133 @@ export default function SuggestionVoting({ userId, isAdmin }: { userId: string; 
     }
   };
 
-  const filtered = suggestions.filter(p => 
-    activeSubTab === "book" ? p.post_type === "suggestion_book" : p.post_type === "suggestion_feature"
-  );
+  const handleAddCategory = async () => {
+    if (!newCatId.trim() || !newCatLabel.trim()) return;
+    const cleanId = newCatId.toLowerCase().trim().replace(/[^a-z0-9_-]/g, "");
+    if (categories.some(c => c.id === cleanId)) {
+      toast({ title: "Tab already exists", variant: "destructive" });
+      return;
+    }
+
+    const updated = [...categories, { id: cleanId, label: newCatLabel.trim() }];
+    try {
+      const { error } = await supabase
+        .from("system_settings")
+        .upsert([{ key: "suggestion_categories", value: updated as any }], { onConflict: "key" });
+      if (error) throw error;
+      setCategories(updated);
+      setNewCatId("");
+      setNewCatLabel("");
+      toast({ title: "Tab added successfully" });
+    } catch (e: any) {
+      toast({ title: "Failed to add tab", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteCategory = async (catId: string) => {
+    if (catId === "book" || catId === "feature") {
+      toast({ title: "Cannot delete default tabs", variant: "destructive" });
+      return;
+    }
+    if (!confirm(`Are you sure you want to delete the "${catId}" tab? Existing suggestions in this tab will remain in the database but won't be displayed.`)) return;
+
+    const updated = categories.filter(c => c.id !== catId);
+    try {
+      const { error } = await supabase
+        .from("system_settings")
+        .upsert([{ key: "suggestion_categories", value: updated as any }], { onConflict: "key" });
+      if (error) throw error;
+      setCategories(updated);
+      if (activeSubTab === catId) {
+        setActiveSubTab(updated[0]?.id || "book");
+      }
+      toast({ title: "Tab deleted successfully" });
+    } catch (e: any) {
+      toast({ title: "Failed to delete tab", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const filtered = suggestions.filter(p => p.post_type === `suggestion_${activeSubTab}`);
+
+  const activeCategory = categories.find(c => c.id === activeSubTab) || { id: "general", label: "General" };
 
   return (
     <div className="space-y-4">
       {/* Tab controls */}
       <div className="flex justify-between items-center flex-wrap gap-2">
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            size="sm" 
-            variant={activeSubTab === "book" ? "default" : "outline"}
-            onClick={() => { setActiveSubTab("book"); setShowForm(false); }}
-            className="rounded-full"
-          >
-            <BookOpen className="h-4 w-4 mr-1.5" /> Book Suggestions
-          </Button>
-          <Button 
-            size="sm" 
-            variant={activeSubTab === "feature" ? "default" : "outline"}
-            onClick={() => { setActiveSubTab("feature"); setShowForm(false); }}
-            className="rounded-full"
-          >
-            <Lightbulb className="h-4 w-4 mr-1.5" /> Feature suggestions
-          </Button>
+        <div className="flex flex-wrap gap-2 items-center">
+          {categories.map(cat => {
+            const Icon = cat.id === "book" ? BookOpen : Lightbulb;
+            return (
+              <Button 
+                key={cat.id}
+                size="sm" 
+                variant={activeSubTab === cat.id ? "default" : "outline"}
+                onClick={() => { setActiveSubTab(cat.id); setShowForm(false); }}
+                className="rounded-full gap-1.5"
+              >
+                <Icon className="h-4 w-4" />
+                <span>{cat.label}</span>
+              </Button>
+            );
+          })}
+
+          {isAdmin && (
+            <Dialog open={showManageModal} onOpenChange={setShowManageModal}>
+              <DialogTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full border border-dashed border-muted-foreground/30 hover:bg-muted">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-base font-bold">Manage Suggestion Tabs</DialogTitle>
+                  <DialogDescription className="text-xs">
+                    Create new tabs or delete existing custom tabs. Default tabs (Book, Feature) cannot be deleted.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  {/* List existing */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Active Tabs</Label>
+                    <div className="border rounded-lg divide-y text-sm max-h-[150px] overflow-y-auto">
+                      {categories.map(c => (
+                        <div key={c.id} className="flex justify-between items-center px-3 py-1.5">
+                          <span className="font-medium">{c.label} <code className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">({c.id})</code></span>
+                          {c.id !== "book" && c.id !== "feature" && (
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteCategory(c.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Add new tab form */}
+                  <div className="border-t pt-3 space-y-3">
+                    <h4 className="text-xs font-bold text-foreground">Create Custom Tab</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[10px] font-semibold">Tab Key (Lowercase, no spaces)</Label>
+                        <Input placeholder="e.g. event" value={newCatId} onChange={e => setNewCatId(e.target.value)} className="h-8 text-xs" />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-semibold">Display Label</Label>
+                        <Input placeholder="e.g. Event Ideas" value={newCatLabel} onChange={e => setNewCatLabel(e.target.value)} className="h-8 text-xs" />
+                      </div>
+                    </div>
+                    <Button onClick={handleAddCategory} className="w-full h-8 text-xs font-semibold" disabled={!newCatId || !newCatLabel}>
+                      Add Tab
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
         <Button size="sm" onClick={() => setShowForm(!showForm)} className="gradient-primary border-0 rounded-full">
-          <Plus className="h-4 w-4 mr-1.5" /> Suggest {activeSubTab === "book" ? "Book" : "Feature"}
+          <Plus className="h-4 w-4 mr-1.5" /> Suggest {activeCategory.label.replace(" Suggestions", "")}
         </Button>
       </div>
 
@@ -247,7 +389,7 @@ export default function SuggestionVoting({ userId, isAdmin }: { userId: string; 
         <Card className="border-indigo-100 shadow-sm animate-in fade-in-50 slide-in-from-top-3">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-bold">
-              Suggest a new {activeSubTab === "book" ? "Book to Buy" : "App Feature"}
+              Suggest a new {activeCategory.label.replace(" Suggestions", "")}
             </CardTitle>
             <CardDescription className="text-xs">
               Students and teachers will see this in the public survey to upvote it.
@@ -256,11 +398,11 @@ export default function SuggestionVoting({ userId, isAdmin }: { userId: string; 
           <CardContent>
             <form onSubmit={handleCreateSuggestion} className="space-y-3">
               <div>
-                <Label className="text-xs font-semibold">{activeSubTab === "book" ? "Book Title *" : "Feature Name *"}</Label>
+                <Label className="text-xs font-semibold">{activeSubTab === "book" ? "Book Title *" : "Suggestion Title *"}</Label>
                 <Input 
                   value={form.title} 
                   onChange={e => setForm({ ...form, title: e.target.value })} 
-                  placeholder={activeSubTab === "book" ? "e.g. Harry Potter & The Sorcerer's Stone" : "e.g. Dark Mode Theme"} 
+                  placeholder={activeSubTab === "book" ? "e.g. Harry Potter & The Sorcerer's Stone" : "e.g. New chess boards or general request"} 
                   required 
                 />
               </div>
@@ -277,11 +419,11 @@ export default function SuggestionVoting({ userId, isAdmin }: { userId: string; 
               )}
 
               <div>
-                <Label className="text-xs font-semibold">{activeSubTab === "book" ? "Why should we buy this book? *" : "Describe the feature and how it helps students *"}</Label>
+                <Label className="text-xs font-semibold">{activeSubTab === "book" ? "Why should we buy this book? *" : "Describe your suggestion and how it helps students *"}</Label>
                 <Textarea 
                   value={form.details} 
                   onChange={e => setForm({ ...form, details: e.target.value })} 
-                  placeholder={activeSubTab === "book" ? "e.g. Recommended for competitive exams or high student demand..." : "e.g. Add a direct notes sharing tool inside the study dashboard..."} 
+                  placeholder={activeSubTab === "book" ? "e.g. Recommended for competitive exams or high student demand..." : "e.g. Please outline details of what is needed and benefits..."} 
                   rows={3}
                   required 
                 />

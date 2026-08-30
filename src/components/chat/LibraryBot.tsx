@@ -220,6 +220,43 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   };
 
 
+  const renderFormattedMessage = (content: string) => {
+    if (!content) return null;
+    const lines = content.split('\n');
+    return lines.map((line, lineIdx) => {
+      const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('* ');
+      const isNumbered = /^\d+\.\s/.test(line.trim());
+      
+      const parseBold = (text: string) => {
+        const parts = text.split(/\*\*([^*]+)\*\*/g);
+        return parts.map((part, partIdx) => {
+          if (partIdx % 2 === 1) {
+            return <strong key={partIdx} className="font-extrabold text-foreground dark:text-white">{part}</strong>;
+          }
+          return part;
+        });
+      };
+
+      return (
+        <div key={lineIdx} className={`${isBullet || isNumbered ? 'pl-2 my-0.5' : 'my-0.5'} min-h-[1.1rem] break-words`}>
+          {isBullet ? (
+            <span className="flex items-start gap-1">
+              <span className="text-primary font-bold">•</span>
+              <span>{parseBold(line.trim().replace(/^[•\-\*]\s*/, ''))}</span>
+            </span>
+          ) : isNumbered ? (
+            <span className="flex items-start gap-1">
+              <span className="font-bold text-primary">{line.trim().match(/^\d+\./)?.[0]}</span>
+              <span>{parseBold(line.trim().replace(/^\d+\.\s*/, ''))}</span>
+            </span>
+          ) : (
+            parseBold(line)
+          )}
+        </div>
+      );
+    });
+  };
+
   if (!isVisible) return null;
 
   return (
@@ -253,7 +290,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
                 )}
                 <div className="flex flex-col gap-1.5 max-w-[80%]">
                   <div className={`px-4 py-2 rounded-2xl text-sm ${m.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-muted rounded-bl-sm'}`}>
-                    {m.content}
+                    {renderFormattedMessage(m.content)}
                   </div>
                   {m.role === 'assistant' && i === messages.length - 1 && (m.content.includes("trouble") || m.content.includes("failed")) && (
                     <Button 

@@ -18,24 +18,18 @@ CREATE TABLE IF NOT EXISTS public.monthly_leaderboard_history (
 -- Trigger function to automatically keep monthly_points in sync with points delta
 CREATE OR REPLACE FUNCTION public.sync_monthly_points()
 RETURNS TRIGGER AS $$
+DECLARE
+  old_pts integer := COALESCE(OLD.points, 0);
+  new_pts integer := COALESCE(NEW.points, 0);
+  delta integer := 0;
 BEGIN
   IF NEW.points IS DISTINCT FROM OLD.points THEN
-    -- Only sync if NEW.points is set. Handles COALESCE fallback.
-    DECLARE
-      old_pts integer := COALESCE(OLD.points, 0);
-      new_pts integer := COALESCE(NEW.points, 0);
-      delta integer := new_pts - old_pts;
-    BEGIN
-      -- We check a session variable or flag if we want to skip sync during resets,
-      -- but since reset clears points (or sets monthly_points to 0 directly),
-      -- we only update monthly_points if points has changed and monthly_points is not being reset.
-      -- During a points change:
-      IF delta > 0 THEN
-        NEW.monthly_points := COALESCE(NEW.monthly_points, 0) + delta;
-      ELSIF delta < 0 THEN
-        NEW.monthly_points := GREATEST(0, COALESCE(NEW.monthly_points, 0) + delta);
-      END IF;
-    END;
+    delta := new_pts - old_pts;
+    IF delta > 0 THEN
+      NEW.monthly_points := COALESCE(NEW.monthly_points, 0) + delta;
+    ELSIF delta < 0 THEN
+      NEW.monthly_points := GREATEST(0, COALESCE(NEW.monthly_points, 0) + delta);
+    END IF;
   END IF;
   RETURN NEW;
 END;
@@ -65,10 +59,9 @@ BEGIN
   WHERE role = 'student' AND monthly_points > 0;
   
   -- 2. Reset monthly points to 0 for all users
-  -- We temporarily disable the sync trigger so setting monthly_points = 0 does not trigger points sync logic
-  ALTER TABLE public.profiles DISABLE TRIGGER trigger_sync_monthly_points;
+  -- Note: The trigger trigger_sync_monthly_points only fires BEFORE UPDATE OF points,
+  -- so updating monthly_points directly will not fire it. No need to disable/enable trigger.
   UPDATE public.profiles SET monthly_points = 0;
-  ALTER TABLE public.profiles ENABLE TRIGGER trigger_sync_monthly_points;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

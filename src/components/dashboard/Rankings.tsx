@@ -20,24 +20,36 @@ const Rankings = ({ user }: RankingsProps) => {
   const [loading, setLoading] = useState(true);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [profileFriendship, setProfileFriendship] = useState<any>(null);
-  const [daysUntilReset, setDaysUntilReset] = useState(0);
+  const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
     if (user?.id) {
-      const calculateDays = () => {
+      const updateTimer = () => {
         const now = new Date();
         const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-        const diffTime = Math.abs(nextMonth.getTime() - now.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        setDaysUntilReset(diffDays);
+        const diffTime = nextMonth.getTime() - now.getTime();
+
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+        const diffSeconds = Math.floor((diffTime % (1000 * 60)) / 1000);
+
+        if (diffDays < 3) {
+          setTimeLeft(`${diffDays}d ${diffHours}h ${diffMinutes}m ${diffSeconds}s`);
+        } else {
+          setTimeLeft(`${diffDays} day${diffDays === 1 ? "" : "s"}`);
+        }
       };
-      calculateDays();
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
 
       Promise.all([
         fetchClassLeaderboard(),
         fetchMonthlyLeaderboard(),
         fetchClassReadingLeague()
       ]).finally(() => setLoading(false));
+
+      return () => clearInterval(interval);
     }
   }, [user?.id]);
 
@@ -194,8 +206,8 @@ const Rankings = ({ user }: RankingsProps) => {
                   <CardTitle className="text-base">Monthly Leaderboard</CardTitle>
                   <CardDescription className="text-xs">Points earned during this calendar month</CardDescription>
                 </div>
-                <Badge variant="outline" className="text-xs font-semibold text-primary border-primary/30">
-                  Resets in {daysUntilReset} day{daysUntilReset === 1 ? "" : "s"}
+                <Badge variant="outline" className={`text-xs font-semibold border-primary/30 ${timeLeft.includes('s') ? 'text-red-500 animate-pulse border-red-200' : 'text-primary'}`}>
+                  Resets in {timeLeft}
                 </Badge>
               </div>
             </CardHeader>
