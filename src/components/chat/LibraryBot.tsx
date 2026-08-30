@@ -24,9 +24,8 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   const prompts = suggestedPrompts && suggestedPrompts.length > 0 ? suggestedPrompts : DEFAULT_PROMPTS;
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hi! 👋 I'm **LibraryBot** — your library assistant.\n\nI can answer questions about timings, borrowing, fines, lost books, catalog, points, and more — instantly, without waiting for AI!\n\nFor complex questions, I'll use AI to help. What would you like to know?" }
-  ]);
+  const [botName, setBotName] = useState("LibraryBot");
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -36,12 +35,29 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   };
 
   useEffect(() => {
-    supabase.from("system_settings").select("value").eq("key", "library_bot_visible").maybeSingle()
+    supabase.from("system_settings").select("key, value").in("key", ["library_bot_visible", "library_bot_name"])
       .then(res => {
-        if (res.data?.value) {
-           const v = res.data.value;
-           setIsVisible(v === "true" || v === true);
+        let activeName = "LibraryBot";
+        if (res.data) {
+          const visibleRow = res.data.find(r => r.key === "library_bot_visible");
+          if (visibleRow !== undefined) {
+            const v = visibleRow.value;
+            setIsVisible(v === "true" || v === true || v === "1" || v === 1);
+          }
+          const nameRow = res.data.find(r => r.key === "library_bot_name");
+          if (nameRow?.value) {
+            activeName = String(nameRow.value).trim();
+            setBotName(activeName);
+          }
         }
+        
+        // Initialize messages with dynamic botName
+        setMessages([
+          { 
+            role: 'assistant', 
+            content: `Hi! 👋 I'm **${activeName}** — your library assistant.\n\nI can answer questions about timings, borrowing, fines, lost books, catalog, points, and more — instantly, without waiting for AI!\n\nFor complex questions, I'll use AI to help. What would you like to know?` 
+          }
+        ]);
       });
   }, []);
 
@@ -270,7 +286,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
                 <Bot className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">LibraryBot</h3>
+                <h3 className="font-semibold text-sm">{botName}</h3>
                 <p className="text-xs text-muted-foreground">AI Assistant</p>
               </div>
             </div>

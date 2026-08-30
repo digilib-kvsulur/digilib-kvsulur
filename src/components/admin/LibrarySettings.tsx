@@ -52,11 +52,12 @@ export default function LibrarySettings() {
 
   const [googleAiKey, setGoogleAiKey] = useState("");
   const [libraryBotVisible, setLibraryBotVisible] = useState(true);
+  const [libraryBotName, setLibraryBotName] = useState("LibraryBot");
 
   const load = async () => {
     setLoading(true);
     try {
-      const [fine, goal, cert, devMsg, gamesSch, downloads, aiKey, newsColor, botVisible] = await Promise.all([
+      const [fine, goal, cert, devMsg, gamesSch, downloads, aiKey, newsColor, botVisible, botNameSetting] = await Promise.all([
         fetchFineSettings(),
         fetchMonthlyReadingGoal(),
         fetchCertificateTemplateUrl(),
@@ -66,8 +67,11 @@ export default function LibrarySettings() {
         fetchGoogleAiApiKey(),
         fetchGlobalNewsColor(),
         supabase.from("system_settings").select("value").eq("key", "library_bot_visible").maybeSingle().then(res => {
-          if (!res.data?.value) return true;
+          if (res.data?.value === undefined) return true;
           return res.data.value === "true" || res.data.value === true;
+        }),
+        supabase.from("system_settings").select("value").eq("key", "library_bot_name").maybeSingle().then(res => {
+          return res.data?.value ? String(res.data.value).trim() : "LibraryBot";
         })
       ]);
       setFinePerDay(fine.finePerDay);
@@ -88,6 +92,7 @@ export default function LibrarySettings() {
       setDownloadExeUrl(downloads.exeUrl);
       setGoogleAiKey(aiKey);
       setLibraryBotVisible(botVisible);
+      setLibraryBotName(botNameSetting);
 
       const { data: zonesData } = await supabase.from("system_settings").select("value").eq("key", "library_map_zones").maybeSingle();
       if (zonesData?.value) {
@@ -150,6 +155,7 @@ export default function LibrarySettings() {
         { key: "google_ai_api_key", value: googleAiKey.trim() as any },
         { key: "global_news_color", value: globalNewsColor.trim() as any },
         { key: "library_bot_visible", value: libraryBotVisible as any },
+        { key: "library_bot_name", value: libraryBotName.trim() as any },
       ];
       const { error } = await supabase.from("system_settings").upsert(upserts, { onConflict: "key" });
       if (error) throw error;
@@ -667,12 +673,24 @@ export default function LibrarySettings() {
           <div className="space-y-1.5 pt-4 border-t border-border mt-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label>Enable LibraryBot</Label>
-                <p className="text-xs text-muted-foreground">Show the AI chat assistant in the student dashboard and home page.</p>
+                <Label>Enable Chat Assistant</Label>
+                <p className="text-xs text-muted-foreground">Show the chat assistant in the student dashboard and home page.</p>
               </div>
               <Switch checked={libraryBotVisible} onCheckedChange={setLibraryBotVisible} />
             </div>
           </div>
+          {libraryBotVisible && (
+            <div className="space-y-1.5 pt-3">
+              <Label htmlFor="libraryBotName">Chat Assistant Display Name</Label>
+              <Input
+                id="libraryBotName"
+                value={libraryBotName}
+                onChange={(e) => setLibraryBotName(e.target.value)}
+                placeholder="e.g. LibraryBot or E-Librarian"
+                className="max-w-xs h-9 text-xs"
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
