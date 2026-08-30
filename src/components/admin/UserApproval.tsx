@@ -29,6 +29,8 @@ interface PendingUser {
   created_at: string;
   is_approved: boolean;
   approved_at?: string;
+  community_blocked_until?: string | null;
+  community_warn_count?: number;
 }
 
 const UserApproval = () => {
@@ -149,6 +151,33 @@ const UserApproval = () => {
       setResetTarget(null);
     } finally {
       setResetting(false);
+    }
+  };
+
+  const toggleCommunityBlock = async (u: PendingUser, block: boolean) => {
+    const time = block ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
+    const { error } = await supabase.from("profiles").update({
+      community_blocked_until: time,
+      community_warn_count: block ? u.community_warn_count : 0
+    }).eq("id", u.id);
+    
+    if (error) {
+      toast({ title: "Operation failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: block ? "User blocked!" : "User unblocked!", description: block ? "Temporarily blocked from Community for 24h." : "Community access restored." });
+      loadUsers();
+    }
+  };
+
+  const resetWarnings = async (u: PendingUser) => {
+    const { error } = await supabase.from("profiles").update({
+      community_warn_count: 0
+    }).eq("id", u.id);
+    if (error) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Warnings reset!" });
+      loadUsers();
     }
   };
 
@@ -386,7 +415,15 @@ const UserApproval = () => {
                     <TableRow key={u.id}>
                       <TableCell>
                         <div className="font-medium">{u.first_name} {u.last_name}</div>
-                        {u.username && <div className="text-xs text-muted-foreground">@{u.username}</div>}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                          {u.username && <span className="text-xs text-muted-foreground">@{u.username}</span>}
+                          {u.community_blocked_until && new Date(u.community_blocked_until).getTime() > Date.now() && (
+                            <Badge variant="destructive" className="text-[9px] py-0 px-1">🚫 Blocked</Badge>
+                          )}
+                          {u.community_warn_count && u.community_warn_count > 0 && (
+                            <Badge variant="secondary" className="text-[9px] py-0 px-1 text-amber-700 bg-amber-50 border-amber-200">⚠️ {u.community_warn_count} warning(s)</Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{u.email}</TableCell>
                       <TableCell><Badge variant="outline">{u.role}</Badge></TableCell>
@@ -412,6 +449,21 @@ const UserApproval = () => {
                               <GraduationCap className="h-4 w-4 mr-2" />
                               {u.role === "teacher" ? "Edit Class Teacher" : "Edit Class"}
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {u.community_blocked_until && new Date(u.community_blocked_until).getTime() > Date.now() ? (
+                              <DropdownMenuItem onClick={() => toggleCommunityBlock(u, false)}>
+                                <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />Unblock Community
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem className="text-amber-600" onClick={() => toggleCommunityBlock(u, true)}>
+                                <XCircle className="h-4 w-4 mr-2" />Block Community (24h)
+                              </DropdownMenuItem>
+                            )}
+                            {u.community_warn_count && u.community_warn_count > 0 ? (
+                              <DropdownMenuItem onClick={() => resetWarnings(u)}>
+                                <RotateCcw className="h-4 w-4 mr-2" />Reset warnings
+                              </DropdownMenuItem>
+                            ) : null}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive" onClick={() => setApproval([u.id], false)}>
                               <XCircle className="h-4 w-4 mr-2" />Revoke access

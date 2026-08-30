@@ -15,19 +15,59 @@ interface RankingsProps {
 
 const Rankings = ({ user }: RankingsProps) => {
   const [classLeaderboardEntries, setClassLeaderboardEntries] = useState<any[]>([]);
+  const [monthlyLeaderboardEntries, setMonthlyLeaderboardEntries] = useState<any[]>([]);
   const [leagueEntries, setLeagueEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [profileFriendship, setProfileFriendship] = useState<any>(null);
+  const [daysUntilReset, setDaysUntilReset] = useState(0);
 
   useEffect(() => {
     if (user?.id) {
+      const calculateDays = () => {
+        const now = new Date();
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const diffTime = Math.abs(nextMonth.getTime() - now.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysUntilReset(diffDays);
+      };
+      calculateDays();
+
       Promise.all([
         fetchClassLeaderboard(),
+        fetchMonthlyLeaderboard(),
         fetchClassReadingLeague()
       ]).finally(() => setLoading(false));
     }
   }, [user?.id]);
+
+  const fetchMonthlyLeaderboard = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, student_class, monthly_points, avatar_url")
+        .eq("role", "student")
+        .gt("monthly_points", 0)
+        .order("monthly_points", { ascending: false })
+        .limit(100);
+      
+      if (error) throw error;
+      if (data) {
+        setMonthlyLeaderboardEntries(data.map((item: any, index: number) => ({
+          id: item.id,
+          studentId: item.id,
+          studentName: `${item.first_name || ""} ${item.last_name || ""}`.trim() || item.first_name || "Student",
+          studentClass: item.student_class,
+          totalPoints: item.monthly_points || 0,
+          rank: index + 1,
+          recentActivity: "Points earned this month",
+          avatar: item.avatar_url
+        })));
+      }
+    } catch (e) {
+      console.error("Error fetching monthly leaderboard:", e);
+    }
+  };
 
   const fetchClassLeaderboard = async () => {
     if (!user?.student_class) return;
@@ -115,10 +155,14 @@ const Rankings = ({ user }: RankingsProps) => {
       </Card>
 
       <Tabs defaultValue="class" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="class" className="flex items-center gap-2 text-xs sm:text-sm">
             <Users className="h-4 w-4" />
             <span>Class</span>
+          </TabsTrigger>
+          <TabsTrigger value="monthly" className="flex items-center gap-2 text-xs sm:text-sm">
+            <Trophy className="h-4 w-4" />
+            <span>Monthly</span>
           </TabsTrigger>
           <TabsTrigger value="school" className="flex items-center gap-2 text-xs sm:text-sm">
             <Trophy className="h-4 w-4" />
@@ -138,6 +182,31 @@ const Rankings = ({ user }: RankingsProps) => {
             </CardHeader>
             <CardContent>
               <Leaderboard entries={classLeaderboardEntries} currentUserId={user?.id} onEntryClick={openProfile} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="monthly">
+          <Card className="border-border/50">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <div>
+                  <CardTitle className="text-base">Monthly Leaderboard</CardTitle>
+                  <CardDescription className="text-xs">Points earned during this calendar month</CardDescription>
+                </div>
+                <Badge variant="outline" className="text-xs font-semibold text-primary border-primary/30">
+                  Resets in {daysUntilReset} day{daysUntilReset === 1 ? "" : "s"}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {monthlyLeaderboardEntries.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No monthly points recorded yet. Be the first to earn points!
+                </div>
+              ) : (
+                <Leaderboard entries={monthlyLeaderboardEntries} currentUserId={user?.id} onEntryClick={openProfile} />
+              )}
             </CardContent>
           </Card>
         </TabsContent>

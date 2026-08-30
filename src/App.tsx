@@ -8,6 +8,8 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
 import { supabase } from "@/integrations/supabase/client";
 
+import { Button } from "@/components/ui/button";
+import { X, DownloadCloud } from "lucide-react";
 import DeveloperMessagePopup from "@/components/global/DeveloperMessagePopup";
 
 const queryClient = new QueryClient();
@@ -55,6 +57,51 @@ import { SplashScreen } from "@/components/global/SplashScreen";
 import UpdateBanner from "@/components/global/UpdateBanner";
 
 const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
+
+const PWAInstallBanner = () => {
+  const [prompt, setPrompt] = useState<any>(null);
+  const [dismissed, setDismissed] = useState(() => !!localStorage.getItem("pwa_install_dismissed"));
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler as any);
+    return () => window.removeEventListener("beforeinstallprompt", handler as any);
+  }, []);
+
+  if (!prompt || dismissed || isNative) return null;
+
+  const install = () => {
+    prompt.prompt();
+    prompt.userChoice.then(() => {
+      setPrompt(null);
+      localStorage.setItem("pwa_install_dismissed", "1");
+    });
+  };
+
+  const dismiss = () => {
+    localStorage.setItem("pwa_install_dismissed", "1");
+    setDismissed(true);
+  };
+
+  return (
+    <div className="fixed bottom-16 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-xs z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="bg-card border border-border rounded-xl shadow-lg p-4 flex items-center gap-3">
+        <DownloadCloud className="h-8 w-8 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold">Install DigiLib App</p>
+          <p className="text-xs text-muted-foreground">Add to home screen for a better experience</p>
+        </div>
+        <div className="flex gap-1 shrink-0">
+          <Button size="sm" onClick={install} className="text-xs h-8 gradient-primary border-0">Install</Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={dismiss}><X className="h-3.5 w-3.5" /></Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 const AppRouter = isNative ? HashRouter : BrowserRouter;
 
 const DashboardRedirect = () => {
@@ -108,6 +155,7 @@ const App = () => {
         <Sonner position="top-right" richColors closeButton />
         <AppRouter>
           <UpdateBanner />
+          <PWAInstallBanner />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />

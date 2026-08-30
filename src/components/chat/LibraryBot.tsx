@@ -47,6 +47,39 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     if (!overrideText) setInput("");
     setLoading(true);
 
+    // Predefined local answers to save AI tokens for common questions
+    const checkPredefinedAnswer = (text: string): string | null => {
+      const t = text.toLowerCase().trim();
+      if (t.includes("rule") || t.includes("fine") || t.includes("overdue") || t.includes("borrow") || t.includes("return")) {
+        if (t.includes("how to borrow") || t.includes("issue")) {
+          return "To borrow/issue a book: Search for the book in the Catalog, click 'Request', and once approved by the librarian, scan your Student ID card barcode at the counter to issue the book.";
+        }
+        return "Library Rules:\n• Books can be borrowed for up to 14 days.\n• Overdue fines are calculated at 1 rupee per day.\n• Please handle books with care and return them on time.";
+      }
+      if (t.includes("timing") || t.includes("time") || t.includes("opening") || t.includes("hour") || t.includes("open")) {
+        return "The PM SHRI KV AFS Sulur library is open from 8:30 AM to 3:30 PM on all school working days.";
+      }
+      if (t.includes("locate") || t.includes("location") || t.includes("where is") || t.includes("map")) {
+        return "The digital library is located at PM SHRI KV AFS Sulur, Coimbatore. You can view the layout by selecting the 'Library Map' tab in the dashboard menu.";
+      }
+      if (t.includes("support") || t.includes("ticket") || t.includes("contact") || t.includes("email") || t.includes("help")) {
+        return "For support with book issues or account disputes, please go to the 'Help & Support' tab to submit a ticket, or email us at kvafssulurlibrary@gmail.com.";
+      }
+      if (t === "hi" || t === "hello" || t === "hey" || t.includes("greetings")) {
+        return "Hello! I am LibraryBot. I can answer questions about library rules, timings, book suggestions, or help you locate materials. How can I help you today?";
+      }
+      return null;
+    };
+
+    const localAnswer = checkPredefinedAnswer(textToSend);
+    if (localAnswer) {
+      setTimeout(() => {
+        setMessages([...newMessages, { role: 'assistant', content: localAnswer }]);
+        setLoading(false);
+      }, 300);
+      return;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       

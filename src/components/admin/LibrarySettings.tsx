@@ -200,6 +200,23 @@ export default function LibrarySettings() {
     }
   };
 
+  const [resettingLeaderboard, setResettingLeaderboard] = useState(false);
+
+  const handleResetMonthlyLeaderboard = async () => {
+    const confirmReset = window.confirm("Are you sure you want to reset the monthly leaderboard? All student monthly points will be reset to 0 and current standings will be archived.");
+    if (!confirmReset) return;
+    setResettingLeaderboard(true);
+    try {
+      const { error } = await supabase.rpc("reset_monthly_leaderboard");
+      if (error) throw error;
+      toast({ title: "Leaderboard Reset!", description: "Student monthly points have been reset to 0 and current standings have been archived." });
+    } catch (e: any) {
+      toast({ title: "Reset failed", description: e.message || "Failed to reset leaderboard", variant: "destructive" });
+    } finally {
+      setResettingLeaderboard(false);
+    }
+  };
+
   const clearTemplate = async () => {
     setTemplateUrl(null);
     await supabase.from("system_settings").upsert(
@@ -302,6 +319,22 @@ export default function LibrarySettings() {
               onChange={(e) => setMonthlyGoal(parseInt(e.target.value) || 1)}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2 text-destructive">
+            <Award className="h-4 w-4" /> Reset Monthly Leaderboard
+          </CardTitle>
+          <CardDescription>
+            Reset monthly points for all students back to 0. The current rankings will be archived into the history standings table.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="destructive" onClick={handleResetMonthlyLeaderboard} disabled={resettingLeaderboard}>
+            {resettingLeaderboard ? "Resetting..." : "Reset Leaderboard Now"}
+          </Button>
         </CardContent>
       </Card>
 

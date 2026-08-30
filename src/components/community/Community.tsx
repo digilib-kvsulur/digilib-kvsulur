@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3 } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
@@ -16,6 +16,12 @@ import { getAvatarUrl } from "@/lib/utils";
 import BookClubs from "@/components/dashboard/BookClubs";
 import SuggestionVoting from "./SuggestionVoting";
 
+const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
+
+const containsBadWords = (text: string): boolean => {
+  const lower = text.toLowerCase();
+  return BAD_WORDS.some(w => lower.includes(w));
+};
 
 interface PollOption { id: string; label: string; sort_order: number; votes: number }
 interface Post {
@@ -46,7 +52,8 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [draft, setDraft] = useState({ title: "", content: "" });
-  const [postKind, setPostKind] = useState<"text" | "poll">("text");
+  const [postKind, setPostKind] = useState<"text" | "poll" | "link">("text");
+  const [linkUrl, setLinkUrl] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [uploadingPost, setUploadingPost] = useState(false);
@@ -62,6 +69,61 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   const [activeTab, setActiveTab] = useState("feed");
   const [hasClubs, setHasClubs] = useState(true);
+  const [blockedUntil, setBlockedUntil] = useState<string | null>(null);
+
+  const checkUserBlockStatus = async () => {
+    const { data } = await supabase.from("profiles")
+      .select("community_blocked_until")
+      .eq("id", currentUserId)
+      .maybeSingle();
+    if (data?.community_blocked_until) {
+      if (new Date(data.community_blocked_until).getTime() > Date.now()) {
+        setBlockedUntil(data.community_blocked_until);
+      } else {
+        setBlockedUntil(null);
+      }
+    } else {
+      setBlockedUntil(null);
+    }
+  };
+
+  const handleModerationStrike = async () => {
+    try {
+      const { data: profile } = await supabase.from("profiles")
+        .select("community_warn_count")
+        .eq("id", currentUserId)
+        .single();
+      
+      const nextWarnCount = (profile?.community_warn_count || 0) + 1;
+      
+      if (nextWarnCount >= 2) {
+        const blockedUntilTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        await supabase.from("profiles").update({
+          community_warn_count: nextWarnCount,
+          community_blocked_until: blockedUntilTime
+        }).eq("id", currentUserId);
+        
+        setBlockedUntil(blockedUntilTime);
+        toast({
+          title: "Account Temporarily Blocked",
+          description: "You have been temporarily blocked from the community for 24 hours due to multiple content policy violations.",
+          variant: "destructive"
+        });
+      } else {
+        await supabase.from("profiles").update({
+          community_warn_count: nextWarnCount
+        }).eq("id", currentUserId);
+        
+        toast({
+          title: "Warning: Content Policy Violation",
+          description: "Your post/comment contains blocked words. Please keep the community respectful. One more warning will result in a 24-hour block.",
+          variant: "destructive"
+        });
+      }
+    } catch (e: any) {
+      console.error("Moderation check error:", e);
+    }
+  };
 
   const loadFriendshipsMap = async () => {
     const { data } = await supabase.from("friendships")
@@ -122,6 +184,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   const load = async () => {
     setLoading(true);
+    await checkUserBlockStatus();
     
     // Check if there are any book clubs
     const { count: clubCount } = await supabase.from("book_clubs").select("*", { count: 'exact', head: true }).eq("is_active", true);
@@ -188,8 +251,24 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   useEffect(() => { if (currentUserId) { load(); loadFriendshipsMap(); } }, [currentUserId]);
 
   const createPost = async () => {
+    if (blockedUntil && new Date(blockedUntil).getTime() > Date.now()) {
+      toast({ title: "Action Blocked", description: "You are temporarily blocked from creating posts.", variant: "destructive" });
+      return;
+    }
     if (!draft.title.trim()) { toast({ title: "Add a title", variant: "destructive" }); return; }
     if (postKind === "text" && !draft.content.trim()) { toast({ title: "Add post content", variant: "destructive" }); return; }
+    if (postKind === "link" && !linkUrl.trim()) { toast({ title: "Add a link URL", variant: "destructive" }); return; }
+    if (postKind === "link" && !linkUrl.startsWith("http://") && !linkUrl.startsWith("https://")) {
+      toast({ title: "Invalid URL", description: "Link URL must start with http:// or https://", variant: "destructive" });
+      return;
+    }
+    
+    // Check bad words
+    if (containsBadWords(draft.title) || containsBadWords(draft.content) || (postKind === "link" && containsBadWords(linkUrl))) {
+      await handleModerationStrike();
+      return;
+    }
+
     const cleanOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
     if (postKind === "poll" && cleanOptions.length < 2) {
       toast({ title: "Polls need at least 2 options", variant: "destructive" });
@@ -207,6 +286,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         const { data: signed } = await supabase.storage.from("community-media").createSignedUrl(path, 60 * 60 * 24 * 365);
         mediaUrl = signed?.signedUrl || "";
         mediaType = mediaFile.type.startsWith("image") ? "image" : mediaFile.type.startsWith("video") ? "video" : "pdf";
+      } else if (postKind === "link") {
+        mediaUrl = linkUrl.trim();
+        mediaType = "link";
       }
       const { data: postRow, error } = await supabase.from("posts").insert({
         user_id: currentUserId,
@@ -224,6 +306,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         if (optErr) throw optErr;
       }
       setDraft({ title: "", content: "" });
+      setLinkUrl("");
       setPollOptions(["", ""]);
       setPostKind("text");
       setMediaFile(null);
@@ -290,7 +373,15 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     if (!comments[postId]) await loadComments(postId);
   };
   const addComment = async (postId: string) => {
+    if (blockedUntil && new Date(blockedUntil).getTime() > Date.now()) {
+      toast({ title: "Action Blocked", description: "You are temporarily blocked from commenting.", variant: "destructive" });
+      return;
+    }
     if (!commentDraft.trim()) return;
+    if (containsBadWords(commentDraft)) {
+      await handleModerationStrike();
+      return;
+    }
     await supabase.from("post_comments").insert({ post_id: postId, user_id: currentUserId, content: commentDraft });
     setCommentDraft(""); await loadComments(postId);
     setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p));
@@ -353,7 +444,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 />
               </DialogContent>
             </Dialog>
-            {activeTab === "feed" && (
+            {activeTab === "feed" && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
               <Button size="sm" className="gradient-primary border-0" onClick={() => setShowNew((s) => !s)}>
                 <Plus className="h-4 w-4 mr-2" />New Post
               </Button>
@@ -362,8 +453,22 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         </div>
 
         <TabsContent value="feed" className="space-y-4">
+          {blockedUntil && new Date(blockedUntil).getTime() > Date.now() && (
+            <Card className="border-destructive/50 bg-destructive/5 text-destructive p-4">
+              <div className="flex items-start gap-3">
+                <UserX className="h-5 w-5 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Community Posting Blocked</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You have been temporarily suspended from posting or commenting in the community due to content policy violations.
+                    Your access will be restored on: <strong>{new Date(blockedUntil).toLocaleString()}</strong>.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
 
-      {showNew && (
+      {showNew && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
         <Card className="border-primary/30">
           <CardContent className="p-4 space-y-3">
             <div className="flex gap-2">
@@ -373,11 +478,21 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               <Button size="sm" variant={postKind === "poll" ? "default" : "outline"} type="button" onClick={() => setPostKind("poll")}>
                 <BarChart3 className="h-3.5 w-3.5 mr-1" /> Poll
               </Button>
+              <Button size="sm" variant={postKind === "link" ? "default" : "outline"} type="button" onClick={() => setPostKind("link")}>
+                <Link2 className="h-3.5 w-3.5 mr-1" /> Link
+              </Button>
             </div>
             <Input placeholder="Post title..." value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} maxLength={150} />
-            {postKind === "text" ? (
+            {postKind === "text" && (
               <Textarea placeholder="What's on your mind?" rows={4} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={2000} />
-            ) : (
+            )}
+            {postKind === "link" && (
+              <div className="space-y-3">
+                <Input placeholder="Link URL (e.g. https://example.com)..." value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
+                <Textarea placeholder="Optional description for the link..." rows={3} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={500} />
+              </div>
+            )}
+            {postKind === "poll" && (
               <div className="space-y-2">
                 <Textarea placeholder="Optional description for the poll" rows={2} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={500} />
                 {pollOptions.map((opt, idx) => (
@@ -535,6 +650,18 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                           <a href={p.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 hover:bg-muted/40 transition-colors">
                             <FileText className="h-5 w-5 text-primary" />
                             <span className="text-sm text-primary hover:underline">View Attached PDF</span>
+                          </a>
+                        )}
+                        {p.media_type === "link" && (
+                          <a href={p.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3 p-3 hover:bg-muted/40 transition-colors bg-muted/10 border-l-4 border-primary">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <Link2 className="h-4.5 w-4.5 text-primary shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <span className="text-sm font-semibold text-primary truncate block hover:underline">{p.media_url}</span>
+                                <span className="text-xs text-muted-foreground block">Click to visit external link</span>
+                              </div>
+                            </div>
+                            <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
                           </a>
                         )}
                       </div>

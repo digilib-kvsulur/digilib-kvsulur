@@ -15,7 +15,7 @@ Keep your answers brief (1-3 sentences) as they will be displayed in a small cha
 async function generateGeminiContent(apiKey: string, body: any): Promise<{ reply: string; error?: string }> {
   // We try v1 first, then v1beta as fallback, and also list models if primary fails
   const apiVersions = ["v1", "v1beta"];
-  const primaryModel = "gemini-1.5-flash";
+  const primaryModel = "gemini-3.6-flash";
   let lastError = "";
 
   for (const apiVer of apiVersions) {
