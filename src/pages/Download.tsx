@@ -18,7 +18,7 @@ export default function Download() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col animate-in fade-in duration-300">
       <header className="p-4 border-b border-slate-200 bg-white flex items-center justify-between">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.history.back()}>
           <ChevronRight className="w-5 h-5 rotate-180" />

@@ -125,7 +125,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex animate-in fade-in duration-300">
       {/* Left Panel - Immersive Branding */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
         <div className="absolute inset-0 gradient-primary" />

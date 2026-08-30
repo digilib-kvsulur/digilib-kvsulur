@@ -408,6 +408,7 @@ const TeacherDashboard = () => {
             <TabsTrigger value="profile" className="flex items-center gap-2"><User className="h-4 w-4" /> My Profile</TabsTrigger>
           </TabsList>
 
+          <div key={activeTab} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           {/* TAB 0: Overview */}
           {/* TAB 1: Class Progress & Leaderboard */}
           <TabsContent value="progress">
@@ -639,6 +640,7 @@ const TeacherDashboard = () => {
           <TabsContent value="support">
             {teacher?.id && <SupportCenter user={teacher} />}
           </TabsContent>
+          </div>
         </Tabs>
       </main>
 

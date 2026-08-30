@@ -32,14 +32,24 @@ const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
 const TEACHER_ROLES = ["teacher", "admin"] as const;
 
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4" />
-      <p className="text-muted-foreground">Loading...</p>
+const PageLoader = () => {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setShow(true), 200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!show) return null;
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center animate-in fade-in duration-300">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+        <p className="text-muted-foreground text-sm font-medium animate-pulse">Loading...</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 import { SplashScreen } from "@/components/global/SplashScreen";
 import UpdateBanner from "@/components/global/UpdateBanner";

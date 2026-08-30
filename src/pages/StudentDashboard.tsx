@@ -527,7 +527,7 @@ const StudentDashboard = () => {
 
       {/* Main Content */}
       <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-16 pb-24 lg:pb-0 lg:ml-64 lg:pt-4">
-        <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 
           {/* Overview Tab */}

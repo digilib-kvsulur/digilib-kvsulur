@@ -116,7 +116,7 @@ export default function Support() {
   const StatusIcon = tracked ? statusMeta[tracked.status]?.icon : null;
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background animate-in fade-in duration-300">
       <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-14">
         <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5">
           <ArrowLeft className="h-4 w-4" /> Back to dashboard

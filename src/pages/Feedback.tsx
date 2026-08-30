@@ -131,7 +131,7 @@ export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
   const areas = ["Books", "Quizzes", "AI Bot", "Study Materials", "Games", "Other"];
 
   return (
-    <main className={isEmbedded ? "" : "min-h-screen bg-background"}>
+    <main className={`${isEmbedded ? "" : "min-h-screen bg-background"} animate-in fade-in duration-300`}>
       <div className={`mx-auto w-full max-w-2xl ${isEmbedded ? 'pb-8' : 'px-4 py-8 sm:py-14'}`}>
         {!isEmbedded && (
           <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5">
