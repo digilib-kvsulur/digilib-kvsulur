@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { X, DownloadCloud } from "lucide-react";
 import DeveloperMessagePopup from "@/components/global/DeveloperMessagePopup";
+import { Seo } from "@/components/seo/Seo";
 
 const queryClient = new QueryClient();
 const Login = lazy(() => import("./pages/Login"));
@@ -154,6 +155,7 @@ const App = () => {
         <Toaster />
         <Sonner position="top-right" richColors closeButton />
         <AppRouter>
+          <Seo />
           <UpdateBanner />
           <PWAInstallBanner />
           <Suspense fallback={<PageLoader />}>

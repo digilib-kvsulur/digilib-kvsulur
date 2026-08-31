@@ -1,0 +1,14 @@
+# KV Sulur Digital Library
+
+KV Sulur Digital Library is the Digital Library Management System for PM SHRI Kendriya Vidyalaya AFS Sulur, India. It helps students and staff discover books, manage library activity, and support reading.
+
+## Public pages
+
+- [Home](https://dlmskvsulur.vercel.app/): Overview of the digital library and school reading initiatives.
+- [Book catalogue](https://dlmskvsulur.vercel.app/catalog): Search and browse the public book collection.
+- [Library help and support](https://dlmskvsulur.vercel.app/support): Contact and support information.
+- [Download](https://dlmskvsulur.vercel.app/download): Download the Android or Windows application.
+
+## Notes
+
+Authenticated dashboards and individual student data are private and should not be indexed or treated as public information.
