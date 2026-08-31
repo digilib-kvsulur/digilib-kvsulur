@@ -17,11 +17,10 @@ export function sanitizeBarcodeValue(value: string): string {
   return String(value).toUpperCase().replace(/[^0-9A-Z\-\.\ \$\/\+\%]/g, "");
 }
 
-/** Default student library card barcode from admission number */
 export function defaultStudentBarcode(admissionNumber?: string | null): string {
   const adm = (admissionNumber || "").trim().toUpperCase();
   if (!adm) return "";
-  return adm.startsWith("KVS-") ? adm : `KVS-${adm}`;
+  return adm;
 }
 
 export interface BarcodeBar {

@@ -34,9 +34,10 @@ const StudentBarcodeGenerator = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [classFilter, setClassFilter] = useState("all");
+  const [barcodeStatusFilter, setBarcodeStatusFilter] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [printQueue, setPrintQueue] = useState<PrintItem[]>([]);
-  const [stickerColumns, setStickerColumns] = useState("3");
+  const [stickerColumns, setStickerColumns] = useState("5");
   const [generating, setGenerating] = useState(false);
   const [barcodeWidth, setBarcodeWidth] = useState(2);
   const [barcodeHeight, setBarcodeHeight] = useState(40);
@@ -83,7 +84,14 @@ const StudentBarcodeGenerator = () => {
       name.includes(q) ||
       (s.admission_number || "").toLowerCase().includes(q) ||
       (s.library_card_barcode || "").toLowerCase().includes(q);
-    return matchClass && matchSearch;
+      
+    const hasBarcode = Boolean(s.library_card_barcode?.trim());
+    const matchStatus = 
+      barcodeStatusFilter === "all" || 
+      (barcodeStatusFilter === "generated" && hasBarcode) || 
+      (barcodeStatusFilter === "missing" && !hasBarcode);
+
+    return matchClass && matchSearch && matchStatus;
   });
 
   const getBarcode = (s: StudentRow) =>
@@ -229,7 +237,7 @@ const StudentBarcodeGenerator = () => {
                 />
               </div>
               <Select value={classFilter} onValueChange={setClassFilter}>
-                <SelectTrigger className="w-full sm:w-[140px]">
+                <SelectTrigger className="w-full sm:w-[120px]">
                   <SelectValue placeholder="Class" />
                 </SelectTrigger>
                 <SelectContent>
@@ -237,6 +245,16 @@ const StudentBarcodeGenerator = () => {
                   {classes.map((c) => (
                     <SelectItem key={c} value={c!}>Class {c}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <Select value={barcodeStatusFilter} onValueChange={setBarcodeStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="generated">Generated</SelectItem>
+                  <SelectItem value="missing">Missing</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -379,15 +397,15 @@ const StudentBarcodeGenerator = () => {
         </Card>
       </div>
 
-      <div id="student-barcode-print" className="hidden print:block p-4">
+      <div id="student-barcode-print" className="hidden print:block p-2">
         <div
-          className="grid gap-4"
+          className="grid gap-1"
           style={{ gridTemplateColumns: `repeat(${stickerColumns}, minmax(0, 1fr))` }}
         >
           {printQueue.map((item) => (
-            <div key={item.id} className="text-center bg-white border p-3" style={{ pageBreakInside: "avoid" }}>
-              <p className="text-[10px] font-black uppercase">{item.name}</p>
-              <p className="text-[8px] text-gray-600">Class {item.studentClass} · Adm {item.admissionNumber}</p>
+            <div key={item.id} className="text-center bg-white border p-1" style={{ pageBreakInside: "avoid", height: "max-content", overflow: "hidden" }}>
+              <p className="text-[9px] font-black uppercase truncate leading-tight">{item.name}</p>
+              <p className="text-[7px] text-gray-600 leading-tight">Class {item.studentClass} · {item.admissionNumber}</p>
               <BarcodeSVG value={item.barcode} width={barcodeWidth} height={barcodeHeight} fontSize={barcodeFontSize} />
             </div>
           ))}
