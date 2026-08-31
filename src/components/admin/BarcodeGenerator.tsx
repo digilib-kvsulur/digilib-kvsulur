@@ -5,11 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   Barcode, Printer, Search, Plus, Trash2, LayoutGrid, RefreshCw,
-  X, FileText, Settings2
+  X, FileText, Settings2, CheckSquare
 } from "lucide-react";
 import BarcodeSVG from "@/components/shared/BarcodeSVG";
 
@@ -31,6 +32,8 @@ const BarcodeGenerator = () => {
   const [barcodeFilter, setBarcodeFilter] = useState("all"); // all | with | missing
   const [loading, setLoading] = useState(true);
   const [printQueue, setPrintQueue] = useState<PrintItem[]>([]);
+
+  const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set());
 
   // Print settings
   const [stickerColumns, setStickerColumns] = useState(String(COLS_PER_PAGE));
@@ -57,17 +60,61 @@ const BarcodeGenerator = () => {
   const loadBooks = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("books")
-        .select("id, title, author, accession_number, accession_numbers")
-        .order("title");
-      if (error) throw error;
-      setBooks(data || []);
+      const all: any[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .from("books")
+          .select("id, title, author, accession_number, accession_numbers")
+          .order("title")
+          .range(from, from + 999);
+        if (error) throw error;
+        all.push(...(data || []));
+        if (!data || data.length < 1000) break;
+      }
+      setBooks(all);
     } catch (e: any) {
       toast({ title: "Error", description: "Failed to load books", variant: "destructive" });
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleSelectBook = (id: string) => {
+    setSelectedBooks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setSelectedBooks(new Set(filteredBooks.map(b => b.id)));
+  };
+
+  const clearSelection = () => setSelectedBooks(new Set());
+
+  const addSelectedToQueue = () => {
+    const toAdd = filteredBooks.filter(b => selectedBooks.has(b.id));
+    let added = 0;
+    const next = [...printQueue];
+    toAdd.forEach(book => {
+      const accs = getAccessions(book);
+      accs.forEach((acc: string) => {
+        if (!next.some(x => x.accession === acc)) {
+          next.push({
+            id: `${book.id}-${acc}`,
+            title: book.title,
+            author: book.author || "",
+            accession: acc
+          });
+          added++;
+        }
+      });
+    });
+    setPrintQueue(next);
+    setSelectedBooks(new Set());
+    toast({ title: `${added} barcode(s) added`, description: "Added copies of selected books to layout." });
   };
 
   // Helpers
@@ -338,6 +385,15 @@ const BarcodeGenerator = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Button size="sm" variant="outline" onClick={selectAllFiltered}>
+                  <CheckSquare className="h-4 w-4 mr-1" /> Select filtered ({filteredBooks.length})
+                </Button>
+                <Button size="sm" variant="outline" onClick={clearSelection}>Clear</Button>
+                <Button size="sm" onClick={addSelectedToQueue} disabled={selectedBooks.size === 0}>
+                  Add {selectedBooks.size} to Print
+                </Button>
+              </div>
               <p className="text-[11px] text-muted-foreground mt-1">
                 Showing {filteredBooks.length} of {books.length} books
               </p>
@@ -353,40 +409,58 @@ const BarcodeGenerator = () => {
                     {filteredBooks.map(book => {
                       const accs = getAccessions(book);
                       return (
-                        <div key={book.id} className="p-3 space-y-2 hover:bg-muted/30 transition-colors">
-                          <div>
-                            <p className="font-semibold text-xs text-foreground leading-snug">{book.title}</p>
-                            <p className="text-[10px] text-muted-foreground">{book.author}</p>
-                          </div>
-                          <div className="flex flex-wrap gap-1 items-center">
-                            {accs.map((acc: string) => {
-                              const inQueue = printQueue.some(x => x.accession === acc);
-                              return (
+                        <div key={book.id} className="p-3 flex items-start gap-2.5 hover:bg-muted/30 transition-colors">
+                          <Checkbox
+                            checked={selectedBooks.has(book.id)}
+                            onCheckedChange={() => toggleSelectBook(book.id)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 min-w-0 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-xs text-foreground leading-snug break-words">{book.title}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{book.author}</p>
+                              </div>
+                              {accs.length > 0 ? (
+                                <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-medium shrink-0">
+                                  Generated
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-red-600 border-red-200 text-[9px] bg-red-50/50 font-medium shrink-0">
+                                  Missing
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1 items-center">
+                              {accs.map((acc: string) => {
+                                const inQueue = printQueue.some(x => x.accession === acc);
+                                return (
+                                  <Button
+                                    key={acc}
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={inQueue}
+                                    className={`h-6 px-2 text-[10px] font-mono ${inQueue ? "opacity-40" : "border-indigo-200 text-indigo-600 hover:bg-indigo-50"}`}
+                                    onClick={() => addToQueue(book, acc)}
+                                  >
+                                    {inQueue ? "✓" : "+"} {acc}
+                                  </Button>
+                                );
+                              })}
+                              {accs.length > 1 && (
                                 <Button
-                                  key={acc}
                                   variant="outline"
                                   size="sm"
-                                  disabled={inQueue}
-                                  className={`h-6 px-2 text-[10px] font-mono ${inQueue ? "opacity-40" : "border-indigo-200 text-indigo-600 hover:bg-indigo-50"}`}
-                                  onClick={() => addToQueue(book, acc)}
+                                  className="h-6 px-2 text-[10px] bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100"
+                                  onClick={() => addAllCopies(book)}
                                 >
-                                  {inQueue ? "✓" : "+"} {acc}
+                                  + All ({accs.length})
                                 </Button>
-                              );
-                            })}
-                            {accs.length > 1 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-6 px-2 text-[10px] bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100"
-                                onClick={() => addAllCopies(book)}
-                              >
-                                + All ({accs.length})
-                              </Button>
-                            )}
-                            {accs.length === 0 && (
-                              <span className="text-[10px] text-red-500 italic">No accession number</span>
-                            )}
+                              )}
+                              {accs.length === 0 && (
+                                <span className="text-[10px] text-red-500 italic">No accession number</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
