@@ -46,36 +46,44 @@ const getRankBg = (rank: number) => {
   }
 };
 
-const SchoolLeaderboard = ({ currentUserId, onEntryClick }: SchoolLeaderboardProps) => {
+const SchoolLeaderboard = ({ currentUserId, onEntryClick, period = "lifetime", classFilter = null }: SchoolLeaderboardProps) => {
   const [entries, setEntries] = useState<SchoolLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserRank, setCurrentUserRank] = useState<number | null>(null);
   const [schoolStats, setSchoolStats] = useState({ totalStudents: 0, totalPoints: 0, averagePoints: 0 });
   const { toast } = useToast();
 
-  useEffect(() => { loadLeaderboard(); }, [currentUserId]);
+  useEffect(() => { loadLeaderboard(); }, [currentUserId, period, classFilter]);
 
   const loadLeaderboard = async () => {
+    setLoading(true);
     try {
-      const { data: students, error } = await supabase.rpc('get_leaderboard_data');
+      const { data: students, error } = await supabase.rpc('get_leaderboard_v2', {
+        p_period: period,
+        p_class: classFilter,
+      });
       if (error) throw error;
 
       const validStudents = (students || []).filter((s: any) => s.first_name);
       const ranked: SchoolLeaderboardEntry[] = [];
       let currentRank = 1;
       validStudents.forEach((student: any, index: number) => {
-        if (index > 0 && student.points !== validStudents[index - 1].points) currentRank = index + 1;
+        const pts = Number(student.points) || 0;
+        if (index > 0 && pts !== Number(validStudents[index - 1].points || 0)) currentRank = index + 1;
         const fullName = `${student.first_name || ""} ${student.last_name || ""}`.trim() || student.first_name || "Student";
-        ranked.push({ ...student, full_name: fullName, points: student.points || 0, rank: currentRank });
+        ranked.push({ ...student, full_name: fullName, points: pts, rank: currentRank });
       });
       setEntries(ranked);
 
       const totalStudents = ranked.length;
       const totalPoints = ranked.reduce((sum, e) => sum + e.points, 0);
-      
-      const { data: statsData } = await supabase.rpc('get_school_leaderboard_stats');
-      if (statsData && statsData.length > 0) {
-        const stats = statsData[0];
+
+      const { data: statsData } = await supabase.rpc('get_leaderboard_stats_v2', {
+        p_period: period,
+        p_class: classFilter,
+      });
+      const stats: any = Array.isArray(statsData) ? statsData[0] : statsData;
+      if (stats) {
         setSchoolStats({
           totalStudents: Number(stats.total_students) || 0,
           totalPoints: Number(stats.total_points) || 0,
@@ -91,8 +99,9 @@ const SchoolLeaderboard = ({ currentUserId, onEntryClick }: SchoolLeaderboardPro
       }
     } catch (error) {
       console.error('Error loading school leaderboard:', error);
-      toast({ title: "Error", description: "Failed to load school leaderboard", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to load leaderboard", variant: "destructive" });
     } finally { setLoading(false); }
+
   };
 
   if (loading) return <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
