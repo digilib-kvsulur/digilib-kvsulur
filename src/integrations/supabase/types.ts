@@ -1115,6 +1115,7 @@ export type Database = {
       }
       game_plays: {
         Row: {
+          client_nonce: string | null
           created_at: string
           duration_seconds: number
           game_id: string | null
@@ -1124,9 +1125,12 @@ export type Database = {
           played_at: string
           points_earned: number
           score: number
+          session_id: string | null
           user_id: string
+          was_offline: boolean
         }
         Insert: {
+          client_nonce?: string | null
           created_at?: string
           duration_seconds?: number
           game_id?: string | null
@@ -1136,9 +1140,12 @@ export type Database = {
           played_at?: string
           points_earned?: number
           score?: number
+          session_id?: string | null
           user_id: string
+          was_offline?: boolean
         }
         Update: {
+          client_nonce?: string | null
           created_at?: string
           duration_seconds?: number
           game_id?: string | null
@@ -1148,7 +1155,9 @@ export type Database = {
           played_at?: string
           points_earned?: number
           score?: number
+          session_id?: string | null
           user_id?: string
+          was_offline?: boolean
         }
         Relationships: [
           {
@@ -1159,6 +1168,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      game_sessions: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          game_key: string
+          id: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          game_key: string
+          id?: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          game_key?: string
+          id?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       games: {
         Row: {
@@ -1171,7 +1207,10 @@ export type Database = {
           is_enabled: boolean
           key: string
           max_points_per_day: number
+          max_score: number
+          min_duration_seconds: number
           name: string
+          offline_capable: boolean
           points_per_win: number
           sort_order: number
           updated_at: string
@@ -1186,7 +1225,10 @@ export type Database = {
           is_enabled?: boolean
           key: string
           max_points_per_day?: number
+          max_score?: number
+          min_duration_seconds?: number
           name: string
+          offline_capable?: boolean
           points_per_win?: number
           sort_order?: number
           updated_at?: string
@@ -1201,7 +1243,10 @@ export type Database = {
           is_enabled?: boolean
           key?: string
           max_points_per_day?: number
+          max_score?: number
+          min_duration_seconds?: number
           name?: string
+          offline_capable?: boolean
           points_per_win?: number
           sort_order?: number
           updated_at?: string
@@ -1880,6 +1925,7 @@ export type Database = {
           needs_profile_update: boolean
           phone: string | null
           points: number
+          pwa_installed_at: string | null
           role: string
           roll_number: string | null
           streak_last_claimed: string | null
@@ -1902,6 +1948,7 @@ export type Database = {
           needs_profile_update?: boolean
           phone?: string | null
           points?: number
+          pwa_installed_at?: string | null
           role?: string
           roll_number?: string | null
           streak_last_claimed?: string | null
@@ -1924,6 +1971,7 @@ export type Database = {
           needs_profile_update?: boolean
           phone?: string | null
           points?: number
+          pwa_installed_at?: string | null
           role?: string
           roll_number?: string | null
           streak_last_claimed?: string | null
@@ -2357,6 +2405,13 @@ export type Database = {
         }
         Returns: number
       }
+      award_pwa_install: {
+        Args: never
+        Returns: {
+          already_claimed: boolean
+          points_awarded: number
+        }[]
+      }
       check_and_award_badges: { Args: { p_user_id: string }; Returns: number }
       claim_streak_points: { Args: never; Returns: number }
       complete_study_session: {
@@ -2422,6 +2477,15 @@ export type Database = {
           total_points: number
         }[]
       }
+      get_class_league_v2: {
+        Args: { p_period?: string }
+        Returns: {
+          avg_points: number
+          student_class: string
+          student_count: number
+          total_points: number
+        }[]
+      }
       get_distinct_book_filters: { Args: never; Returns: Json }
       get_leaderboard_data: {
         Args: { class_filter?: string }
@@ -2430,6 +2494,33 @@ export type Database = {
           id: string
           points: number
           student_class: string
+        }[]
+      }
+      get_leaderboard_stats_v2: {
+        Args: { p_class?: string; p_period?: string }
+        Returns: {
+          average_points: number
+          top_points: number
+          total_points: number
+          total_students: number
+        }[]
+      }
+      get_leaderboard_v2: {
+        Args: { p_class?: string; p_period?: string }
+        Returns: {
+          avatar_url: string
+          first_name: string
+          id: string
+          last_name: string
+          points: number
+          student_class: string
+        }[]
+      }
+      get_period_points: {
+        Args: { p_since: string }
+        Returns: {
+          pts: number
+          user_id: string
         }[]
       }
       get_profile_role: { Args: { _user_id: string }; Returns: string }
@@ -2598,6 +2689,24 @@ export type Database = {
           points_awarded: number
         }[]
       }
+      record_game_play_v2: {
+        Args: {
+          p_answers?: Json
+          p_client_nonce?: string
+          p_duration_seconds: number
+          p_game_key: string
+          p_is_win: boolean
+          p_offline?: boolean
+          p_score: number
+          p_session_id?: string
+        }
+        Returns: {
+          message: string
+          plays_left: number
+          points_awarded: number
+          verified: boolean
+        }[]
+      }
       record_login_streak: {
         Args: { p_user_id: string }
         Returns: {
@@ -2620,6 +2729,13 @@ export type Database = {
         }[]
       }
       send_due_soon_reminders: { Args: { p_days?: number }; Returns: number }
+      start_game_session: {
+        Args: { p_game_key: string }
+        Returns: {
+          server_time: string
+          session_id: string
+        }[]
+      }
       submit_public_support_ticket: {
         Args: {
           p_admission: string
