@@ -21,7 +21,12 @@ interface SchoolLeaderboardEntry {
 interface SchoolLeaderboardProps {
   currentUserId?: string;
   onEntryClick?: (userId: string) => void;
+  /** "monthly" = points earned this calendar month, "lifetime" = all-time total */
+  period?: "monthly" | "lifetime";
+  /** Restrict to a single class level (e.g. "8A"); omit for school-wide */
+  classFilter?: string | null;
 }
+
 
 const getRankIcon = (rank: number) => {
   switch (rank) {
