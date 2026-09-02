@@ -8,9 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowLeft, Star, Bookmark, BookmarkCheck, BookOpen, MapPin,
-  Languages, GraduationCap, ClipboardList, Info, HelpCircle, Loader2, Sparkles, Wand2, Layers
+  Languages, GraduationCap, ClipboardList, Info, HelpCircle, Loader2, Sparkles, Wand2, Layers, Globe
 } from "lucide-react";
-import { fetchBookByQuery, generateSmartBookDescription } from "@/lib/bookApi";
+import { fetchBookByQuery, generateSmartBookDescription, FetchedBookDetails } from "@/lib/bookApi";
+import { BookFetchPicker } from "@/components/admin/BookFetchPicker";
 
 interface Review {
   id: string;
@@ -42,6 +43,7 @@ export default function BookDetails() {
   const [actionLoading, setActionLoading] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
   const [autofetching, setAutofetching] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -70,6 +72,7 @@ export default function BookDetails() {
         return;
       }
       setBook(bookData);
+      document.title = `${bookData.title} | KV Sulur Digital Library`;
 
       // If missing description or cover, try to auto-fetch/generate
       if (!bookData.description || bookData.description.trim().length < 20 || !bookData.cover_url || !bookData.category) {
@@ -214,6 +217,24 @@ export default function BookDetails() {
     }
   };
 
+  const handlePickerSelect = async (details: FetchedBookDetails) => {
+    if (!book) return;
+    const updates: any = {};
+    if (details.cover_url) updates.cover_url = details.cover_url;
+    if (details.description) updates.description = details.description;
+    if (details.category) updates.category = details.category;
+    if (details.subject) updates.subject = details.subject;
+    if (details.language) updates.language = details.language;
+
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabase.from("books").update(updates).eq("id", book.id);
+      if (!error) {
+        setBook((prev: any) => ({ ...prev, ...updates }));
+        toast({ title: "Book metadata updated!", description: "Applied selected cover and details." });
+      }
+    }
+  };
+
   const toggleWishlist = async () => {
     if (!userId) { toast({ title: "Sign in required", variant: "destructive" }); navigate("/login"); return; }
     setActionLoading(true);
@@ -340,6 +361,15 @@ export default function BookDetails() {
                 </div>
               )}
             </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPicker(true)}
+              className="w-full text-xs font-semibold rounded-xl border-indigo-200 bg-indigo-50/50 text-indigo-700 hover:bg-indigo-100 flex items-center justify-center gap-1.5 h-9"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> Search Online Covers & Details
+            </Button>
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3">
@@ -596,6 +626,14 @@ export default function BookDetails() {
           </div>
         )}
       </main>
+
+      <BookFetchPicker
+        open={showPicker}
+        onOpenChange={setShowPicker}
+        initialTitle={book?.title || ""}
+        initialAuthor={book?.author || ""}
+        onSelectBook={handlePickerSelect}
+      />
     </div>
   );
 }

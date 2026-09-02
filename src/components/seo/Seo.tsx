@@ -13,6 +13,12 @@ type PageDetails = {
 
 const publicPages: Record<string, PageDetails> = {
   "/": { title: "KV Sulur Digital Library | PM SHRI KV AFS Sulur", description: DEFAULT_DESCRIPTION },
+  "/dashboard": { title: "Dashboard | KV Sulur Digital Library", description: "KV Sulur Digital Library user dashboard.", index: false },
+  "/student-dashboard": { title: "Student Dashboard | KV Sulur Digital Library", description: "Access books, quizzes, challenges, and reading tracker.", index: false },
+  "/admin-dashboard": { title: "Admin Dashboard | KV Sulur Digital Library", description: "Library administration, circulation, and user management.", index: false },
+  "/teacher-dashboard": { title: "Teacher Dashboard | KV Sulur Digital Library", description: "Manage class reading activity and student achievements.", index: false },
+  "/points-history": { title: "Points & XP History | KV Sulur Digital Library", description: "View your earned library points and reading streak achievements.", index: false },
+  "/student-portfolio": { title: "My Reading Portfolio | KV Sulur Digital Library", description: "Student reading statistics, digital library card, and badges.", index: false },
   "/catalog": { title: "Book Catalogue | KV Sulur Digital Library", description: "Browse the online catalogue at PM SHRI Kendriya Vidyalaya AFS Sulur Digital Library." },
   "/support": { title: "Library Help & Support | KV Sulur Digital Library", description: "Get help with the KV Sulur Digital Library, accounts, books, and library services." },
   "/feedback": { title: "Share Feedback | KV Sulur Digital Library", description: "Share feedback to help improve the KV Sulur Digital Library experience." },

@@ -351,6 +351,8 @@ export async function fetchBookByIsbn(isbn: string): Promise<FetchedBookDetails 
   return details;
 }
 
+const API_CACHE = new Map<string, FetchedBookDetails | null>();
+
 /**
  * Fetch book details by Title and optional Author (and optional ISBN).
  */
@@ -362,17 +364,28 @@ export async function fetchBookByQuery(
   const searchTitle = title.trim();
   const searchAuthor = author?.trim() || "";
   const cleanIsbn = isbn?.replace(/[-\s]/g, "").trim() || "";
+  const cacheKey = `${searchTitle.toLowerCase()}|${searchAuthor.toLowerCase()}|${cleanIsbn}`;
 
+  if (API_CACHE.has(cacheKey)) {
+    return API_CACHE.get(cacheKey)!;
+  }
+
+  let result: FetchedBookDetails | null = null;
   if (cleanIsbn) {
     const byIsbn = await fetchBookByIsbn(cleanIsbn);
     if (byIsbn && (byIsbn.description || byIsbn.cover_url)) {
       // Fill any gaps with title search
       const byTitle = await fetchBookByQueryInternal(searchTitle, searchAuthor);
-      return mergeDetails(byIsbn, byTitle);
+      result = mergeDetails(byIsbn, byTitle);
     }
   }
 
-  return fetchBookByQueryInternal(searchTitle, searchAuthor);
+  if (!result) {
+    result = await fetchBookByQueryInternal(searchTitle, searchAuthor);
+  }
+
+  API_CACHE.set(cacheKey, result);
+  return result;
 }
 
 async function fetchBookByQueryInternal(searchTitle: string, searchAuthor: string): Promise<FetchedBookDetails | null> {

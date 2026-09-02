@@ -41,15 +41,18 @@ export const BookFetchPicker: React.FC<BookFetchPickerProps> = ({
   const [hasSearched, setHasSearched] = useState(false);
   const { toast } = useToast();
 
-  const handleSearch = async () => {
-    if (!queryTitle.trim() && !queryAuthor.trim() && !queryIsbn.trim()) {
-      toast({
-        title: "Search criteria required",
-        description: "Please enter a title, author, or ISBN to search.",
-        variant: "destructive",
-      });
-      return;
+  React.useEffect(() => {
+    if (open) {
+      setQueryTitle(initialTitle);
+      setQueryAuthor(initialAuthor);
+      if (initialTitle.trim() || initialAuthor.trim()) {
+        void executeSearch(initialTitle, initialAuthor, queryIsbn);
+      }
     }
+  }, [open, initialTitle, initialAuthor]);
+
+  const executeSearch = async (titleVal: string, authorVal: string, isbnVal: string) => {
+    if (!titleVal.trim() && !authorVal.trim() && !isbnVal.trim()) return;
 
     setLoading(true);
     setHasSearched(true);
@@ -170,6 +173,10 @@ export const BookFetchPicker: React.FC<BookFetchPickerProps> = ({
     }
   };
 
+  const handleSearch = () => {
+    void executeSearch(queryTitle, queryAuthor, queryIsbn);
+  };
+
   const filteredResults = results.filter((item) => {
     if (activeTab === "google") return item.source === "Google Books";
     if (activeTab === "openlibrary") return item.source === "Open Library";
@@ -191,6 +198,17 @@ export const BookFetchPicker: React.FC<BookFetchPickerProps> = ({
     toast({
       title: "Book metadata selected!",
       description: `Populated details for "${item.title}".`,
+    });
+    onOpenChange(false);
+  };
+
+  const handleSelectCoverOnly = (item: MultiSourceSearchResult) => {
+    onSelectBook({
+      cover_url: item.cover_url,
+    });
+    toast({
+      title: "Cover selected!",
+      description: `Updated cover image for "${item.title}".`,
     });
     onOpenChange(false);
   };
@@ -322,7 +340,17 @@ export const BookFetchPicker: React.FC<BookFetchPickerProps> = ({
                       )}
                     </div>
 
-                    <div className="pt-2 flex justify-end">
+                    <div className="pt-2 flex justify-end gap-2">
+                      {item.cover_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSelectCoverOnly(item)}
+                          className="h-7 text-xs gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                        >
+                          <ImageIcon className="h-3.5 w-3.5 text-indigo-500" /> Cover Only
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="default"
