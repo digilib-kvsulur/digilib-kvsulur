@@ -25,6 +25,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [botName, setBotName] = useState("LibraryBot");
+  const [customBotMessages, setCustomBotMessages] = useState<any[] | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,7 +36,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   };
 
   useEffect(() => {
-    supabase.from("system_settings").select("key, value").in("key", ["library_bot_visible", "library_bot_name"])
+    supabase.from("system_settings").select("key, value").in("key", ["library_bot_visible", "library_bot_name", "library_bot_messages"])
       .then(res => {
         let activeName = "LibraryBot";
         if (res.data) {
@@ -48,6 +49,16 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
           if (nameRow?.value) {
             activeName = String(nameRow.value).trim();
             setBotName(activeName);
+          }
+          const msgRow = res.data.find(r => r.key === "library_bot_messages");
+          if (msgRow?.value) {
+            try {
+              const val = typeof msgRow.value === "string" ? msgRow.value : JSON.stringify(msgRow.value);
+              const parsed = JSON.parse(val);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setCustomBotMessages(parsed);
+              }
+            } catch {}
           }
         }
         
@@ -80,6 +91,17 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     // ─────────────────────────────────────────────────────────────
     const checkPredefinedAnswer = (text: string): string | null => {
       const t = text.toLowerCase().trim();
+
+      // Check dynamic admin-configured messages first
+      if (customBotMessages && customBotMessages.length > 0) {
+        for (const msg of customBotMessages) {
+          if (Array.isArray(msg.keywords) && msg.response) {
+            if (msg.keywords.some((kw: string) => kw && t.includes(String(kw).toLowerCase().trim()))) {
+              return msg.response;
+            }
+          }
+        }
+      }
 
       // Greetings
       if (/^(hi|hello|hey|good morning|good afternoon|good evening|namaste|greetings|sup|howdy)$/.test(t) || t === "hi there" || t === "hello there") {

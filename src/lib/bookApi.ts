@@ -228,7 +228,7 @@ export async function fetchFastCoverOnly(title: string, author?: string): Promis
             `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&printType=books`,
             { signal: AbortSignal.timeout(6000) }
           );
-          if (!res.ok) return "";
+          if (!res.ok || res.status === 429) return "";
           const data = await res.json();
           for (const item of data.items || []) {
             const links = item.volumeInfo?.imageLinks;

@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Clock, MessageSquare, Megaphone, DownloadCloud, Key } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import LibraryBotMessagesManager from "@/components/admin/LibraryBotMessagesManager";
 
 export default function LibrarySettings() {
   const { toast } = useToast();
@@ -691,6 +692,13 @@ export default function LibrarySettings() {
               />
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Predefined Messages Manager */}
+      <Card>
+        <CardContent className="p-6">
+          <LibraryBotMessagesManager />
         </CardContent>
       </Card>
     </div>
