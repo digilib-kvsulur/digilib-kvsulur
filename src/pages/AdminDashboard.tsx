@@ -10,7 +10,7 @@ import {
   Calendar, RefreshCw, Star, AlertTriangle, Barcode, HardDrive, Server,
   Gamepad2, AlertCircle, FileSpreadsheet, LifeBuoy, Library as LibraryIcon,
   ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon,
-  Newspaper, Users as UsersIcon, Crown
+  Newspaper, Users as UsersIcon, Crown, Sparkles
 } from "lucide-react";
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
@@ -54,7 +54,9 @@ import FeedbackManager from "@/components/admin/FeedbackManager";
 import BookOfTheWeek from "@/components/admin/BookOfTheWeek";
 import BookClubManager from "@/components/admin/BookClubManager";
 import StudentBarcodeGenerator from "@/components/admin/StudentBarcodeGenerator";
-type Tab = "overview" | "users" | "books" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
+import MetadataFetchDashboard from "@/components/admin/MetadataFetchDashboard";
+
+type Tab = "overview" | "users" | "books" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
 
 const navSections = [
   {
@@ -79,6 +81,7 @@ const navSections = [
     title: "Library",
     items: [
       { id: "books" as Tab, label: "Manage Books", icon: BookOpen },
+      { id: "metadata-hub" as Tab, label: "Metadata & Cover Hub", icon: Sparkles },
       { id: "circulation" as Tab, label: "Circulation", icon: LibraryIcon },
       { id: "audit" as Tab, label: "Inventory Audit", icon: ClipboardList },
       { id: "book-requests" as Tab, label: "Book Requests", icon: BookUp },
@@ -401,6 +404,7 @@ const AdminDashboard = () => {
 
            {activeTab === "users" && <UserApproval />}
           {activeTab === "books" && <BookManager />}
+          {activeTab === "metadata-hub" && <MetadataFetchDashboard />}
           {activeTab === "circulation" && <CirculationDashboard />}
           {activeTab === "audit" && <InventoryAuditManager />}
           {activeTab === "reports" && <ExportReports />}
