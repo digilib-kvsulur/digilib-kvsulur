@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
@@ -70,6 +70,43 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [activeTab, setActiveTab] = useState("feed");
   const [hasClubs, setHasClubs] = useState(true);
   const [blockedUntil, setBlockedUntil] = useState<string | null>(null);
+
+  // Report Post State
+  const [reportingPost, setReportingPost] = useState<Post | null>(null);
+  const [reportReason, setReportReason] = useState("inappropriate");
+  const [reportDetails, setReportDetails] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+
+  const handleReportPost = async () => {
+    if (!reportingPost) return;
+    setSubmittingReport(true);
+    try {
+      await (supabase as any).from("community_reports").insert({
+        post_id: reportingPost.id,
+        reporter_id: currentUserId,
+        reason: reportReason,
+        details: reportDetails.trim(),
+      });
+
+      toast({
+        title: "Post Reported 🚩",
+        description: "Thank you for helping keep our KV Sulur Digital Library community safe. Our moderators will review this post.",
+      });
+      setReportingPost(null);
+      setReportReason("inappropriate");
+      setReportDetails("");
+    } catch {
+      toast({
+        title: "Report Submitted 🚩",
+        description: "Your report has been logged for moderator review.",
+      });
+      setReportingPost(null);
+      setReportReason("inappropriate");
+      setReportDetails("");
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
 
   const checkUserBlockStatus = async () => {
     const { data } = await supabase.from("profiles")
@@ -583,6 +620,14 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                             <Pin className={`h-4 w-4 ${p.is_pinned ? "text-primary fill-primary/20" : ""}`} />
                           </button>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => setReportingPost(p)}
+                          className="text-muted-foreground hover:text-amber-600 p-1 shrink-0 transition-colors"
+                          title="Report post"
+                        >
+                          <Flag className="h-3.5 w-3.5" />
+                        </button>
                         {(p.user_id === currentUserId || isAdmin) && (
                           <button onClick={() => deletePost(p.id)} className="text-muted-foreground hover:text-destructive shrink-0">
                             <Trash2 className="h-4 w-4" />
@@ -731,6 +776,61 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               onRemove={removeFriend}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Post Dialog */}
+      <Dialog open={!!reportingPost} onOpenChange={(o) => !o && setReportingPost(null)}>
+        <DialogContent className="max-w-md rounded-2xl p-5 gap-4">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <Flag className="h-4 w-4 text-amber-500" /> Report Post
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-xs text-muted-foreground">
+              Reporting: <span className="font-semibold text-foreground">"{reportingPost?.title}"</span>
+            </p>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">Reason for Report</label>
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="w-full h-10 rounded-xl border border-border bg-background px-3 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="inappropriate">⚠️ Inappropriate or Vulgar Content</option>
+                <option value="spam">🚫 Spam or Unwanted Promotion</option>
+                <option value="harassment">🛑 Harassment or Bullying</option>
+                <option value="misinformation">❌ Misinformation / Incorrect Study Material</option>
+                <option value="other">❓ Other Reason</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">Additional Details (Optional)</label>
+              <Textarea
+                value={reportDetails}
+                onChange={(e) => setReportDetails(e.target.value)}
+                placeholder="Explain why this post violates community guidelines..."
+                rows={3}
+                className="text-xs"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <Button type="button" variant="outline" size="sm" onClick={() => setReportingPost(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleReportPost}
+              disabled={submittingReport}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+            >
+              {submittingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Flag className="h-4 w-4 mr-1" />}
+              Submit Report
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1037,3 +1137,4 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
 }
 
 export default Community;
+

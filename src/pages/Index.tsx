@@ -167,13 +167,19 @@ const Index = () => {
 
   const loadStatistics = async () => {
     try {
-      const [b, u, i] = await Promise.all([
-        supabase.rpc("get_total_books_count"),
+      const [{ data: bCopies }, { data: uCount }, { count: iCount }] = await Promise.all([
+        supabase.from("books").select("total_copies"),
         supabase.rpc("get_active_users_count"),
-        supabase.rpc("get_books_issued_count"),
+        supabase.from("book_issues").select("*", { count: "exact", head: true }),
       ]);
-      setStatistics({ totalBooks: b.data || 0, activeUsers: u.data || 0, booksIssued: i.data || 0 });
-    } catch (e) { console.error(e); }
+      const totalCopies = (bCopies || []).reduce((acc: number, row: any) => acc + (row.total_copies || 1), 0);
+      const totalHistoricalIssues = iCount || 0;
+      const activeUsers = uCount || 0;
+
+      setStatistics({ totalBooks: totalCopies, activeUsers, booksIssued: totalHistoricalIssues });
+    } catch (e) {
+      console.error("Failed to load statistics:", e);
+    }
   };
 
   const loadTrendingBooks = async () => {
@@ -394,9 +400,9 @@ const Index = () => {
               {/* Stats Band with generous internal padding */}
               <div className="grid grid-cols-3 gap-6 pt-9 border-t border-slate-200/80 max-w-md mx-auto lg:mx-0">
                 {[
-                  { v: statistics.totalBooks, l: "Books" },
-                  { v: statistics.activeUsers, l: "Active Readers" },
-                  { v: statistics.booksIssued, l: "Books Issued" },
+                  { v: statistics.totalBooks, l: "Total Copies" },
+                  { v: statistics.booksIssued, l: "Total Issues" },
+                  { v: statistics.activeUsers, l: "Active Members" },
                 ].map((s, i) => (
                   <div key={i} className="text-center lg:text-left px-2">
                     <p className="text-3xl font-black text-slate-900">{s.v.toLocaleString()}+</p>

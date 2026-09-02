@@ -123,8 +123,8 @@ const PWAInstallBanner = () => {
   };
 
   return (
-    <div className="fixed bottom-16 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-xs z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-card border border-border rounded-xl shadow-lg p-4 flex items-center gap-3">
+    <div className="fixed bottom-4 left-4 right-auto max-w-sm z-40 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="bg-card border border-border rounded-xl shadow-lg p-3.5 flex items-center gap-3">
         <DownloadCloud className="h-8 w-8 text-primary shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold">Install DigiLib App</p>

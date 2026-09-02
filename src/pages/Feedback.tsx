@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, Star, Sparkles, AlertTriangle, ShieldQuestion } from "lucide-react";
+import { MessageSquare, ArrowLeft, Send, Loader2, CheckCircle2, Star, Sparkles, AlertTriangle, ShieldQuestion, Paperclip, X } from "lucide-react";
 
 export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
   const { toast } = useToast();
@@ -18,6 +18,8 @@ export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState("");
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentUrl, setAttachmentUrl] = useState<string>("");
   
   // Wizard steps: 1 = Category, 2 = Rating & Area, 3 = Details
   const [step, setStep] = useState(1);
@@ -64,8 +66,32 @@ export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
     setSaving(true);
     try {
       const refId = `FB-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
-      
-      const { error } = await supabase.from("user_feedback").insert({
+      let filePublicUrl = "";
+
+      // Step 1: Process file attachment if present
+      if (attachmentFile) {
+        try {
+          const fileExt = attachmentFile.name.split(".").pop();
+          const filePath = `feedback/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+          const { error: uploadErr } = await supabase.storage.from("feedback_attachments").upload(filePath, attachmentFile);
+          if (!uploadErr) {
+            const { data } = supabase.storage.from("feedback_attachments").getPublicUrl(filePath);
+            filePublicUrl = data.publicUrl;
+          }
+        } catch (e) {
+          console.warn("Storage upload fallback:", e);
+        }
+      }
+
+      const fullFeedbackText = filePublicUrl
+        ? `${form.description.trim()}\n\n[Attachment: ${filePublicUrl}]`
+        : form.description.trim();
+
+      // Step 2: Insert into user_feedback with schema error fallback
+      let insertError: any = null;
+
+      // Attempt 1: Standard feedback_text column
+      const { error: err1 } = await supabase.from("user_feedback").insert({
         user_id: user?.id || null,
         category: form.category,
         area: form.area || null,
@@ -74,26 +100,48 @@ export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
         allow_follow_up: form.allowFollowUp,
         rating,
         subject: form.subject.trim(),
-        feedback_text: form.description.trim(),
-      });
+        feedback_text: fullFeedbackText,
+      } as any);
 
-      if (error) throw error;
+      if (err1) {
+        insertError = err1;
+        // Attempt 2: Fallback column names (message) if feedback_text schema cache fails
+        const { error: err2 } = await supabase.from("user_feedback").insert({
+          user_id: user?.id || null,
+          category: form.category,
+          area: form.area || null,
+          urgency: form.urgency || "low",
+          reference_id: refId,
+          allow_follow_up: form.allowFollowUp,
+          rating,
+          subject: form.subject.trim(),
+          message: fullFeedbackText,
+        } as any);
+
+        if (!err2) insertError = null;
+      }
+
+      if (insertError) throw insertError;
       
-      // Auto-add feature suggestions to the community survey
-      if (form.category === "suggestion") {
-        await supabase.from("posts").insert({
-          title: form.subject.trim(),
-          content: `[STATUS:voting] ${form.description.trim()}`,
-          post_type: "suggestion_feature",
-          user_id: user?.id || null
-        });
+      // Step 3: Auto-add feature suggestions to community survey (wrapped safely in try...catch so RLS never blocks feedback)
+      if (form.category === "suggestion" && user?.id) {
+        try {
+          await supabase.from("posts").insert({
+            title: form.subject.trim(),
+            content: `[STATUS:voting] ${fullFeedbackText}`,
+            post_type: "suggestion_feature",
+            user_id: user.id
+          });
+        } catch (postErr) {
+          console.warn("Could not auto-create community suggestion post (RLS restricted):", postErr);
+        }
       }
 
       setReferenceNumber(refId);
       setSubmitted(true);
       toast({ title: "Thank you! 🎉", description: "Your feedback has been submitted successfully." });
     } catch (err: any) {
-      toast({ title: "Submission failed", description: err.message, variant: "destructive" });
+      toast({ title: "Submission failed", description: err.message || "Failed to submit feedback", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -338,10 +386,48 @@ export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
                     <Textarea
                       value={form.description}
                       maxLength={2000}
-                      rows={5}
+                      rows={4}
                       onChange={(e) => setForm({ ...form, description: e.target.value })}
                       placeholder="Describe your suggestion, idea, or issue in detail..."
                     />
+                  </div>
+
+                  {/* File Attachment Input */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold flex items-center justify-between">
+                      <span className="flex items-center gap-1.5"><Paperclip className="h-3.5 w-3.5 text-muted-foreground" /> Screenshot or File Attachment (Optional)</span>
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*,.pdf,.doc,.docx,.txt"
+                        className="text-xs cursor-pointer h-10 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 10 * 1024 * 1024) {
+                              toast({ title: "File too large", description: "Please attach a file smaller than 10MB.", variant: "destructive" });
+                              return;
+                            }
+                            setAttachmentFile(file);
+                          }
+                        }}
+                      />
+                      {attachmentFile && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => setAttachmentFile(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {attachmentFile && (
+                      <p className="text-[11px] text-emerald-600 font-medium">Attached: {attachmentFile.name} ({(attachmentFile.size / 1024).toFixed(1)} KB)</p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 py-2">
