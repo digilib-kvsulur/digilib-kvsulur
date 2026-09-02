@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Trophy, Users, Shield, Award, Medal, Crown } from "lucide-react";
-import Leaderboard from "@/components/rewards/Leaderboard";
 import SchoolLeaderboard from "@/components/rewards/SchoolLeaderboard";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileView } from "@/components/community/ProfileView";
@@ -13,111 +13,60 @@ interface RankingsProps {
   user: any;
 }
 
+type Period = "monthly" | "lifetime";
+
 const Rankings = ({ user }: RankingsProps) => {
-  const [classLeaderboardEntries, setClassLeaderboardEntries] = useState<any[]>([]);
-  const [monthlyLeaderboardEntries, setMonthlyLeaderboardEntries] = useState<any[]>([]);
+  const [period, setPeriod] = useState<Period>("lifetime");
   const [leagueEntries, setLeagueEntries] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [leagueLoading, setLeagueLoading] = useState(true);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [profileFriendship, setProfileFriendship] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
-    if (user?.id) {
-      const updateTimer = () => {
-        const now = new Date();
-        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-        const diffTime = nextMonth.getTime() - now.getTime();
+    const updateTimer = () => {
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const diffTime = nextMonth.getTime() - now.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+      const diffSeconds = Math.floor((diffTime % (1000 * 60)) / 1000);
+      if (diffDays < 3) setTimeLeft(`${diffDays}d ${diffHours}h ${diffMinutes}m ${diffSeconds}s`);
+      else setTimeLeft(`${diffDays} day${diffDays === 1 ? "" : "s"}`);
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
-        const diffSeconds = Math.floor((diffTime % (1000 * 60)) / 1000);
-
-        if (diffDays < 3) {
-          setTimeLeft(`${diffDays}d ${diffHours}h ${diffMinutes}m ${diffSeconds}s`);
-        } else {
-          setTimeLeft(`${diffDays} day${diffDays === 1 ? "" : "s"}`);
-        }
-      };
-      updateTimer();
-      const interval = setInterval(updateTimer, 1000);
-
-      Promise.all([
-        fetchClassLeaderboard(),
-        fetchMonthlyLeaderboard(),
-        fetchClassReadingLeague()
-      ]).finally(() => setLoading(false));
-
-      return () => clearInterval(interval);
-    }
-  }, [user?.id]);
-
-  const fetchMonthlyLeaderboard = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, student_class, monthly_points, avatar_url")
-        .eq("role", "student")
-        .gt("monthly_points", 0)
-        .order("monthly_points", { ascending: false })
-        .limit(100);
-      
-      if (error) throw error;
-      if (data) {
-        setMonthlyLeaderboardEntries(data.map((item: any, index: number) => ({
-          id: item.id,
-          studentId: item.id,
-          studentName: `${item.first_name || ""} ${item.last_name || ""}`.trim() || item.first_name || "Student",
-          studentClass: item.student_class,
-          totalPoints: item.monthly_points || 0,
-          rank: index + 1,
-          recentActivity: "Points earned this month",
-          avatar: item.avatar_url
-        })));
-      }
-    } catch (e) {
-      console.error("Error fetching monthly leaderboard:", e);
-    }
-  };
-
-  const fetchClassLeaderboard = async () => {
-    if (!user?.student_class) return;
-    try {
-      const { data, error } = await supabase.rpc('get_leaderboard_data', { class_filter: user.student_class });
-      if (error) { console.error('Error fetching class leaderboard:', error); return; }
-      if (data) {
-        setClassLeaderboardEntries(data.map((item: any, index: number) => ({
-          id: item.id, studentId: item.id,
-          studentName: `${item.first_name || ""} ${item.last_name || ""}`.trim() || item.first_name || "Student",
-          studentClass: item.student_class,
-          totalPoints: item.points || 0, rank: index + 1, recentActivity: "Active this week",
-          avatar: item.avatar_url
-        })));
-      }
-    } catch (error) { console.error('Error in fetchClassLeaderboard:', error); }
-  };
+  useEffect(() => {
+    fetchClassReadingLeague();
+  }, [period]);
 
   const fetchClassReadingLeague = async () => {
+    setLeagueLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_class_league');
+      const { data, error } = await supabase.rpc("get_class_league_v2", { p_period: period });
       if (error) throw error;
       const sorted = (data || []).map((r: any) => ({
         className: r.student_class,
         totalPoints: Number(r.total_points) || 0,
         studentCount: Number(r.student_count) || 0,
+        avgPoints: Math.round(Number(r.avg_points) || 0),
       }));
       let rank = 1;
-      const ranked = sorted.map((entry, idx) => {
+      setLeagueEntries(sorted.map((entry, idx) => {
         if (idx > 0 && entry.totalPoints !== sorted[idx - 1].totalPoints) rank = idx + 1;
         return { ...entry, rank };
-      });
-      setLeagueEntries(ranked);
+      }));
     } catch (error) {
-      console.error('Error fetching class reading league:', error);
+      console.error("Error fetching class reading league:", error);
+      setLeagueEntries([]);
+    } finally {
+      setLeagueLoading(false);
     }
   };
-
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -150,39 +99,50 @@ const Rankings = ({ user }: RankingsProps) => {
     setProfileFriendship(null);
   };
 
-  if (loading) return (
-    <Card><CardContent className="p-6"><div className="animate-pulse space-y-4"><div className="h-4 bg-muted rounded w-3/4" /><div className="h-4 bg-muted rounded w-1/2" /></div></CardContent></Card>
-  );
-
   return (
     <div className="space-y-4">
       <Card className="border-border/50">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Trophy className="h-5 w-5 text-warning" />
-            Rankings & Leaderboards
-          </CardTitle>
-          <CardDescription>See how you rank among your classmates and school</CardDescription>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Trophy className="h-5 w-5 text-warning" />
+                Rankings &amp; Leaderboards
+              </CardTitle>
+              <CardDescription>See how you rank among your classmates and school</CardDescription>
+            </div>
+            <div className="inline-flex rounded-lg border border-border/60 bg-muted/40 p-1">
+              {(["monthly", "lifetime"] as Period[]).map((p) => (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={period === p ? "default" : "ghost"}
+                  className="h-7 px-3 text-xs capitalize"
+                  onClick={() => setPeriod(p)}
+                >
+                  {p}
+                </Button>
+              ))}
+            </div>
+          </div>
+          {period === "monthly" && (
+            <Badge variant="outline" className={`mt-2 w-fit text-xs font-semibold border-primary/30 ${timeLeft.includes("s") ? "text-destructive animate-pulse" : "text-primary"}`}>
+              Resets in {timeLeft}
+            </Badge>
+          )}
         </CardHeader>
       </Card>
 
       <Tabs defaultValue="class" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="class" className="flex items-center gap-2 text-xs sm:text-sm">
-            <Users className="h-4 w-4" />
-            <span>Class</span>
-          </TabsTrigger>
-          <TabsTrigger value="monthly" className="flex items-center gap-2 text-xs sm:text-sm">
-            <Trophy className="h-4 w-4" />
-            <span>Monthly</span>
+            <Users className="h-4 w-4" /><span>Class</span>
           </TabsTrigger>
           <TabsTrigger value="school" className="flex items-center gap-2 text-xs sm:text-sm">
-            <Trophy className="h-4 w-4" />
-            <span>School</span>
+            <Trophy className="h-4 w-4" /><span>School</span>
           </TabsTrigger>
           <TabsTrigger value="league" className="flex items-center gap-2 text-xs sm:text-sm">
-            <Shield className="h-4 w-4" />
-            <span>Leagues</span>
+            <Shield className="h-4 w-4" /><span>Leagues</span>
           </TabsTrigger>
         </TabsList>
 
@@ -190,35 +150,17 @@ const Rankings = ({ user }: RankingsProps) => {
           <Card className="border-border/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Class {user?.student_class} Leaderboard</CardTitle>
-              <CardDescription className="text-xs">Ranking based on total points earned</CardDescription>
+              <CardDescription className="text-xs">
+                {period === "monthly" ? "Points earned this calendar month" : "All-time points"} within your class
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Leaderboard entries={classLeaderboardEntries} currentUserId={user?.id} onEntryClick={openProfile} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="monthly">
-          <Card className="border-border/50">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center flex-wrap gap-2">
-                <div>
-                  <CardTitle className="text-base">Monthly Leaderboard</CardTitle>
-                  <CardDescription className="text-xs">Points earned during this calendar month</CardDescription>
-                </div>
-                <Badge variant="outline" className={`text-xs font-semibold border-primary/30 ${timeLeft.includes('s') ? 'text-red-500 animate-pulse border-red-200' : 'text-primary'}`}>
-                  Resets in {timeLeft}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {monthlyLeaderboardEntries.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  No monthly points recorded yet. Be the first to earn points!
-                </div>
-              ) : (
-                <Leaderboard entries={monthlyLeaderboardEntries} currentUserId={user?.id} onEntryClick={openProfile} />
-              )}
+              <SchoolLeaderboard
+                currentUserId={user?.id}
+                onEntryClick={openProfile}
+                period={period}
+                classFilter={user?.student_class || null}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -227,10 +169,12 @@ const Rankings = ({ user }: RankingsProps) => {
           <Card className="border-border/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">School-wide Leaderboard</CardTitle>
-              <CardDescription className="text-xs">Ranking among all students</CardDescription>
+              <CardDescription className="text-xs">
+                {period === "monthly" ? "Points earned this calendar month" : "All-time points"} across all students
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <SchoolLeaderboard currentUserId={user?.id} onEntryClick={openProfile} />
+              <SchoolLeaderboard currentUserId={user?.id} onEntryClick={openProfile} period={period} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -239,10 +183,14 @@ const Rankings = ({ user }: RankingsProps) => {
           <Card className="border-border/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Class Reading Leagues</CardTitle>
-              <CardDescription className="text-xs">Which class reads the most? Aggregated points across all class students.</CardDescription>
+              <CardDescription className="text-xs">Which class reads the most? Aggregated {period} points per class.</CardDescription>
             </CardHeader>
             <CardContent>
-              {leagueEntries.length === 0 ? (
+              {leagueLoading ? (
+                <div className="animate-pulse space-y-3">
+                  {[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-muted rounded-lg" />)}
+                </div>
+              ) : leagueEntries.length === 0 ? (
                 <p className="text-center text-muted-foreground py-6">No class league data available.</p>
               ) : (
                 <div className="rounded-xl border border-border/50 overflow-hidden divide-y divide-border/30">
@@ -250,7 +198,7 @@ const Rankings = ({ user }: RankingsProps) => {
                     <div
                       key={entry.className}
                       className={`flex items-center gap-3 px-4 py-3 transition-all hover:bg-muted/30 ${
-                        entry.className === user?.student_class ? 'bg-primary/5 border-l-2 border-l-primary' : ''
+                        entry.className === user?.student_class ? "bg-primary/5 border-l-2 border-l-primary" : ""
                       }`}
                     >
                       <div className="w-7 flex items-center justify-center shrink-0">{getRankIcon(entry.rank)}</div>
@@ -261,7 +209,9 @@ const Rankings = ({ user }: RankingsProps) => {
                             <Badge variant="secondary" className="text-[9px] px-1.5 py-0">My Class</Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{entry.studentCount} reader{entry.studentCount === 1 ? '' : 's'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {entry.studentCount} reader{entry.studentCount === 1 ? "" : "s"} · avg {entry.avgPoints.toLocaleString()} pts
+                        </p>
                       </div>
                       <div className="text-right shrink-0">
                         <span className="text-sm font-extrabold text-primary">{entry.totalPoints.toLocaleString()}</span>
@@ -275,6 +225,7 @@ const Rankings = ({ user }: RankingsProps) => {
           </Card>
         </TabsContent>
       </Tabs>
+
       <Dialog open={!!profileUserId} onOpenChange={open => !open && setProfileUserId(null)}>
         <DialogContent className="max-w-lg p-0 overflow-hidden">
           {profileUserId && <ProfileView userId={profileUserId} currentUserId={user.id} friendship={profileFriendship} onSend={sendRequest} onRespond={respondRequest} onRemove={removeRequest} />}
