@@ -223,9 +223,48 @@ const fetchOpenLibraryDescription = async (workKey: string): Promise<string> => 
 
 export function generateSmartBookDescription(title: string, author?: string, category?: string): string {
   const cleanTitle = title.trim();
-  const cleanAuthor = author ? author.trim() : "Unknown Author";
-  const cleanCategory = category || "Literature & General Reading";
-  return `"${cleanTitle}" is a valued work by ${cleanAuthor}, cataloged under ${cleanCategory} in the PM SHRI Kendriya Vidyalaya AFS Sulur Digital Library. It offers students insights for study, reference, and enrichment.`;
+  const cleanAuthor = author && author.trim() && author.toLowerCase() !== "unknown author" ? author.trim() : "";
+  const t = cleanTitle.toLowerCase();
+  const cat = (category || "").toLowerCase();
+
+  // Academic Subject-Specific Overviews
+  if (/(physics|bhautiki)/i.test(t)) {
+    return `Academic study material for Physics (${cleanTitle}). Covers fundamental concepts, physical laws, formulas, solved examples, and practical applications aligned with the NCERT / CBSE curriculum for KV students.`;
+  }
+  if (/(chemistry|rasayan)/i.test(t)) {
+    return `In-depth Chemistry reference (${cleanTitle}). Explores atomic structure, chemical equations, periodic trends, organic synthesis, and laboratory fundamentals for school studies and entrance examinations.`;
+  }
+  if (/(biology|botany|zoology|jiv vigyan)/i.test(t)) {
+    return `Comprehensive Biology study guide (${cleanTitle}). Details cell biology, genetics, human physiology, plant morphology, and ecological systems for conceptual understanding and exam preparation.`;
+  }
+  if (/(math|mathematics|algebra|geometry|calculus|ganit)/i.test(t)) {
+    return `Essential Mathematics reference (${cleanTitle}). Provides step-by-step proofs, algebraic formulas, geometric theorems, and practice problem sets designed to build analytical and problem-solving skills.`;
+  }
+  if (/(computer science|python|informatics|programming|coding)/i.test(t)) {
+    return `Computer Science and IT guide (${cleanTitle}). Introduces programming logic, data structures, algorithms, database management, and software applications for school and technical learning.`;
+  }
+  if (/(accountancy|accounting|business studies|lekhashastra|vyavasay)/i.test(t)) {
+    return `Commerce and Business reference (${cleanTitle}). Explains core accounting principles, financial balance sheets, business administration, and economic management fundamentals.`;
+  }
+  if (/(history|geography|civics|political science|social science|itihas|bhugol)/i.test(t)) {
+    return `Social Science reference (${cleanTitle}). Examines historical events, geographical landscapes, democratic governance, and social structures for holistic general awareness and academic study.`;
+  }
+  if (/(dictionary|encyclopedia|atlas|thesaurus)/i.test(t) || cat.includes("reference")) {
+    return `Comprehensive reference work (${cleanTitle}). Provides definitions, geographical maps, contextual facts, and quick-access data for library research and study reference.`;
+  }
+  if (/(biography|autobiography|memoir|life of)/i.test(t) || cat.includes("biography")) {
+    return `Inspiring biographical account (${cleanTitle})${cleanAuthor ? ` by ${cleanAuthor}` : ""}. Chronicles key historical milestones, personal achievements, and notable contributions that shape human history.`;
+  }
+  if (/(novel|story|stories|fiction|tale|adventures|potter)/i.test(t) || cat.includes("fiction") || cat.includes("novel")) {
+    return `Engaging work of fiction titled "${cleanTitle}"${cleanAuthor ? ` by ${cleanAuthor}` : ""}. Features rich storytelling, narrative themes, and character journeys for reading enjoyment and literary appreciation.`;
+  }
+  if (/(poem|poetry|verse|drama|play)/i.test(t) || cat.includes("poetry") || cat.includes("drama")) {
+    return `Literary collection titled "${cleanTitle}"${cleanAuthor ? ` by ${cleanAuthor}` : ""}. Showcases poetic expression, dramatic dialogue, and artistic themes for language and literature appreciation.`;
+  }
+
+  // General Dynamic Overview
+  const byAuthor = cleanAuthor ? ` written by ${cleanAuthor}` : "";
+  return `"${cleanTitle}" is a cataloged work${byAuthor} in the Kendriya Vidyalaya Digital Library under ${category || "General Literature"}. It serves as a resource for academic study, reference, and reading enrichment.`;
 }
 
 const fromGoogleItem = (info: any): FetchedBookDetails => {
