@@ -49,6 +49,7 @@ export const BulkMetadataEnricher: React.FC<BulkMetadataEnricherProps> = ({
   onComplete,
 }) => {
   const [filterMode, setFilterMode] = useState<"missing_cover" | "missing_metadata" | "all">("missing_cover");
+  const [batchSize, setBatchSize] = useState<number>(20);
   const [candidates, setCandidates] = useState<EnrichedCandidate[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
@@ -85,7 +86,7 @@ export const BulkMetadataEnricher: React.FC<BulkMetadataEnricherProps> = ({
 
     setIsSearching(true);
     setProgress(0);
-    setProgressText(`Searching online metadata for ${targetBooks.length} books...`);
+    setProgressText(`Searching online metadata for ${targetBooks.length} books in batches of ${batchSize}...`);
 
     const initialCandidates: EnrichedCandidate[] = targetBooks.map((b) => ({
       bookId: b.id,
@@ -102,49 +103,59 @@ export const BulkMetadataEnricher: React.FC<BulkMetadataEnricherProps> = ({
     let completed = 0;
     const updatedCandidates = [...initialCandidates];
 
-    for (let i = 0; i < targetBooks.length; i++) {
-      const book = targetBooks[i];
-      updatedCandidates[i].status = "fetching";
+    for (let i = 0; i < targetBooks.length; i += batchSize) {
+      const chunk = targetBooks.slice(i, i + batchSize);
+      
+      // Mark chunk candidates as fetching
+      for (let j = 0; j < chunk.length; j++) {
+        updatedCandidates[i + j].status = "fetching";
+      }
       setCandidates([...updatedCandidates]);
 
-      try {
-        let details = await fetchBookByQuery(book.title, book.author);
+      // Execute chunk concurrently via Promise.all
+      await Promise.all(
+        chunk.map(async (book, indexInChunk) => {
+          const globalIdx = i + indexInChunk;
+          try {
+            let details = await fetchBookByQuery(book.title, book.author);
 
-        // Academic Auto-Fill fallback logic
-        const academic = inferAcademicDetails(book.title, book.author);
-        if (!details) {
-          details = {
-            title: book.title,
-            author: book.author,
-            category: academic.category,
-            subject: academic.subject,
-            class_level: academic.class_level,
-            language: academic.language,
-          };
-        } else {
-          if (!details.subject) details.subject = academic.subject;
-          if (!details.class_level) details.class_level = academic.class_level;
-          if (!details.category) details.category = academic.category;
-          if (!details.language) details.language = academic.language;
-        }
+            // Academic Auto-Fill fallback logic
+            const academic = inferAcademicDetails(book.title, book.author);
+            if (!details) {
+              details = {
+                title: book.title,
+                author: book.author,
+                category: academic.category,
+                subject: academic.subject,
+                class_level: academic.class_level,
+                language: academic.language,
+              };
+            } else {
+              if (!details.subject) details.subject = academic.subject;
+              if (!details.class_level) details.class_level = academic.class_level;
+              if (!details.category) details.category = academic.category;
+              if (!details.language) details.language = academic.language;
+            }
 
-        updatedCandidates[i].proposed = details;
-        updatedCandidates[i].status = details ? "found" : "not_found";
-      } catch (err: any) {
-        updatedCandidates[i].status = "error";
-        updatedCandidates[i].errorMsg = err.message || "Failed";
-      }
+            updatedCandidates[globalIdx].proposed = details;
+            updatedCandidates[globalIdx].status = details ? "found" : "not_found";
+          } catch (err: any) {
+            updatedCandidates[globalIdx].status = "error";
+            updatedCandidates[globalIdx].errorMsg = err.message || "Failed";
+          }
+        })
+      );
 
-      completed++;
+      completed += chunk.length;
       setProgress(Math.round((completed / targetBooks.length) * 100));
-      setProgressText(`Processed ${completed} of ${targetBooks.length} books...`);
+      setProgressText(`Batch completed: ${completed} of ${targetBooks.length} books...`);
       setCandidates([...updatedCandidates]);
     }
 
     setIsSearching(false);
     toast({
       title: "Bulk Search Complete!",
-      description: `Fetched metadata candidates for ${targetBooks.length} books.`,
+      description: `Fetched metadata candidates for ${targetBooks.length} books in batches of ${batchSize}.`,
     });
   };
 
@@ -252,6 +263,22 @@ export const BulkMetadataEnricher: React.FC<BulkMetadataEnricherProps> = ({
                 <SelectItem value="missing_cover">Missing Cover Only</SelectItem>
                 <SelectItem value="missing_metadata">Missing Metadata / Cover</SelectItem>
                 <SelectItem value="all">All Library Books ({books.length})</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-xs font-semibold ml-2">Batch Size:</span>
+            <Select
+              value={String(batchSize)}
+              onValueChange={(val) => setBatchSize(Number(val))}
+              disabled={isSearching || isApplying}
+            >
+              <SelectTrigger className="h-8 text-xs w-[110px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 / batch</SelectItem>
+                <SelectItem value="20">20 / batch</SelectItem>
+                <SelectItem value="50">50 / batch</SelectItem>
+                <SelectItem value="100">100 / batch</SelectItem>
               </SelectContent>
             </Select>
             <Badge variant="outline" className="text-xs">

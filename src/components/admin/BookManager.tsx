@@ -232,38 +232,44 @@ const BookManager = () => {
     setFetchingAll(true);
     let updated = 0;
     let failed = 0;
-    for (let i = 0; i < targets.length; i++) {
-      const book = targets[i];
-      setFetchAllProgress(`Fetching ${i + 1}/${targets.length}: ${book.title.slice(0, 30)}...`);
-      try {
-        const details = await fetchBookByQuery(book.title, book.author);
-        const patch: any = {};
-        if (details) {
-          if ((!book.description || (book.description as string).trim().length < 20) && details.description) patch.description = details.description;
-          if (!book.cover_url && details.cover_url) patch.cover_url = details.cover_url;
-          if (!book.category && details.category) patch.category = details.category;
-          if (!(book as any).language && details.language) patch.language = details.language;
-          if (!book.class_level && details.class_level) patch.class_level = details.class_level;
-        }
-        if (!patch.description) {
-          const { generateSmartBookDescription } = await import("@/lib/bookApi");
-          patch.description = generateSmartBookDescription(book.title, book.author, book.category || undefined);
-        }
-        if (Object.keys(patch).length > 0) {
-          await supabase.from('books').update(patch).eq('id', book.id);
-          updated++;
-        }
-        // Small delay to avoid hammering APIs
-        await new Promise(r => setTimeout(r, 400));
-      } catch {
-        failed++;
-      }
+    const BATCH_SIZE = 20;
+
+    for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+      const chunk = targets.slice(i, i + BATCH_SIZE);
+      setFetchAllProgress(`Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(targets.length / BATCH_SIZE)} (${i + 1}-${Math.min(i + BATCH_SIZE, targets.length)} of ${targets.length})...`);
+      
+      await Promise.all(
+        chunk.map(async (book) => {
+          try {
+            const details = await fetchBookByQuery(book.title, book.author);
+            const patch: any = {};
+            if (details) {
+              if ((!book.description || (book.description as string).trim().length < 20) && details.description) patch.description = details.description;
+              if (!book.cover_url && details.cover_url) patch.cover_url = details.cover_url;
+              if (!book.category && details.category) patch.category = details.category;
+              if (!(book as any).language && details.language) patch.language = details.language;
+              if (!book.class_level && details.class_level) patch.class_level = details.class_level;
+            }
+            if (!patch.description) {
+              const { generateSmartBookDescription } = await import("@/lib/bookApi");
+              patch.description = generateSmartBookDescription(book.title, book.author, book.category || undefined);
+            }
+            if (Object.keys(patch).length > 0) {
+              await supabase.from('books').update(patch).eq('id', book.id);
+              updated++;
+            }
+          } catch {
+            failed++;
+          }
+        })
+      );
     }
+
     setFetchingAll(false);
     setFetchAllProgress("");
     toast({
       title: "Metadata fetch complete",
-      description: `${updated} books updated${failed > 0 ? `, ${failed} failed` : ""}.`
+      description: `${updated} books updated in batch mode${failed > 0 ? `, ${failed} failed` : ""}.`
     });
     loadBooks();
   };
