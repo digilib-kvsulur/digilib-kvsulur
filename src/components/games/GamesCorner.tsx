@@ -65,6 +65,8 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<GameDef | null>(null);
   const [startedAt, setStartedAt] = useState<number>(0);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
   const [scheduleMsg, setScheduleMsg] = useState("");
 
   const loadStatic = useCallback(async () => {
