@@ -145,27 +145,30 @@ export const inferLanguageFromTitle = (title: string, rawLang = ""): string => {
   return "English";
 };
 
+export const isAcademicBook = (title: string, category = "", subject = ""): boolean => {
+  const text = `${title} ${category} ${subject}`.toLowerCase();
+  if (category === "Reference Material" || category === "Textbook") return true;
+  return /(ncert|cbse|class\s*\d|grade\s*\d|std\s*\d|physics|chemistry|biology|math|mathematics|science|social science|history|geography|economics|political science|accountancy|business studies|computer science|informatics practices|rasayan|bhautiki|ganit|itihas|bhugol)/i.test(text);
+};
+
 export const inferCategory = (title: string, subjects: string[] = []): string => {
   const text = `${title} ${subjects.join(" ")}`.toLowerCase();
-  if (/(ncert|cbse|textbook|class|std|grade|part\s*\d|volume\s*\d)/.test(text)) {
-    return "Textbook";
+  if (/(ncert|cbse|textbook|class|std|grade|part\s*\d|volume\s*\d|physics|chemistry|biology|math|mathematics|science|history|geography|economics|accountancy)/.test(text)) {
+    return "Reference Material";
   }
   if (/(dictionary|encyclopedia|encyclopaedia|atlas|reference|handbook|thesaurus|workbook|solution)/.test(text)) {
     return "Reference Book";
   }
-  if (/(novel|fiction|story|stories|tale)/.test(text)) return "Novel";
+  if (/(novel|fiction|story|stories|tale|adventures|potter|panchatantra)/.test(text)) return "Fiction";
   if (/(literature|classic|prose|essay)/.test(text)) return "Literature";
+  if (/(biography|autobiography|memoir)/.test(text)) return "Biography";
+  if (/(poem|poetry|verse)/.test(text)) return "Poetry";
+  if (/(drama|play|tragedy|comedy)/.test(text)) return "Drama";
   const found = CATEGORY_KEYWORDS.find((kw) =>
     subjects.some((subj) => subj.toLowerCase().includes(kw.toLowerCase()))
   );
   if (found) return found;
-  if (/(math|arithmetic|algebra|geometry)/.test(text)) return "Mathematics";
-  if (/(science|physics|chemistry|biology|botany|zoology)/.test(text)) return "Science";
-  if (/(history|historical)/.test(text)) return "History";
-  if (/(biography|autobiography|memoir)/.test(text)) return "Biography";
-  if (/(poem|poetry|verse)/.test(text)) return "Poetry";
-  if (/(drama|play|tragedy|comedy)/.test(text)) return "Drama";
-  return "General Literature";
+  return "Fiction";
 };
 
 export const inferAcademicDetails = (title: string, author = "", subjects: string[] = []): {
@@ -181,7 +184,7 @@ export const inferAcademicDetails = (title: string, author = "", subjects: strin
 
   const text = `${title} ${author} ${subjects.join(" ")}`.toLowerCase();
   if (subject || class_level || /(ncert|cbse|textbook)/.test(text)) {
-    category = "Textbook";
+    category = "Reference Material";
   }
 
   return { class_level, subject, category, language };

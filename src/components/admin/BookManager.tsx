@@ -55,6 +55,9 @@ const emptyForm: BookFormData = {
 const BookManager = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,43 +70,53 @@ const BookManager = () => {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [formData, setFormData] = useState<BookFormData>(emptyForm);
   const [fetchingDetails, setFetchingDetails] = useState(false);
-  const [fetchingAll, setFetchingAll] = useState(false);
-  const [fetchAllProgress, setFetchAllProgress] = useState("");
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [missingAccessionInputs, setMissingAccessionInputs] = useState<Record<string, string>>({});
   const [newAccessionInput, setNewAccessionInput] = useState("");
   const [selectedTitleKeys, setSelectedTitleKeys] = useState<Set<string>>(new Set());
-  // Per-book manual accession inputs for multi-copy verifier (bookId -> string[])
   const [multiCopyManualAccessions, setMultiCopyManualAccessions] = useState<Record<string, string[]>>({});
-  const [showFetchPicker, setShowFetchPicker] = useState(false);
-  const [showBulkEnricher, setShowBulkEnricher] = useState(false);
-  const [showFetchHub, setShowFetchHub] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => { loadBooks(); }, []);
+  useEffect(() => {
+    loadBooks();
+  }, [page, pageSize, categoryFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      loadBooks();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadBooks = async () => {
+    setLoading(true);
     try {
-      // Fetch ALL books using pagination (Supabase default limit is 1000)
-      let allBooks: Book[] = [];
-      const PAGE = 1000;
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from('books')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .range(from, from + PAGE - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allBooks = [...allBooks, ...data];
-        if (data.length < PAGE) break;
-        from += PAGE;
+      let q = supabase.from("books").select("*", { count: "exact" });
+
+      if (searchQuery.trim()) {
+        const term = `%${searchQuery.trim()}%`;
+        q = q.or(`title.ilike.${term},author.ilike.${term},accession_number.ilike.${term}`);
       }
-      setBooks(allBooks);
+      if (categoryFilter !== "all") {
+        q = q.eq("category", categoryFilter);
+      }
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, count, error } = await q
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+      setBooks(data || []);
+      setTotalCount(count || 0);
     } catch (error) {
       toast({ title: "Error", description: "Failed to load books", variant: "destructive" });
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -574,43 +587,9 @@ const BookManager = () => {
           <h2 className="text-2xl font-bold flex items-center gap-2 text-foreground">
             <BookOpen className="h-6 w-6 text-primary" />Book Management
           </h2>
-          <p className="text-sm text-muted-foreground">{books.length} titles · {totalCopies} copies · {availableCopies} available</p>
+          <p className="text-sm text-muted-foreground">Showing {books.length} of {totalCount} total titles (Page {page})</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {fetchingAll && (
-            <div className="flex items-center gap-2 text-xs text-indigo-600 font-medium bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              {fetchAllProgress || "Fetching metadata..."}
-            </div>
-          )}
-          <Button
-            onClick={() => setShowBulkEnricher(true)}
-            variant="outline"
-            size="sm"
-            className="border-purple-300 text-purple-700 hover:bg-purple-50 font-semibold"
-          >
-            <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
-            Interactive Bulk Cover Selector
-          </Button>
-          <Button
-            onClick={() => setShowFetchHub(true)}
-            variant="outline"
-            size="sm"
-            className="border-blue-300 text-blue-700 hover:bg-blue-50 font-semibold"
-          >
-            <Globe className="h-4 w-4 mr-2 text-blue-500" />
-            Single-Page Fetch Studio
-          </Button>
-          <Button
-            onClick={fetchAllMissingMetadata}
-            disabled={fetchingAll}
-            variant="outline"
-            size="sm"
-            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
-          >
-            <Wand2 className="h-4 w-4 mr-2" />
-            Smart Fetch
-          </Button>
           <BulkImportBooks onImported={loadBooks} />
           <Button onClick={handleAddNew} className="gradient-primary border-0 shadow-md">
             <Plus className="h-4 w-4 mr-2" />Add Book
@@ -676,9 +655,13 @@ const BookManager = () => {
       )}
 
       <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="text-lg">All Books</CardTitle>
-          <CardDescription>Showing {filteredBooks.length} of {books.length}</CardDescription>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="text-lg">Library Books Catalog</CardTitle>
+              <CardDescription>Showing {books.length} of {totalCount} total books (Server Paginated)</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -686,7 +669,7 @@ const BookManager = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10">
-                    <input type="checkbox" checked={filteredBooks.length > 0 && filteredBooks.every(b => selectedBookIds.has(b.id))} onChange={() => toggleSelectAll(filteredBooks)} />
+                    <input type="checkbox" checked={books.length > 0 && books.every(b => selectedBookIds.has(b.id))} onChange={() => toggleSelectAll(books)} />
                   </TableHead>
                   <TableHead>Accession</TableHead>
                   <TableHead>Title</TableHead>
@@ -699,7 +682,7 @@ const BookManager = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredBooks.map((book) => (
+                {books.map((book) => (
                   <TableRow key={book.id} className={selectedBookIds.has(book.id) ? "bg-primary/5" : ""}>
                     <TableCell>
                       <input type="checkbox" checked={selectedBookIds.has(book.id)} onChange={() => toggleSelectBook(book.id)} />
@@ -725,13 +708,55 @@ const BookManager = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredBooks.length === 0 && (
+                {books.length === 0 && (
                   <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                    {books.length === 0 ? "No books yet. Add your first book or bulk import!" : "No books match your filters."}
+                    {totalCount === 0 ? "No books yet. Add your first book or bulk import!" : "No books match your search."}
                   </TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Pagination Control Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t mt-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Showing {books.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, totalCount)} of {totalCount} titles</span>
+              <span className="ml-2">Per page:</span>
+              <Select value={String(pageSize)} onValueChange={(val) => { setPageSize(Number(val)); setPage(1); }}>
+                <SelectTrigger className="h-7 text-xs w-[70px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1 || loading}
+                className="h-8 text-xs font-semibold"
+              >
+                Previous
+              </Button>
+              <span className="text-xs font-semibold px-2">
+                Page {page} of {Math.ceil(totalCount / pageSize) || 1}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= Math.ceil(totalCount / pageSize) || loading}
+                className="h-8 text-xs font-semibold"
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

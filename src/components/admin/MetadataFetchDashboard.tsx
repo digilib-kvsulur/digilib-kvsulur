@@ -12,7 +12,7 @@ import {
   CheckCircle2, AlertCircle, Wand2, Loader2, Search, Check, RefreshCw, Filter, Layers, Plus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchBookByQuery, FetchedBookDetails, inferAcademicDetails } from "@/lib/bookApi";
+import { fetchBookByQuery, FetchedBookDetails, inferAcademicDetails, isAcademicBook } from "@/lib/bookApi";
 import { useToast } from "@/hooks/use-toast";
 
 interface Book {
@@ -95,19 +95,18 @@ export default function MetadataFetchDashboard() {
   const totalBooks = books.length;
   const missingCoverBooks = books.filter((b) => !b.cover_url || b.cover_url.trim() === "");
   const missingDescBooks = books.filter((b) => !b.description || b.description.trim().length < 20);
-  const missingAcademicBooks = books.filter((b) => !b.subject || !b.class_level);
+  const missingAcademicBooks = books.filter((b) => isAcademicBook(b.title, b.category, b.subject) && (!b.subject || !b.class_level));
   const missingCategoryBooks = books.filter((b) => !b.category || b.category.trim() === "");
 
-  const completeBooks = books.filter(
-    (b) =>
-      b.cover_url &&
-      b.cover_url.trim() !== "" &&
-      b.description &&
-      b.description.trim().length >= 20 &&
-      b.category &&
-      b.subject &&
-      b.class_level
-  );
+  const completeBooks = books.filter((b) => {
+    const hasCover = b.cover_url && b.cover_url.trim() !== "";
+    const hasDesc = b.description && b.description.trim().length >= 20;
+    const hasCat = b.category && b.category.trim() !== "";
+    if (!isAcademicBook(b.title, b.category, b.subject)) {
+      return hasCover && hasDesc && hasCat;
+    }
+    return hasCover && hasDesc && hasCat && b.subject && b.class_level;
+  });
 
   const completenessPercentage = totalBooks > 0 ? Math.round((completeBooks.length / totalBooks) * 100) : 0;
 
@@ -123,7 +122,7 @@ export default function MetadataFetchDashboard() {
 
       if (filterMode === "missing_cover") return !b.cover_url || b.cover_url.trim() === "";
       if (filterMode === "missing_desc") return !b.description || b.description.trim().length < 20;
-      if (filterMode === "missing_academic") return !b.subject || !b.class_level;
+      if (filterMode === "missing_academic") return isAcademicBook(b.title, b.category, b.subject) && (!b.subject || !b.class_level);
       if (filterMode === "missing_category") return !b.category || b.category.trim() === "";
 
       return true;
