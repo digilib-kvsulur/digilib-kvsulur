@@ -59,6 +59,29 @@ import UpdateBanner from "@/components/global/UpdateBanner";
 
 const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
 
+const awardPwaInstall = async () => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      localStorage.setItem("pwa_install_pending_award", "1");
+      return;
+    }
+    const { data, error } = await supabase.rpc("award_pwa_install");
+    if (error) return;
+    const row: any = Array.isArray(data) ? data[0] : data;
+    localStorage.removeItem("pwa_install_pending_award");
+    if (row?.points_awarded > 0) {
+      const { toast } = await import("sonner");
+      toast.success(`+${row.points_awarded} XP for installing the app!`);
+    }
+  } catch {
+    /* ignore */
+  }
+};
+
+const isStandalone = () =>
+  window.matchMedia?.("(display-mode: standalone)")?.matches || (navigator as any).standalone === true;
+
 const PWAInstallBanner = () => {
   const [prompt, setPrompt] = useState<any>(null);
   const [dismissed, setDismissed] = useState(() => !!localStorage.getItem("pwa_install_dismissed"));
@@ -68,17 +91,29 @@ const PWAInstallBanner = () => {
       e.preventDefault();
       setPrompt(e);
     };
+    const installed = () => {
+      localStorage.setItem("pwa_install_dismissed", "1");
+      setPrompt(null);
+      void awardPwaInstall();
+    };
     window.addEventListener("beforeinstallprompt", handler as any);
-    return () => window.removeEventListener("beforeinstallprompt", handler as any);
+    window.addEventListener("appinstalled", installed);
+    // Already-installed users (or pending award from a signed-out install)
+    if (isStandalone() || localStorage.getItem("pwa_install_pending_award")) void awardPwaInstall();
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler as any);
+      window.removeEventListener("appinstalled", installed);
+    };
   }, []);
 
   if (!prompt || dismissed || isNative) return null;
 
   const install = () => {
     prompt.prompt();
-    prompt.userChoice.then(() => {
+    prompt.userChoice.then((choice: any) => {
       setPrompt(null);
       localStorage.setItem("pwa_install_dismissed", "1");
+      if (choice?.outcome === "accepted") void awardPwaInstall();
     });
   };
 
@@ -93,7 +128,7 @@ const PWAInstallBanner = () => {
         <DownloadCloud className="h-8 w-8 text-primary shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold">Install DigiLib App</p>
-          <p className="text-xs text-muted-foreground">Add to home screen for a better experience</p>
+          <p className="text-xs text-muted-foreground">Add to home screen and earn 500 XP</p>
         </div>
         <div className="flex gap-1 shrink-0">
           <Button size="sm" onClick={install} className="text-xs h-8 gradient-primary border-0">Install</Button>
@@ -103,6 +138,7 @@ const PWAInstallBanner = () => {
     </div>
   );
 };
+
 const AppRouter = isNative ? HashRouter : BrowserRouter;
 
 const DashboardRedirect = () => {

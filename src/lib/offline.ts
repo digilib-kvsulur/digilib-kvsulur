@@ -74,9 +74,10 @@ export async function processQueue() {
             if (updErr) throw updErr;
           }
         } else if (ev.type === "game_play") {
-          const { data, error } = await supabase.rpc("record_game_play", ev.payload as any);
+          const { data, error } = await supabase.rpc("record_game_play_v2", { ...ev.payload, p_offline: true } as any);
           if (error) throw error;
         }
+
         // success -> remove
         await idbDelete(it._id);
       } catch (err) {
@@ -178,7 +179,7 @@ export async function completeSessionLocal(payload: any) {
 export async function recordGamePlayLocal(payload: any) {
   if (navigator.onLine) {
     try {
-      const { data, error } = await supabase.rpc("record_game_play", payload as any);
+      const { data, error } = await supabase.rpc("record_game_play_v2", { ...payload, p_offline: false } as any);
       if (!error) return { success: true, data };
     } catch (e) {
       // fallthrough to enqueue
@@ -187,3 +188,4 @@ export async function recordGamePlayLocal(payload: any) {
   const localId = await enqueueEvent("game_play", payload);
   return { success: false, id: localId };
 }
+

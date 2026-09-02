@@ -65,6 +65,8 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<GameDef | null>(null);
   const [startedAt, setStartedAt] = useState<number>(0);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
   const [scheduleMsg, setScheduleMsg] = useState("");
 
   const loadStatic = useCallback(async () => {
@@ -126,7 +128,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
   const todayXp = todayPlays.reduce((a, p) => a + (p.points_earned || 0), 0);
   const playsFor = (key: string) => todayPlays.filter((p) => p.game_key === key).length;
 
-  const openGame = (g: GameDef) => {
+  const openGame = async (g: GameDef) => {
     if (g.daily_play_limit > 0 && playsFor(g.key) >= g.daily_play_limit) {
       toast({
         title: "Daily limit reached",
@@ -134,10 +136,20 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       });
     }
     setStartedAt(Date.now());
+    setSessionId(null);
     setActive(g);
+    try {
+      const { data, error } = await supabase.rpc("start_game_session", { p_game_key: g.key });
+      if (!error) {
+        const row: any = Array.isArray(data) ? data[0] : data;
+        if (row?.session_id) setSessionId(row.session_id);
+      }
+    } catch {
+      /* offline: play continues, XP granted after sync */
+    }
   };
 
-  const handleComplete = async (win: boolean, score: number) => {
+  const handleComplete = async (win: boolean, score: number, answers?: any) => {
     if (!active) return;
     const duration = Math.floor((Date.now() - startedAt) / 1000);
     const payload = {
@@ -145,6 +157,9 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       p_score: Math.round(score),
       p_is_win: win,
       p_duration_seconds: duration,
+      p_session_id: sessionId,
+      p_client_nonce: `${active.key}-${startedAt}-${Math.random().toString(36).slice(2, 10)}`,
+      p_answers: answers ?? null,
     };
     const res = await recordGamePlayLocal(payload);
     if (res.success) {
@@ -160,6 +175,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
     }
     loadPlays();
   };
+
 
   const renderGame = () => {
     if (!active) return null;
