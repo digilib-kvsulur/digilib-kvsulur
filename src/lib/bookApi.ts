@@ -61,8 +61,8 @@ const matchScore = (wantTitle: string, wantAuthor: string, gotTitle: string, got
 const enlargeCover = (url: string): string => {
   if (!url) return "";
   let u = url.startsWith("http://") ? url.replace("http://", "https://") : url;
-  // Google Books zoom
-  u = u.replace(/zoom=\d/, "zoom=2");
+  // Google Books zoom - zoom=1 is reliable across all browsers without 404/CORS errors
+  u = u.replace(/zoom=\d/, "zoom=1");
   u = u.replace(/&edge=curl/, "");
   // Open Library size
   u = u.replace(/-S\.jpg/i, "-L.jpg").replace(/-M\.jpg/i, "-L.jpg");
@@ -203,6 +203,71 @@ const fetchInternetArchiveCover = async (title: string, author?: string): Promis
     return "";
   }
 };
+
+/**
+ * Ultra-fast cover-only fetcher querying Google Books, Open Library, and Internet Archive in parallel.
+ */
+export async function fetchFastCoverOnly(title: string, author?: string): Promise<string> {
+  const cleanTitle = title.trim();
+  const cleanAuthor = author?.trim() || "";
+  if (!cleanTitle) return "";
+
+  const cacheKey = `cover_fast|${cleanTitle.toLowerCase()}|${cleanAuthor.toLowerCase()}`;
+  if (API_CACHE.has(cacheKey)) {
+    return API_CACHE.get(cacheKey)?.cover_url || "";
+  }
+
+  const query = `${cleanTitle} ${cleanAuthor}`.trim();
+
+  try {
+    const [googleCover, olCover, iaCover] = await Promise.all([
+      // Google Books
+      (async () => {
+        try {
+          const res = await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&printType=books`,
+            { signal: AbortSignal.timeout(6000) }
+          );
+          if (!res.ok) return "";
+          const data = await res.json();
+          for (const item of data.items || []) {
+            const links = item.volumeInfo?.imageLinks;
+            const cover = links?.thumbnail || links?.smallThumbnail || links?.medium || links?.large || "";
+            if (cover) return enlargeCover(cover);
+          }
+        } catch {}
+        return "";
+      })(),
+
+      // Open Library
+      (async () => {
+        try {
+          const params = new URLSearchParams({ title: cleanTitle, limit: "5" });
+          if (cleanAuthor) params.set("author", cleanAuthor);
+          const res = await fetch(`https://openlibrary.org/search.json?${params}`, { signal: AbortSignal.timeout(6000) });
+          if (!res.ok) return "";
+          const data = await res.json();
+          for (const doc of data.docs || []) {
+            if (doc.cover_i) return `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+            if (doc.isbn?.[0]) return `https://covers.openlibrary.org/b/isbn/${doc.isbn[0]}-L.jpg`;
+          }
+        } catch {}
+        return "";
+      })(),
+
+      // Internet Archive
+      fetchInternetArchiveCover(cleanTitle, cleanAuthor),
+    ]);
+
+    const bestCover = googleCover || olCover || iaCover || "";
+    if (bestCover) {
+      API_CACHE.set(cacheKey, { cover_url: bestCover });
+    }
+    return bestCover;
+  } catch {
+    return "";
+  }
+}
 
 /** Open Library work description by OLID / work key */
 const fetchOpenLibraryDescription = async (workKey: string): Promise<string> => {

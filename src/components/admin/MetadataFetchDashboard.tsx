@@ -9,10 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Sparkles, Globe, BookOpen, Image as ImageIcon, FileText, GraduationCap,
-  CheckCircle2, AlertCircle, Wand2, Loader2, Search, Check, RefreshCw, Filter, Layers, Plus
+  CheckCircle2, AlertCircle, Wand2, Loader2, Search, Check, RefreshCw, Filter, Layers, Plus, Zap
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchBookByQuery, FetchedBookDetails, inferAcademicDetails, isAcademicBook } from "@/lib/bookApi";
+import { fetchBookByQuery, FetchedBookDetails, inferAcademicDetails, isAcademicBook, fetchFastCoverOnly } from "@/lib/bookApi";
 import { useToast } from "@/hooks/use-toast";
 
 interface Book {
@@ -205,6 +205,72 @@ export default function MetadataFetchDashboard() {
     toast({
       title: "Batch Search Complete! 🎉",
       description: `Fetched candidates for ${filteredBooks.length} books in batches of ${batchSize}.`,
+    });
+  };
+
+  const startFastCoverFetch = async () => {
+    if (filteredBooks.length === 0) {
+      toast({ title: "No books to process", description: "No books match the current filter criteria." });
+      return;
+    }
+
+    setIsSearching(true);
+    setProgress(0);
+    setProgressText(`⚡ Ultra-Fast Cover Fetching for ${filteredBooks.length} books in parallel...`);
+
+    const initialCandidates: CandidateItem[] = filteredBooks.map((b) => ({
+      bookId: b.id,
+      bookTitle: b.title,
+      bookAuthor: b.author,
+      selected: true,
+      applyMode: "cover_only",
+      proposed: null,
+      status: "pending",
+    }));
+
+    setCandidates(initialCandidates);
+    let completed = 0;
+    const updatedCandidates = [...initialCandidates];
+
+    for (let i = 0; i < filteredBooks.length; i += batchSize) {
+      const chunk = filteredBooks.slice(i, i + batchSize);
+
+      for (let j = 0; j < chunk.length; j++) {
+        updatedCandidates[i + j].status = "fetching";
+      }
+      setCandidates([...updatedCandidates]);
+
+      await Promise.all(
+        chunk.map(async (book, indexInChunk) => {
+          const globalIdx = i + indexInChunk;
+          try {
+            const coverUrl = await fetchFastCoverOnly(book.title, book.author);
+            if (coverUrl) {
+              updatedCandidates[globalIdx].proposed = {
+                title: book.title,
+                author: book.author,
+                cover_url: coverUrl,
+              };
+              updatedCandidates[globalIdx].status = "found";
+            } else {
+              updatedCandidates[globalIdx].status = "not_found";
+            }
+          } catch {
+            updatedCandidates[globalIdx].status = "error";
+          }
+        })
+      );
+
+      completed += chunk.length;
+      setProgress(Math.round((completed / filteredBooks.length) * 100));
+      setProgressText(`⚡ Cover Batch completed: ${completed} of ${filteredBooks.length} books...`);
+      setCandidates([...updatedCandidates]);
+    }
+
+    setIsSearching(false);
+    toast({
+      title: "Fast Cover Fetch Complete! 🖼️",
+      description: `Found covers for ${updatedCandidates.filter(c => c.proposed?.cover_url).length} of ${filteredBooks.length} books.`,
     });
   };
 
@@ -433,12 +499,22 @@ export default function MetadataFetchDashboard() {
               </Select>
 
               <Button
+                onClick={startFastCoverFetch}
+                disabled={isSearching || isApplying || filteredBooks.length === 0}
+                variant="outline"
+                className="border-amber-400 text-amber-700 bg-amber-50/50 hover:bg-amber-100 dark:bg-amber-950/20 text-xs font-semibold gap-1.5 h-9"
+              >
+                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4 text-amber-500 fill-amber-500" />}
+                ⚡ Fast Covers Only ({filteredBooks.length})
+              </Button>
+
+              <Button
                 onClick={startBatchSearch}
                 disabled={isSearching || isApplying || filteredBooks.length === 0}
                 className="gradient-primary text-xs font-semibold gap-1.5 h-9"
               >
                 {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                Run Batch Search ({filteredBooks.length})
+                Run Full Batch Search ({filteredBooks.length})
               </Button>
             </div>
           </div>
