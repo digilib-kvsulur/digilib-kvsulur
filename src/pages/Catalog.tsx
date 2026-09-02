@@ -488,77 +488,82 @@ const Catalog = () => {
           </div>
         ) : (
           <>
-            {/* Smart Suggestions & Trending Section */}
+            {/* Featured & Popular Books Section (Clean Professional Showcase) */}
             {!debouncedSearch && selectedGenre === "all" && selectedClass === "all" && currentPage === 1 && books.length > 0 && (
-              <div className="mb-8 bg-gradient-to-r from-indigo-900 via-slate-900 to-purple-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="flex items-center justify-between mb-4 relative z-10">
+              <div className="mb-8 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
+                <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-black flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-amber-400 fill-amber-400" /> Recommended &amp; Trending Books
+                    <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <BookOpen className="h-4.5 w-4.5 text-indigo-600" /> Featured &amp; Popular Books
                     </h3>
-                    <p className="text-xs text-slate-300">Popular picks, top-rated reference books &amp; student favorites</p>
+                    <p className="text-xs text-slate-500">Frequently borrowed titles &amp; recommended reading in KV Sulur</p>
                   </div>
-                  <Badge variant="outline" className="border-indigo-400/40 text-indigo-200 text-xs font-bold">
-                    Curated Picks
+                  <Badge variant="secondary" className="text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                    Popular Picks
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 relative z-10">
+                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
                   {books.slice(0, 6).map((b) => (
                     <div
                       key={b.id}
                       onClick={() => navigate(`/book/${b.id}`)}
-                      className="group cursor-pointer bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl p-2 border border-white/10 transition-all duration-300 hover:-translate-y-1 shadow-md"
+                      className="group cursor-pointer bg-slate-50/80 hover:bg-white rounded-xl p-2 border border-slate-200/70 hover:border-indigo-300 transition-all duration-200 hover:shadow-md flex flex-col justify-between"
                     >
-                      <div className="aspect-[2/3] w-full rounded-xl overflow-hidden mb-2 bg-slate-800 shadow-inner">
+                      <div className="aspect-[2/3] w-full rounded-lg overflow-hidden mb-2 bg-slate-200/80 relative shadow-xs">
                         {b.cover_url ? (
                           <img src={b.cover_url} alt={b.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-indigo-950/80 text-white">
-                            <BookOpen className="h-5 w-5 text-indigo-300 mb-1" />
-                            <span className="text-[9px] font-bold line-clamp-2">{b.title}</span>
+                          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-slate-100 text-slate-600">
+                            <BookOpen className="h-5 w-5 text-indigo-500 mb-1" />
+                            <span className="text-[9px] font-bold line-clamp-2 text-slate-800">{b.title}</span>
                           </div>
                         )}
                       </div>
-                      <h4 className="text-xs font-bold text-white line-clamp-1 group-hover:text-amber-300 transition-colors">{b.title}</h4>
-                      <p className="text-[10px] text-slate-300 truncate">by {b.author || "Unknown"}</p>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">{b.title}</h4>
+                        <p className="text-[10px] text-slate-500 truncate">by {b.author || "Unknown"}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">Catalog Results</h2>
-              <Badge variant="outline" className="bg-white text-slate-600 border-slate-200 font-bold px-3 py-1 rounded-full shadow-sm">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-slate-900 tracking-tight">Library Catalog</h2>
+              <Badge variant="outline" className="bg-white text-slate-600 border-slate-200 font-semibold px-3 py-1 rounded-full shadow-2xs text-xs">
                 {loading ? "Loading…" : `${totalCount} book${totalCount !== 1 ? "s" : ""}`}
               </Badge>
             </div>
 
             {loading ? skeletonGrid : filteredBooks.length > 0 ? (
               <div className="space-y-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
+                <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
                   {filteredBooks.map(book => {
                     const r = ratings[book.id];
                     const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
                     return (
-                      <div key={book.id} onClick={() => navigate(`/book/${book.id}`)} className="group cursor-pointer flex flex-col bg-white rounded-2xl shadow-xs hover:shadow-lg border border-slate-200/80 hover:border-indigo-300 transition-all overflow-hidden p-2 h-full">
-                        <div className="aspect-[2/3] w-full rounded-xl bg-slate-100 overflow-hidden relative shadow-inner mb-2">
+                      <div
+                        key={book.id}
+                        onClick={() => navigate(`/book/${book.id}`)}
+                        className="group cursor-pointer flex flex-col bg-white rounded-xl shadow-2xs hover:shadow-md border border-slate-200/90 hover:border-indigo-300 transition-all duration-200 overflow-hidden p-2.5 h-full"
+                      >
+                        <div className="aspect-[2/3] w-full rounded-lg bg-slate-100 overflow-hidden relative shadow-inner mb-2.5">
                           {book.cover_url ? (
-                            <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                           ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-indigo-50 to-blue-50">
-                              <BookOpen className="h-6 w-6 text-indigo-400 mb-1" />
-                              <span className="text-[10px] font-semibold text-slate-700 line-clamp-3 leading-snug">{book.title}</span>
+                            <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-slate-50">
+                              <BookOpen className="h-6 w-6 text-indigo-500/70 mb-1" />
+                              <span className="text-[10px] font-semibold text-slate-800 line-clamp-3 leading-snug">{book.title}</span>
                             </div>
                           )}
-                          {/* Status badges overlay */}
+                          {/* Status indicator badge */}
                           <div className="absolute top-1.5 left-1.5 right-1.5 flex items-start justify-between gap-1 pointer-events-none">
-                            <div className="flex flex-wrap gap-0.5">
-                              {isNew && <span className="bg-indigo-600 text-white text-[8px] px-1 py-0.5 rounded font-bold shadow-xs uppercase tracking-wider">NEW</span>}
-                              <span className={`text-[8px] px-1 py-0.5 rounded font-bold shadow-xs uppercase tracking-wider ${book.available_copies > 0 ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-200"}`}>
-                                {book.available_copies > 0 ? `${book.available_copies} AVAIL` : "OUT"}
+                            <div className="flex flex-wrap gap-1">
+                              {isNew && <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shadow-xs">NEW</span>}
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold shadow-xs ${book.available_copies > 0 ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-200"}`}>
+                                {book.available_copies > 0 ? `Available (${book.available_copies})` : "Borrowed"}
                               </span>
                             </div>
                             {user?.role === 'admin' && (
@@ -569,39 +574,43 @@ const Catalog = () => {
                           </div>
                         </div>
                         
-                        <div className="px-1 flex-1 flex flex-col">
-                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-0.5">{book.title}</h4>
-                          <p className="text-[10px] sm:text-xs text-slate-500 truncate mb-1.5 font-medium">by {book.author}</p>
-                          
-                          <div className="flex flex-wrap gap-0.5 mb-1.5">
-                            {book.category && <span className="text-[8px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded border border-indigo-100/50 truncate max-w-[80px]">{book.category}</span>}
-                            {book.class_level && <span className="text-[8px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1 py-0.5 rounded border border-slate-200/50">Cl {book.class_level}</span>}
+                        <div className="flex-1 flex flex-col justify-between">
+                          <div>
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1">{book.title}</h4>
+                            <p className="text-[11px] text-slate-500 truncate mb-2 font-medium">by {book.author}</p>
+                            
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {book.category && <span className="text-[9px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 truncate max-w-[100px]">{book.category}</span>}
+                              {book.class_level && <span className="text-[9px] font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">Class {book.class_level}</span>}
+                            </div>
                           </div>
                           
-                          {!!(r || borrowCounts[book.id] > 0) && (
-                            <div className="flex items-center justify-between text-[9px] text-slate-500 font-medium mb-1.5 mt-auto">
-                              {r && (
-                                <div className="flex items-center gap-0.5 text-amber-600">
-                                  <Star className="h-2.5 w-2.5 fill-amber-500" /> {r.avg.toFixed(1)}
-                                </div>
-                              )}
-                              {borrowCounts[book.id] > 0 && <span className="ml-auto">{borrowCounts[book.id]} borrows</span>}
-                            </div>
-                          )}
-                          
-                          <div className="flex gap-1 mt-auto pt-1.5 border-t border-slate-100 relative z-20" onClick={(e) => e.stopPropagation()}>
-                            {book.available_copies > 0 ? (
-                              <Button size="sm" className="h-7 text-[9px] font-bold rounded-md bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-xs border-0 flex-1 px-1 transition-all duration-150" onClick={() => requestBook(book.id)}>
-                                Borrow
-                              </Button>
-                            ) : (
-                              <Button size="sm" variant="secondary" className="h-7 text-[9px] font-bold rounded-md bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex-1 px-1 transition-all duration-150" onClick={() => reserveBook(book.id)}>
-                                Waitlist
-                              </Button>
+                          <div>
+                            {!!(r || borrowCounts[book.id] > 0) && (
+                              <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium mb-2">
+                                {r && (
+                                  <div className="flex items-center gap-0.5 text-amber-600 font-bold">
+                                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {r.avg.toFixed(1)}
+                                  </div>
+                                )}
+                                {borrowCounts[book.id] > 0 && <span className="ml-auto text-[10px] text-slate-400">{borrowCounts[book.id]} borrows</span>}
+                              </div>
                             )}
-                            <Button size="sm" variant="outline" className={`h-7 text-[9px] font-bold rounded-md px-2 active:scale-95 transition-all duration-150 border-slate-200 shrink-0 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
-                              {wishlist.has(book.id) ? <BookmarkCheck className="h-3.5 w-3.5 text-indigo-600" /> : <Bookmark className="h-3.5 w-3.5" />}
-                            </Button>
+                            
+                            <div className="flex gap-1 pt-2 border-t border-slate-100 relative z-20" onClick={(e) => e.stopPropagation()}>
+                              {book.available_copies > 0 ? (
+                                <Button size="sm" className="h-8 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-xs border-0 flex-1 transition-all" onClick={() => requestBook(book.id)}>
+                                  Borrow
+                                </Button>
+                              ) : (
+                                <Button size="sm" variant="secondary" className="h-8 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex-1 transition-all" onClick={() => reserveBook(book.id)}>
+                                  Waitlist
+                                </Button>
+                              )}
+                              <Button size="sm" variant="outline" className={`h-8 w-8 p-0 rounded-lg shrink-0 border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
+                                {wishlist.has(book.id) ? <BookmarkCheck className="h-4 w-4 text-indigo-600" /> : <Bookmark className="h-4 w-4" />}
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
