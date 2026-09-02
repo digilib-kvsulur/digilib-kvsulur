@@ -74,9 +74,10 @@ export async function processQueue() {
             if (updErr) throw updErr;
           }
         } else if (ev.type === "game_play") {
-          const { data, error } = await supabase.rpc("record_game_play", ev.payload as any);
+          const { data, error } = await supabase.rpc("record_game_play_v2", { ...ev.payload, p_offline: true } as any);
           if (error) throw error;
         }
+
         // success -> remove
         await idbDelete(it._id);
       } catch (err) {
