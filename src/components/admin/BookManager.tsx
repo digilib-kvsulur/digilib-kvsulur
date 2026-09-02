@@ -16,7 +16,9 @@ import { useToast } from "@/hooks/use-toast";
 import BulkImportBooks from "./BulkImportBooks";
 import { fetchBookByQuery } from "@/lib/bookApi";
 import { BookFetchPicker } from "./BookFetchPicker";
-import { Sparkles } from "lucide-react";
+import { BulkMetadataEnricher } from "./BulkMetadataEnricher";
+import { BookFetchHub } from "./BookFetchHub";
+import { Sparkles, Globe } from "lucide-react";
 
 interface Book {
   id: string;
@@ -74,6 +76,8 @@ const BookManager = () => {
   // Per-book manual accession inputs for multi-copy verifier (bookId -> string[])
   const [multiCopyManualAccessions, setMultiCopyManualAccessions] = useState<Record<string, string[]>>({});
   const [showFetchPicker, setShowFetchPicker] = useState(false);
+  const [showBulkEnricher, setShowBulkEnricher] = useState(false);
+  const [showFetchHub, setShowFetchHub] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { loadBooks(); }, []);
@@ -574,6 +578,24 @@ const BookManager = () => {
             </div>
           )}
           <Button
+            onClick={() => setShowBulkEnricher(true)}
+            variant="outline"
+            size="sm"
+            className="border-purple-300 text-purple-700 hover:bg-purple-50 font-semibold"
+          >
+            <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
+            Interactive Bulk Cover Selector
+          </Button>
+          <Button
+            onClick={() => setShowFetchHub(true)}
+            variant="outline"
+            size="sm"
+            className="border-blue-300 text-blue-700 hover:bg-blue-50 font-semibold"
+          >
+            <Globe className="h-4 w-4 mr-2 text-blue-500" />
+            Single-Page Fetch Studio
+          </Button>
+          <Button
             onClick={fetchAllMissingMetadata}
             disabled={fetchingAll}
             variant="outline"
@@ -581,7 +603,7 @@ const BookManager = () => {
             className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
           >
             <Wand2 className="h-4 w-4 mr-2" />
-            Smart Fetch (Google, Open Library & Archive)
+            Smart Fetch
           </Button>
           <BulkImportBooks onImported={loadBooks} />
           <Button onClick={handleAddNew} className="gradient-primary border-0 shadow-md">
@@ -1152,6 +1174,19 @@ const BookManager = () => {
             class_level: details.class_level || p.class_level,
           }))
         }
+      />
+
+      <BulkMetadataEnricher
+        open={showBulkEnricher}
+        onOpenChange={setShowBulkEnricher}
+        books={books}
+        onComplete={loadBooks}
+      />
+
+      <BookFetchHub
+        open={showFetchHub}
+        onOpenChange={setShowFetchHub}
+        onBookCreatedOrUpdated={loadBooks}
       />
     </div>
   );

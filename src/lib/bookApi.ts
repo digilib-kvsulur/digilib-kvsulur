@@ -69,7 +69,31 @@ const enlargeCover = (url: string): string => {
   return u;
 };
 
-const inferClassLevel = (title: string, subjects: string[] = []): string => {
+export const inferAcademicSubject = (title: string, subjects: string[] = []): string => {
+  const text = `${title} ${subjects.join(" ")}`.toLowerCase();
+
+  if (/(physics|bhautiki)/.test(text)) return "Physics";
+  if (/(chemistry|rasayan)/.test(text)) return "Chemistry";
+  if (/(biology|botany|zoology|jiv vigyan)/.test(text)) return "Biology";
+  if (/(math|mathematics|arithmetic|algebra|geometry|ganit)/.test(text)) return "Mathematics";
+  if (/(computer science|python|programming|informatics practices|computer applications|coding|c\+\+)/.test(text)) return "Computer Science";
+  if (/(accountancy|accounting|accounts|lekhashastra)/.test(text)) return "Accountancy";
+  if (/(business studies|vyavasay adhyayan)/.test(text)) return "Business Studies";
+  if (/(economics|arthashastra)/.test(text)) return "Economics";
+  if (/(history|itihas)/.test(text)) return "History";
+  if (/(geography|bhugol)/.test(text)) return "Geography";
+  if (/(political science|civics|rajniti vigyan)/.test(text)) return "Political Science";
+  if (/(social science|social studies|samajik vigyan)/.test(text)) return "Social Science";
+  if (/(environmental science|evs|paryavaran)/.test(text)) return "Environmental Studies";
+  if (/(sanskrit|shemushi|manika|ruchira)/.test(text)) return "Sanskrit";
+  if (/(hindi|vasant|sparsh|kshitij|kritika|durva|sanchayan|rimjhim)/.test(text)) return "Hindi";
+  if (/(english|beehive|honeydew|flamingo|vistas|first flight|footprints)/.test(text)) return "English";
+  if (/(science|vigyan)/.test(text)) return "Science";
+
+  return "";
+};
+
+export const inferClassLevel = (title: string, subjects: string[] = []): string => {
   const text = `${title} ${subjects.join(" ")}`.toLowerCase();
   const explicitDigitMatch = text.match(/(?:class|grade|standard|std)\s*(\d{1,2})\b/i);
   if (explicitDigitMatch) return explicitDigitMatch[1];
@@ -94,7 +118,7 @@ const CATEGORY_KEYWORDS = [
   "Poetry", "Drama", "Philosophy", "Religion", "Technology", "Textbook", "Reference", "Literature",
 ];
 
-const mapLanguage = (langCode: string): string => {
+export const mapLanguage = (langCode: string): string => {
   if (!langCode) return "";
   const code = langCode.toLowerCase().trim();
   if (code.startsWith("en")) return "English";
@@ -103,11 +127,29 @@ const mapLanguage = (langCode: string): string => {
   if (code.startsWith("te")) return "Telugu";
   if (code.startsWith("ml")) return "Malayalam";
   if (code.startsWith("kn")) return "Kannada";
+  if (code.startsWith("sa")) return "Sanskrit";
   return langCode.toUpperCase();
 };
 
-const inferCategory = (title: string, subjects: string[] = []): string => {
+export const inferLanguageFromTitle = (title: string, rawLang = ""): string => {
+  if (rawLang) {
+    const mapped = mapLanguage(rawLang);
+    if (mapped) return mapped;
+  }
+  if (/[\u0900-\u097F]/.test(title)) return "Hindi";
+
+  const text = title.toLowerCase();
+  if (/(shemushi|manika|ruchira|abhyaswaan)/.test(text)) return "Sanskrit";
+  if (/(vasant|sparsh|kshitij|kritika|durva|sanchayan|rimjhim|rasayan|bhautiki|ganit|itihas|bhugol|arthashastra|rajniti vigyan|vyavasay|lekhashastra)/.test(text)) return "Hindi";
+
+  return "English";
+};
+
+export const inferCategory = (title: string, subjects: string[] = []): string => {
   const text = `${title} ${subjects.join(" ")}`.toLowerCase();
+  if (/(ncert|cbse|textbook|class|std|grade|part\s*\d|volume\s*\d)/.test(text)) {
+    return "Textbook";
+  }
   if (/(dictionary|encyclopedia|encyclopaedia|atlas|reference|handbook|thesaurus|workbook|solution)/.test(text)) {
     return "Reference Book";
   }
@@ -124,6 +166,25 @@ const inferCategory = (title: string, subjects: string[] = []): string => {
   if (/(poem|poetry|verse)/.test(text)) return "Poetry";
   if (/(drama|play|tragedy|comedy)/.test(text)) return "Drama";
   return "General Literature";
+};
+
+export const inferAcademicDetails = (title: string, author = "", subjects: string[] = []): {
+  class_level: string;
+  subject: string;
+  category: string;
+  language: string;
+} => {
+  const subject = inferAcademicSubject(title, subjects);
+  const class_level = inferClassLevel(title, subjects);
+  const language = inferLanguageFromTitle(title);
+  let category = inferCategory(title, subjects);
+
+  const text = `${title} ${author} ${subjects.join(" ")}`.toLowerCase();
+  if (subject || class_level || /(ncert|cbse|textbook)/.test(text)) {
+    category = "Textbook";
+  }
+
+  return { class_level, subject, category, language };
 };
 
 const fetchInternetArchiveCover = async (title: string, author?: string): Promise<string> => {
