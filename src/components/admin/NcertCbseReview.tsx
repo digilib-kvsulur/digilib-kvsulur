@@ -108,12 +108,12 @@ export default function NcertCbseReview() {
     };
 
     if (editBook) {
-      const { error } = await supabase.from(table).update(payload).eq("id", editBook.id);
+      const { error } = await supabase.from(table as any).update(payload as any).eq("id", editBook.id);
       if (error) { toast.error("Update failed"); return; }
       toast.success("Book updated successfully");
       setEditBook(null);
     } else {
-      const { error } = await supabase.from(table).insert(payload);
+      const { error } = await supabase.from(table as any).insert(payload as any);
       if (error) { toast.error("Insert failed"); return; }
       toast.success("Book added successfully");
       setAddOpen(false);

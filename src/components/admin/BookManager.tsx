@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BulkImportBooks from "./BulkImportBooks";
 import { fetchBookByQuery } from "@/lib/bookApi";
+import { BookFetchPicker } from "./BookFetchPicker";
+import { Sparkles } from "lucide-react";
 
 interface Book {
   id: string;
@@ -71,6 +73,7 @@ const BookManager = () => {
   const [selectedTitleKeys, setSelectedTitleKeys] = useState<Set<string>>(new Set());
   // Per-book manual accession inputs for multi-copy verifier (bookId -> string[])
   const [multiCopyManualAccessions, setMultiCopyManualAccessions] = useState<Record<string, string[]>>({});
+  const [showFetchPicker, setShowFetchPicker] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { loadBooks(); }, []);
@@ -771,6 +774,9 @@ const BookManager = () => {
                 <span className="font-bold text-foreground">Auto-Fill</span> — fill Accession #, Title, Author & Copies above, then click below to fetch details from Open Library.
               </p>
               <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowFetchPicker(true)} className="w-full border-purple-400/40 bg-purple-500/5 hover:bg-purple-500/10 font-semibold text-purple-600 dark:text-purple-400">
+                  <Sparkles className="h-4 w-4 mr-2 text-purple-500" /> Multi-Source Search & Picker
+                </Button>
                 <Button type="button" variant="outline" size="sm" onClick={fetchBookDetails} disabled={fetchingDetails} className="flex-1 border-indigo-400/40 hover:bg-indigo-500/10 font-semibold text-indigo-600 dark:text-indigo-400">
                   {fetchingDetails ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Fetching...</> : <><Wand2 className="h-4 w-4 mr-2" />Auto-Fill All</>}
                 </Button>
@@ -1127,6 +1133,26 @@ const BookManager = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BookFetchPicker
+        open={showFetchPicker}
+        onOpenChange={setShowFetchPicker}
+        initialTitle={formData.title}
+        initialAuthor={formData.author}
+        onSelectBook={(details) =>
+          setFormData((p) => ({
+            ...p,
+            title: details.title || p.title,
+            author: details.author || p.author,
+            cover_url: details.cover_url || p.cover_url,
+            description: details.description || p.description,
+            category: details.category || p.category,
+            subject: details.subject || p.subject,
+            language: details.language || p.language,
+            class_level: details.class_level || p.class_level,
+          }))
+        }
+      />
     </div>
   );
 };

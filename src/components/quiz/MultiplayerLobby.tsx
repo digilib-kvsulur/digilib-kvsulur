@@ -32,9 +32,10 @@ export const MultiplayerLobby = ({ quizId, quizTitle, isHost, onStart, onCancel 
       // Create or join session
       let currentSession;
       if (isHost) {
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
         const { data, error } = await supabase
           .from("quiz_sessions")
-          .insert({ quiz_id: quizId, host_id: user.id, status: "waiting" })
+          .insert({ quiz_id: quizId, host_id: user.id, status: "waiting", room_code: code })
           .select()
           .single();
         if (error) throw error;

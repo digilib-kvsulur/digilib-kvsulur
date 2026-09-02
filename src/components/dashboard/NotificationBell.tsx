@@ -35,7 +35,7 @@ const NotificationBell = () => {
       .or(`target_user_id.eq.${user.id},target_user_id.is.null`)
       .order("created_at", { ascending: false })
       .limit(20);
-    if (data) setNotifications(data as Notification[]);
+    if (data) setNotifications(data as unknown as Notification[]);
   };
 
   const markAsRead = async (id: string) => {

@@ -75,7 +75,7 @@ export default function FeedbackManager() {
               <CardHeader className="pb-3 flex flex-row items-start justify-between space-y-0">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Badge variant={f.category === "bug" ? "destructive" : f.category === "compliment" ? "success" : "secondary"}>
+                    <Badge variant={f.category === "bug" ? "destructive" : f.category === "compliment" ? "outline" : "secondary"}>
                       {f.category.toUpperCase()}
                     </Badge>
                     <div className="flex items-center gap-0.5">

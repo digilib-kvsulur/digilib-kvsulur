@@ -67,12 +67,14 @@ export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
       
       const { error } = await supabase.from("user_feedback").insert({
         user_id: user?.id || null,
-        full_name: form.fullName.trim(),
-        email: form.email.trim() || null,
-        category: `${form.category} (${form.area})`,
+        category: form.category,
+        area: form.area || null,
+        urgency: form.urgency || "low",
+        reference_id: refId,
+        allow_follow_up: form.allowFollowUp,
         rating,
-        subject: `[Urgency: ${form.urgency.toUpperCase()}] ${form.subject.trim()}`,
-        description: `${form.description.trim()}${form.allowFollowUp ? '\n\n(Follow-up allowed)' : ''}`,
+        subject: form.subject.trim(),
+        feedback_text: form.description.trim(),
       });
 
       if (error) throw error;

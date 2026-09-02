@@ -101,21 +101,22 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
       });
 
       if (statsData) {
+        const res = statsData as any;
         setStats({
-          booksRead: statsData.booksRead || 0,
-          quizzesPassed: statsData.quizzesPassed || 0,
-          points: statsData.points || 0,
-          badges: statsData.badges || 0,
-          goalsCompleted: statsData.goalsCompleted || 0,
-          monthlyRead: statsData.monthlyRead || 0,
+          booksRead: res.booksRead || 0,
+          quizzesPassed: res.quizzesPassed || 0,
+          points: res.points || 0,
+          badges: res.badges || 0,
+          goalsCompleted: res.goalsCompleted || 0,
+          monthlyRead: res.monthlyRead || 0,
           monthlyGoal: monthlyGoal,
-          streak: statsData.streak || 0,
+          streak: res.streak || 0,
         });
 
-        setClassRank(statsData.classRank || "—");
-        setActivityLog(statsData.activityLog || []);
+        setClassRank(res.classRank || "—");
+        setActivityLog(res.activityLog || []);
 
-        const mappedMilestones = (statsData.milestones || []).map((m: any) => ({
+        const mappedMilestones = (res.milestones || []).map((m: any) => ({
           icon: m.type === "badge" ? Award : Target,
           color: m.type === "badge" ? "text-amber-500" : "text-emerald-500",
           glowColor: m.type === "badge" ? "shadow-amber-500/40" : "shadow-emerald-500/40",

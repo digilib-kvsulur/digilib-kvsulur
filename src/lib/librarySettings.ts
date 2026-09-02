@@ -201,7 +201,7 @@ export async function fetchDevMessageSettings(): Promise<DevMessageSettings> {
   (data || []).forEach((row) => {
     if (row.key === "dev_message_enabled") {
       const val = parseJsonSetting(row.value);
-      settings.enable = val === "true" || val === true;
+      settings.enable = String(val) === "true";
     }
     if (row.key === "dev_message_title") settings.title = parseJsonSetting(row.value).replace(/^"|"$/g, "");
     if (row.key === "dev_message_body") settings.message = parseJsonSetting(row.value).replace(/^"|"$/g, "");
@@ -233,7 +233,7 @@ export async function fetchGamesScheduleSettings(): Promise<GamesScheduleSetting
   (data || []).forEach((row) => {
     if (row.key === "enable_games_schedule") {
       const val = parseJsonSetting(row.value);
-      settings.enable = val === "true" || val === true;
+      settings.enable = String(val) === "true";
     }
     if (row.key === "games_schedule_start") settings.start = parseJsonSetting(row.value).replace(/^"|"$/g, "");
     if (row.key === "games_schedule_end") settings.end = parseJsonSetting(row.value).replace(/^"|"$/g, "");
@@ -268,6 +268,6 @@ export async function fetchLibraryBotVisible(): Promise<boolean> {
   const { data } = await supabase.from("system_settings").select("value").eq("key", "library_bot_visible").maybeSingle();
   if (!data?.value) return true; // Default to visible
   const val = parseJsonSetting(data.value);
-  return val === "true" || val === true;
+  return String(val) === "true";
 }
 
