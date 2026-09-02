@@ -232,7 +232,7 @@ export async function fetchFastCoverOnly(title: string, author?: string): Promis
           const data = await res.json();
           for (const item of data.items || []) {
             const links = item.volumeInfo?.imageLinks;
-            const cover = links?.thumbnail || links?.smallThumbnail || links?.medium || links?.large || "";
+            const cover = links?.extraLarge || links?.large || links?.medium || links?.thumbnail || links?.smallThumbnail || "";
             if (cover) return enlargeCover(cover);
           }
         } catch {}
@@ -242,8 +242,7 @@ export async function fetchFastCoverOnly(title: string, author?: string): Promis
       // Open Library
       (async () => {
         try {
-          const params = new URLSearchParams({ title: cleanTitle, limit: "5" });
-          if (cleanAuthor) params.set("author", cleanAuthor);
+          const params = new URLSearchParams({ q: query, limit: "5" });
           const res = await fetch(`https://openlibrary.org/search.json?${params}`, { signal: AbortSignal.timeout(6000) });
           if (!res.ok) return "";
           const data = await res.json();
@@ -259,7 +258,27 @@ export async function fetchFastCoverOnly(title: string, author?: string): Promis
       fetchInternetArchiveCover(cleanTitle, cleanAuthor),
     ]);
 
-    const bestCover = googleCover || olCover || iaCover || "";
+    let bestCover = googleCover || olCover || iaCover || "";
+
+    // Fallback: Retry title-only search if combined query yielded no cover
+    if (!bestCover && cleanAuthor) {
+      const titleOnlyRes = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(`intitle:${cleanTitle}`)}&maxResults=3&printType=books`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      if (titleOnlyRes.ok) {
+        const titleData = await titleOnlyRes.json();
+        for (const item of titleData.items || []) {
+          const links = item.volumeInfo?.imageLinks;
+          const cover = links?.thumbnail || links?.smallThumbnail || "";
+          if (cover) {
+            bestCover = enlargeCover(cover);
+            break;
+          }
+        }
+      }
+    }
+
     if (bestCover) {
       API_CACHE.set(cacheKey, { cover_url: bestCover });
     }

@@ -376,6 +376,26 @@ const Catalog = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Quick Filter Chips */}
+          <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+            {[
+              { label: "All Books", action: () => { setSelectedGenre("all"); setSelectedClass("all"); setAvailability("all"); setSearchTerm(""); } },
+              { label: "🔥 Popular", action: () => setSortBy("most_borrowed") },
+              { label: "📘 Reference Material", action: () => setSelectedGenre("Reference Material") },
+              { label: "📖 Fiction & Novels", action: () => setSelectedGenre("Fiction") },
+              { label: "🎓 Class 10 - 12", action: () => setSelectedClass("12") },
+              { label: "⚡ Available Now", action: () => setAvailability("available") },
+            ].map((chip, idx) => (
+              <button
+                key={idx}
+                onClick={chip.action}
+                className="text-xs font-semibold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all text-slate-600 shadow-2xs"
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -468,6 +488,47 @@ const Catalog = () => {
           </div>
         ) : (
           <>
+            {/* Smart Suggestions & Trending Section */}
+            {!debouncedSearch && selectedGenre === "all" && selectedClass === "all" && currentPage === 1 && books.length > 0 && (
+              <div className="mb-8 bg-gradient-to-r from-indigo-900 via-slate-900 to-purple-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="flex items-center justify-between mb-4 relative z-10">
+                  <div>
+                    <h3 className="text-lg font-black flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-amber-400 fill-amber-400" /> Recommended &amp; Trending Books
+                    </h3>
+                    <p className="text-xs text-slate-300">Popular picks, top-rated reference books &amp; student favorites</p>
+                  </div>
+                  <Badge variant="outline" className="border-indigo-400/40 text-indigo-200 text-xs font-bold">
+                    Curated Picks
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 relative z-10">
+                  {books.slice(0, 6).map((b) => (
+                    <div
+                      key={b.id}
+                      onClick={() => navigate(`/book/${b.id}`)}
+                      className="group cursor-pointer bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl p-2 border border-white/10 transition-all duration-300 hover:-translate-y-1 shadow-md"
+                    >
+                      <div className="aspect-[2/3] w-full rounded-xl overflow-hidden mb-2 bg-slate-800 shadow-inner">
+                        {b.cover_url ? (
+                          <img src={b.cover_url} alt={b.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-indigo-950/80 text-white">
+                            <BookOpen className="h-5 w-5 text-indigo-300 mb-1" />
+                            <span className="text-[9px] font-bold line-clamp-2">{b.title}</span>
+                          </div>
+                        )}
+                      </div>
+                      <h4 className="text-xs font-bold text-white line-clamp-1 group-hover:text-amber-300 transition-colors">{b.title}</h4>
+                      <p className="text-[10px] text-slate-300 truncate">by {b.author || "Unknown"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-black text-slate-900 tracking-tight">Catalog Results</h2>
               <Badge variant="outline" className="bg-white text-slate-600 border-slate-200 font-bold px-3 py-1 rounded-full shadow-sm">
