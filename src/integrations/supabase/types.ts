@@ -331,7 +331,9 @@ export type Database = {
       book_issues: {
         Row: {
           accession_number: string | null
-          book_id: string
+          book_author: string | null
+          book_id: string | null
+          book_title: string | null
           created_at: string
           due_date: string
           id: string
@@ -343,7 +345,9 @@ export type Database = {
         }
         Insert: {
           accession_number?: string | null
-          book_id: string
+          book_author?: string | null
+          book_id?: string | null
+          book_title?: string | null
           created_at?: string
           due_date: string
           id?: string
@@ -355,7 +359,9 @@ export type Database = {
         }
         Update: {
           accession_number?: string | null
-          book_id?: string
+          book_author?: string | null
+          book_id?: string | null
+          book_title?: string | null
           created_at?: string
           due_date?: string
           id?: string
