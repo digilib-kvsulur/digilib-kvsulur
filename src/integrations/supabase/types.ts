@@ -532,7 +532,6 @@ export type Database = {
           book_id: string
           created_at: string
           id: string
-          is_approved: boolean
           is_hidden: boolean
           rating: number
           review_text: string | null
@@ -543,7 +542,6 @@ export type Database = {
           book_id: string
           created_at?: string
           id?: string
-          is_approved?: boolean
           is_hidden?: boolean
           rating: number
           review_text?: string | null
@@ -554,7 +552,6 @@ export type Database = {
           book_id?: string
           created_at?: string
           id?: string
-          is_approved?: boolean
           is_hidden?: boolean
           rating?: number
           review_text?: string | null
@@ -655,7 +652,6 @@ export type Database = {
           description: string | null
           first_added_at: string | null
           id: string
-          is_book_of_the_week: boolean
           isbn: string | null
           issue_count: number
           language: string | null
@@ -679,7 +675,6 @@ export type Database = {
           description?: string | null
           first_added_at?: string | null
           id?: string
-          is_book_of_the_week?: boolean
           isbn?: string | null
           issue_count?: number
           language?: string | null
@@ -703,7 +698,6 @@ export type Database = {
           description?: string | null
           first_added_at?: string | null
           id?: string
-          is_book_of_the_week?: boolean
           isbn?: string | null
           issue_count?: number
           language?: string | null
@@ -712,51 +706,6 @@ export type Database = {
           title?: string
           total_copies?: number
           updated_at?: string
-        }
-        Relationships: []
-      }
-      class_competitions: {
-        Row: {
-          class_a: string
-          class_b: string
-          created_at: string
-          created_by: string | null
-          description: string | null
-          end_date: string
-          id: string
-          metric: string
-          start_date: string
-          status: string
-          title: string
-          winner_class: string | null
-        }
-        Insert: {
-          class_a: string
-          class_b: string
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          end_date: string
-          id?: string
-          metric?: string
-          start_date: string
-          status?: string
-          title: string
-          winner_class?: string | null
-        }
-        Update: {
-          class_a?: string
-          class_b?: string
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          end_date?: string
-          id?: string
-          metric?: string
-          start_date?: string
-          status?: string
-          title?: string
-          winner_class?: string | null
         }
         Relationships: []
       }
@@ -1927,7 +1876,6 @@ export type Database = {
           media_type: string | null
           media_url: string | null
           pinned_at: string | null
-          poll_ends_at: string | null
           post_type: string
           title: string
           updated_at: string
@@ -1941,7 +1889,6 @@ export type Database = {
           media_type?: string | null
           media_url?: string | null
           pinned_at?: string | null
-          poll_ends_at?: string | null
           post_type?: string
           title: string
           updated_at?: string
@@ -1955,7 +1902,6 @@ export type Database = {
           media_type?: string | null
           media_url?: string | null
           pinned_at?: string | null
-          poll_ends_at?: string | null
           post_type?: string
           title?: string
           updated_at?: string
@@ -1970,16 +1916,12 @@ export type Database = {
           approved_by: string | null
           avatar_url: string | null
           bio: string | null
-          community_blocked_until: string | null
-          community_warn_count: number
-          currently_reading: Json | null
           created_at: string
           email: string | null
           first_name: string | null
           id: string
           is_approved: boolean
           last_name: string | null
-          library_card_barcode: string | null
           needs_profile_update: boolean
           phone: string | null
           points: number
@@ -1997,16 +1939,12 @@ export type Database = {
           approved_by?: string | null
           avatar_url?: string | null
           bio?: string | null
-          community_blocked_until?: string | null
-          community_warn_count?: number
-          currently_reading?: Json | null
           created_at?: string
           email?: string | null
           first_name?: string | null
           id: string
           is_approved?: boolean
           last_name?: string | null
-          library_card_barcode?: string | null
           needs_profile_update?: boolean
           phone?: string | null
           points?: number
@@ -2024,16 +1962,12 @@ export type Database = {
           approved_by?: string | null
           avatar_url?: string | null
           bio?: string | null
-          community_blocked_until?: string | null
-          community_warn_count?: number
-          currently_reading?: Json | null
           created_at?: string
           email?: string | null
           first_name?: string | null
           id?: string
           is_approved?: boolean
           last_name?: string | null
-          library_card_barcode?: string | null
           needs_profile_update?: boolean
           phone?: string | null
           points?: number
@@ -2148,78 +2082,6 @@ export type Database = {
           subject?: string
           time_limit?: number
           title?: string
-        }
-        Relationships: []
-      }
-      quiz_sessions: {
-        Row: {
-          created_at: string
-          current_question_index: number
-          ended_at: string | null
-          host_id: string
-          id: string
-          max_players: number
-          quiz_id: string
-          room_code: string
-          started_at: string | null
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          current_question_index?: number
-          ended_at?: string | null
-          host_id: string
-          id?: string
-          max_players?: number
-          quiz_id: string
-          room_code?: string
-          started_at?: string | null
-          status?: string
-        }
-        Update: {
-          created_at?: string
-          current_question_index?: number
-          ended_at?: string | null
-          host_id?: string
-          id?: string
-          max_players?: number
-          quiz_id?: string
-          room_code?: string
-          started_at?: string | null
-          status?: string
-        }
-        Relationships: []
-      }
-      quiz_session_players: {
-        Row: {
-          answers: Json | null
-          display_name: string
-          id: string
-          is_ready: boolean
-          joined_at: string
-          score: number
-          session_id: string
-          user_id: string
-        }
-        Insert: {
-          answers?: Json | null
-          display_name: string
-          id?: string
-          is_ready?: boolean
-          joined_at?: string
-          score?: number
-          session_id: string
-          user_id: string
-        }
-        Update: {
-          answers?: Json | null
-          display_name?: string
-          id?: string
-          is_ready?: boolean
-          joined_at?: string
-          score?: number
-          session_id?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -2503,48 +2365,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_feedback: {
-        Row: {
-          allow_follow_up: boolean | null
-          area: string | null
-          category: string | null
-          created_at: string
-          feedback_text: string
-          id: string
-          rating: number
-          reference_id: string | null
-          subject: string | null
-          urgency: string | null
-          user_id: string | null
-        }
-        Insert: {
-          allow_follow_up?: boolean | null
-          area?: string | null
-          category?: string | null
-          created_at?: string
-          feedback_text: string
-          id?: string
-          rating: number
-          reference_id?: string | null
-          subject?: string | null
-          urgency?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          allow_follow_up?: boolean | null
-          area?: string | null
-          category?: string | null
-          created_at?: string
-          feedback_text?: string
-          id?: string
-          rating?: number
-          reference_id?: string | null
-          subject?: string | null
-          urgency?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           id: string
@@ -2568,88 +2388,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_database_size: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      get_game_analytics: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          game_key: string
-          plays: number
-          wins: number
-          xp_awarded: number
-          total_time: number
-        }[]
-      }
-      get_public_portfolio_data: {
-        Args: {
-          target_user_id: string
-        }
-        Returns: {
-          booksRead: number
-          quizzesPassed: number
-          points: number
-          badges: number
-          goalsCompleted: number
-          monthlyRead: number
-          streak: number
-          classRank: string
-          milestones: Json
-          activityLog: Json
-        }
-      }
-      get_student_reading_velocity: {
-        Args: {
-          p_user_id: string
-        }
-        Returns: {
-          books_last_30_days: number
-          books_last_60_days: number
-          velocity_score: number
-          velocity_label: string
-        }[]
-      }
-      get_storage_size: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      reset_monthly_leaderboard: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      search_books: {
-        Args: {
-          p_author?: string
-          p_availability?: string
-          p_category?: string
-          p_class_level?: string
-          p_language?: string
-          p_limit?: number
-          p_sort_by?: string
-          p_subject?: string
-          search_query?: string
-        }
-        Returns: {
-          accession_number: string | null
-          author: string
-          available_copies: number
-          category: string | null
-          class_level: string | null
-          cover_url: string | null
-          created_at: string
-          cupboard_number: string | null
-          first_added_at: string | null
-          id: string
-          issue_count: number
-          language: string | null
-          rank: number
-          shelf_number: string | null
-          subject: string | null
-          title: string
-          total_copies: number
-        }[]
-      }
       approve_book_request: {
         Args: {
           p_admin_notes?: string
@@ -3035,12 +2773,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3064,11 +2802,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3089,11 +2827,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3114,11 +2852,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3131,11 +2869,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
