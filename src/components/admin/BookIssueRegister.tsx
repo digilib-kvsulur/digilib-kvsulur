@@ -89,19 +89,40 @@ const BookIssueRegister = () => {
 
   const loadData = async () => {
     try {
-      const { data: issuesData, error: issuesError } = await supabase
-        .from('book_issues').select('*, books (title, author)')
-        .order('issue_date', { ascending: false });
-      if (issuesError) throw issuesError;
+      // Fetch ALL issues (paginated — the API caps a single request at 1000 rows)
+      const ISSUE_PAGE = 1000;
+      let issuesData: any[] = [];
+      let fromIssues = 0;
+      while (true) {
+        const { data, error: issuesError } = await supabase
+          .from('book_issues').select('*, books (title, author)')
+          .order('issue_date', { ascending: false })
+          .range(fromIssues, fromIssues + ISSUE_PAGE - 1);
+        if (issuesError) throw issuesError;
+        if (!data || data.length === 0) break;
+        issuesData = [...issuesData, ...data];
+        if (data.length < ISSUE_PAGE) break;
+        fromIssues += ISSUE_PAGE;
+      }
 
-      const issuesWithProfiles = await Promise.all(
-        (issuesData || []).map(async (issue) => {
-          const { data: profileData } = await supabase
-            .from('profiles').select('first_name, last_name, admission_number, role')
-            .eq('id', issue.user_id).maybeSingle();
-          return { ...issue, user: profileData ? { first_name: profileData.first_name || '', last_name: profileData.last_name || '', admission_number: profileData.admission_number || '', role: profileData.role || 'student' } : undefined };
-        })
-      );
+      // Fetch borrower profiles in one batch instead of one request per issue
+      const issueUserIds = Array.from(new Set(issuesData.map((i: any) => i.user_id).filter(Boolean)));
+      const profileMap: Record<string, any> = {};
+      for (let i = 0; i < issueUserIds.length; i += 200) {
+        const { data: profs } = await supabase
+          .from('profiles').select('id, first_name, last_name, admission_number, role')
+          .in('id', issueUserIds.slice(i, i + 200));
+        (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
+      }
+
+      const issuesWithProfiles = issuesData.map((issue: any) => {
+        const profileData = profileMap[issue.user_id];
+        return {
+          ...issue,
+          books: issue.books || (issue.book_title ? { title: issue.book_title, author: issue.book_author } : null),
+          user: profileData ? { first_name: profileData.first_name || '', last_name: profileData.last_name || '', admission_number: profileData.admission_number || '', role: profileData.role || 'student' } : undefined,
+        };
+      });
 
       // Fetch books with pagination
       let allBooks: any[] = [];
