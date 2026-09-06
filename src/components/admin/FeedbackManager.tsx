@@ -97,7 +97,7 @@ export default function FeedbackManager() {
                 </Button>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">{f.description}</p>
+                <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">{f.feedback_text || f.message || f.description}</p>
               </CardContent>
             </Card>
           ))}

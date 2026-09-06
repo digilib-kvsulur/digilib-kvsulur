@@ -80,7 +80,7 @@ async function downloadAndInstall(downloadUrl: string, label: string): Promise<v
     toast.loading('Saving to device…', { id: toastId });
 
     // Merge Uint8Array chunks → Blob → base64
-    const blob   = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+    const blob   = new Blob(chunks as BlobPart[], { type: 'application/vnd.android.package-archive' });
     const base64 = await blobToBase64(blob);
     const fileName = `KVSULUR-DLMS-update.apk`;
 
