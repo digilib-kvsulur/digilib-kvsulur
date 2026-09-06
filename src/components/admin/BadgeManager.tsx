@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Award, Plus, Edit, Trash2, UserPlus, Users, CheckCircle } from "lucide-react";
+import { Award, Plus, Edit, Trash2, UserPlus, Users, CheckCircle, Crown } from "lucide-react";
+import PhysicalBadgeGenerator from "./PhysicalBadgeGenerator";
 
 interface BadgeRow {
   id: string; name: string; description?: string; icon_name?: string; color?: string;
@@ -51,6 +52,7 @@ export default function BadgeManager() {
   const [earnerOpen, setEarnerOpen] = useState<BadgeRow | null>(null);
   const [earnerList, setEarnerList] = useState<any[]>([]);
   const [earnerLoading, setEarnerLoading] = useState(false);
+  const [physicalBadgeOpen, setPhysicalBadgeOpen] = useState(false);
 
   // Cache of all users for auto-badge earner computation
   const [cachedAllUsers, setCachedAllUsers] = useState<any[]>([]);
@@ -280,7 +282,17 @@ export default function BadgeManager() {
           <h2 className="text-2xl font-bold flex items-center gap-2"><Award className="h-6 w-6 text-primary" /> Badge Cabinet Manager</h2>
           <p className="text-sm text-muted-foreground">Create badges, set auto criteria, or manually award any badge.</p>
         </div>
-        <Button onClick={openNew} className="gradient-primary border-0"><Plus className="h-4 w-4 mr-2" />New Badge</Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setPhysicalBadgeOpen(true)}
+            className="border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 font-bold shadow-sm"
+          >
+            <Crown className="h-4 w-4 mr-2 text-amber-500" />
+            Top 3 Per Class Badges
+          </Button>
+          <Button onClick={openNew} className="gradient-primary border-0"><Plus className="h-4 w-4 mr-2" />New Badge</Button>
+        </div>
       </div>
 
       {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : (
@@ -447,6 +459,8 @@ export default function BadgeManager() {
           )}
         </DialogContent>
       </Dialog>
+
+      <PhysicalBadgeGenerator open={physicalBadgeOpen} onOpenChange={setPhysicalBadgeOpen} />
     </div>
   );
 }
