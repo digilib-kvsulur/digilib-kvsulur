@@ -632,34 +632,36 @@ const StudentDashboard = () => {
                     className="overflow-hidden border border-purple-500/40 bg-gradient-to-r from-slate-950 via-purple-950/95 to-indigo-950 text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer group hover:border-purple-400/60"
                     onClick={() => setShowMemoryCapsule(true)}
                   >
-                    <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-pink-500 to-indigo-500 p-0.5 shadow-lg shadow-purple-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                          <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-amber-300">
-                            <Sparkles className="h-6 w-6 animate-pulse text-amber-300" />
-                          </div>
-                        </div>
-                        <div className="min-w-0 flex-1 space-y-0.5">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge className="bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0 text-[10px] font-black px-2.5 py-0.5 shadow-sm">
-                              {isWrapFirst7Days ? `${bannerMonth.toUpperCase()} WRAP READY` : "MONTHLY CAPSULE"}
-                            </Badge>
-                            <span className="text-[11px] font-bold text-purple-300 uppercase tracking-wider hidden sm:inline">
-                              Spotify-Style Memory Capsule
-                            </span>
-                          </div>
-                          <p className="text-sm sm:text-base font-black text-white mt-0.5 truncate tracking-tight">
-                            {isWrapFirst7Days ? `Your ${bannerMonth} Reading Wrap is Here! 🚀` : "Your Reading Memory Capsule ✨"}
-                          </p>
-                          <p className="text-xs text-slate-300 line-clamp-1 font-medium">
-                            {isWrapFirst7Days 
-                              ? `Check out your ${bannerMonth} biggest stats, XP gains, % improvement & reading persona`
-                              : "Review your monthly books read, quizzes, XP & reader persona"}
-                          </p>
+                    <CardContent className="p-3 sm:p-5 flex items-center gap-3">
+                      {/* Icon */}
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-pink-500 to-indigo-500 p-0.5 shadow-lg shadow-purple-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                        <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                          <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 animate-pulse text-amber-300" />
                         </div>
                       </div>
-                      <Button size="sm" className="gradient-primary text-white border-0 font-bold rounded-xl text-xs shrink-0 shadow-md group-hover:scale-105 transition-transform px-4 h-9">
-                        Open Wrap →
+                      {/* Text */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <Badge className="bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0 text-[9px] sm:text-[10px] font-black px-2 py-0.5 shadow-sm shrink-0">
+                            {isWrapFirst7Days ? `${bannerMonth.toUpperCase()} WRAP` : "MONTHLY"}
+                          </Badge>
+                          {isWrapFirst7Days && (
+                            <span className="text-[9px] sm:text-[10px] font-black text-emerald-400 uppercase tracking-wider shrink-0">✓ READY</span>
+                          )}
+                        </div>
+                        <p className="text-sm sm:text-base font-black text-white leading-snug line-clamp-2 tracking-tight">
+                          {isWrapFirst7Days ? `Your ${bannerMonth} Reading Wrap is Here! 🚀` : "Your Reading Memory Capsule ✨"}
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-slate-400 line-clamp-1 font-medium mt-0.5 hidden xs:block">
+                          {isWrapFirst7Days 
+                            ? `Stats, XP gains & reading persona`
+                            : "Books read, quizzes, XP & persona"}
+                        </p>
+                      </div>
+                      {/* Button */}
+                      <Button size="sm" className="gradient-primary text-white border-0 font-bold rounded-xl shrink-0 shadow-md group-hover:scale-105 transition-transform px-2.5 sm:px-4 h-9 text-xs whitespace-nowrap">
+                        <span className="hidden sm:inline">Open Wrap →</span>
+                        <span className="sm:hidden">Open →</span>
                       </Button>
                     </CardContent>
                   </Card>
