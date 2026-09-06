@@ -15,7 +15,7 @@ BEGIN
   IF p_user_id IS NULL THEN
     RETURN 0;
   END IF;
-  IF auth.uid() IS DISTINCT FROM p_user_id AND NOT public.is_staff_or_admin(auth.uid()) THEN
+  IF auth.uid() IS NOT NULL AND auth.uid() IS DISTINCT FROM p_user_id AND NOT public.is_staff_or_admin(auth.uid()) THEN
     RAISE EXCEPTION 'Not authorized';
   END IF;
 
