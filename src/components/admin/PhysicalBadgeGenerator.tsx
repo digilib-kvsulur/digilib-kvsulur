@@ -236,7 +236,246 @@ export const PhysicalBadgeGenerator: React.FC<PhysicalBadgeGeneratorProps> = ({
   };
 
   const handlePrint = () => {
-    window.print();
+    if (filteredGroups.length === 0) {
+      toast({
+        title: "No data to print",
+        description: "No class badge recipients found matching your current filter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const printWindow = window.open("", "_blank");
+      const dateStr = new Date().toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+      const periodLabel = period === "monthly" ? "Current Monthly Leaderboard" : "Lifetime Cumulative Leaderboard";
+
+      const groupsHtml = filteredGroups
+        .map(
+          (group) => `
+        <div class="class-block">
+          <div class="class-header">
+            <span>CLASS: ${group.className}</span>
+            <span>${group.topStudents.length} Recipient(s)</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 45px; text-align: center;">Rank</th>
+                <th style="text-align: left;">Student Name</th>
+                <th style="width: 120px; text-align: center;">Admission No</th>
+                <th style="width: 130px; text-align: center;">Badge Award</th>
+                <th style="width: 90px; text-align: right;">Points (XP)</th>
+                <th style="width: 150px; text-align: center;">Student Signature</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${group.topStudents
+                .map((s) => {
+                  const badgeIcon =
+                    s.badgeType === "Gold"
+                      ? "🥇 GOLD"
+                      : s.badgeType === "Silver"
+                      ? "🥈 SILVER"
+                      : "🥉 BRONZE";
+                  const badgeClass = s.badgeType.toLowerCase();
+                  return `
+                  <tr>
+                    <td style="text-align: center; font-weight: bold;">#${s.rank}</td>
+                    <td style="font-weight: 600;">${s.first_name} ${s.last_name || ""}</td>
+                    <td style="text-align: center; font-family: monospace;">${s.admission_number || "—"}</td>
+                    <td style="text-align: center; font-weight: bold;" class="badge-${badgeClass}">${badgeIcon}</td>
+                    <td style="text-align: right; font-weight: bold; font-family: monospace;">${s.points.toLocaleString()}</td>
+                    <td></td>
+                  </tr>
+                `;
+                })
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `
+        )
+        .join("");
+
+      const printDoc = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>KV Sulur - Physical Badges Top 3 List (${period})</title>
+            <style>
+              @page {
+                size: A4 portrait;
+                margin: 15mm;
+              }
+              * {
+                box-sizing: border-box;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                color: #111;
+                background: #fff;
+                margin: 0;
+                padding: 10px;
+                font-size: 12px;
+              }
+              .header {
+                text-align: center;
+                border-bottom: 2px solid #111;
+                padding-bottom: 10px;
+                margin-bottom: 16px;
+              }
+              .header h1 {
+                font-size: 18px;
+                font-weight: 900;
+                margin: 0 0 3px 0;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+              }
+              .header h2 {
+                font-size: 13px;
+                font-weight: 700;
+                margin: 0 0 5px 0;
+                color: #333;
+              }
+              .header h3 {
+                font-size: 13px;
+                font-weight: 800;
+                margin: 0 0 6px 0;
+                text-transform: uppercase;
+                color: #000;
+              }
+              .header-meta {
+                display: flex;
+                justify-content: space-between;
+                font-size: 11px;
+                font-weight: 600;
+                color: #444;
+                margin-top: 6px;
+              }
+              .class-block {
+                margin-bottom: 16px;
+                page-break-inside: avoid;
+                break-inside: avoid;
+              }
+              .class-header {
+                background: #f0f0f0;
+                border: 1px solid #111;
+                border-bottom: none;
+                padding: 6px 10px;
+                font-weight: 800;
+                font-size: 12px;
+                display: flex;
+                justify-content: space-between;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                border: 1px solid #111;
+                font-size: 11px;
+              }
+              th, td {
+                border: 1px solid #111;
+                padding: 6px 8px;
+              }
+              th {
+                background: #e5e5e5;
+                font-weight: 700;
+                text-transform: uppercase;
+                font-size: 10px;
+              }
+              .badge-gold {
+                color: #854d0e;
+                background-color: #fef3c7;
+              }
+              .badge-silver {
+                color: #374151;
+                background-color: #f3f4f6;
+              }
+              .badge-bronze {
+                color: #9a3412;
+                background-color: #ffedd5;
+              }
+              .signatures {
+                margin-top: 40px;
+                display: flex;
+                justify-content: space-between;
+                font-size: 11px;
+                font-weight: 700;
+                page-break-inside: avoid;
+                break-inside: avoid;
+              }
+              .sig-box {
+                text-align: center;
+                width: 180px;
+              }
+              .sig-line {
+                border-top: 1px dashed #111;
+                margin-bottom: 6px;
+                height: 45px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>PM SHRI KENDRIYA VIDYALAYA SULUR</h1>
+              <h2>DIGITAL LIBRARY MANAGEMENT SYSTEM (DLMS)</h2>
+              <h3>CLASS-WISE TOPPERS &amp; PHYSICAL BADGE DISTRIBUTION REGISTER</h3>
+              <div class="header-meta">
+                <span><strong>Evaluation Period:</strong> ${periodLabel}</span>
+                <span><strong>Classes:</strong> ${filteredGroups.length} evaluated</span>
+                <span><strong>Date Generated:</strong> ${dateStr}</span>
+              </div>
+            </div>
+
+            <div class="content">
+              ${groupsHtml}
+            </div>
+
+            <div class="signatures">
+              <div class="sig-box">
+                <div class="sig-line"></div>
+                <span>Librarian Signature</span>
+              </div>
+              <div class="sig-box">
+                <div class="sig-line"></div>
+                <span>Class Teacher / In-Charge</span>
+              </div>
+              <div class="sig-box">
+                <div class="sig-line"></div>
+                <span>Principal Signature</span>
+              </div>
+            </div>
+
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                }, 250);
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(printDoc);
+        printWindow.document.close();
+      } else {
+        // If popup was blocked by browser, fallback to standard window.print()
+        window.print();
+      }
+    } catch (e: any) {
+      console.error("Print error:", e);
+      window.print();
+    }
   };
 
   const getBadgeStyle = (tier: "Gold" | "Silver" | "Bronze") => {
@@ -268,6 +507,26 @@ export const PhysicalBadgeGenerator: React.FC<PhysicalBadgeGeneratorProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl w-[96vw] max-h-[92vh] flex flex-col p-0 overflow-hidden border border-border shadow-2xl rounded-2xl bg-card">
+        {/* Style block for fallback window.print() */}
+        <style>{`
+          @media print {
+            body * { visibility: hidden !important; }
+            #physical-badge-print, #physical-badge-print * { visibility: visible !important; }
+            #physical-badge-print {
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 16px !important;
+              background: white !important;
+              color: black !important;
+              display: block !important;
+              z-index: 999999 !important;
+            }
+          }
+        `}</style>
+
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-border bg-muted/40 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -492,8 +751,8 @@ export const PhysicalBadgeGenerator: React.FC<PhysicalBadgeGeneratorProps> = ({
           )}
         </div>
 
-        {/* Printable Section (Hidden in Screen, Visible in Print) */}
-        <div className="hidden print:block fixed inset-0 bg-white p-8 z-[9999] text-black">
+        {/* Printable Section Fallback for Direct Print */}
+        <div id="physical-badge-print" className="hidden print:block text-black">
           <div className="text-center pb-4 border-b-2 border-black space-y-1">
             <h1 className="text-xl font-black uppercase tracking-wide">PM SHRI KENDRIYA VIDYALAYA SULUR</h1>
             <h2 className="text-sm font-bold">DIGITAL LIBRARY MANAGEMENT SYSTEM (DLMS)</h2>
@@ -506,8 +765,8 @@ export const PhysicalBadgeGenerator: React.FC<PhysicalBadgeGeneratorProps> = ({
           </div>
 
           <div className="py-4 space-y-6">
-            {classGroups.map((group) => (
-              <div key={group.className} className="break-inside-avoid space-y-2 mb-4">
+            {filteredGroups.map((group) => (
+              <div key={group.className} className="break-inside-avoid space-y-2 mb-4" style={{ pageBreakInside: "avoid" }}>
                 <h4 className="text-sm font-black bg-gray-200 px-3 py-1 border border-black">
                   CLASS: {group.className}
                 </h4>
@@ -541,7 +800,7 @@ export const PhysicalBadgeGenerator: React.FC<PhysicalBadgeGeneratorProps> = ({
             ))}
           </div>
 
-          <div className="pt-12 flex justify-between text-xs font-bold border-t border-black mt-8">
+          <div className="pt-12 flex justify-between text-xs font-bold border-t border-black mt-8" style={{ pageBreakInside: "avoid" }}>
             <div className="text-center">
               <p className="pb-10">_______________________________</p>
               <p>Librarian Signature</p>
