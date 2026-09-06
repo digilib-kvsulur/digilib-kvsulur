@@ -538,6 +538,7 @@ export type Database = {
           book_id: string
           created_at: string
           id: string
+          is_approved: boolean
           is_hidden: boolean
           rating: number
           review_text: string | null
@@ -548,6 +549,7 @@ export type Database = {
           book_id: string
           created_at?: string
           id?: string
+          is_approved?: boolean
           is_hidden?: boolean
           rating: number
           review_text?: string | null
@@ -558,6 +560,7 @@ export type Database = {
           book_id?: string
           created_at?: string
           id?: string
+          is_approved?: boolean
           is_hidden?: boolean
           rating?: number
           review_text?: string | null
@@ -658,6 +661,7 @@ export type Database = {
           description: string | null
           first_added_at: string | null
           id: string
+          is_book_of_the_week: boolean
           isbn: string | null
           issue_count: number
           language: string | null
@@ -681,6 +685,7 @@ export type Database = {
           description?: string | null
           first_added_at?: string | null
           id?: string
+          is_book_of_the_week?: boolean
           isbn?: string | null
           issue_count?: number
           language?: string | null
@@ -704,6 +709,7 @@ export type Database = {
           description?: string | null
           first_added_at?: string | null
           id?: string
+          is_book_of_the_week?: boolean
           isbn?: string | null
           issue_count?: number
           language?: string | null
@@ -872,6 +878,48 @@ export type Database = {
           },
         ]
       }
+      class_competitions: {
+        Row: {
+          class_a: string
+          class_b: string
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          id: string
+          metric: string
+          start_date: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          class_a: string
+          class_b: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          metric?: string
+          start_date?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          class_a?: string
+          class_b?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          metric?: string
+          start_date?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       class_reading_lists: {
         Row: {
           books: Json
@@ -904,6 +952,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      community_reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          post_id: string | null
+          reason: string
+          reporter_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          post_id?: string | null
+          reason?: string
+          reporter_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          post_id?: string | null
+          reason?: string
+          reporter_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       condemnation_batches: {
         Row: {
@@ -1882,6 +1971,7 @@ export type Database = {
           media_type: string | null
           media_url: string | null
           pinned_at: string | null
+          poll_ends_at: string | null
           post_type: string
           title: string
           updated_at: string
@@ -1895,6 +1985,7 @@ export type Database = {
           media_type?: string | null
           media_url?: string | null
           pinned_at?: string | null
+          poll_ends_at?: string | null
           post_type?: string
           title: string
           updated_at?: string
@@ -1908,6 +1999,7 @@ export type Database = {
           media_type?: string | null
           media_url?: string | null
           pinned_at?: string | null
+          poll_ends_at?: string | null
           post_type?: string
           title?: string
           updated_at?: string
@@ -1922,12 +2014,16 @@ export type Database = {
           approved_by: string | null
           avatar_url: string | null
           bio: string | null
+          community_blocked_until: string | null
+          community_warn_count: number
           created_at: string
+          currently_reading: Json | null
           email: string | null
           first_name: string | null
           id: string
           is_approved: boolean
           last_name: string | null
+          library_card_barcode: string | null
           needs_profile_update: boolean
           phone: string | null
           points: number
@@ -1945,12 +2041,16 @@ export type Database = {
           approved_by?: string | null
           avatar_url?: string | null
           bio?: string | null
+          community_blocked_until?: string | null
+          community_warn_count?: number
           created_at?: string
+          currently_reading?: Json | null
           email?: string | null
           first_name?: string | null
           id: string
           is_approved?: boolean
           last_name?: string | null
+          library_card_barcode?: string | null
           needs_profile_update?: boolean
           phone?: string | null
           points?: number
@@ -1968,12 +2068,16 @@ export type Database = {
           approved_by?: string | null
           avatar_url?: string | null
           bio?: string | null
+          community_blocked_until?: string | null
+          community_warn_count?: number
           created_at?: string
+          currently_reading?: Json | null
           email?: string | null
           first_name?: string | null
           id?: string
           is_approved?: boolean
           last_name?: string | null
+          library_card_barcode?: string | null
           needs_profile_update?: boolean
           phone?: string | null
           points?: number
@@ -2042,6 +2146,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "quiz_results_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_sessions: {
+        Row: {
+          created_at: string
+          current_question_index: number
+          host_id: string | null
+          id: string
+          quiz_id: string
+          room_code: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_question_index?: number
+          host_id?: string | null
+          id?: string
+          quiz_id: string
+          room_code?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_question_index?: number
+          host_id?: string | null
+          id?: string
+          quiz_id?: string
+          room_code?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_sessions_quiz_id_fkey"
             columns: ["quiz_id"]
             isOneToOne: false
             referencedRelation: "quizzes"
@@ -2371,6 +2516,60 @@ export type Database = {
         }
         Relationships: []
       }
+      user_feedback: {
+        Row: {
+          allow_follow_up: boolean
+          area: string | null
+          category: string
+          created_at: string
+          email: string | null
+          feedback_text: string | null
+          full_name: string | null
+          id: string
+          message: string | null
+          rating: number
+          reference_id: string | null
+          subject: string
+          updated_at: string
+          urgency: string
+          user_id: string | null
+        }
+        Insert: {
+          allow_follow_up?: boolean
+          area?: string | null
+          category?: string
+          created_at?: string
+          email?: string | null
+          feedback_text?: string | null
+          full_name?: string | null
+          id?: string
+          message?: string | null
+          rating?: number
+          reference_id?: string | null
+          subject: string
+          updated_at?: string
+          urgency?: string
+          user_id?: string | null
+        }
+        Update: {
+          allow_follow_up?: boolean
+          area?: string | null
+          category?: string
+          created_at?: string
+          email?: string | null
+          feedback_text?: string | null
+          full_name?: string | null
+          id?: string
+          message?: string | null
+          rating?: number
+          reference_id?: string | null
+          subject?: string
+          updated_at?: string
+          urgency?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -2492,7 +2691,18 @@ export type Database = {
           total_points: number
         }[]
       }
+      get_database_size: { Args: never; Returns: number }
       get_distinct_book_filters: { Args: never; Returns: Json }
+      get_game_analytics: {
+        Args: never
+        Returns: {
+          game_key: string
+          plays: number
+          total_time: number
+          wins: number
+          xp_awarded: number
+        }[]
+      }
       get_leaderboard_data: {
         Args: { class_filter?: string }
         Returns: {
@@ -2530,6 +2740,10 @@ export type Database = {
         }[]
       }
       get_profile_role: { Args: { _user_id: string }; Returns: string }
+      get_public_portfolio_data: {
+        Args: { target_user_id: string }
+        Returns: Json
+      }
       get_public_posts_by_user: {
         Args: { _id: string; _limit?: number }
         Returns: {
@@ -2594,6 +2808,16 @@ export type Database = {
           average_points: number
           total_points: number
           total_students: number
+        }[]
+      }
+      get_storage_size: { Args: never; Returns: number }
+      get_student_reading_velocity: {
+        Args: { p_user_id: string }
+        Returns: {
+          books_last_30: number
+          books_prev_30: number
+          change_pct: number
+          velocity_label: string
         }[]
       }
       get_teacher_class_students: {
@@ -2721,7 +2945,39 @@ export type Database = {
           total_login_days: number
         }[]
       }
+      reset_monthly_leaderboard: { Args: never; Returns: number }
       scrap_reading_entry: { Args: { p_reading_id: string }; Returns: number }
+      search_books: {
+        Args: {
+          p_author?: string
+          p_availability?: string
+          p_category?: string
+          p_class_level?: string
+          p_language?: string
+          p_limit?: number
+          p_sort_by?: string
+          p_subject?: string
+          search_query: string
+        }
+        Returns: {
+          accession_number: string
+          author: string
+          available_copies: number
+          category: string
+          class_level: string
+          cover_url: string
+          created_at: string
+          cupboard_number: string
+          first_added_at: string
+          id: string
+          issue_count: number
+          language: string
+          shelf_number: string
+          subject: string
+          title: string
+          total_copies: number
+        }[]
+      }
       search_public_profiles: {
         Args: { _exclude: string; _q: string }
         Returns: {

@@ -93,6 +93,8 @@ export default function Feedback({ isEmbedded }: { isEmbedded?: boolean }) {
       // Attempt 1: Standard feedback_text column
       const { error: err1 } = await supabase.from("user_feedback").insert({
         user_id: user?.id || null,
+        full_name: form.fullName.trim(),
+        email: form.email.trim() || null,
         category: form.category,
         area: form.area || null,
         urgency: form.urgency || "low",
