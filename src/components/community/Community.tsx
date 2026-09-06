@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
@@ -52,7 +52,10 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [draft, setDraft] = useState({ title: "", content: "" });
-  const [postKind, setPostKind] = useState<"text" | "poll" | "link">("text");
+  const [postKind, setPostKind] = useState<"text" | "poll" | "link" | "story">("text");
+  const [storyGenre, setStoryGenre] = useState("Adventure");
+  const [viewingStory, setViewingStory] = useState<Post | null>(null);
+  const [feedCategory, setFeedCategory] = useState<"all" | "stories" | "polls" | "media">("all");
   const [linkUrl, setLinkUrl] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -293,7 +296,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       return;
     }
     if (!draft.title.trim()) { toast({ title: "Add a title", variant: "destructive" }); return; }
-    if (postKind === "text" && !draft.content.trim()) { toast({ title: "Add post content", variant: "destructive" }); return; }
+    if ((postKind === "text" || postKind === "story") && !draft.content.trim()) { toast({ title: "Add content", variant: "destructive" }); return; }
     if (postKind === "link" && !linkUrl.trim()) { toast({ title: "Add a link URL", variant: "destructive" }); return; }
     if (postKind === "link" && !linkUrl.startsWith("http://") && !linkUrl.startsWith("https://")) {
       toast({ title: "Invalid URL", description: "Link URL must start with http:// or https://", variant: "destructive" });
@@ -315,7 +318,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     try {
       let mediaUrl: string | null = null;
       let mediaType: string | null = null;
-      if (mediaFile && postKind === "text") {
+      if (mediaFile && (postKind === "text" || postKind === "story")) {
         const ext = mediaFile.name.split(".").pop()?.toLowerCase();
         const path = `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("community-media").upload(path, mediaFile, { contentType: mediaFile.type });
@@ -327,9 +330,14 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         mediaUrl = linkUrl.trim();
         mediaType = "link";
       }
+      
+      const finalTitle = postKind === "story" && !draft.title.startsWith(`[${storyGenre}]`)
+        ? `[${storyGenre}] ${draft.title.trim()}`
+        : draft.title.trim();
+
       const { data: postRow, error } = await supabase.from("posts").insert({
         user_id: currentUserId,
-        title: draft.title.trim(),
+        title: finalTitle,
         content: draft.content.trim() || (postKind === "poll" ? "Poll" : ""),
         media_url: mediaUrl,
         media_type: mediaType,
@@ -348,7 +356,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       setPostKind("text");
       setMediaFile(null);
       setShowNew(false);
-      toast({ title: "Posted!" });
+      toast({ title: postKind === "story" ? "Story Published! 📖✨" : "Posted!" });
       load();
     } catch (e: any) {
       toast({ title: "Failed", description: e.message, variant: "destructive" });
@@ -508,9 +516,12 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       {showNew && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
         <Card className="border-primary/30">
           <CardContent className="p-4 space-y-3">
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button size="sm" variant={postKind === "text" ? "default" : "outline"} type="button" onClick={() => setPostKind("text")}>
                 Post
+              </Button>
+              <Button size="sm" variant={postKind === "story" ? "default" : "outline"} type="button" onClick={() => setPostKind("story")}>
+                <Feather className="h-3.5 w-3.5 mr-1 text-amber-500" /> Story / Writing
               </Button>
               <Button size="sm" variant={postKind === "poll" ? "default" : "outline"} type="button" onClick={() => setPostKind("poll")}>
                 <BarChart3 className="h-3.5 w-3.5 mr-1" /> Poll
@@ -519,9 +530,51 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 <Link2 className="h-3.5 w-3.5 mr-1" /> Link
               </Button>
             </div>
-            <Input placeholder="Post title..." value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} maxLength={150} />
+            
+            {postKind === "story" && (
+              <div className="flex items-center gap-2 flex-wrap pb-1">
+                <span className="text-xs font-semibold text-muted-foreground">Genre / Type:</span>
+                {["Adventure", "Fantasy", "Mystery", "Sci-Fi", "Poem", "Moral & Fable", "School Life", "Comedy", "Essay"].map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setStoryGenre(g)}
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium transition-all ${
+                      storyGenre === g
+                        ? "bg-amber-500 text-white shadow-sm"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <Input 
+              placeholder={postKind === "story" ? "Story title (e.g. The Mystery of the Old Clock)..." : "Post title..."} 
+              value={draft.title} 
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })} 
+              maxLength={150} 
+            />
             {postKind === "text" && (
               <Textarea placeholder="What's on your mind?" rows={4} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={2000} />
+            )}
+            {postKind === "story" && (
+              <div className="space-y-2">
+                <Textarea 
+                  placeholder="Write your story, chapter, poem or essay here... Let your creativity flow!" 
+                  rows={8} 
+                  value={draft.content} 
+                  onChange={(e) => setDraft({ ...draft, content: e.target.value })} 
+                  maxLength={10000} 
+                  className="font-serif leading-relaxed text-sm"
+                />
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                  <span>Words: {draft.content.split(/\s+/).filter(Boolean).length}</span>
+                  <span>Est. read time: {Math.max(1, Math.round(draft.content.split(/\s+/).filter(Boolean).length / 180))} min</span>
+                </div>
+              </div>
             )}
             {postKind === "link" && (
               <div className="space-y-3">
@@ -574,14 +627,54 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         </Card>
       )}
 
-      {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : posts.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">
-          <Users className="h-12 w-12 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">No posts yet. Be the first!</p>
-        </CardContent></Card>
-      ) : (
-        <div className="space-y-3">
-          {posts.map((p) => (
+      {/* Feed Sub-filters */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        {[
+          { id: "all", label: "All Posts" },
+          { id: "stories", label: "📖 Student Stories", count: posts.filter(p => p.post_type === "story").length },
+          { id: "polls", label: "📊 Polls", count: posts.filter(p => p.post_type === "poll").length },
+          { id: "media", label: "🖼️ Photos & PDFs", count: posts.filter(p => !!p.media_url).length },
+        ].map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => setFeedCategory(cat.id as any)}
+            className={`text-xs px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              feedCategory === cat.id
+                ? "gradient-primary text-white shadow-sm"
+                : "bg-muted/70 text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
+            {cat.label}
+            {cat.count !== undefined && cat.count > 0 && (
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${feedCategory === cat.id ? "bg-white/20 text-white" : "bg-background text-muted-foreground"}`}>
+                {cat.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : (() => {
+        const filteredPosts = posts.filter(p => {
+          if (feedCategory === "stories") return p.post_type === "story";
+          if (feedCategory === "polls") return p.post_type === "poll";
+          if (feedCategory === "media") return !!p.media_url;
+          return true;
+        });
+
+        if (filteredPosts.length === 0) {
+          return (
+            <Card><CardContent className="p-8 text-center text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No posts in this category yet.</p>
+            </CardContent></Card>
+          );
+        }
+
+        return (
+          <div className="space-y-3">
+            {filteredPosts.map((p) => (
             <Card key={p.id} className="border-border/50 hover-lift">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -635,9 +728,40 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                         )}
                       </div>
                     </div>
-                    <h3 className="font-bold mt-2">{p.title}</h3>
-                    {p.content && p.content !== "Poll" && (
-                      <p className="text-sm whitespace-pre-wrap mt-1">{p.content}</p>
+                    
+                    {p.post_type === "story" ? (
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-extrabold flex items-center gap-1">
+                            <Feather className="h-3 w-3" /> Original Story
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                            <Clock className="h-3 w-3 mr-1 inline" />
+                            {Math.max(1, Math.round((p.content || "").split(/\s+/).filter(Boolean).length / 180))} min read
+                          </Badge>
+                        </div>
+                        <h3 className="font-extrabold text-base text-foreground mt-1">{p.title}</h3>
+                        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/5 via-primary/5 to-purple-500/5 border border-primary/20 space-y-2">
+                          <p className="text-sm font-serif italic text-foreground/90 leading-relaxed line-clamp-3 whitespace-pre-wrap">
+                            {p.content}
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs font-bold rounded-xl border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                            onClick={() => setViewingStory(p)}
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1.5" /> Read Full Story
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <h3 className="font-bold mt-2">{p.title}</h3>
+                        {p.content && p.content !== "Poll" && (
+                          <p className="text-sm whitespace-pre-wrap mt-1">{p.content}</p>
+                        )}
+                      </>
                     )}
                     {p.post_type === "poll" && (p.pollOptions?.length || 0) > 0 && (
                       <div className="mt-3 space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3">
@@ -751,8 +875,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
+          </div>
+        );
+      })()}
         </TabsContent>
 
         <TabsContent value="clubs" className="mt-4">
@@ -763,6 +888,80 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           <SuggestionVoting userId={currentUserId} isAdmin={isAdmin} />
         </TabsContent>
       </Tabs>
+
+      {/* Story Reader Dialog */}
+      <Dialog open={!!viewingStory} onOpenChange={(o) => !o && setViewingStory(null)}>
+        <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto p-6 sm:p-8 rounded-3xl border border-primary/20 shadow-2xl bg-card">
+          {viewingStory && (
+            <div className="space-y-6">
+              <div className="space-y-3 border-b border-border pb-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-bold px-2.5 py-0.5">
+                    <Feather className="h-3.5 w-3.5 mr-1 inline" /> Student Story
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    <Clock className="h-3.5 w-3.5 mr-1 inline text-muted-foreground" />
+                    {Math.max(1, Math.round((viewingStory.content || "").split(/\s+/).filter(Boolean).length / 180))} min read
+                  </Badge>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {new Date(viewingStory.created_at).toLocaleDateString(undefined, { dateStyle: "long" })}
+                  </span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+                  {viewingStory.title}
+                </h2>
+
+                <div className="flex items-center gap-3 pt-1">
+                  <Avatar className="h-9 w-9">
+                    {viewingStory.author?.avatar_url && (
+                      <AvatarImage src={getAvatarUrl(viewingStory.author.avatar_url)} />
+                    )}
+                    <AvatarFallback className="gradient-primary text-white text-xs font-bold">
+                      {initials(viewingStory.author)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">{nameOf(viewingStory.author)}</p>
+                    <p className="text-[10px] text-muted-foreground">Class {viewingStory.author?.student_class || "—"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Story Body */}
+              <div className="font-serif text-base sm:text-lg leading-relaxed text-foreground/90 whitespace-pre-wrap selection:bg-amber-500/20 py-2">
+                {viewingStory.content}
+              </div>
+
+              {/* Reader Footer */}
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <Button
+                  size="sm"
+                  variant={viewingStory.liked ? "default" : "outline"}
+                  onClick={() => toggleLike(viewingStory.id)}
+                  className={`h-9 px-4 rounded-xl text-xs font-bold gap-1.5 ${viewingStory.liked ? "bg-rose-500 text-white hover:bg-rose-600 border-0" : ""}`}
+                >
+                  <Heart className={`h-4 w-4 ${viewingStory.liked ? "fill-white" : ""}`} />
+                  {viewingStory.likes} {viewingStory.likes === 1 ? "Like" : "Likes"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const id = viewingStory.id;
+                    setViewingStory(null);
+                    setOpenComments(id);
+                    if (!comments[id]) loadComments(id);
+                  }}
+                  className="h-9 px-4 rounded-xl text-xs font-bold gap-1.5"
+                >
+                  <MessageCircle className="h-4 w-4" /> Comments ({viewingStory.comment_count})
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!profileDialogUser} onOpenChange={(o) => !o && setProfileDialogUser(null)}>
         <DialogContent className="max-w-lg p-0 overflow-hidden">
