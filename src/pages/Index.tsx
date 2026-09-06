@@ -25,6 +25,7 @@ interface Book {
 }
 
 interface Statistics {
+  availableCopies: number;
   totalBooks: number;
   activeUsers: number;
   booksIssued: number;
@@ -35,7 +36,12 @@ const Index = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [trendingBooks, setTrendingBooks] = useState<Book[]>([]);
-  const [statistics, setStatistics] = useState<Statistics>({ totalBooks: 0, activeUsers: 0, booksIssued: 0 });
+  const [statistics, setStatistics] = useState<Statistics>({
+    availableCopies: 0,
+    totalBooks: 0,
+    activeUsers: 0,
+    booksIssued: 0,
+  });
   const [dbEvents, setDbEvents] = useState<any[]>([]);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const navigate = useNavigate();
@@ -167,16 +173,57 @@ const Index = () => {
 
   const loadStatistics = async () => {
     try {
-      const [{ data: bCopies }, { data: uCount }, { count: iCount }] = await Promise.all([
-        supabase.from("books").select("total_copies"),
+      const [
+        { data: bCopies },
+        { data: uCount },
+        { data: borrowCounts },
+        { data: rpcIssues },
+        { count: iCount },
+        { count: rCount }
+      ] = await Promise.all([
+        supabase.from("books").select("available_copies, total_copies"),
         supabase.rpc("get_active_users_count"),
+        supabase.rpc("get_book_borrow_counts"),
+        supabase.rpc("get_books_issued_count"),
         supabase.from("book_issues").select("*", { count: "exact", head: true }),
+        supabase.from("reading_history").select("*", { count: "exact", head: true }),
       ]);
-      const totalCopies = (bCopies || []).reduce((acc: number, row: any) => acc + (row.total_copies || 1), 0);
-      const totalHistoricalIssues = iCount || 0;
-      const activeUsers = uCount || 0;
 
-      setStatistics({ totalBooks: totalCopies, activeUsers, booksIssued: totalHistoricalIssues });
+      const availableCopies = (bCopies || []).reduce(
+        (acc: number, row: any) => acc + (row.available_copies !== null && row.available_copies !== undefined ? Number(row.available_copies) : (row.total_copies || 1)),
+        0
+      );
+      const totalCopies = (bCopies || []).reduce((acc: number, row: any) => acc + (row.total_copies || 1), 0);
+
+      // Total issues count calculation (all-time issues done till now)
+      let totalHistoricalIssues = 0;
+      if (borrowCounts && Array.isArray(borrowCounts) && borrowCounts.length > 0) {
+        totalHistoricalIssues = borrowCounts.reduce((acc: number, row: any) => acc + (Number(row.borrow_count) || 0), 0);
+      }
+      if (!totalHistoricalIssues && typeof rpcIssues === "number" && rpcIssues > 0) {
+        totalHistoricalIssues = rpcIssues;
+      }
+      if (!totalHistoricalIssues && iCount && iCount > 0) {
+        totalHistoricalIssues = iCount;
+      }
+      if (!totalHistoricalIssues && rCount && rCount > 0) {
+        totalHistoricalIssues = rCount;
+      }
+
+      let activeUsers = 0;
+      if (typeof uCount === "number" && uCount > 0) {
+        activeUsers = uCount;
+      } else {
+        const { count: pCount } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+        activeUsers = pCount || 0;
+      }
+
+      setStatistics({
+        availableCopies: availableCopies > 0 ? availableCopies : totalCopies,
+        totalBooks: totalCopies,
+        activeUsers,
+        booksIssued: totalHistoricalIssues,
+      });
     } catch (e) {
       console.error("Failed to load statistics:", e);
     }
@@ -400,9 +447,9 @@ const Index = () => {
               {/* Stats Band with generous internal padding */}
               <div className="grid grid-cols-3 gap-6 pt-9 border-t border-slate-200/80 max-w-md mx-auto lg:mx-0">
                 {[
-                  { v: statistics.totalBooks, l: "Total Copies" },
-                  { v: statistics.booksIssued, l: "Total Issues" },
-                  { v: statistics.activeUsers, l: "Active Members" },
+                  { v: statistics.availableCopies || statistics.totalBooks, l: "Copies Available" },
+                  { v: statistics.booksIssued, l: "Total Issues Done" },
+                  { v: statistics.activeUsers, l: "Total Users" },
                 ].map((s, i) => (
                   <div key={i} className="text-center lg:text-left px-2">
                     <p className="text-3xl font-black text-slate-900">{s.v.toLocaleString()}+</p>
