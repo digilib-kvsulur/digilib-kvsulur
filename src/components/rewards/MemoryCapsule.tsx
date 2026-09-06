@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Sparkles, Trophy, BookOpen, Brain, Award, Zap, ChevronLeft, ChevronRight, 
   Share2, Download, Flame, Star, Compass, CheckCircle2, RotateCcw, X, Heart,
-  BookMarked, Clock
+  BookMarked, Clock, TrendingUp, TrendingDown, ArrowUpRight
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,8 @@ interface MonthSummary {
   booksReadTitles: string[];
   topGenre: string;
   totalXpEarned: number;
+  prevMonthXp: number;
+  improvementPercent: number;
   quizzesPassed: number;
   highestQuizScore: number;
   gamesPlayed: number;
@@ -97,73 +99,151 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
   const fetchMonthData = async () => {
     setLoading(true);
     try {
+      // 1. Current target month boundary
       const startOfMonth = new Date(year, targetDate.getMonth(), 1).toISOString();
       const endOfMonth = new Date(year, targetDate.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
       const startDateStr = startOfMonth.split("T")[0];
       const endDateStr = endOfMonth.split("T")[0];
 
-      // 1. Reading History
-      const { data: rhData } = await supabase
-        .from("reading_history")
-        .select("book_title, points_earned, completed_date, books(category, subject)")
-        .eq("user_id", userId)
-        .gte("completed_date", startDateStr)
-        .lte("completed_date", endDateStr);
+      // 2. Prior month boundary (for month-over-month % improvement)
+      const priorDate = new Date(year, targetDate.getMonth() - 1, 1);
+      const priorStartOfMonth = new Date(priorDate.getFullYear(), priorDate.getMonth(), 1).toISOString();
+      const priorEndOfMonth = new Date(priorDate.getFullYear(), priorDate.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+      const priorStartDateStr = priorStartOfMonth.split("T")[0];
+      const priorEndDateStr = priorEndOfMonth.split("T")[0];
 
-      // 2. Book Issues
-      const { data: biData } = await supabase
-        .from("book_issues")
-        .select("id, issue_date, return_date, books(title, category)")
-        .eq("user_id", userId)
-        .gte("issue_date", startDateStr)
-        .lte("issue_date", endDateStr);
+      // Execute target month queries & prior month queries in parallel
+      const [
+        { data: rhData },
+        { data: biData },
+        { data: qrData },
+        { data: gpData },
+        { data: ssData },
+        { data: cpData },
+        { data: baData },
+        { data: postData },
+        { data: profile },
+        { data: streak },
+        { data: prevRh },
+        { data: prevQr },
+        { data: prevGp },
+        { data: prevSs },
+        { data: prevCp },
+      ] = await Promise.all([
+        // 1. Reading History (target month)
+        supabase
+          .from("reading_history")
+          .select("book_title, points_earned, completed_date, books(category, subject)")
+          .eq("user_id", userId)
+          .gte("completed_date", startDateStr)
+          .lte("completed_date", endDateStr),
 
-      // 3. Quiz Results
-      const { data: qrData } = await supabase
-        .from("quiz_results")
-        .select("score, points_earned, completed_at")
-        .eq("user_id", userId)
-        .gte("completed_at", startOfMonth)
-        .lte("completed_at", endOfMonth);
+        // 2. Book Issues (target month)
+        supabase
+          .from("book_issues")
+          .select("id, issue_date, return_date, books(title, category)")
+          .eq("user_id", userId)
+          .gte("issue_date", startDateStr)
+          .lte("issue_date", endDateStr),
 
-      // 4. Game Plays
-      const { data: gpData } = await supabase
-        .from("game_plays")
-        .select("points_earned, played_at")
-        .eq("user_id", userId)
-        .gte("played_at", startOfMonth)
-        .lte("played_at", endOfMonth);
+        // 3. Quiz Results (target month)
+        supabase
+          .from("quiz_results")
+          .select("score, points_earned, completed_at")
+          .eq("user_id", userId)
+          .gte("completed_at", startOfMonth)
+          .lte("completed_at", endOfMonth),
 
-      // 5. Badge Awards
-      const { data: baData } = await supabase
-        .from("badge_awards")
-        .select("id, awarded_at")
-        .eq("user_id", userId)
-        .gte("awarded_at", startOfMonth)
-        .lte("awarded_at", endOfMonth);
+        // 4. Game Plays (target month)
+        supabase
+          .from("game_plays")
+          .select("points_earned, played_at")
+          .eq("user_id", userId)
+          .gte("played_at", startOfMonth)
+          .lte("played_at", endOfMonth),
 
-      // 6. Posts / Community
-      const { data: postData } = await supabase
-        .from("posts")
-        .select("id")
-        .eq("user_id", userId)
-        .gte("created_at", startOfMonth)
-        .lte("created_at", endOfMonth);
+        // 5. Study Sessions (target month)
+        supabase
+          .from("study_sessions")
+          .select("points_earned, ended_at")
+          .eq("user_id", userId)
+          .gte("ended_at", startOfMonth)
+          .lte("ended_at", endOfMonth),
 
-      // 7. Profile / Streak
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("points, monthly_points")
-        .eq("id", userId)
-        .maybeSingle();
+        // 6. Challenge Progress (target month)
+        supabase
+          .from("challenge_progress")
+          .select("completed_at, challenges(reward_points)")
+          .eq("user_id", userId)
+          .eq("is_claimed", true)
+          .gte("completed_at", startOfMonth)
+          .lte("completed_at", endOfMonth),
 
-      const { data: streak } = await supabase
-        .from("login_streaks")
-        .select("current_streak, longest_streak")
-        .eq("user_id", userId)
-        .maybeSingle();
+        // 7. Badge Awards (target month)
+        supabase
+          .from("badge_awards")
+          .select("id, awarded_at")
+          .eq("user_id", userId)
+          .gte("awarded_at", startOfMonth)
+          .lte("awarded_at", endOfMonth),
 
-      // Aggregate calculations
+        // 8. Posts / Community (target month)
+        supabase
+          .from("posts")
+          .select("id")
+          .eq("user_id", userId)
+          .gte("created_at", startOfMonth)
+          .lte("created_at", endOfMonth),
+
+        // 9. Profile
+        supabase
+          .from("profiles")
+          .select("points, monthly_points")
+          .eq("id", userId)
+          .maybeSingle(),
+
+        // 10. Login Streak
+        supabase
+          .from("login_streaks")
+          .select("current_streak, longest_streak")
+          .eq("user_id", userId)
+          .maybeSingle(),
+
+        // 11-15. Prior Month Queries for Comparison
+        supabase
+          .from("reading_history")
+          .select("points_earned")
+          .eq("user_id", userId)
+          .gte("completed_date", priorStartDateStr)
+          .lte("completed_date", priorEndDateStr),
+        supabase
+          .from("quiz_results")
+          .select("points_earned")
+          .eq("user_id", userId)
+          .gte("completed_at", priorStartOfMonth)
+          .lte("completed_at", priorEndOfMonth),
+        supabase
+          .from("game_plays")
+          .select("points_earned")
+          .eq("user_id", userId)
+          .gte("played_at", priorStartOfMonth)
+          .lte("played_at", priorEndOfMonth),
+        supabase
+          .from("study_sessions")
+          .select("points_earned")
+          .eq("user_id", userId)
+          .gte("ended_at", priorStartOfMonth)
+          .lte("ended_at", priorEndOfMonth),
+        supabase
+          .from("challenge_progress")
+          .select("challenges(reward_points)")
+          .eq("user_id", userId)
+          .eq("is_claimed", true)
+          .gte("completed_at", priorStartOfMonth)
+          .lte("completed_at", priorEndOfMonth),
+      ]);
+
+      // Aggregate calculations for target month
       const readingRows = rhData || [];
       const booksReadCount = readingRows.length || biData?.length || 0;
       const booksReadTitles = Array.from(new Set([
@@ -187,16 +267,33 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
       const maxQuizScore = qrData?.length ? Math.max(...qrData.map(q => q.score || 0)) : 0;
       const quizzesPassed = qrData?.filter(q => (q.score || 0) >= 60).length || 0;
 
-      const calculatedMonthXp = (
+      // Comprehensive calculation of Target Month Points
+      const targetMonthXpCalculated = (
         readingRows.reduce((acc, r) => acc + (r.points_earned || 25), 0) +
         (qrData || []).reduce((acc, q) => acc + (q.points_earned || 0), 0) +
-        (gpData || []).reduce((acc, g) => acc + (g.points_earned || 0), 0)
+        (gpData || []).reduce((acc, g) => acc + (g.points_earned || 0), 0) +
+        (ssData || []).reduce((acc, s) => acc + (s.points_earned || 0), 0) +
+        (cpData || []).reduce((acc, c: any) => acc + (c.challenges?.reward_points || 0), 0)
       );
 
       const isCurrentMonth = activeYearMonth === currYearMonth;
-      const totalXp = calculatedMonthXp > 0 
-        ? calculatedMonthXp 
+      const totalXp = targetMonthXpCalculated > 0 
+        ? targetMonthXpCalculated 
         : (isCurrentMonth && profile?.monthly_points && profile.monthly_points > 0 ? profile.monthly_points : 50);
+
+      // Prior Month Points Calculation
+      const prevMonthXp = (
+        (prevRh || []).reduce((acc, r) => acc + (r.points_earned || 25), 0) +
+        (prevQr || []).reduce((acc, q) => acc + (q.points_earned || 0), 0) +
+        (prevGp || []).reduce((acc, g) => acc + (g.points_earned || 0), 0) +
+        (prevSs || []).reduce((acc, s) => acc + (s.points_earned || 0), 0) +
+        (prevCp || []).reduce((acc, c: any) => acc + (c.challenges?.reward_points || 0), 0)
+      );
+
+      // Calculate % Improvement
+      const improvementPercent = prevMonthXp > 0
+        ? Math.round(((totalXp - prevMonthXp) / prevMonthXp) * 100)
+        : (totalXp > 0 ? 100 : 0);
 
       // Determine persona
       let persona = {
@@ -248,6 +345,8 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
         booksReadTitles,
         topGenre,
         totalXpEarned: totalXp,
+        prevMonthXp,
+        improvementPercent,
         quizzesPassed,
         highestQuizScore: maxQuizScore,
         gamesPlayed: gpData?.length || 0,
@@ -290,15 +389,17 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
     setExporting(true);
     try {
       const canvas = await html2canvas(summaryCardRef.current, {
-        scale: 2,
+        scale: 3, // Ultra crisp 300 DPI export
         useCORS: true,
-        backgroundColor: null,
+        allowTaint: true,
+        backgroundColor: "#060913",
+        logging: false,
       });
       const link = document.createElement("a");
       link.download = `KV-Sulur-Capsule-${monthName}-${year}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      toast({ title: "Poster Downloaded! 📸", description: "Your monthly memory card has been saved." });
+      toast({ title: "Poster Downloaded! 📸", description: "Your high-resolution memory card has been saved." });
     } catch (e: any) {
       toast({ title: "Download failed", description: e?.message || "Could not save image", variant: "destructive" });
     } finally {
@@ -307,16 +408,20 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
   };
 
   const handleShare = async () => {
+    const improvementText = summary?.improvementPercent && summary.improvementPercent > 0 
+      ? ` (+${summary.improvementPercent}% growth!)` 
+      : "";
+
     if (navigator.share) {
       try {
         await navigator.share({
           title: `${userName}'s ${monthName} Reading Capsule`,
-          text: `Check out my ${monthName} Reading Wrap from PM SHRI KV Sulur Digital Library! I earned ${summary?.totalXpEarned} XP and read ${summary?.booksReadCount} books! 📚✨`,
+          text: `Check out my ${monthName} Reading Wrap from PM SHRI KV Sulur Digital Library! I earned ${summary?.totalXpEarned} XP${improvementText} and read ${summary?.booksReadCount} books! 📚✨`,
           url: window.location.origin,
         });
       } catch (e) {}
     } else {
-      navigator.clipboard.writeText(`Check out my ${monthName} Reading Wrap from PM SHRI KV Sulur Digital Library! I earned ${summary?.totalXpEarned} XP and unlocked the "${summary?.persona.title}" persona! 📚✨`);
+      navigator.clipboard.writeText(`Check out my ${monthName} Reading Wrap from PM SHRI KV Sulur Digital Library! I earned ${summary?.totalXpEarned} XP${improvementText} and unlocked the "${summary?.persona.title}" persona! 📚✨`);
       toast({ title: "Copied to clipboard! 📋", description: "Share your achievements with friends." });
     }
   };
@@ -451,9 +556,19 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
                   {/* High Impact XP Showcase Card */}
                   <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-amber-500/25 via-pink-500/20 to-purple-500/20 border border-amber-400/40 backdrop-blur-md shadow-2xl text-center space-y-1 relative overflow-hidden">
                     <div className="absolute -top-6 -right-6 w-24 h-24 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
-                    <div className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black uppercase tracking-wider mb-1 border border-amber-400/30">
-                      <Star className="h-3 w-3 fill-amber-300 text-amber-300" /> Total XP Earned
+                    
+                    <div className="flex items-center justify-center gap-1.5 flex-wrap mb-1">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black uppercase tracking-wider border border-amber-400/30">
+                        <Star className="h-3 w-3 fill-amber-300 text-amber-300" /> Total XP Earned
+                      </span>
+
+                      {summary.improvementPercent > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                          <TrendingUp className="h-3 w-3 text-emerald-400" /> +{summary.improvementPercent}% Growth
+                        </span>
+                      )}
                     </div>
+
                     <p className="text-5xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-300 to-yellow-100 tracking-tight leading-none py-1">
                       +{summary.totalXpEarned.toLocaleString()}
                     </p>
@@ -615,66 +730,91 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
 
             {/* Slide 5: Recap Card & Export */}
             {currentSlide === 5 && (
-              <div className="flex-1 flex flex-col justify-between p-5 sm:p-6 pt-14 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 animate-in fade-in duration-400 relative overflow-y-auto">
-                <div className="space-y-4 z-10 my-auto">
-                  {/* Shareable Summary Card */}
+              <div className="flex-1 flex flex-col justify-between p-4 sm:p-6 pt-14 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 animate-in fade-in duration-400 relative overflow-y-auto">
+                <div className="space-y-4 z-10 my-auto w-full max-w-[360px] mx-auto">
+                  {/* Shareable Portrait Poster Card */}
                   <div 
                     ref={summaryCardRef}
-                    className="rounded-3xl p-5 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white shadow-2xl border border-white/20 space-y-4"
+                    className="w-full rounded-3xl p-5 bg-gradient-to-b from-[#180d38] via-[#0f172a] to-[#05070e] text-white shadow-2xl border-2 border-purple-500/40 space-y-4 relative overflow-hidden"
+                    style={{ minHeight: "440px" }}
                   >
-                    <div className="flex items-center justify-between border-b border-white/20 pb-3">
+                    {/* Background glow effects */}
+                    <div className="absolute top-0 right-0 w-36 h-36 bg-pink-500/20 rounded-full blur-2xl pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-36 h-36 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
+
+                    {/* School & User Info Header */}
+                    <div className="flex items-center justify-between border-b border-white/15 pb-3 relative z-10">
                       <div>
-                        <p className="text-[10px] font-bold text-white/80 uppercase tracking-wider">PM SHRI KV Sulur</p>
-                        <h4 className="text-lg font-black">{userName}</h4>
-                        <p className="text-[10px] text-white/80">{studentClass}</p>
+                        <p className="text-[9px] font-black text-amber-300 uppercase tracking-widest flex items-center gap-1">
+                          <Star className="h-2.5 w-2.5 fill-amber-300" /> PM SHRI KV SULUR
+                        </p>
+                        <h4 className="text-base font-black text-white leading-tight mt-0.5">{userName}</h4>
+                        <p className="text-[10px] text-white/70 font-semibold">{studentClass}</p>
                       </div>
                       <div className="text-right">
-                        <Badge className="bg-white/20 text-white font-bold text-[10px]">
+                        <span className="px-2.5 py-1 rounded-full bg-white/15 border border-white/20 text-white font-black text-[10px] uppercase tracking-wide">
                           {summary.monthName} {summary.year}
-                        </Badge>
+                        </span>
                       </div>
                     </div>
 
                     {/* Persona Pill */}
-                    <div className="p-3 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center gap-3">
-                      <span className="text-3xl">{summary.persona.emoji}</span>
+                    <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3 relative z-10">
+                      <span className="text-3xl shrink-0">{summary.persona.emoji}</span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-white/80 uppercase">Reader Persona</p>
-                        <p className="text-sm font-black text-white">{summary.persona.title}</p>
+                        <p className="text-[9px] font-bold text-white/70 uppercase tracking-wider">Reader Persona</p>
+                        <p className="text-sm font-black text-white truncate">{summary.persona.title}</p>
+                        <p className="text-[10px] text-purple-200/90 italic truncate">"{summary.persona.tagline}"</p>
                       </div>
                     </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="p-2.5 rounded-xl bg-black/20 backdrop-blur-sm">
-                        <p className="text-xl font-black text-amber-300">+{summary.totalXpEarned}</p>
-                        <p className="text-[9px] font-semibold text-white/80 uppercase">XP Gained</p>
+                    {/* Stats Grid (2x2) */}
+                    <div className="grid grid-cols-2 gap-2 relative z-10">
+                      <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-center">
+                        <p className="text-2xl font-black text-amber-300 leading-none">+{summary.totalXpEarned.toLocaleString()}</p>
+                        <p className="text-[9px] font-bold text-white/80 uppercase mt-1">XP Gained</p>
+                        {summary.improvementPercent > 0 && (
+                          <span className="inline-flex items-center text-[8px] font-black text-emerald-400 bg-emerald-500/20 px-1.5 py-0.2 rounded-md mt-1">
+                            +{summary.improvementPercent}% Growth 📈
+                          </span>
+                        )}
                       </div>
-                      <div className="p-2.5 rounded-xl bg-black/20 backdrop-blur-sm">
-                        <p className="text-xl font-black text-emerald-300">{summary.booksReadCount}</p>
-                        <p className="text-[9px] font-semibold text-white/80 uppercase">Books</p>
+
+                      <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-center">
+                        <p className="text-2xl font-black text-emerald-300 leading-none">{summary.booksReadCount}</p>
+                        <p className="text-[9px] font-bold text-white/80 uppercase mt-1">Books Read</p>
+                        <span className="text-[8px] text-emerald-200/80 block mt-1">~{summary.readingMinutesEst} mins</span>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-black/20 backdrop-blur-sm">
-                        <p className="text-xl font-black text-cyan-300">{summary.quizzesPassed}</p>
-                        <p className="text-[9px] font-semibold text-white/80 uppercase">Quizzes</p>
+
+                      <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-center">
+                        <p className="text-2xl font-black text-pink-300 leading-none">{summary.quizzesPassed}</p>
+                        <p className="text-[9px] font-bold text-white/80 uppercase mt-1">Quizzes Passed</p>
+                        <span className="text-[8px] text-pink-200/80 block mt-1">{summary.highestQuizScore}% Top Score</span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-center">
+                        <p className="text-2xl font-black text-orange-300 leading-none">{summary.streakDays}d</p>
+                        <p className="text-[9px] font-bold text-white/80 uppercase mt-1">Active Streak</p>
+                        <span className="text-[8px] text-orange-200/80 block mt-1">{summary.badgesEarned} Badges</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[9px] text-white/70 pt-1 border-t border-white/15">
+                    {/* Footer Metadata */}
+                    <div className="flex items-center justify-between text-[9px] text-white/80 pt-2 border-t border-white/15 relative z-10">
                       <span>Top Genre: <strong className="text-white">{summary.topGenre}</strong></span>
-                      <span>Streak: <strong className="text-white">{summary.streakDays}d</strong></span>
+                      <span className="text-amber-300 font-bold">⭐ Verified DLMS Badge</span>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 pt-2">
+                  <div className="flex items-center gap-2 pt-1">
                     <Button 
                       onClick={handleDownloadCard} 
                       disabled={exporting}
                       className="flex-1 bg-white text-slate-900 hover:bg-slate-100 font-bold rounded-2xl h-11 text-xs shadow-lg flex items-center justify-center gap-1.5"
                     >
                       <Download className="h-4 w-4" />
-                      {exporting ? "Saving…" : "Save Poster"}
+                      {exporting ? "Generating HD Poster…" : "Save Poster"}
                     </Button>
                     <Button 
                       onClick={handleShare}
@@ -686,7 +826,7 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-2 pt-3 z-10">
+                <div className="flex items-center justify-center gap-2 pt-2 z-10">
                   <button 
                     onClick={() => setCurrentSlide(0)} 
                     className="text-xs text-white/60 hover:text-white flex items-center gap-1 font-medium transition-colors"
