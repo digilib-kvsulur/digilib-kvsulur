@@ -75,42 +75,57 @@ const BookIssueRequests = () => {
 
   const loadRequests = async () => {
     try {
-      const { data, error } = await supabase
-        .from('book_requests')
-        .select(`
-          *,
-          books (title, author, available_copies, accession_number, accession_numbers)
-        `)
-        .order('created_at', { ascending: false });
+      let allRequestsData: any[] = [];
+      let fromReq = 0;
+      const PAGE_SIZE = 1000;
 
-      if (error) { console.error('Error loading requests:', error); toast({ title: "Error", description: "Failed to load book requests.", variant: "destructive" }); return; }
+      while (true) {
+        const { data, error } = await supabase
+          .from('book_requests')
+          .select(`
+            *,
+            books (title, author, available_copies, accession_number, accession_numbers)
+          `)
+          .order('created_at', { ascending: false })
+          .range(fromReq, fromReq + PAGE_SIZE - 1);
 
-      const userIds = Array.from(new Set((data || []).map((req: any) => req.user_id).filter(Boolean)));
-      let profilesMap: Record<string, any> = {};
-      if (userIds.length > 0) {
+        if (error) { 
+          console.error('Error loading requests:', error); 
+          toast({ title: "Error", description: error.message || "Failed to load book requests.", variant: "destructive" }); 
+          break; 
+        }
+        if (!data || data.length === 0) break;
+        allRequestsData = [...allRequestsData, ...data];
+        if (data.length < PAGE_SIZE) break;
+        fromReq += PAGE_SIZE;
+      }
+
+      const userIds = Array.from(new Set(allRequestsData.map((req: any) => req.user_id).filter(Boolean)));
+      const profilesMap: Record<string, any> = {};
+      for (let i = 0; i < userIds.length; i += 100) {
+        const chunk = userIds.slice(i, i + 100);
         const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, student_class, admission_number, role')
-          .in('id', userIds);
-        profilesMap = (profilesData || []).reduce((acc: any, p: any) => {
-          acc[p.id] = p;
-          return acc;
-        }, {});
+          .in('id', chunk);
+        (profilesData || []).forEach((p: any) => {
+          profilesMap[p.id] = p;
+        });
       }
 
-      const enriched = (data || []).map((req: any) => {
+      const enriched = allRequestsData.map((req: any) => {
         const fromWaitlist = typeof req.admin_notes === 'string' && req.admin_notes.toLowerCase().includes('waitlist');
         return { 
           ...req, 
-          book: req.books, 
+          book: req.books || (req.requested_title ? { title: req.requested_title, author: req.requested_author || '' } : null), 
           profile: profilesMap[req.user_id], 
           fromWaitlist 
         };
       });
       setRequests(enriched);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading requests:', error);
-      toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+      toast({ title: "Error", description: error?.message || "An unexpected error occurred.", variant: "destructive" });
     }
   };
 

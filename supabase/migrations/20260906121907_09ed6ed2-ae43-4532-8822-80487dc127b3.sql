@@ -191,9 +191,16 @@ CREATE POLICY "Hosts and staff can update sessions" ON public.quiz_sessions FOR 
 DROP POLICY IF EXISTS "Hosts and staff can delete sessions" ON public.quiz_sessions;
 CREATE POLICY "Hosts and staff can delete sessions" ON public.quiz_sessions FOR DELETE TO authenticated USING (host_id = auth.uid() OR public.is_staff_or_admin(auth.uid()));
 
+DROP TRIGGER IF EXISTS user_feedback_set_updated_at ON public.user_feedback;
 CREATE TRIGGER user_feedback_set_updated_at BEFORE UPDATE ON public.user_feedback FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS community_reports_set_updated_at ON public.community_reports;
 CREATE TRIGGER community_reports_set_updated_at BEFORE UPDATE ON public.community_reports FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS class_competitions_set_updated_at ON public.class_competitions;
 CREATE TRIGGER class_competitions_set_updated_at BEFORE UPDATE ON public.class_competitions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS quiz_sessions_set_updated_at ON public.quiz_sessions;
 CREATE TRIGGER quiz_sessions_set_updated_at BEFORE UPDATE ON public.quiz_sessions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ============ FUNCTIONS ============
@@ -364,3 +371,232 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.reset_monthly_leaderboard() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.reset_monthly_leaderboard() TO authenticated;
+
+-- ============ RLS FIXES FOR BOOK REQUESTS & BOOK ISSUES ============
+CREATE OR REPLACE FUNCTION public.is_staff_or_admin(_uid uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = _uid AND role IN ('admin', 'staff', 'librarian', 'teacher')
+  );
+$$;
+GRANT EXECUTE ON FUNCTION public.is_staff_or_admin(uuid) TO authenticated, service_role;
+
+ALTER TABLE public.book_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own requests" ON public.book_requests;
+DROP POLICY IF EXISTS "Admins can view all book requests" ON public.book_requests;
+DROP POLICY IF EXISTS "Users and staff can view requests" ON public.book_requests;
+CREATE POLICY "Users and staff can view requests"
+ON public.book_requests FOR SELECT TO authenticated
+USING (user_id = auth.uid() OR public.is_staff_or_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Users can insert requests" ON public.book_requests;
+DROP POLICY IF EXISTS "Users can create book requests" ON public.book_requests;
+DROP POLICY IF EXISTS "Users and staff can insert requests" ON public.book_requests;
+CREATE POLICY "Users and staff can insert requests"
+ON public.book_requests FOR INSERT TO authenticated
+WITH CHECK (user_id = auth.uid() OR public.is_staff_or_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can update requests" ON public.book_requests;
+DROP POLICY IF EXISTS "Admins can update book requests" ON public.book_requests;
+DROP POLICY IF EXISTS "Users and staff can update requests" ON public.book_requests;
+CREATE POLICY "Users and staff can update requests"
+ON public.book_requests FOR UPDATE TO authenticated
+USING (user_id = auth.uid() OR public.is_staff_or_admin(auth.uid()))
+WITH CHECK (user_id = auth.uid() OR public.is_staff_or_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can delete requests" ON public.book_requests;
+DROP POLICY IF EXISTS "Staff and users delete requests" ON public.book_requests;
+CREATE POLICY "Staff and users delete requests"
+ON public.book_requests FOR DELETE TO authenticated
+USING (user_id = auth.uid() OR public.is_staff_or_admin(auth.uid()));
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.book_requests TO authenticated;
+
+ALTER TABLE public.book_issues ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own issues" ON public.book_issues;
+DROP POLICY IF EXISTS "Users can view own book issues" ON public.book_issues;
+DROP POLICY IF EXISTS "Teachers and admins can view all book issues" ON public.book_issues;
+DROP POLICY IF EXISTS "Users and staff can view book issues" ON public.book_issues;
+CREATE POLICY "Users and staff can view book issues"
+ON public.book_issues FOR SELECT TO authenticated
+USING (user_id = auth.uid() OR public.is_staff_or_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can insert issues" ON public.book_issues;
+DROP POLICY IF EXISTS "System can insert book issues" ON public.book_issues;
+DROP POLICY IF EXISTS "Staff can insert book issues" ON public.book_issues;
+CREATE POLICY "Staff can insert book issues"
+ON public.book_issues FOR INSERT TO authenticated
+WITH CHECK (public.is_staff_or_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can update issues" ON public.book_issues;
+DROP POLICY IF EXISTS "Admins can manage all book issues" ON public.book_issues;
+DROP POLICY IF EXISTS "Staff can update book issues" ON public.book_issues;
+CREATE POLICY "Staff can update book issues"
+ON public.book_issues FOR UPDATE TO authenticated
+USING (public.is_staff_or_admin(auth.uid()))
+WITH CHECK (public.is_staff_or_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Staff can delete book issues" ON public.book_issues;
+CREATE POLICY "Staff can delete book issues"
+ON public.book_issues FOR DELETE TO authenticated
+USING (public.is_staff_or_admin(auth.uid()));
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.book_issues TO authenticated;
+
+-- ============ MONTHLY LEADERBOARD CALCULATIONS ============
+CREATE OR REPLACE FUNCTION public.get_period_points(p_since timestamptz)
+RETURNS TABLE(user_id uuid, pts bigint)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT u, SUM(p)::bigint FROM (
+    SELECT gp.user_id AS u, COALESCE(gp.points_earned,0) AS p
+      FROM public.game_plays gp WHERE gp.played_at >= p_since
+    UNION ALL
+    SELECT qr.user_id, COALESCE(qr.points_earned,0)
+      FROM public.quiz_results qr WHERE qr.completed_at >= p_since
+    UNION ALL
+    SELECT rh.user_id, COALESCE(rh.points_earned, 20)
+      FROM public.reading_history rh 
+      WHERE (rh.completed_date >= p_since::date OR rh.created_at >= p_since)
+        AND rh.status = 'approved'
+    UNION ALL
+    SELECT ss.user_id, COALESCE(ss.points_earned,0)
+      FROM public.study_sessions ss WHERE (ss.ended_at >= p_since OR ss.created_at >= p_since)
+    UNION ALL
+    SELECT cp.user_id, COALESCE(NULLIF(cp.points_earned, 0), c.reward_points, 0)
+      FROM public.challenge_progress cp
+      JOIN public.challenges c ON c.id = cp.challenge_id
+      WHERE (cp.completed_at >= p_since OR cp.created_at >= p_since)
+        AND (cp.is_completed = true OR cp.is_claimed = true)
+    UNION ALL
+    SELECT ba.user_id, COALESCE(b.points,0)
+      FROM public.badge_awards ba 
+      JOIN public.badges b ON b.id = ba.badge_id
+      WHERE ba.awarded_at >= p_since
+  ) t(u, p)
+  GROUP BY u;
+$$;
+GRANT EXECUTE ON FUNCTION public.get_period_points(timestamptz) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.get_leaderboard_v2(p_period text DEFAULT 'lifetime', p_class text DEFAULT NULL)
+RETURNS TABLE(id uuid, first_name text, last_name text, student_class text, avatar_url text, points bigint)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_since timestamptz;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
+  
+  IF p_period = 'monthly' THEN
+    v_since := date_trunc('month', now());
+    RETURN QUERY
+      SELECT 
+        p.id, 
+        p.first_name, 
+        p.last_name, 
+        p.student_class, 
+        p.avatar_url, 
+        GREATEST(COALESCE(p.monthly_points, 0), COALESCE(pp.pts, 0))::bigint AS points
+      FROM public.profiles p
+      LEFT JOIN public.get_period_points(v_since) pp ON pp.user_id = p.id
+      WHERE p.role = 'student'
+        AND (p_class IS NULL OR p.student_class = p_class)
+        AND GREATEST(COALESCE(p.monthly_points, 0), COALESCE(pp.pts, 0)) > 0
+      ORDER BY 6 DESC, p.first_name
+      LIMIT 200;
+  ELSE
+    RETURN QUERY
+      SELECT 
+        p.id, 
+        p.first_name, 
+        p.last_name, 
+        p.student_class, 
+        p.avatar_url, 
+        COALESCE(p.points, 0)::bigint AS points
+      FROM public.profiles p
+      WHERE p.role = 'student'
+        AND (p_class IS NULL OR p.student_class = p_class)
+      ORDER BY 6 DESC, p.first_name
+      LIMIT 200;
+  END IF;
+END; $$;
+GRANT EXECUTE ON FUNCTION public.get_leaderboard_v2(text,text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.get_class_league_v2(p_period text DEFAULT 'lifetime')
+RETURNS TABLE(student_class text, total_points bigint, student_count bigint, avg_points numeric)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_since timestamptz;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
+  v_since := date_trunc('month', now());
+  
+  IF p_period = 'monthly' THEN
+    RETURN QUERY
+      SELECT 
+        p.student_class, 
+        SUM(GREATEST(COALESCE(p.monthly_points, 0), COALESCE(pp.pts, 0)))::bigint, 
+        COUNT(*)::bigint,
+        ROUND(SUM(GREATEST(COALESCE(p.monthly_points, 0), COALESCE(pp.pts, 0)))::numeric / GREATEST(COUNT(*), 1), 1)
+      FROM public.profiles p
+      LEFT JOIN public.get_period_points(v_since) pp ON pp.user_id = p.id
+      WHERE p.role = 'student' AND COALESCE(p.student_class,'') <> ''
+      GROUP BY p.student_class
+      ORDER BY 2 DESC;
+  ELSE
+    RETURN QUERY
+      SELECT 
+        p.student_class, 
+        COALESCE(SUM(p.points), 0)::bigint, 
+        COUNT(*)::bigint,
+        ROUND(COALESCE(SUM(p.points), 0)::numeric / GREATEST(COUNT(*), 1), 1)
+      FROM public.profiles p
+      WHERE p.role = 'student' AND COALESCE(p.student_class,'') <> ''
+      GROUP BY p.student_class
+      ORDER BY 2 DESC;
+  END IF;
+END; $$;
+GRANT EXECUTE ON FUNCTION public.get_class_league_v2(text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.get_leaderboard_stats_v2(p_period text DEFAULT 'lifetime', p_class text DEFAULT NULL)
+RETURNS TABLE(total_students bigint, total_points bigint, average_points numeric, top_points bigint)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_since timestamptz;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
+  v_since := date_trunc('month', now());
+  
+  IF p_period = 'monthly' THEN
+    RETURN QUERY
+      WITH ranked AS (
+        SELECT GREATEST(COALESCE(p.monthly_points, 0), COALESCE(pp.pts, 0))::bigint AS pts
+        FROM public.profiles p
+        LEFT JOIN public.get_period_points(v_since) pp ON pp.user_id = p.id
+        WHERE p.role = 'student'
+          AND (p_class IS NULL OR p.student_class = p_class)
+          AND GREATEST(COALESCE(p.monthly_points, 0), COALESCE(pp.pts, 0)) > 0
+      )
+      SELECT 
+        COUNT(*)::bigint,
+        COALESCE(SUM(pts), 0)::bigint,
+        ROUND(COALESCE(AVG(pts), 0)::numeric, 1),
+        COALESCE(MAX(pts), 0)::bigint
+      FROM ranked;
+  ELSE
+    RETURN QUERY
+      SELECT 
+        COUNT(*)::bigint,
+        COALESCE(SUM(p.points), 0)::bigint,
+        ROUND(COALESCE(AVG(p.points), 0)::numeric, 1),
+        COALESCE(MAX(p.points), 0)::bigint
+      FROM public.profiles p
+      WHERE p.role = 'student'
+        AND (p_class IS NULL OR p.student_class = p_class);
+  END IF;
+END; $$;
+GRANT EXECUTE ON FUNCTION public.get_leaderboard_stats_v2(text,text) TO authenticated;

@@ -111,24 +111,42 @@ const Rankings = ({ user }: RankingsProps) => {
               </CardTitle>
               <CardDescription>See how you rank among your classmates and school</CardDescription>
             </div>
-            <div className="inline-flex rounded-lg border border-border/60 bg-muted/40 p-1">
-              {(["monthly", "lifetime"] as Period[]).map((p) => (
-                <Button
-                  key={p}
-                  size="sm"
-                  variant={period === p ? "default" : "ghost"}
-                  className="h-7 px-3 text-xs capitalize"
-                  onClick={() => setPeriod(p)}
-                >
-                  {p}
-                </Button>
-              ))}
+            <div className="flex items-center gap-2 bg-muted/80 p-1.5 rounded-xl border border-primary/20 shadow-sm">
+              <Button
+                size="sm"
+                variant={period === "monthly" ? "default" : "ghost"}
+                className={`h-9 px-4 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                  period === "monthly" 
+                    ? "bg-primary text-primary-foreground shadow-md scale-105" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                }`}
+                onClick={() => setPeriod("monthly")}
+              >
+                <Trophy className={`h-3.5 w-3.5 ${period === "monthly" ? "text-primary-foreground" : "text-amber-500"}`} />
+                Monthly Rankings
+              </Button>
+              <Button
+                size="sm"
+                variant={period === "lifetime" ? "default" : "ghost"}
+                className={`h-9 px-4 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                  period === "lifetime" 
+                    ? "bg-primary text-primary-foreground shadow-md scale-105" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                }`}
+                onClick={() => setPeriod("lifetime")}
+              >
+                <Crown className={`h-3.5 w-3.5 ${period === "lifetime" ? "text-primary-foreground" : "text-yellow-500"}`} />
+                All-Time Lifetime
+              </Button>
             </div>
           </div>
           {period === "monthly" && (
-            <Badge variant="outline" className={`mt-2 w-fit text-xs font-semibold border-primary/30 ${timeLeft.includes("s") ? "text-destructive animate-pulse" : "text-primary"}`}>
-              Resets in {timeLeft}
-            </Badge>
+            <div className="mt-3 flex items-center gap-2">
+              <Badge variant="outline" className={`px-2.5 py-1 text-xs font-bold rounded-md border-primary/40 bg-primary/5 ${timeLeft.includes("s") ? "text-destructive border-destructive/40 animate-pulse bg-destructive/5" : "text-primary"}`}>
+                ⏳ Resets in {timeLeft}
+              </Badge>
+              <span className="text-[11px] text-muted-foreground">Showing points earned in current month</span>
+            </div>
           )}
         </CardHeader>
       </Card>
