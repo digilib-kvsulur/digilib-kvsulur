@@ -103,25 +103,26 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
                       >
                         <div className="space-y-3">
                           <div className="flex items-start justify-between gap-2">
-                            <h4 className="font-extrabold text-foreground group-hover:text-indigo-600 transition-colors text-base line-clamp-1 leading-snug flex-1">
+                            <h4 className="font-extrabold text-foreground group-hover:text-indigo-600 transition-colors text-base line-clamp-2 leading-snug flex-1">
                               {quiz.title}
                             </h4>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {attempt && (
-                                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-extrabold px-2 py-0.5 shadow-none flex items-center gap-1">
-                                  <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                                  Attempted ({attempt.score}%)
-                                </Badge>
-                              )}
-                              <Badge variant="outline" className={`capitalize text-[10px] font-bold px-2 py-0.5 border ${getDifficultyStyles(quiz.difficulty)}`}>
-                                {quiz.difficulty}
-                              </Badge>
-                            </div>
+                            <Badge variant="outline" className={`capitalize text-[10px] font-bold px-2 py-0.5 border shrink-0 ${getDifficultyStyles(quiz.difficulty)}`}>
+                              {quiz.difficulty}
+                            </Badge>
                           </div>
                           
                           <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed h-8">
                             {quiz.description || "Test your reading retention of this book."}
                           </p>
+
+                          {attempt && (
+                            <div className="flex items-center gap-1">
+                              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-extrabold px-2 py-0.5 shadow-none flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                Attempted · {attempt.score}%
+                              </Badge>
+                            </div>
+                          )}
 
                           <div className="flex items-center gap-2.5 flex-wrap pt-1 text-[11px] text-muted-foreground font-semibold">
                             <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg px-2.5 py-1">

@@ -113,6 +113,23 @@ const StudentDashboard = () => {
   useEffect(() => {
     setMobileNavOpen(false);
   }, [activeTab, location.pathname, location.search]);
+
+  // Auto-open Memory Capsule wrap once per month on first visit (days 1–7 of month)
+  useEffect(() => {
+    if (!user?.id) return;
+    const now = new Date();
+    const isFirst7Days = now.getDate() <= 7;
+    if (!isFirst7Days) return;
+    // Key is per-user per previous month's wrap (YYYY-MM of the previous month)
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const monthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, "0")}`;
+    const storageKey = `kv_wrap_seen_${user.id}_${monthKey}`;
+    if (!localStorage.getItem(storageKey)) {
+      localStorage.setItem(storageKey, "1");
+      setShowMemoryCapsule(true);
+    }
+  }, [user?.id]);
+
   // Once the student completes profile setup, this permanently hides the dialog
   // regardless of stale auth metadata (avoids the re-open loop).
   const [profileSetupComplete, setProfileSetupComplete] = useState(false);
