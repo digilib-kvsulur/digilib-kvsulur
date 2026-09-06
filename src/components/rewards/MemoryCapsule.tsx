@@ -59,23 +59,46 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
   const [exporting, setExporting] = useState(false);
   const summaryCardRef = useRef<HTMLDivElement>(null);
 
-  // Month handling
-  const targetDate = selectedMonth ? new Date(`${selectedMonth}-01`) : new Date();
+  // Date calculation: If first 7 days of the month, default to previous month
+  const now = new Date();
+  const isFirst7Days = now.getDate() <= 7;
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const currentMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const prevYearMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}`;
+  const currYearMonth = `${currentMonthDate.getFullYear()}-${String(currentMonthDate.getMonth() + 1).padStart(2, "0")}`;
+
+  const defaultYearMonth = isFirst7Days ? prevYearMonth : currYearMonth;
+  const [activeYearMonth, setActiveYearMonth] = useState<string>(selectedMonth || defaultYearMonth);
+
+  useEffect(() => {
+    if (selectedMonth) {
+      setActiveYearMonth(selectedMonth);
+    } else {
+      setActiveYearMonth(isFirst7Days ? prevYearMonth : currYearMonth);
+    }
+  }, [selectedMonth]);
+
+  const [targetYear, targetMonth] = activeYearMonth.split("-").map(Number);
+  const targetDate = new Date(targetYear, targetMonth - 1, 1);
   const monthName = targetDate.toLocaleString("default", { month: "long" });
   const year = targetDate.getFullYear();
+
+  const prevMonthLabel = prevMonthDate.toLocaleString("default", { month: "short" });
+  const currMonthLabel = currentMonthDate.toLocaleString("default", { month: "short" });
 
   useEffect(() => {
     if (isOpen && userId) {
       setCurrentSlide(0);
       fetchMonthData();
     }
-  }, [isOpen, userId, selectedMonth]);
+  }, [isOpen, userId, activeYearMonth]);
 
   const fetchMonthData = async () => {
     setLoading(true);
     try {
       const startOfMonth = new Date(year, targetDate.getMonth(), 1).toISOString();
-      const endOfMonth = new Date(year, targetDate.getMonth() + 1, 0, 23, 59, 59).toISOString();
+      const endOfMonth = new Date(year, targetDate.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
       const startDateStr = startOfMonth.split("T")[0];
       const endDateStr = endOfMonth.split("T")[0];
 
@@ -164,12 +187,16 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
       const maxQuizScore = qrData?.length ? Math.max(...qrData.map(q => q.score || 0)) : 0;
       const quizzesPassed = qrData?.filter(q => (q.score || 0) >= 60).length || 0;
 
-      const totalXp = (
-        (profile?.monthly_points && profile.monthly_points > 0 ? profile.monthly_points : 0) ||
-        readingRows.reduce((acc, r) => acc + (r.points_earned || 20), 0) +
+      const calculatedMonthXp = (
+        readingRows.reduce((acc, r) => acc + (r.points_earned || 25), 0) +
         (qrData || []).reduce((acc, q) => acc + (q.points_earned || 0), 0) +
-        (gpData || []).reduce((acc, g) => acc + (g.points_earned || 0), 0) || 50
+        (gpData || []).reduce((acc, g) => acc + (g.points_earned || 0), 0)
       );
+
+      const isCurrentMonth = activeYearMonth === currYearMonth;
+      const totalXp = calculatedMonthXp > 0 
+        ? calculatedMonthXp 
+        : (isCurrentMonth && profile?.monthly_points && profile.monthly_points > 0 ? profile.monthly_points : 50);
 
       // Determine persona
       let persona = {
@@ -337,14 +364,33 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
               ))}
             </div>
 
-            {/* Header Controls */}
+            {/* Header Controls: Month Toggle & Close */}
             <div className="absolute top-6 left-4 right-4 z-30 flex items-center justify-between text-white/80">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black tracking-wider uppercase bg-white/20 px-2.5 py-0.5 rounded-full backdrop-blur-md border border-white/20 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3 text-amber-400" />
-                  {summary.monthName} {summary.year}
-                </span>
+              {/* Month Selector Pills */}
+              <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-full border border-white/15 backdrop-blur-md">
+                <button 
+                  onClick={() => { setActiveYearMonth(prevYearMonth); setCurrentSlide(0); }}
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black transition-all flex items-center gap-1 ${
+                    activeYearMonth === prevYearMonth 
+                      ? "bg-white text-slate-950 shadow-sm" 
+                      : "text-white/70 hover:text-white"
+                  }`}
+                >
+                  <Sparkles className="h-2.5 w-2.5 text-amber-500" />
+                  {prevMonthLabel} {isFirst7Days ? "(Wrap)" : ""}
+                </button>
+                <button 
+                  onClick={() => { setActiveYearMonth(currYearMonth); setCurrentSlide(0); }}
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black transition-all ${
+                    activeYearMonth === currYearMonth 
+                      ? "bg-white text-slate-950 shadow-sm" 
+                      : "text-white/70 hover:text-white"
+                  }`}
+                >
+                  {currMonthLabel}
+                </button>
               </div>
+
               <button 
                 onClick={onClose}
                 className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white/80 hover:text-white transition-colors backdrop-blur-md"
@@ -382,13 +428,73 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
                 </div>
 
                 <div className="z-10 text-center space-y-2">
-                  <p className="text-xs text-white/60 animate-bounce">Tap right to start your wrap →</p>
+                  <p className="text-xs text-white/60 animate-bounce">Tap right to see your highest numbers →</p>
                 </div>
               </div>
             )}
 
-            {/* Slide 1: Reading Stats & Velocity */}
+            {/* Slide 1: HIGHEST NUMBERS & POWER STATS (First in the wrap!) */}
             {currentSlide === 1 && (
+              <div className="flex-1 flex flex-col justify-between p-6 sm:p-8 pt-16 bg-gradient-to-br from-violet-950 via-fuchsia-950 to-slate-950 animate-in fade-in slide-in-from-right duration-400 relative">
+                <div className="absolute top-10 right-0 w-48 h-48 bg-pink-500/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-10 left-0 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="my-auto space-y-4 sm:space-y-5 z-10">
+                  <div className="space-y-1">
+                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-amber-400 flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5 text-amber-400" />
+                      Grand Voltage Numbers
+                    </span>
+                    <h3 className="text-2xl sm:text-3xl font-black text-white">Your Peak Stats 🚀</h3>
+                  </div>
+
+                  {/* High Impact XP Showcase Card */}
+                  <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-amber-500/25 via-pink-500/20 to-purple-500/20 border border-amber-400/40 backdrop-blur-md shadow-2xl text-center space-y-1 relative overflow-hidden">
+                    <div className="absolute -top-6 -right-6 w-24 h-24 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
+                    <div className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black uppercase tracking-wider mb-1 border border-amber-400/30">
+                      <Star className="h-3 w-3 fill-amber-300 text-amber-300" /> Total XP Earned
+                    </div>
+                    <p className="text-5xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-300 to-yellow-100 tracking-tight leading-none py-1">
+                      +{summary.totalXpEarned.toLocaleString()}
+                    </p>
+                    <p className="text-[11px] font-bold text-amber-200/90 uppercase tracking-widest">
+                      Experience Points in {summary.monthName}
+                    </p>
+                  </div>
+
+                  {/* 2x2 Grid for Top High Numbers */}
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                    <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md text-center">
+                      <Clock className="h-5 w-5 text-emerald-400 mx-auto mb-1" />
+                      <p className="text-2xl sm:text-3xl font-black text-white leading-tight">~{summary.readingMinutesEst}</p>
+                      <p className="text-[10px] text-emerald-200 font-bold uppercase tracking-wide">Reading Minutes</p>
+                    </div>
+
+                    <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md text-center">
+                      <BookOpen className="h-5 w-5 text-cyan-400 mx-auto mb-1" />
+                      <p className="text-2xl sm:text-3xl font-black text-white leading-tight">{summary.booksReadCount}</p>
+                      <p className="text-[10px] text-cyan-200 font-bold uppercase tracking-wide">Books Read</p>
+                    </div>
+
+                    <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md text-center">
+                      <Trophy className="h-5 w-5 text-pink-400 mx-auto mb-1" />
+                      <p className="text-2xl sm:text-3xl font-black text-white leading-tight">{summary.highestQuizScore}%</p>
+                      <p className="text-[10px] text-pink-200 font-bold uppercase tracking-wide">Top Quiz Score</p>
+                    </div>
+
+                    <div className="p-3.5 sm:p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md text-center">
+                      <Flame className="h-5 w-5 text-orange-400 mx-auto mb-1" />
+                      <p className="text-2xl sm:text-3xl font-black text-white leading-tight">{summary.streakDays}d</p>
+                      <p className="text-[10px] text-orange-200 font-bold uppercase tracking-wide">Active Streak</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-center text-xs text-white/50 z-10">Tap for reading footprint →</p>
+              </div>
+            )}
+
+            {/* Slide 2: Reading Footprint & Books Deep Dive */}
+            {currentSlide === 2 && (
               <div className="flex-1 flex flex-col justify-between p-6 sm:p-8 pt-16 bg-gradient-to-br from-emerald-900 via-teal-950 to-slate-950 animate-in fade-in slide-in-from-right duration-400 relative">
                 <div className="my-auto space-y-6 z-10">
                   <div className="space-y-1">
@@ -431,49 +537,11 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
                     </div>
                   )}
                 </div>
-                <p className="text-center text-xs text-white/50 z-10">Tap to continue →</p>
+                <p className="text-center text-xs text-white/50 z-10">Tap for quizzes & trials →</p>
               </div>
             )}
 
-            {/* Slide 2: XP, Points & Streaks */}
-            {currentSlide === 2 && (
-              <div className="flex-1 flex flex-col justify-between p-6 sm:p-8 pt-16 bg-gradient-to-br from-amber-900 via-orange-950 to-slate-950 animate-in fade-in slide-in-from-right duration-400 relative">
-                <div className="my-auto space-y-6 z-10">
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold uppercase tracking-widest text-amber-400">Power Level</span>
-                    <h3 className="text-2xl sm:text-3xl font-black text-white">XP Gained this Month ⚡</h3>
-                  </div>
-
-                  <div className="p-6 rounded-3xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 backdrop-blur-md shadow-xl text-center space-y-2">
-                    <div className="w-12 h-12 mx-auto rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300">
-                      <Zap className="h-6 w-6" />
-                    </div>
-                    <p className="text-5xl sm:text-6xl font-black text-amber-300 tracking-tight">
-                      +{summary.totalXpEarned.toLocaleString()}
-                    </p>
-                    <p className="text-xs font-bold text-amber-200 uppercase tracking-wider">
-                      Experience Points Earned
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md text-center">
-                      <Flame className="h-5 w-5 text-orange-400 mx-auto mb-1" />
-                      <p className="text-2xl font-black text-white">{summary.streakDays} Days</p>
-                      <p className="text-[10px] text-slate-300 font-semibold uppercase">Daily Streak</p>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md text-center">
-                      <Award className="h-5 w-5 text-yellow-400 mx-auto mb-1" />
-                      <p className="text-2xl font-black text-white">{summary.badgesEarned}</p>
-                      <p className="text-[10px] text-slate-300 font-semibold uppercase">Badges Unlocked</p>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-center text-xs text-white/50 z-10">Tap to continue →</p>
-              </div>
-            )}
-
-            {/* Slide 3: Quizzes & Knowledge */}
+            {/* Slide 3: Quizzes & Mini-Games Deep Dive */}
             {currentSlide === 3 && (
               <div className="flex-1 flex flex-col justify-between p-6 sm:p-8 pt-16 bg-gradient-to-br from-purple-900 via-violet-950 to-slate-950 animate-in fade-in slide-in-from-right duration-400 relative">
                 <div className="my-auto space-y-6 z-10">
@@ -504,6 +572,10 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
                     <div className="flex items-center justify-between text-xs text-slate-300">
                       <span>Community Contributions</span>
                       <span className="font-bold text-white">{summary.communityPostsCount} post(s)</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-slate-300">
+                      <span>Badges Unlocked</span>
+                      <span className="font-bold text-white">{summary.badgesEarned} new badge(s)</span>
                     </div>
                   </div>
                 </div>

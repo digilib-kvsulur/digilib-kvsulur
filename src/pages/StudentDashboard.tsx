@@ -603,33 +603,51 @@ const StudentDashboard = () => {
               </Card>
 
               {/* Monthly Memory Capsule Banner */}
-              <Card 
-                className="overflow-hidden border border-purple-500/30 bg-gradient-to-r from-purple-950/40 via-indigo-950/40 to-slate-900 shadow-md hover:shadow-lg transition-all cursor-pointer group hover:border-purple-500/50"
-                onClick={() => setShowMemoryCapsule(true)}
-              >
-                <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-pink-500 to-indigo-500 p-0.5 shadow-md shrink-0 group-hover:scale-105 transition-transform">
-                      <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-amber-300">
-                        <Sparkles className="h-5 w-5 animate-pulse" />
+              {(() => {
+                const nowDate = new Date();
+                const isWrapFirst7Days = nowDate.getDate() <= 7;
+                const wrapPrevMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() - 1, 1).toLocaleString("default", { month: "long" });
+                const wrapCurrMonth = nowDate.toLocaleString("default", { month: "long" });
+                const bannerMonth = isWrapFirst7Days ? wrapPrevMonth : wrapCurrMonth;
+
+                return (
+                  <Card 
+                    className="overflow-hidden border border-purple-500/30 bg-gradient-to-r from-purple-950/40 via-indigo-950/40 to-slate-900 shadow-md hover:shadow-lg transition-all cursor-pointer group hover:border-purple-500/50"
+                    onClick={() => setShowMemoryCapsule(true)}
+                  >
+                    <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-pink-500 to-indigo-500 p-0.5 shadow-md shrink-0 group-hover:scale-105 transition-transform">
+                          <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-amber-300">
+                            <Sparkles className="h-5 w-5 animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-gradient-to-r from-pink-500 to-indigo-500 text-white border-0 text-[10px] font-black px-2 py-0.5">
+                              {isWrapFirst7Days ? `${bannerMonth.toUpperCase()} WRAP READY` : "MONTHLY CAPSULE"}
+                            </Badge>
+                            <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider hidden sm:inline">
+                              Memory Capsule
+                            </span>
+                          </div>
+                          <p className="text-sm sm:text-base font-extrabold text-white mt-0.5 truncate">
+                            {isWrapFirst7Days ? `Your ${bannerMonth} Reading Wrap is Here! 🚀` : "Your Reading Memory Capsule ✨"}
+                          </p>
+                          <p className="text-xs text-slate-300 line-clamp-1">
+                            {isWrapFirst7Days 
+                              ? `Check out your ${bannerMonth} biggest stats, XP gains & reading persona`
+                              : "Review your monthly books read, quizzes, XP & reader persona"}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-gradient-to-r from-pink-500 to-indigo-500 text-white border-0 text-[10px] font-black px-2 py-0.5">
-                          MONTHLY WRAP
-                        </Badge>
-                        <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider hidden sm:inline">Memory Capsule</span>
-                      </div>
-                      <p className="text-sm sm:text-base font-extrabold text-white mt-0.5 truncate">Your Reading Memory Capsule ✨</p>
-                      <p className="text-xs text-slate-300 line-clamp-1">Review your monthly books read, quizzes, XP & reader persona</p>
-                    </div>
-                  </div>
-                  <Button size="sm" className="gradient-primary text-white border-0 font-bold rounded-xl text-xs shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                    Open Wrap →
-                  </Button>
-                </CardContent>
-              </Card>
+                      <Button size="sm" className="gradient-primary text-white border-0 font-bold rounded-xl text-xs shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                        Open Wrap →
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               {/* Catalog Search */}
               <Card className="border-border/50 overflow-hidden">
