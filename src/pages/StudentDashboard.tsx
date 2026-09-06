@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +87,7 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -105,6 +106,10 @@ const StudentDashboard = () => {
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [monthlyBooksRead, setMonthlyBooksRead] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Auto-close mobile navigation on page/tab/route change
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [activeTab, location.pathname, location.search]);
   // Once the student completes profile setup, this permanently hides the dialog
   // regardless of stale auth metadata (avoids the re-open loop).
   const [profileSetupComplete, setProfileSetupComplete] = useState(false);
@@ -494,34 +499,40 @@ const StudentDashboard = () => {
           </div>
         </div>
         {mobileNavOpen && (
-          <div className="bg-card border-b border-border px-4 pb-3 max-h-[65vh] overflow-y-auto space-y-3">
-            {mobileNavSections.map((section) => {
-              const sectionItems = section.items.filter((item) =>
-                navItems.some((n) => n.id === item.id) || item.id === "locator" || item.id === "challenges"
-              );
-              if (sectionItems.length === 0) return null;
-              return (
-                <div key={section.title}>
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">{section.title}</p>
-                  <div className="space-y-0.5">
-                    {sectionItems.map((item) => {
-                      const navItem = navItems.find((n) => n.id === item.id) || item;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => { setActiveTab(item.id as Tab); setMobileNavOpen(false); }}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${activeTab === item.id ? "gradient-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-                        >
-                          <navItem.icon className="h-4 w-4 shrink-0" /> {navItem.label || item.label}
-                        </button>
-                      );
-                    })}
+          <>
+            <div 
+              className="fixed inset-0 top-14 bg-black/50 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
+              onClick={() => setMobileNavOpen(false)}
+            />
+            <div className="relative z-50 bg-card border-b border-border px-4 pb-3 max-h-[65vh] overflow-y-auto space-y-3 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+              {mobileNavSections.map((section) => {
+                const sectionItems = section.items.filter((item) =>
+                  navItems.some((n) => n.id === item.id) || item.id === "locator" || item.id === "challenges"
+                );
+                if (sectionItems.length === 0) return null;
+                return (
+                  <div key={section.title}>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">{section.title}</p>
+                    <div className="space-y-0.5">
+                      {sectionItems.map((item) => {
+                        const navItem = navItems.find((n) => n.id === item.id) || item;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => { setActiveTab(item.id as Tab); setMobileNavOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeTab === item.id ? "gradient-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:bg-muted"}`}
+                          >
+                            <navItem.icon className="h-4 w-4 shrink-0" /> {navItem.label || item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

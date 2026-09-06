@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -127,6 +127,7 @@ const navSections = [
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -135,6 +136,11 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, booksIssued: 0, activeQuizzes: 0, dbSize: 0, storageSize: 0 });
 
   usePushSubscription(user?.id);
+
+  // Auto-close mobile navigation on tab or route change
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [activeTab, location.pathname, location.search]);
 
   useEffect(() => { checkAuth(); fetchStats(); }, []);
 
@@ -258,19 +264,25 @@ const AdminDashboard = () => {
           </div>
         </div>
         {mobileNavOpen && (
-          <div className="bg-card border-b border-border px-4 pb-3 max-h-[70vh] overflow-y-auto space-y-3">
-            {navSections.map(section => (
-              <div key={section.title}>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{section.title}</p>
-                {section.items.map(item => (
-                  <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${activeTab === item.id ? 'gradient-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
-                    <item.icon className="h-4 w-4" /> {item.label}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
+          <>
+            <div
+              className="fixed inset-0 top-14 bg-black/50 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
+              onClick={() => setMobileNavOpen(false)}
+            />
+            <div className="relative z-50 bg-card border-b border-border px-4 pb-3 max-h-[70vh] overflow-y-auto space-y-3 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+              {navSections.map(section => (
+                <div key={section.title}>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{section.title}</p>
+                  {section.items.map(item => (
+                    <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === item.id ? 'gradient-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:bg-muted'}`}>
+                      <item.icon className="h-4 w-4" /> {item.label}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

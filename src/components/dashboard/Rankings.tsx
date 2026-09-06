@@ -111,32 +111,32 @@ const Rankings = ({ user }: RankingsProps) => {
               </CardTitle>
               <CardDescription>See how you rank among your classmates and school</CardDescription>
             </div>
-            <div className="flex items-center gap-2 bg-muted/80 p-1.5 rounded-xl border border-primary/20 shadow-sm">
+            <div className="w-full sm:w-auto grid grid-cols-2 gap-1.5 bg-muted/80 p-1.5 rounded-xl border border-primary/20 shadow-sm">
               <Button
                 size="sm"
                 variant={period === "monthly" ? "default" : "ghost"}
-                className={`h-9 px-4 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                className={`h-9 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   period === "monthly" 
-                    ? "bg-primary text-primary-foreground shadow-md scale-105" 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
                     : "text-muted-foreground hover:text-foreground hover:bg-background/60"
                 }`}
                 onClick={() => setPeriod("monthly")}
               >
-                <Trophy className={`h-3.5 w-3.5 ${period === "monthly" ? "text-primary-foreground" : "text-amber-500"}`} />
-                Monthly Rankings
+                <Trophy className={`h-3.5 w-3.5 shrink-0 ${period === "monthly" ? "text-primary-foreground" : "text-amber-500"}`} />
+                <span className="truncate">Monthly</span>
               </Button>
               <Button
                 size="sm"
                 variant={period === "lifetime" ? "default" : "ghost"}
-                className={`h-9 px-4 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                className={`h-9 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   period === "lifetime" 
-                    ? "bg-primary text-primary-foreground shadow-md scale-105" 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
                     : "text-muted-foreground hover:text-foreground hover:bg-background/60"
                 }`}
                 onClick={() => setPeriod("lifetime")}
               >
-                <Crown className={`h-3.5 w-3.5 ${period === "lifetime" ? "text-primary-foreground" : "text-yellow-500"}`} />
-                All-Time Lifetime
+                <Crown className={`h-3.5 w-3.5 shrink-0 ${period === "lifetime" ? "text-primary-foreground" : "text-yellow-500"}`} />
+                <span className="truncate">All-Time</span>
               </Button>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Trophy, Clock, Award, TrendingUp, Star, Play, Sparkles, HelpCircle, Calendar, CheckCircle2, Check, X, Eye } from "lucide-react";
+import { Trophy, Clock, Award, TrendingUp, Star, Play, Sparkles, HelpCircle, Calendar, CheckCircle2, Check, X, Eye, RotateCcw } from "lucide-react";
 import { Quiz, QuizResult } from "@/types/quiz";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -90,55 +90,93 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {quizzes.map((quiz) => (
-                    <div 
-                      key={quiz.id} 
-                      className="group flex flex-col justify-between border border-border/50 rounded-2xl p-5 bg-card hover:bg-slate-50/30 hover:shadow-md hover:border-indigo-500/25 transition-all duration-300 hover:-translate-y-0.5"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <h4 className="font-extrabold text-foreground group-hover:text-indigo-600 transition-colors text-base line-clamp-1 leading-snug">
-                            {quiz.title}
-                          </h4>
-                          <Badge variant="outline" className={`capitalize text-[10px] font-bold px-2 py-0.5 border ${getDifficultyStyles(quiz.difficulty)}`}>
-                            {quiz.difficulty}
-                          </Badge>
-                        </div>
-                        
-                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed h-8">
-                          {quiz.description || "Test your reading retention of this book."}
-                        </p>
+                  {quizzes.map((quiz) => {
+                    const attempt = results.find(r => r.quizId === quiz.id || (r as any).quiz_id === quiz.id);
+                    return (
+                      <div 
+                        key={quiz.id} 
+                        className={`group flex flex-col justify-between border rounded-2xl p-5 bg-card hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 ${
+                          attempt 
+                            ? "border-emerald-500/30 bg-emerald-500/[0.02] hover:border-emerald-500/50" 
+                            : "border-border/50 hover:bg-slate-50/30 hover:border-indigo-500/25"
+                        }`}
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <h4 className="font-extrabold text-foreground group-hover:text-indigo-600 transition-colors text-base line-clamp-1 leading-snug flex-1">
+                              {quiz.title}
+                            </h4>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {attempt && (
+                                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-extrabold px-2 py-0.5 shadow-none flex items-center gap-1">
+                                  <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                  Attempted ({attempt.score}%)
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className={`capitalize text-[10px] font-bold px-2 py-0.5 border ${getDifficultyStyles(quiz.difficulty)}`}>
+                                {quiz.difficulty}
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed h-8">
+                            {quiz.description || "Test your reading retention of this book."}
+                          </p>
 
-                        <div className="flex items-center gap-3 flex-wrap pt-1 text-[11px] text-muted-foreground font-semibold">
-                          <span className="flex items-center gap-1 bg-slate-100 rounded-lg px-2.5 py-1">
-                            <Clock className="h-3.5 w-3.5 text-indigo-500" />
-                            {quiz.timeLimit}m
-                          </span>
-                          <span className="flex items-center gap-1 bg-amber-50 rounded-lg px-2.5 py-1 text-amber-700">
-                            <Award className="h-3.5 w-3.5 text-amber-500" />
-                            {quiz.pointsReward} XP
-                          </span>
-                          <span className="flex items-center gap-1 bg-violet-50 rounded-lg px-2.5 py-1 text-violet-700">
-                            <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-                            +{quiz.completionBonus ?? 10} Bonus
-                          </span>
-                          <span className="flex items-center gap-1 bg-slate-100 rounded-lg px-2.5 py-1">
-                            <HelpCircle className="h-3.5 w-3.5 text-sky-500" />
-                            {quiz.questions.length} Qs
-                          </span>
+                          <div className="flex items-center gap-2.5 flex-wrap pt-1 text-[11px] text-muted-foreground font-semibold">
+                            <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg px-2.5 py-1">
+                              <Clock className="h-3.5 w-3.5 text-indigo-500" />
+                              {quiz.timeLimit}m
+                            </span>
+                            <span className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 rounded-lg px-2.5 py-1 text-amber-700 dark:text-amber-400">
+                              <Award className="h-3.5 w-3.5 text-amber-500" />
+                              {quiz.pointsReward} XP
+                            </span>
+                            <span className="flex items-center gap-1 bg-violet-50 dark:bg-violet-950/40 rounded-lg px-2.5 py-1 text-violet-700 dark:text-violet-400">
+                              <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+                              +{quiz.completionBonus ?? 10} Bonus
+                            </span>
+                            <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg px-2.5 py-1">
+                              <HelpCircle className="h-3.5 w-3.5 text-sky-500" />
+                              {quiz.questions.length} Qs
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-5 mt-auto flex items-center gap-2">
+                          <Button 
+                            onClick={() => handleStartQuiz(quiz)}
+                            variant={attempt ? "outline" : "default"}
+                            className={attempt
+                              ? "flex-1 border-primary/30 text-primary hover:bg-primary/5 font-bold rounded-xl h-9.5 text-xs transition-all"
+                              : "w-full gradient-primary border-0 text-white font-bold rounded-xl h-9.5 text-xs shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all"
+                            }
+                          >
+                            {attempt ? (
+                              <>
+                                <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Retake Quiz
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-3.5 w-3.5 mr-1.5" /> Start Quiz
+                              </>
+                            )}
+                          </Button>
+                          {attempt && (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setSelectedReview(attempt)}
+                              className="h-9.5 px-3 rounded-xl text-xs font-semibold shrink-0"
+                            >
+                              <Eye className="h-3.5 w-3.5 mr-1" /> Review
+                            </Button>
+                          )}
                         </div>
                       </div>
-
-                      <div className="pt-5 mt-auto">
-                        <Button 
-                          onClick={() => handleStartQuiz(quiz)}
-                          className="w-full gradient-primary border-0 text-white font-bold rounded-xl h-9.5 text-xs shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all"
-                        >
-                          <Play className="h-3.5 w-3.5 mr-1.5" /> Start Quiz
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
