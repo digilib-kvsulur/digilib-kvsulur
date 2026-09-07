@@ -63,8 +63,12 @@ serve(async (req) => {
       }
     })
 
+    const webSubscriptions = subscriptions.filter(
+      (sub) => sub.subscription_object?.endpoint && sub.subscription_object?.type !== 'capacitor'
+    );
+
     const results = await Promise.allSettled(
-      subscriptions.map(sub => 
+      webSubscriptions.map(sub => 
         webpush.sendNotification(sub.subscription_object, pushPayload)
       )
     )

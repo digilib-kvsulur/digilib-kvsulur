@@ -41,6 +41,20 @@ export function usePushSubscription(userId: string | null | undefined) {
           }
           if (permStatus.receive !== 'granted') return;
 
+          // Ensure notification channel exists on Android
+          try {
+            await PushNotifications.createChannel({
+              id: 'default',
+              name: 'KV Sulur DLMS Notifications',
+              description: 'General notifications and updates from PM SHRI KV AFS Sulur DLMS',
+              importance: 5,
+              visibility: 1,
+              vibration: true,
+            });
+          } catch (channelErr) {
+            console.warn('Could not create notification channel:', channelErr);
+          }
+
           await PushNotifications.register();
 
           PushNotifications.addListener('registration', async (token) => {
@@ -56,6 +70,17 @@ export function usePushSubscription(userId: string | null | undefined) {
               console.warn('Failed to save native FCM token:', error.message);
             } else {
               subscribed.current = true;
+            }
+          });
+
+          PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            console.log('Push notification received in foreground:', notification);
+          });
+
+          PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+            const data = action.notification?.data;
+            if (data?.url) {
+              window.location.href = data.url;
             }
           });
 
