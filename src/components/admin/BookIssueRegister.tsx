@@ -670,6 +670,7 @@ const BookIssueRegister = () => {
           <div className="space-y-2">
             {filteredIssues.map((issue) => {
               const overdue = isOverdue(issue.due_date, issue.status);
+              const fine = finesMap[issue.id];
               return (
                 <div key={issue.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border transition-all hover:shadow-sm ${overdue ? 'border-destructive/30 bg-destructive/5' : 'border-border/50 bg-card hover:bg-muted/30'}`}>
                   <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -701,6 +702,25 @@ const BookIssueRegister = () => {
                           Return
                         </Button>
                       )}
+                      {fine && fine.status === 'pending' && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Badge variant="destructive" className="text-[9px] h-5 px-1.5 font-bold">
+                            Fine: ₹{fine.total_amount}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            className="h-5 text-[10px] px-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded"
+                            onClick={() => handleMarkExistingFinePaid(fine.id, fine.total_amount, issue.user?.first_name)}
+                          >
+                            Mark Paid
+                          </Button>
+                        </div>
+                      )}
+                      {fine && fine.status === 'paid' && (
+                        <Badge variant="outline" className="text-[9px] h-5 text-emerald-600 border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/30 font-bold">
+                          Fine ₹{fine.total_amount} Paid ✓
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -715,6 +735,78 @@ const BookIssueRegister = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Overdue Fine Settle Dialog (Prompted immediately when overdue book is returned) */}
+      <Dialog open={!!returnFinePrompt} onOpenChange={(open) => !open && setReturnFinePrompt(null)}>
+        <DialogContent className="max-w-md border-2 border-amber-500/40">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <IndianRupee className="h-5 w-5 text-amber-500" />
+              Book Returned · Settle Overdue Fine
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              This book was returned after its due date. You can mark the fine as paid right here or keep it as pending.
+            </DialogDescription>
+          </DialogHeader>
+
+          {returnFinePrompt && (
+            <div className="space-y-3 pt-2">
+              <div className="p-3.5 bg-muted/60 rounded-xl space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Book:</span>
+                  <span className="font-bold text-foreground truncate max-w-[200px]">{returnFinePrompt.bookTitle}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Borrower:</span>
+                  <span className="font-semibold text-foreground">{returnFinePrompt.userName} ({returnFinePrompt.admissionNumber})</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Due Date:</span>
+                  <span>{new Date(returnFinePrompt.dueDate).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Days Overdue:</span>
+                  <span className="text-destructive font-bold">{returnFinePrompt.daysOverdue} days</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-border font-bold text-sm">
+                  <span>Fine Amount:</span>
+                  <span className="text-primary text-base">₹{returnFinePrompt.fineAmount}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 shadow-md"
+                  onClick={() => handleSettleFine("paid")}
+                  disabled={settlingFine}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  {settlingFine ? "Settling..." : `Mark Fine as Paid Now (₹${returnFinePrompt.fineAmount} Cash/Counter)`}
+                </Button>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="text-xs font-semibold h-9 border-amber-500/50 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                    onClick={() => handleSettleFine("pending")}
+                    disabled={settlingFine}
+                  >
+                    Keep as Pending Fine
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-xs font-semibold h-9 text-muted-foreground"
+                    onClick={() => handleSettleFine("waived")}
+                    disabled={settlingFine}
+                  >
+                    Waive Fine
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
