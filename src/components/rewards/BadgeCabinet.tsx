@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/c
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import * as LucideIcons from "lucide-react";
-import { Trophy, Lock, Award } from "lucide-react";
+import { Trophy, Lock, Award, Crown, Calendar, MapPin, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveRotationalCycle, VerifiedWinnerRecord, VerifiedRotationalCycle } from "@/lib/rotationalBadgeService";
 
 interface BadgeCabinetProps { userId: string; }
 interface BadgeRow { id: string; name: string; description?: string; icon_name?: string; color?: string; points: number; criteria_type?: string; criteria_value?: number; is_active: boolean; }
@@ -30,10 +31,22 @@ export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
     reviewsCount: 0
   });
   const [loading, setLoading] = useState(true);
+  const [rotationalAward, setRotationalAward] = useState<{
+    winner: VerifiedWinnerRecord;
+    cycle: VerifiedRotationalCycle;
+  } | null>(null);
 
   useEffect(() => {
     if (!userId) return;
     (async () => {
+      // Also fetch rotational award status
+      getActiveRotationalCycle().then((c) => {
+        if (c?.winners) {
+          const w = c.winners.find((x) => x.studentId === userId);
+          if (w) setRotationalAward({ winner: w, cycle: c });
+        }
+      });
+
       const [{ data: bs }, { data: aw }, { data: profile }, { count: books }, { count: quizzes }, { data: streak }, { data: actStats }] = await Promise.all([
         supabase.from("badges").select("*").eq("is_active", true).order("points"),
         supabase.from("badge_awards").select("badge_id").eq("user_id", userId),
@@ -100,6 +113,73 @@ export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
           </div>
         </CardContent>
       </Card>
+
+      {rotationalAward && (
+        <Card className={`overflow-hidden border-2 shadow-md ${
+          rotationalAward.winner.badgeType === "best_library_user"
+            ? "border-amber-500/50 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/15"
+            : "border-indigo-500/50 bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-indigo-500/15"
+        }`}>
+          <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                rotationalAward.winner.badgeType === "best_library_user"
+                  ? "bg-amber-500 text-white"
+                  : "bg-indigo-600 text-white"
+              }`}>
+                {rotationalAward.winner.badgeType === "best_library_user" ? (
+                  <Crown className="h-7 w-7" />
+                ) : (
+                  <Award className="h-7 w-7" />
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className={
+                    rotationalAward.winner.badgeType === "best_library_user"
+                      ? "bg-amber-500 text-white font-bold text-[10px]"
+                      : "bg-indigo-600 text-white font-bold text-[10px]"
+                  }>
+                    {rotationalAward.winner.badgeType === "best_library_user"
+                      ? "👑 Best Library User"
+                      : "📚 Reader of the Month"}
+                  </Badge>
+                  <span className="text-xs font-bold text-foreground">
+                    {rotationalAward.cycle.cycleLabel} Holder
+                  </span>
+                </div>
+                <p className="text-sm font-black text-foreground mt-1">
+                  Awarded for {rotationalAward.winner.scopeValue}
+                </p>
+                <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap mt-0.5">
+                  <span>{rotationalAward.winner.points} XP Earned</span>
+                  <span>•</span>
+                  <span>{rotationalAward.winner.booksIssuedCount} Books Borrowed</span>
+                  <span>•</span>
+                  <span>Score: {rotationalAward.winner.compositeScore}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-background/80 backdrop-blur-xs p-3 rounded-xl border border-border/80 text-xs shrink-0 sm:text-right w-full sm:w-auto">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                Physical Badge Collection
+              </span>
+              <span className="font-black text-primary text-xs flex items-center gap-1 sm:justify-end mt-0.5">
+                <Calendar className="h-3.5 w-3.5" />
+                {new Date(rotationalAward.cycle.settings.collectionDate).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric"
+                })}
+              </span>
+              <span className="text-[10px] text-muted-foreground block truncate max-w-[200px] mt-0.5" title={rotationalAward.cycle.settings.collectionVenue}>
+                {rotationalAward.cycle.settings.collectionVenue}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {badges.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-muted-foreground">No badges configured yet.</CardContent></Card>

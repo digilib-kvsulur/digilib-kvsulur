@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Award, Plus, Edit, Trash2, UserPlus, Users, CheckCircle, Crown } from "lucide-react";
 import PhysicalBadgeGenerator from "./PhysicalBadgeGenerator";
+import RotationalBadgeManager from "./RotationalBadgeManager";
 
 interface BadgeRow {
   id: string; name: string; description?: string; icon_name?: string; color?: string;
@@ -53,6 +54,7 @@ export default function BadgeManager() {
   const [earnerList, setEarnerList] = useState<any[]>([]);
   const [earnerLoading, setEarnerLoading] = useState(false);
   const [physicalBadgeOpen, setPhysicalBadgeOpen] = useState(false);
+  const [rotationalBadgeOpen, setRotationalBadgeOpen] = useState(false);
 
   // Cache of all users for auto-badge earner computation
   const [cachedAllUsers, setCachedAllUsers] = useState<any[]>([]);
@@ -282,7 +284,14 @@ export default function BadgeManager() {
           <h2 className="text-2xl font-bold flex items-center gap-2"><Award className="h-6 w-6 text-primary" /> Badge Cabinet Manager</h2>
           <p className="text-sm text-muted-foreground">Create badges, set auto criteria, or manually award any badge.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button 
+            onClick={() => setRotationalBadgeOpen(true)}
+            className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold shadow-md"
+          >
+            <Crown className="h-4 w-4 mr-2 text-white" />
+            Rotational Monthly Badges
+          </Button>
           <Button 
             variant="outline" 
             onClick={() => setPhysicalBadgeOpen(true)}
@@ -461,6 +470,7 @@ export default function BadgeManager() {
       </Dialog>
 
       <PhysicalBadgeGenerator open={physicalBadgeOpen} onOpenChange={setPhysicalBadgeOpen} />
+      <RotationalBadgeManager open={rotationalBadgeOpen} onOpenChange={setRotationalBadgeOpen} />
     </div>
   );
 }

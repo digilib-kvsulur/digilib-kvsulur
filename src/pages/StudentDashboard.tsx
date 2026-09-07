@@ -50,6 +50,7 @@ import BadgeCabinet from "@/components/rewards/BadgeCabinet";
 import NetworkTab from "@/components/dashboard/NetworkTab";
 import ProfileCompletionDialog from "@/components/dashboard/ProfileCompletionDialog";
 import ReturnedBookReviewPrompt from "@/components/dashboard/ReturnedBookReviewPrompt";
+import RotationalBadgeWinningPopup from "@/components/dashboard/RotationalBadgeWinningPopup";
 import SupportCenter from "@/components/support/SupportCenter";
 import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
 import StudentCertificates from "@/components/dashboard/StudentCertificates";
@@ -453,6 +454,7 @@ const StudentDashboard = () => {
   return (
     <div className="h-dvh overflow-hidden bg-background flex">
       <ReturnedBookReviewPrompt userId={user?.id} />
+      <RotationalBadgeWinningPopup userId={user?.id} />
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 bg-card border-r border-border flex-col fixed h-full z-40">
         <div className="p-5 border-b border-border">

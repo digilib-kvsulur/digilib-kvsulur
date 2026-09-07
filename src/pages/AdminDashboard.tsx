@@ -323,7 +323,8 @@ const AdminDashboard = () => {
                   <CardContent className="space-y-2">
                     {[
                       { label: "Approve New Users", tab: "users" as Tab, icon: Users },
-                      { label: "Top 3 Per Class Badges (Physical List)", tab: "badges" as Tab, icon: Crown },
+                      { label: "Rotational Monthly Badges (Reader of the Month & Best User)", tab: "badges" as Tab, icon: Crown },
+                      { label: "Top 3 Per Class Badges (Physical List)", tab: "badges" as Tab, icon: Award },
                       { label: "Manage Book Requests", tab: "book-requests" as Tab, icon: BookUp },
                       { label: "Create New Quiz", tab: "quizzes" as Tab, icon: Brain },
                       { label: "View Analytics", tab: "analytics" as Tab, icon: BarChart3 },
