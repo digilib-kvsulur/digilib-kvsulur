@@ -12,11 +12,12 @@ interface Message {
 const DEFAULT_PROMPTS = [
   "About Developer",
   "About KV Sulur",
-  "Library timings",
   "How to borrow a book",
+  "Reading Wrap Capsule",
   "Rotational badges",
+  "How to tag in Community",
+  "Library timings",
   "Overdue fine amount",
-  "How to renew a book",
   "Points & rewards",
 ];
 
@@ -66,7 +67,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         setMessages([
           { 
             role: 'assistant', 
-            content: `Hi! 👋 I'm **${activeName}** — your library assistant.\n\nI can answer questions about timings, borrowing, fines, lost books, catalog, points, and more — instantly, without waiting for AI!\n\nFor complex questions, I'll use AI to help. What would you like to know?` 
+            content: `Hi! 👋 I'm **${activeName}** — your official KV Sulur library assistant.\n\nI can guide you step-by-step through borrowing, Reading Wrap capsules, rotational badges, Community tags, points, fines, NCERT study hub, and developer info!\n\nWhat would you like to explore today?` 
           }
         ]);
       });
@@ -105,12 +106,12 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
 
       // Greetings
       if (/^(hi|hello|hey|good morning|good afternoon|good evening|namaste|greetings|sup|howdy)$/.test(t) || t === "hi there" || t === "hello there") {
-        return "Hello! 👋 I am LibraryBot — your official AI assistant for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 💻 Developer information (G V Tanish Vettrivel)\n• 🏫 PM SHRI KV AFS Sulur official facts & details\n• 📚 Book catalog, borrowing, returns & renewals\n• 👑 Rotational Badges (Best Library User & Reader of the Month)\n• 💰 Overdue fines & lost book policies\n• 🏆 Gamified XP, levels, quiz & rewards\n\nWhat would you like to know?";
+        return "Hello! 👋 I am LibraryBot — your official AI assistant for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 💻 Developer info (G V Tanish Vettrivel: 9865190190 / @gvtanish)\n• 🏫 PM SHRI KV AFS Sulur official facts\n• 📖 Reading Wrap (Monthly Memory Capsule)\n• 📚 Book borrowing, returns & renewals\n• 👑 Rotational Badges & physical claim slips\n• 🏷️ Community tagging (@friends & @everyone)\n• 💰 Overdue fines & lost book policies\n• 🏆 Gamified XP, quiz & study materials\n\nWhat would you like to know?";
       }
 
       // Developer Information (G V Tanish Vettrivel)
-      if (t.includes("developer") || t.includes("who developed") || t.includes("who made") || t.includes("who built") || t.includes("who created") || t.includes("tanish") || t.includes("vettrivel") || t.includes("about developer") || t.includes("creator") || t.includes("programmer") || t.includes("who designed")) {
-        return "👨‍💻 **DLMS Developer: G V Tanish Vettrivel**\n\nThe PM SHRI KV AFS Sulur Digital Library Management System (DLMS) was architected and developed by **G V Tanish Vettrivel**, an innovative student programmer and ISRO Yuvika participant from PM SHRI Kendriya Vidyalaya AFS Sulur (Class 11).\n\n🚀 **Key Achievements:**\n• **Software Innovation:** Developed India's first student-centric Kendriya Vidyalaya DLMS featuring one-click book issues, automated barcode stickers, Reading Wrap capsules, gamified XP, and integrated NCERT/CBSE digital resources (launched July 2026).\n• **ISRO Yuvika:** Selected for ISRO's prestigious Young Scientist Programme (YUVIKA 2025) at the Vikram Sarabhai Space Centre (VSSC) in Thiruvananthapuram — chosen as 1 of only 10 students across all of Tamil Nadu.\n• **IIT Kharagpur:** Selected for a 6-week program for IIT Kharagpur's i-Kites / RISE event.\n• **Social:** Instagram `@kvian_rocks` · `@pmshrikvsulur`";
+      if (t.includes("developer") || t.includes("who developed") || t.includes("who made") || t.includes("who built") || t.includes("who created") || t.includes("tanish") || t.includes("vettrivel") || t.includes("about developer") || t.includes("creator") || t.includes("programmer") || t.includes("who designed") || t.includes("developer contact") || t.includes("developer phone") || t.includes("developer number")) {
+        return "👨‍💻 **DLMS Developer: G V Tanish Vettrivel**\n\nThe PM SHRI KV AFS Sulur Digital Library Management System (DLMS) was architected and developed by **G V Tanish Vettrivel**, an innovative student programmer and ISRO Yuvika participant from PM SHRI Kendriya Vidyalaya AFS Sulur (Class 11).\n\n🚀 **Key Achievements:**\n• **Software Innovation:** Developed India's first student-centric Kendriya Vidyalaya DLMS featuring one-click book issues, automated barcode stickers, Reading Wrap capsules, gamified XP, and integrated NCERT/CBSE digital resources (launched July 2026).\n• **ISRO Yuvika:** Selected for ISRO's prestigious Young Scientist Programme (YUVIKA 2025) at the Vikram Sarabhai Space Centre (VSSC) in Thiruvananthapuram — chosen as 1 of only 10 students across all of Tamil Nadu.\n• **IIT Kharagpur:** Selected for a 6-week program for IIT Kharagpur's i-Kites / RISE event.\n\n📞 **Developer Contact Details:**\n• **Phone / WhatsApp:** **+91 9865190190**\n• **Social Media Handles:** **@gvtanish** (Instagram, GitHub, LinkedIn)\n• **School Channels:** `@pmshrikvsulur` · `@kvian_rocks`";
       }
 
       // PM SHRI KV AFS Sulur School Information (analyzed from sulur.kvs.ac.in)
@@ -118,9 +119,29 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         return "🏫 **PM SHRI Kendriya Vidyalaya AFS Sulur**\n*(पीएम श्री केन्द्रीय विद्यालय वायुसेना अवस्थान सुलूर)*\n\n• **Location:** Air Force Station Sulur, Kangayampalayam, Coimbatore, Tamil Nadu - 641401\n• **Affiliation Codes:** KV Code: **1787** | CBSE Affiliation: **1900016** | School Code: **59022** | UDISE: **33122100403**\n• **Academic Excellence:** 100% pass rate in Class 10 Board Exams & 98.55% in Class 12.\n• **Senior Secondary Streams:** Computer Science, Biology, and Commerce.\n• **Key Features:** NEP 2020 PM SHRI exemplar school, NIPUN Lakshya, Digital Language Lab, ICT E-Classrooms, BaLA (Building as Learning Aid), NCC & Scouts, and our student-built DLMS digital library!\n• **Official Website:** [sulur.kvs.ac.in](https://sulur.kvs.ac.in)";
       }
 
+      // Reading Wrap / Memory Capsule
+      if (t.includes("reading wrap") || t.includes("wrap") || t.includes("memory capsule") || t.includes("capsule") || t.includes("monthly wrap") || t.includes("reading stats")) {
+        return "📖 **Reading Wrap (Memory Capsule)**\n\nThe Reading Wrap is your personalized monthly reading celebration!\n\n✨ **What it shows:**\n• 📚 Total books read & chapters completed this cycle\n• 🎯 Reading streak and consistency score\n• 🧠 Quiz scores and knowledge XP gained\n• 🏷️ Your top favorite reading genres\n\n📍 **How to open:** Go to your **Student Dashboard** and tap the **'Monthly Reading Wrap'** banner at the top!";
+      }
+
+      // Community Tagging & Mentions
+      if (t.includes("tag") || t.includes("@everyone") || t.includes("mention") || t.includes("how to tag") || t.includes("tag friends")) {
+        return "🏷️ **How to Tag Friends in Community**\n\n1. Go to the **Community** tab and click **'New Post'**.\n2. In the post composer, click the **'@ Tag'** button.\n3. **Students:** Search and pick from your confirmed friends.\n4. **Admins / Moderators:** Can tag any student or select **'@everyone'** for a school-wide broadcast alert.\n5. When you post, tagged students receive instant in-app sound & push notifications!";
+      }
+
       // Rotational Badges
-      if (t.includes("rotational") || t.includes("best library user") || t.includes("reader of the month") || t.includes("badge holder") || t.includes("winner badge")) {
-        return "👑 **Rotational Badges Program**\n\nThe library awards prestigious physical & digital rotational badges every period:\n• **👑 Best Library User:** Top student in each class based on XP, books read, and active library engagement.\n• **📚 Reader of the Month:** School-wide overall champion of reading.\n\n✨ **Perks:**\n1. A custom small golden/indigo badge (`👑` / `📚`) displayed right near your name in the Community feed, Profile modal, and Dashboard!\n2. An official printed award claim pass.\n3. Ceremony to collect the physical badge at the library counter on the announced collection date!";
+      if (t.includes("rotational") || t.includes("best library user") || t.includes("reader of the month") || t.includes("badge holder") || t.includes("winner badge") || t.includes("award slip") || t.includes("claim pass")) {
+        return "👑 **Rotational Badges Program**\n\nThe library awards prestigious physical & digital rotational badges every period:\n• **👑 Best Library User:** Top student in each class based on XP, books read, and active library engagement.\n• **📚 Reader of the Month:** School-wide overall champion of reading.\n\n✨ **Perks & Collection:**\n1. A custom small golden crown badge (`👑` / `📚`) is displayed beside your name across Community feeds and your profile!\n2. Open the winning popup or **Badge Cabinet** to print your official **Physical Badge Collection Slip**.\n3. Bring the slip to the library counter on the collection date to receive your physical medal/badge!";
+      }
+
+      // Student Barcode / Digital ID
+      if (t.includes("barcode") || t.includes("library card") || t.includes("student id") || t.includes("scan id") || t.includes("my barcode")) {
+        return "💳 **Student Library Barcode**\n\nEvery student has a unique library barcode:\n1. Open your **Student Dashboard** or **Student Portfolio**.\n2. View your digital student barcode card.\n3. Show this barcode on your phone (or carry a printout) to the librarian at the counter for 1-second instant checkout!";
+      }
+
+      // Book Clubs
+      if (t.includes("book club") || t.includes("clubs") || t.includes("reading club") || t.includes("join club")) {
+        return "👥 **Book Clubs Feature**\n\n1. Go to the **Community** tab -> **Book Clubs** sub-tab.\n2. Browse existing clubs (e.g., Sci-Fi, Mystery, Classics, CBSE Study Groups).\n3. Join any club to participate in dedicated group discussions and book sharing.\n4. You can also create your own student club and invite friends!";
       }
 
       // Timings / Hours
