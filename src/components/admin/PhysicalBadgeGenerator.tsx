@@ -60,7 +60,7 @@ export const PhysicalBadgeGenerator: React.FC<PhysicalBadgeGeneratorProps> = ({
       while (true) {
         const { data, error } = await supabase
           .from("profiles")
-          .select("id, first_name, last_name, student_class, admission_number, points, monthly_points, role")
+          .select("id, first_name, last_name, student_class, admission_number, points, role")
           .eq("role", "student")
           .not("student_class", "is", null)
           .range(from, from + PAGE_SIZE - 1);
@@ -441,11 +441,11 @@ export const PhysicalBadgeGenerator: React.FC<PhysicalBadgeGeneratorProps> = ({
             <div class="signatures">
               <div class="sig-box">
                 <div class="sig-line"></div>
-                <span>Librarian Signature</span>
+                <span>Student Library Committee Member</span>
               </div>
               <div class="sig-box">
                 <div class="sig-line"></div>
-                <span>Class Teacher / In-Charge</span>
+                <span>Librarian Signature</span>
               </div>
               <div class="sig-box">
                 <div class="sig-line"></div>
@@ -801,6 +801,10 @@ export const PhysicalBadgeGenerator: React.FC<PhysicalBadgeGeneratorProps> = ({
           </div>
 
           <div className="pt-12 flex justify-between text-xs font-bold border-t border-black mt-8" style={{ pageBreakInside: "avoid" }}>
+            <div className="text-center">
+              <p className="pb-10">_______________________________</p>
+              <p>Student Library Committee Member</p>
+            </div>
             <div className="text-center">
               <p className="pb-10">_______________________________</p>
               <p>Librarian Signature</p>

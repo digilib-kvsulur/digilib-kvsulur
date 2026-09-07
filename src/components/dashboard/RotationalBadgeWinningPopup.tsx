@@ -113,11 +113,15 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
           <div class="stamp-row">
             <div>
               <p>_______________________</p>
-              <p>Student Signature</p>
+              <p>Student Library Committee Member</p>
             </div>
             <div>
               <p>_______________________</p>
-              <p>Librarian Signature &amp; Seal</p>
+              <p>Librarian Signature</p>
+            </div>
+            <div>
+              <p>_______________________</p>
+              <p>Principal Signature</p>
             </div>
           </div>
         </div>

@@ -6,12 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Calendar, BookOpen, Clock, Search, ArrowUpDown, Filter, CheckCircle2, AlertTriangle, RefreshCw, Check, ChevronsUpDown } from "lucide-react";
+import { Calendar, BookOpen, Clock, Search, ArrowUpDown, Filter, CheckCircle2, AlertTriangle, RefreshCw, Check, ChevronsUpDown, IndianRupee } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { getDaysOverdue, fetchFineSettings, LibraryFineSettings } from "@/lib/librarySettings";
 
 interface BookIssue {
   id: string;
@@ -51,6 +53,20 @@ const BookIssueRegister = () => {
   const [openUserDropdown, setOpenUserDropdown] = useState(false);
   const [selectedAccession, setSelectedAccession] = useState("");
   const [availableAccessions, setAvailableAccessions] = useState<string[]>([]);
+  const [finesMap, setFinesMap] = useState<Record<string, any>>({});
+  const [fineSettings, setFineSettings] = useState<LibraryFineSettings | null>(null);
+  const [returnFinePrompt, setReturnFinePrompt] = useState<{
+    issueId: string;
+    bookId: string;
+    bookTitle: string;
+    userId: string;
+    userName: string;
+    admissionNumber: string;
+    dueDate: string;
+    daysOverdue: number;
+    fineAmount: number;
+  } | null>(null);
+  const [settlingFine, setSettlingFine] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => { loadData(); }, []);

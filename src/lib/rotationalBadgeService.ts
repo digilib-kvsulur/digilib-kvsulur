@@ -9,7 +9,6 @@ export interface StudentScoreCandidate {
   section: string;
   admission_number?: string | null;
   points: number;
-  monthly_points?: number;
   booksIssuedCount: number;
   compositeScore: number;
   isEligible: boolean;
@@ -27,10 +26,13 @@ export interface RotationalAwardCandidate {
 }
 
 export interface RotationalBadgeSettings {
+  mode: "monthly" | "date_range" | "lifetime";
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string;   // YYYY-MM-DD
   minPointsThreshold: number; // default: 50
   pointsWeight: number; // default: 1.0
   booksIssueWeight: number; // default: 25.0
-  collectionDate: string; // e.g. "2026-09-15" or formatted
+  collectionDate: string; // e.g. "2026-09-15"
   collectionVenue: string; // e.g. "Central Library Counter"
   librarianNote: string; // e.g. "Bring your student ID to collect your physical badge"
 }
@@ -51,8 +53,8 @@ export interface VerifiedWinnerRecord {
 }
 
 export interface VerifiedRotationalCycle {
-  cycleId: string; // e.g. "2026-09"
-  cycleLabel: string; // e.g. "September 2026"
+  cycleId: string; // e.g. "2026-09" or "lifetime-2026"
+  cycleLabel: string; // e.g. "September 2026" or "Lifetime Cumulative"
   verifiedAt: string;
   verifiedBy?: string;
   settings: RotationalBadgeSettings;
@@ -61,6 +63,7 @@ export interface VerifiedRotationalCycle {
 }
 
 export const DEFAULT_ROTATIONAL_SETTINGS: RotationalBadgeSettings = {
+  mode: "monthly",
   minPointsThreshold: 50,
   pointsWeight: 1.0,
   booksIssueWeight: 25.0,
@@ -74,60 +77,36 @@ export const DEFAULT_ROTATIONAL_SETTINGS: RotationalBadgeSettings = {
  * e.g., "11A" -> { standard: "Class 11", section: "11A" }
  * "10-C" -> { standard: "Class 10", section: "10C" }
  * "Class 9 B" -> { standard: "Class 9", section: "9B" }
+ * "6" -> { standard: "Class 6", section: "6" }
  */
 export function parseStudentClass(rawClass: string | null | undefined): { standard: string; section: string } {
   if (!rawClass || !rawClass.trim()) {
     return { standard: "Unassigned", section: "Unassigned" };
   }
 
-  const cleaned = rawClass.trim().toUpperCase();
-  const normalized = cleaned.replace(/^CLASS\s*/i, "").trim();
+  const cleaned = rawClass.trim().toUpperCase().replace(/^CLASS\s*/i, "").trim();
 
-  const romanMap: Record<string, string> = {
-    I: "1", II: "2", III: "3", IV: "4", V: "5",
-    VI: "6", VII: "7", VIII: "8", IX: "9", X: "10",
-    XI: "11", XII: "12"
-  };
+  // Extract standard number
+  const numMatch = cleaned.match(/\d+/);
+  const stdNum = numMatch ? parseInt(numMatch[0], 10) : null;
+  const standard = stdNum ? `Class ${stdNum}` : `Class ${cleaned}`;
 
-  // Match pattern like 11A, 11-A, 11 A, 11th A, 11th-B
-  const numMatch = normalized.match(/^(\d+)(?:TH|ST|ND|RD)?(?:\s*[-–/_]?\s*)([A-Z0-9\s]+)?$/i);
-  if (numMatch) {
-    const stdNum = numMatch[1];
-    const sec = (numMatch[2] || "").trim() || "A";
-    const cleanSec = sec.replace(/[\s\-_/]/g, "").toUpperCase();
-    return {
-      standard: `Class ${stdNum}`,
-      section: `${stdNum}${cleanSec}`
-    };
-  }
+  // Clean section string (e.g., "11A", "11B", "10C", "6A", "12 SCIENCE")
+  const section = cleaned.replace(/[\s\-_]/g, "");
 
-  // Match Roman numerals like XI A, X-B
-  const romanMatch = normalized.match(/^(XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)(?:\s*[-–/_]?\s*)([A-Z0-9\s]+)?$/i);
-  if (romanMatch) {
-    const stdNum = romanMap[romanMatch[1].toUpperCase()] || romanMatch[1];
-    const sec = (romanMatch[2] || "").trim() || "A";
-    const cleanSec = sec.replace(/[\s\-_/]/g, "").toUpperCase();
-    return {
-      standard: `Class ${stdNum}`,
-      section: `${stdNum}${cleanSec}`
-    };
-  }
-
-  return {
-    standard: cleaned.startsWith("CLASS ") ? cleaned : `Class ${cleaned}`,
-    section: cleaned
-  };
+  return { standard, section };
 }
 
 /**
  * Intelligent Analysis Engine
  * Evaluates points and book issues, enforces minimum points threshold,
+ * supports Monthly, Custom Date Range, and Lifetime modes,
  * and guarantees strictly one badge per user.
  */
 export async function computeRotationalBadges(
-  cycleYear: number,
-  cycleMonth: number, // 1 - 12
-  settings: RotationalBadgeSettings
+  settings: RotationalBadgeSettings,
+  cycleYear?: number,
+  cycleMonth?: number // 1 - 12
 ): Promise<{
   allCandidates: StudentScoreCandidate[];
   classAwards: RotationalAwardCandidate[];
@@ -141,7 +120,7 @@ export async function computeRotationalBadges(
     noAwardCount: number;
   };
 }> {
-  // 1. Fetch all approved student profiles
+  // 1. Fetch all approved student profiles safely (avoiding missing columns)
   let allStudents: any[] = [];
   let from = 0;
   const PAGE_SIZE = 1000;
@@ -149,7 +128,7 @@ export async function computeRotationalBadges(
   while (true) {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, student_class, admission_number, points, monthly_points, role, is_approved")
+      .select("id, first_name, last_name, student_class, admission_number, points, role, is_approved")
       .eq("role", "student")
       .eq("is_approved", true)
       .not("student_class", "is", null)
@@ -162,37 +141,82 @@ export async function computeRotationalBadges(
     from += PAGE_SIZE;
   }
 
-  // 2. Fetch book issues for the evaluation window (or general if issues are sparse)
-  const startDate = new Date(cycleYear, cycleMonth - 1, 1).toISOString();
-  const endDate = new Date(cycleYear, cycleMonth, 1).toISOString();
+  // Determine effective date range
+  let startStr: string | null = null;
+  let endStr: string | null = null;
 
-  const { data: monthIssues } = await supabase
-    .from("book_issues")
-    .select("user_id, issue_date")
-    .gte("issue_date", startDate)
-    .lt("issue_date", endDate);
+  if (settings.mode === "monthly" && cycleYear && cycleMonth) {
+    const startObj = new Date(cycleYear, cycleMonth - 1, 1);
+    const endObj = new Date(cycleYear, cycleMonth, 0); // Last day of month
+    startStr = startObj.toISOString().split("T")[0];
+    endStr = endObj.toISOString().split("T")[0];
+  } else if (settings.mode === "date_range" && settings.startDate && settings.endDate) {
+    startStr = settings.startDate;
+    endStr = settings.endDate;
+  }
 
-  const { data: allIssues } = await supabase
-    .from("book_issues")
-    .select("user_id");
-
+  // 2. Fetch book issues based on mode
   const issueCountMap: Record<string, number> = {};
-  if (monthIssues && monthIssues.length > 0) {
-    monthIssues.forEach((bi: any) => {
+  const periodPointsMap: Record<string, number> = {};
+
+  if (settings.mode === "lifetime" || !startStr || !endStr) {
+    // Lifetime mode: query all issues
+    const { data: allIssues } = await supabase.from("book_issues").select("user_id");
+    (allIssues || []).forEach((bi: any) => {
       if (bi.user_id) issueCountMap[bi.user_id] = (issueCountMap[bi.user_id] || 0) + 1;
     });
-  } else if (allIssues) {
-    allIssues.forEach((bi: any) => {
+  } else {
+    // Date-filtered mode
+    const [{ data: rangeIssues }, { data: readings }, { data: quizzes }] = await Promise.all([
+      supabase
+        .from("book_issues")
+        .select("user_id, issue_date")
+        .gte("issue_date", startStr)
+        .lte("issue_date", endStr),
+      supabase
+        .from("reading_history")
+        .select("user_id, points_earned, completed_date")
+        .eq("status", "approved")
+        .gte("completed_date", startStr)
+        .lte("completed_date", endStr),
+      supabase
+        .from("quiz_results")
+        .select("user_id, points_earned, completed_at")
+        .gte("completed_at", `${startStr}T00:00:00Z`)
+        .lte("completed_at", `${endStr}T23:59:59Z`)
+    ]);
+
+    (rangeIssues || []).forEach((bi: any) => {
       if (bi.user_id) issueCountMap[bi.user_id] = (issueCountMap[bi.user_id] || 0) + 1;
+    });
+
+    (readings || []).forEach((r: any) => {
+      if (r.user_id) periodPointsMap[r.user_id] = (periodPointsMap[r.user_id] || 0) + (Number(r.points_earned) || 0);
+    });
+
+    (quizzes || []).forEach((q: any) => {
+      if (q.user_id) periodPointsMap[q.user_id] = (periodPointsMap[q.user_id] || 0) + (Number(q.points_earned) || 0);
     });
   }
+
+  const hasPeriodActivities = Object.keys(periodPointsMap).length > 0;
 
   // 3. Build candidate objects with parsed class & composite score
   const candidates: StudentScoreCandidate[] = allStudents.map((s: any) => {
     const { standard, section } = parseStudentClass(s.student_class);
-    const points = Number(s.monthly_points) > 0 ? Number(s.monthly_points) : (Number(s.points) || 0);
-    const booksIssuedCount = issueCountMap[s.id] || 0;
 
+    // In lifetime mode, use lifetime profile points.
+    // In date-filtered mode, if period activities exist for this student, prioritize them;
+    // otherwise fallback to profile points so users are recognized fairly.
+    let points = Number(s.points) || 0;
+    if (settings.mode !== "lifetime" && hasPeriodActivities) {
+      const p = periodPointsMap[s.id];
+      if (p !== undefined && p > 0) {
+        points = p;
+      }
+    }
+
+    const booksIssuedCount = issueCountMap[s.id] || 0;
     const compositeScore = Math.round(
       points * settings.pointsWeight + booksIssuedCount * settings.booksIssueWeight
     );
@@ -212,7 +236,6 @@ export async function computeRotationalBadges(
       section,
       admission_number: s.admission_number || "—",
       points,
-      monthly_points: Number(s.monthly_points) || 0,
       booksIssuedCount,
       compositeScore,
       isEligible,
@@ -387,7 +410,7 @@ export async function ensureRotationalBadgeDefinitions(): Promise<{
       .from("badges")
       .insert({
         name: "Best Library User",
-        description: "Prestigious monthly rotational badge awarded to the #1 top library user across all sections in the class standard.",
+        description: "Prestigious rotational badge awarded to the #1 top library user across all sections in the class standard.",
         icon_name: "Crown",
         color: "text-amber-500",
         points: 50,
@@ -405,7 +428,7 @@ export async function ensureRotationalBadgeDefinitions(): Promise<{
       .from("badges")
       .insert({
         name: "Reader of the Month",
-        description: "Official monthly rotational badge awarded to the premier reader of the section.",
+        description: "Official rotational badge awarded to the premier reader of the section.",
         icon_name: "Award",
         color: "text-indigo-500",
         points: 30,
@@ -606,7 +629,6 @@ export async function getStudentRotationalAwardInfo(userId: string): Promise<{
       return { isWinner: false, hasAcknowledged: false, winnerRecord: null, cycle };
     }
 
-    // Check acknowledgment from local storage or cycle acknowledgedUserIds
     const localKey = `rotational_acknowledged_${cycle.cycleId}_${userId}`;
     const localAck = localStorage.getItem(localKey) === "true";
     const serverAck = (cycle.acknowledgedUserIds || []).includes(userId);
@@ -628,11 +650,9 @@ export async function getStudentRotationalAwardInfo(userId: string): Promise<{
  */
 export async function acknowledgeStudentRotationalAward(userId: string, cycleId: string): Promise<void> {
   try {
-    // 1. Mark in localStorage immediately for instantaneous response
     const localKey = `rotational_acknowledged_${cycleId}_${userId}`;
     localStorage.setItem(localKey, "true");
 
-    // 2. Persist to system_settings active cycle acknowledgedUserIds
     const cycle = await getActiveRotationalCycle();
     if (cycle && cycle.cycleId === cycleId) {
       const ackSet = new Set(cycle.acknowledgedUserIds || []);

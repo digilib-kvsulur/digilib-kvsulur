@@ -40,8 +40,14 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   const { toast } = useToast();
 
   const now = new Date();
+  const [evalMode, setEvalMode] = useState<"monthly" | "date_range" | "lifetime">("monthly");
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+
+  const firstDayStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+  const todayStr = now.toISOString().split("T")[0];
+  const [customStartDate, setCustomStartDate] = useState<string>(firstDayStr);
+  const [customEndDate, setCustomEndDate] = useState<string>(todayStr);
 
   const [settings, setSettings] = useState<RotationalBadgeSettings>(DEFAULT_ROTATIONAL_SETTINGS);
   const [loading, setLoading] = useState(false);
@@ -72,19 +78,23 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   const [activeTab, setActiveTab] = useState<"analysis" | "activeCycle" | "settings">("analysis");
 
   const cycleLabel = useMemo(() => {
+    if (evalMode === "lifetime") return "Lifetime (All-Time Cumulative)";
+    if (evalMode === "date_range") return `${customStartDate} to ${customEndDate}`;
     return `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`;
-  }, [selectedMonth, selectedYear]);
+  }, [evalMode, selectedMonth, selectedYear, customStartDate, customEndDate]);
 
   const cycleId = useMemo(() => {
+    if (evalMode === "lifetime") return `lifetime-${selectedYear}`;
+    if (evalMode === "date_range") return `date-${customStartDate}-${customEndDate}`;
     return `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
-  }, [selectedYear, selectedMonth]);
+  }, [evalMode, selectedYear, selectedMonth, customStartDate, customEndDate]);
 
   useEffect(() => {
     if (open) {
       loadActiveCycle();
       runAnalysis();
     }
-  }, [open, selectedYear, selectedMonth]);
+  }, [open, selectedYear, selectedMonth, evalMode, customStartDate, customEndDate]);
 
   const loadActiveCycle = async () => {
     try {
@@ -107,7 +117,13 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   const runAnalysis = async () => {
     setLoading(true);
     try {
-      const res = await computeRotationalBadges(selectedYear, selectedMonth, settings);
+      const currentSettings: RotationalBadgeSettings = {
+        ...settings,
+        mode: evalMode,
+        startDate: evalMode === "date_range" ? customStartDate : undefined,
+        endDate: evalMode === "date_range" ? customEndDate : undefined,
+      };
+      const res = await computeRotationalBadges(currentSettings, selectedYear, selectedMonth);
       setClassAwards(res.classAwards);
       setSectionAwards(res.sectionAwards);
       setStats(res.statistics);
@@ -135,10 +151,16 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
 
     setVerifying(true);
     try {
+      const currentSettings: RotationalBadgeSettings = {
+        ...settings,
+        mode: evalMode,
+        startDate: evalMode === "date_range" ? customStartDate : undefined,
+        endDate: evalMode === "date_range" ? customEndDate : undefined,
+      };
       const result = await verifyAndPublishRotationalCycle(
         cycleId,
         cycleLabel,
-        settings,
+        currentSettings,
         classAwards,
         sectionAwards
       );
@@ -279,11 +301,11 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
         <div class="sig-box">
           <div>
             <p>_____________________________</p>
-            <p>Librarian Signature</p>
+            <p>Student Library Committee Member</p>
           </div>
           <div>
             <p>_____________________________</p>
-            <p>Library Committee In-charge</p>
+            <p>Librarian Signature</p>
           </div>
           <div>
             <p>_____________________________</p>
@@ -371,31 +393,91 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
               </DialogDescription>
             </div>
 
-            {/* Cycle Selector */}
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg border bg-background text-foreground"
-              >
-                {MONTH_NAMES.map((m, idx) => (
-                  <option key={m} value={idx + 1}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+            {/* Evaluation Mode & Scope Selector */}
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <div className="flex items-center bg-muted p-1 rounded-lg border text-xs">
+                <Button
+                  variant={evalMode === "monthly" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setEvalMode("monthly")}
+                  className="h-7 text-xs px-2.5 font-bold"
+                >
+                  Monthly
+                </Button>
+                <Button
+                  variant={evalMode === "date_range" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setEvalMode("date_range")}
+                  className="h-7 text-xs px-2.5 font-bold"
+                >
+                  By Date Range
+                </Button>
+                <Button
+                  variant={evalMode === "lifetime" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setEvalMode("lifetime")}
+                  className="h-7 text-xs px-2.5 font-bold"
+                >
+                  Lifetime (All-Time)
+                </Button>
+              </div>
 
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg border bg-background text-foreground"
-              >
-                {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((yr) => (
-                  <option key={yr} value={yr}>
-                    {yr}
-                  </option>
-                ))}
-              </select>
+              {evalMode === "monthly" && (
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    className="text-xs font-semibold px-2.5 py-1 rounded-lg border bg-background text-foreground h-8"
+                  >
+                    {MONTH_NAMES.map((m, idx) => (
+                      <option key={m} value={idx + 1}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="text-xs font-semibold px-2.5 py-1 rounded-lg border bg-background text-foreground h-8"
+                  >
+                    {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((yr) => (
+                      <option key={yr} value={yr}>
+                        {yr}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {evalMode === "date_range" && (
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground font-semibold">From:</span>
+                    <Input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="h-8 text-xs w-32 px-2"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground font-semibold">To:</span>
+                    <Input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="h-8 text-xs w-32 px-2"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {evalMode === "lifetime" && (
+                <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 font-bold border-amber-300 text-xs h-8 px-3">
+                  ♾️ All-Time Cumulative XP &amp; Issues
+                </Badge>
+              )}
 
               <Button
                 variant="outline"
@@ -405,7 +487,7 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                 className="h-8 text-xs font-semibold"
               >
                 <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`} />
-                Re-calculate
+                Analyze
               </Button>
             </div>
           </div>
