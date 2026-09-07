@@ -166,6 +166,15 @@ const BookIssueRegister = () => {
       setBookIssues(issuesWithProfiles || []);
       setBooks(allBooks);
       setUsers(allUsers);
+
+      // Fetch fine settings & active library fines
+      fetchFineSettings().then(setFineSettings).catch(console.error);
+      const { data: fines } = await supabase.from('library_fines').select('*');
+      const fMap: Record<string, any> = {};
+      (fines || []).forEach((f: any) => {
+        if (f.book_issue_id) fMap[f.book_issue_id] = f;
+      });
+      setFinesMap(fMap);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({ title: "Error", description: "Failed to load book issue data", variant: "destructive" });
@@ -286,6 +295,25 @@ const BookIssueRegister = () => {
       toast({ title: "Success", description: `Book "${issue.books?.title || "book"}" returned successfully!` });
       setQuickReturnBarcode("");
       loadData();
+
+      // Check if book was overdue and prompt fine settlement immediately
+      const daysOverdue = issue.due_date ? getDaysOverdue(issue.due_date) : 0;
+      if (daysOverdue > 0) {
+        const rate = fineSettings?.finePerDay || 1;
+        const fineAmt = daysOverdue * rate;
+        const borrower = users.find((u) => u.id === issue.user_id);
+        setReturnFinePrompt({
+          issueId: issue.id,
+          bookId: issue.book_id,
+          bookTitle: issue.books?.title || "Book",
+          userId: issue.user_id,
+          userName: borrower ? `${borrower.first_name} ${borrower.last_name || ""}`.trim() : "Student",
+          admissionNumber: borrower?.admission_number || "—",
+          dueDate: issue.due_date,
+          daysOverdue,
+          fineAmount: fineAmt,
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast({ title: "Return Failed", description: "An error occurred during quick return.", variant: "destructive" });
@@ -307,9 +335,90 @@ const BookIssueRegister = () => {
       }
       toast({ title: "Success", description: "Book returned and stock updated." });
       loadData();
+
+      // Check if book was overdue and prompt fine payment right there
+      const targetIssue = bookIssues.find((i) => i.id === issueId);
+      const daysOverdue = targetIssue?.due_date ? getDaysOverdue(targetIssue.due_date) : 0;
+      if (daysOverdue > 0) {
+        const rate = fineSettings?.finePerDay || 1;
+        const fineAmt = daysOverdue * rate;
+        setReturnFinePrompt({
+          issueId,
+          bookId,
+          bookTitle: targetIssue?.books?.title || "Book",
+          userId: targetIssue?.user_id || "",
+          userName: `${targetIssue?.user?.first_name || ""} ${targetIssue?.user?.last_name || ""}`.trim(),
+          admissionNumber: targetIssue?.user?.admission_number || "—",
+          dueDate: targetIssue?.due_date || "",
+          daysOverdue,
+          fineAmount: fineAmt,
+        });
+      }
     } catch (error: any) {
       console.error(error);
       toast({ title: "Error", description: error.message || "Failed to return book", variant: "destructive" });
+    }
+  };
+
+  const handleSettleFine = async (action: "paid" | "pending" | "waived") => {
+    if (!returnFinePrompt) return;
+    setSettlingFine(true);
+    try {
+      const existingFine = finesMap[returnFinePrompt.issueId];
+      const payload: any = {
+        book_issue_id: returnFinePrompt.issueId,
+        user_id: returnFinePrompt.userId,
+        book_title: returnFinePrompt.bookTitle,
+        days_overdue: returnFinePrompt.daysOverdue,
+        total_amount: returnFinePrompt.fineAmount,
+        status: action,
+        updated_at: new Date().toISOString(),
+      };
+      if (action === "paid") {
+        payload.paid_at = new Date().toISOString();
+        payload.payment_method = "counter_cash";
+      }
+
+      if (existingFine) {
+        await supabase.from("library_fines").update(payload).eq("id", existingFine.id);
+      } else {
+        await supabase.from("library_fines").insert(payload);
+      }
+
+      toast({
+        title: action === "paid" ? "💰 Fine Marked as Paid!" : action === "waived" ? "Fine Waived" : "Fine Recorded as Pending",
+        description: action === "paid" ? `₹${returnFinePrompt.fineAmount} received and cleared for ${returnFinePrompt.userName}.` : undefined,
+      });
+      setReturnFinePrompt(null);
+      loadData();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message, variant: "destructive" });
+    } finally {
+      setSettlingFine(false);
+    }
+  };
+
+  const handleMarkExistingFinePaid = async (fineId: string, amount: number, studentName?: string) => {
+    try {
+      const { error } = await supabase
+        .from("library_fines")
+        .update({
+          status: "paid",
+          paid_at: new Date().toISOString(),
+          payment_method: "counter_cash",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", fineId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Fine Marked as Paid! 💰",
+        description: `Fine of ₹${amount} marked as cleared ${studentName ? `for ${studentName}` : ""}.`,
+      });
+      loadData();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message, variant: "destructive" });
     }
   };
 
