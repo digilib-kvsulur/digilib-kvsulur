@@ -94,7 +94,7 @@ const navSections = [
       { id: "cover-data" as Tab, label: "Cover Pages", icon: ImageIcon },
       { id: "barcodes" as Tab, label: "Barcode Stickers", icon: Barcode },
       { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
-      { id: "reviews" as Tab, label: "Reviews", icon: Star },
+      { id: "reviews" as Tab, label: "Moderation & Reports", icon: ShieldAlert },
       { id: "book-of-the-week" as Tab, label: "Book of the Week", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
       { id: "wishlist" as Tab, label: "Wishlists", icon: Star },

@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import * as Icons from "lucide-react";
+import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 
 interface StudentProfileProps {
   user: any;
@@ -219,6 +220,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
                 <h2 className="text-xl font-extrabold tracking-tight text-foreground">
                   {user?.first_name} {user?.last_name}
                 </h2>
+                <RotationalWinnerBadge userId={user?.id} size="sm" />
                 {user?.username && (
                   <span className="text-sm font-semibold text-muted-foreground">@{user.username}</span>
                 )}

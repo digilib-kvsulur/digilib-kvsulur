@@ -10,6 +10,7 @@ import {
   Sparkles, Award, MessageCircle, Heart, FileText, Users as UsersIcon
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 
 const nameOf = (p: any) => p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
 const initials = (p: any) => nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -108,7 +109,10 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
         </div>
 
         <DialogHeader className="text-left space-y-1 mb-3">
-          <DialogTitle className="text-lg">{nameOf(profile)}</DialogTitle>
+          <DialogTitle className="text-lg flex items-center gap-2 flex-wrap">
+            <span>{nameOf(profile)}</span>
+            <RotationalWinnerBadge userId={userId} size="sm" />
+          </DialogTitle>
           <div className="flex flex-wrap items-center gap-1.5">
             {profile.username && <span className="text-xs text-muted-foreground">@{profile.username}</span>}
             {profile.role && <Badge variant="secondary" className="capitalize text-[10px]">{profile.role}</Badge>}

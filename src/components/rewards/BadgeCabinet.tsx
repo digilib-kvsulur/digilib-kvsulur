@@ -120,38 +120,38 @@ export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
             ? "border-amber-500/50 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-amber-500/15"
             : "border-indigo-500/50 bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-indigo-500/15"
         }`}>
-          <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+          <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
+              <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm mt-0.5 sm:mt-0 ${
                 rotationalAward.winner.badgeType === "best_library_user"
                   ? "bg-amber-500 text-white"
                   : "bg-indigo-600 text-white"
               }`}>
                 {rotationalAward.winner.badgeType === "best_library_user" ? (
-                  <Crown className="h-7 w-7" />
+                  <Crown className="h-6 w-6 sm:h-7 sm:w-7" />
                 ) : (
-                  <Award className="h-7 w-7" />
+                  <Award className="h-6 w-6 sm:h-7 sm:w-7" />
                 )}
               </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   <Badge className={
                     rotationalAward.winner.badgeType === "best_library_user"
-                      ? "bg-amber-500 text-white font-bold text-[10px]"
-                      : "bg-indigo-600 text-white font-bold text-[10px]"
+                      ? "bg-amber-500 text-white font-bold text-[9px] sm:text-[10px]"
+                      : "bg-indigo-600 text-white font-bold text-[9px] sm:text-[10px]"
                   }>
                     {rotationalAward.winner.badgeType === "best_library_user"
                       ? "👑 Best Library User"
                       : "📚 Reader of the Month"}
                   </Badge>
-                  <span className="text-xs font-bold text-foreground">
+                  <span className="text-[11px] sm:text-xs font-bold text-foreground">
                     {rotationalAward.cycle.cycleLabel} Holder
                   </span>
                 </div>
-                <p className="text-sm font-black text-foreground mt-1">
+                <p className="text-xs sm:text-sm font-black text-foreground mt-1 break-words">
                   Awarded for {rotationalAward.winner.scopeValue}
                 </p>
-                <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap mt-0.5">
+                <p className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5 sm:gap-2 flex-wrap mt-0.5">
                   <span>{rotationalAward.winner.points} XP Earned</span>
                   <span>•</span>
                   <span>{rotationalAward.winner.booksIssuedCount} Books Borrowed</span>
@@ -161,8 +161,8 @@ export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
               </div>
             </div>
 
-            <div className="bg-background/80 backdrop-blur-xs p-3 rounded-xl border border-border/80 text-xs shrink-0 sm:text-right w-full sm:w-auto">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+            <div className="bg-background/80 backdrop-blur-xs p-2.5 sm:p-3 rounded-xl border border-border/80 text-xs shrink-0 sm:text-right w-full sm:w-auto">
+              <span className="text-[9px] sm:text-[10px] uppercase font-bold text-muted-foreground block">
                 Physical Badge Collection
               </span>
               <span className="font-black text-primary text-xs flex items-center gap-1 sm:justify-end mt-0.5">
@@ -173,7 +173,7 @@ export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
                   year: "numeric"
                 })}
               </span>
-              <span className="text-[10px] text-muted-foreground block truncate max-w-[200px] mt-0.5" title={rotationalAward.cycle.settings.collectionVenue}>
+              <span className="text-[10px] text-muted-foreground block truncate max-w-full sm:max-w-[200px] mt-0.5" title={rotationalAward.cycle.settings.collectionVenue}>
                 {rotationalAward.cycle.settings.collectionVenue}
               </span>
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,14 +7,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
 import { getAvatarUrl } from "@/lib/utils";
 import BookClubs from "@/components/dashboard/BookClubs";
 import SuggestionVoting from "./SuggestionVoting";
+import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
+import ReviewsModeration from "@/components/admin/ReviewsModeration";
 
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
 
@@ -73,6 +76,13 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [activeTab, setActiveTab] = useState("feed");
   const [hasClubs, setHasClubs] = useState(true);
   const [blockedUntil, setBlockedUntil] = useState<string | null>(null);
+
+  // Tagging state
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
+  const [tagResults, setTagResults] = useState<any[]>([]);
+  const [taggedUsers, setTaggedUsers] = useState<{ id: string; name: string }[]>([]);
+  const tagSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Report Post State
   const [reportingPost, setReportingPost] = useState<Post | null>(null);
@@ -290,6 +300,91 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   useEffect(() => { if (currentUserId) { load(); loadFriendshipsMap(); } }, [currentUserId]);
 
+  // ── Helper: insert a notification row ──────────────────────────────────────
+  const sendNotification = async (targetUserId: string, title: string, message: string, type = "info", actionLink = "") => {
+    if (targetUserId === currentUserId) return; // never notify yourself
+    await supabase.from("notifications").insert({
+      target_user_id: targetUserId,
+      sent_by: currentUserId,
+      title,
+      message,
+      type,
+      action_link: actionLink || null,
+      is_read: false,
+    });
+  };
+
+  // ── Helper: search taggable users ──────────────────────────────────────────
+  const searchTaggable = async (q: string) => {
+    if (!q.trim()) {
+      // For students: show accepted friends only
+      if (!isAdmin) {
+        const friendIds = Object.entries(friendshipsMap)
+          .filter(([, f]: any) => f.status === "accepted")
+          .map(([uid]) => uid);
+        if (friendIds.length === 0) { setTagResults([]); return; }
+        const { data } = await supabase.rpc("get_public_profiles", { _ids: friendIds });
+        setTagResults(data || []);
+      } else {
+        setTagResults([]);
+      }
+      return;
+    }
+    const { data } = await supabase.rpc("search_public_profiles", { _q: q.trim(), _exclude: currentUserId });
+    if (!isAdmin) {
+      // Students may only tag friends
+      const friendIds = new Set(Object.entries(friendshipsMap).filter(([, f]: any) => f.status === "accepted").map(([uid]) => uid));
+      setTagResults((data || []).filter((p: any) => friendIds.has(p.id)));
+    } else {
+      setTagResults(data || []);
+    }
+  };
+
+  const handleTagSearchChange = (value: string) => {
+    setTagSearch(value);
+    if (tagSearchTimeout.current) clearTimeout(tagSearchTimeout.current);
+    tagSearchTimeout.current = setTimeout(() => searchTaggable(value), 300);
+  };
+
+  const renderWithMentions = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(@everyone|@[a-zA-Z0-9_.-]+)/g);
+    return parts.map((part, i) => {
+      if (part === "@everyone") {
+        return (
+          <span key={i} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 mx-0.5 rounded-md font-bold text-xs bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-400/40">
+            <AtSign className="h-3 w-3 inline" />everyone
+          </span>
+        );
+      }
+      if (part.startsWith("@") && part.length > 1) {
+        return (
+          <span key={i} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 mx-0.5 rounded-md font-semibold text-xs bg-primary/15 text-primary">
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
+  const addTag = (user: any) => {
+    const name = user.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : user.username || "User";
+    const tagText = user.username ? `@${user.username}` : `@${name.replace(/\s+/g, "_")}`;
+    if (!taggedUsers.find(t => t.id === user.id)) {
+      setTaggedUsers(prev => [...prev, { id: user.id, name }]);
+      setDraft(prev => ({
+        ...prev,
+        content: prev.content ? `${prev.content} ${tagText} ` : `${tagText} `
+      }));
+    }
+    setTagPopoverOpen(false);
+    setTagSearch("");
+    setTagResults([]);
+  };
+
+  const removeTag = (id: string) => setTaggedUsers(prev => prev.filter(t => t.id !== id));
+
   const createPost = async () => {
     if (blockedUntil && new Date(blockedUntil).getTime() > Date.now()) {
       toast({ title: "Action Blocked", description: "You are temporarily blocked from creating posts.", variant: "destructive" });
@@ -356,6 +451,27 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       setPostKind("text");
       setMediaFile(null);
       setShowNew(false);
+
+      // Notify tagged users
+      const notifPromises: Promise<any>[] = [];
+      if (isAdmin && taggedUsers.find(t => t.id === "__everyone__")) {
+        // @everyone: send a broadcast (no target_user_id = null → shown to all)
+        notifPromises.push(supabase.from("notifications").insert({
+          target_user_id: null,
+          sent_by: currentUserId,
+          title: "📢 Community Announcement",
+          message: `New post: "${finalTitle}"`,
+          type: "info",
+          is_read: false,
+        }));
+      } else {
+        taggedUsers.forEach(t => {
+          notifPromises.push(sendNotification(t.id, "📌 You were tagged in a post", `Check out: "${finalTitle}"`, "info"));
+        });
+      }
+      await Promise.allSettled(notifPromises);
+      setTaggedUsers([]);
+
       toast({ title: postKind === "story" ? "Story Published! 📖✨" : "Posted!" });
       load();
     } catch (e: any) {
@@ -396,8 +512,15 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   };
 
   const toggleLike = async (post: Post) => {
-    if (post.liked) await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", currentUserId);
-    else await supabase.from("post_likes").insert({ post_id: post.id, user_id: currentUserId });
+    if (post.liked) {
+      await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", currentUserId);
+    } else {
+      await supabase.from("post_likes").insert({ post_id: post.id, user_id: currentUserId });
+      // notify post author
+      if (post.user_id !== currentUserId) {
+        sendNotification(post.user_id, "❤️ Someone liked your post", `Your post "${post.title}" received a new like!`, "info");
+      }
+    }
     setPosts((ps) => ps.map((p) => p.id === post.id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p));
   };
 
@@ -430,6 +553,11 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     await supabase.from("post_comments").insert({ post_id: postId, user_id: currentUserId, content: commentDraft });
     setCommentDraft(""); await loadComments(postId);
     setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p));
+    // notify post author
+    const post = posts.find(p => p.id === postId);
+    if (post && post.user_id !== currentUserId) {
+      sendNotification(post.user_id, "💬 New comment on your post", `Someone replied to "${post.title}"`, "info");
+    }
   };
   const deleteComment = async (postId: string, id: string) => {
     await supabase.from("post_comments").delete().eq("id", id);
@@ -442,6 +570,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     setFriendshipsMap((m) => ({ ...m, [userId]: data }));
     toast({ title: "Friend request sent" });
+    sendNotification(userId, "👋 New Friend Request", "Someone from KV Sulur DLMS sent you a friend request!", "info");
   };
   const respondFriendRequest = async (userId: string, status: string) => {
     const f = friendshipsMap[userId];
@@ -449,6 +578,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     await supabase.from("friendships").update({ status }).eq("id", f.id);
     setFriendshipsMap((m) => ({ ...m, [userId]: { ...f, status } }));
     toast({ title: status === "accepted" ? "Friend added" : "Request declined" });
+    if (status === "accepted") {
+      sendNotification(userId, "🎉 Friend Request Accepted", "Your friend request was accepted! You are now friends.", "success");
+    }
   };
   const removeFriend = async (userId: string) => {
     const f = friendshipsMap[userId];
@@ -473,6 +605,11 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
             <TabsTrigger value="feed">Feed</TabsTrigger>
             {hasClubs && <TabsTrigger value="clubs">Book Clubs</TabsTrigger>}
             <TabsTrigger value="survey">Suggestions Survey</TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="moderation" className="text-destructive data-[state=active]:text-destructive">
+                <ShieldAlert className="h-3.5 w-3.5 mr-1" />Moderation
+              </TabsTrigger>
+            )}
           </TabsList>
           <div className="flex gap-2">
             <Dialog open={friendsOpen} onOpenChange={setFriendsOpen}>
@@ -619,8 +756,76 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   )}
                 </>
               )}
+
+              {/* @ Tag button */}
+              <Popover open={tagPopoverOpen} onOpenChange={(o) => { setTagPopoverOpen(o); if (o) searchTaggable(""); }}>
+                <PopoverTrigger asChild>
+                  <button type="button" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg border border-dashed border-border hover:border-primary">
+                    <AtSign className="h-3.5 w-3.5" /> Tag
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Tag people</p>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      className="w-full text-left text-xs px-3 py-2 rounded-lg hover:bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold border border-amber-400/30 flex items-center gap-2"
+                      onClick={() => {
+                        const existing = taggedUsers.find(t => t.id === "__everyone__");
+                        if (!existing) {
+                          setTaggedUsers(prev => [{ id: "__everyone__", name: "@everyone" }, ...prev.filter(t => t.id !== "__everyone__")]);
+                          setDraft(prev => ({
+                            ...prev,
+                            content: prev.content ? `${prev.content} @everyone ` : `@everyone `
+                          }));
+                        }
+                        setTagPopoverOpen(false);
+                      }}
+                    >
+                      <AtSign className="h-3 w-3" /> @everyone (broadcast)
+                    </button>
+                  )}
+                  <Input
+                    placeholder="Search by name…"
+                    value={tagSearch}
+                    onChange={(e) => handleTagSearchChange(e.target.value)}
+                    className="h-8 text-xs"
+                    autoFocus
+                  />
+                  <div className="max-h-40 overflow-y-auto space-y-0.5">
+                    {tagResults.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">{isAdmin ? "Type to search all students" : "No friends found"}</p>}
+                    {tagResults.map((r: any) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => addTag(r)}
+                        className="w-full text-left text-xs px-3 py-1.5 rounded-md hover:bg-muted flex items-center gap-2"
+                      >
+                        <Avatar className="h-6 w-6">
+                          {r.avatar_url && <AvatarImage src={getAvatarUrl(r.avatar_url)} />}
+                          <AvatarFallback className="text-[9px] gradient-primary text-primary-foreground">{initials(r)}</AvatarFallback>
+                        </Avatar>
+                        <span className="truncate">{r.first_name ? `${r.first_name} ${r.last_name || ""}`.trim() : r.username}</span>
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Tagged chips */}
+              {taggedUsers.length > 0 && (
+                <div className="flex flex-wrap gap-1 w-full mt-1">
+                  {taggedUsers.map(t => (
+                    <span key={t.id} className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold ${t.id === "__everyone__" ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-400/30" : "bg-primary/10 text-primary border border-primary/20"}`}>
+                      <AtSign className="h-2.5 w-2.5" />{t.name}
+                      <button type="button" onClick={() => removeTag(t.id)} className="ml-0.5 hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div className="flex-1" />
-              <Button size="sm" variant="ghost" onClick={() => { setShowNew(false); setMediaFile(null); setPostKind("text"); setPollOptions(["", ""]); }}>Cancel</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setShowNew(false); setMediaFile(null); setPostKind("text"); setPollOptions(["", ""]); setTaggedUsers([]); }}>Cancel</Button>
               <Button size="sm" onClick={createPost} disabled={uploadingPost}>{uploadingPost ? "Posting..." : "Post"}</Button>
             </div>
           </CardContent>
@@ -688,8 +893,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <UserHoverCard userId={p.user_id} author={p.author} currentUserId={currentUserId} fetchStats={fetchProfileStats} friendship={friendshipsMap[p.user_id]} onSend={sendFriendRequest} onRespond={respondFriendRequest} onRemove={removeFriend} onView={setProfileDialogUser}>
-                          <p className="text-sm font-semibold hover:underline cursor-pointer inline-flex items-center gap-1.5">
-                            {nameOf(p.author)}
+                          <p className="text-sm font-semibold hover:underline cursor-pointer inline-flex items-center gap-1.5 flex-wrap">
+                            <span>{nameOf(p.author)}</span>
+                            <RotationalWinnerBadge userId={p.user_id} size="xs" />
                             {p.author?.role && p.author.role !== "student" && <Badge variant="outline" className="text-[9px] py-0 px-1.5 capitalize">{p.author.role}</Badge>}
                           </p>
                         </UserHoverCard>
@@ -759,7 +965,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                       <>
                         <h3 className="font-bold mt-2">{p.title}</h3>
                         {p.content && p.content !== "Poll" && (
-                          <p className="text-sm whitespace-pre-wrap mt-1">{p.content}</p>
+                          <p className="text-sm whitespace-pre-wrap mt-1">{renderWithMentions(p.content)}</p>
                         )}
                       </>
                     )}
@@ -854,8 +1060,12 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                               </Avatar>
                             </UserHoverCard>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold">{nameOf(c.author)} <span className="font-normal text-muted-foreground">· {new Date(c.created_at).toLocaleDateString()}</span></p>
-                              <p className="text-xs">{c.content}</p>
+                              <p className="text-xs font-semibold flex items-center gap-1.5 flex-wrap">
+                                <span>{nameOf(c.author)}</span>
+                                <RotationalWinnerBadge userId={c.user_id} size="xs" />
+                                <span className="font-normal text-muted-foreground">· {new Date(c.created_at).toLocaleDateString()}</span>
+                              </p>
+                              <p className="text-xs">{renderWithMentions(c.content)}</p>
                             </div>
                             {(c.user_id === currentUserId || isAdmin) && (
                               <button onClick={() => deleteComment(p.id, c.id)} className="text-muted-foreground hover:text-destructive">
@@ -887,6 +1097,12 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         <TabsContent value="survey" className="mt-4">
           <SuggestionVoting userId={currentUserId} isAdmin={isAdmin} />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="moderation" className="mt-4">
+            <ReviewsModeration />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Story Reader Dialog */}
@@ -922,7 +1138,10 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-xs font-bold text-foreground">{nameOf(viewingStory.author)}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-xs font-bold text-foreground">{nameOf(viewingStory.author)}</p>
+                      <RotationalWinnerBadge userId={viewingStory.user_id} size="xs" />
+                    </div>
                     <p className="text-[10px] text-muted-foreground">Class {viewingStory.author?.student_class || "—"}</p>
                   </div>
                 </div>
@@ -1060,7 +1279,10 @@ function UserHoverCard({ userId, author, currentUserId, fetchStats, friendship, 
               <AvatarFallback className="gradient-primary text-primary-foreground font-bold text-lg">{initials(author)}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0 pb-1">
-              <p className="font-bold text-sm truncate">{nameOf(author)}</p>
+              <p className="font-bold text-sm truncate flex items-center gap-1.5 flex-wrap">
+                <span>{nameOf(author)}</span>
+                <RotationalWinnerBadge userId={userId} size="xs" />
+              </p>
               {author?.username && <p className="text-xs text-muted-foreground truncate">@{author.username}</p>}
             </div>
           </div>
@@ -1246,7 +1468,10 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
           <AvatarFallback className="gradient-primary text-primary-foreground text-xs font-bold">{initials(p)}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openProfile(userId)}>
-          <p className="text-sm font-semibold truncate">{nameOf(p)}</p>
+          <p className="text-sm font-semibold truncate flex items-center gap-1.5 flex-wrap">
+            <span>{nameOf(p)}</span>
+            <RotationalWinnerBadge userId={userId} size="xs" />
+          </p>
           <p className="text-xs text-muted-foreground truncate">
             {p?.username ? `@${p.username} · ` : ""}Class {p?.student_class || "—"}
           </p>
@@ -1315,7 +1540,10 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
                     <AvatarFallback className="gradient-primary text-primary-foreground text-xs font-bold">{initials(r)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openProfile(r.id)}>
-                    <p className="text-sm font-semibold truncate">{nameOf(r)}</p>
+                    <p className="text-sm font-semibold truncate flex items-center gap-1.5 flex-wrap">
+                      <span>{nameOf(r)}</span>
+                      <RotationalWinnerBadge userId={r.id} size="xs" />
+                    </p>
                     <p className="text-xs text-muted-foreground truncate">@{r.username || "—"} · {r.role} · Class {r.student_class || "—"}</p>
                   </div>
                   {!existing ? (

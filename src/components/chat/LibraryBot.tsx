@@ -10,13 +10,13 @@ interface Message {
 }
 
 const DEFAULT_PROMPTS = [
+  "About Developer",
+  "About KV Sulur",
   "Library timings",
   "How to borrow a book",
+  "Rotational badges",
   "Overdue fine amount",
   "How to renew a book",
-  "Lost book procedure",
-  "Reset password",
-  "How to search books",
   "Points & rewards",
 ];
 
@@ -105,7 +105,22 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
 
       // Greetings
       if (/^(hi|hello|hey|good morning|good afternoon|good evening|namaste|greetings|sup|howdy)$/.test(t) || t === "hi there" || t === "hello there") {
-        return "Hello! 👋 I am LibraryBot — your digital library assistant at PM SHRI KV AFS Sulur.\n\nI can help you with:\n• Library timings & rules\n• How to borrow, return or renew books\n• Overdue fines & penalties\n• Lost book procedure\n• Catalog & book search tips\n• Points & rewards system\n• Account & password help\n\nWhat would you like to know?";
+        return "Hello! 👋 I am LibraryBot — your official AI assistant for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 💻 Developer information (G V Tanish Vettrivel)\n• 🏫 PM SHRI KV AFS Sulur official facts & details\n• 📚 Book catalog, borrowing, returns & renewals\n• 👑 Rotational Badges (Best Library User & Reader of the Month)\n• 💰 Overdue fines & lost book policies\n• 🏆 Gamified XP, levels, quiz & rewards\n\nWhat would you like to know?";
+      }
+
+      // Developer Information (G V Tanish Vettrivel)
+      if (t.includes("developer") || t.includes("who developed") || t.includes("who made") || t.includes("who built") || t.includes("who created") || t.includes("tanish") || t.includes("vettrivel") || t.includes("about developer") || t.includes("creator") || t.includes("programmer") || t.includes("who designed")) {
+        return "👨‍💻 **DLMS Developer: G V Tanish Vettrivel**\n\nThe PM SHRI KV AFS Sulur Digital Library Management System (DLMS) was architected and developed by **G V Tanish Vettrivel**, an innovative student programmer and ISRO Yuvika participant from PM SHRI Kendriya Vidyalaya AFS Sulur (Class 11).\n\n🚀 **Key Achievements:**\n• **Software Innovation:** Developed India's first student-centric Kendriya Vidyalaya DLMS featuring one-click book issues, automated barcode stickers, Reading Wrap capsules, gamified XP, and integrated NCERT/CBSE digital resources (launched July 2026).\n• **ISRO Yuvika:** Selected for ISRO's prestigious Young Scientist Programme (YUVIKA 2025) at the Vikram Sarabhai Space Centre (VSSC) in Thiruvananthapuram — chosen as 1 of only 10 students across all of Tamil Nadu.\n• **IIT Kharagpur:** Selected for a 6-week program for IIT Kharagpur's i-Kites / RISE event.\n• **Social:** Instagram `@kvian_rocks` · `@pmshrikvsulur`";
+      }
+
+      // PM SHRI KV AFS Sulur School Information (analyzed from sulur.kvs.ac.in)
+      if (t.includes("kv sulur") || t.includes("about kv sulur") || t.includes("sulur.kvs.ac.in") || t.includes("school code") || t.includes("affiliation") || t.includes("about school") || t.includes("kendriya vidyalaya sulur") || t.includes("afs sulur") || t.includes("school info") || t.includes("principal") || t.includes("udise") || t.includes("board result") || t.includes("topper")) {
+        return "🏫 **PM SHRI Kendriya Vidyalaya AFS Sulur**\n*(पीएम श्री केन्द्रीय विद्यालय वायुसेना अवस्थान सुलूर)*\n\n• **Location:** Air Force Station Sulur, Kangayampalayam, Coimbatore, Tamil Nadu - 641401\n• **Affiliation Codes:** KV Code: **1787** | CBSE Affiliation: **1900016** | School Code: **59022** | UDISE: **33122100403**\n• **Academic Excellence:** 100% pass rate in Class 10 Board Exams & 98.55% in Class 12.\n• **Senior Secondary Streams:** Computer Science, Biology, and Commerce.\n• **Key Features:** NEP 2020 PM SHRI exemplar school, NIPUN Lakshya, Digital Language Lab, ICT E-Classrooms, BaLA (Building as Learning Aid), NCC & Scouts, and our student-built DLMS digital library!\n• **Official Website:** [sulur.kvs.ac.in](https://sulur.kvs.ac.in)";
+      }
+
+      // Rotational Badges
+      if (t.includes("rotational") || t.includes("best library user") || t.includes("reader of the month") || t.includes("badge holder") || t.includes("winner badge")) {
+        return "👑 **Rotational Badges Program**\n\nThe library awards prestigious physical & digital rotational badges every period:\n• **👑 Best Library User:** Top student in each class based on XP, books read, and active library engagement.\n• **📚 Reader of the Month:** School-wide overall champion of reading.\n\n✨ **Perks:**\n1. A custom small golden/indigo badge (`👑` / `📚`) displayed right near your name in the Community feed, Profile modal, and Dashboard!\n2. An official printed award claim pass.\n3. Ceremony to collect the physical badge at the library counter on the announced collection date!";
       }
 
       // Timings / Hours

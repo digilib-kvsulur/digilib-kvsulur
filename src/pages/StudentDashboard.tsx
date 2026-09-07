@@ -51,6 +51,7 @@ import NetworkTab from "@/components/dashboard/NetworkTab";
 import ProfileCompletionDialog from "@/components/dashboard/ProfileCompletionDialog";
 import ReturnedBookReviewPrompt from "@/components/dashboard/ReturnedBookReviewPrompt";
 import RotationalBadgeWinningPopup from "@/components/dashboard/RotationalBadgeWinningPopup";
+import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 import SupportCenter from "@/components/support/SupportCenter";
 import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
 import StudentCertificates from "@/components/dashboard/StudentCertificates";
@@ -493,7 +494,10 @@ const StudentDashboard = () => {
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-foreground truncate">{user?.first_name} {user?.last_name}</p>
+              <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                <span>{user?.first_name} {user?.last_name}</span>
+                <RotationalWinnerBadge userId={user?.id} size="xs" />
+              </p>
               <p className="text-xs text-muted-foreground">Class {user?.student_class}</p>
             </div>
             <NotificationBell />

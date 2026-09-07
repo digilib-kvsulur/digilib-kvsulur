@@ -13,6 +13,7 @@ import LibraryCard from "@/components/student/LibraryCard";
 import ReadingHeatmap from "@/components/student/ReadingHeatmap";
 import { useToast } from "@/hooks/use-toast";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
+import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 import { defaultStudentBarcode } from "@/lib/barcode";
 
 interface PortfolioProps {
@@ -225,8 +226,9 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
                 </div>
                 <div>
                   <Badge className="bg-white/20 hover:bg-white/30 border-0 text-white text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 mb-2">DLMS Scholar Portfolio</Badge>
-                  <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-none drop-shadow-md">
-                    {user?.first_name} {user?.last_name}
+                  <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-none drop-shadow-md flex items-center gap-2 flex-wrap">
+                    <span>{user?.first_name} {user?.last_name}</span>
+                    <RotationalWinnerBadge userId={user?.id} size="sm" />
                   </h1>
                   <p className="text-indigo-100 text-xs sm:text-sm font-semibold mt-1.5 opacity-90">
                     Class {user?.student_class || "—"} · Adm {user?.admission_number || "—"}
