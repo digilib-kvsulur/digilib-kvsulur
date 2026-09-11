@@ -345,12 +345,20 @@ export const MultiplayerLobby = ({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
             {participants.map((p, idx) => (
               <div
-                key={idx}
+                key={p.user_id || idx}
                 className="flex items-center gap-2 p-2.5 rounded-xl bg-background border border-border/60 shadow-sm text-left animate-in zoom-in-95 duration-200"
               >
-                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm overflow-hidden">
                   {p.avatar_url ? (
-                    <img src={p.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+                    <img
+                      src={p.avatar_url}
+                      alt={p.name || ""}
+                      className="h-full w-full rounded-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                        (e.currentTarget.parentElement as HTMLElement).innerText = (p.name || "U").charAt(0).toUpperCase();
+                      }}
+                    />
                   ) : (
                     (p.name || "U").charAt(0).toUpperCase()
                   )}

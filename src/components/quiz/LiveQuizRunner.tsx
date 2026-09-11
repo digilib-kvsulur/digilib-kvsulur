@@ -26,7 +26,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { quizAudio } from "@/lib/quizAudio";
-import { triggerConfetti } from "@/lib/confetti";
+import { triggerConfetti, triggerWinnerConfetti } from "@/lib/confetti";
 import { getPrizeForRank } from "@/components/quiz/LiveQuizAlert";
 
 interface LiveQuizRunnerProps {
@@ -420,7 +420,15 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   const finishQuiz = async (disqualified = false, finalStrikes = strikes) => {
     setIsFinished(true);
     if (!disqualified) {
-      triggerConfetti();
+      // Rank-based confetti: compute rank from current participants state
+      const currentUserId = (await supabase.auth.getUser()).data.user?.id;
+      const rank = currentUserId
+        ? participants.findIndex((p) => p.user_id === currentUserId) + 1
+        : 0;
+      if (rank === 1) triggerWinnerConfetti(1);
+      else if (rank === 2) triggerWinnerConfetti(2);
+      else if (rank === 3) triggerWinnerConfetti(3);
+      else triggerConfetti();
       quizAudio.playLeagueStart();
     }
 
@@ -619,19 +627,32 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                       className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold ${
                         p.user_id === currentUser?.id
                           ? "bg-indigo-500/30 border-indigo-400 text-white"
+                          : i === 0
+                          ? "bg-amber-500/20 border-amber-400/50 text-white"
+                          : i === 1
+                          ? "bg-slate-400/20 border-slate-400/40 text-white"
+                          : i === 2
+                          ? "bg-orange-700/20 border-orange-600/40 text-white"
                           : "bg-white/5 border-white/10 text-white/80"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="w-5 text-center font-bold text-amber-400 font-mono">#{i + 1}</span>
-                        <span className="truncate max-w-[180px]">{p.name}</span>
+                        <span className="w-6 text-center font-bold font-mono text-amber-400">
+                          {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                        </span>
+                        <span className="truncate max-w-[140px]">{p.name}</span>
                         {p.user_id === currentUser?.id && (
                           <Badge variant="secondary" className="text-[9px] py-0 px-1 bg-indigo-500/40 text-white border-0">
                             You
                           </Badge>
                         )}
                       </div>
-                      <span className="font-mono font-bold text-amber-300">{p.score} pts</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-mono text-white/60">{p.score} pts</span>
+                        <span className="font-mono font-black text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded-lg">
+                          +{getPrizeForRank(i + 1).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
