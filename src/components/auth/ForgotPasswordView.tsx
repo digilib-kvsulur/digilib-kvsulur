@@ -59,6 +59,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
   const [submittedTicketNo, setSubmittedTicketNo] = useState<string | null>(null);
   const [studentNote, setStudentNote] = useState("");
+  const [rateLimitHit, setRateLimitHit] = useState(false);
 
   // Cooldown countdown timer
   useEffect(() => {
@@ -171,17 +172,29 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
       if (error) throw error;
 
       setEmailSent(true);
+      setRateLimitHit(false);
       setCooldown(60);
       toast({
         title: "Password Reset Link Dispatched",
         description: `Sent to ${accountData.masked_email || "your registered email address"}.`,
       });
     } catch (err: any) {
-      toast({
-        title: "Email Dispatch Failed",
-        description: err.message || "Failed to send reset email. Please try again later.",
-        variant: "destructive",
-      });
+      const isRateLimit = err.message?.toLowerCase().includes("rate limit") || err.status === 429;
+      if (isRateLimit) {
+        setRateLimitHit(true);
+        setCooldown(90);
+        toast({
+          title: "Email Rate Limit Reached",
+          description: "Supabase email rate limit exceeded. You can wait a moment, or use the Librarian Reset form below to reset immediately.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Email Dispatch Failed",
+          description: err.message || "Failed to send reset email. Please try again later.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSendingEmail(false);
     }
@@ -466,6 +479,64 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
                       "Send Password Reset Link"
                     )}
                   </Button>
+                )}
+                {rateLimitHit && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5 text-xs text-amber-800 animate-in fade-in">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                      <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                      <span>Email Rate Limit Reached</span>
+                    </div>
+                    <p className="text-[11px] text-amber-700 leading-relaxed">
+                      Supabase limits how many automated emails can be dispatched per hour. Please wait for the timer, or submit an instant reset request to the library desk below.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Alternative: Request Reset from Librarian */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-slate-800 font-bold text-xs">
+                  <GraduationCap className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <span>Option 2: Request Reset from School Librarian</span>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  If email delivery is delayed or rate limited, the school librarian can reset your password immediately.
+                </p>
+
+                {submittedTicketNo ? (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-1 animate-in zoom-in-95">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-600 mx-auto" />
+                    <p className="text-xs font-bold text-emerald-900">Reset Request Dispatched!</p>
+                    <p className="text-[11px] text-emerald-700">
+                      Ticket Reference: <strong className="font-mono font-black">{submittedTicketNo}</strong>
+                    </p>
+                    <p className="text-[10px] text-emerald-600 pt-1">
+                      The librarian has been notified and will reset your password.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Optional note for the librarian"
+                      value={studentNote}
+                      onChange={(e) => setStudentNote(e.target.value)}
+                      className="h-9 text-xs rounded-xl bg-white"
+                    />
+                    <Button
+                      type="button"
+                      disabled={isSubmittingTicket}
+                      onClick={handleRequestLibrarianReset}
+                      className="w-full h-9 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-xs"
+                    >
+                      {isSubmittingTicket ? (
+                        <span className="flex items-center gap-2">
+                          <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Submitting Request…
+                        </span>
+                      ) : (
+                        "Submit Ticket to Librarian Desk"
+                      )}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
