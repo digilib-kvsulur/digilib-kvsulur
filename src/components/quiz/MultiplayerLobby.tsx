@@ -1,10 +1,10 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Users, Play, Loader2, Copy, Check, Calendar, Clock, Sparkles, Volume2, ShieldCheck } from "lucide-react";
+import { Users, Play, Loader2, Copy, Check, Calendar, Clock, Sparkles, Volume2, ShieldCheck, LogOut } from "lucide-react";
 import { quizAudio } from "@/lib/quizAudio";
 
 interface MultiplayerLobbyProps {
@@ -211,17 +211,37 @@ export const MultiplayerLobby = ({
   };
 
   return (
-    <Card className="max-w-2xl mx-auto shadow-2xl border-2 border-indigo-500/30 overflow-hidden bg-gradient-to-b from-background via-background to-muted/20">
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-4 text-white text-center">
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <Sparkles className="h-4 w-4 text-amber-300 animate-spin" />
-          <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">
-            PM SHRI KV Sulur Live Quiz Arena
+    <div className="fixed inset-0 z-50 bg-background/98 backdrop-blur-xl flex flex-col items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      {/* Top Header with Leave Button */}
+      <div className="w-full max-w-2xl flex items-center justify-between pb-3 px-1">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-indigo-500 animate-spin" />
+          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Live Quiz Arena
           </span>
         </div>
-        <h2 className="text-xl sm:text-2xl font-black">{quizTitle}</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          className="h-8 rounded-xl text-xs font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 gap-1"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Leave Arena
+        </Button>
       </div>
+
+      <Card className="max-w-2xl w-full shadow-2xl border-2 border-indigo-500/30 overflow-hidden bg-gradient-to-b from-background via-background to-muted/20 my-auto">
+        {/* Top Banner */}
+        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-4 text-white text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Sparkles className="h-4 w-4 text-amber-300 animate-spin" />
+            <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">
+              PM SHRI KV Sulur Live Quiz Arena
+            </span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black">{quizTitle}</h2>
+        </div>
 
       <CardHeader className="text-center pb-2">
         {/* Room Code Card */}
@@ -328,5 +348,6 @@ export const MultiplayerLobby = ({
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 };

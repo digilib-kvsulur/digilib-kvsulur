@@ -23,6 +23,7 @@ import {
   ShieldAlert,
   ChevronUp,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
 import { quizAudio } from "@/lib/quizAudio";
 import { triggerConfetti } from "@/lib/confetti";
@@ -660,6 +661,22 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                   Full Screen
                 </Button>
               )}
+
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                  }
+                  onFinish();
+                }}
+                className="h-7 text-xs text-white/80 hover:bg-rose-500/20 hover:text-rose-300 gap-1 px-2"
+                title="Leave quiz match"
+              >
+                <LogOut className="h-3 w-3" />
+                <span>Leave</span>
+              </Button>
             </div>
           </div>
         )}
