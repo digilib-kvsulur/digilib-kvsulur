@@ -34,6 +34,9 @@ import LevelUpBanner from "@/components/rewards/LevelUpBanner";
 import Rankings from "@/components/dashboard/Rankings";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
 import { LiveQuizAlert } from "@/components/quiz/LiveQuizAlert";
+import { UpcomingQuizLeagueCard } from "@/components/quiz/UpcomingQuizLeagueCard";
+import { MultiplayerLobby } from "@/components/quiz/MultiplayerLobby";
+import { LiveQuizRunner } from "@/components/quiz/LiveQuizRunner";
 import MemoryCapsule from "@/components/rewards/MemoryCapsule";
 
 import QuickBookmarks from "@/components/dashboard/QuickBookmarks";
@@ -142,6 +145,8 @@ const StudentDashboard = () => {
   const [periodicalsVisible, setPeriodicalsVisible] = useState(false);
   const [issueHistory, setIssueHistory] = useState<any[]>([]);
   const [hasCertificates, setHasCertificates] = useState(false);
+  const [activeLeagueSession, setActiveLeagueSession] = useState<any | null>(null);
+  const [inLeagueRunner, setInLeagueRunner] = useState(false);
 
   const streakData = useLoginStreak(user?.id);
   usePushSubscription(user?.id);
@@ -874,7 +879,38 @@ const StudentDashboard = () => {
               {/* Currently Reading Status */}
               <CurrentlyReading user={user} onUpdate={checkAuth} />
 
-              <LiveQuizAlert />
+              {activeLeagueSession ? (
+                inLeagueRunner ? (
+                  <LiveQuizRunner
+                    quiz={activeLeagueSession.quizzes}
+                    sessionId={activeLeagueSession.id}
+                    isHost={false}
+                    onFinish={() => {
+                      setActiveLeagueSession(null);
+                      setInLeagueRunner(false);
+                      checkAuth();
+                    }}
+                  />
+                ) : (
+                  <MultiplayerLobby
+                    quizId={activeLeagueSession.quiz_id}
+                    quizTitle={activeLeagueSession.league_name || activeLeagueSession.quizzes?.title || "Live Quiz League"}
+                    isHost={false}
+                    existingSessionId={activeLeagueSession.id}
+                    onStart={() => setInLeagueRunner(true)}
+                    onCancel={() => setActiveLeagueSession(null)}
+                  />
+                )
+              ) : (
+                <>
+                  <UpcomingQuizLeagueCard
+                    userId={user?.id}
+                    userClass={user?.student_class}
+                    onJoinLeague={(session) => setActiveLeagueSession(session)}
+                  />
+                  <LiveQuizAlert />
+                </>
+              )}
               
               {/* Level + Streak Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1097,7 +1133,19 @@ const StudentDashboard = () => {
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={false} />}
 
           {/* Quizzes Tab */}
-          {activeTab === "quizzes" && <QuizPage quizzes={availableQuizzes} results={quizResults} onSelectQuiz={setSelectedQuiz} />}
+          {activeTab === "quizzes" && (
+            <div className="space-y-6">
+              <UpcomingQuizLeagueCard
+                userId={user?.id}
+                userClass={user?.student_class}
+                onJoinLeague={(session) => {
+                  setActiveLeagueSession(session);
+                  setActiveTab("overview");
+                }}
+              />
+              <QuizPage quizzes={availableQuizzes} results={quizResults} onSelectQuiz={setSelectedQuiz} />
+            </div>
+          )}
 
           {/* Challenges Tab */}
           {activeTab === "challenges" && (

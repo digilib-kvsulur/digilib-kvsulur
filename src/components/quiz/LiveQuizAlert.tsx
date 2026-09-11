@@ -54,8 +54,9 @@ export const LiveQuizAlert = () => {
     return (
       <MultiplayerLobby
         quizId={quizDetails.id}
-        quizTitle={quizDetails.title}
+        quizTitle={activeSession.league_name || quizDetails.title}
         isHost={false}
+        existingSessionId={activeSession.id}
         onStart={() => { setShowLobby(false); setShowRunner(true); }}
         onCancel={() => setShowLobby(false)}
       />
