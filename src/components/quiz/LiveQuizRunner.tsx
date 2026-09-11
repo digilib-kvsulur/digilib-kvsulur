@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { quizAudio } from "@/lib/quizAudio";
 import { triggerConfetti } from "@/lib/confetti";
+import { getPrizeForRank } from "@/components/quiz/LiveQuizAlert";
 
 interface LiveQuizRunnerProps {
   quiz: Quiz;
@@ -264,9 +265,18 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       })
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
-        const pList = Object.values(state).flatMap((users: any) => users) as ParticipantScore[];
-        pList.sort((a, b) => (b.score || 0) - (a.score || 0));
-        setParticipants(pList);
+        const raw = Object.values(state).flatMap((users: any) => users) as ParticipantScore[];
+        // Deduplicate by user_id — keep entry with highest score per user
+        const seen = new Map<string, ParticipantScore>();
+        for (const p of raw) {
+          if (!p.user_id) continue;
+          const existing = seen.get(p.user_id);
+          if (!existing || (p.score || 0) > (existing.score || 0)) {
+            seen.set(p.user_id, p);
+          }
+        }
+        const deduped = Array.from(seen.values()).sort((a, b) => (b.score || 0) - (a.score || 0));
+        setParticipants(deduped);
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED" && currentUser) {
@@ -421,23 +431,28 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       if (!user) return;
 
       if (!isHost) {
-        const pointsReward = disqualified ? 0 : Math.min(score, 1000);
+        // Calculate rank-based prize: 1st=5000, 2nd=2500, 3rd=1000, 4th-10th=800, others=500
+        const finalRank = participants.findIndex((p) => p.user_id === user.id) + 1;
+        const prizePoints = disqualified ? 0 : (finalRank > 0 ? getPrizeForRank(finalRank) : getPrizeForRank(999));
+
         // Record in quiz_results with session metadata and strikes
         await supabase.from("quiz_results").insert({
           quiz_id: quiz.id,
           user_id: user.id,
           score: Math.round((score / ((quiz.questions.length || 1) * 750)) * 100),
-          points_earned: pointsReward,
+          points_earned: prizePoints,
           answers: {
             session_id: sessionId,
             league: true,
             strikes: finalStrikes,
             disqualified,
+            final_rank: finalRank > 0 ? finalRank : null,
+            quiz_score: score,
           },
         });
 
-        // Award points to user profile if not disqualified
-        if (!disqualified && pointsReward > 0) {
+        // Award prize points to user profile if not disqualified
+        if (!disqualified && prizePoints > 0) {
           const { data: profile } = await supabase
             .from("profiles")
             .select("points")
@@ -447,7 +462,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
           if (profile) {
             await supabase
               .from("profiles")
-              .update({ points: (profile.points || 0) + pointsReward })
+              .update({ points: (profile.points || 0) + prizePoints })
               .eq("id", user.id);
           }
         }
@@ -542,15 +557,27 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
             {/* User's Result Banner */}
             {!isHost && (
-              <div className="bg-white/10 border border-white/20 rounded-2xl p-4 text-center space-y-1">
+              <div className="bg-white/10 border border-white/20 rounded-2xl p-4 text-center space-y-1.5">
                 <p className="text-xs uppercase font-bold text-indigo-300 tracking-wider">Your Performance</p>
                 <p className="text-2xl sm:text-3xl font-black text-amber-300">
-                  {score.toLocaleString()} Points
+                  {score.toLocaleString()} pts earned
                 </p>
                 {myRank > 0 && (
                   <p className="text-sm text-white/80">
                     You placed <strong className="text-white">#{myRank}</strong> out of {participants.length} contestants!
                   </p>
+                )}
+                {/* Prize earned display */}
+                {!isDisqualified && myRank > 0 && (
+                  <div className="inline-flex items-center gap-2 bg-amber-400/20 border border-amber-400/40 rounded-full px-4 py-1.5 mt-1">
+                    <Trophy className="h-4 w-4 text-amber-300" />
+                    <span className="text-base font-black text-amber-200">
+                      +{getPrizeForRank(myRank).toLocaleString()} Prize Points!
+                    </span>
+                  </div>
+                )}
+                {isDisqualified && (
+                  <p className="text-xs text-red-400 font-bold mt-1">⛔ Disqualified — No prize points awarded.</p>
                 )}
                 {strikes > 0 && (
                   <p className="text-xs text-amber-300 font-semibold mt-1">
@@ -559,6 +586,27 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                 )}
               </div>
             )}
+
+            {/* Prize Pool Reference */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white/60 mb-2 text-center">🏆 Prize Pool</h4>
+              <div className="grid grid-cols-2 gap-1 text-xs">
+                {[
+                  { label: "🥇 1st Place", pts: "5,000 pts" },
+                  { label: "🥈 2nd Place", pts: "2,500 pts" },
+                  { label: "🥉 3rd Place", pts: "1,000 pts" },
+                  { label: "🏅 4th – 10th", pts: "800 pts" },
+                  { label: "🎖️ All others", pts: "500 pts" },
+                  { label: "⛔ Disqualified", pts: "0 pts" },
+                ].map(({ label, pts }) => (
+                  <div key={label} className="flex justify-between items-center bg-white/5 rounded-xl px-2.5 py-1.5">
+                    <span className="text-white/80">{label}</span>
+                    <span className="font-bold text-amber-300 font-mono">{pts}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
 
             {/* Full Contestant Leaderboard Table */}
             {participants.length > 0 && (
