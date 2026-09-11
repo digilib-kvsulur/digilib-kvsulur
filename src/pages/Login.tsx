@@ -3,13 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BookOpen, AlertCircle, ArrowLeft, Star, Eye, EyeOff, Sparkles, Shield, Zap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { clearStoredAuthSession, isInvalidRefreshTokenError } from "@/lib/authCleanup";
+import { ForgotPasswordView } from "@/components/auth/ForgotPasswordView";
 
 const Login = () => {
+  const [searchParams] = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,6 +22,14 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [recentUsers, setRecentUsers] = useState<{ initials: string; color: string }[]>([]);
+
+  useEffect(() => {
+    if (searchParams.get("forgot") === "true") {
+      setShowForgotPassword(true);
+      const idParam = searchParams.get("identifier");
+      if (idParam) setResetEmail(idParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const loadRecentUsers = async () => {
@@ -82,44 +92,6 @@ const Login = () => {
     } catch (error) {
       console.error('Login error:', error);
       toast({ title: "Login Failed", description: "An unexpected error occurred", variant: "destructive" });
-    }
-    setIsLoading(false);
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    if (!resetEmail) {
-      toast({ title: "Missing Info", description: "Please enter your email, admission number, or username", variant: "destructive" });
-      setIsLoading(false);
-      return;
-    }
-    try {
-      // Look up the user's real auth email via their identifier (email / username / admission no.)
-      // Bulk-imported students have a dummy auth email (e.g. 12345@kvschool.in), so we can't
-      // send the reset directly to what the user types — we must resolve their auth email first.
-      const { data: userData, error: lookupError } = await supabase.rpc('find_user_by_identifier', { identifier: resetEmail.trim() });
-
-      if (lookupError || !userData || userData.length === 0) {
-        toast({ title: "User Not Found", description: "No account found with that email, username, or admission number.", variant: "destructive" });
-        setIsLoading(false);
-        return;
-      }
-
-      const authEmail = userData[0].email;
-      const { error } = await supabase.auth.resetPasswordForEmail(authEmail, {
-        redirectTo: `${window.location.origin}/reset-password`
-      });
-
-      if (error) {
-        toast({ title: "Reset Failed", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Reset Link Sent!", description: "A password reset link has been sent to the email on file for your account." });
-        setShowForgotPassword(false);
-        setResetEmail("");
-      }
-    } catch (error) {
-      toast({ title: "Reset Failed", description: "An unexpected error occurred", variant: "destructive" });
     }
     setIsLoading(false);
   };
@@ -231,21 +203,19 @@ const Login = () => {
           </div>
 
           {showForgotPassword ? (
-            <form onSubmit={handleForgotPassword} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="resetEmail" className="text-sm font-medium">Email / Username / Admission Number</Label>
-                <Input id="resetEmail" type="text" placeholder="e.g. 12345 or your username" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="h-12 rounded-xl" required />
-                <p className="text-xs text-muted-foreground">Enter any identifier linked to your account. The reset link will be sent to the registered email on file.</p>
-              </div>
-              <Button type="submit" className="w-full h-12 rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg hover:shadow-xl transition-all" disabled={isLoading}>
-                {isLoading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Sending...</span> : 'Send Reset Link'}
-              </Button>
-              <div className="text-center">
-                <Button variant="link" className="p-0 h-auto text-primary text-sm" onClick={() => setShowForgotPassword(false)} type="button">
-                  <ArrowLeft className="h-3 w-3 mr-1" /> Back to Login
-                </Button>
-              </div>
-            </form>
+            <ForgotPasswordView
+              initialIdentifier={resetEmail || identifier}
+              onBackToLogin={() => setShowForgotPassword(false)}
+              onUseDefaultPassword={(adm) => {
+                setIdentifier(adm);
+                setPassword("Welcome@123");
+                setShowForgotPassword(false);
+                toast({
+                  title: "Default Password Loaded",
+                  description: "Your admission number and default password Welcome@123 have been prefilled. Click Sign In to log in.",
+                });
+              }}
+            />
           ) : (
             <form onSubmit={handleLogin} className="space-y-5">
               <Alert className="border-primary/20 bg-primary/5 rounded-xl">
