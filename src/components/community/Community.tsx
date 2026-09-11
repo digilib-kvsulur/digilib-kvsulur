@@ -249,13 +249,32 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     const { count: clubCount } = await supabase.from("book_clubs").select("*", { count: 'exact', head: true }).eq("is_active", true);
     setHasClubs((clubCount || 0) > 0);
 
-    const { data: postsData } = await supabase
+    let postsData: any[] = [];
+    const doubtRes = await supabase
       .from("posts")
       .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at, doubt_subject, doubt_class, doubt_status, accepted_comment_id")
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(60);
-    if (!postsData) { setLoading(false); return; }
+
+    if (doubtRes.error) {
+      // Fallback query if doubt columns are not yet added to DB table
+      const fallbackRes = await supabase
+        .from("posts")
+        .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at")
+        .order("is_pinned", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(60);
+      postsData = fallbackRes.data || [];
+    } else {
+      postsData = doubtRes.data || [];
+    }
+
+    if (!postsData || postsData.length === 0) {
+      setPosts([]);
+      setLoading(false);
+      return;
+    }
     const ids = postsData.map((p) => p.id);
     const userIds = Array.from(new Set(postsData.map((p) => p.user_id)));
     const pollPostIds = postsData.filter((p: any) => p.post_type === "poll").map((p: any) => p.id);
@@ -296,14 +315,25 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       optionsByPost.set(o.post_id, list);
     });
 
-    setPosts(postsData.map((p: any) => ({
-      ...p, author: profileMap.get(p.user_id),
-      likes: likeMap.get(p.id)?.count || 0,
-      liked: likeMap.get(p.id)?.liked || false,
-      comment_count: commentMap.get(p.id) || 0,
-      pollOptions: optionsByPost.get(p.id) || [],
-      myVoteOptionId: myVoteByPost.get(p.id) || null,
-    })));
+    setPosts(postsData.map((p: any) => {
+      let subject = p.doubt_subject;
+      let status = p.doubt_status || "unsolved";
+      if (!subject && p.title && p.title.startsWith("[Doubt")) {
+        const match = p.title.match(/\[Doubt\s*-\s*([^\]]+)\]/i);
+        if (match) subject = match[1].trim();
+      }
+      return {
+        ...p,
+        doubt_subject: subject,
+        doubt_status: status,
+        author: profileMap.get(p.user_id),
+        likes: likeMap.get(p.id)?.count || 0,
+        liked: likeMap.get(p.id)?.liked || false,
+        comment_count: commentMap.get(p.id) || 0,
+        pollOptions: optionsByPost.get(p.id) || [],
+        myVoteOptionId: myVoteByPost.get(p.id) || null,
+      };
+    }));
     setLoading(false);
   };
 
@@ -441,17 +471,30 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         ? `[Doubt - ${doubtSubject}] ${draft.title.trim()}`
         : draft.title.trim();
 
-      const { data: postRow, error } = await supabase.from("posts").insert({
+      const postPayload: any = {
         user_id: currentUserId,
         title: finalTitle,
         content: draft.content.trim() || (postKind === "poll" ? "Poll" : ""),
         media_url: mediaUrl,
         media_type: mediaType,
         post_type: postKind,
-        doubt_subject: postKind === "doubt" ? doubtSubject : null,
-        doubt_class: postKind === "doubt" ? doubtClass : null,
-        doubt_status: postKind === "doubt" ? "unsolved" : null,
-      }).select("id").single();
+      };
+      if (postKind === "doubt") {
+        postPayload.doubt_subject = doubtSubject;
+        postPayload.doubt_class = doubtClass;
+        postPayload.doubt_status = "unsolved";
+      }
+
+      let { data: postRow, error } = await supabase.from("posts").insert(postPayload).select("id").single();
+      if (error && postKind === "doubt") {
+        // Fallback: If DB schema doesn't have doubt columns yet, insert core columns
+        delete postPayload.doubt_subject;
+        delete postPayload.doubt_class;
+        delete postPayload.doubt_status;
+        const retry = await supabase.from("posts").insert(postPayload).select("id").single();
+        postRow = retry.data;
+        error = retry.error;
+      }
       if (error) throw error;
       if (postKind === "poll" && postRow?.id) {
         const { error: optErr } = await supabase.from("poll_options").insert(
@@ -1018,10 +1061,43 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
         if (filteredPosts.length === 0) {
           return (
-            <Card><CardContent className="p-8 text-center text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No posts in this category yet.</p>
-            </CardContent></Card>
+            <Card className="border-border/60 bg-card/60 backdrop-blur-xs">
+              <CardContent className="p-10 text-center flex flex-col items-center justify-center">
+                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3">
+                  <Users className="h-7 w-7 opacity-80" />
+                </div>
+                <h3 className="font-bold text-foreground text-base mb-1">
+                  {feedCategory === "doubts"
+                    ? "No Academic Doubts Yet"
+                    : feedCategory === "stories"
+                    ? "No Student Stories Shared Yet"
+                    : feedCategory === "polls"
+                    ? "No Community Polls Open"
+                    : "No Community Posts Yet"}
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-sm mb-5">
+                  {feedCategory === "doubts"
+                    ? "Have a doubt from your NCERT chapters or school subjects? Ask your classmates & teachers!"
+                    : feedCategory === "stories"
+                    ? "Share your book review, summary, or creative reading reflections."
+                    : feedCategory === "polls"
+                    ? "Create a quick poll for your peers to vote on reading preferences and library suggestions."
+                    : "Be the first to share an academic question, book reflection, or announcement!"}
+                </p>
+                <Button
+                  onClick={() => {
+                    if (feedCategory === "doubts") setPostKind("doubt");
+                    else if (feedCategory === "stories") setPostKind("story");
+                    else if (feedCategory === "polls") setPostKind("poll");
+                    setShowNew(true);
+                  }}
+                  className="gap-2 shadow-xs"
+                >
+                  <Plus className="h-4 w-4" />
+                  {feedCategory === "doubts" ? "Ask a Doubt" : "Create New Post"}
+                </Button>
+              </CardContent>
+            </Card>
           );
         }
 
