@@ -415,48 +415,51 @@ const Index = () => {
       </header>
 
       {/* Hero Section with extra padding */}
-      <section className="relative pt-16 lg:pt-20 pb-24 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-14 items-center">
+      <section className="relative pt-10 sm:pt-16 lg:pt-20 pb-16 sm:pb-24 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-14 items-center">
             {/* Left Column */}
-            <div className="lg:col-span-6 space-y-7 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider mx-auto lg:mx-0 shadow-sm">
-                <Star className="h-4 w-4 fill-indigo-600 text-indigo-600" /> PM SHRI KV AFS SULUR, DLMS
+            <div className="lg:col-span-6 space-y-4 sm:space-y-6 lg:space-y-7 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-full px-4 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider mx-auto lg:mx-0 shadow-xs">
+                <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-indigo-600 text-indigo-600" /> PM SHRI KV AFS SULUR, DLMS
               </div>
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.12] max-w-xl">
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.15] max-w-xl">
                 A Library That Grows With <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Every Reader.</span>
               </h2>
-              <p className="text-base sm:text-lg text-slate-600 max-w-lg leading-relaxed mx-auto lg:mx-0 font-normal">
+              <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed mx-auto lg:mx-0 font-normal">
                 Welcome to the digital portal of <span className="font-semibold text-slate-900">PM SHRI KENDRIYA VIDYALAYA, AIR FORCE STATION SULUR - DLMS</span>. Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-3">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start pt-1 sm:pt-3">
                 {!user ? (
                   <>
-                    <Button onClick={() => navigate("/login")} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
-                      Open Account <ArrowRight className="ml-2 h-5 w-5" />
+                    <Button onClick={() => navigate("/login")} size="lg" className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-base px-6 sm:px-9 py-3 sm:py-3.5 h-12 sm:h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
+                      Open Account <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
-                    <Button onClick={() => navigate("/download")} variant="outline" size="lg" className="text-base px-9 py-3.5 h-14 border-slate-300 bg-white hover:bg-indigo-50/50 hover:text-indigo-600 hover:border-indigo-300 text-slate-800 rounded-xl font-bold shadow-sm transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
-                      <Download className="mr-2 h-5 w-5" /> Download App
+                    <Button onClick={() => navigate("/download")} variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-9 py-3 sm:py-3.5 h-12 sm:h-14 border-slate-300 bg-white hover:bg-indigo-50/50 hover:text-indigo-600 hover:border-indigo-300 text-slate-800 rounded-xl font-bold shadow-xs transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
+                      <Download className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Download App
                     </Button>
                   </>
                 ) : (
-                  <Button onClick={navigateToDashboard} size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white text-base px-9 py-3.5 h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
-                    <LayoutDashboard className="h-5 w-5 mr-2.5" /> Go to Dashboard
+                  <Button onClick={navigateToDashboard} size="lg" className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-base px-6 sm:px-9 py-3 sm:py-3.5 h-12 sm:h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
+                    <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5 mr-2.5" /> Go to Dashboard
                   </Button>
                 )}
               </div>
 
               {/* Stats Band with generous internal padding */}
-              <div className="grid grid-cols-3 gap-6 pt-9 border-t border-slate-200/80 max-w-md mx-auto lg:mx-0">
+              <div className="grid grid-cols-3 gap-2 sm:gap-6 pt-6 sm:pt-9 border-t border-slate-200/80 max-w-md mx-auto lg:mx-0">
                 {[
-                  { v: statistics.totalBooks || statistics.availableCopies, l: "Total Book Copies" },
-                  { v: statistics.booksIssued, l: "Total Issues Done" },
-                  { v: statistics.activeUsers, l: "Total Users" },
+                  { v: statistics.totalBooks || statistics.availableCopies, l: "Total Book Copies", shortL: "Total Copies" },
+                  { v: statistics.booksIssued, l: "Total Issues Done", shortL: "Issues Done" },
+                  { v: statistics.activeUsers, l: "Total Users", shortL: "Total Users" },
                 ].map((s, i) => (
-                  <div key={i} className="text-center lg:text-left px-2">
-                    <p className="text-3xl font-black text-slate-900">{s.v.toLocaleString()}+</p>
-                    <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest mt-2">{s.l}</p>
+                  <div key={i} className="text-center lg:text-left px-1 sm:px-2">
+                    <p className="text-2xl sm:text-3xl font-black text-slate-900">{s.v.toLocaleString()}+</p>
+                    <p className="text-[9px] sm:text-[10px] text-indigo-600 font-bold uppercase tracking-wider sm:tracking-widest mt-1 sm:mt-2">
+                      <span className="hidden sm:inline">{s.l}</span>
+                      <span className="sm:hidden">{s.shortL}</span>
+                    </p>
                   </div>
                 ))}
               </div>

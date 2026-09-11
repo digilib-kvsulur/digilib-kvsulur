@@ -632,7 +632,7 @@ const StudentDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-16 pb-24 lg:pb-0 lg:ml-64 lg:pt-4">
+      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-20 pb-40 lg:pb-8 lg:ml-64 lg:pt-6">
         <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 
@@ -758,26 +758,26 @@ const StudentDashboard = () => {
 
                       return (
                         <div className="space-y-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-12 h-16 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
+                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                              <div className="w-11 h-15 sm:w-12 sm:h-16 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 overflow-hidden mt-0.5">
                                 {activeLoan.books?.cover_url ? (
                                   <img src={activeLoan.books.cover_url} alt="" className="w-full h-full object-cover" />
                                 ) : (
-                                  <BookOpen className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                                  <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-400" />
                                 )}
                               </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <Badge variant="outline" className="text-[10px] font-bold border-amber-500/40 text-amber-600 dark:text-amber-400">
-                                    CURRENTLY BORROWED (1/1 LIMIT)
+                              <div className="min-w-0 flex-1 space-y-1">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <Badge variant="outline" className="text-[9px] sm:text-[10px] font-bold border-amber-500/40 text-amber-600 dark:text-amber-400 py-0.5 px-1.5 leading-none">
+                                    CURRENTLY BORROWED (1/1)
                                   </Badge>
                                   {isOverdue ? (
-                                    <Badge variant="destructive" className="text-[10px] font-bold animate-pulse">
+                                    <Badge variant="destructive" className="text-[9px] sm:text-[10px] font-bold animate-pulse py-0.5 px-1.5 leading-none">
                                       OVERDUE BY {Math.abs(daysRemaining)} {Math.abs(daysRemaining) === 1 ? 'DAY' : 'DAYS'}
                                     </Badge>
                                   ) : (
-                                    <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                                    <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[9px] sm:text-[10px] font-bold py-0.5 px-1.5 leading-none">
                                       {daysRemaining} {daysRemaining === 1 ? 'DAY' : 'DAYS'} LEFT
                                     </Badge>
                                   )}
@@ -790,14 +790,16 @@ const StudentDashboard = () => {
                                 </p>
                               </div>
                             </div>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="text-xs shrink-0 font-medium"
-                              onClick={() => setActiveTab("issues")}
-                            >
-                              Details
-                            </Button>
+                            <div className="flex justify-end pt-0.5 sm:pt-0">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs font-medium h-7 sm:h-8 px-2.5 ml-auto"
+                                onClick={() => setActiveTab("issues")}
+                              >
+                                Details →
+                              </Button>
+                            </div>
                           </div>
 
                           {/* Progress bar */}

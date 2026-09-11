@@ -398,7 +398,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50">
+    <div className="fixed bottom-20 md:bottom-6 right-3.5 md:right-6 z-40">
       {isOpen ? (
         <div className="bg-background border shadow-2xl rounded-2xl w-[350px] max-w-[calc(100vw-2rem)] h-[450px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
           {/* Header */}
@@ -584,9 +584,9 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       ) : (
         <Button 
           onClick={() => setIsOpen(true)}
-          className="h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 transition-transform animate-in zoom-in"
+          className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-transform animate-in zoom-in border border-primary-foreground/20 p-0 flex items-center justify-center"
         >
-          <MessageSquare className="h-6 w-6" />
+          <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
         </Button>
       )}
     </div>
