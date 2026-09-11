@@ -10,7 +10,7 @@ import {
   Calendar, RefreshCw, Star, AlertTriangle, Barcode, HardDrive, Server,
   Gamepad2, AlertCircle, FileSpreadsheet, LifeBuoy, Library as LibraryIcon,
   ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon,
-  Newspaper, Users as UsersIcon, Crown, Sparkles
+  Newspaper, Users as UsersIcon, Crown, Sparkles, Zap
 } from "lucide-react";
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
@@ -55,8 +55,10 @@ import BookOfTheWeek from "@/components/admin/BookOfTheWeek";
 import BookClubManager from "@/components/admin/BookClubManager";
 import StudentBarcodeGenerator from "@/components/admin/StudentBarcodeGenerator";
 import MetadataFetchDashboard from "@/components/admin/MetadataFetchDashboard";
+import ExpressCirculation from "@/components/admin/ExpressCirculation";
+import AcademicYearRollover from "@/components/admin/AcademicYearRollover";
 
-type Tab = "overview" | "users" | "books" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
 
 const navSections = [
   {
@@ -73,6 +75,7 @@ const navSections = [
     title: "Users",
     items: [
       { id: "users" as Tab, label: "User Approval", icon: Users },
+      { id: "academic-rollover" as Tab, label: "Academic Year Rollover", icon: RefreshCw },
       { id: "points" as Tab, label: "Award Points", icon: Award },
       { id: "student-barcodes" as Tab, label: "Student Barcodes", icon: Barcode },
     ],
@@ -80,6 +83,7 @@ const navSections = [
   {
     title: "Library",
     items: [
+      { id: "express-circulation" as Tab, label: "Express Circulation Kiosk", icon: Zap },
       { id: "books" as Tab, label: "Manage Books", icon: BookOpen },
       { id: "metadata-hub" as Tab, label: "Metadata & Cover Hub", icon: Sparkles },
       { id: "circulation" as Tab, label: "Circulation", icon: LibraryIcon },
@@ -416,7 +420,9 @@ const AdminDashboard = () => {
             </div>
           )}
 
-           {activeTab === "users" && <UserApproval />}
+          {activeTab === "users" && <UserApproval />}
+          {activeTab === "academic-rollover" && <AcademicYearRollover />}
+          {activeTab === "express-circulation" && <ExpressCirculation />}
           {activeTab === "books" && <BookManager />}
           {activeTab === "metadata-hub" && <MetadataFetchDashboard />}
           {activeTab === "circulation" && <CirculationDashboard />}

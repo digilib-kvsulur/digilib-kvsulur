@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   CheckCircle, XCircle, Trash2, BookOpen, User, Clock, MessageSquare,
-  Send, BookMarked, Lightbulb, Check, X, Search, Filter, ShieldOff, ShieldAlert
+  Send, BookMarked, Lightbulb, Check, X, Search, Filter, ShieldOff, ShieldAlert, CheckSquare
 } from "lucide-react";
 
 interface BookRequest {
@@ -53,6 +54,7 @@ const BookIssueRequests = () => {
   const [suggestionNotes, setSuggestionNotes] = useState<Record<string, string>>({});
   const [blockClass67, setBlockClass67] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Filter / search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -280,6 +282,86 @@ const BookIssueRequests = () => {
     finally { setDeletingIds(prev => { const s = new Set(prev); s.delete(requestId); return s; }); }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = (list: BookRequest[]) => {
+    const allIds = list.map(r => r.id);
+    const allSelected = allIds.length > 0 && allIds.every(id => selectedIds.has(id));
+    if (allSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        allIds.forEach(id => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        allIds.forEach(id => next.add(id));
+        return next;
+      });
+    }
+  };
+
+  const handleBulkDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Are you sure you want to permanently delete ${selectedIds.size} selected book request(s)?`)) return;
+    setBulkDeleting(true);
+    try {
+      const ids = Array.from(selectedIds);
+      // Try fast RPC first, fall back to .in()
+      const { error: rpcErr } = await supabase.rpc("bulk_delete_book_requests", { p_request_ids: ids });
+      if (rpcErr) {
+        const { error: delErr } = await supabase.from('book_requests').delete().in('id', ids);
+        if (delErr) throw delErr;
+      }
+      toast({ title: "Deleted", description: `Successfully deleted ${ids.length} request(s).` });
+      setSelectedIds(new Set());
+      loadRequests();
+    } catch (err: any) {
+      console.error("Bulk delete error:", err);
+      toast({ title: "Error", description: err.message || "Failed to delete selected requests.", variant: "destructive" });
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteRejected = async () => {
+    const rejected = requests.filter(r => r.status === 'rejected');
+    if (rejected.length === 0) {
+      toast({ title: "No rejected requests", description: "There are no rejected requests to delete." });
+      return;
+    }
+    if (!confirm(`Permanently delete all ${rejected.length} rejected request(s)?`)) return;
+    setBulkDeleting(true);
+    try {
+      const ids = rejected.map(r => r.id);
+      const { error: rpcErr } = await supabase.rpc("bulk_delete_book_requests", { p_request_ids: ids });
+      if (rpcErr) {
+        const { error: delErr } = await supabase.from('book_requests').delete().in('id', ids);
+        if (delErr) throw delErr;
+      }
+      toast({ title: "Deleted", description: `Successfully cleaned up ${ids.length} rejected request(s).` });
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        ids.forEach(id => next.delete(id));
+        return next;
+      });
+      loadRequests();
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Error", description: err.message || "Failed to delete rejected requests.", variant: "destructive" });
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   /** Bulk-delete ALL requests from Class 6 & 7 students */
   const handleBulkDeleteClass67 = async () => {
     const class67Requests = requests.filter(r => isClass67(r.profile?.student_class));
@@ -294,9 +376,11 @@ const BookIssueRequests = () => {
     setBulkDeleting(true);
     try {
       const ids = class67Requests.map(r => r.id);
-      // Ensure we delete in batches or let supabase handle multiple ids (using .in())
-      const { error } = await supabase.from('book_requests').delete().in('id', ids);
-      if (error) throw error;
+      const { error: rpcErr } = await supabase.rpc("bulk_delete_book_requests", { p_request_ids: ids });
+      if (rpcErr) {
+        const { error } = await supabase.from('book_requests').delete().in('id', ids);
+        if (error) throw error;
+      }
       toast({ title: "Success", description: `Deleted ${ids.length} request(s) from Class 6 & 7 students.` });
       loadRequests();
     } catch (error) {
@@ -369,6 +453,11 @@ const BookIssueRequests = () => {
       <div key={request.id} className={`p-4 rounded-xl border bg-card hover:shadow-sm transition-all space-y-3 ${isBlocked ? "border-red-300 dark:border-red-800/50 bg-red-50/30 dark:bg-red-950/10" : "border-border/50"}`}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
+            <Checkbox
+              checked={selectedIds.has(request.id)}
+              onCheckedChange={() => toggleSelect(request.id)}
+              className="mr-1 h-4 w-4"
+            />
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <User className="h-4 w-4 text-primary" />
             </div>
@@ -461,6 +550,11 @@ const BookIssueRequests = () => {
     <div key={request.id} className="p-4 rounded-xl border border-border/50 bg-card hover:shadow-sm transition-all space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
+          <Checkbox
+            checked={selectedIds.has(request.id)}
+            onCheckedChange={() => toggleSelect(request.id)}
+            className="mr-1 h-4 w-4"
+          />
           <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
             <BookMarked className="h-4 w-4 text-violet-600" />
           </div>
@@ -653,6 +747,62 @@ const BookIssueRequests = () => {
               <SelectItem value="oldest">Oldest First</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      {/* ── Bulk Actions & Selection Toolbar ────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-muted/40 rounded-xl border border-border/70">
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5 font-medium"
+            onClick={() => handleSelectAll(requests)}
+          >
+            <CheckSquare className="h-3.5 w-3.5 text-primary" />
+            {requests.length > 0 && requests.every(r => selectedIds.has(r.id)) ? "Deselect All" : `Select All (${requests.length})`}
+          </Button>
+          {selectedIds.size > 0 && (
+            <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5">
+              {selectedIds.size} Selected
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {selectedIds.size > 0 && (
+            <>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="h-8 text-xs gap-1.5 shadow-xs"
+                disabled={bulkDeleting}
+                onClick={handleBulkDeleteSelected}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {bulkDeleting ? "Deleting…" : `Delete Selected (${selectedIds.size})`}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-muted-foreground"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Clear
+              </Button>
+            </>
+          )}
+          {requests.some(r => r.status === 'rejected') && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/20 gap-1.5"
+              disabled={bulkDeleting}
+              onClick={handleBulkDeleteRejected}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Clean All Rejected ({requests.filter(r => r.status === 'rejected').length})
+            </Button>
+          )}
         </div>
       </div>
 

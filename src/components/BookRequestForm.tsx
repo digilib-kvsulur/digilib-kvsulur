@@ -36,17 +36,50 @@ const BookRequestForm = ({ open, onOpenChange, onSuccess }: BookRequestFormProps
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast({ title: "Auth Error", description: "Please log in.", variant: "destructive" }); return; }
 
-      const { error } = await supabase.from('book_requests').insert({
-        book_id: null,
-        user_id: user.id,
-        requested_title: formData.title,
-        requested_author: formData.author,
-        requested_isbn: formData.isbn || null,
-        requested_description: formData.description || null,
-        admin_notes: formData.reason ? `Reason: ${formData.reason}` : null,
-        status: 'pending'
+      let overwritten = false;
+      let overwrittenTitle = "";
+
+      // Try atomic RPC first
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc("submit_book_request", {
+        p_book_id: null,
+        p_requested_title: formData.title,
+        p_requested_author: formData.author,
+        p_requested_isbn: formData.isbn || null,
+        p_requested_description: formData.description || null,
+        p_admin_notes: formData.reason ? `Reason: ${formData.reason}` : null
       });
-      if (error) throw error;
+
+      if (!rpcErr && rpcRes) {
+        overwritten = (rpcRes as any).overwritten;
+        overwrittenTitle = (rpcRes as any).overwritten_title;
+      } else {
+        // Fallback client-side limit enforcement: max 2 pending requests
+        const { data: pendingReqs } = await supabase
+          .from("book_requests")
+          .select("id, requested_title, created_at")
+          .eq("user_id", user.id)
+          .eq("status", "pending")
+          .order("created_at", { ascending: true });
+
+        if (pendingReqs && pendingReqs.length >= 2) {
+          const oldest = pendingReqs[0];
+          overwritten = true;
+          overwrittenTitle = oldest.requested_title || "Previous Request";
+          await supabase.from("book_requests").delete().eq("id", oldest.id);
+        }
+
+        const { error } = await supabase.from('book_requests').insert({
+          book_id: null,
+          user_id: user.id,
+          requested_title: formData.title,
+          requested_author: formData.author,
+          requested_isbn: formData.isbn || null,
+          requested_description: formData.description || null,
+          admin_notes: formData.reason ? `Reason: ${formData.reason}` : null,
+          status: 'pending'
+        });
+        if (error) throw error;
+      }
 
       // Auto-add to book_suggestions table
       await supabase.from("book_suggestions").insert({
@@ -65,7 +98,14 @@ const BookRequestForm = ({ open, onOpenChange, onSuccess }: BookRequestFormProps
         user_id: user.id
       });
 
-      toast({ title: "Request Submitted! 🎉", description: "Your book request has been sent to the admin for review." });
+      if (overwritten) {
+        toast({
+          title: "Request Submitted (Limit: 2)",
+          description: `You can have at most 2 pending requests. Your oldest request for "${overwrittenTitle || 'earlier book'}" was automatically replaced.`,
+        });
+      } else {
+        toast({ title: "Request Submitted! 🎉", description: "Your book request has been sent to the admin for review." });
+      }
       resetForm();
       onOpenChange(false);
       onSuccess?.();

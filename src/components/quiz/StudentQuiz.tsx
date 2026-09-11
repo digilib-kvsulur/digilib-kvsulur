@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   Clock, Award, CheckCircle, AlertCircle, ChevronLeft,
   ChevronRight, Trophy, Zap, Star, RotateCcw, Home,
-  BookOpen, Target, Timer, Check, X
+  BookOpen, Target, Timer, Check, X, ShieldAlert, ShieldCheck
 } from "lucide-react";
 import { Quiz, QuizResult, QuestionResult } from "@/types/quiz";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,9 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
   const [submitting, setSubmitting] = useState(false);
   const [showSubmitWarning, setShowSubmitWarning] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [tabSwitches, setTabSwitches] = useState(0);
+  const [showTabWarning, setShowTabWarning] = useState(false);
+  const [autoSubmitReason, setAutoSubmitReason] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => { checkPreviousAttempt(); }, [quiz.id]);
@@ -50,6 +54,62 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
       if (data) { setAlreadyTaken(true); setAlreadyTakenData(data); }
     } catch (e) { console.error(e); }
     finally { setCheckingAttempt(false); }
+  };
+
+  // Proctored Anti-Cheating: Tab switch, blur & inspect restrictions
+  useEffect(() => {
+    if (isCompleted || alreadyTaken || checkingAttempt) return;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        handleSecurityViolation("Tab switch / application minimized");
+      }
+    };
+
+    const onBlur = () => {
+      handleSecurityViolation("Window focus lost");
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === "F12" ||
+        (e.ctrlKey && (e.key === "c" || e.key === "C" || e.key === "u" || e.key === "U" || e.key === "i" || e.key === "I" || e.key === "s" || e.key === "S")) ||
+        (e.metaKey && (e.key === "c" || e.key === "C" || e.key === "u" || e.key === "U"))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        toast({
+          title: "Restricted in Quiz Mode",
+          description: "Copying text, developer tools, and view source are disabled during the quiz.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isCompleted, alreadyTaken, checkingAttempt, tabSwitches]);
+
+  const handleSecurityViolation = (reason: string) => {
+    if (isCompleted || alreadyTaken || submitting) return;
+    const next = tabSwitches + 1;
+    setTabSwitches(next);
+
+    if (next >= 2) {
+      setAutoSubmitReason(`${reason} (Exceeded 2 allowed infractions)`);
+      setShowTabWarning(false);
+      void handleSubmitQuiz(true, `${reason} (Exceeded limit)`);
+    } else {
+      setShowTabWarning(true);
+    }
   };
 
   // Timer
@@ -123,7 +183,7 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
     };
   }, [answers, quiz, timeRemaining]);
 
-  const handleSubmitQuiz = async (forceSubmit = false) => {
+  const handleSubmitQuiz = async (forceSubmit = false, reason?: string) => {
     if (alreadyTaken || submitting) return;
 
     if (!forceSubmit && unansweredCount > 0) {
@@ -134,6 +194,7 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
     setShowSubmitWarning(false);
     setSubmitting(true);
     setIsCompleted(true);
+    if (reason) setAutoSubmitReason(reason);
 
     const result = calculateResult();
 
@@ -169,6 +230,14 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
 
       setQuizResult(result);
       setShowResult(true);
+
+      if (reason) {
+        toast({
+          title: "Quiz Auto-Submitted",
+          description: reason,
+          variant: "destructive",
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast({ title: "Error saving result", description: e.message, variant: "destructive" });
@@ -254,6 +323,13 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
               <p className="text-sm text-muted-foreground mt-1">{correctAnswers} of {totalQuestions} correct · {Math.floor(timeSpent / 60)}m {timeSpent % 60}s</p>
             </div>
 
+            {autoSubmitReason && (
+              <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl p-3 text-xs text-red-600 font-medium flex items-center justify-center gap-2">
+                <ShieldAlert className="h-4 w-4 shrink-0" />
+                <span>{autoSubmitReason}</span>
+              </div>
+            )}
+
             {/* Points Breakdown */}
             <div className="grid grid-cols-3 gap-3">
               <div className={`rounded-2xl p-3 ${grade.bg}`}>
@@ -322,7 +398,42 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
   const perQuestionPts = Math.round((Number(quiz.pointsReward) || 50) / quiz.questions.length);
 
   return (
-    <div className="max-w-4xl mx-auto px-2 pb-8">
+    <div
+      className="max-w-4xl mx-auto px-2 pb-8 select-none"
+      onContextMenu={(e) => e.preventDefault()}
+      onCopy={(e) => e.preventDefault()}
+    >
+      {/* Security Violation Modal */}
+      <Dialog open={showTabWarning} onOpenChange={setShowTabWarning}>
+        <DialogContent className="max-w-md border-red-300 dark:border-red-900/60">
+          <DialogHeader className="space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/40 text-red-600 flex items-center justify-center mx-auto">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center text-lg font-bold text-red-600">
+              Proctoring Violation: Tab Switch Detected!
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm text-foreground space-y-2">
+              <p>Navigating away from the quiz window or switching browser tabs is strictly prohibited.</p>
+              <p className="font-semibold text-red-600">
+                Violation {tabSwitches} of 2 recorded.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                If another tab switch occurs, your quiz will be <strong>terminated and submitted automatically</strong> with your current answers.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl"
+              onClick={() => setShowTabWarning(false)}
+            >
+              I Understand &amp; Resume Quiz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Top Bar */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 -mx-2 px-4 py-3 mb-5">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
@@ -333,13 +444,16 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
             <p className="text-xs font-semibold text-muted-foreground truncate">{quiz.title}</p>
             <Progress value={progress} className="h-1.5 mt-1" />
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="text-xs text-muted-foreground font-medium">{answeredCount}/{quiz.questions.length}</span>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <Badge variant="outline" className="text-[11px] items-center gap-1 bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <ShieldCheck className="h-3 w-3 text-emerald-600" /> Proctored ({tabSwitches}/2)
+            </Badge>
+            <span className="text-xs text-muted-foreground font-medium hidden sm:inline">{answeredCount}/{quiz.questions.length}</span>
             <div className={`flex items-center gap-1 font-mono font-bold text-sm ${timeColor}`}>
               <Timer className="h-3.5 w-3.5" />
               {formatTime(timeRemaining)}
             </div>
-            <Badge variant="outline" className="text-xs hidden sm:inline-flex">
+            <Badge variant="outline" className="text-xs hidden md:inline-flex">
               <Award className="h-3 w-3 mr-1 text-amber-500" /> {quiz.pointsReward} pts
             </Badge>
           </div>

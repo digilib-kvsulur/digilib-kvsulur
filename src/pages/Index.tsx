@@ -174,6 +174,7 @@ const Index = () => {
   const loadStatistics = async () => {
     try {
       const [
+        { data: rpcTotalCopies },
         { data: bCopies },
         { data: uCount },
         { data: borrowCounts },
@@ -181,6 +182,7 @@ const Index = () => {
         { count: iCount },
         { count: rCount }
       ] = await Promise.all([
+        supabase.rpc("get_total_book_copies"),
         supabase.from("books").select("available_copies, total_copies"),
         supabase.rpc("get_active_users_count"),
         supabase.rpc("get_book_borrow_counts"),
@@ -193,7 +195,8 @@ const Index = () => {
         (acc: number, row: any) => acc + (row.available_copies !== null && row.available_copies !== undefined ? Number(row.available_copies) : (row.total_copies || 1)),
         0
       );
-      const totalCopies = (bCopies || []).reduce((acc: number, row: any) => acc + (row.total_copies || 1), 0);
+      const fallbackTotalCopies = (bCopies || []).reduce((acc: number, row: any) => acc + (row.total_copies || 1), 0);
+      const totalCopies = typeof rpcTotalCopies === "number" && rpcTotalCopies > 0 ? rpcTotalCopies : fallbackTotalCopies;
 
       // Total issues count calculation (all-time issues done till now)
       let totalHistoricalIssues = 0;
@@ -447,7 +450,7 @@ const Index = () => {
               {/* Stats Band with generous internal padding */}
               <div className="grid grid-cols-3 gap-6 pt-9 border-t border-slate-200/80 max-w-md mx-auto lg:mx-0">
                 {[
-                  { v: statistics.availableCopies || statistics.totalBooks, l: "Copies Available" },
+                  { v: statistics.totalBooks || statistics.availableCopies, l: "Total Book Copies" },
                   { v: statistics.booksIssued, l: "Total Issues Done" },
                   { v: statistics.activeUsers, l: "Total Users" },
                 ].map((s, i) => (

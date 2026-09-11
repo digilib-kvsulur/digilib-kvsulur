@@ -178,7 +178,10 @@ const Catalog = () => {
 
       // Enrich the visible page in the background (does not block rendering)
       if (data && data.length > 0) {
-        const bookIds = data.slice(0, pageSize).map(b => b.id);
+        const visibleSlice = debouncedSearch.trim()
+          ? data.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+          : data;
+        const bookIds = visibleSlice.map(b => b.id);
         setBorrowCounts(Object.fromEntries(data.map((b: any) => [b.id, b.issue_count || 0])));
         void (async () => {
           const [{ data: rev }, { data: recs }] = await Promise.all([
@@ -206,7 +209,9 @@ const Catalog = () => {
   };
 
   const oneMonthAgo = Date.now() - 30 * 86400_000;
-  const filteredBooks = books;
+  const displayedBooks = debouncedSearch.trim()
+    ? books.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    : books;
 
   const requireAuth = () => { if (!user) { toast({ title: "Sign in required", variant: "destructive" }); navigate("/login"); return false; } return true; };
 
@@ -241,10 +246,47 @@ const Catalog = () => {
   const requestBook = async (bookId: string) => {
     if (!requireAuth()) return;
     const { data: existing } = await supabase.from("book_requests").select("id").eq("book_id", bookId).eq("user_id", user.id).eq("status", "pending").maybeSingle();
-    if (existing) { toast({ title: "Already requested", variant: "destructive" }); return; }
-    const { error } = await supabase.from("book_requests").insert({ book_id: bookId, user_id: user.id });
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Request submitted" });
+    if (existing) { toast({ title: "Already requested", description: "You already have a pending request for this title.", variant: "destructive" }); return; }
+
+    let overwritten = false;
+    let overwrittenTitle = "";
+
+    // Try atomic RPC
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc("submit_book_request", {
+      p_book_id: bookId
+    });
+
+    if (!rpcErr && rpcRes) {
+      overwritten = (rpcRes as any).overwritten;
+      overwrittenTitle = (rpcRes as any).overwritten_title;
+    } else {
+      // Fallback: check pending count
+      const { data: pendingReqs } = await supabase
+        .from("book_requests")
+        .select("id, requested_title, books(title), created_at")
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: true });
+
+      if (pendingReqs && pendingReqs.length >= 2) {
+        const oldest = pendingReqs[0];
+        overwritten = true;
+        overwrittenTitle = oldest.requested_title || (oldest.books as any)?.title || "Previous Request";
+        await supabase.from("book_requests").delete().eq("id", oldest.id);
+      }
+
+      const { error } = await supabase.from("book_requests").insert({ book_id: bookId, user_id: user.id });
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    }
+
+    if (overwritten) {
+      toast({
+        title: "Request submitted (Limit: 2)",
+        description: `Max 2 active requests allowed. Your oldest request ("${overwrittenTitle}") was automatically replaced.`,
+      });
+    } else {
+      toast({ title: "Request submitted", description: "Your book borrow request was sent to the librarian." });
+    }
   };
 
   const skeletonGrid = (
@@ -541,10 +583,10 @@ const Catalog = () => {
               </Badge>
             </div>
 
-            {loading ? skeletonGrid : filteredBooks.length > 0 ? (
+            {loading ? skeletonGrid : displayedBooks.length > 0 ? (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
-                  {filteredBooks.map(book => {
+                  {displayedBooks.map(book => {
                     const r = ratings[book.id];
                     const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
                     return (

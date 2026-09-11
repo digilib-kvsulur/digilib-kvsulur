@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { X, DownloadCloud } from "lucide-react";
 import DeveloperMessagePopup from "@/components/global/DeveloperMessagePopup";
 import { Seo } from "@/components/seo/Seo";
+import { GlobalNotificationsProvider } from "@/components/global/GlobalNotificationsProvider";
+import { CommandPalette } from "@/components/global/CommandPalette";
 
 const queryClient = new QueryClient();
 const Login = lazy(() => import("./pages/Login"));
@@ -191,66 +193,69 @@ const App = () => {
         <Toaster />
         <Sonner position="top-right" richColors closeButton />
         <AppRouter>
-          <Seo />
-          <UpdateBanner />
-          <PWAInstallBanner />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<DashboardRedirect />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/catalog" element={<Catalog />} />
-              <Route path="/support" element={<Support />} />
-              <Route path="/feedback" element={<Feedback />} />
-              <Route path="/download" element={<Download />} />
-              <Route
-                path="/student-dashboard"
-                element={(
-                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                    <StudentDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/admin-dashboard"
-                element={(
-                  <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/points-history"
-                element={(
-                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                    <PointsHistory />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/student-portfolio"
-                element={(
-                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                    <StudentPortfolio embedded={false} />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route path="/portfolio/:username" element={<StudentPortfolio embedded={false} />} />
-              <Route
-                path="/teacher-dashboard"
-                element={(
-                  <ProtectedRoute allowedRoles={TEACHER_ROLES}>
-                    <TeacherDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route path="/book/:id" element={<BookDetails />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+          <GlobalNotificationsProvider>
+            <CommandPalette />
+            <Seo />
+            <UpdateBanner />
+            <PWAInstallBanner />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/dashboard" element={<DashboardRedirect />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/catalog" element={<Catalog />} />
+                <Route path="/support" element={<Support />} />
+                <Route path="/feedback" element={<Feedback />} />
+                <Route path="/download" element={<Download />} />
+                <Route
+                  path="/student-dashboard"
+                  element={(
+                    <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                      <StudentDashboard />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route
+                  path="/admin-dashboard"
+                  element={(
+                    <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route
+                  path="/points-history"
+                  element={(
+                    <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                      <PointsHistory />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route
+                  path="/student-portfolio"
+                  element={(
+                    <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                      <StudentPortfolio embedded={false} />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route path="/portfolio/:username" element={<StudentPortfolio embedded={false} />} />
+                <Route
+                  path="/teacher-dashboard"
+                  element={(
+                    <ProtectedRoute allowedRoles={TEACHER_ROLES}>
+                      <TeacherDashboard />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route path="/book/:id" element={<BookDetails />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </GlobalNotificationsProvider>
         </AppRouter>
       </TooltipProvider>
     </QueryClientProvider>
