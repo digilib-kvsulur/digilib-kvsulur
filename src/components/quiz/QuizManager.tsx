@@ -255,10 +255,12 @@ const QuizManager = () => {
       const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       const isoScheduled = new Date(scheduledDateTime).toISOString();
 
-      const { error } = await supabase.from("quiz_sessions").insert({
+      // Use status: "waiting" which is permitted by all check constraints ('waiting', 'in_progress', 'completed')
+      // and differentiates scheduled leagues via scheduled_start_at and is_league.
+      const payload: any = {
         quiz_id: selectedQuizId,
         host_id: user.id,
-        status: "scheduled",
+        status: "waiting",
         room_code: roomCode,
         league_name: leagueName || "Live Quiz League",
         scheduled_start_at: isoScheduled,
@@ -268,7 +270,21 @@ const QuizManager = () => {
         streak_bonus: streakBonus,
         auto_start: autoStart,
         is_league: true,
-      });
+      };
+
+      let { error } = await supabase.from("quiz_sessions").insert(payload);
+
+      // If newer columns aren't yet migrated in remote Supabase, fallback gracefully to core columns
+      if (error && (error.message?.includes("column") || error.message?.includes("does not exist"))) {
+        const fallbackPayload = {
+          quiz_id: selectedQuizId,
+          host_id: user.id,
+          status: "waiting",
+          room_code: roomCode,
+        };
+        const res = await supabase.from("quiz_sessions").insert(fallbackPayload);
+        error = res.error;
+      }
 
       if (error) throw error;
 
@@ -738,13 +754,14 @@ const QuizManager = () => {
                       >
                         <div className="space-y-1.5 min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            {session.status === "waiting" ? (
+                            {session.status === "waiting" && session.scheduled_start_at && new Date(session.scheduled_start_at).getTime() > Date.now() ? (
+                              <Badge className="bg-indigo-600 text-white font-bold px-2 py-0.5 gap-1">
+                                <Clock className="h-3 w-3 text-amber-300" />
+                                ⏳ Scheduled
+                              </Badge>
+                            ) : session.status === "waiting" ? (
                               <Badge className="bg-emerald-500 text-white font-black animate-pulse px-2 py-0.5">
                                 🔴 LOBBY OPEN NOW
-                              </Badge>
-                            ) : session.status === "scheduled" ? (
-                              <Badge className="bg-indigo-500 text-white font-bold px-2 py-0.5">
-                                ⏳ Scheduled
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="text-muted-foreground">

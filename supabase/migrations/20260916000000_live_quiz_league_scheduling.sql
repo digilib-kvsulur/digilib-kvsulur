@@ -11,6 +11,11 @@ ALTER TABLE public.quiz_sessions ADD COLUMN IF NOT EXISTS streak_bonus boolean D
 ALTER TABLE public.quiz_sessions ADD COLUMN IF NOT EXISTS auto_start boolean DEFAULT true;
 ALTER TABLE public.quiz_sessions ADD COLUMN IF NOT EXISTS is_league boolean DEFAULT false;
 
+-- Update status check constraint to include 'scheduled'
+ALTER TABLE public.quiz_sessions DROP CONSTRAINT IF EXISTS quiz_sessions_status_check;
+ALTER TABLE public.quiz_sessions ADD CONSTRAINT quiz_sessions_status_check 
+  CHECK (status IN ('waiting', 'in_progress', 'completed', 'active', 'finished', 'scheduled'));
+
 -- 2. Create quiz_league_registrations table for student pre-registration
 CREATE TABLE IF NOT EXISTS public.quiz_league_registrations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
