@@ -680,6 +680,8 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
               </Button>
             </div>
           </div>
+        )}
+
         {/* Real-time Warning Banner if strikes occurred */}
         {proctorWarning && (
           <div className="bg-rose-500 text-white px-4 py-2 text-xs font-bold flex items-center justify-between animate-pulse">
