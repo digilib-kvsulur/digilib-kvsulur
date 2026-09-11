@@ -19,6 +19,7 @@ import {
 } from "@/lib/librarySettings";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Clock, MessageSquare, Megaphone, DownloadCloud, Key } from "lucide-react";
 import LibraryBotMessagesManager from "@/components/admin/LibraryBotMessagesManager";
 import LibraryMapConfigEditor from "@/components/admin/LibraryMapConfigEditor";
