@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Users, Play, Loader2, Copy, Check, Calendar, Clock, Sparkles, Volume2, ShieldCheck, LogOut } from "lucide-react";
+import { Users, Play, Loader2, Copy, Check, Calendar, Clock, Sparkles, Volume2, ShieldCheck, LogOut, Share2 } from "lucide-react";
 import { quizAudio } from "@/lib/quizAudio";
 
 interface MultiplayerLobbyProps {
@@ -31,6 +31,7 @@ export const MultiplayerLobby = ({
   const [autoStart, setAutoStart] = useState<boolean>(false);
   const [timeUntilStart, setTimeUntilStart] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
 
@@ -188,6 +189,34 @@ export const MultiplayerLobby = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleShareCode = async () => {
+    const shareUrl = `${window.location.origin}/student-dashboard?tab=quizzes&room=${roomCode}`;
+    const shareText = `🏆 Join the PM SHRI KV Sulur Live Quiz League!\nQuiz: ${quizTitle}\nRoom Code: ${roomCode}\nLink: ${shareUrl}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join Quiz League - ${quizTitle}`,
+          text: shareText,
+          url: shareUrl,
+        });
+        setShared(true);
+        setTimeout(() => setShared(false), 2000);
+        return;
+      } catch (e: any) {
+        if (e.name !== "AbortError") {
+          navigator.clipboard.writeText(shareText);
+          toast.success("Share link & code copied to clipboard!");
+        }
+      }
+    } else {
+      navigator.clipboard.writeText(shareText);
+      setShared(true);
+      toast.success("Share link & code copied to clipboard!");
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
+
   const handleStart = async () => {
     if (!sessionId) return;
     try {
@@ -211,7 +240,7 @@ export const MultiplayerLobby = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/98 backdrop-blur-xl flex flex-col items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] w-screen h-dvh bg-background/98 backdrop-blur-xl flex flex-col items-center justify-center p-3 sm:p-6 overflow-y-auto">
       {/* Top Header with Leave Button */}
       <div className="w-full max-w-2xl flex items-center justify-between pb-3 px-1">
         <div className="flex items-center gap-2">
@@ -245,12 +274,12 @@ export const MultiplayerLobby = ({
 
       <CardHeader className="text-center pb-2">
         {/* Room Code Card */}
-        <div className="inline-flex items-center gap-3 bg-muted/80 border border-primary/20 rounded-2xl px-5 py-3 mx-auto shadow-inner">
-          <div className="text-left">
+        <div className="inline-flex items-center gap-2 sm:gap-3 bg-muted/80 border border-primary/20 rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3 mx-auto shadow-inner">
+          <div className="text-left pr-1">
             <span className="text-[10px] text-muted-foreground uppercase font-black block tracking-wider">
               Room Code
             </span>
-            <span className="font-mono text-2xl sm:text-3xl font-black text-primary tracking-widest">
+            <span className="font-mono text-xl sm:text-3xl font-black text-primary tracking-widest">
               {roomCode || "••••••"}
             </span>
           </div>
@@ -258,9 +287,19 @@ export const MultiplayerLobby = ({
             variant="outline"
             size="sm"
             onClick={handleCopyCode}
-            className="h-10 px-3 rounded-xl border-dashed hover:border-primary"
+            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border-dashed hover:border-primary"
+            title="Copy room code"
           >
             {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShareCode}
+            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border-dashed hover:border-indigo-500 text-indigo-600"
+            title="Share league invite link"
+          >
+            {shared ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 className="h-4 w-4" />}
           </Button>
         </div>
 
@@ -325,8 +364,8 @@ export const MultiplayerLobby = ({
         </div>
 
         {/* Action Controls */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <Button variant="outline" onClick={onCancel} className="h-12 rounded-xl text-sm font-bold">
+        <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2.5 pt-2">
+          <Button variant="outline" onClick={onCancel} className="h-11 sm:h-12 rounded-xl text-xs sm:text-sm font-bold order-2 sm:order-1">
             Leave Lobby
           </Button>
 
@@ -334,13 +373,13 @@ export const MultiplayerLobby = ({
             <Button
               onClick={handleStart}
               disabled={loading || participants.length === 0}
-              className="h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-base shadow-lg shadow-emerald-600/20"
+              className="h-11 sm:h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm sm:text-base shadow-lg shadow-emerald-600/20 order-1 sm:order-2"
             >
-              <Play className="h-5 w-5 mr-2 fill-current" />
+              <Play className="h-4 sm:h-5 w-4 sm:w-5 mr-2 fill-current" />
               Launch Live Quiz
             </Button>
           ) : (
-            <Button disabled className="h-12 rounded-xl text-sm font-bold">
+            <Button disabled className="h-11 sm:h-12 rounded-xl text-xs sm:text-sm font-bold order-1 sm:order-2">
               <Loader2 className="h-4 w-4 mr-2 animate-spin text-primary" />
               Waiting for Host to Start...
             </Button>

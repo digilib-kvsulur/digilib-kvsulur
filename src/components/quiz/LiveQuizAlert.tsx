@@ -5,11 +5,12 @@ import { Zap, Play } from "lucide-react";
 import { MultiplayerLobby } from "./MultiplayerLobby";
 import { LiveQuizRunner } from "./LiveQuizRunner";
 
-export const LiveQuizAlert = () => {
+interface LiveQuizAlertProps {
+  onJoinLeague?: (session: any) => void;
+}
+
+export const LiveQuizAlert = ({ onJoinLeague }: LiveQuizAlertProps) => {
   const [activeSession, setActiveSession] = useState<any>(null);
-  const [showLobby, setShowLobby] = useState(false);
-  const [showRunner, setShowRunner] = useState(false);
-  const [quizDetails, setQuizDetails] = useState<any>(null);
 
   useEffect(() => {
     checkActiveSessions();
@@ -33,37 +34,18 @@ export const LiveQuizAlert = () => {
     
     if (data) {
       setActiveSession(data);
-      setQuizDetails(data.quizzes);
     } else {
       setActiveSession(null);
     }
   };
 
-  if (showRunner && quizDetails) {
-    return (
-      <LiveQuizRunner
-        quiz={quizDetails}
-        sessionId={activeSession.id}
-        isHost={false}
-        onFinish={() => { setShowRunner(false); setShowLobby(false); setActiveSession(null); checkActiveSessions(); }}
-      />
-    );
-  }
-
-  if (showLobby && quizDetails) {
-    return (
-      <MultiplayerLobby
-        quizId={quizDetails.id}
-        quizTitle={activeSession.league_name || quizDetails.title}
-        isHost={false}
-        existingSessionId={activeSession.id}
-        onStart={() => { setShowLobby(false); setShowRunner(true); }}
-        onCancel={() => setShowLobby(false)}
-      />
-    );
-  }
-
   if (!activeSession) return null;
+
+  const handleJoin = () => {
+    if (onJoinLeague) {
+      onJoinLeague(activeSession);
+    }
+  };
 
   return (
     <div className="bg-indigo-600 rounded-xl p-4 flex items-center justify-between text-white shadow-lg animate-in slide-in-from-top-4 mb-4">
@@ -77,10 +59,10 @@ export const LiveQuizAlert = () => {
         </div>
       </div>
       <Button 
-        onClick={() => setShowLobby(true)}
-        className="bg-white text-indigo-700 hover:bg-indigo-50 font-bold"
+        onClick={handleJoin}
+        className="bg-white text-indigo-700 hover:bg-indigo-50 font-bold shrink-0 ml-3"
       >
-        <Play className="h-4 w-4 mr-2" /> Join Now
+        <Play className="h-4 w-4 mr-2 fill-current" /> Join Now
       </Button>
     </div>
   );

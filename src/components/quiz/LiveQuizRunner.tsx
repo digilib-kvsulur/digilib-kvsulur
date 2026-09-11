@@ -490,52 +490,52 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     const top3 = participants[2];
 
     return (
-      <div className="fixed inset-0 z-50 bg-background/98 backdrop-blur-xl overflow-y-auto flex items-center justify-center p-4 sm:p-6">
+      <div className="fixed inset-0 z-[100] w-screen h-dvh bg-background/98 backdrop-blur-xl overflow-y-auto flex items-center justify-center p-2 sm:p-6">
         <Card className="max-w-3xl w-full shadow-2xl border-2 border-amber-500/40 overflow-hidden bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-950 text-white animate-in zoom-in-95 duration-500 my-auto">
-          <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-400 p-6 text-slate-950 text-center relative overflow-hidden">
-            <Sparkles className="h-6 w-6 absolute top-3 left-4 animate-spin" />
-            <Sparkles className="h-6 w-6 absolute bottom-3 right-4 animate-spin" />
-            <Trophy className="h-12 w-12 mx-auto mb-2 fill-current" />
-            <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">Quiz League Finale!</h2>
-            <p className="font-bold text-sm opacity-90">{quiz.title}</p>
+          <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-400 p-4 sm:p-6 text-slate-950 text-center relative overflow-hidden">
+            <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 absolute top-2 sm:top-3 left-3 sm:left-4 animate-spin" />
+            <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 absolute bottom-2 sm:bottom-3 right-3 sm:right-4 animate-spin" />
+            <Trophy className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-1.5 sm:mb-2 fill-current" />
+            <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tight">Quiz League Finale!</h2>
+            <p className="font-bold text-xs sm:text-sm opacity-90 truncate max-w-md mx-auto">{quiz.title}</p>
           </div>
 
-          <CardContent className="p-6 sm:p-8 space-y-8">
+          <CardContent className="p-3 sm:p-8 space-y-5 sm:space-y-8">
             {/* Olympic Podium */}
-            <div className="flex items-end justify-center gap-3 sm:gap-6 pt-6 pb-2">
+            <div className="flex items-end justify-center gap-1.5 sm:gap-6 pt-3 sm:pt-6 pb-2 max-w-full px-1">
               {/* 2nd Place */}
-              <div className="flex flex-col items-center flex-1 max-w-[130px]">
-                <div className="text-center mb-2">
-                  <Medal className="h-7 w-7 text-slate-300 mx-auto" />
-                  <p className="text-xs font-bold truncate mt-1">{top2?.name || "Runner Up"}</p>
-                  <p className="text-[11px] font-mono text-slate-400">{top2?.score || 0} pts</p>
+              <div className="flex flex-col items-center flex-1 max-w-[95px] sm:max-w-[130px] min-w-0">
+                <div className="text-center mb-1.5 sm:mb-2 w-full px-0.5">
+                  <Medal className="h-5 w-5 sm:h-7 sm:w-7 text-slate-300 mx-auto" />
+                  <p className="text-[10px] sm:text-xs font-bold truncate mt-1 w-full">{top2?.name || "Runner Up"}</p>
+                  <p className="text-[9px] sm:text-[11px] font-mono text-slate-400">{top2?.score || 0} pts</p>
                 </div>
-                <div className="w-full h-24 sm:h-28 bg-gradient-to-t from-slate-800 to-slate-600 rounded-t-2xl flex items-center justify-center border-t-2 border-slate-400 shadow-lg">
-                  <span className="text-2xl sm:text-3xl font-black text-slate-200">2nd</span>
+                <div className="w-full h-20 sm:h-28 bg-gradient-to-t from-slate-800 to-slate-600 rounded-t-xl sm:rounded-t-2xl flex items-center justify-center border-t-2 border-slate-400 shadow-lg">
+                  <span className="text-xl sm:text-3xl font-black text-slate-200">2nd</span>
                 </div>
               </div>
 
               {/* 1st Place */}
-              <div className="flex flex-col items-center flex-1 max-w-[150px]">
-                <div className="text-center mb-2">
-                  <Trophy className="h-9 w-9 text-amber-300 mx-auto fill-amber-300 animate-bounce" />
-                  <p className="text-sm font-black truncate mt-1 text-amber-300">{top1?.name || "Champion"}</p>
-                  <p className="text-xs font-mono font-bold text-amber-400">{top1?.score || 0} pts</p>
+              <div className="flex flex-col items-center flex-1 max-w-[115px] sm:max-w-[150px] min-w-0">
+                <div className="text-center mb-1.5 sm:mb-2 w-full px-0.5">
+                  <Trophy className="h-7 w-7 sm:h-9 sm:w-9 text-amber-300 mx-auto fill-amber-300 animate-bounce" />
+                  <p className="text-xs sm:text-sm font-black truncate mt-1 text-amber-300 w-full">{top1?.name || "Champion"}</p>
+                  <p className="text-[10px] sm:text-xs font-mono font-bold text-amber-400">{top1?.score || 0} pts</p>
                 </div>
-                <div className="w-full h-36 sm:h-40 bg-gradient-to-t from-amber-700 via-amber-500 to-yellow-400 rounded-t-2xl flex items-center justify-center border-t-4 border-yellow-200 shadow-2xl shadow-amber-500/40">
-                  <span className="text-3xl sm:text-4xl font-black text-slate-950">1st</span>
+                <div className="w-full h-28 sm:h-40 bg-gradient-to-t from-amber-700 via-amber-500 to-yellow-400 rounded-t-xl sm:rounded-t-2xl flex items-center justify-center border-t-4 border-yellow-200 shadow-2xl shadow-amber-500/40">
+                  <span className="text-2xl sm:text-4xl font-black text-slate-950">1st</span>
                 </div>
               </div>
 
               {/* 3rd Place */}
-              <div className="flex flex-col items-center flex-1 max-w-[130px]">
-                <div className="text-center mb-2">
-                  <Medal className="h-7 w-7 text-amber-700 mx-auto" />
-                  <p className="text-xs font-bold truncate mt-1">{top3?.name || "Contender"}</p>
-                  <p className="text-[11px] font-mono text-amber-600">{top3?.score || 0} pts</p>
+              <div className="flex flex-col items-center flex-1 max-w-[95px] sm:max-w-[130px] min-w-0">
+                <div className="text-center mb-1.5 sm:mb-2 w-full px-0.5">
+                  <Medal className="h-5 w-5 sm:h-7 sm:w-7 text-amber-700 mx-auto" />
+                  <p className="text-[10px] sm:text-xs font-bold truncate mt-1 w-full">{top3?.name || "Contender"}</p>
+                  <p className="text-[9px] sm:text-[11px] font-mono text-amber-600">{top3?.score || 0} pts</p>
                 </div>
-                <div className="w-full h-16 sm:h-20 bg-gradient-to-t from-amber-950 to-amber-800 rounded-t-2xl flex items-center justify-center border-t-2 border-amber-600 shadow-lg">
-                  <span className="text-xl sm:text-2xl font-black text-amber-200">3rd</span>
+                <div className="w-full h-14 sm:h-20 bg-gradient-to-t from-amber-950 to-amber-800 rounded-t-xl sm:rounded-t-2xl flex items-center justify-center border-t-2 border-amber-600 shadow-lg">
+                  <span className="text-lg sm:text-2xl font-black text-amber-200">3rd</span>
                 </div>
               </div>
             </div>
@@ -613,20 +613,20 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   return (
     <div
       ref={containerRef}
-      className={`fixed inset-0 z-50 bg-background/98 backdrop-blur-xl overflow-y-auto flex flex-col items-center justify-center p-3 sm:p-6 select-none ${
+      className={`fixed inset-0 z-[100] w-screen h-dvh bg-background overflow-y-auto flex flex-col items-center justify-start sm:justify-center p-2 sm:p-6 select-none ${
         !isHost ? "touch-manipulation" : ""
       }`}
     >
-      <Card className="max-w-3xl w-full shadow-2xl border-2 border-primary/30 overflow-hidden animate-in fade-in zoom-in-95 duration-300 my-auto bg-card">
+      <Card className="max-w-3xl w-full shadow-2xl border-2 border-primary/30 overflow-hidden animate-in fade-in zoom-in-95 duration-300 my-auto bg-card flex flex-col">
         {/* Anti-cheat & Fullscreen Lockdown Top Banner */}
         {!isHost && (
-          <div className="bg-slate-950 text-white px-4 py-2 flex items-center justify-between text-xs font-semibold border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-emerald-400" />
-              <span className="hidden sm:inline">Proctoring Active:</span>
+          <div className="bg-slate-950 text-white px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between text-xs font-semibold border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-400 shrink-0" />
+              <span className="hidden sm:inline">Proctoring:</span>
               <Badge
                 variant="outline"
-                className={`font-mono text-[10px] ${
+                className={`font-mono text-[9px] sm:text-[10px] px-1.5 py-0 ${
                   strikes === 0
                     ? "border-emerald-500/50 text-emerald-400 bg-emerald-500/10"
                     : strikes === 1
@@ -634,19 +634,20 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                     : "border-rose-500 text-rose-400 bg-rose-500/10 animate-pulse"
                 }`}
               >
-                {strikes === 0 ? "0/3 Strikes (Clean)" : `Strike ${strikes}/3`}
+                {strikes === 0 ? "0/3 Clean" : `${strikes}/3 Strikes`}
               </Badge>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setShowLeaderboardDrawer(!showLeaderboardDrawer)}
-                className="h-7 text-xs text-white hover:bg-white/10 gap-1 px-2"
+                className="h-6 sm:h-7 text-[11px] sm:text-xs text-white hover:bg-white/10 gap-1 px-1.5 sm:px-2"
               >
-                <Trophy className="h-3.5 w-3.5 text-amber-400" />
-                <span>Live Standings ({participants.length})</span>
+                <Trophy className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400" />
+                <span className="hidden xs:inline">Standings</span>
+                <span>({participants.length})</span>
                 {showLeaderboardDrawer ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </Button>
 
@@ -655,10 +656,10 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                   size="sm"
                   variant="outline"
                   onClick={reEnterFullscreen}
-                  className="h-7 text-[11px] bg-amber-500/20 text-amber-300 border-amber-400/40 hover:bg-amber-500/30 gap-1"
+                  className="h-6 sm:h-7 text-[10px] sm:text-[11px] bg-amber-500/20 text-amber-300 border-amber-400/40 hover:bg-amber-500/30 gap-1 px-1.5 sm:px-2"
                 >
                   <Maximize2 className="h-3 w-3" />
-                  Full Screen
+                  <span className="hidden xs:inline">Full Screen</span>
                 </Button>
               )}
 
@@ -671,7 +672,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                   }
                   onFinish();
                 }}
-                className="h-7 text-xs text-white/80 hover:bg-rose-500/20 hover:text-rose-300 gap-1 px-2"
+                className="h-6 sm:h-7 text-[11px] sm:text-xs text-white/80 hover:bg-rose-500/20 hover:text-rose-300 gap-1 px-1.5 sm:px-2"
                 title="Leave quiz match"
               >
                 <LogOut className="h-3 w-3" />
@@ -679,8 +680,6 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
               </Button>
             </div>
           </div>
-        )}
-
         {/* Real-time Warning Banner if strikes occurred */}
         {proctorWarning && (
           <div className="bg-rose-500 text-white px-4 py-2 text-xs font-bold flex items-center justify-between animate-pulse">
@@ -737,23 +736,23 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         </div>
 
         {/* Live Stats Header */}
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-muted/20 border-b">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <Badge variant="outline" className="font-bold text-xs">
-              Question {currentIndex + 1} / {quiz.questions.length}
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 py-2 sm:py-3 px-3 sm:px-6 bg-muted/20 border-b shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap">
+            <Badge variant="outline" className="font-bold text-[11px] sm:text-xs py-0.5">
+              Q{currentIndex + 1}/{quiz.questions.length}
             </Badge>
 
             {/* Streak Indicator */}
             {streak >= 2 && (
-              <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black animate-pulse gap-1">
-                <Flame className="h-3.5 w-3.5 fill-current" />
+              <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black animate-pulse gap-1 text-[11px] py-0.5">
+                <Flame className="h-3 w-3 fill-current" />
                 {streak}x Streak!
               </Badge>
             )}
 
             {/* Live Rank */}
             {myRank > 0 && !isHost && (
-              <Badge variant="secondary" className="font-bold text-xs gap-1">
+              <Badge variant="secondary" className="font-bold text-[11px] sm:text-xs py-0.5">
                 Rank #{myRank}
               </Badge>
             )}
@@ -761,42 +760,44 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
           {/* Live Question Timer */}
           <div
-            className={`flex items-center gap-2 font-black font-mono text-xl px-3 py-1 rounded-xl transition-all ${
+            className={`flex items-center gap-1.5 sm:gap-2 font-black font-mono text-base sm:text-xl px-2.5 py-0.5 sm:py-1 rounded-xl transition-all shrink-0 ${
               timeLeft <= 5
-                ? "bg-rose-500/10 text-rose-600 border border-rose-500/30 animate-pulse scale-110"
+                ? "bg-rose-500/10 text-rose-600 border border-rose-500/30 animate-pulse scale-105"
                 : "text-foreground"
             }`}
           >
-            <Timer className="h-5 w-5" />
+            <Timer className="h-4 w-4 sm:h-5 sm:w-5" />
             {String(timeLeft).padStart(2, "0")}s
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6 pt-5 sm:pt-6">
+        <CardContent className="space-y-3 sm:space-y-5 p-3 sm:p-6 overflow-y-auto flex-1">
           {/* Score & Streak floating stats for student */}
           {!isHost && (
-            <div className="flex items-center justify-between bg-primary/5 border border-primary/10 rounded-2xl px-4 py-2.5 text-xs font-semibold">
-              <span className="flex items-center gap-1.5 text-primary">
-                <Trophy className="h-4 w-4 text-amber-500" /> Score: <strong className="text-base font-black">{score}</strong>
+            <div className="flex items-center justify-between bg-primary/5 border border-primary/10 rounded-xl px-3 py-1.5 text-xs font-semibold">
+              <span className="flex items-center gap-1 text-primary">
+                <Trophy className="h-3.5 w-3.5 text-amber-500" /> Score: <strong className="text-sm sm:text-base font-black">{score}</strong>
               </span>
-              <span className="text-muted-foreground text-[11px] sm:text-xs">
-                Base: 500 • Speed: Up to +200 • Streak: +50
+              <span className="text-muted-foreground text-[10px] sm:text-xs">
+                Speed: Up to +200 • Streak: +50
               </span>
             </div>
           )}
 
           {/* Question Text */}
-          <h3 className="text-lg sm:text-2xl font-bold leading-snug">{question.question}</h3>
+          <h3 className="text-base sm:text-2xl font-bold leading-snug text-foreground py-0.5">
+            {question.question}
+          </h3>
 
-          {/* Options Grid (Mobile Hover Fix applied with touch-manipulation & active states) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+          {/* Options Grid (Optimized height and responsive grid so all 4 options fit on mobile) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3.5 pt-1">
             {question.options.map((opt, i) => {
               const isSelected = selectedAnswer === i;
               const isCorrect = i === question.correctAnswer;
 
               // Touch-safe class styling: Avoid lingering hover states on mobile by scoping hover to [@media(hover:hover)]
               let btnClass =
-                "h-auto min-h-[64px] py-3.5 px-4 text-left justify-start items-center whitespace-normal border-2 text-sm sm:text-base rounded-2xl transition-all duration-150 touch-manipulation active:scale-[0.98] select-none ";
+                "h-auto min-h-[48px] sm:min-h-[64px] py-2 sm:py-3.5 px-3 sm:px-4 text-left justify-start items-center whitespace-normal border-2 text-xs sm:text-base rounded-xl sm:rounded-2xl transition-all duration-150 touch-manipulation active:scale-[0.98] select-none ";
 
               if (showResult) {
                 if (isCorrect) {
@@ -822,9 +823,9 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                   onClick={() => handleAnswerSelect(i)}
                   disabled={showResult || isHost}
                 >
-                  <div className="flex items-center gap-3 w-full">
+                  <div className="flex items-center gap-2.5 sm:gap-3 w-full">
                     <div
-                      className={`flex items-center justify-center h-8 w-8 rounded-full border-2 shrink-0 font-bold text-xs ${
+                      className={`flex items-center justify-center h-6 w-6 sm:h-8 sm:w-8 rounded-full border-2 shrink-0 font-bold text-[11px] sm:text-xs ${
                         showResult && isCorrect
                           ? "bg-emerald-500 border-emerald-500 text-white"
                           : showResult && isSelected && !isCorrect
@@ -835,14 +836,14 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                       }`}
                     >
                       {showResult && isCorrect ? (
-                        <CheckCircle2 className="h-4 w-4" />
+                        <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       ) : showResult && isSelected && !isCorrect ? (
-                        <XCircle className="h-4 w-4" />
+                        <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       ) : (
                         String.fromCharCode(65 + i)
                       )}
                     </div>
-                    <span className="flex-1 font-medium leading-tight">{opt}</span>
+                    <span className="flex-1 font-medium leading-snug">{opt}</span>
                   </div>
                 </Button>
               );

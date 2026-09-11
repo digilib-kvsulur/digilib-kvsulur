@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Trash2, Play, Pause, Trophy, FileText, Upload, Users, Calendar, Clock, Zap, Flame, Sparkles, Download } from "lucide-react";
+import { Plus, Edit, Trash2, Play, Pause, Trophy, FileText, Upload, Users, Calendar, Clock, Zap, Flame, Sparkles, Download, Share2, Copy } from "lucide-react";
 import { Quiz } from "@/types/quiz";
 import { QuizForm } from "./QuizForm";
 import BulkImportQuiz from "./BulkImportQuiz";
@@ -408,6 +408,34 @@ const QuizManager = () => {
       sonnerToast.success("✅ League results CSV downloaded successfully!");
     } catch (err: any) {
       sonnerToast.error("Failed to export CSV: " + (err.message || "Unknown error"));
+    }
+  };
+
+  const handleShareLeague = async (session: LeagueSession) => {
+    const shareUrl = `${window.location.origin}/student-dashboard?tab=quizzes&room=${session.room_code}`;
+    const quizTitle = session.league_name || session.quizzes?.title || "Live Quiz League";
+    const scheduledText = session.scheduled_start_at
+      ? `\nScheduled For: ${new Date(session.scheduled_start_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`
+      : "";
+    const shareText = `🏆 Join the PM SHRI KV Sulur Live Quiz League!\nQuiz: ${quizTitle}${scheduledText}\nRoom Code: ${session.room_code}\nLink: ${shareUrl}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join Quiz League: ${quizTitle}`,
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      } catch (e: any) {
+        if (e.name !== "AbortError") {
+          navigator.clipboard.writeText(shareText);
+          sonnerToast.success("📋 League invite link copied to clipboard!");
+        }
+      }
+    } else {
+      navigator.clipboard.writeText(shareText);
+      sonnerToast.success("📋 League invite link copied to clipboard!");
     }
   };
 
@@ -818,7 +846,18 @@ const QuizManager = () => {
                         </div>
 
                         {/* Action Controls */}
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleShareLeague(session)}
+                            className="font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 border-indigo-200 text-indigo-700"
+                            title="Share league invite link & room code"
+                          >
+                            <Share2 className="h-3.5 w-3.5 mr-1" />
+                            Share Link
+                          </Button>
+
                           <Button
                             variant="outline"
                             size="sm"

@@ -224,6 +224,37 @@ const StudentDashboard = () => {
 
   useEffect(() => { checkAuth(); }, []);
 
+  // Handle URL query parameters (e.g. ?room=UXE6P0 or ?tab=quizzes) for league links
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const roomParam = params.get("room");
+    const tabParam = params.get("tab") as Tab | null;
+
+    if (tabParam && navItems.some(n => n.id === tabParam)) {
+      setActiveTab(tabParam);
+    }
+
+    if (roomParam) {
+      const fetchRoomSession = async () => {
+        try {
+          const { data } = await supabase
+            .from("quiz_sessions")
+            .select("*, quizzes(*)")
+            .eq("room_code", roomParam.toUpperCase().trim())
+            .in("status", ["waiting", "active", "scheduled"])
+            .maybeSingle();
+
+          if (data) {
+            setActiveLeagueSession(data);
+          }
+        } catch (e) {
+          console.warn("Could not lookup league room from URL:", e);
+        }
+      };
+      fetchRoomSession();
+    }
+  }, [location.search, navItems]);
+
   const checkAuth = async () => {
     try {
       // Prefer refreshSession to get up-to-date user_metadata; fall back to getSession if it fails
@@ -508,7 +539,7 @@ const StudentDashboard = () => {
 
   if (activeLeagueSession) {
     return (
-      <div className="fixed inset-0 z-50 bg-background text-foreground flex flex-col h-screen w-screen overflow-hidden select-none">
+      <div className="fixed inset-0 z-[100] bg-background text-foreground flex flex-col h-dvh w-screen overflow-hidden select-none">
         {inLeagueRunner ? (
           <LiveQuizRunner
             quiz={activeLeagueSession.quizzes}
@@ -912,7 +943,7 @@ const StudentDashboard = () => {
                 userClass={user?.student_class}
                 onJoinLeague={(session) => setActiveLeagueSession(session)}
               />
-              <LiveQuizAlert />
+              <LiveQuizAlert onJoinLeague={(session) => setActiveLeagueSession(session)} />
               
               {/* Level + Streak Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

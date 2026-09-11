@@ -311,12 +311,12 @@ export const UpcomingQuizLeagueCard = ({
             ) : null}
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
               <Button
                 onClick={handleToggleRegistration}
                 variant="outline"
                 size="sm"
-                className={`h-11 rounded-xl text-xs font-bold border-white/20 transition-all ${
+                className={`h-11 rounded-xl text-xs font-bold border-white/20 transition-all justify-center ${
                   isRegistered
                     ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                     : "bg-white/10 hover:bg-white/20 text-white"
@@ -324,19 +324,19 @@ export const UpcomingQuizLeagueCard = ({
               >
                 {isRegistered ? (
                   <>
-                    <BellRing className="h-4 w-4 mr-1.5 text-emerald-400" />
-                    Registered ✓
+                    <BellRing className="h-4 w-4 mr-1.5 text-emerald-400 shrink-0" />
+                    <span>Registered ✓</span>
                   </>
                 ) : (
                   <>
-                    <Bell className="h-4 w-4 mr-1.5" />
-                    Register Now
+                    <Bell className="h-4 w-4 mr-1.5 shrink-0" />
+                    <span>Register Now</span>
                   </>
                 )}
               </Button>
 
               {tooLateToJoin ? (
-                <Button disabled size="sm" className="h-11 px-4 rounded-xl text-xs font-bold bg-white/10 text-white/50 cursor-not-allowed">
+                <Button disabled size="sm" className="h-11 px-3 sm:px-4 rounded-xl text-xs font-bold bg-white/10 text-white/50 cursor-not-allowed justify-center">
                   Already In Progress
                 </Button>
               ) : (
@@ -351,23 +351,25 @@ export const UpcomingQuizLeagueCard = ({
                   }}
                   size="sm"
                   disabled={!isLobbyOpen}
-                  className={`h-11 px-5 rounded-xl text-xs sm:text-sm font-black shadow-lg transition-all ${
+                  className={`h-11 px-3 sm:px-5 rounded-xl text-xs sm:text-sm font-black shadow-lg transition-all justify-center ${
                     isLive
-                      ? "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-emerald-500/30 scale-105 active:scale-95"
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-emerald-500/30 scale-[1.02] active:scale-95"
                       : isLobbyWindow
                       ? "bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/30 animate-pulse"
                       : "bg-white/10 text-white/50 cursor-not-allowed"
                   }`}
                   title={!isLobbyOpen ? "Lobby opens 5 minutes before match time" : ""}
                 >
-                  <Play className="h-4 w-4 mr-1.5 fill-current" />
-                  {isLive
-                    ? currentQIndex > 0
-                      ? `Join Now (Q${currentQIndex + 1} Live) →`
-                      : "Join Live League Now →"
-                    : isLobbyWindow
-                    ? "Enter Arena Lobby"
-                    : "Lobby Opens in 5m"}
+                  <Play className="h-4 w-4 mr-1.5 fill-current shrink-0" />
+                  <span className="truncate">
+                    {isLive
+                      ? currentQIndex > 0
+                        ? `Join (Q${currentQIndex + 1} Live) →`
+                        : "Join Live League →"
+                      : isLobbyWindow
+                      ? "Enter Lobby"
+                      : "Opens in 5m"}
+                  </span>
                 </Button>
               )}
             </div>
