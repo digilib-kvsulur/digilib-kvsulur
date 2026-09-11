@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Trash2, Play, Pause, Trophy, FileText, Upload, Users, Calendar, Clock, Zap, Flame, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, Play, Pause, Trophy, FileText, Upload, Users, Calendar, Clock, Zap, Flame, Sparkles, Download } from "lucide-react";
 import { Quiz } from "@/types/quiz";
 import { QuizForm } from "./QuizForm";
 import BulkImportQuiz from "./BulkImportQuiz";
@@ -318,6 +318,128 @@ const QuizManager = () => {
       setHostingQuiz(quizMatch);
     }
     setHostingLeagueSessionId(session.id);
+  };
+
+  const exportLeagueResultsCSV = async (session: LeagueSession) => {
+    try {
+      sonnerToast.info("Preparing League Results CSV...");
+      const { data, error } = await supabase
+        .from("quiz_results")
+        .select(`
+          id,
+          score,
+          points_earned,
+          completed_at,
+          answers,
+          user_id
+        `)
+        .eq("quiz_id", session.quiz_id)
+        .order("points_earned", { ascending: false });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        sonnerToast.warning("No contestant results found for this quiz/league yet.");
+        return;
+      }
+
+      // Fetch student details
+      const userIds = Array.from(new Set(data.map((d) => d.user_id)));
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, admission_number, student_class")
+        .in("id", userIds);
+
+      const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+
+      const headers = [
+        "Rank",
+        "Student Name",
+        "Admission Number",
+        "Class",
+        "League Name",
+        "Room Code",
+        "Score (%)",
+        "Points Earned",
+        "Tab Switch Strikes",
+        "Submission Timestamp",
+      ];
+
+      const rows = data.map((r, idx) => {
+        const prof = profileMap.get(r.user_id);
+        const name = `"${((prof?.first_name || "") + " " + (prof?.last_name || "")).trim() || "Student"}"`;
+        const adm = `"${prof?.admission_number || "N/A"}"`;
+        const cls = `"${prof?.student_class || "N/A"}"`;
+        const leagueTitle = `"${session.league_name || session.quizzes?.title || "Quiz League"}"`;
+        const room = `"${session.room_code}"`;
+        const scoreVal = r.score;
+        const pts = r.points_earned;
+        const strikes = r.answers?.strikes ?? 0;
+        const date = `"${new Date(r.completed_at).toLocaleString()}"`;
+
+        return [idx + 1, name, adm, cls, leagueTitle, room, scoreVal, pts, strikes, date].join(",");
+      });
+
+      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      const safeTitle = (session.league_name || "league_results").replace(/[^a-zA-Z0-9_-]/g, "_");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `${safeTitle}_results.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      sonnerToast.success("✅ League results CSV downloaded successfully!");
+    } catch (err: any) {
+      sonnerToast.error("Failed to export CSV: " + (err.message || "Unknown error"));
+    }
+  };
+
+  const exportAllQuizResultsCSV = () => {
+    if (!quizResults || quizResults.length === 0) {
+      sonnerToast.warning("No quiz results available to export.");
+      return;
+    }
+
+    try {
+      const headers = [
+        "Student Name",
+        "Admission Number",
+        "Class",
+        "Quiz Title",
+        "Subject",
+        "Score (%)",
+        "Points Earned",
+        "Tab Switch Strikes",
+        "Completed Date",
+      ];
+
+      const rows = quizResults.map((r) => {
+        const name = `"${((r.profiles?.first_name || "") + " " + (r.profiles?.last_name || "")).trim() || "Student"}"`;
+        const adm = `"${r.profiles?.admission_number || "N/A"}"`;
+        const cls = `"${r.profiles?.student_class || "N/A"}"`;
+        const title = `"${r.quizzes?.title || "Quiz"}"`;
+        const subj = `"${r.quizzes?.subject || "General"}"`;
+        const scoreVal = r.score;
+        const pts = r.points_earned;
+        const strikes = r.answers?.strikes ?? 0;
+        const date = `"${new Date(r.completed_at).toLocaleString()}"`;
+
+        return [name, adm, cls, title, subj, scoreVal, pts, strikes, date].join(",");
+      });
+
+      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `all_quiz_results_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      sonnerToast.success("✅ All Quiz Results CSV downloaded!");
+    } catch (err: any) {
+      sonnerToast.error("Failed to export results: " + err.message);
+    }
   };
 
   const handleCreateQuiz = () => {
@@ -680,6 +802,17 @@ const QuizManager = () => {
 
                         {/* Action Controls */}
                         <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => exportLeagueResultsCSV(session)}
+                            className="font-bold text-xs hover:bg-muted"
+                            title="Export session contestant results as CSV"
+                          >
+                            <Download className="h-3.5 w-3.5 mr-1 text-primary" />
+                            Export CSV
+                          </Button>
+
                           {isUpcoming && (
                             <Button
                               onClick={() => handleHostScheduledLeague(session)}
@@ -811,12 +944,24 @@ const QuizManager = () => {
 
         <TabsContent value="results">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5" />
-                Quiz Results
-              </CardTitle>
-              <CardDescription>View all quiz attempts and scores</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5" />
+                  Quiz Results
+                </CardTitle>
+                <CardDescription>View all quiz attempts and scores</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportAllQuizResultsCSV}
+                className="font-bold text-xs gap-1.5"
+                disabled={quizResults.length === 0}
+              >
+                <Download className="h-4 w-4 text-primary" />
+                Export All (CSV)
+              </Button>
             </CardHeader>
             <CardContent>
               {resultsLoading ? (
@@ -925,7 +1070,7 @@ const QuizManager = () => {
               >
                 {quizzes.map((q) => (
                   <option key={q.id} value={q.id}>
-                    {q.title} ({q.subject} • {q.questions?.length || 0} Qs)
+                    {q.title} ({q.subject} • {q.questions?.length || 0} Qs){!q.isActive ? " [Hidden / Inactive]" : ""}
                   </option>
                 ))}
               </select>
