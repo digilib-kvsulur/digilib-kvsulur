@@ -9,7 +9,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert, HelpCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
@@ -44,8 +44,12 @@ interface Post {
   poll_ends_at?: string | null;
   pollOptions?: PollOption[];
   myVoteOptionId?: string | null;
+  doubt_subject?: string;
+  doubt_class?: string;
+  doubt_status?: "unsolved" | "solved";
+  accepted_comment_id?: string | null;
 }
-interface Comment { id: string; content: string; user_id: string; created_at: string; author?: any; }
+interface Comment { id: string; content: string; user_id: string; created_at: string; author?: any; is_accepted_solution?: boolean; }
 
 const nameOf = (p: any) => p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
 const initials = (p: any) => nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -55,10 +59,15 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [draft, setDraft] = useState({ title: "", content: "" });
-  const [postKind, setPostKind] = useState<"text" | "poll" | "link" | "story">("text");
+  const [postKind, setPostKind] = useState<"text" | "poll" | "link" | "story" | "doubt">("text");
   const [storyGenre, setStoryGenre] = useState("Adventure");
+  const [doubtSubject, setDoubtSubject] = useState("Mathematics");
+  const [doubtClass, setDoubtClass] = useState("10");
+  const [doubtFilterSubject, setDoubtFilterSubject] = useState("all");
+  const [doubtFilterClass, setDoubtFilterClass] = useState("all");
+  const [doubtFilterStatus, setDoubtFilterStatus] = useState<"all" | "unsolved" | "solved">("all");
   const [viewingStory, setViewingStory] = useState<Post | null>(null);
-  const [feedCategory, setFeedCategory] = useState<"all" | "stories" | "polls" | "media">("all");
+  const [feedCategory, setFeedCategory] = useState<"all" | "doubts" | "stories" | "polls" | "media">("all");
   const [linkUrl, setLinkUrl] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -242,10 +251,10 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
     const { data: postsData } = await supabase
       .from("posts")
-      .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at")
+      .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at, doubt_subject, doubt_class, doubt_status, accepted_comment_id")
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(60);
     if (!postsData) { setLoading(false); return; }
     const ids = postsData.map((p) => p.id);
     const userIds = Array.from(new Set(postsData.map((p) => p.user_id)));
@@ -428,6 +437,8 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       
       const finalTitle = postKind === "story" && !draft.title.startsWith(`[${storyGenre}]`)
         ? `[${storyGenre}] ${draft.title.trim()}`
+        : postKind === "doubt" && !draft.title.startsWith(`[Doubt]`)
+        ? `[Doubt - ${doubtSubject}] ${draft.title.trim()}`
         : draft.title.trim();
 
       const { data: postRow, error } = await supabase.from("posts").insert({
@@ -437,6 +448,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         media_url: mediaUrl,
         media_type: mediaType,
         post_type: postKind,
+        doubt_subject: postKind === "doubt" ? doubtSubject : null,
+        doubt_class: postKind === "doubt" ? doubtClass : null,
+        doubt_status: postKind === "doubt" ? "unsolved" : null,
       }).select("id").single();
       if (error) throw error;
       if (postKind === "poll" && postRow?.id) {
@@ -565,6 +579,39 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: Math.max(0, p.comment_count - 1) } : p));
   };
 
+  const markCommentAsSolution = async (post: Post, commentId: string, commentAuthorId: string) => {
+    try {
+      await supabase.from("posts").update({
+        doubt_status: "solved",
+        accepted_comment_id: commentId,
+      }).eq("id", post.id);
+
+      await supabase.from("post_comments").update({
+        is_accepted_solution: true,
+      } as any).eq("id", commentId);
+
+      // Award +25 XP to solver if it's someone else
+      if (commentAuthorId !== currentUserId) {
+        await (supabase.rpc as any)("award_user_points", {
+          _user_id: commentAuthorId,
+          _points: 25,
+          _reason: "Accepted Solution to Academic Doubt",
+        });
+        sendNotification(commentAuthorId, "🏆 Solution Accepted (+25 XP)!", `Your answer was marked as the accepted solution to: "${post.title}"`, "success");
+      }
+
+      toast({
+        title: "Solution Accepted! 🎉",
+        description: "This answer has been verified as the accepted solution.",
+      });
+
+      setPosts((ps) => ps.map((p) => p.id === post.id ? { ...p, doubt_status: "solved", accepted_comment_id: commentId } : p));
+      await loadComments(post.id);
+    } catch (e: any) {
+      toast({ title: "Failed to mark solution", description: e.message, variant: "destructive" });
+    }
+  };
+
   const sendFriendRequest = async (userId: string) => {
     const { error, data } = await supabase.from("friendships").insert({ requester_id: currentUserId, addressee_id: userId }).select().single();
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
@@ -657,6 +704,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               <Button size="sm" variant={postKind === "text" ? "default" : "outline"} type="button" onClick={() => setPostKind("text")}>
                 Post
               </Button>
+              <Button size="sm" variant={postKind === "doubt" ? "default" : "outline"} type="button" onClick={() => setPostKind("doubt")} className="border-amber-500/30">
+                <HelpCircle className="h-3.5 w-3.5 mr-1 text-amber-500" /> Ask Doubt
+              </Button>
               <Button size="sm" variant={postKind === "story" ? "default" : "outline"} type="button" onClick={() => setPostKind("story")}>
                 <Feather className="h-3.5 w-3.5 mr-1 text-amber-500" /> Story / Writing
               </Button>
@@ -667,6 +717,38 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 <Link2 className="h-3.5 w-3.5 mr-1" /> Link
               </Button>
             </div>
+            
+            {postKind === "doubt" && (
+              <div className="flex items-center gap-3 flex-wrap p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                  <HelpCircle className="h-4 w-4" /> Academic Doubt Details:
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-medium">Class:</span>
+                  <select
+                    value={doubtClass}
+                    onChange={(e) => setDoubtClass(e.target.value)}
+                    className="text-xs h-7 px-2 rounded-lg border border-border bg-background"
+                  >
+                    {["6", "7", "8", "9", "10", "11", "12"].map((c) => (
+                      <option key={c} value={c}>Class {c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-medium">Subject:</span>
+                  <select
+                    value={doubtSubject}
+                    onChange={(e) => setDoubtSubject(e.target.value)}
+                    className="text-xs h-7 px-2 rounded-lg border border-border bg-background"
+                  >
+                    {["Mathematics", "Science", "Physics", "Chemistry", "Biology", "Social Science", "English", "Computer Science"].map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
             
             {postKind === "story" && (
               <div className="flex items-center gap-2 flex-wrap pb-1">
@@ -836,6 +918,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
         {[
           { id: "all", label: "All Posts" },
+          { id: "doubts", label: "❓ Academic Doubts", count: posts.filter(p => p.post_type === "doubt").length },
           { id: "stories", label: "📖 Student Stories", count: posts.filter(p => p.post_type === "story").length },
           { id: "polls", label: "📊 Polls", count: posts.filter(p => p.post_type === "poll").length },
           { id: "media", label: "🖼️ Photos & PDFs", count: posts.filter(p => !!p.media_url).length },
@@ -860,8 +943,73 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         ))}
       </div>
 
+      {/* Doubts Subject & Status Sub-Filter Bar */}
+      {feedCategory === "doubts" && (
+        <div className="flex items-center gap-2 flex-wrap p-2 rounded-xl bg-muted/40 border border-border text-xs">
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-muted-foreground">Class:</span>
+            <select
+              value={doubtFilterClass}
+              onChange={(e) => setDoubtFilterClass(e.target.value)}
+              className="text-xs h-7 px-2 rounded-lg border border-border bg-background"
+            >
+              <option value="all">All Classes</option>
+              {["6", "7", "8", "9", "10", "11", "12"].map((c) => (
+                <option key={c} value={c}>Class {c}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-muted-foreground">Subject:</span>
+            <select
+              value={doubtFilterSubject}
+              onChange={(e) => setDoubtFilterSubject(e.target.value)}
+              className="text-xs h-7 px-2 rounded-lg border border-border bg-background"
+            >
+              <option value="all">All Subjects</option>
+              {["Mathematics", "Science", "Physics", "Chemistry", "Biology", "Social Science", "English", "Computer Science"].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1 ml-auto">
+            <span className="font-semibold text-muted-foreground">Status:</span>
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setDoubtFilterStatus("all")}
+                className={`px-2 py-0.5 text-[11px] font-medium ${doubtFilterStatus === "all" ? "bg-primary text-white font-bold" : "hover:bg-muted"}`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setDoubtFilterStatus("unsolved")}
+                className={`px-2 py-0.5 text-[11px] font-medium ${doubtFilterStatus === "unsolved" ? "bg-amber-500 text-white font-bold" : "hover:bg-muted"}`}
+              >
+                Unsolved
+              </button>
+              <button
+                type="button"
+                onClick={() => setDoubtFilterStatus("solved")}
+                className={`px-2 py-0.5 text-[11px] font-medium ${doubtFilterStatus === "solved" ? "bg-emerald-600 text-white font-bold" : "hover:bg-muted"}`}
+              >
+                Solved
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : (() => {
         const filteredPosts = posts.filter(p => {
+          if (feedCategory === "doubts") {
+            if (p.post_type !== "doubt") return false;
+            if (doubtFilterClass !== "all" && p.doubt_class !== doubtFilterClass) return false;
+            if (doubtFilterSubject !== "all" && p.doubt_subject !== doubtFilterSubject) return false;
+            if (doubtFilterStatus !== "all" && (p.doubt_status || "unsolved") !== doubtFilterStatus) return false;
+            return true;
+          }
           if (feedCategory === "stories") return p.post_type === "story";
           if (feedCategory === "polls") return p.post_type === "poll";
           if (feedCategory === "media") return !!p.media_url;
@@ -935,7 +1083,30 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                       </div>
                     </div>
                     
-                    {p.post_type === "story" ? (
+                    {p.post_type === "doubt" ? (
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[10px] font-extrabold flex items-center gap-1">
+                            <HelpCircle className="h-3 w-3" /> Class {p.doubt_class || "—"} {p.doubt_subject || "Academic"}
+                          </Badge>
+                          {p.doubt_status === "solved" ? (
+                            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" /> Solved
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold">
+                              Unsolved · Needs Answer
+                            </Badge>
+                          )}
+                        </div>
+                        <h3 className="font-extrabold text-base text-foreground mt-1">{p.title}</h3>
+                        <div className="p-3.5 rounded-2xl bg-muted/40 border border-border space-y-2">
+                          <p className="text-sm text-foreground/95 leading-relaxed whitespace-pre-wrap">
+                            {renderWithMentions(p.content)}
+                          </p>
+                        </div>
+                      </div>
+                    ) : p.post_type === "story" ? (
                       <div className="mt-2 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-extrabold flex items-center gap-1">
@@ -1052,7 +1223,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     {openComments === p.id && (
                       <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
                         {(comments[p.id] || []).map((c) => (
-                          <div key={c.id} className="flex items-start gap-2 p-2 bg-muted/40 rounded-lg">
+                          <div key={c.id} className={`flex items-start gap-2 p-2.5 rounded-lg border ${c.id === p.accepted_comment_id || c.is_accepted_solution ? "bg-emerald-500/10 border-emerald-500/40" : "bg-muted/40 border-transparent"}`}>
                             <UserHoverCard userId={c.user_id} author={c.author} currentUserId={currentUserId} fetchStats={fetchProfileStats} friendship={friendshipsMap[c.user_id]} onSend={sendFriendRequest} onRespond={respondFriendRequest} onRemove={removeFriend} onView={setProfileDialogUser}>
                               <Avatar className="h-6 w-6 cursor-pointer">
                                 {c.author?.avatar_url && <AvatarImage src={getAvatarUrl(c.author.avatar_url)} className="object-cover" />}
@@ -1060,12 +1231,26 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                               </Avatar>
                             </UserHoverCard>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold flex items-center gap-1.5 flex-wrap">
-                                <span>{nameOf(c.author)}</span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-xs font-semibold">{nameOf(c.author)}</span>
                                 <RotationalWinnerBadge userId={c.user_id} size="xs" />
-                                <span className="font-normal text-muted-foreground">· {new Date(c.created_at).toLocaleDateString()}</span>
-                              </p>
-                              <p className="text-xs">{renderWithMentions(c.content)}</p>
+                                <span className="font-normal text-muted-foreground text-[10px]">· {new Date(c.created_at).toLocaleDateString()}</span>
+                                {(c.id === p.accepted_comment_id || c.is_accepted_solution) && (
+                                  <Badge className="bg-emerald-500 text-white text-[9px] font-bold py-0 px-1.5 ml-auto flex items-center gap-0.5">
+                                    <CheckCircle2 className="h-2.5 w-2.5" /> VERIFIED SOLUTION
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs mt-0.5 leading-relaxed">{renderWithMentions(c.content)}</p>
+                              {p.post_type === "doubt" && (p.user_id === currentUserId || isAdmin) && p.accepted_comment_id !== c.id && (
+                                <button
+                                  type="button"
+                                  onClick={() => markCommentAsSolution(p, c.id, c.user_id)}
+                                  className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline mt-1 inline-flex items-center gap-1"
+                                >
+                                  <CheckCircle2 className="h-3 w-3" /> Accept as Best Solution (+25 XP)
+                                </button>
+                              )}
                             </div>
                             {(c.user_id === currentUserId || isAdmin) && (
                               <button onClick={() => deleteComment(p.id, c.id)} className="text-muted-foreground hover:text-destructive">

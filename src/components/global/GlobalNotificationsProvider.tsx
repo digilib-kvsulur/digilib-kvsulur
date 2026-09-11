@@ -16,17 +16,21 @@ interface GlobalNotification {
 interface NotificationsContextType {
   unreadCount: number;
   refreshUnreadCount: () => Promise<void>;
+  triggerTestNotification: () => void;
+  requestPermission: () => Promise<NotificationPermission | null>;
 }
 
 const NotificationsContext = createContext<NotificationsContextType>({
   unreadCount: 0,
   refreshUnreadCount: async () => {},
+  triggerTestNotification: () => {},
+  requestPermission: async () => null,
 });
 
 export const useGlobalNotifications = () => useContext(NotificationsContext);
 
 // Audio chime using Web Audio API (no external asset needed)
-const playNotificationChime = () => {
+export const playNotificationChime = () => {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;
@@ -153,11 +157,40 @@ export const GlobalNotificationsProvider: React.FC<{ children: React.ReactNode }
     };
   }, [userId]);
 
+  const requestPermission = async (): Promise<NotificationPermission | null> => {
+    if (!("Notification" in window)) return null;
+    try {
+      const perm = await Notification.requestPermission();
+      return perm;
+    } catch {
+      return null;
+    }
+  };
+
+  const triggerTestNotification = () => {
+    playNotificationChime();
+    if ("Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification("🔔 KV Sulur DLMS Notification Test", {
+          body: "Realtime push notification pipeline is active and working!",
+          icon: "/favicon.ico",
+        });
+      } catch (err) {
+        console.warn("Desktop notification error:", err);
+      }
+    }
+    toast.success("🔔 Test Notification Triggered!", {
+      description: "Push notification sound & toast pipeline operational.",
+    });
+  };
+
   return (
     <NotificationsContext.Provider
       value={{
         unreadCount,
         refreshUnreadCount: () => (userId ? fetchUnreadCount(userId) : Promise.resolve()),
+        triggerTestNotification,
+        requestPermission,
       }}
     >
       {children}

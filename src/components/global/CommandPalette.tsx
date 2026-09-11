@@ -42,6 +42,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { playNotificationChime } from "@/components/global/GlobalNotificationsProvider";
 
 export const CommandPalette: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -95,6 +96,7 @@ export const CommandPalette: React.FC = () => {
   };
 
   const triggerTestNotification = async () => {
+    playNotificationChime();
     toast.success("🔔 Realtime Test Notification Triggered!", {
       description: "Audio chime and visual alert tested successfully.",
     });
