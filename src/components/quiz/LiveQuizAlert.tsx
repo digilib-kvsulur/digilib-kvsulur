@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Zap, Play } from "lucide-react";
-import { MultiplayerLobby } from "./MultiplayerLobby";
-import { LiveQuizRunner } from "./LiveQuizRunner";
 
 interface LiveQuizAlertProps {
   onJoinLeague?: (session: any) => void;
