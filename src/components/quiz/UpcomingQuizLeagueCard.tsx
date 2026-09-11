@@ -198,11 +198,22 @@ export const UpcomingQuizLeagueCard = ({
 
   if (loading || !leagueSession) return null;
 
-  const isLive = leagueSession.status === "waiting" || leagueSession.status === "active" || timeLeft.totalMs <= 0;
-  const isLobbySoon = !isLive && timeLeft.totalMs <= 10 * 60 * 1000; // <= 10 mins
+  // If session has a future scheduled_start_at, calculate whether lobby is open (within 5 minutes of start)
+  const isScheduledInFuture =
+    leagueSession.scheduled_start_at && new Date(leagueSession.scheduled_start_at).getTime() > Date.now();
+
+  const isLobbyWindow = isScheduledInFuture && timeLeft.totalMs <= 5 * 60 * 1000; // <= 5 minutes before match
+  const isMatchStarted = !isScheduledInFuture || timeLeft.totalMs <= 0;
+  const isLive = isMatchStarted || leagueSession.status === "active";
+  const isLobbyOpen = isLive || isLobbyWindow;
+
+  // Check if session is too far along for late joining (> half the questions done)
+  const totalQuestions = leagueSession.quizzes?.questions?.length || 10;
+  const currentQIndex = leagueSession.current_question_index || 0;
+  const tooLateToJoin = leagueSession.status === "finished" || currentQIndex > Math.floor(totalQuestions * 0.6);
 
   const quizTitle = leagueSession.league_name || leagueSession.quizzes?.title || "PM SHRI KV Sulur Live Quiz League";
-  const questionCount = leagueSession.quizzes?.questions?.length || 10;
+  const questionCount = totalQuestions;
   const targetClass = leagueSession.target_class || "all";
   const eligible = targetClass === "all" || !userClass || userClass.includes(targetClass);
 
@@ -213,15 +224,19 @@ export const UpcomingQuizLeagueCard = ({
           {/* Left: League Info & Live Status */}
           <div className="space-y-2 min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              {isLive ? (
+              {tooLateToJoin ? (
+                <Badge variant="outline" className="bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold px-2.5 py-0.5">
+                  Match Concluded / Late
+                </Badge>
+              ) : isLive ? (
                 <Badge className="bg-emerald-500 text-white font-black animate-pulse px-2.5 py-0.5 shadow-md shadow-emerald-500/30 gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-white animate-ping inline-block" />
                   🔴 LEAGUE IS LIVE
                 </Badge>
-              ) : isLobbySoon ? (
-                <Badge className="bg-amber-500 text-slate-950 font-black px-2.5 py-0.5 gap-1.5">
+              ) : isLobbyWindow ? (
+                <Badge className="bg-amber-500 text-slate-950 font-black px-2.5 py-0.5 gap-1.5 animate-pulse">
                   <Clock className="h-3.5 w-3.5" />
-                  LOBBY OPENS SHORTLY
+                  LOBBY OPEN (MATCH IN &lt;5M)
                 </Badge>
               ) : (
                 <Badge className="bg-indigo-500/30 text-indigo-300 border border-indigo-400/40 font-bold px-2.5 py-0.5 gap-1.5">
@@ -262,7 +277,7 @@ export const UpcomingQuizLeagueCard = ({
 
           {/* Right: Live Countdown Clock & Action Buttons */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-            {!isLive ? (
+            {!isLive && isScheduledInFuture ? (
               /* Synchronized Digital Countdown */
               <div className="flex items-center justify-center gap-1.5 bg-black/40 border border-white/10 rounded-2xl px-3.5 py-2 backdrop-blur-md">
                 <div className="text-center px-1.5">
@@ -297,49 +312,64 @@ export const UpcomingQuizLeagueCard = ({
 
             {/* Action Buttons */}
             <div className="flex items-center gap-2">
-              {!isLive && (
-                <Button
-                  onClick={handleToggleRegistration}
-                  variant="outline"
-                  size="sm"
-                  className={`h-11 rounded-xl text-xs font-bold border-white/20 transition-all ${
-                    isRegistered
-                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                      : "bg-white/10 hover:bg-white/20 text-white"
-                  }`}
-                >
-                  {isRegistered ? (
-                    <>
-                      <BellRing className="h-4 w-4 mr-1.5 text-emerald-400" />
-                      Reminder Set ✓
-                    </>
-                  ) : (
-                    <>
-                      <Bell className="h-4 w-4 mr-1.5" />
-                      Set Reminder
-                    </>
-                  )}
-                </Button>
-              )}
-
               <Button
-                onClick={() => {
-                  quizAudio.playLeagueStart();
-                  onJoinLeague(leagueSession);
-                }}
+                onClick={handleToggleRegistration}
+                variant="outline"
                 size="sm"
-                disabled={!isLive && !isLobbySoon}
-                className={`h-11 px-5 rounded-xl text-xs sm:text-sm font-black shadow-lg transition-all ${
-                  isLive
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-emerald-500/30 scale-105 active:scale-95 animate-bounce"
-                    : isLobbySoon
-                    ? "bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/30"
-                    : "bg-white/10 text-white/50 cursor-not-allowed"
+                className={`h-11 rounded-xl text-xs font-bold border-white/20 transition-all ${
+                  isRegistered
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                    : "bg-white/10 hover:bg-white/20 text-white"
                 }`}
               >
-                <Play className="h-4 w-4 mr-1.5 fill-current" />
-                {isLive ? "Join Live League Now →" : isLobbySoon ? "Enter Lobby" : "Waiting for Start"}
+                {isRegistered ? (
+                  <>
+                    <BellRing className="h-4 w-4 mr-1.5 text-emerald-400" />
+                    Registered ✓
+                  </>
+                ) : (
+                  <>
+                    <Bell className="h-4 w-4 mr-1.5" />
+                    Register Now
+                  </>
+                )}
               </Button>
+
+              {tooLateToJoin ? (
+                <Button disabled size="sm" className="h-11 px-4 rounded-xl text-xs font-bold bg-white/10 text-white/50 cursor-not-allowed">
+                  Already In Progress
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    if (!isRegistered && isScheduledInFuture) {
+                      toast.error("Please click 'Register Now' first to enroll in this live league!");
+                      return;
+                    }
+                    quizAudio.playLeagueStart();
+                    onJoinLeague(leagueSession);
+                  }}
+                  size="sm"
+                  disabled={!isLobbyOpen}
+                  className={`h-11 px-5 rounded-xl text-xs sm:text-sm font-black shadow-lg transition-all ${
+                    isLive
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-emerald-500/30 scale-105 active:scale-95"
+                      : isLobbyWindow
+                      ? "bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/30 animate-pulse"
+                      : "bg-white/10 text-white/50 cursor-not-allowed"
+                  }`}
+                  title={!isLobbyOpen ? "Lobby opens 5 minutes before match time" : ""}
+                >
+                  <Play className="h-4 w-4 mr-1.5 fill-current" />
+                  {isLive
+                    ? currentQIndex > 0
+                      ? `Join Now (Q${currentQIndex + 1} Live) →`
+                      : "Join Live League Now →"
+                    : isLobbyWindow
+                    ? "Enter Arena Lobby"
+                    : "Lobby Opens in 5m"}
+                </Button>
+              )}
             </div>
           </div>
         </div>

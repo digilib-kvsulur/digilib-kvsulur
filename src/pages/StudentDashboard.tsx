@@ -506,6 +506,34 @@ const StudentDashboard = () => {
   if (!user) return null;
   if (selectedQuiz) return <StudentQuiz quiz={selectedQuiz} onComplete={handleQuizComplete} onBack={() => setSelectedQuiz(null)} />;
 
+  if (activeLeagueSession) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background text-foreground flex flex-col h-screen w-screen overflow-hidden select-none">
+        {inLeagueRunner ? (
+          <LiveQuizRunner
+            quiz={activeLeagueSession.quizzes}
+            sessionId={activeLeagueSession.id}
+            isHost={false}
+            onFinish={() => {
+              setActiveLeagueSession(null);
+              setInLeagueRunner(false);
+              checkAuth();
+            }}
+          />
+        ) : (
+          <MultiplayerLobby
+            quizId={activeLeagueSession.quiz_id}
+            quizTitle={activeLeagueSession.league_name || activeLeagueSession.quizzes?.title || "Live Quiz League"}
+            isHost={false}
+            existingSessionId={activeLeagueSession.id}
+            onStart={() => setInLeagueRunner(true)}
+            onCancel={() => setActiveLeagueSession(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
   const getTimeAgo = (d: string) => {
     const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
     if (s < 60) return 'Just now'; if (s < 3600) return `${Math.floor(s/60)}m ago`;
@@ -879,38 +907,12 @@ const StudentDashboard = () => {
               {/* Currently Reading Status */}
               <CurrentlyReading user={user} onUpdate={checkAuth} />
 
-              {activeLeagueSession ? (
-                inLeagueRunner ? (
-                  <LiveQuizRunner
-                    quiz={activeLeagueSession.quizzes}
-                    sessionId={activeLeagueSession.id}
-                    isHost={false}
-                    onFinish={() => {
-                      setActiveLeagueSession(null);
-                      setInLeagueRunner(false);
-                      checkAuth();
-                    }}
-                  />
-                ) : (
-                  <MultiplayerLobby
-                    quizId={activeLeagueSession.quiz_id}
-                    quizTitle={activeLeagueSession.league_name || activeLeagueSession.quizzes?.title || "Live Quiz League"}
-                    isHost={false}
-                    existingSessionId={activeLeagueSession.id}
-                    onStart={() => setInLeagueRunner(true)}
-                    onCancel={() => setActiveLeagueSession(null)}
-                  />
-                )
-              ) : (
-                <>
-                  <UpcomingQuizLeagueCard
-                    userId={user?.id}
-                    userClass={user?.student_class}
-                    onJoinLeague={(session) => setActiveLeagueSession(session)}
-                  />
-                  <LiveQuizAlert />
-                </>
-              )}
+              <UpcomingQuizLeagueCard
+                userId={user?.id}
+                userClass={user?.student_class}
+                onJoinLeague={(session) => setActiveLeagueSession(session)}
+              />
+              <LiveQuizAlert />
               
               {/* Level + Streak Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1140,7 +1142,6 @@ const StudentDashboard = () => {
                 userClass={user?.student_class}
                 onJoinLeague={(session) => {
                   setActiveLeagueSession(session);
-                  setActiveTab("overview");
                 }}
               />
               <QuizPage quizzes={availableQuizzes} results={quizResults} onSelectQuiz={setSelectedQuiz} />
