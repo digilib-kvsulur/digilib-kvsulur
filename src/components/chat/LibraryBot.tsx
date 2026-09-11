@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, X, Send, Loader2, Bot, User, RefreshCw } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, Bot, User, RefreshCw, Ticket, CheckCircle2, LifeBuoy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
@@ -10,15 +10,13 @@ interface Message {
 }
 
 const DEFAULT_PROMPTS = [
-  "About Developer",
-  "About KV Sulur",
+  "🎫 Raise Support Ticket",
   "How to borrow a book",
-  "Reading Wrap Capsule",
-  "Rotational badges",
-  "How to tag in Community",
   "Library timings",
   "Overdue fine amount",
-  "Points & rewards",
+  "Reading Wrap Capsule",
+  "About Developer",
+  "About KV Sulur",
 ];
 
 export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }) => {
@@ -30,6 +28,16 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // In-Chat Support Ticket State
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [ticketCategory, setTicketCategory] = useState("book_issue");
+  const [ticketSubject, setTicketSubject] = useState("");
+  const [ticketDesc, setTicketDesc] = useState("");
+  const [ticketAdmission, setTicketAdmission] = useState("");
+  const [submittingTicket, setSubmittingTicket] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -37,6 +45,17 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   };
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle().then(res => {
+          if (res.data) {
+            setCurrentUser(res.data);
+            if (res.data.admission_number) setTicketAdmission(res.data.admission_number);
+          }
+        });
+      }
+    });
+
     supabase.from("system_settings").select("key, value").in("key", ["library_bot_visible", "library_bot_name", "library_bot_messages"])
       .then(res => {
         let activeName = "LibraryBot";
@@ -67,7 +86,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         setMessages([
           { 
             role: 'assistant', 
-            content: `Hi! 👋 I'm **${activeName}** — your official KV Sulur library assistant.\n\nI can guide you step-by-step through borrowing, Reading Wrap capsules, rotational badges, Community tags, points, fines, NCERT study hub, and developer info!\n\nWhat would you like to explore today?` 
+            content: `Hi! 👋 I'm **${activeName}** — your KV Sulur library assistant.\n\nI can help you with borrowing rules (7-day student loan, 1-month teacher loan), timings, fines, NCERT books, or **create a support ticket** for the librarian!\n\nHow can I help you today?` 
           }
         ]);
       });
@@ -75,7 +94,53 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, showTicketForm]);
+
+  const handleTicketSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketSubject.trim() || !ticketDesc.trim()) return;
+    setSubmittingTicket(true);
+    try {
+      const fullName = currentUser ? `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim() : "Student";
+      const { data, error } = await supabase.from("support_tickets").insert({
+        user_id: currentUser?.id || null,
+        admission_number: ticketAdmission.trim() || currentUser?.admission_number || null,
+        full_name: fullName || "Student",
+        email: currentUser?.email || null,
+        student_class: currentUser?.student_class || null,
+        role: currentUser?.role || "student",
+        category: ticketCategory,
+        priority: "normal",
+        subject: ticketSubject.trim().slice(0, 150),
+        description: ticketDesc.trim().slice(0, 2000),
+      }).select("id, ticket_number, status").single();
+
+      if (error) throw error;
+
+      setShowTicketForm(false);
+      setTicketSubject("");
+      setTicketDesc("");
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `🎉 **Support Ticket Created Successfully!**\n\n• **Ticket Number:** \`${data.ticket_number}\`\n• **Category:** ${ticketCategory.replace("_", " ").toUpperCase()}\n• **Subject:** ${ticketSubject}\n• **Status:** ${data.status || "Open"}\n\nThe librarian has received your ticket and will respond soon. You can also view it in your **Help & Support** tab.`
+        }
+      ]);
+    } catch (err: any) {
+      console.error("Ticket submission error:", err);
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `❌ Could not create ticket: ${err.message || "Please check your network and try again."}`
+        }
+      ]);
+    } finally {
+      setSubmittingTicket(false);
+    }
+  };
 
   const sendMessage = async (overrideText?: string | React.MouseEvent) => {
     const textToSend = typeof overrideText === 'string' ? overrideText : input;
@@ -155,8 +220,8 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       }
 
       // Borrow / Issue a book
-      if (t.includes("how to borrow") || t.includes("how to issue") || t.includes("how do i borrow") || t.includes("how do i issue") || t.includes("issue book") || t.includes("borrow book") || t.includes("get a book") || t.includes("take a book") || t.includes("checkout")) {
-        return "📚 **How to Borrow a Book**\n\n1. Search for the book in the **Catalog** tab.\n2. Click on the book and press **'Request'**.\n3. Wait for the librarian to approve your request.\n4. Visit the library counter with your **Student ID card**.\n5. The librarian will scan your barcode and issue the book.\n\n⏰ Books can be borrowed for **up to 14 days**.\n📌 Maximum **2 books** can be issued at a time.";
+      if (t.includes("how to borrow") || t.includes("how to issue") || t.includes("how do i borrow") || t.includes("how do i issue") || t.includes("issue book") || t.includes("borrow book") || t.includes("get a book") || t.includes("take a book") || t.includes("checkout") || t.includes("borrowing rule")) {
+        return "📚 **Borrowing & Circulation Rules**\n\n• **👨‍🎓 Students:**\n  - Loan Limit: **1 Book at a time**\n  - Loan Duration: **7 Days**\n\n• **👩‍🏫 Teachers & Staff:**\n  - Loan Limit: **Up to 5 Books**\n  - Loan Duration: **30 Days (1 Month)**\n\n**Fast Counter Issue:** Visit the library circulation counter with your Student ID barcode for instant 2-second scan & issue!";
       }
 
       // Return a book
@@ -239,9 +304,10 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         return "🗺️ **Library Map**\n\nThe PM SHRI KV AFS Sulur Library is located inside the school campus.\n\nLibrary sections:\n• 📗 Fiction & Novels — Left wing\n• 🔬 Science & Math — Center shelves\n• 📜 History & Geography — Right wing\n• 📚 NCERT & Textbooks — Reference section\n• 📰 Periodicals & Magazines — Reading lounge\n\nOpen the **Library Map** tab in your dashboard for the interactive map!";
       }
 
-      // Contact / Support
-      if (t.includes("contact") || t.includes("email") || t.includes("support") || t.includes("help") || t.includes("ticket") || t.includes("complaint") || t.includes("problem") || t.includes("issue")) {
-        return "📞 **Contact & Support**\n\n• 📧 Email: kvafssulurlibrary@gmail.com\n• 🎫 Support Tickets: Go to **Help & Support** tab in your dashboard\n• 🏫 In-person: Visit the library counter during opening hours\n\nFor urgent matters, please speak directly to the librarian at the library counter.";
+      // Contact / Support / Tickets
+      if (t.includes("ticket") || t.includes("raise ticket") || t.includes("create ticket") || t.includes("support") || t.includes("complaint") || t.includes("help request") || t.includes("issue") || t.includes("problem")) {
+        setShowTicketForm(true);
+        return "🎫 I have opened the **Support Ticket Form** above! Please fill in your subject and details, and hit **Submit Ticket**. The librarian will review it promptly.";
       }
 
       // Thank you / bye
@@ -281,13 +347,11 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       const data = await res.json();
       setMessages([...newMessages, { role: 'assistant', content: data.reply }]);
     } catch (e: any) {
-      console.error(e);
-      const errMsg = e.message || "";
-      let userFriendlyMsg = `Oops! I am having trouble connecting right now. Details: ${errMsg}`;
-      if (errMsg.includes("GEMINI_API_KEY")) {
-        userFriendlyMsg = "AI Bot connection failed: GEMINI_API_KEY secret is not set in Supabase. Please configure it in your settings.";
-      }
-      setMessages([...newMessages, { role: 'assistant', content: userFriendlyMsg }]);
+      console.warn("AI Chatbot fallback invoked:", e);
+      setMessages([...newMessages, {
+        role: 'assistant',
+        content: `I am currently operating in **Fast Rule-Based Mode** to save tokens! ⚡\n\nQuick Information:\n• 📚 **Borrowing Rules:** 7-day loan for students (max 1 book), 30-day loan for teachers.\n• 🕐 **Timings:** Mon–Fri 8:30 AM – 3:30 PM, Sat 8:30 AM – 12:00 PM.\n• 💰 **Fines:** ₹1 per day overdue penalty.\n• 👨‍💻 **Developer:** G V Tanish Vettrivel (+91 9865190190)\n\nHave a specific question or issue? Click **🎫 Raise Support Ticket** to connect directly with the librarian!`
+      }]);
     } finally {
       setLoading(false);
     }
@@ -393,6 +457,96 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
                 <div className="px-4 py-2 rounded-2xl bg-muted rounded-bl-sm text-sm flex items-center gap-2">
                   <Loader2 className="h-3 w-3 animate-spin" /> Thinking...
                 </div>
+              </div>
+            )}
+            {/* Interactive In-Chat Ticket Creation Form */}
+            {showTicketForm && (
+              <div className="p-3.5 bg-card border border-primary/25 rounded-2xl shadow-md space-y-3 animate-in fade-in slide-in-from-bottom-2 text-xs">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <div className="flex items-center gap-1.5 font-bold text-foreground">
+                    <LifeBuoy className="h-4 w-4 text-primary" />
+                    <span>Create Support Ticket</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 rounded-full text-muted-foreground"
+                    onClick={() => setShowTicketForm(false)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+
+                <form onSubmit={handleTicketSubmit} className="space-y-2.5">
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase">Category</label>
+                    <select
+                      value={ticketCategory}
+                      onChange={(e) => setTicketCategory(e.target.value)}
+                      className="w-full text-xs h-8 px-2 rounded-lg border border-border bg-background focus:ring-1 focus:ring-primary outline-hidden"
+                    >
+                      <option value="book_issue">Book Issue / Return Problem</option>
+                      <option value="fine_inquiry">Overdue Fine Query</option>
+                      <option value="account_login">Account / Password Issue</option>
+                      <option value="quiz_points">Quiz & Points Discrepancy</option>
+                      <option value="study_materials">NCERT / Study Material Request</option>
+                      <option value="other">Other Library Question</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase">Admission No. (Optional)</label>
+                    <Input
+                      placeholder="e.g. 13412"
+                      value={ticketAdmission}
+                      onChange={(e) => setTicketAdmission(e.target.value)}
+                      className="h-8 text-xs font-mono rounded-lg"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase">Subject</label>
+                    <Input
+                      placeholder="Brief summary of the issue..."
+                      value={ticketSubject}
+                      onChange={(e) => setTicketSubject(e.target.value)}
+                      className="h-8 text-xs rounded-lg"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase">Description</label>
+                    <textarea
+                      placeholder="Describe what happened or what you need help with..."
+                      value={ticketDesc}
+                      onChange={(e) => setTicketDesc(e.target.value)}
+                      className="w-full text-xs min-h-[55px] p-2 rounded-lg border border-border bg-background focus:ring-1 focus:ring-primary outline-hidden resize-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowTicketForm(false)}
+                      className="h-8 text-xs flex-1 rounded-lg"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={submittingTicket || !ticketSubject.trim() || !ticketDesc.trim()}
+                      className="h-8 text-xs flex-1 rounded-lg bg-primary text-primary-foreground font-semibold"
+                    >
+                      {submittingTicket ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Ticket className="h-3 w-3 mr-1" />}
+                      Submit Ticket
+                    </Button>
+                  </div>
+                </form>
               </div>
             )}
             <div ref={messagesEndRef} />

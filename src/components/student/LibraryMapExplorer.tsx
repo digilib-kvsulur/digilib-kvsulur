@@ -84,6 +84,8 @@ export default function LibraryMapExplorer() {
     }, 100);
   };
 
+  const [selectedZone, setSelectedZone] = useState<any>(null);
+
   const target = getTargetCoordinates();
   const gridWidth = 800;
   const gridHeight = 500;
@@ -257,7 +259,8 @@ export default function LibraryMapExplorer() {
                     return (
                       <g 
                         key={idx} 
-                        className="cursor-pointer transition-all duration-300"
+                        className="cursor-pointer transition-all duration-300 hover:scale-[1.01]"
+                        onClick={() => setSelectedZone(area)}
                         onMouseEnter={() => setHoveredZone(area)}
                         onMouseLeave={() => setHoveredZone(null)}
                       >
@@ -266,7 +269,7 @@ export default function LibraryMapExplorer() {
                           y={ay} 
                           width={aw} 
                           height={ah} 
-                          className={`${fillClass} stroke-2 transition-all duration-200`} 
+                          className={`${fillClass} stroke-2 transition-all duration-200 ${selectedZone?.label === area.label ? "ring-2 ring-primary" : ""}`} 
                           rx="6"
                           opacity={opacity}
                         />
@@ -312,6 +315,20 @@ export default function LibraryMapExplorer() {
                 </p>
                 <Button size="sm" variant="outline" onClick={() => setSelectedBook(null)} className="h-8 text-xs font-bold text-red-700 border-red-200 hover:bg-red-100 hover:text-red-800">
                   Dismiss Indicator
+                </Button>
+              </div>
+            )}
+            {selectedZone && !target && (
+              <div className="bg-indigo-50/70 p-3.5 border-t border-indigo-100 flex flex-col sm:flex-row justify-between sm:items-center gap-2 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <span className={`w-3 h-3 rounded-full ${selectedZone.color?.split(" ")[0] || "bg-indigo-500"}`} />
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">{selectedZone.label}</h4>
+                    <p className="text-[11px] text-slate-600">Assigned Cupboards: <strong>{selectedZone.cupboards || "Open Stacks"}</strong></p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setSelectedZone(null)} className="h-7 text-[11px]">
+                  Close Inspector
                 </Button>
               </div>
             )}

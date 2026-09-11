@@ -197,10 +197,12 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="mb-8">
-            <h2 className="text-3xl font-extrabold text-foreground mb-2">Welcome back</h2>
-            <p className="text-muted-foreground">Sign in to continue your reading journey</p>
-          </div>
+          {!showForgotPassword && (
+            <div className="mb-8">
+              <h2 className="text-3xl font-extrabold text-foreground mb-2">Welcome back</h2>
+              <p className="text-muted-foreground">Sign in to continue your reading journey</p>
+            </div>
+          )}
 
           {showForgotPassword ? (
             <ForgotPasswordView

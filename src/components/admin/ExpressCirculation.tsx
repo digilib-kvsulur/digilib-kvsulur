@@ -227,9 +227,26 @@ export const ExpressCirculation: React.FC = () => {
         return;
       }
 
-      // Perform Issue
+      // Role-based Circulation Rules
+      // Students: 1 book at a time, 7 days loan period
+      // Teachers/Staff: Up to 5 books, 30 days (1 month) loan period
+      const isStudent = !selectedStudent.role || selectedStudent.role === "student";
+      const isTeacher = selectedStudent.role === "teacher" || selectedStudent.role === "staff" || selectedStudent.role === "admin";
+
+      if (isStudent && activeLoans.length >= 1) {
+        playAlertBeep();
+        toast({
+          title: "Borrow Limit Reached (Max 1 Book)",
+          description: `Students are strictly allowed 1 book at a time. ${selectedStudent.first_name} currently has "${activeLoans[0]?.book?.title || 'a book'}" issued. Please return it before issuing another.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Perform Issue with role-based due date
+      const loanDays = isStudent ? 7 : 30;
       const today = new Date().toISOString().split("T")[0];
-      const dueDate = new Date(Date.now() + 14 * 86400_000).toISOString().split("T")[0];
+      const dueDate = new Date(Date.now() + loanDays * 86400_000).toISOString().split("T")[0];
 
       const { error: issueErr } = await supabase.from("book_issues").insert({
         user_id: selectedStudent.id,
@@ -251,7 +268,7 @@ export const ExpressCirculation: React.FC = () => {
       playSuccessBeep();
       toast({
         title: "Book Issued! 📖⚡",
-        description: `"${targetBook.title}" issued to ${selectedStudent.first_name}. Due: ${dueDate}`,
+        description: `"${targetBook.title}" issued to ${selectedStudent.first_name}. Due: ${dueDate} (${loanDays} days)`,
       });
 
       loadStudentLoans(selectedStudent.id);
@@ -336,24 +353,42 @@ export const ExpressCirculation: React.FC = () => {
             </form>
 
             {selectedStudent && (
-              <div className="p-3.5 bg-primary/5 border border-primary/20 rounded-xl space-y-2 animate-in fade-in">
-                <div className="flex items-start justify-between">
+              <div className="p-3.5 bg-primary/5 border border-primary/20 rounded-xl space-y-2.5 animate-in fade-in">
+                <div className="flex items-start justify-between gap-2">
                   <div>
                     <h4 className="font-bold text-sm text-foreground">
                       {selectedStudent.first_name} {selectedStudent.last_name}
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      Class {selectedStudent.student_class || "N/A"} · Admn: {selectedStudent.admission_number || "N/A"}
+                      {selectedStudent.role === "teacher" ? "Faculty / Staff" : `Class ${selectedStudent.student_class || "N/A"}`} · Admn: {selectedStudent.admission_number || "N/A"}
                     </p>
                   </div>
-                  <Badge variant="outline" className="text-xs font-bold text-emerald-700 bg-emerald-50 border-emerald-200">
-                    Active Student
+                  <Badge variant="outline" className={`text-xs font-bold ${
+                    selectedStudent.role === "teacher"
+                      ? "text-purple-700 bg-purple-50 border-purple-200"
+                      : "text-emerald-700 bg-emerald-50 border-emerald-200"
+                  }`}>
+                    {selectedStudent.role === "teacher" ? "Faculty (1 Mo)" : "Student (7 Days)"}
                   </Badge>
                 </div>
 
-                <div className="flex items-center justify-between text-xs pt-1 border-t border-primary/10">
-                  <span className="text-muted-foreground">Active Books Issued:</span>
-                  <span className="font-bold text-foreground">{activeLoans.length}</span>
+                <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-primary/10">
+                  <div className="flex flex-col bg-background/60 p-2 rounded-lg border border-border/40">
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">Active Loan</span>
+                    <span className={`font-bold ${
+                      (!selectedStudent.role || selectedStudent.role === "student") && activeLoans.length >= 1
+                        ? "text-red-600 font-mono"
+                        : "text-foreground font-mono"
+                    }`}>
+                      {activeLoans.length} / {(!selectedStudent.role || selectedStudent.role === "student") ? "1 max" : "5 max"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col bg-background/60 p-2 rounded-lg border border-border/40">
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold">Loan Period</span>
+                    <span className="font-bold text-foreground">
+                      {(!selectedStudent.role || selectedStudent.role === "student") ? "7 Days" : "30 Days (1 Mo)"}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

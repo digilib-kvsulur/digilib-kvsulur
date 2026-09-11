@@ -146,22 +146,76 @@ const StudentDashboard = () => {
   const streakData = useLoginStreak(user?.id);
   usePushSubscription(user?.id);
 
+  const [activeLoan, setActiveLoan] = useState<any>(null);
+
+  const fetchActiveLoan = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("book_issues")
+        .select("id, issue_date, due_date, accession_number, books(id, title, author, cover_url)")
+        .eq("user_id", userId)
+        .eq("status", "issued")
+        .order("issue_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      setActiveLoan(data || null);
+    } catch (e) {
+      console.warn("fetchActiveLoan error:", e);
+    }
+  };
+
+  const navSections = useMemo(() => [
+    {
+      title: "Main",
+      items: [
+        { id: "overview" as Tab, label: "Overview", icon: Home },
+        { id: "portfolio" as Tab, label: "My Portfolio", icon: FileText },
+        { id: "issued" as Tab, label: "Book Issued", icon: BookCheck },
+      ],
+    },
+    {
+      title: "Academics",
+      items: [
+        { id: "materials" as Tab, label: "Study Materials", icon: FileText },
+        { id: "study" as Tab, label: "Study Tracker", icon: Timer },
+        { id: "study-guide" as Tab, label: "AI Study Guide", icon: Sparkles },
+        { id: "notes" as Tab, label: "My Notes", icon: StickyNote },
+      ],
+    },
+    {
+      title: "Library",
+      items: [
+        { id: "books" as Tab, label: "Books Catalog", icon: BookOpen },
+        { id: "locator" as Tab, label: "Library Map", icon: Compass },
+        ...(periodicalsVisible ? [{ id: "periodicals" as Tab, label: "Periodicals", icon: Newspaper }] : []),
+      ],
+    },
+    {
+      title: "Engagement & Rewards",
+      items: [
+        { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
+        { id: "badges" as Tab, label: "Badge Cabinet", icon: Award },
+        ...(hasCertificates ? [{ id: "certificates" as Tab, label: "Certificates", icon: Award }] : []),
+        { id: "rankings" as Tab, label: "Rankings", icon: Medal },
+        { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
+        { id: "community" as Tab, label: "Community", icon: Users },
+        { id: "events" as Tab, label: "Events", icon: CalendarDays },
+      ],
+    },
+    {
+      title: "Support & Account",
+      items: [
+        { id: "support" as Tab, label: "Help & Support", icon: LifeBuoy },
+        { id: "feedback" as Tab, label: "Feedback", icon: MessageSquare },
+        { id: "profile" as Tab, label: "My Profile", icon: User },
+      ],
+    },
+  ], [periodicalsVisible, hasCertificates]);
+
   const navItems = useMemo(() => {
-    const items = [...baseNavItems];
-    const badgesIdx = items.findIndex((i) => i.id === "badges");
-    if (hasCertificates && badgesIdx >= 0) {
-      items.splice(badgesIdx + 1, 0, { id: "certificates" as Tab, label: "Certificates", icon: Award });
-    }
-    if (periodicalsVisible) {
-      const eventsIdx = items.findIndex((i) => i.id === "events");
-      items.splice(eventsIdx >= 0 ? eventsIdx + 1 : items.length, 0, {
-        id: "periodicals" as Tab,
-        label: "Periodicals",
-        icon: Newspaper,
-      });
-    }
-    return items;
-  }, [periodicalsVisible, hasCertificates]);
+    return navSections.flatMap((s) => s.items);
+  }, [navSections]);
 
   useEffect(() => { checkAuth(); }, []);
 
@@ -205,6 +259,7 @@ const StudentDashboard = () => {
         } catch (e) { console.error(e); }
       }
       setUser(mergedUser);
+      fetchActiveLoan(session.user.id);
       if (mergedUser.student_class && profile.points !== null) {
         try {
           const { data: rankData, error: rankError } = await supabase.rpc('get_user_class_rank', { user_class: mergedUser.student_class, user_points: profile.points || 0 });
@@ -475,13 +530,27 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        <nav className="flex-1 min-h-0 p-3 space-y-1 overflow-y-auto">
-          {navItems.map(item => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === item.id ? 'gradient-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-              <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
-            </button>
+        <nav className="flex-1 min-h-0 p-3 space-y-4 overflow-y-auto">
+          {navSections.map(sec => (
+            <div key={sec.title} className="space-y-1">
+              <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider px-3 mb-1">
+                {sec.title}
+              </p>
+              {sec.items.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    activeTab === item.id
+                      ? 'gradient-primary text-primary-foreground shadow-sm shadow-primary/25 font-bold'
+                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
+                  }`}
+                >
+                  <item.icon className={`h-4 w-4 shrink-0 ${activeTab === item.id ? 'text-white' : 'text-muted-foreground'}`} />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
 
@@ -673,6 +742,106 @@ const StudentDashboard = () => {
                   </Card>
                 );
               })()}
+
+              {/* Active Book Issue (7-Day Student Rule Tracker) */}
+              {activeLoan && (
+                <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-background to-orange-500/5 shadow-md">
+                  <CardContent className="p-4 sm:p-5">
+                    {(() => {
+                      const issueDate = new Date(activeLoan.issue_date);
+                      const dueDate = new Date(activeLoan.due_date);
+                      const now = new Date();
+                      const totalDays = Math.max(1, Math.round((dueDate.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24)));
+                      const daysRemaining = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                      const isOverdue = daysRemaining < 0;
+                      const progressPct = Math.min(100, Math.max(0, Math.round(((totalDays - Math.max(0, daysRemaining)) / totalDays) * 100)));
+
+                      return (
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-12 h-16 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                {activeLoan.books?.cover_url ? (
+                                  <img src={activeLoan.books.cover_url} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <BookOpen className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <Badge variant="outline" className="text-[10px] font-bold border-amber-500/40 text-amber-600 dark:text-amber-400">
+                                    CURRENTLY BORROWED (1/1 LIMIT)
+                                  </Badge>
+                                  {isOverdue ? (
+                                    <Badge variant="destructive" className="text-[10px] font-bold animate-pulse">
+                                      OVERDUE BY {Math.abs(daysRemaining)} {Math.abs(daysRemaining) === 1 ? 'DAY' : 'DAYS'}
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                                      {daysRemaining} {daysRemaining === 1 ? 'DAY' : 'DAYS'} LEFT
+                                    </Badge>
+                                  )}
+                                </div>
+                                <h4 className="font-bold text-sm sm:text-base text-foreground truncate">
+                                  {activeLoan.books?.title || "Borrowed Book"}
+                                </h4>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {activeLoan.books?.author ? `By ${activeLoan.books.author}` : `Acc #${activeLoan.accession_number || activeLoan.id.slice(0, 8)}`}
+                                </p>
+                              </div>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-xs shrink-0 font-medium"
+                              onClick={() => setActiveTab("issues")}
+                            >
+                              Details
+                            </Button>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="space-y-1 pt-1">
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Borrowed: {issueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                              <span className={isOverdue ? "text-destructive font-bold" : "font-medium"}>
+                                Due: {dueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} (7-Day Rule)
+                              </span>
+                            </div>
+                            <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+                              <div 
+                                className={`h-full transition-all ${isOverdue ? 'bg-destructive' : progressPct > 70 ? 'bg-amber-500' : 'bg-primary'}`} 
+                                style={{ width: `${isOverdue ? 100 : progressPct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Quick Action Shortcuts Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                {[
+                  { label: "Book Catalog", icon: BookOpen, action: () => navigate("/catalog"), color: "from-blue-500/15 to-indigo-500/5 text-blue-600 dark:text-blue-400 border-blue-500/20" },
+                  { label: "My Borrowed", icon: BookmarkCheck, action: () => setActiveTab("issues"), color: "from-amber-500/15 to-orange-500/5 text-amber-600 dark:text-amber-400 border-amber-500/20" },
+                  { label: "NCERT & Notes", icon: GraduationCap, action: () => setActiveTab("ncert"), color: "from-emerald-500/15 to-teal-500/5 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
+                  { label: "Quiz Arena", icon: Brain, action: () => setActiveTab("quizzes"), color: "from-purple-500/15 to-pink-500/5 text-purple-600 dark:text-purple-400 border-purple-500/20" },
+                  { label: "Library Map", icon: Compass, action: () => setActiveTab("locator"), color: "from-cyan-500/15 to-sky-500/5 text-cyan-600 dark:text-cyan-400 border-cyan-500/20" },
+                  { label: "Support & Help", icon: LifeBuoy, action: () => setActiveTab("support"), color: "from-rose-500/15 to-red-500/5 text-rose-600 dark:text-rose-400 border-rose-500/20" },
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={item.action}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border bg-gradient-to-b ${item.color} hover:scale-105 active:scale-95 transition-all text-center group shadow-sm`}
+                  >
+                    <item.icon className="h-5 w-5 mb-1.5 transition-transform group-hover:scale-110" />
+                    <span className="text-xs font-bold text-foreground leading-tight line-clamp-1">{item.label}</span>
+                  </button>
+                ))}
+              </div>
 
               {/* Catalog Search */}
               <Card className="border-border/50 overflow-hidden">

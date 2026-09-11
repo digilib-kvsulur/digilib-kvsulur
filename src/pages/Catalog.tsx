@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -212,6 +212,20 @@ const Catalog = () => {
   const displayedBooks = debouncedSearch.trim()
     ? books.slice((currentPage - 1) * pageSize, currentPage * pageSize)
     : books;
+
+  const showFeatured = !debouncedSearch && selectedGenre === "all" && selectedSubject === "all" && selectedClass === "all" && currentPage === 1 && books.length > 0;
+  const withCovers = useMemo(() => books.filter((b) => b.cover_url && b.cover_url.trim().length > 5), [books]);
+  const featuredList = useMemo(() => (withCovers.length >= 4 ? withCovers : books).slice(0, 6), [withCovers, books]);
+  const featuredIdSet = useMemo(() => new Set(featuredList.map(b => b.id)), [featuredList]);
+
+  // Exclude featured books from the catalog grid on page 1 so the exact same books aren't repeated right below
+  const catalogGridBooks = useMemo(() => {
+    if (showFeatured && featuredList.length > 0) {
+      const filtered = displayedBooks.filter(b => !featuredIdSet.has(b.id));
+      return filtered.length > 0 ? filtered : displayedBooks;
+    }
+    return displayedBooks;
+  }, [showFeatured, displayedBooks, featuredIdSet, featuredList.length]);
 
   const requireAuth = () => { if (!user) { toast({ title: "Sign in required", variant: "destructive" }); navigate("/login"); return false; } return true; };
 
@@ -531,7 +545,7 @@ const Catalog = () => {
         ) : (
           <>
             {/* Featured & Popular Books Section (Clean Professional Showcase) */}
-            {!debouncedSearch && selectedGenre === "all" && selectedClass === "all" && currentPage === 1 && books.length > 0 && (
+            {showFeatured && featuredList.length > 0 && (
               <div className="mb-8 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -546,32 +560,28 @@ const Catalog = () => {
                 </div>
 
                 <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
-                  {(() => {
-                    const withCovers = books.filter((b) => b.cover_url && b.cover_url.trim().length > 5);
-                    const featuredList = (withCovers.length >= 4 ? withCovers : books).slice(0, 6);
-                    return featuredList.map((b) => (
-                      <div
-                        key={b.id}
-                        onClick={() => navigate(`/book/${b.id}`)}
-                        className="group cursor-pointer bg-slate-50/80 hover:bg-white rounded-xl p-2 border border-slate-200/70 hover:border-indigo-300 transition-all duration-200 hover:shadow-md flex flex-col justify-between"
-                      >
-                        <div className="aspect-[2/3] w-full rounded-lg overflow-hidden mb-2 bg-slate-200/80 relative shadow-xs">
-                          {b.cover_url ? (
-                            <img src={b.cover_url} alt={b.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                          ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-slate-100 text-slate-600">
-                              <BookOpen className="h-5 w-5 text-indigo-500 mb-1" />
-                              <span className="text-[9px] font-bold line-clamp-2 text-slate-800">{b.title}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">{b.title}</h4>
-                          <p className="text-[10px] text-slate-500 truncate">by {b.author || "Unknown"}</p>
-                        </div>
+                  {featuredList.map((b) => (
+                    <div
+                      key={b.id}
+                      onClick={() => navigate(`/book/${b.id}`)}
+                      className="group cursor-pointer bg-slate-50/80 hover:bg-white rounded-xl p-2 border border-slate-200/70 hover:border-indigo-300 transition-all duration-200 hover:shadow-md flex flex-col justify-between"
+                    >
+                      <div className="aspect-[2/3] w-full rounded-lg overflow-hidden mb-2 bg-slate-200/80 relative shadow-xs">
+                        {b.cover_url ? (
+                          <img src={b.cover_url} alt={b.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-slate-100 text-slate-600">
+                            <BookOpen className="h-5 w-5 text-indigo-500 mb-1" />
+                            <span className="text-[9px] font-bold line-clamp-2 text-slate-800">{b.title}</span>
+                          </div>
+                        )}
                       </div>
-                    ));
-                  })()}
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">{b.title}</h4>
+                        <p className="text-[10px] text-slate-500 truncate">by {b.author || "Unknown"}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -583,10 +593,10 @@ const Catalog = () => {
               </Badge>
             </div>
 
-            {loading ? skeletonGrid : displayedBooks.length > 0 ? (
+            {loading ? skeletonGrid : catalogGridBooks.length > 0 ? (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
-                  {displayedBooks.map(book => {
+                  {catalogGridBooks.map(book => {
                     const r = ratings[book.id];
                     const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
                     return (
