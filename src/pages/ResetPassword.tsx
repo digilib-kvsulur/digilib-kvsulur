@@ -45,7 +45,11 @@ const ResetPassword = () => {
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(3);
 
-  // 1. Thorough session and recovery token verification
+  const [requestEmail, setRequestEmail] = useState("");
+  const [isSendingLink, setIsSendingLink] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
+
+  // 1. Thorough session and recovery token verification without premature expiry errors
   useEffect(() => {
     let isMounted = true;
 
@@ -54,7 +58,29 @@ const ResetPassword = () => {
         setIsVerifying(true);
         setError(null);
 
-        // Check if there is an error in the URL hash (Supabase implicit flow error format)
+        // A. Immediately check if an active authenticated session already exists
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        if (initialSession && isMounted) {
+          setSessionValid(true);
+          setIsVerifying(false);
+          return;
+        }
+
+        // B. Check URL query parameters (PKCE code or OTP token_hash)
+        const tokenHash = searchParams.get("token_hash");
+        const type = searchParams.get("type");
+        const code = searchParams.get("code");
+        const queryError = searchParams.get("error_description") || searchParams.get("error");
+
+        if (queryError) {
+          if (isMounted) {
+            setError(queryError.replace(/\+/g, " ") || "The reset link is invalid or expired.");
+            setIsVerifying(false);
+          }
+          return;
+        }
+
+        // C. Check hash fragments for error
         const hash = window.location.hash;
         if (hash) {
           const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
@@ -70,23 +96,22 @@ const ResetPassword = () => {
             }
             return;
           }
-        }
 
-        // Check URL query parameters for PKCE code or OTP token_hash
-        const tokenHash = searchParams.get("token_hash");
-        const type = searchParams.get("type");
-        const code = searchParams.get("code");
-        const queryError = searchParams.get("error_description") || searchParams.get("error");
-
-        if (queryError) {
-          if (isMounted) {
-            setError(queryError.replace(/\+/g, " ") || "The reset link is invalid or expired.");
-            setIsVerifying(false);
+          // If hash has access_token and type=recovery, supabase client will process it
+          if (hashParams.get("access_token")) {
+            // Wait briefly for supabase client auth listener to set session
+            await new Promise((r) => setTimeout(r, 600));
+            const { data: { session: hashSession } } = await supabase.auth.getSession();
+            if (hashSession && isMounted) {
+              setSessionValid(true);
+              setIsVerifying(false);
+              window.history.replaceState({}, document.title, window.location.pathname);
+              return;
+            }
           }
-          return;
         }
 
-        // Verify OTP if token_hash is present
+        // D. Verify OTP if token_hash is present and not yet exchanged
         if (tokenHash && type === "recovery") {
           const { error: otpError } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
@@ -94,6 +119,13 @@ const ResetPassword = () => {
           });
           if (otpError) {
             console.warn("OTP verification error:", otpError.message);
+            // Before declaring error, check if a session was nonetheless initialized
+            const { data: { session: checkSession } } = await supabase.auth.getSession();
+            if (checkSession && isMounted) {
+              setSessionValid(true);
+              setIsVerifying(false);
+              return;
+            }
             if (isMounted) {
               setError("This password reset link is invalid or has expired. Please request a new one.");
               setIsVerifying(false);
@@ -105,6 +137,12 @@ const ResetPassword = () => {
           const { error: codeError } = await supabase.auth.exchangeCodeForSession(code);
           if (codeError) {
             console.warn("Code exchange error:", codeError.message);
+            const { data: { session: checkSession } } = await supabase.auth.getSession();
+            if (checkSession && isMounted) {
+              setSessionValid(true);
+              setIsVerifying(false);
+              return;
+            }
             if (isMounted) {
               setError("This verification code is invalid or has expired. Please request a new one.");
               setIsVerifying(false);
@@ -113,28 +151,28 @@ const ResetPassword = () => {
           }
         }
 
-        // Check current session state
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && isMounted) {
+        // E. Final session check with grace period
+        const { data: { session: finalSession } } = await supabase.auth.getSession();
+        if (finalSession && isMounted) {
           setSessionValid(true);
           setIsVerifying(false);
-          // Clean the sensitive hash / token from address bar without reloading
           window.history.replaceState({}, document.title, window.location.pathname);
           return;
         }
 
-        // Give onAuthStateChange a short window to process any in-flight recovery tokens
+        // Give onAuthStateChange listener an extra second to resolve in case network was slow
         const timeout = setTimeout(async () => {
           const { data: { session: retrySession } } = await supabase.auth.getSession();
           if (isMounted) {
             if (retrySession) {
               setSessionValid(true);
+              setError(null);
             } else {
-              setError("This password reset link has expired or is invalid. Please request a new one.");
+              setError("Please open the password reset link directly from your email, or request a new link below.");
             }
             setIsVerifying(false);
           }
-        }, 1200);
+        }, 1000);
 
         return () => clearTimeout(timeout);
       } catch (err: any) {
@@ -147,7 +185,7 @@ const ResetPassword = () => {
 
     // Listen to Supabase Auth state changes for PASSWORD_RECOVERY or SIGNED_IN
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "PASSWORD_RECOVERY" || (session && event === "SIGNED_IN")) {
+      if (event === "PASSWORD_RECOVERY" || (session && (event === "SIGNED_IN" || event === "USER_UPDATED"))) {
         if (isMounted) {
           setSessionValid(true);
           setIsVerifying(false);
@@ -163,6 +201,33 @@ const ResetPassword = () => {
       authListener.subscription.unsubscribe();
     };
   }, [searchParams]);
+
+  // Handle requesting a new reset link directly
+  const handleRequestNewLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requestEmail.trim()) return;
+    setIsSendingLink(true);
+    try {
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(requestEmail.trim(), {
+        redirectTo: redirectUrl,
+      });
+      if (error) throw error;
+      setLinkSent(true);
+      toast({
+        title: "Reset Link Sent! ✉️",
+        description: `Check your inbox at ${requestEmail} for the password recovery link.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Failed to Send Reset Link",
+        description: err.message || "Please check the email address and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingLink(false);
+    }
+  };
 
   // 2. Countdown redirect on success
   useEffect(() => {
@@ -232,31 +297,31 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50/70 py-12 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-300">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-300">
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="flex flex-col items-center justify-center mb-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 mb-3">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-primary flex items-center justify-center shadow-lg shadow-primary/25 mb-3">
             <BookOpen className="h-7 w-7 text-white" />
           </div>
-          <h1 className="text-xl font-black tracking-tight text-slate-900">PM SHRI KV AFS SULUR</h1>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Digital Library Security</p>
+          <h1 className="text-xl font-black tracking-tight text-foreground">PM SHRI KV AFS SULUR</h1>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Digital Library Security</p>
         </div>
 
         {/* Main Card */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/40 relative overflow-hidden">
+        <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden text-card-foreground">
           {/* Subtle Top Accent */}
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500" />
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-indigo-500 to-emerald-500" />
 
           {isVerifying ? (
             /* Verifying Token State */
             <div className="py-12 text-center space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto animate-pulse">
-                <RefreshCw className="h-7 w-7 text-indigo-600 animate-spin" />
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto animate-pulse">
+                <RefreshCw className="h-7 w-7 text-primary animate-spin" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Verifying Security Link</h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+                <h3 className="text-lg font-bold text-foreground">Verifying Security Link</h3>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
                   Validating your password reset token with the library authentication server…
                 </p>
               </div>
@@ -264,25 +329,25 @@ const ResetPassword = () => {
           ) : isDone ? (
             /* Success State */
             <div className="text-center py-6 space-y-5 animate-in zoom-in-95 duration-300">
-              <div className="w-16 h-16 bg-emerald-100 border border-emerald-200 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-                <CheckCircle2 className="h-9 w-9 text-emerald-600" />
+              <div className="w-16 h-16 bg-emerald-500/15 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 className="h-9 w-9 text-emerald-600 dark:text-emerald-400" />
               </div>
 
               <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 mb-2">
                   <ShieldCheck className="h-3.5 w-3.5" /> Security Verified
                 </span>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Password Reset!</h2>
-                <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">
+                <h2 className="text-2xl font-black text-foreground tracking-tight">Password Reset!</h2>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
                   Your new password has been saved securely. Redirecting to login in{" "}
-                  <span className="font-extrabold text-indigo-600 font-mono">{countdown}</span>s…
+                  <span className="font-extrabold text-primary font-mono">{countdown}</span>s…
                 </p>
               </div>
 
               <div className="pt-3">
                 <Button
                   onClick={() => navigate("/login")}
-                  className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md shadow-indigo-600/20 active:scale-[0.98] transition-all"
+                  className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md active:scale-[0.98] transition-all"
                 >
                   Sign In Now
                 </Button>
@@ -291,40 +356,55 @@ const ResetPassword = () => {
           ) : error && !sessionValid ? (
             /* Expired / Invalid Token State */
             <div className="py-4 space-y-5">
-              <div className="w-14 h-14 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-center mx-auto text-red-600">
+              <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto text-amber-600 dark:text-amber-400">
                 <AlertCircle className="h-7 w-7" />
               </div>
 
               <div className="text-center">
-                <h3 className="text-xl font-bold text-slate-900">Link Expired or Invalid</h3>
-                <p className="text-xs text-slate-600 mt-2 leading-relaxed max-w-sm mx-auto">
+                <h3 className="text-xl font-bold text-foreground">Password Reset Session</h3>
+                <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-sm mx-auto">
                   {error}
                 </p>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 text-xs text-slate-600">
-                <div className="flex items-start gap-2 font-semibold text-slate-700">
-                  <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
-                  <span>Why does this happen?</span>
+              {/* Inline Quick Request Box */}
+              <div className="p-4 bg-muted/40 rounded-2xl border border-border space-y-3">
+                <div className="flex items-center gap-1.5 font-bold text-xs text-foreground">
+                  <KeyRound className="h-4 w-4 text-primary" />
+                  <span>Send a Fresh Recovery Link</span>
                 </div>
-                <ul className="list-disc pl-5 space-y-1 text-slate-500">
-                  <li>Password reset links can only be used once.</li>
-                  <li>Links automatically expire after 1 hour for security.</li>
-                  <li>A newer reset link may have been requested.</li>
-                </ul>
+                {linkSent ? (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs font-semibold text-center">
+                    ✓ Link sent! Please check your email inbox and spam folder.
+                  </div>
+                ) : (
+                  <form onSubmit={handleRequestNewLink} className="space-y-2">
+                    <Input
+                      type="email"
+                      placeholder="Enter your registered email..."
+                      value={requestEmail}
+                      onChange={(e) => setRequestEmail(e.target.value)}
+                      className="h-9 text-xs bg-background"
+                      required
+                    />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={isSendingLink || !requestEmail.trim()}
+                      className="w-full h-9 text-xs font-bold gradient-primary text-white border-0"
+                    >
+                      {isSendingLink ? <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                      Send Recovery Email
+                    </Button>
+                  </form>
+                )}
               </div>
 
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2 pt-1">
                 <Button
-                  onClick={() => navigate("/login?forgot=true")}
-                  className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md shadow-indigo-600/20 active:scale-[0.98] transition-all"
-                >
-                  Request a New Reset Link
-                </Button>
-                <Button
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => navigate("/login")}
-                  className="w-full h-10 rounded-xl text-slate-600 hover:text-slate-900 font-semibold text-xs"
+                  className="w-full h-10 rounded-xl font-semibold text-xs border-border text-foreground hover:bg-muted"
                 >
                   <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to Sign In
                 </Button>
@@ -334,11 +414,11 @@ const ResetPassword = () => {
             /* Set New Password Form */
             <>
               <div className="mb-6">
-                <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-3 text-indigo-600 shadow-xs">
+                <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 text-primary shadow-xs">
                   <KeyRound className="h-5 w-5" />
                 </div>
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">Set New Password</h2>
-                <p className="text-xs text-slate-500 mt-1">
+                <h2 className="text-xl font-black text-foreground tracking-tight">Set New Password</h2>
+                <p className="text-xs text-muted-foreground mt-1">
                   Create a strong, memorable password for your KV Sulur DLMS account.
                 </p>
               </div>
