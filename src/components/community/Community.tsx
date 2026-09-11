@@ -9,7 +9,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert, HelpCircle, CheckCircle2 } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert, HelpCircle, CheckCircle2, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
@@ -48,6 +48,7 @@ interface Post {
   doubt_class?: string;
   doubt_status?: "unsolved" | "solved";
   accepted_comment_id?: string | null;
+  scheduled_for?: string | null;
 }
 interface Comment { id: string; content: string; user_id: string; created_at: string; author?: any; is_accepted_solution?: boolean; }
 
@@ -67,7 +68,82 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [doubtFilterClass, setDoubtFilterClass] = useState("all");
   const [doubtFilterStatus, setDoubtFilterStatus] = useState<"all" | "unsolved" | "solved">("all");
   const [viewingStory, setViewingStory] = useState<Post | null>(null);
-  const [feedCategory, setFeedCategory] = useState<"all" | "doubts" | "stories" | "polls" | "media">("all");
+  const [feedCategory, setFeedCategory] = useState<"all" | "doubts" | "stories" | "polls" | "media" | "scheduled">("all");
+  
+  // Post Scheduling State
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [reschedulingPost, setReschedulingPost] = useState<Post | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  const getMinDateTime = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 2);
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+  };
+
+  const setSchedulePreset = (preset: "1h" | "tomorrow_morning" | "tomorrow_evening" | "weekend") => {
+    const d = new Date();
+    if (preset === "1h") {
+      d.setHours(d.getHours() + 1);
+    } else if (preset === "tomorrow_morning") {
+      d.setDate(d.getDate() + 1);
+      d.setHours(9, 0, 0, 0);
+    } else if (preset === "tomorrow_evening") {
+      d.setDate(d.getDate() + 1);
+      d.setHours(18, 0, 0, 0);
+    } else if (preset === "weekend") {
+      const day = d.getDay();
+      const diff = (6 - day + 7) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      d.setHours(10, 0, 0, 0);
+    }
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    setScheduledDate(new Date(d.getTime() - tzOffset).toISOString().slice(0, 16));
+  };
+
+  const handlePublishNow = async (postId: string) => {
+    try {
+      setActionLoadingId(postId);
+      const { error } = await supabase
+        .from("posts")
+        .update({ scheduled_for: null })
+        .eq("id", postId);
+
+      if (error) throw error;
+      toast({ title: "Post Published to Community Feed! 🚀" });
+      load();
+    } catch (e: any) {
+      toast({ title: "Failed to publish", description: e.message, variant: "destructive" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleRescheduleSubmit = async () => {
+    if (!reschedulingPost || !rescheduleDate) return;
+    try {
+      setActionLoadingId(reschedulingPost.id);
+      const isoDate = new Date(rescheduleDate).toISOString();
+      const { error } = await supabase
+        .from("posts")
+        .update({ scheduled_for: isoDate })
+        .eq("id", reschedulingPost.id);
+
+      if (error) throw error;
+      toast({ title: "Post Rescheduled! 📅" });
+      setReschedulingPost(null);
+      setRescheduleDate("");
+      load();
+    } catch (e: any) {
+      toast({ title: "Failed to reschedule", description: e.message, variant: "destructive" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   const [linkUrl, setLinkUrl] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -252,7 +328,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     let postsData: any[] = [];
     const doubtRes = await supabase
       .from("posts")
-      .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at, doubt_subject, doubt_class, doubt_status, accepted_comment_id")
+      .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at, doubt_subject, doubt_class, doubt_status, accepted_comment_id, scheduled_for")
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(60);
@@ -484,13 +560,17 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         postPayload.doubt_class = doubtClass;
         postPayload.doubt_status = "unsolved";
       }
+      if (isScheduling && scheduledDate) {
+        postPayload.scheduled_for = new Date(scheduledDate).toISOString();
+      }
 
       let { data: postRow, error } = await supabase.from("posts").insert(postPayload).select("id").single();
-      if (error && postKind === "doubt") {
-        // Fallback: If DB schema doesn't have doubt columns yet, insert core columns
+      if (error && (postKind === "doubt" || postPayload.scheduled_for)) {
+        // Fallback: If DB schema doesn't have doubt or scheduled_for columns yet
         delete postPayload.doubt_subject;
         delete postPayload.doubt_class;
         delete postPayload.doubt_status;
+        delete postPayload.scheduled_for;
         const retry = await supabase.from("posts").insert(postPayload).select("id").single();
         postRow = retry.data;
         error = retry.error;
@@ -502,11 +582,17 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         );
         if (optErr) throw optErr;
       }
+
+      const wasScheduled = isScheduling && !!scheduledDate;
+      const scheduledDisplayDate = scheduledDate ? new Date(scheduledDate).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
+
       setDraft({ title: "", content: "" });
       setLinkUrl("");
       setPollOptions(["", ""]);
       setPostKind("text");
       setMediaFile(null);
+      setIsScheduling(false);
+      setScheduledDate("");
       setShowNew(false);
 
       // Notify tagged users
@@ -529,7 +615,16 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       await Promise.allSettled(notifPromises);
       setTaggedUsers([]);
 
-      toast({ title: postKind === "story" ? "Story Published! 📖✨" : "Posted!" });
+      toast({
+        title: wasScheduled
+          ? "Post Scheduled! ⏱️📅"
+          : postKind === "story"
+          ? "Story Published! 📖✨"
+          : "Posted!",
+        description: wasScheduled
+          ? `Will automatically go live on ${scheduledDisplayDate}. View or manage under the "Scheduled" tab.`
+          : undefined,
+      });
       load();
     } catch (e: any) {
       toast({ title: "Failed", description: e.message, variant: "destructive" });
@@ -937,6 +1032,25 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 </PopoverContent>
               </Popover>
 
+              {/* Schedule button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isScheduling && !scheduledDate) {
+                    setSchedulePreset("1h");
+                  }
+                  setIsScheduling(!isScheduling);
+                }}
+                className={`flex items-center gap-1 text-xs transition-all px-2.5 py-1.5 rounded-lg border border-dashed font-semibold ${
+                  isScheduling
+                    ? "bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-300"
+                    : "border-border text-muted-foreground hover:text-foreground hover:border-primary"
+                }`}
+              >
+                <Clock className="h-3.5 w-3.5" />
+                {isScheduling ? "Scheduled" : "Schedule"}
+              </button>
+
               {/* Tagged chips */}
               {taggedUsers.length > 0 && (
                 <div className="flex flex-wrap gap-1 w-full mt-1">
@@ -950,40 +1064,112 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               )}
 
               <div className="flex-1" />
-              <Button size="sm" variant="ghost" onClick={() => { setShowNew(false); setMediaFile(null); setPostKind("text"); setPollOptions(["", ""]); setTaggedUsers([]); }}>Cancel</Button>
-              <Button size="sm" onClick={createPost} disabled={uploadingPost}>{uploadingPost ? "Posting..." : "Post"}</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setShowNew(false); setMediaFile(null); setPostKind("text"); setPollOptions(["", ""]); setTaggedUsers([]); setIsScheduling(false); setScheduledDate(""); }}>Cancel</Button>
+              <Button
+                size="sm"
+                onClick={createPost}
+                disabled={uploadingPost || (isScheduling && !scheduledDate)}
+                className={isScheduling ? "bg-amber-600 hover:bg-amber-700 text-white font-bold" : ""}
+              >
+                {uploadingPost ? "Saving..." : isScheduling ? "Schedule Post ⏱️" : "Post"}
+              </Button>
             </div>
+
+            {/* Expandable Scheduling Box */}
+            {isScheduling && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
+                    <Calendar className="h-4 w-4 text-amber-600" />
+                    <span>Schedule Release Time:</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-muted-foreground font-medium">Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => setSchedulePreset("1h")}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-background border hover:bg-muted font-semibold text-foreground"
+                    >
+                      +1 Hour
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSchedulePreset("tomorrow_morning")}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-background border hover:bg-muted font-semibold text-foreground"
+                    >
+                      Tomorrow 9 AM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSchedulePreset("tomorrow_evening")}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-background border hover:bg-muted font-semibold text-foreground"
+                    >
+                      Tomorrow 6 PM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSchedulePreset("weekend")}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-background border hover:bg-muted font-semibold text-foreground"
+                    >
+                      Weekend
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <input
+                    type="datetime-local"
+                    value={scheduledDate}
+                    min={getMinDateTime()}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    className="h-9 px-3 rounded-lg border border-input bg-background text-xs font-mono font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                    required={isScheduling}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Private until scheduled time, then automatically published to all students & teachers.
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Feed Sub-filters */}
+      {/* Feed Sub-filters */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-        {[
-          { id: "all", label: "All Posts" },
-          { id: "doubts", label: "❓ Academic Doubts", count: posts.filter(p => p.post_type === "doubt").length },
-          { id: "stories", label: "📖 Student Stories", count: posts.filter(p => p.post_type === "story").length },
-          { id: "polls", label: "📊 Polls", count: posts.filter(p => p.post_type === "poll").length },
-          { id: "media", label: "🖼️ Photos & PDFs", count: posts.filter(p => !!p.media_url).length },
-        ].map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => setFeedCategory(cat.id as any)}
-            className={`text-xs px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              feedCategory === cat.id
-                ? "gradient-primary text-white shadow-sm"
-                : "bg-muted/70 text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            {cat.label}
-            {cat.count !== undefined && cat.count > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${feedCategory === cat.id ? "bg-white/20 text-white" : "bg-background text-muted-foreground"}`}>
-                {cat.count}
-              </span>
-            )}
-          </button>
-        ))}
+        {(() => {
+          const isLivePost = (p: Post) => !p.scheduled_for || new Date(p.scheduled_for).getTime() <= Date.now();
+          const scheduledCount = posts.filter(p => p.scheduled_for && new Date(p.scheduled_for).getTime() > Date.now() && (p.user_id === currentUserId || isAdmin)).length;
+          
+          return [
+            { id: "all", label: "All Posts" },
+            { id: "doubts", label: "❓ Academic Doubts", count: posts.filter(p => p.post_type === "doubt" && isLivePost(p)).length },
+            { id: "stories", label: "📖 Student Stories", count: posts.filter(p => p.post_type === "story" && isLivePost(p)).length },
+            { id: "polls", label: "📊 Polls", count: posts.filter(p => p.post_type === "poll" && isLivePost(p)).length },
+            { id: "media", label: "🖼️ Photos & PDFs", count: posts.filter(p => !!p.media_url && isLivePost(p)).length },
+            ...(scheduledCount > 0 || isAdmin ? [{ id: "scheduled", label: "⏱️ Scheduled", count: scheduledCount }] : []),
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setFeedCategory(cat.id as any)}
+              className={`text-xs px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                feedCategory === cat.id
+                  ? "gradient-primary text-white shadow-sm"
+                  : "bg-muted/70 text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              {cat.label}
+              {cat.count !== undefined && cat.count > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${feedCategory === cat.id ? "bg-white/20 text-white" : "bg-background text-muted-foreground"}`}>
+                  {cat.count}
+                </span>
+              )}
+            </button>
+          ));
+        })()}
       </div>
 
       {/* Doubts Subject & Status Sub-Filter Bar */}
@@ -1046,6 +1232,12 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
       {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : (() => {
         const filteredPosts = posts.filter(p => {
+          const isScheduledFuture = p.scheduled_for && new Date(p.scheduled_for).getTime() > Date.now();
+          if (feedCategory === "scheduled") {
+            return isScheduledFuture && (p.user_id === currentUserId || isAdmin);
+          }
+          if (isScheduledFuture) return false;
+
           if (feedCategory === "doubts") {
             if (p.post_type !== "doubt") return false;
             if (doubtFilterClass !== "all" && p.doubt_class !== doubtFilterClass) return false;
@@ -1067,7 +1259,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   <Users className="h-7 w-7 opacity-80" />
                 </div>
                 <h3 className="font-bold text-foreground text-base mb-1">
-                  {feedCategory === "doubts"
+                  {feedCategory === "scheduled"
+                    ? "No Scheduled Posts"
+                    : feedCategory === "doubts"
                     ? "No Academic Doubts Yet"
                     : feedCategory === "stories"
                     ? "No Student Stories Shared Yet"
@@ -1076,7 +1270,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     : "No Community Posts Yet"}
                 </h3>
                 <p className="text-sm text-muted-foreground max-w-sm mb-5">
-                  {feedCategory === "doubts"
+                  {feedCategory === "scheduled"
+                    ? "You have no upcoming posts waiting to be published. Click 'Schedule' when drafting a post to set a future release time."
+                    : feedCategory === "doubts"
                     ? "Have a doubt from your NCERT chapters or school subjects? Ask your classmates & teachers!"
                     : feedCategory === "stories"
                     ? "Share your book review, summary, or creative reading reflections."
@@ -1127,7 +1323,40 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                           {p.author?.username ? `@${p.author.username} · ` : ""}Class {p.author?.student_class || "—"} · {new Date(p.created_at).toLocaleString()}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0 flex-wrap">
+                        {p.scheduled_for && new Date(p.scheduled_for).getTime() > Date.now() && (
+                          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] gap-1 font-bold">
+                            <Clock className="h-3 w-3 text-amber-500" />
+                            Scheduled: {new Date(p.scheduled_for).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
+                          </Badge>
+                        )}
+                        {p.scheduled_for && new Date(p.scheduled_for).getTime() > Date.now() && (p.user_id === currentUserId || isAdmin) && (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 text-[10px] px-2 font-bold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
+                              disabled={actionLoadingId === p.id}
+                              onClick={() => handlePublishNow(p.id)}
+                            >
+                              <Send className="h-2.5 w-2.5 mr-1" /> Publish Now
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 text-[10px] px-2 font-bold border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                              disabled={actionLoadingId === p.id}
+                              onClick={() => {
+                                setReschedulingPost(p);
+                                const d = new Date(p.scheduled_for || Date.now());
+                                const tzOffset = d.getTimezoneOffset() * 60000;
+                                setRescheduleDate(new Date(d.getTime() - tzOffset).toISOString().slice(0, 16));
+                              }}
+                            >
+                              <Calendar className="h-2.5 w-2.5 mr-1" /> Reschedule
+                            </Button>
+                          </div>
+                        )}
                         {p.is_pinned && (
                           <Badge variant="secondary" className="text-[10px] gap-1">
                             <Pin className="h-3 w-3" /> Pinned
@@ -1509,6 +1738,88 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               {submittingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Flag className="h-4 w-4 mr-1" />}
               Submit Report
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reschedule Post Dialog */}
+      <Dialog open={!!reschedulingPost} onOpenChange={(o) => { if (!o) setReschedulingPost(null); }}>
+        <DialogContent className="max-w-md rounded-2xl p-5 gap-4">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-amber-500" />
+              Reschedule Publication Time
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Select a new date and time for &ldquo;{reschedulingPost?.title}&rdquo; to go live.
+            </p>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] text-muted-foreground font-medium">Quick presets:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date();
+                  d.setHours(d.getHours() + 1);
+                  const tz = d.getTimezoneOffset() * 60000;
+                  setRescheduleDate(new Date(d.getTime() - tz).toISOString().slice(0, 16));
+                }}
+                className="text-[10px] px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 font-semibold"
+              >
+                +1 Hour
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + 1);
+                  d.setHours(9, 0, 0, 0);
+                  const tz = d.getTimezoneOffset() * 60000;
+                  setRescheduleDate(new Date(d.getTime() - tz).toISOString().slice(0, 16));
+                }}
+                className="text-[10px] px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 font-semibold"
+              >
+                Tomorrow 9 AM
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + 1);
+                  d.setHours(18, 0, 0, 0);
+                  const tz = d.getTimezoneOffset() * 60000;
+                  setRescheduleDate(new Date(d.getTime() - tz).toISOString().slice(0, 16));
+                }}
+                className="text-[10px] px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 font-semibold"
+              >
+                Tomorrow 6 PM
+              </button>
+            </div>
+
+            <input
+              type="datetime-local"
+              value={rescheduleDate}
+              min={getMinDateTime()}
+              onChange={(e) => setRescheduleDate(e.target.value)}
+              className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            />
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="ghost" size="sm" onClick={() => setReschedulingPost(null)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                disabled={!rescheduleDate || actionLoadingId === reschedulingPost?.id}
+                onClick={handleRescheduleSubmit}
+              >
+                {actionLoadingId === reschedulingPost?.id ? "Saving..." : "Save Schedule"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
