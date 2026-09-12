@@ -121,17 +121,22 @@ export const UpcomingQuizLeagueCard = ({
     if (!leagueSession) return;
 
     const calculateTime = () => {
-      // If session is already active or in waiting room, it's live!
-      if (leagueSession.status === "active" || leagueSession.status === "waiting") {
+      const targetTime = leagueSession.scheduled_start_at
+        ? new Date(leagueSession.scheduled_start_at).getTime()
+        : null;
+
+      if (!targetTime) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMs: 0 });
         return;
       }
 
-      const targetTime = leagueSession.scheduled_start_at
-        ? new Date(leagueSession.scheduled_start_at).getTime()
-        : new Date(leagueSession.created_at).getTime();
-
       const diff = Math.max(0, targetTime - Date.now());
+
+      // If session is active and match time passed, timer is 0
+      if (leagueSession.status === "active" && diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMs: 0 });
+        return;
+      }
 
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
