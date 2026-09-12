@@ -329,43 +329,8 @@ export const UpcomingQuizLeagueCard = ({
             </div>
           </div>
 
-          {/* Right: Live Countdown Clock & Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-            {!isLive && isScheduledInFuture ? (
-              /* Synchronized Digital Countdown */
-              <div className="flex items-center justify-center gap-1.5 bg-black/40 border border-white/10 rounded-2xl px-3.5 py-2 backdrop-blur-md">
-                <div className="text-center px-1.5">
-                  <span className="text-lg sm:text-xl font-black font-mono text-white leading-none block">
-                    {String(timeLeft.days).padStart(2, "0")}
-                  </span>
-                  <span className="text-[8px] text-white/50 uppercase font-semibold">Days</span>
-                </div>
-                <span className="font-bold text-white/40 pb-2">:</span>
-                <div className="text-center px-1.5">
-                  <span className="text-lg sm:text-xl font-black font-mono text-white leading-none block">
-                    {String(timeLeft.hours).padStart(2, "0")}
-                  </span>
-                  <span className="text-[8px] text-white/50 uppercase font-semibold">Hrs</span>
-                </div>
-                <span className="font-bold text-white/40 pb-2">:</span>
-                <div className="text-center px-1.5">
-                  <span className="text-lg sm:text-xl font-black font-mono text-amber-300 leading-none block">
-                    {String(timeLeft.minutes).padStart(2, "0")}
-                  </span>
-                  <span className="text-[8px] text-white/50 uppercase font-semibold">Min</span>
-                </div>
-                <span className="font-bold text-white/40 pb-2">:</span>
-                <div className="text-center px-1.5">
-                  <span className="text-lg sm:text-xl font-black font-mono text-amber-400 leading-none block">
-                    {String(timeLeft.seconds).padStart(2, "0")}
-                  </span>
-                  <span className="text-[8px] text-white/50 uppercase font-semibold">Sec</span>
-                </div>
-              </div>
-            ) : null}
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+          {/* Right: Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
               <Button
                 onClick={handleToggleRegistration}
                 variant="outline"
@@ -445,7 +410,6 @@ export const UpcomingQuizLeagueCard = ({
                   </span>
                 </Button>
               )}
-            </div>
           </div>
         </div>
       </CardContent>
