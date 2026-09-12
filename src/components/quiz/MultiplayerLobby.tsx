@@ -253,6 +253,54 @@ export const MultiplayerLobby = ({
     }
   };
 
+  // Time-gate screen: student entered too early — show countdown until lobby opens
+  if (!isHost && !loading && msUntilLobby > 0) {
+    const totalSec = Math.floor(msUntilLobby / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const lobbyOpenTime = scheduledStart
+      ? new Date(new Date(scheduledStart).getTime() - 5 * 60 * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : "";
+
+    return (
+      <div className="fixed inset-0 z-[100] w-screen h-dvh bg-background/98 backdrop-blur-xl flex flex-col items-center justify-center p-4 text-center">
+        <div className="max-w-sm w-full space-y-6">
+          {/* Lock icon */}
+          <div className="text-6xl">🔒</div>
+          <div>
+            <h2 className="text-2xl font-black text-foreground">Lobby Not Open Yet</h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              The lobby opens <strong className="text-foreground">5 minutes before</strong> the scheduled start time.
+            </p>
+          </div>
+
+          {/* Countdown to lobby open */}
+          <div className="bg-muted/60 border border-border rounded-2xl px-6 py-5 space-y-1">
+            <p className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Lobby opens in</p>
+            <p className="font-mono text-4xl font-black text-primary">
+              {h > 0 ? `${String(h).padStart(2,"0")}:` : ""}{String(m).padStart(2,"0")}:{String(s).padStart(2,"0")}
+            </p>
+            {lobbyOpenTime && (
+              <p className="text-xs text-muted-foreground">at {lobbyOpenTime}</p>
+            )}
+          </div>
+
+          {/* Quiz info */}
+          <div className="text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">{quizTitle}</span>
+            {roomCode && <span> · Room <span className="font-mono font-bold text-primary">{roomCode}</span></span>}
+          </div>
+
+          <Button variant="outline" onClick={onCancel} className="gap-2 rounded-xl">
+            <LogOut className="h-4 w-4" />
+            Leave & Come Back Later
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[100] w-screen h-dvh bg-background/98 backdrop-blur-xl flex flex-col items-center justify-center p-3 sm:p-6 overflow-y-auto">
       {/* Top Header with Leave Button */}
