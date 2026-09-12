@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Zap, BookOpen, Brain, Flame, Award, Gamepad2, Timer, Trophy, Star, Activity } from "lucide-react";
+import { ArrowLeft, Zap, BookOpen, Brain, Flame, Award, Gamepad2, Timer, Trophy, Star, Activity, MessageCircle } from "lucide-react";
 
 interface PointEvent {
   id: string;
@@ -25,6 +25,7 @@ const SOURCE_META: Record<string, { icon: React.ElementType; color: string; bg: 
   game:       { icon: Gamepad2, color: "text-blue-700",    bg: "bg-blue-100",    label: "Game" },
   study:      { icon: Timer,    color: "text-teal-700",    bg: "bg-teal-100",    label: "Study Session" },
   challenge:  { icon: Trophy,   color: "text-rose-700",    bg: "bg-rose-100",    label: "Challenge" },
+  community:  { icon: MessageCircle, color: "text-emerald-700", bg: "bg-emerald-100", label: "WhatsApp Community" },
   manual:     { icon: Star,     color: "text-yellow-700",  bg: "bg-yellow-100",  label: "Admin Bonus" },
   other:      { icon: Zap,      color: "text-slate-700",   bg: "bg-slate-100",   label: "Points" },
 };
@@ -55,10 +56,29 @@ const PointsHistoryPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/login"); return; }
 
-      const { data: profile } = await supabase.from("profiles").select("points").eq("id", user.id).single();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("points, whatsapp_reward_claimed, whatsapp_joined_at, created_at")
+        .eq("id", user.id)
+        .single();
       setTotalPoints(profile?.points || 0);
 
       const allEvents: PointEvent[] = [];
+
+      // WhatsApp community reward
+      if ((profile as any)?.whatsapp_reward_claimed) {
+        const m = SOURCE_META.community;
+        allEvents.push({
+          id: `wa-${user.id}`,
+          source: "community",
+          points: 250,
+          description: "Joined PM SHRI KV Sulur WhatsApp Community",
+          created_at: (profile as any).whatsapp_joined_at || (profile as any).created_at || new Date().toISOString(),
+          icon: m.icon,
+          color: m.color,
+          bg: m.bg,
+        });
+      }
 
       // Reading history
       const { data: rh } = await supabase
