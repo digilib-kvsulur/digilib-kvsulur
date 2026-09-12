@@ -352,6 +352,15 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       setStreak(currentStreak);
       setLastEarnedPoints(earned);
 
+      // 🎉 Per-question confetti — escalates with streak
+      if (currentStreak >= 5) {
+        triggerWinnerConfetti(1); // Golden mega burst for 5+ streak
+      } else if (currentStreak >= 3) {
+        triggerWinnerConfetti(3); // Bronze burst for 3–4 streak
+      } else {
+        triggerConfetti(); // Standard burst for single correct
+      }
+
       if (currentStreak >= 2) {
         quizAudio.playStreak();
       } else {

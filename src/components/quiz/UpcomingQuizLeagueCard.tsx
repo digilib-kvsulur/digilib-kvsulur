@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
-  Trophy, Flame, Clock, Play, Users, Bell, BellRing, Sparkles, Zap, ShieldCheck 
+  Trophy, Flame, Clock, Play, Users, Bell, BellRing, Sparkles, Zap, ShieldCheck, Timer
 } from "lucide-react";
 import { quizAudio } from "@/lib/quizAudio";
 
@@ -259,19 +259,58 @@ export const UpcomingQuizLeagueCard = ({
               <h3 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug truncate">
                 {quizTitle}
               </h3>
-              <p className="text-xs sm:text-sm text-indigo-200/80 font-medium flex items-center gap-3 mt-0.5">
-                <span>{questionCount} Questions</span>
-                <span>•</span>
-                <span>Room: <strong className="font-mono text-amber-300 font-black">{leagueSession.room_code || "AUTO"}</strong></span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                <span className="text-xs sm:text-sm text-indigo-200/80 font-medium flex items-center gap-1.5">
+                  <span>{questionCount} Questions</span>
+                  <span>•</span>
+                  <span>Room: <strong className="font-mono text-amber-300 font-black">{leagueSession.room_code || "AUTO"}</strong></span>
+                </span>
                 {registeredCount > 0 && (
-                  <>
-                    <span>•</span>
-                    <span className="flex items-center gap-1 text-emerald-300">
-                      <Users className="h-3.5 w-3.5" /> {registeredCount} Registered
-                    </span>
-                  </>
+                  <span className="flex items-center gap-1 text-xs text-emerald-300 font-medium">
+                    <Users className="h-3.5 w-3.5" />
+                    {registeredCount} Registered
+                  </span>
                 )}
-              </p>
+              </div>
+
+              {/* Scheduled date & time display */}
+              {leagueSession.scheduled_start_at && !isLive && (
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <div className="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-xl px-2.5 py-1">
+                    <Clock className="h-3 w-3 text-indigo-300 shrink-0" />
+                    <span className="text-xs font-bold text-white/90">
+                      {new Date(leagueSession.scheduled_start_at).toLocaleDateString([], {
+                        weekday: "short", day: "2-digit", month: "short",
+                      })}
+                    </span>
+                    <span className="text-white/40">·</span>
+                    <span className="text-xs font-black text-amber-300 font-mono">
+                      {new Date(leagueSession.scheduled_start_at).toLocaleTimeString([], {
+                        hour: "2-digit", minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  {/* Live countdown chip — shown when ≤ 24 hours away */}
+                  {timeLeft.totalMs > 0 && timeLeft.totalMs <= 24 * 60 * 60 * 1000 && (
+                    <div className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 border font-mono text-xs font-black ${
+                      timeLeft.totalMs <= 5 * 60 * 1000
+                        ? "bg-red-500/30 border-red-400/50 text-red-300 animate-pulse"
+                        : timeLeft.totalMs <= 60 * 60 * 1000
+                        ? "bg-amber-500/20 border-amber-400/40 text-amber-300"
+                        : "bg-indigo-500/20 border-indigo-400/30 text-indigo-200"
+                    }`}>
+                      <Timer className="h-3 w-3 shrink-0" />
+                      {String(timeLeft.hours).padStart(2,"0")}:{String(timeLeft.minutes).padStart(2,"0")}:{String(timeLeft.seconds).padStart(2,"0")}
+                    </div>
+                  )}
+                </div>
+              )}
+              {leagueSession.scheduled_start_at && isLive && (
+                <div className="flex items-center gap-1.5 mt-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="text-xs font-bold text-emerald-300">Arena is Open — Join Now!</span>
+                </div>
+              )}
             </div>
           </div>
 
