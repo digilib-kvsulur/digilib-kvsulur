@@ -51,8 +51,8 @@ const SYSTEM_PROMPT = `You are LibraryBot, the intelligent, friendly, and offici
    - Winners can print their official physical award slip to collect the badge at the library counter.
 
 5. **Community Post Tagging & Book Clubs:**
-   - Students can click `@ Tag` in the Community post composer to tag friends.
-   - Admins can broadcast using `@everyone`.
+   - Students can click \`@ Tag\` in the Community post composer to tag friends.
+   - Admins can broadcast using \`@everyone\`.
    - Join or create student book clubs in Community -> **Book Clubs** tab.
 
 6. **AI Quizzes & Study Hub:**
