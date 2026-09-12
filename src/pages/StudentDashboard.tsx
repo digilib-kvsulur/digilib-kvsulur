@@ -891,27 +891,6 @@ const StudentDashboard = () => {
                 </Card>
               )}
 
-              {/* Quick Action Shortcuts Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                {[
-                  { label: "Book Catalog", icon: BookOpen, action: () => navigate("/catalog"), color: "from-blue-500/15 to-indigo-500/5 text-blue-600 dark:text-blue-400 border-blue-500/20" },
-                  { label: "My Borrowed", icon: BookmarkCheck, action: () => setActiveTab("issues"), color: "from-amber-500/15 to-orange-500/5 text-amber-600 dark:text-amber-400 border-amber-500/20" },
-                  { label: "NCERT & Notes", icon: GraduationCap, action: () => setActiveTab("ncert"), color: "from-emerald-500/15 to-teal-500/5 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
-                  { label: "Quiz Arena", icon: Brain, action: () => setActiveTab("quizzes"), color: "from-purple-500/15 to-pink-500/5 text-purple-600 dark:text-purple-400 border-purple-500/20" },
-                  { label: "Library Map", icon: Compass, action: () => setActiveTab("locator"), color: "from-cyan-500/15 to-sky-500/5 text-cyan-600 dark:text-cyan-400 border-cyan-500/20" },
-                  { label: "Support & Help", icon: LifeBuoy, action: () => setActiveTab("support"), color: "from-rose-500/15 to-red-500/5 text-rose-600 dark:text-rose-400 border-rose-500/20" },
-                ].map((item, idx) => (
-                  <button
-                    key={idx}
-                    onClick={item.action}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border bg-gradient-to-b ${item.color} hover:scale-105 active:scale-95 transition-all text-center group shadow-sm`}
-                  >
-                    <item.icon className="h-5 w-5 mb-1.5 transition-transform group-hover:scale-110" />
-                    <span className="text-xs font-bold text-foreground leading-tight line-clamp-1">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-
               {/* Catalog Search */}
               <Card className="border-border/50 overflow-hidden">
                 <div className="h-1 bg-gradient-to-r from-primary to-accent" />
