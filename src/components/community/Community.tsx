@@ -2467,9 +2467,6 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
     </Tabs>
   );
 }
-    </Tabs>
-  );
-}
 
 export default Community;
 
