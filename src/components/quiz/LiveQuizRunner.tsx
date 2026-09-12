@@ -64,7 +64,8 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   const [proctorWarning, setProctorWarning] = useState<string | null>(null);
   const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
 
-  // Kahoot-style Inter-Question Leaderboard & Prize Grant State
+  // Kahoot-style Inter-Question Leaderboard, Answer Splash & Prize Grant State
+  const [showAnswerSplash, setShowAnswerSplash] = useState(false);
   const [showInterBoard, setShowInterBoard] = useState(false);
   const [interBoardTimer, setInterBoardTimer] = useState(5);
   const [isGrantingPoints, setIsGrantingPoints] = useState(false);
@@ -295,24 +296,28 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         finishQuiz();
       })
       .on("broadcast", { event: "player_score_update" }, (payload) => {
-        const updatedPlayer = payload.payload as ParticipantScore;
-        if (!updatedPlayer || !updatedPlayer.user_id) return;
+        const updatedPlayer = payload.payload as any;
+        if (!updatedPlayer || !updatedPlayer.user_id || updatedPlayer.is_host) return;
+        if (updatedPlayer.name?.toLowerCase().includes("admin") || updatedPlayer.name?.toLowerCase().includes("pm shri kv")) return;
 
         setParticipants((prev) => {
           const exists = prev.some((p) => p.user_id === updatedPlayer.user_id);
           let nextList = exists
             ? prev.map((p) => (p.user_id === updatedPlayer.user_id ? { ...p, ...updatedPlayer } : p))
             : [...prev, updatedPlayer];
-          return nextList.sort((a, b) => (b.score || 0) - (a.score || 0));
+          return nextList
+            .filter((p: any) => !p.is_host && !p.name?.toLowerCase().includes("admin") && !p.name?.toLowerCase().includes("pm shri kv"))
+            .sort((a, b) => (b.score || 0) - (a.score || 0));
         });
       })
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
-        const raw = Object.values(state).flatMap((users: any) => users) as ParticipantScore[];
-        // Deduplicate by user_id — keep entry with highest score per user
+        const raw = Object.values(state).flatMap((users: any) => users) as any[];
+        // Deduplicate by user_id — keep entry with highest score per user, strictly exclude admin/host
         const seen = new Map<string, ParticipantScore>();
         for (const p of raw) {
-          if (!p.user_id) continue;
+          if (!p.user_id || p.is_host) continue;
+          if (p.name?.toLowerCase().includes("admin") || p.name?.toLowerCase().includes("pm shri kv")) continue;
           const existing = seen.get(p.user_id);
           if (!existing || (p.score || 0) > (existing.score || 0)) {
             seen.set(p.user_id, p);
@@ -322,12 +327,13 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         setParticipants(deduped);
       })
       .subscribe(async (status) => {
-        if (status === "SUBSCRIBED" && currentUser) {
+        if (status === "SUBSCRIBED" && currentUser && !isHost) {
           await channel.track({
             user_id: currentUser.id,
             name: currentUser.name,
             score: 0,
             avatar_url: currentUser.avatar_url,
+            is_host: false,
           });
         }
       });
@@ -335,12 +341,13 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId, currentUser, totalTime]);
+  }, [sessionId, currentUser, totalTime, isHost]);
 
   // Reset per question
   useEffect(() => {
     setSelectedAnswer(null);
     setShowResult(false);
+    setShowAnswerSplash(false);
     setTimeLeft(totalTime);
   }, [currentIndex, totalTime]);
 
@@ -371,8 +378,9 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       setStreak(0);
       quizAudio.playIncorrect();
     }
-    // Transition to Inter-Question Leaderboard after 2.5 seconds (Kahoot style)
+    // Transition to Inter-Question Leaderboard after 2 seconds (Kahoot style)
     setTimeout(() => {
+      setShowAnswerSplash(false);
       setShowInterBoard(true);
       setInterBoardTimer(5);
       if (channelRef.current && isHost) {
@@ -382,13 +390,14 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
           payload: {},
         });
       }
-    }, 2500);
+    }, 2000);
   };
 
   const handleAnswerSelect = async (index: number) => {
     if (showResult || selectedAnswer !== null || isHost || isDisqualified) return;
     setSelectedAnswer(index);
     setShowResult(true);
+    setShowAnswerSplash(true);
 
     const isCorrect = index === question.correctAnswer;
 
@@ -423,7 +432,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       }
 
       // 1. Instant Realtime Broadcast to eliminate delay
-      if (channelRef.current && currentUser) {
+      if (channelRef.current && currentUser && !isHost) {
         const payloadData: ParticipantScore = {
           user_id: currentUser.id,
           name: currentUser.name,
@@ -446,9 +455,24 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       setLastEarnedPoints(0);
       quizAudio.playIncorrect();
     }
+
+    // Automatically transition from answer splash to inter-question leaderboard after 1.8s
+    setTimeout(() => {
+      setShowAnswerSplash(false);
+      setShowInterBoard(true);
+      setInterBoardTimer(5);
+      if (channelRef.current && isHost) {
+        channelRef.current.send({
+          type: "broadcast",
+          event: "show_leaderboard",
+          payload: {},
+        });
+      }
+    }, 1800);
   };
 
   const handleNextQuestion = async () => {
+    setShowAnswerSplash(false);
     setShowInterBoard(false);
     setShowResult(false);
     setSelectedAnswer(null);
