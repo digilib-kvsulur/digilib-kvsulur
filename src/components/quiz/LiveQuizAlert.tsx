@@ -68,14 +68,22 @@ export const LiveQuizAlert = ({ onJoinLeague }: LiveQuizAlertProps) => {
     const { data } = await supabase
       .from("quiz_sessions")
       .select("*, quizzes(*)")
-      // Show: actively live/waiting, OR scheduled to start within 1 hour
-      .or(`status.eq.waiting,status.eq.active,and(status.eq.scheduled,scheduled_start_at.lte.${in1Hour})`)
+      .or(`status.eq.active,and(status.eq.waiting,or(scheduled_start_at.is.null,scheduled_start_at.lte.${in1Hour})),and(status.eq.scheduled,scheduled_start_at.lte.${in1Hour})`)
       .neq("status", "finished")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (data) {
+      // Extra client-side guard: if scheduled_start_at is > 1 hour away, hide popup
+      if (data.scheduled_start_at) {
+        const msUntilStart = new Date(data.scheduled_start_at).getTime() - Date.now();
+        if (msUntilStart > ONE_HOUR_MS) {
+          setActiveSession(null);
+          setVisible(false);
+          return;
+        }
+      }
       setActiveSession(data);
       setDismissed(false);
       setVisible(true);
