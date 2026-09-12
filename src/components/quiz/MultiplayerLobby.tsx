@@ -33,6 +33,7 @@ export const MultiplayerLobby = ({
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [msUntilLobby, setMsUntilLobby] = useState<number>(0); // time gate for students
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
@@ -168,7 +169,6 @@ export const MultiplayerLobby = ({
       if (diff <= 0) {
         setTimeUntilStart("Starting now!");
         clearInterval(interval);
-        // If host and auto-start enabled, launch automatically!
         if (isHost && autoStart && sessionId) {
           handleStart();
         }
@@ -181,6 +181,20 @@ export const MultiplayerLobby = ({
 
     return () => clearInterval(interval);
   }, [scheduledStart, autoStart, isHost, sessionId]);
+
+  // Time-gate: track ms until lobby window (5 min before scheduled start)
+  useEffect(() => {
+    if (!scheduledStart || isHost) return;
+    const LOBBY_WINDOW_MS = 5 * 60 * 1000;
+    const tick = () => {
+      const msToStart = new Date(scheduledStart).getTime() - Date.now();
+      const msToLobby = msToStart - LOBBY_WINDOW_MS; // positive = lobby not open yet
+      setMsUntilLobby(Math.max(0, msToLobby));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [scheduledStart, isHost]);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(roomCode);
