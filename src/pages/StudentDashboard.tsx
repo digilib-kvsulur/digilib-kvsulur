@@ -842,8 +842,6 @@ const StudentDashboard = () => {
                 )}
               </div>
 
-              {user?.id && <ReadingVelocity userId={user.id} />}
-
               {user?.student_class && <ClassCompetitions userClass={user.student_class} />}
 
               {/* Quick Stats */}
