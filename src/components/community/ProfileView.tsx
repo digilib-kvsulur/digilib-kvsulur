@@ -123,7 +123,12 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
 
         {!isSelf && (
           <div className="mb-4">
-            {!friendship && <Button className="w-full" onClick={() => onSend(userId)}><UserPlus className="h-4 w-4 mr-2" />Follow / Add Friend</Button>}
+            {(!friendship || status === "rejected") && (
+              <Button className="w-full" onClick={() => onSend(userId)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                {status === "rejected" ? "Send Request Again" : "Follow / Add Friend"}
+              </Button>
+            )}
             {status === "pending" && iSent && <Button variant="outline" className="w-full" disabled><Clock className="h-4 w-4 mr-2" />Request Sent</Button>}
             {status === "pending" && !iSent && (
               <div className="flex gap-2">

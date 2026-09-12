@@ -266,8 +266,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   };
 
   const loadFriendshipsMap = async () => {
+    if (!currentUserId) return;
     const { data } = await supabase.from("friendships")
-      .select("requester_id, addressee_id, status")
+      .select("id, requester_id, addressee_id, status, created_at, updated_at")
       .or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`);
     const m: Record<string, any> = {};
     (data || []).forEach((f: any) => {
@@ -858,28 +859,129 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   };
 
   const sendFriendRequest = async (userId: string) => {
-    const { error, data } = await supabase.from("friendships").insert({ requester_id: currentUserId, addressee_id: userId }).select().single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    setFriendshipsMap((m) => ({ ...m, [userId]: data }));
-    toast({ title: "Friend request sent" });
-    sendNotification(userId, "👋 New Friend Request", "Someone from KV Sulur DLMS sent you a friend request!", "info");
-  };
-  const respondFriendRequest = async (userId: string, status: string) => {
-    const f = friendshipsMap[userId];
-    if (!f) return;
-    await supabase.from("friendships").update({ status }).eq("id", f.id);
-    setFriendshipsMap((m) => ({ ...m, [userId]: { ...f, status } }));
-    toast({ title: status === "accepted" ? "Friend added" : "Request declined" });
-    if (status === "accepted") {
-      sendNotification(userId, "🎉 Friend Request Accepted", "Your friend request was accepted! You are now friends.", "success");
+    try {
+      const existing = friendshipsMap[userId];
+      let data, error;
+      if (existing?.id) {
+        // If an existing row exists (e.g. rejected or cancelled), update it back to pending
+        const res = await supabase
+          .from("friendships")
+          .update({
+            requester_id: currentUserId,
+            addressee_id: userId,
+            status: "pending",
+            updated_at: new Date().toISOString(),
+          } as any)
+          .eq("id", existing.id)
+          .select()
+          .single();
+        data = res.data;
+        error = res.error;
+      } else {
+        // Check DB directly in case it wasn't loaded in map
+        const { data: existingDb } = await supabase
+          .from("friendships")
+          .select("id")
+          .or(`and(requester_id.eq.${currentUserId},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${currentUserId})`)
+          .maybeSingle();
+
+        if (existingDb?.id) {
+          const res = await supabase
+            .from("friendships")
+            .update({
+              requester_id: currentUserId,
+              addressee_id: userId,
+              status: "pending",
+              updated_at: new Date().toISOString(),
+            } as any)
+            .eq("id", existingDb.id)
+            .select()
+            .single();
+          data = res.data;
+          error = res.error;
+        } else {
+          const res = await supabase
+            .from("friendships")
+            .insert({ requester_id: currentUserId, addressee_id: userId, status: "pending" })
+            .select()
+            .single();
+          data = res.data;
+          error = res.error;
+        }
+      }
+
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+
+      setFriendshipsMap((m) => ({ ...m, [userId]: data }));
+      toast({ title: "Friend request sent!" });
+      sendNotification(userId, "👋 New Friend Request", "Someone from KV Sulur DLMS sent you a friend request!", "info");
+      loadFriendshipsMap();
+    } catch (err: any) {
+      toast({ title: "Failed to send request", description: err.message, variant: "destructive" });
     }
   };
+
+  const respondFriendRequest = async (userId: string, status: string) => {
+    try {
+      const f = friendshipsMap[userId];
+      let fid = f?.id;
+      if (!fid) {
+        const { data: found } = await supabase
+          .from("friendships")
+          .select("id")
+          .or(`and(requester_id.eq.${currentUserId},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${currentUserId})`)
+          .maybeSingle();
+        fid = found?.id;
+      }
+
+      if (!fid) {
+        toast({ title: "Error", description: "Friend request record not found.", variant: "destructive" });
+        return;
+      }
+
+      const { error } = await supabase
+        .from("friendships")
+        .update({ status, updated_at: new Date().toISOString() } as any)
+        .eq("id", fid);
+
+      if (error) throw error;
+
+      setFriendshipsMap((m) => ({ ...m, [userId]: { ...(f || {}), id: fid, status } }));
+      toast({ title: status === "accepted" ? "🎉 Friend request accepted!" : "Friend request declined" });
+      if (status === "accepted") {
+        sendNotification(userId, "🎉 Friend Request Accepted", "Your friend request was accepted! You are now friends.", "success");
+      }
+      loadFriendshipsMap();
+    } catch (err: any) {
+      toast({ title: "Action failed", description: err.message, variant: "destructive" });
+    }
+  };
+
   const removeFriend = async (userId: string) => {
-    const f = friendshipsMap[userId];
-    if (!f) return;
-    await supabase.from("friendships").delete().eq("id", f.id);
-    setFriendshipsMap((m) => { const c = { ...m }; delete c[userId]; return c; });
-    toast({ title: "Removed" });
+    try {
+      const f = friendshipsMap[userId];
+      let fid = f?.id;
+      if (!fid) {
+        const { data: found } = await supabase
+          .from("friendships")
+          .select("id")
+          .or(`and(requester_id.eq.${currentUserId},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${currentUserId})`)
+          .maybeSingle();
+        fid = found?.id;
+      }
+
+      if (fid) {
+        await supabase.from("friendships").delete().eq("id", fid);
+      }
+      setFriendshipsMap((m) => { const c = { ...m }; delete c[userId]; return c; });
+      toast({ title: "Friend removed" });
+      loadFriendshipsMap();
+    } catch (err: any) {
+      console.error(err);
+    }
   };
 
   return (
@@ -2063,18 +2165,35 @@ function UserHoverCard({ userId, author, currentUserId, fetchStats, friendship, 
           )}
           {!isSelf && (
             <div className="pt-2 border-t space-y-1.5">
-              {!friendship && <Button size="sm" className="w-full h-8" onClick={() => onSend(userId)}><UserPlus className="h-3.5 w-3.5 mr-1.5" />Add Friend</Button>}
-              {status === "pending" && iSent && <Button size="sm" variant="outline" className="w-full h-8" disabled><Clock className="h-3.5 w-3.5 mr-1.5" />Request Sent</Button>}
+              {(!friendship || status === "rejected") && (
+                <Button size="sm" className="w-full h-8" onClick={() => onSend(userId)}>
+                  <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                  {status === "rejected" ? "Send Request Again" : "Add Friend"}
+                </Button>
+              )}
+              {status === "pending" && iSent && (
+                <Button size="sm" variant="outline" className="w-full h-8" disabled>
+                  <Clock className="h-3.5 w-3.5 mr-1.5" />Request Sent
+                </Button>
+              )}
               {status === "pending" && !iSent && (
                 <div className="flex gap-1.5">
-                  <Button size="sm" className="flex-1 h-8" onClick={() => onRespond(userId, "accepted")}><Check className="h-3.5 w-3.5 mr-1" />Accept</Button>
-                  <Button size="sm" variant="outline" className="flex-1 h-8" onClick={() => onRespond(userId, "rejected")}><X className="h-3.5 w-3.5" /></Button>
+                  <Button size="sm" className="flex-1 h-8" onClick={() => onRespond(userId, "accepted")}>
+                    <Check className="h-3.5 w-3.5 mr-1" />Accept
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1 h-8" onClick={() => onRespond(userId, "rejected")}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               )}
               {status === "accepted" && (
                 <div className="flex gap-1.5">
-                  <Badge className="flex-1 justify-center py-1.5 bg-green-600"><UserCheck className="h-3.5 w-3.5 mr-1" />Friends</Badge>
-                  <Button size="sm" variant="outline" className="h-8" onClick={() => onRemove(userId)}><UserX className="h-3.5 w-3.5" /></Button>
+                  <Badge className="flex-1 justify-center py-1.5 bg-green-600">
+                    <UserCheck className="h-3.5 w-3.5 mr-1" />Friends
+                  </Badge>
+                  <Button size="sm" variant="outline" className="h-8" onClick={() => onRemove(userId)}>
+                    <UserX className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               )}
               <Button size="sm" variant="ghost" className="w-full h-8" onClick={() => onView(userId)}>View full profile →</Button>
@@ -2141,18 +2260,35 @@ function ProfileDialog({ userId, currentUserId, fetchStats, friendship, onSend, 
         </div>
         {!isSelf && (
           <div className="space-y-2">
-            {!friendship && <Button className="w-full" onClick={() => onSend(userId)}><UserPlus className="h-4 w-4 mr-2" />Send Friend Request</Button>}
-            {status === "pending" && iSent && <Button variant="outline" className="w-full" disabled><Clock className="h-4 w-4 mr-2" />Request Sent</Button>}
+            {(!friendship || status === "rejected") && (
+              <Button className="w-full" onClick={() => onSend(userId)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                {status === "rejected" ? "Send Request Again" : "Send Friend Request"}
+              </Button>
+            )}
+            {status === "pending" && iSent && (
+              <Button variant="outline" className="w-full" disabled>
+                <Clock className="h-4 w-4 mr-2" />Request Sent
+              </Button>
+            )}
             {status === "pending" && !iSent && (
               <div className="flex gap-2">
-                <Button className="flex-1" onClick={() => onRespond(userId, "accepted")}><Check className="h-4 w-4 mr-2" />Accept</Button>
-                <Button variant="outline" className="flex-1" onClick={() => onRespond(userId, "rejected")}><X className="h-4 w-4 mr-2" />Decline</Button>
+                <Button className="flex-1" onClick={() => onRespond(userId, "accepted")}>
+                  <Check className="h-4 w-4 mr-2" />Accept
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => onRespond(userId, "rejected")}>
+                  <X className="h-4 w-4 mr-2" />Decline
+                </Button>
               </div>
             )}
             {status === "accepted" && (
               <div className="flex gap-2">
-                <Badge className="flex-1 justify-center py-2 bg-green-600 text-sm"><UserCheck className="h-4 w-4 mr-2" />Friends</Badge>
-                <Button variant="outline" onClick={() => onRemove(userId)}><UserX className="h-4 w-4" /></Button>
+                <Badge className="flex-1 justify-center py-2 bg-green-600 text-sm">
+                  <UserCheck className="h-4 w-4 mr-2" />Friends
+                </Badge>
+                <Button variant="outline" onClick={() => onRemove(userId)}>
+                  <UserX className="h-4 w-4" />
+                </Button>
               </div>
             )}
           </div>
@@ -2195,9 +2331,24 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
   };
 
   const sendRequest = async (userId: string) => {
-    const { error } = await supabase.from("friendships").insert({ requester_id: currentUserId, addressee_id: userId });
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Request sent" }); reload(); }
+    try {
+      const existing = friendshipsMap[userId];
+      if (existing?.id) {
+        await supabase.from("friendships").update({
+          requester_id: currentUserId,
+          addressee_id: userId,
+          status: "pending",
+          updated_at: new Date().toISOString()
+        } as any).eq("id", existing.id);
+      } else {
+        const { error } = await supabase.from("friendships").insert({ requester_id: currentUserId, addressee_id: userId });
+        if (error) throw error;
+      }
+      toast({ title: "Friend request sent!" });
+      reload();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
   };
   const respond = async (id: string, status: string) => {
     await supabase.from("friendships").update({ status }).eq("id", id); reload();
@@ -2298,8 +2449,10 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
                     </p>
                     <p className="text-xs text-muted-foreground truncate">@{r.username || "—"} · {r.role} · Class {r.student_class || "—"}</p>
                   </div>
-                  {!existing ? (
-                    <Button size="sm" onClick={() => sendRequest(r.id)}><UserPlus className="h-4 w-4" /></Button>
+                  {(!existing || existing.status === "rejected") ? (
+                    <Button size="sm" onClick={() => sendRequest(r.id)}>
+                      <UserPlus className="h-4 w-4" />
+                    </Button>
                   ) : existing.status === "accepted" ? (
                     <Badge className="bg-green-600">Friends</Badge>
                   ) : (
@@ -2311,6 +2464,9 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
           </div>
         )}
       </TabsContent>
+    </Tabs>
+  );
+}
     </Tabs>
   );
 }

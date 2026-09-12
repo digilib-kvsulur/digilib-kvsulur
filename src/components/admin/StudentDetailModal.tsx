@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, ListChecks, Brain, Trophy, Flame, Hash, Calendar, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { BookOpen, ListChecks, Brain, Trophy, Flame, Hash, Calendar, CheckCircle, Clock, AlertTriangle, Zap, ExternalLink } from "lucide-react";
 
 interface StudentDetailModalProps {
   user: any | null;
@@ -10,6 +12,7 @@ interface StudentDetailModalProps {
 }
 
 export default function StudentDetailModal({ user, onClose }: StudentDetailModalProps) {
+  const navigate = useNavigate();
   const [history, setHistory] = useState<any[]>([]);
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [issues, setIssues] = useState<any[]>([]);
@@ -95,6 +98,28 @@ export default function StudentDetailModal({ user, onClose }: StudentDetailModal
                   <p className="text-[10px] text-muted-foreground uppercase font-semibold">{s.label}</p>
                 </div>
               ))}
+            </div>
+
+            {/* Action Bar */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" />
+                <span className="text-xs font-bold text-foreground">Points & XP Activity</span>
+                <Badge variant="secondary" className="text-[10px] font-bold">
+                  {user.points || 0} Total XP
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  onClose();
+                  navigate(`/points-history?userId=${user.id}`);
+                }}
+                className="h-8 text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+              >
+                <Zap className="h-3.5 w-3.5" /> View Points History <ExternalLink className="h-3 w-3 ml-0.5 opacity-60" />
+              </Button>
             </div>
 
             {/* Currently Borrowed */}
