@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Trash2, Play, Pause, Trophy, FileText, Upload, Users, Calendar, Clock, Zap, Flame, Sparkles, Download, Share2, Copy } from "lucide-react";
+import { Plus, Edit, Edit3, Trash2, Play, Pause, Trophy, Award, FileText, Upload, Users, Calendar, Clock, Zap, Flame, Sparkles, Download, Share2, Copy } from "lucide-react";
 import { Quiz } from "@/types/quiz";
 import { QuizForm } from "./QuizForm";
 import BulkImportQuiz from "./BulkImportQuiz";
@@ -17,6 +17,8 @@ import { LiveQuizRunner } from "./LiveQuizRunner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
+import { getPrizeForRank } from "./LiveQuizAlert";
+import { triggerWinnerConfetti } from "@/lib/confetti";
 
 interface QuizResult {
   id: string;
@@ -49,6 +51,7 @@ interface LeagueSession {
   speed_bonus?: boolean;
   streak_bonus?: boolean;
   auto_start?: boolean;
+  max_participants?: number;
   status: string;
   created_at: string;
   quizzes?: {
@@ -84,6 +87,16 @@ const QuizManager = () => {
   const [streakBonus, setStreakBonus] = useState(true);
   const [autoStart, setAutoStart] = useState(true);
   const [isScheduling, setIsScheduling] = useState(false);
+
+  // Edit League Dialog State
+  const [editingLeagueSession, setEditingLeagueSession] = useState<LeagueSession | null>(null);
+  const [editLeagueName, setEditLeagueName] = useState("");
+  const [editScheduledTime, setEditScheduledTime] = useState("");
+  const [editTimePerQuestion, setEditTimePerQuestion] = useState(30);
+  const [editTargetClass, setEditTargetClass] = useState("all");
+  const [editMaxParticipants, setEditMaxParticipants] = useState<string>("");
+  const [isSavingLeagueEdit, setIsSavingLeagueEdit] = useState(false);
+  const [isGrantingPoints, setIsGrantingPoints] = useState<string | null>(null);
 
   useEffect(() => {
     loadQuizzes();
@@ -436,6 +449,144 @@ const QuizManager = () => {
     } else {
       navigator.clipboard.writeText(shareText);
       sonnerToast.success("📋 League invite link copied to clipboard!");
+    }
+  };
+
+  const handleOpenEditLeague = (session: LeagueSession) => {
+    setEditingLeagueSession(session);
+    setEditLeagueName(session.league_name || session.quizzes?.title || "");
+    if (session.scheduled_start_at) {
+      const d = new Date(session.scheduled_start_at);
+      const tzOffset = d.getTimezoneOffset() * 60000;
+      const localISOTime = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+      setEditScheduledTime(localISOTime);
+    } else {
+      setEditScheduledTime("");
+    }
+    setEditTimePerQuestion(session.time_per_question || 30);
+    setEditTargetClass(session.target_class || "all");
+    setEditMaxParticipants(session.max_participants ? String(session.max_participants) : "");
+  };
+
+  const handleSaveLeagueEdit = async () => {
+    if (!editingLeagueSession) return;
+    try {
+      setIsSavingLeagueEdit(true);
+      const updatePayload: any = {
+        league_name: editLeagueName || "Live Quiz League",
+        scheduled_start_at: editScheduledTime ? new Date(editScheduledTime).toISOString() : null,
+        time_per_question: editTimePerQuestion,
+        target_class: editTargetClass,
+      };
+      if (editMaxParticipants.trim()) {
+        updatePayload.max_participants = parseInt(editMaxParticipants, 10);
+      } else {
+        updatePayload.max_participants = null;
+      }
+
+      let { error } = await supabase
+        .from("quiz_sessions")
+        .update(updatePayload)
+        .eq("id", editingLeagueSession.id);
+
+      if (error && error.message?.includes("max_participants")) {
+        delete updatePayload.max_participants;
+        const res = await supabase
+          .from("quiz_sessions")
+          .update(updatePayload)
+          .eq("id", editingLeagueSession.id);
+        error = res.error;
+      }
+
+      if (error) throw error;
+
+      setLeagueSessions((prev) =>
+        prev.map((s) => (s.id === editingLeagueSession.id ? { ...s, ...updatePayload } : s))
+      );
+      sonnerToast.success("✅ League details updated successfully!");
+      setEditingLeagueSession(null);
+    } catch (err: any) {
+      sonnerToast.error("Failed to update league: " + (err.message || "Unknown error"));
+    } finally {
+      setIsSavingLeagueEdit(false);
+    }
+  };
+
+  const handleGrantLeaguePoints = async (session: LeagueSession) => {
+    try {
+      setIsGrantingPoints(session.id);
+      sonnerToast.info("Calculating contestant ranks and awarding points...");
+
+      const { data, error } = await supabase
+        .from("quiz_results")
+        .select(`
+          id,
+          score,
+          points_earned,
+          answers,
+          user_id
+        `)
+        .eq("quiz_id", session.quiz_id)
+        .order("score", { ascending: false });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        sonnerToast.warning("No contestant results found to grant points.");
+        return;
+      }
+
+      const sessionResults = data.filter(
+        (r) => !r.answers?.session_id || r.answers?.session_id === session.id
+      );
+
+      const seen = new Map<string, any>();
+      for (const r of sessionResults) {
+        if (!r.user_id) continue;
+        const existing = seen.get(r.user_id);
+        if (!existing || (r.score || 0) > (existing.score || 0)) {
+          seen.set(r.user_id, r);
+        }
+      }
+
+      const contestants = Array.from(seen.values()).sort(
+        (a, b) => (b.score || 0) - (a.score || 0)
+      );
+
+      let awardedCount = 0;
+      for (let i = 0; i < contestants.length; i++) {
+        const c = contestants[i];
+        const isDisqualified = c.answers?.disqualified === true;
+        if (isDisqualified) continue;
+
+        const rank = i + 1;
+        const prize = getPrizeForRank(rank);
+
+        if (prize > 0) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("points")
+            .eq("id", c.user_id)
+            .maybeSingle();
+
+          if (profile) {
+            await supabase
+              .from("profiles")
+              .update({ points: (profile.points || 0) + prize })
+              .eq("id", c.user_id);
+            awardedCount++;
+          }
+        }
+      }
+
+      triggerWinnerConfetti(1);
+      sonnerToast.success(`🏆 Awarded prize points to ${awardedCount} contestants!`, {
+        description: "1st: 5000 pts, 2nd: 2500 pts, 3rd: 1000 pts, 4-10th: 800 pts, others: 500 pts.",
+      });
+    } catch (err: any) {
+      sonnerToast.error("Failed to grant points: " + (err.message || "Unknown error"));
+    } finally {
+      setIsGrantingPoints(null);
     }
   };
 
@@ -850,6 +1001,29 @@ const QuizManager = () => {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => handleOpenEditLeague(session)}
+                            className="font-bold text-xs hover:bg-amber-50 hover:text-amber-700 border-amber-200 text-amber-800"
+                            title="Edit league details (name, scheduled time, max participants)"
+                          >
+                            <Edit3 className="h-3.5 w-3.5 mr-1 text-amber-600" />
+                            Edit
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={isGrantingPoints === session.id}
+                            onClick={() => handleGrantLeaguePoints(session)}
+                            className="font-bold text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border-amber-300"
+                            title="Award prize points to winners (1st: 5000, 2nd: 2500, 3rd: 1000...)"
+                          >
+                            <Award className="h-3.5 w-3.5 mr-1 text-amber-600" />
+                            {isGrantingPoints === session.id ? "Granting..." : "Grant Points"}
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleShareLeague(session)}
                             className="font-bold text-xs hover:bg-indigo-50 hover:text-indigo-600 border-indigo-200 text-indigo-700"
                             title="Share league invite link & room code"
@@ -1259,6 +1433,130 @@ const QuizManager = () => {
                 className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold"
               >
                 {isScheduling ? "Scheduling..." : "Schedule Live League"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Live League Modal Dialog */}
+      <Dialog open={!!editingLeagueSession} onOpenChange={(open) => !open && setEditingLeagueSession(null)}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600">
+                <Edit3 className="h-6 w-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold">Edit Live Quiz League</DialogTitle>
+                <DialogDescription>
+                  Modify league details, name, scheduled timing, and participant limit.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveLeagueEdit();
+            }}
+            className="space-y-4 py-2"
+          >
+            {/* League Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-league-name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                League Title
+              </Label>
+              <Input
+                id="edit-league-name"
+                value={editLeagueName}
+                onChange={(e) => setEditLeagueName(e.target.value)}
+                placeholder="e.g. Science Olympiad - Grand Finale"
+                className="h-11 rounded-xl"
+                required
+              />
+            </div>
+
+            {/* Max Participants & Time Per Question Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-max-participants" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Max Participants
+                </Label>
+                <Input
+                  id="edit-max-participants"
+                  type="number"
+                  min="2"
+                  max="1000"
+                  value={editMaxParticipants}
+                  onChange={(e) => setEditMaxParticipants(e.target.value)}
+                  placeholder="e.g. 50 (leave empty for unlimited)"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-time-per-question" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Time Per Question (Seconds)
+                </Label>
+                <Input
+                  id="edit-time-per-question"
+                  type="number"
+                  min="5"
+                  max="180"
+                  value={editTimePerQuestion}
+                  onChange={(e) => setEditTimePerQuestion(parseInt(e.target.value) || 30)}
+                  className="h-11 rounded-xl"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Scheduled Date & Time */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-scheduled-time" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Scheduled Start Date & Time
+              </Label>
+              <Input
+                id="edit-scheduled-time"
+                type="datetime-local"
+                value={editScheduledTime}
+                onChange={(e) => setEditScheduledTime(e.target.value)}
+                className="h-11 rounded-xl"
+              />
+            </div>
+
+            {/* Target Class */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-target-class" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Eligible Class
+              </Label>
+              <select
+                id="edit-target-class"
+                value={editTargetClass}
+                onChange={(e) => setEditTargetClass(e.target.value)}
+                className="w-full h-11 px-3 rounded-xl border border-input bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              >
+                <option value="all">All Classes Eligible</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((c) => (
+                  <option key={c} value={String(c)}>
+                    Class {c} Only
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <DialogFooter className="pt-3">
+              <Button type="button" variant="outline" onClick={() => setEditingLeagueSession(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSavingLeagueEdit}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              >
+                {isSavingLeagueEdit ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </form>

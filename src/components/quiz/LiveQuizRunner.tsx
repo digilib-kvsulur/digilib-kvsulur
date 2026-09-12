@@ -64,6 +64,12 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   const [proctorWarning, setProctorWarning] = useState<string | null>(null);
   const [showLeaderboardDrawer, setShowLeaderboardDrawer] = useState(false);
 
+  // Kahoot-style Inter-Question Leaderboard & Prize Grant State
+  const [showInterBoard, setShowInterBoard] = useState(false);
+  const [interBoardTimer, setInterBoardTimer] = useState(5);
+  const [isGrantingPoints, setIsGrantingPoints] = useState(false);
+  const [pointsGranted, setPointsGranted] = useState(false);
+
   const channelRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const question = quiz.questions[currentIndex] as Question;
@@ -214,19 +220,29 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     }
   };
 
-  // Fetch session config (e.g. time_per_question)
+  // Fetch session config (e.g. time_per_question & current_question_index for late joiners)
   useEffect(() => {
     const fetchSessionSettings = async () => {
       try {
         const { data } = await supabase
           .from("quiz_sessions")
-          .select("time_per_question")
+          .select("time_per_question, current_question_index, status")
           .eq("id", sessionId)
           .maybeSingle();
 
-        if (data?.time_per_question) {
-          setTotalTime(data.time_per_question);
-          setTimeLeft(data.time_per_question);
+        if (data) {
+          if (data.time_per_question) {
+            setTotalTime(data.time_per_question);
+            setTimeLeft(data.time_per_question);
+          }
+          // Late join synchronization: Jump immediately to live question
+          if (typeof data.current_question_index === "number" && data.current_question_index > 0) {
+            setCurrentIndex(data.current_question_index);
+            toast.info(`⚡ Joined live match at Question ${data.current_question_index + 1}!`);
+          }
+          if (data.status === "finished") {
+            finishQuiz();
+          }
         }
       } catch (err) {
         console.warn("Could not fetch session config:", err);
@@ -236,19 +252,46 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     fetchSessionSettings();
   }, [sessionId]);
 
+  // Inter-question leaderboard countdown timer (auto-advance)
+  useEffect(() => {
+    if (!showInterBoard || isFinished) return;
+
+    const interval = setInterval(() => {
+      setInterBoardTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          // If host, auto-advance to the next question
+          if (isHost) {
+            handleNextQuestion();
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [showInterBoard, isFinished, isHost, currentIndex]);
+
   // Realtime channel for synchronized questions + instant broadcast score sync + presence
   useEffect(() => {
     const channel = supabase.channel(`quiz_session_${sessionId}`);
     channelRef.current = channel;
 
     channel
+      .on("broadcast", { event: "show_leaderboard" }, () => {
+        setShowInterBoard(true);
+        setInterBoardTimer(5);
+      })
       .on("broadcast", { event: "next_question" }, (payload) => {
         setCurrentIndex(payload.payload.index);
         setSelectedAnswer(null);
         setShowResult(false);
+        setShowInterBoard(false);
         setTimeLeft(totalTime);
       })
       .on("broadcast", { event: "end_quiz" }, () => {
+        setShowInterBoard(false);
         finishQuiz();
       })
       .on("broadcast", { event: "player_score_update" }, (payload) => {
@@ -328,6 +371,18 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       setStreak(0);
       quizAudio.playIncorrect();
     }
+    // Transition to Inter-Question Leaderboard after 2.5 seconds (Kahoot style)
+    setTimeout(() => {
+      setShowInterBoard(true);
+      setInterBoardTimer(5);
+      if (channelRef.current && isHost) {
+        channelRef.current.send({
+          type: "broadcast",
+          event: "show_leaderboard",
+          payload: {},
+        });
+      }
+    }, 2500);
   };
 
   const handleAnswerSelect = async (index: number) => {
@@ -394,6 +449,10 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   };
 
   const handleNextQuestion = async () => {
+    setShowInterBoard(false);
+    setShowResult(false);
+    setSelectedAnswer(null);
+
     if (currentIndex < quiz.questions.length - 1) {
       const nextIdx = currentIndex + 1;
       await supabase
@@ -409,6 +468,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         });
       }
       setCurrentIndex(nextIdx);
+      setTimeLeft(totalTime);
     } else {
       await supabase
         .from("quiz_sessions")
@@ -423,6 +483,45 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         });
       }
       finishQuiz();
+    }
+  };
+
+  const handleGrantPrizePoints = async () => {
+    if (pointsGranted || isGrantingPoints) return;
+    setIsGrantingPoints(true);
+    try {
+      let awardedCount = 0;
+      for (let i = 0; i < participants.length; i++) {
+        const p = participants[i];
+        if (!p.user_id) continue;
+        const rank = i + 1;
+        const prize = getPrizeForRank(rank);
+        if (prize > 0) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("points")
+            .eq("id", p.user_id)
+            .maybeSingle();
+
+          if (profile) {
+            await supabase
+              .from("profiles")
+              .update({ points: (profile.points || 0) + prize })
+              .eq("id", p.user_id);
+            awardedCount++;
+          }
+        }
+      }
+
+      setPointsGranted(true);
+      triggerWinnerConfetti(1);
+      toast.success(`🎉 Successfully awarded prize points to ${awardedCount} contestants!`, {
+        description: "1st: 5000 pts, 2nd: 2500 pts, 3rd: 1000 pts, 4-10th: 800 pts, others: 500 pts.",
+      });
+    } catch (err: any) {
+      toast.error("Failed to grant points: " + (err.message || "Unknown error"));
+    } finally {
+      setIsGrantingPoints(false);
     }
   };
 
@@ -452,7 +551,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         const finalRank = participants.findIndex((p) => p.user_id === user.id) + 1;
         const prizePoints = disqualified ? 0 : (finalRank > 0 ? getPrizeForRank(finalRank) : getPrizeForRank(999));
 
-        // Record in quiz_results with session metadata and strikes
+        // Record in quiz_results with session metadata and strikes (points granted upon admin approval)
         await supabase.from("quiz_results").insert({
           quiz_id: quiz.id,
           user_id: user.id,
@@ -467,22 +566,6 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
             quiz_score: score,
           },
         });
-
-        // Award prize points to user profile if not disqualified
-        if (!disqualified && prizePoints > 0) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("points")
-            .eq("id", user.id)
-            .single();
-
-          if (profile) {
-            await supabase
-              .from("profiles")
-              .update({ points: (profile.points || 0) + prizePoints })
-              .eq("id", user.id);
-          }
-        }
       }
     } catch (e) {
       console.error("Error saving final league score:", e);
@@ -668,8 +751,27 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
               </div>
             )}
 
-            {/* Action button */}
-            <div className="text-center pt-2">
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              {isHost && (
+                <Button
+                  onClick={handleGrantPrizePoints}
+                  disabled={isGrantingPoints || pointsGranted}
+                  className={`h-12 px-6 rounded-xl font-black text-sm shadow-xl transition-all ${
+                    pointsGranted
+                      ? "bg-emerald-600 text-white cursor-default"
+                      : "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 hover:scale-105 active:scale-95 animate-pulse"
+                  }`}
+                >
+                  <Trophy className="h-5 w-5 mr-2" />
+                  {pointsGranted
+                    ? "✓ Prize Points Awarded!"
+                    : isGrantingPoints
+                    ? "Awarding Points..."
+                    : "🏆 Grant Prize Points to All Winners"}
+                </Button>
+              )}
+
               <Button
                 onClick={() => {
                   if (document.fullscreenElement) {
@@ -684,6 +786,116 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
             </div>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Kahoot/Quizizz Inter-Question Leaderboard Screen
+  if (showInterBoard && !isFinished) {
+    return (
+      <div className="fixed inset-0 z-[110] w-screen h-dvh bg-slate-950/98 backdrop-blur-2xl flex flex-col items-center justify-start sm:justify-center p-3 sm:p-6 overflow-y-auto select-none">
+        <div className="max-w-2xl w-full bg-slate-900 border-2 border-indigo-500/40 rounded-3xl p-4 sm:p-7 shadow-2xl shadow-indigo-950/60 space-y-4 sm:space-y-5 text-white my-auto animate-in zoom-in-95 duration-200">
+          {/* Header */}
+          <div className="text-center space-y-1">
+            <div className="flex items-center justify-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-400 animate-bounce" />
+              <span className="text-xs font-black uppercase tracking-widest text-indigo-300">
+                League Leaderboard
+              </span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black text-white">
+              After Question {currentIndex + 1} of {quiz.questions.length}
+            </h3>
+          </div>
+
+          {/* Countdown Progress Bar */}
+          <div className="bg-white/10 rounded-2xl p-3 sm:p-4 border border-white/15 text-center space-y-2">
+            <div className="flex items-center justify-between text-xs sm:text-sm font-bold text-indigo-200">
+              <span className="flex items-center gap-2">
+                <Timer className="h-4 w-4 text-amber-300 animate-spin" />
+                <span>Next Question In</span>
+              </span>
+              <span className="font-mono text-lg font-black text-amber-300">{interBoardTimer}s</span>
+            </div>
+            <div className="w-full bg-white/20 h-2.5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 transition-all duration-1000 ease-linear rounded-full"
+                style={{ width: `${Math.max(0, (interBoardTimer / 5) * 100)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Standings Table (All Players) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-white/60 font-bold px-2">
+              <span>Contestant ({participants.length})</span>
+              <span>Total Score</span>
+            </div>
+            <div className="max-h-72 sm:max-h-80 overflow-y-auto space-y-2 pr-1">
+              {participants.map((p, i) => (
+                <div
+                  key={p.user_id || i}
+                  className={`flex items-center justify-between p-3 rounded-2xl border text-xs sm:text-sm font-bold transition-all ${
+                    p.user_id === currentUser?.id
+                      ? "bg-indigo-600/40 border-indigo-400 text-white shadow-md shadow-indigo-600/30 scale-[1.01]"
+                      : i === 0
+                      ? "bg-amber-500/20 border-amber-400/50 text-amber-100"
+                      : i === 1
+                      ? "bg-slate-400/20 border-slate-300/40 text-slate-100"
+                      : i === 2
+                      ? "bg-orange-700/20 border-orange-500/40 text-orange-100"
+                      : "bg-white/5 border-white/10 text-white/80"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-6 text-center font-mono font-black text-amber-400 shrink-0">
+                      {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                    </span>
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-black text-white shrink-0 overflow-hidden shadow-sm">
+                      {p.avatar_url ? (
+                        <img
+                          src={p.avatar_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        (p.name || "S").charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <span className="truncate max-w-[150px] sm:max-w-[260px]">{p.name}</span>
+                    {p.user_id === currentUser?.id && (
+                      <Badge className="bg-indigo-500 text-white text-[9px] py-0 px-1.5 h-4 border-0">
+                        YOU
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="font-mono font-black text-amber-300 shrink-0">
+                    {p.score?.toLocaleString() || 0} pts
+                  </span>
+                </div>
+              ))}
+              {participants.length === 0 && (
+                <p className="text-center text-xs text-white/50 py-4">Waiting for scores to sync...</p>
+              )}
+            </div>
+          </div>
+
+          {/* Host Skip Button */}
+          {isHost && (
+            <div className="pt-2 text-center">
+              <Button
+                onClick={handleNextQuestion}
+                className="w-full h-11 sm:h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-sm shadow-lg gap-2"
+              >
+                <span>Skip Timer & {currentIndex < quiz.questions.length - 1 ? "Next Question" : "Conclude Match"}</span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -973,6 +1185,25 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                     Reveal Answer
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowInterBoard(true);
+                    setInterBoardTimer(5);
+                    if (channelRef.current) {
+                      channelRef.current.send({
+                        type: "broadcast",
+                        event: "show_leaderboard",
+                        payload: {},
+                      });
+                    }
+                  }}
+                  className="border-indigo-400 text-indigo-600 hover:bg-indigo-50 font-bold"
+                >
+                  <Trophy className="h-3.5 w-3.5 mr-1 text-amber-500" />
+                  Show Leaderboard
+                </Button>
                 <Button
                   onClick={handleNextQuestion}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md"

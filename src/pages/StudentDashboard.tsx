@@ -246,6 +246,9 @@ const StudentDashboard = () => {
 
           if (data) {
             setActiveLeagueSession(data);
+            if (data.status === "active") {
+              setInLeagueRunner(true);
+            }
           }
         } catch (e) {
           console.warn("Could not lookup league room from URL:", e);
@@ -941,9 +944,21 @@ const StudentDashboard = () => {
               <UpcomingQuizLeagueCard
                 userId={user?.id}
                 userClass={user?.student_class}
-                onJoinLeague={(session) => setActiveLeagueSession(session)}
+                onJoinLeague={(session) => {
+                  setActiveLeagueSession(session);
+                  if (session.status === "active") {
+                    setInLeagueRunner(true);
+                  }
+                }}
               />
-              <LiveQuizAlert onJoinLeague={(session) => setActiveLeagueSession(session)} />
+              <LiveQuizAlert
+                onJoinLeague={(session) => {
+                  setActiveLeagueSession(session);
+                  if (session.status === "active") {
+                    setInLeagueRunner(true);
+                  }
+                }}
+              />
               
               {/* Level + Streak Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

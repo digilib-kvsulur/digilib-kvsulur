@@ -95,7 +95,7 @@ export const MultiplayerLobby = ({
           .from("quiz_sessions")
           .select("*")
           .eq("quiz_id", quizId)
-          .in("status", ["waiting", "scheduled"])
+          .in("status", ["waiting", "scheduled", "active"])
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
@@ -111,6 +111,13 @@ export const MultiplayerLobby = ({
       }
       if (currentSession.auto_start) {
         setAutoStart(true);
+      }
+
+      // If the session is already active (match started), bypass lobby and immediately launch quiz
+      if (!isHost && currentSession.status === "active") {
+        quizAudio.playLeagueStart();
+        onStart(currentSession.id);
+        return;
       }
 
       // Supabase Realtime Presence Channel
@@ -302,9 +309,9 @@ export const MultiplayerLobby = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] w-screen h-dvh bg-background/98 backdrop-blur-xl flex flex-col items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      {/* Top Header with Leave Button */}
-      <div className="w-full max-w-2xl flex items-center justify-between pb-3 px-1">
+    <div className="fixed inset-0 z-[100] w-screen h-dvh bg-background/98 backdrop-blur-xl flex flex-col items-center justify-start p-3 sm:p-6 overflow-y-auto overscroll-y-contain pb-24 sm:pb-12">
+      {/* Top Header with Leave Button (Sticky so always reachable) */}
+      <div className="sticky top-0 z-20 w-full max-w-2xl flex items-center justify-between pb-3 pt-1 px-1 bg-background/95 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-indigo-500 animate-spin" />
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -315,14 +322,14 @@ export const MultiplayerLobby = ({
           variant="outline"
           size="sm"
           onClick={onCancel}
-          className="h-8 rounded-xl text-xs font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 gap-1"
+          className="h-8 rounded-xl text-xs font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 gap-1 shadow-sm"
         >
           <LogOut className="h-3.5 w-3.5" />
           Leave Arena
         </Button>
       </div>
 
-      <Card className="max-w-2xl w-full shadow-2xl border-2 border-indigo-500/30 overflow-hidden bg-gradient-to-b from-background via-background to-muted/20 my-auto">
+      <Card className="max-w-2xl w-full shadow-2xl border-2 border-indigo-500/30 overflow-hidden bg-gradient-to-b from-background via-background to-muted/20 shrink-0 my-2 sm:my-auto">
         {/* Top Banner */}
         <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-4 text-white text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
