@@ -32,10 +32,14 @@ const StudentPortfolio = lazy(() => import("./pages/StudentPortfolio"));
 
 const Feedback = lazy(() => import("./pages/Feedback"));
 const Download = lazy(() => import("./pages/Download"));
+const Maintenance = lazy(() => import("./pages/Maintenance"));
 
 const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
 const TEACHER_ROLES = ["teacher", "admin"] as const;
+
+// Maintenance window: until 12 Sep 2026, 4:00 PM IST (10:30 UTC)
+const MAINTENANCE_UNTIL = new Date("2026-09-12T10:30:00Z");
 
 const PageLoader = () => {
   const [show, setShow] = useState(false);
@@ -171,8 +175,18 @@ const DashboardRedirect = () => {
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(isNative); // only show splash in native apps by default
+  const [isMaintenance, setIsMaintenance] = useState(() => Date.now() < MAINTENANCE_UNTIL.getTime());
 
   useEffect(() => { recoverInvalidAuthSession(); }, []);
+
+  // Lift maintenance mode automatically once the window passes
+  useEffect(() => {
+    if (!isMaintenance) return;
+    const remaining = MAINTENANCE_UNTIL.getTime() - Date.now();
+    if (remaining <= 0) { setIsMaintenance(false); return; }
+    const timer = setTimeout(() => setIsMaintenance(false), remaining);
+    return () => clearTimeout(timer);
+  }, [isMaintenance]);
 
   // Check for Android updates after splash clears
   const handleSplashComplete = () => {
@@ -184,6 +198,14 @@ const App = () => {
 
   if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
+  if (isMaintenance) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Maintenance />
+      </Suspense>
+    );
   }
 
   return (
