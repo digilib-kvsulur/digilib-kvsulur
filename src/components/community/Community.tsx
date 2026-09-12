@@ -70,6 +70,11 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [viewingStory, setViewingStory] = useState<Post | null>(null);
   const [feedCategory, setFeedCategory] = useState<"all" | "doubts" | "stories" | "polls" | "media" | "scheduled">("all");
   
+  // WhatsApp Community & Reward State
+  const WHATSAPP_COMMUNITY_URL = "https://chat.whatsapp.com/FuoV7sig8CwHEMRKvpA9A5";
+  const [waRewardClaimed, setWaRewardClaimed] = useState(false);
+  const [claimingWaReward, setClaimingWaReward] = useState(false);
+
   // Post Scheduling State
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduledDate, setScheduledDate] = useState("");
@@ -322,6 +327,22 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     setLoading(true);
     await checkUserBlockStatus();
     
+    // Check WhatsApp reward status
+    if (currentUserId) {
+      try {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("whatsapp_reward_claimed")
+          .eq("id", currentUserId)
+          .maybeSingle();
+        if ((prof as any)?.whatsapp_reward_claimed || localStorage.getItem(`wa_claimed_${currentUserId}`) === "true") {
+          setWaRewardClaimed(true);
+        }
+      } catch (e) {
+        console.error("Error loading WhatsApp claim status:", e);
+      }
+    }
+
     // Check if there are any book clubs
     const { count: clubCount } = await supabase.from("book_clubs").select("*", { count: 'exact', head: true }).eq("is_active", true);
     setHasClubs((clubCount || 0) > 0);
@@ -631,6 +652,92 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       toast({ title: "Failed", description: e.message, variant: "destructive" });
     } finally {
       setUploadingPost(false);
+    }
+  };
+
+  const handleJoinAndClaimWhatsApp = async () => {
+    // Open WhatsApp link in new tab
+    window.open(WHATSAPP_COMMUNITY_URL, "_blank", "noopener,noreferrer");
+
+    if (waRewardClaimed) {
+      return;
+    }
+
+    setClaimingWaReward(true);
+    try {
+      // 1. Attempt invoking database RPC function
+      const { error: rpcErr } = await (supabase as any).rpc("claim_whatsapp_community_reward");
+
+      if (!rpcErr) {
+        setWaRewardClaimed(true);
+        try { localStorage.setItem(`wa_claimed_${currentUserId}`, "true"); } catch {}
+        toast({
+          title: "🎉 250 Points Awarded!",
+          description: "Thank you for joining the PM SHRI KV Sulur WhatsApp Community! 250 XP has been added to your profile.",
+        });
+        load();
+        return;
+      }
+
+      // 2. Direct fallback
+      const { data: profile, error: profErr } = await supabase
+        .from("profiles")
+        .select("points, whatsapp_reward_claimed")
+        .eq("id", currentUserId)
+        .single();
+
+      if (profErr) throw profErr;
+
+      if ((profile as any)?.whatsapp_reward_claimed || localStorage.getItem(`wa_claimed_${currentUserId}`) === "true") {
+        setWaRewardClaimed(true);
+        return;
+      }
+
+      const currentPts = profile?.points || 0;
+      const { error: updateErr } = await supabase
+        .from("profiles")
+        .update({
+          points: currentPts + 250,
+          whatsapp_reward_claimed: true,
+          whatsapp_joined_at: new Date().toISOString(),
+        } as any)
+        .eq("id", currentUserId);
+
+      if (updateErr) {
+        // Fallback without new columns
+        await supabase
+          .from("profiles")
+          .update({ points: currentPts + 250 })
+          .eq("id", currentUserId);
+      }
+
+      // Record notification for user
+      await supabase.from("notifications").insert({
+        target_user_id: currentUserId,
+        sent_by: currentUserId,
+        title: "🎉 250 XP WhatsApp Bonus Claimed!",
+        message: "You received 250 XP for joining the KV Sulur WhatsApp Community group!",
+        type: "points",
+        is_read: false,
+      });
+
+      setWaRewardClaimed(true);
+      try { localStorage.setItem(`wa_claimed_${currentUserId}`, "true"); } catch {}
+
+      toast({
+        title: "🎉 250 Points Awarded!",
+        description: "Thank you for joining the PM SHRI KV Sulur WhatsApp Community! 250 XP has been added to your profile.",
+      });
+      load();
+    } catch (err: any) {
+      console.error("Error claiming WhatsApp points:", err);
+      toast({
+        title: "Notice",
+        description: err.message || "Failed to reward points.",
+        variant: "destructive",
+      });
+    } finally {
+      setClaimingWaReward(false);
     }
   };
 
@@ -1330,6 +1437,79 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
             </div>
           </div>
         </div>
+      )}
+
+      {/* Pinned Official WhatsApp Community Notice & Reward */}
+      {feedCategory === "all" && (
+        <Card className="relative overflow-hidden border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/10 shadow-sm hover:shadow-md transition-all rounded-2xl">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none -mr-14 -mt-14" />
+          <CardContent className="p-4 sm:p-5 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-2 flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-[11px] font-extrabold flex items-center gap-1 shadow-xs">
+                    <Pin className="h-3 w-3 fill-amber-500 text-amber-600" /> PINNED ANNOUNCEMENT
+                  </Badge>
+                  <Badge className="bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Official Community
+                  </Badge>
+                  <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-extrabold text-[11px] border-none shadow-xs flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" /> +250 XP Reward
+                  </Badge>
+                </div>
+
+                <div>
+                  <h3 className="text-base sm:text-lg font-extrabold text-foreground flex items-center gap-2">
+                    📢 Join PM SHRI KV Sulur WhatsApp Community & Claim 250 XP!
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mt-1">
+                    Stay connected with PM SHRI KV Sulur Digital Library! Get real-time updates on new book arrivals, reading leagues, live quizzes, and school events directly on WhatsApp. <strong className="text-foreground font-semibold">Join today and earn 250 bonus XP points!</strong> (Reward credited once per student/user).
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row md:flex-col items-stretch md:items-end justify-center gap-2 shrink-0">
+                {waRewardClaimed ? (
+                  <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-2">
+                    <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      250 XP Claimed · Group Member
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(WHATSAPP_COMMUNITY_URL, "_blank", "noopener,noreferrer")}
+                      className="text-xs border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 gap-1.5 font-semibold h-9 rounded-xl"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" /> Open WhatsApp Group
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="default"
+                    onClick={handleJoinAndClaimWhatsApp}
+                    disabled={claimingWaReward}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all gap-2 py-5 px-5 rounded-xl border border-emerald-400/30 active:scale-95 cursor-pointer"
+                  >
+                    {claimingWaReward ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Claiming 250 Points...
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle className="h-4 w-4 fill-white/20" />
+                        Join Group & Claim 250 XP
+                        <Sparkles className="h-4 w-4 text-amber-300 animate-pulse" />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : (() => {
@@ -2284,6 +2464,9 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
           </div>
         )}
       </TabsContent>
+    </Tabs>
+  );
+}
     </Tabs>
   );
 }
