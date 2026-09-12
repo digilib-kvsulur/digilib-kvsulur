@@ -2034,8 +2034,6 @@ export type Database = {
           student_class: string | null
           updated_at: string
           username: string | null
-          whatsapp_joined_at: string | null
-          whatsapp_reward_claimed: boolean
         }
         Insert: {
           admission_number?: string | null
@@ -2063,8 +2061,6 @@ export type Database = {
           student_class?: string | null
           updated_at?: string
           username?: string | null
-          whatsapp_joined_at?: string | null
-          whatsapp_reward_claimed?: boolean
         }
         Update: {
           admission_number?: string | null
@@ -2092,8 +2088,6 @@ export type Database = {
           student_class?: string | null
           updated_at?: string
           username?: string | null
-          whatsapp_joined_at?: string | null
-          whatsapp_reward_claimed?: boolean
         }
         Relationships: []
       }
@@ -2625,7 +2619,6 @@ export type Database = {
       }
       check_and_award_badges: { Args: { p_user_id: string }; Returns: number }
       claim_streak_points: { Args: never; Returns: number }
-      claim_whatsapp_community_reward: { Args: never; Returns: number }
       complete_study_session: {
         Args: {
           p_duration_seconds: number
