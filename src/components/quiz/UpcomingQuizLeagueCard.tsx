@@ -198,14 +198,24 @@ export const UpcomingQuizLeagueCard = ({
 
   if (loading || !leagueSession) return null;
 
-  // If session has a future scheduled_start_at, calculate whether lobby is open (within 5 minutes of start)
-  const isScheduledInFuture =
-    leagueSession.scheduled_start_at && new Date(leagueSession.scheduled_start_at).getTime() > Date.now();
+  // Scheduled time gate — enforced on student side regardless of admin status
+  const scheduledMs = leagueSession.scheduled_start_at
+    ? new Date(leagueSession.scheduled_start_at).getTime()
+    : null;
+  const isScheduledInFuture = scheduledMs !== null && scheduledMs > Date.now();
+  const msUntilStart = scheduledMs ? Math.max(0, scheduledMs - Date.now()) : 0;
 
-  const isLobbyWindow = isScheduledInFuture && timeLeft.totalMs <= 5 * 60 * 1000; // <= 5 minutes before match
-  const isMatchStarted = !isScheduledInFuture || timeLeft.totalMs <= 0;
-  const isLive = isMatchStarted || leagueSession.status === "active";
-  const isLobbyOpen = isLive || isLobbyWindow;
+  // Lobby window: within 5 minutes of scheduled start
+  const isLobbyWindow = isScheduledInFuture && msUntilStart <= 5 * 60 * 1000;
+  // Match is considered started if no schedule, or schedule has passed
+  const isMatchStarted = !isScheduledInFuture || msUntilStart <= 0;
+  // isLive: active status, OR match time has passed
+  const isLive = leagueSession.status === "active" || isMatchStarted;
+  // Lobby is joinable only if: within 5-min window OR match already started/live
+  // "waiting" status from admin does NOT bypass the time gate
+  const isLobbyOpen = isMatchStarted || isLobbyWindow || leagueSession.status === "active";
+  // If scheduled far away, show locked state even if admin opened lobby
+  const isLockedByTime = isScheduledInFuture && msUntilStart > 5 * 60 * 1000;
 
   // Check if session is too far along for late joining (> half the questions done)
   const totalQuestions = leagueSession.quizzes?.questions?.length || 10;
@@ -377,6 +387,25 @@ export const UpcomingQuizLeagueCard = ({
               {tooLateToJoin ? (
                 <Button disabled size="sm" className="h-11 px-3 sm:px-4 rounded-xl text-xs font-bold bg-white/10 text-white/50 cursor-not-allowed justify-center">
                   Already In Progress
+                </Button>
+              ) : isLockedByTime ? (
+                /* Time-gated: admin opened lobby early — show locked state with countdown */
+                <Button
+                  disabled
+                  size="sm"
+                  className="h-11 px-3 sm:px-5 rounded-xl text-xs font-bold bg-white/5 text-white/40 cursor-not-allowed border border-white/10 justify-center gap-1.5"
+                  title="Lobby opens 5 minutes before the scheduled start time"
+                >
+                  <span>🔒</span>
+                  <span>
+                    Lobby opens at{" "}
+                    {leagueSession.scheduled_start_at
+                      ? new Date(new Date(leagueSession.scheduled_start_at).getTime() - 5 * 60 * 1000).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "scheduled time"}
+                  </span>
                 </Button>
               ) : (
                 <Button
