@@ -27,6 +27,3 @@ dist-ssr
 *.sw?
 .vercel
 .env*
-schema.sql
-data.sql
-.env
