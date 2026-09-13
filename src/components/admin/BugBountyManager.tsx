@@ -28,6 +28,7 @@ interface BugReport {
   status: 'pending' | 'verified' | 'rejected';
   created_at: string;
   reporter_name?: string;
+  profiles?: any;
 }
 
 export default function BugBountyManager() {
@@ -220,7 +221,27 @@ export default function BugBountyManager() {
               </Button>
             )
           ) : (
-            <Badge variant="default" className="bg-emerald-500 text-white">Active</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="default" className="bg-emerald-500 text-white">Active</Badge>
+              {userRole === 'admin' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:bg-destructive/10 border-destructive/20 h-6 text-[10px]"
+                  onClick={async () => {
+                    if (!confirm("End this campaign?")) return;
+                    const { error } = await supabase.from("bug_bounty_campaigns").update({ is_active: false }).eq("id", campaign.id);
+                    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+                    else {
+                      toast({ title: "Campaign Ended" });
+                      loadData();
+                    }
+                  }}
+                >
+                  End Campaign
+                </Button>
+              )}
+            </div>
           )}
         </CardHeader>
         <CardContent className="space-y-6">
