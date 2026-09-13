@@ -17,6 +17,7 @@ import {
   computeRotationalBadges, 
   verifyAndPublishRotationalCycle, 
   getActiveRotationalCycle,
+  updateRotationalCollectionDetails,
   RotationalAwardCandidate, 
   RotationalBadgeSettings, 
   DEFAULT_ROTATIONAL_SETTINGS, 
@@ -53,6 +54,10 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifyConfirmOpen, setVerifyConfirmOpen] = useState(false);
+  const [editDate, setEditDate] = useState("");
+  const [editVenue, setEditVenue] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [savingCollection, setSavingCollection] = useState(false);
 
   // Analysis state
   const [classAwards, setClassAwards] = useState<RotationalAwardCandidate[]>([]);
@@ -96,10 +101,41 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
     }
   }, [open, selectedYear, selectedMonth, evalMode, customStartDate, customEndDate]);
 
+  const saveCollectionDetails = async (notify: boolean) => {
+    if (!editDate) {
+      toast({ title: "Date required", description: "Pick a badge collection date first.", variant: "destructive" });
+      return;
+    }
+    setSavingCollection(true);
+    try {
+      const res = await updateRotationalCollectionDetails(
+        { collectionDate: editDate, collectionVenue: editVenue, librarianNote: editNote },
+        notify
+      );
+      if (!res.success) throw new Error(res.error);
+      toast({
+        title: "Collection details updated",
+        description: notify
+          ? `${res.notified} winner(s) notified about the new collection date.`
+          : "Saved without sending notifications.",
+      });
+      await loadActiveCycle();
+    } catch (err: any) {
+      toast({ title: "Update failed", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSavingCollection(false);
+    }
+  };
+
   const loadActiveCycle = async () => {
     try {
       const cycle = await getActiveRotationalCycle();
       setActiveCycle(cycle);
+      if (cycle?.settings) {
+        setEditDate(cycle.settings.collectionDate || "");
+        setEditVenue(cycle.settings.collectionVenue || "");
+        setEditNote(cycle.settings.librarianNote || "");
+      }
       if (cycle?.settings?.collectionDate) {
         setSettings((prev) => ({
           ...prev,
