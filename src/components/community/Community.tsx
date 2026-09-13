@@ -1101,8 +1101,24 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
             </Card>
           )}
 
-          {/* Reels Stories Bar - Instagram Style */}
-          <div className="flex items-center gap-4 mb-6 pb-2 overflow-x-auto no-scrollbar">
+          {/* Reels Stories Bar - Premium TikTok/Instagram Style */}
+          <div className="flex items-center gap-3 mb-6 pb-2 overflow-x-auto no-scrollbar pt-1">
+            {/* Create Reel Quick Action */}
+            <div
+              className="flex flex-col items-center gap-1 cursor-pointer group shrink-0"
+              onClick={() => { setShowNew(true); setPostKind("reel"); }}
+            >
+              <div className="h-16 w-16 rounded-full border-2 border-dashed border-indigo-500/50 flex flex-col items-center justify-center bg-indigo-500/10 group-hover:bg-indigo-500/20 group-hover:border-indigo-500 transition-all shadow-sm">
+                <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
+                  <Plus className="h-4 w-4" />
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 group-hover:underline">
+                Add Reel
+              </span>
+            </div>
+
+            {/* Reel User Circles */}
             <div className="flex items-center gap-3">
               {posts.filter(p => p.post_type === "reel" && (!p.scheduled_for || new Date(p.scheduled_for).getTime() <= Date.now())).map(reel => (
                 <div
@@ -1110,7 +1126,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   className="flex flex-col items-center gap-1 cursor-pointer group shrink-0"
                   onClick={() => setActiveReelId(reel.id)}
                 >
-                  <div className="p-0.5 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 group-hover:scale-105 transition-transform">
+                  <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-indigo-600 group-hover:scale-105 transition-all shadow-sm">
                     <div className="p-0.5 rounded-full bg-background">
                       <Avatar className="h-14 w-14 border border-border">
                         {reel.author?.avatar_url ? (
@@ -1121,24 +1137,29 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                         </AvatarFallback>
                       </Avatar>
                     </div>
+                    {/* Tiny Play Badge */}
+                    <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-rose-600 text-white flex items-center justify-center border-2 border-background shadow-xs">
+                      <Play className="h-2.5 w-2.5 fill-white ml-0.5" />
+                    </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground truncate w-14 text-center group-hover:text-primary transition-colors">
+                  <p className="text-[10px] font-medium text-foreground truncate w-16 text-center group-hover:text-primary transition-colors">
                     {reel.author ? nameOf(reel.author) : "User"}
                   </p>
                 </div>
               ))}
             </div>
+
             {posts.filter(p => p.post_type === "reel").length > 0 && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-8 text-xs font-bold text-primary hover:bg-primary/10 rounded-full px-3"
+                className="h-9 text-xs font-bold text-primary hover:bg-primary/10 rounded-full px-4 border-primary/30 shrink-0 ml-1 shadow-xs"
                 onClick={() => {
                   const firstReel = posts.find(p => p.post_type === "reel");
                   if (firstReel) setActiveReelId(firstReel.id);
                 }}
               >
-                View All Reels <Video className="h-3 w-3 ml-1" />
+                <Video className="h-3.5 w-3.5 mr-1.5 text-rose-500" /> Watch All Reels
               </Button>
             )}
           </div>
@@ -1805,25 +1826,38 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                       </div>
                     ) : p.post_type === "reel" ? (
                       <div
-                        className="mt-2 cursor-pointer group relative rounded-2xl overflow-hidden border border-purple-500/30 aspect-[9/16] max-h-64 mx-auto w-48"
+                        className="mt-3 cursor-pointer group relative rounded-2xl overflow-hidden border border-border hover:border-primary/50 aspect-[9/16] max-h-80 mx-auto w-52 shadow-md hover:shadow-xl transition-all bg-black"
                         onClick={() => setActiveReelId(p.id)}
                       >
                         <video
                           src={p.media_url}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                           muted
                           loop
                           playsInline
                           preload="metadata"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
-                          <p className="text-white text-xs font-bold truncate">{p.title}</p>
+                        {/* Top Reel Badge */}
+                        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-white border border-white/10">
+                          <Video className="h-3 w-3 text-rose-400" />
+                          <span>Reel</span>
                         </div>
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
-                          <div className="bg-white/20 backdrop-blur-md p-2 rounded-full">
-                            <div className="h-8 w-8 border-2 border-white rounded-full flex items-center justify-center">
-                              <div className="h-2 w-2 bg-white rounded-full animate-ping" />
-                            </div>
+
+                        {/* Bottom Gradient & Title */}
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3.5 z-10">
+                          <p className="text-white text-xs font-bold line-clamp-1 group-hover:text-rose-300 transition-colors">
+                            {p.title}
+                          </p>
+                          <div className="flex items-center justify-between text-[10px] text-white/80 mt-1">
+                            <span className="flex items-center gap-1"><Heart className="h-3 w-3 fill-rose-500 text-rose-500" /> {p.likes || 0}</span>
+                            <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {p.comments_count || 0}</span>
+                          </div>
+                        </div>
+
+                        {/* Center Hover Play Icon Overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 backdrop-blur-[2px]">
+                          <div className="h-12 w-12 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                            <Play className="h-5 w-5 fill-white ml-0.5" />
                           </div>
                         </div>
                       </div>
@@ -2113,6 +2147,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               <ReelViewer
                 reels={filtered}
                 initialIndex={index !== -1 ? index : 0}
+                currentUserId={currentUserId}
                 onClose={() => setActiveReelId(null)}
                 onLike={toggleLike}
                 onComment={toggleComments}

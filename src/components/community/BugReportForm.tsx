@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Send, CheckCircle2, Clock, XCircle } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from "@/components/ui/select";
+import {
+  AlertCircle, Send, CheckCircle2, Clock, XCircle, Trophy,
+  Loader2, Bug, Sparkles, Flame, AlertTriangle, ShieldCheck
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,20 +20,26 @@ interface BugReport {
   description: string;
   status: 'pending' | 'verified' | 'rejected';
   created_at: string;
+  rewarded_at?: string;
 }
 
 export default function BugReportForm({ currentUserId }: { currentUserId: string }) {
   const { toast } = useToast();
   const [isEligible, setIsEligible] = useState<boolean | null>(null);
   const [reports, setReports] = useState<BugReport[]>([]);
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState("");
+  const [module, setModule] = useState("general");
+  const [severity, setSeverity] = useState<"critical" | "high" | "medium" | "low">("medium");
+  const [steps, setSteps] = useState("");
+  const [expected, setExpected] = useState("");
+  const [actual, setActual] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     checkEligibility();
     loadReports();
-  }, []);
+  }, [currentUserId]);
 
   const checkEligibility = async () => {
     try {
@@ -51,6 +64,7 @@ export default function BugReportForm({ currentUserId }: { currentUserId: string
 
   const loadReports = async () => {
     try {
+      if (!currentUserId) return;
       const { data } = await supabase
         .from("bug_reports")
         .select("*")
@@ -62,9 +76,10 @@ export default function BugReportForm({ currentUserId }: { currentUserId: string
     }
   };
 
-  const submitBug = async () => {
-    if (!description.trim()) {
-      toast({ title: "Add description", description: "Please describe the bug you found.", variant: "destructive" });
+  const submitBug = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !steps.trim()) {
+      toast({ title: "Incomplete Details", description: "Please enter a bug summary and steps to reproduce.", variant: "destructive" });
       return;
     }
 
@@ -81,20 +96,33 @@ export default function BugReportForm({ currentUserId }: { currentUserId: string
         throw new Error("No active campaign found.");
       }
 
-      // 2. Submit report
+      // 2. Submit report payload
+      const payload = {
+        title: title.trim(),
+        module,
+        severity,
+        steps: steps.trim(),
+        expected: expected.trim(),
+        actual: actual.trim(),
+        deviceInfo: `${navigator.platform} • ${navigator.userAgent.slice(0, 40)}`
+      };
+
       const { error } = await supabase
         .from("bug_reports")
         .insert({
           campaign_id: campaign.id,
           reporter_id: currentUserId,
-          description: description.trim(),
+          description: JSON.stringify(payload),
           status: 'pending'
         });
 
       if (error) throw error;
 
-      toast({ title: "Bug Reported! 🐛", description: "The admin will review your finding." });
-      setDescription("");
+      toast({ title: "Bug Reported! 🐛", description: "Thank you! The library admin will review and award 100 XP." });
+      setTitle("");
+      setSteps("");
+      setExpected("");
+      setActual("");
       loadReports();
     } catch (e: any) {
       toast({ title: "Submission failed", description: e.message, variant: "destructive" });
@@ -104,75 +132,179 @@ export default function BugReportForm({ currentUserId }: { currentUserId: string
   };
 
   if (loading) return null;
+  if (!isEligible) return null;
 
-  if (!isEligible) {
-    return null; // Don't show if not eligible
-  }
+  const parseReportSummary = (desc: string) => {
+    try {
+      if (desc.trim().startsWith("{")) {
+        const parsed = JSON.parse(desc);
+        return parsed.title || desc;
+      }
+    } catch (e) {}
+    return desc;
+  };
 
   return (
-    <div className="space-y-6">
-      <Card className="border-amber-500/30 bg-amber-500/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Trophy className="h-5 w-5 text-amber-500" /> Bug Bounty Program
-          </CardTitle>
-          <CardDescription>
-            You have been allotted to a special bug bounty campaign! Report any bugs you find in the DLMS to earn points.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-3 rounded-lg bg-background border border-border space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <AlertCircle className="h-4 w-4" /> Reward: <span className="text-primary font-bold">100 XP per verified bug</span>
+    <div className="space-y-5">
+      {/* Bounty Banner Card */}
+      <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-background to-indigo-500/5 rounded-3xl shadow-sm overflow-hidden">
+        <CardHeader className="p-5 pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-500">
+                <Trophy className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  Active Bug Bounty Mission
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Earn <span className="font-bold text-amber-500">100 XP</span> for every verified bug found!
+                </CardDescription>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">Bug Description</Label>
-              <Textarea
-                placeholder="Describe the bug, steps to reproduce, and expected vs actual behavior..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                className="text-sm"
+            <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-extrabold animate-pulse">
+              LIVE HUNT
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-5 pt-0">
+          <form onSubmit={submitBug} className="space-y-3.5 bg-card/60 p-4 rounded-2xl border border-border">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">Bug Title / Summary *</Label>
+              <Input
+                placeholder="e.g. Broken link on study materials page"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="h-10 rounded-xl text-xs"
+                required
               />
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">Module</Label>
+                <Select value={module} onValueChange={setModule}>
+                  <SelectTrigger className="h-10 rounded-xl text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="reels">🎬 Reels & Community</SelectItem>
+                    <SelectItem value="catalog">📚 Book Catalog</SelectItem>
+                    <SelectItem value="circulation">📖 Issues & Returns</SelectItem>
+                    <SelectItem value="study">📝 Study Materials & AI</SelectItem>
+                    <SelectItem value="games">🎮 Quizzes & Leaderboards</SelectItem>
+                    <SelectItem value="general">⚙️ General / Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">Severity</Label>
+                <Select value={severity} onValueChange={(v) => setSeverity(v as any)}>
+                  <SelectTrigger className="h-10 rounded-xl text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">🔵 Low (Minor Cosmetic)</SelectItem>
+                    <SelectItem value="medium">🟡 Medium (Glitch / Annoyance)</SelectItem>
+                    <SelectItem value="high">⚠️ High (Feature Broken)</SelectItem>
+                    <SelectItem value="critical">🔥 Critical (Crash / Data Loss)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">Steps to Reproduce *</Label>
+              <Textarea
+                placeholder="1. Go to page...&#10;2. Click on button...&#10;3. See error..."
+                value={steps}
+                onChange={(e) => setSteps(e.target.value)}
+                rows={3}
+                className="text-xs rounded-xl"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">Expected Behavior</Label>
+                <Input
+                  placeholder="What should happen?"
+                  value={expected}
+                  onChange={(e) => setExpected(e.target.value)}
+                  className="h-9 rounded-xl text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">Actual Behavior</Label>
+                <Input
+                  placeholder="What actually happened?"
+                  value={actual}
+                  onChange={(e) => setActual(e.target.value)}
+                  className="h-9 rounded-xl text-xs"
+                />
+              </div>
+            </div>
+
             <Button
-              className="w-full gap-2"
-              onClick={submitBug}
+              type="submit"
+              className="w-full h-10 rounded-xl gradient-primary text-white font-bold text-xs gap-1.5 border-0 shadow-md"
               disabled={submitting}
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Submit Bug Report
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Submit Finding (+100 XP)
             </Button>
-          </div>
+          </form>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-md flex items-center gap-2">
-            <Clock className="h-4 w-4" /> My Submissions
+      {/* Student's Submissions List */}
+      <Card className="rounded-3xl border-border">
+        <CardHeader className="p-5 pb-3">
+          <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <Clock className="h-4 w-4 text-primary" /> My Submitted Bugs
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-5 pt-0">
           {reports.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">No bugs reported yet.</p>
+            <p className="text-xs text-muted-foreground text-center py-6">
+              You haven't submitted any bugs in this campaign yet.
+            </p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {reports.map(report => (
-                <div key={report.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
-                  <div className="flex-1 min-w-0 mr-4">
-                    <p className="text-sm text-foreground line-clamp-1">{report.description}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">
+                <div
+                  key={report.id}
+                  className="flex items-center justify-between p-3 rounded-2xl border border-border bg-muted/30 text-xs"
+                >
+                  <div className="flex-1 min-w-0 mr-3">
+                    <p className="font-bold text-foreground truncate">
+                      {parseReportSummary(report.description)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
                       {new Date(report.created_at).toLocaleString()}
                     </p>
                   </div>
-                  <Badge variant={report.status === 'verified' ? 'default' : report.status === 'rejected' ? 'destructive' : 'outline'} className="text-[10px] h-5">
-                    {report.status === 'verified' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                    {report.status === 'rejected' && <XCircle className="h-3 w-3 mr-1" />}
-                    {report.status}
-                  </Badge>
+
+                  <div className="shrink-0">
+                    {report.status === 'verified' && (
+                      <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> +100 XP
+                      </Badge>
+                    )}
+                    {report.status === 'rejected' && (
+                      <Badge variant="destructive" className="text-[10px]">
+                        <XCircle className="h-3 w-3 mr-1" /> Rejected
+                      </Badge>
+                    )}
+                    {report.status === 'pending' && (
+                      <Badge variant="secondary" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 text-[10px]">
+                        <Clock className="h-3 w-3 mr-1" /> In Review
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -180,53 +312,5 @@ export default function BugReportForm({ currentUserId }: { currentUserId: string
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function Trophy(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M6 9H4.5a2.5 2.5 0 0 1-2.5-2.5V4a2.5 2.5 0 0 1 2.5-2.5H19.5a2.5 2.5 0 0 1 2.5 2.5V6.5a2.5 2.5 0 0 1-2.5 2.5H18" />
-      <path d="M6 13.5V17a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3.5" />
-      <path d="M12 13.5V15" />
-      <path d="M10 13.5H14" />
-    </svg>
-  );
-}
-
-function Loader2(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85 1.23 6.42 3.2C17.48 7.5 18.5 8.5 19 9.5" />
-      <path d="M12 2v4" />
-      <path d="m16.2 7.8-2.9 2.9" />
-      <path d="m18 12-4 4" />
-      <path d="m12 18-4-4" />
-      <path d="m7.8 16.2 2.9-2.9" />
-      <path d="m12 12-4-4" />
-      <path d="m16.2 16.2 2.9-2.9" />
-    </svg>
   );
 }
