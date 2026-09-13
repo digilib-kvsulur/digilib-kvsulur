@@ -214,7 +214,7 @@ const StudentDashboard = () => {
         { id: "rankings" as Tab, label: "Rankings", icon: Medal },
         { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
         { id: "community" as Tab, label: "Community", icon: Users },
-        ...(activeBounty ? [{ id: "bounty" as Tab, label: "Bug Bounty", icon: Trophy }] : []),
+        { id: "bounty" as Tab, label: "Bug Bounty", icon: Trophy },
         { id: "events" as Tab, label: "Events", icon: CalendarDays },
       ],
     },

@@ -567,19 +567,20 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       if (!mediaFile) { toast({ title: "Attach a video", variant: "destructive" }); return; }
       if (mediaFile.size > 20 * 1024 * 1024) { toast({ title: "File too large", description: "Reels must be under 20MB", variant: "destructive" }); return; }
 
-      const video = document.createElement("video");
-      video.src = URL.createObjectURL(mediaFile);
-      await new Promise((resolve) => {
+      const isTooLong = await new Promise<boolean>((resolve) => {
+        const video = document.createElement("video");
+        video.src = URL.createObjectURL(mediaFile);
         video.onloadedmetadata = () => {
-          if (video.duration > 60) {
-            toast({ title: "Video too long", description: "Reels must be under 60 seconds", variant: "destructive" });
-            resolve(false);
-          } else {
-            resolve(true);
-          }
+          URL.revokeObjectURL(video.src);
+          resolve(video.duration > 60);
         };
+        video.onerror = () => resolve(false);
       });
-      URL.revokeObjectURL(video.src);
+
+      if (isTooLong) {
+        toast({ title: "Video too long", description: "Reels must be under 60 seconds", variant: "destructive" });
+        return;
+      }
     }
     if (postKind === "link" && !linkUrl.trim()) { toast({ title: "Add a link URL", variant: "destructive" }); return; }
     if (postKind === "link" && !linkUrl.startsWith("http://") && !linkUrl.startsWith("https://")) {
@@ -602,7 +603,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     try {
       let mediaUrl: string | null = null;
       let mediaType: string | null = null;
-      if (mediaFile && (postKind === "text" || postKind === "story")) {
+      if (mediaFile && (postKind === "text" || postKind === "story" || postKind === "reel")) {
         const ext = mediaFile.name.split(".").pop()?.toLowerCase();
         const path = `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("community-media").upload(path, mediaFile, { contentType: mediaFile.type });
@@ -1150,6 +1151,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               <Button size="sm" variant={postKind === "story" ? "default" : "outline"} type="button" onClick={() => setPostKind("story")}>
                 <Feather className="h-3.5 w-3.5 mr-1 text-amber-500" /> Story / Writing
               </Button>
+              <Button size="sm" variant={postKind === "reel" ? "default" : "outline"} type="button" onClick={() => setPostKind("reel")} className="border-primary/30">
+                <Video className="h-3.5 w-3.5 mr-1 text-primary" /> Reel
+              </Button>
               <Button size="sm" variant={postKind === "poll" ? "default" : "outline"} type="button" onClick={() => setPostKind("poll")}>
                 <BarChart3 className="h-3.5 w-3.5 mr-1" /> Poll
               </Button>
@@ -1267,12 +1271,12 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               </div>
             )}
             <div className="flex items-center gap-2 flex-wrap">
-              {postKind === "text" && (
+              { (postKind === "text" || postKind === "reel") && (
                 <>
                   <label htmlFor="community-media" className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors px-3 py-1.5 rounded-lg border border-dashed border-border hover:border-primary">
-                    <Paperclip className="h-3.5 w-3.5" /> {mediaFile ? mediaFile.name : "Attach photo / video / PDF"}
+                    <Paperclip className="h-3.5 w-3.5" /> {mediaFile ? mediaFile.name : postKind === "reel" ? "Attach video for Reel" : "Attach photo / video / PDF"}
                   </label>
-                  <input id="community-media" type="file" accept="image/*,video/*,.pdf" className="hidden" onChange={(e) => setMediaFile(e.target.files?.[0] || null)} />
+                  <input id="community-media" type="file" accept={postKind === "reel" ? "video/*" : "image/*,video/*,.pdf"} className="hidden" onChange={(e) => setMediaFile(e.target.files?.[0] || null)} />
                   {mediaFile && (
                     <button onClick={() => setMediaFile(null)} className="text-xs text-destructive hover:text-destructive/80"><X className="h-3.5 w-3.5" /></button>
                   )}
