@@ -1041,33 +1041,78 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="text-xl font-bold flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Community</h2>
-          <p className="text-sm text-muted-foreground">Share thoughts, connect with classmates & teachers</p>
+    <div className="space-y-5 animate-in fade-in duration-300">
+      {/* Community Hero Header Card */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950/80 via-slate-900 to-indigo-950/90 p-5 sm:p-6 text-white border border-indigo-800/40 shadow-lg">
+        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-indigo-500/15 blur-2xl pointer-events-none" />
+        <div className="absolute right-32 -bottom-8 h-32 w-32 rounded-full bg-rose-500/10 blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-rose-500 p-0.5 shadow-md flex items-center justify-center shrink-0">
+              <div className="h-full w-full rounded-[14px] bg-slate-950/80 backdrop-blur flex items-center justify-center text-white">
+                <Users className="h-6 w-6 text-indigo-400" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Readers Lounge
+                </h2>
+                <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-400/30 text-[10px] h-4">
+                  Student Community
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Share reflections, watch student reels, ask academic doubts & connect
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Stats Chips */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 backdrop-blur-md text-xs font-semibold text-white flex items-center gap-1.5">
+              <MessageCircle className="h-3.5 w-3.5 text-indigo-400" />
+              <span>{posts.length} Posts</span>
+            </div>
+            <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 backdrop-blur-md text-xs font-semibold text-white flex items-center gap-1.5">
+              <Video className="h-3.5 w-3.5 text-rose-400" />
+              <span>{posts.filter(p => p.post_type === "reel").length} Reels</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex justify-between items-center flex-wrap gap-4 mb-4">
-          <TabsList>
-            <TabsTrigger value="feed">Feed</TabsTrigger>
-            {hasClubs && <TabsTrigger value="clubs">Book Clubs</TabsTrigger>}
-            <TabsTrigger value="survey">Suggestions Survey</TabsTrigger>
+        <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
+          <TabsList className="h-10 p-1 bg-muted/70 rounded-2xl border border-border">
+            <TabsTrigger value="feed" className="rounded-xl text-xs font-bold px-3.5 data-[state=active]:shadow-xs">
+              Feed
+            </TabsTrigger>
+            {hasClubs && (
+              <TabsTrigger value="clubs" className="rounded-xl text-xs font-bold px-3.5 data-[state=active]:shadow-xs">
+                Book Clubs
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="survey" className="rounded-xl text-xs font-bold px-3.5 data-[state=active]:shadow-xs">
+              Suggestions Survey
+            </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="moderation" className="text-destructive data-[state=active]:text-destructive">
+              <TabsTrigger value="moderation" className="rounded-xl text-xs font-bold px-3.5 text-destructive data-[state=active]:text-destructive data-[state=active]:shadow-xs">
                 <ShieldAlert className="h-3.5 w-3.5 mr-1" />Moderation
               </TabsTrigger>
             )}
           </TabsList>
-          <div className="flex gap-2">
+
+          <div className="flex items-center gap-2">
             <Dialog open={friendsOpen} onOpenChange={setFriendsOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" variant="outline"><UserPlus className="h-4 w-4 mr-2" />Friends</Button>
+                <Button size="sm" variant="outline" className="h-9 rounded-xl text-xs font-bold border-border shadow-xs hover:border-primary/40">
+                  <Users className="h-3.5 w-3.5 mr-1.5 text-primary" /> My Network
+                </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader><DialogTitle>My Network</DialogTitle></DialogHeader>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
+                <DialogHeader><DialogTitle className="text-base font-bold">My Network & Friends</DialogTitle></DialogHeader>
                 <FriendsPanel
                   currentUserId={currentUserId}
                   friendshipsMap={friendshipsMap}
@@ -1076,9 +1121,15 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 />
               </DialogContent>
             </Dialog>
+
             {activeTab === "feed" && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
-              <Button size="sm" className="gradient-primary border-0" onClick={() => setShowNew((s) => !s)}>
-                <Plus className="h-4 w-4 mr-2" />Create
+              <Button
+                size="sm"
+                className="h-9 rounded-xl text-xs font-bold gradient-primary text-white border-0 shadow-md hover:shadow-lg transition-all"
+                onClick={() => setShowNew((s) => !s)}
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                {showNew ? "Close Composer" : "Create Post"}
               </Button>
             )}
           </div>
