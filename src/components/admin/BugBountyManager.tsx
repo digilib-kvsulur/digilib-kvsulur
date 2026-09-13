@@ -53,7 +53,7 @@ export default function BugBountyManager() {
       const { data: { user } } = await supabase.auth.getUser();
       setUserId(user?.id || null);
 
-      const { data: profile } = await supabase.from('profiles').select('role').single();
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
       setUserRole(profile?.role || null);
 
       // 1. Load active campaign
