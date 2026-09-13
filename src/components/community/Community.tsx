@@ -9,7 +9,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert, HelpCircle, CheckCircle2, Calendar } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert, HelpCircle, CheckCircle2, Calendar, Play, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
@@ -1216,40 +1216,87 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
 
       {showNew && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
-        <Card className="border-primary/30">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex gap-2 flex-wrap">
-              <Button size="sm" variant={postKind === "text" ? "default" : "outline"} type="button" onClick={() => setPostKind("text")}>
-                Post
+        <Card className="rounded-2xl border border-primary/25 bg-card/95 shadow-md backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="bg-gradient-to-r from-primary/10 via-amber-500/5 to-transparent px-4 sm:px-5 py-3 border-b border-border/50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+                <Plus className="h-4 w-4" />
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-foreground">Create Community Post</span>
+            </div>
+            <span className="text-[11px] text-muted-foreground font-medium">KV Sulur Lounge</span>
+          </div>
+
+          <CardContent className="p-4 sm:p-5 space-y-4">
+            {/* Post Kind Selector Tabs */}
+            <div className="flex gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/50 overflow-x-auto no-scrollbar">
+              <Button
+                size="sm"
+                variant="ghost"
+                type="button"
+                onClick={() => setPostKind("text")}
+                className={`text-xs h-8 rounded-lg font-semibold transition-all shrink-0 ${postKind === "text" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <FileText className="h-3.5 w-3.5 mr-1 text-primary" /> Post
               </Button>
-              <Button size="sm" variant={postKind === "doubt" ? "default" : "outline"} type="button" onClick={() => setPostKind("doubt")} className="border-amber-500/30">
-                <HelpCircle className="h-3.5 w-3.5 mr-1 text-amber-500" /> Ask Doubt
+              <Button
+                size="sm"
+                variant="ghost"
+                type="button"
+                onClick={() => setPostKind("doubt")}
+                className={`text-xs h-8 rounded-lg font-semibold transition-all shrink-0 ${postKind === "doubt" ? "bg-amber-500 text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <HelpCircle className="h-3.5 w-3.5 mr-1" /> Ask Doubt
               </Button>
-              <Button size="sm" variant={postKind === "story" ? "default" : "outline"} type="button" onClick={() => setPostKind("story")}>
-                <Feather className="h-3.5 w-3.5 mr-1 text-amber-500" /> Story / Writing
+              <Button
+                size="sm"
+                variant="ghost"
+                type="button"
+                onClick={() => setPostKind("story")}
+                className={`text-xs h-8 rounded-lg font-semibold transition-all shrink-0 ${postKind === "story" ? "bg-amber-500 text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Feather className="h-3.5 w-3.5 mr-1" /> Story / Writing
               </Button>
-              <Button size="sm" variant={postKind === "reel" ? "default" : "outline"} type="button" onClick={() => setPostKind("reel")} className="border-primary/30">
-                <Video className="h-3.5 w-3.5 mr-1 text-primary" /> Reel
+              <Button
+                size="sm"
+                variant="ghost"
+                type="button"
+                onClick={() => setPostKind("reel")}
+                className={`text-xs h-8 rounded-lg font-semibold transition-all shrink-0 ${postKind === "reel" ? "bg-rose-500 text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Video className="h-3.5 w-3.5 mr-1" /> Reel
               </Button>
-              <Button size="sm" variant={postKind === "poll" ? "default" : "outline"} type="button" onClick={() => setPostKind("poll")}>
+              <Button
+                size="sm"
+                variant="ghost"
+                type="button"
+                onClick={() => setPostKind("poll")}
+                className={`text-xs h-8 rounded-lg font-semibold transition-all shrink-0 ${postKind === "poll" ? "bg-indigo-600 text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
+              >
                 <BarChart3 className="h-3.5 w-3.5 mr-1" /> Poll
               </Button>
-              <Button size="sm" variant={postKind === "link" ? "default" : "outline"} type="button" onClick={() => setPostKind("link")}>
+              <Button
+                size="sm"
+                variant="ghost"
+                type="button"
+                onClick={() => setPostKind("link")}
+                className={`text-xs h-8 rounded-lg font-semibold transition-all shrink-0 ${postKind === "link" ? "bg-sky-600 text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
+              >
                 <Link2 className="h-3.5 w-3.5 mr-1" /> Link
               </Button>
             </div>
             
             {postKind === "doubt" && (
-              <div className="flex items-center gap-3 flex-wrap p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
+              <div className="flex items-center gap-3 flex-wrap p-3 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
                   <HelpCircle className="h-4 w-4" /> Academic Doubt Details:
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-medium">Class:</span>
+                  <span className="text-xs text-muted-foreground font-semibold">Class:</span>
                   <select
                     value={doubtClass}
                     onChange={(e) => setDoubtClass(e.target.value)}
-                    className="text-xs h-7 px-2 rounded-lg border border-border bg-background"
+                    className="text-xs h-8 px-2.5 rounded-lg border border-border bg-background focus:ring-2 focus:ring-amber-500/30"
                   >
                     {["6", "7", "8", "9", "10", "11", "12"].map((c) => (
                       <option key={c} value={c}>Class {c}</option>
@@ -1257,11 +1304,11 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   </select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-medium">Subject:</span>
+                  <span className="text-xs text-muted-foreground font-semibold">Subject:</span>
                   <select
                     value={doubtSubject}
                     onChange={(e) => setDoubtSubject(e.target.value)}
-                    className="text-xs h-7 px-2 rounded-lg border border-border bg-background"
+                    className="text-xs h-8 px-2.5 rounded-lg border border-border bg-background focus:ring-2 focus:ring-amber-500/30"
                   >
                     {["Mathematics", "Science", "Physics", "Chemistry", "Biology", "Social Science", "English", "Computer Science"].map((s) => (
                       <option key={s} value={s}>{s}</option>
@@ -1272,17 +1319,17 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
             )}
             
             {postKind === "story" && (
-              <div className="flex items-center gap-2 flex-wrap pb-1">
-                <span className="text-xs font-semibold text-muted-foreground">Genre / Type:</span>
+              <div className="flex items-center gap-1.5 flex-wrap p-2.5 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-xs font-bold text-muted-foreground mr-1">Genre:</span>
                 {["Adventure", "Fantasy", "Mystery", "Sci-Fi", "Poem", "Moral & Fable", "School Life", "Comedy", "Essay"].map((g) => (
                   <button
                     key={g}
                     type="button"
                     onClick={() => setStoryGenre(g)}
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium transition-all ${
+                    className={`text-xs px-2.5 py-1 rounded-full font-semibold transition-all ${
                       storyGenre === g
-                        ? "bg-amber-500 text-white shadow-sm"
-                        : "bg-muted text-muted-foreground hover:text-foreground"
+                        ? "bg-amber-500 text-white shadow-xs"
+                        : "bg-background text-muted-foreground hover:text-foreground border border-border/50"
                     }`}
                   >
                     {g}
@@ -1292,13 +1339,20 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
             )}
 
             <Input 
-              placeholder={postKind === "story" ? "Story title (e.g. The Mystery of the Old Clock)..." : "Post title..."} 
+              placeholder={postKind === "story" ? "Story title (e.g. The Mystery of the Old Clock)..." : postKind === "doubt" ? "Doubt topic or question summary..." : "Post title..."} 
               value={draft.title} 
               onChange={(e) => setDraft({ ...draft, title: e.target.value })} 
-              maxLength={150} 
+              maxLength={150}
+              className="h-10 rounded-xl border-border/80 focus:border-primary/60 font-medium text-sm"
             />
             {postKind === "text" && (
-              <Textarea placeholder="What's on your mind?" rows={4} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={2000} />
+              <Textarea placeholder="What's on your mind? Share thoughts, questions or book recommendations..." rows={4} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={2000} className="rounded-xl resize-none text-sm" />
+            )}
+            {postKind === "doubt" && (
+              <Textarea placeholder="Explain your doubt in detail. Mention page numbers, formulas, or specific concepts you need help with..." rows={4} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={3000} className="rounded-xl resize-none text-sm" />
+            )}
+            {postKind === "reel" && (
+              <Textarea placeholder="Reel caption or book summary description..." rows={2} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={1000} className="rounded-xl resize-none text-sm" />
             )}
             {postKind === "story" && (
               <div className="space-y-2">
@@ -1308,9 +1362,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   value={draft.content} 
                   onChange={(e) => setDraft({ ...draft, content: e.target.value })} 
                   maxLength={10000} 
-                  className="font-serif leading-relaxed text-sm"
+                  className="font-serif leading-relaxed text-sm rounded-xl"
                 />
-                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-1 font-medium">
                   <span>Words: {draft.content.split(/\s+/).filter(Boolean).length}</span>
                   <span>Est. read time: {Math.max(1, Math.round(draft.content.split(/\s+/).filter(Boolean).length / 180))} min</span>
                 </div>
@@ -1318,13 +1372,13 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
             )}
             {postKind === "link" && (
               <div className="space-y-3">
-                <Input placeholder="Link URL (e.g. https://example.com)..." value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
-                <Textarea placeholder="Optional description for the link..." rows={3} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={500} />
+                <Input placeholder="Link URL (e.g. https://example.com)..." value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} className="rounded-xl" />
+                <Textarea placeholder="Optional description for the link..." rows={3} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={500} className="rounded-xl resize-none text-sm" />
               </div>
             )}
             {postKind === "poll" && (
-              <div className="space-y-2">
-                <Textarea placeholder="Optional description for the poll" rows={2} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={500} />
+              <div className="space-y-2.5">
+                <Textarea placeholder="Optional description or question context for the poll..." rows={2} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} maxLength={500} className="rounded-xl resize-none text-sm" />
                 {pollOptions.map((opt, idx) => (
                   <div key={idx} className="flex gap-2">
                     <Input
@@ -1332,30 +1386,33 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                       value={opt}
                       onChange={(e) => setPollOptions((prev) => prev.map((p, i) => (i === idx ? e.target.value : p)))}
                       maxLength={120}
+                      className="rounded-xl h-9 text-xs"
                     />
                     {pollOptions.length > 2 && (
-                      <Button type="button" size="icon" variant="ghost" onClick={() => setPollOptions((prev) => prev.filter((_, i) => i !== idx))}>
+                      <Button type="button" size="icon" variant="ghost" onClick={() => setPollOptions((prev) => prev.filter((_, i) => i !== idx))} className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive">
                         <X className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
                 ))}
                 {pollOptions.length < 6 && (
-                  <Button type="button" size="sm" variant="outline" onClick={() => setPollOptions((prev) => [...prev, ""])}>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setPollOptions((prev) => [...prev, ""])} className="rounded-xl text-xs font-semibold">
                     <Plus className="h-3.5 w-3.5 mr-1" /> Add option
                   </Button>
                 )}
               </div>
             )}
-            <div className="flex items-center gap-2 flex-wrap">
-              { (postKind === "text" || postKind === "reel") && (
+            
+            {/* Action Bar & Controls */}
+            <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/50">
+              { (postKind === "text" || postKind === "reel" || postKind === "doubt") && (
                 <>
-                  <label htmlFor="community-media" className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors px-3 py-1.5 rounded-lg border border-dashed border-border hover:border-primary">
-                    <Paperclip className="h-3.5 w-3.5" /> {mediaFile ? mediaFile.name : postKind === "reel" ? "Attach video for Reel" : "Attach photo / video / PDF"}
+                  <label htmlFor="community-media" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors px-3 py-1.5 rounded-xl border border-dashed border-border hover:border-primary bg-muted/30 font-medium">
+                    <Paperclip className="h-3.5 w-3.5 text-primary" /> {mediaFile ? mediaFile.name : postKind === "reel" ? "Attach video for Reel" : "Attach photo / video / PDF"}
                   </label>
                   <input id="community-media" type="file" accept={postKind === "reel" ? "video/*" : "image/*,video/*,.pdf"} className="hidden" onChange={(e) => setMediaFile(e.target.files?.[0] || null)} />
                   {mediaFile && (
-                    <button onClick={() => setMediaFile(null)} className="text-xs text-destructive hover:text-destructive/80"><X className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => setMediaFile(null)} className="text-xs text-destructive hover:text-destructive/80 p-1"><X className="h-3.5 w-3.5" /></button>
                   )}
                 </>
               )}
@@ -1363,12 +1420,12 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               {/* @ Tag button */}
               <Popover open={tagPopoverOpen} onOpenChange={(o) => { setTagPopoverOpen(o); if (o) searchTaggable(""); }}>
                 <PopoverTrigger asChild>
-                  <button type="button" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg border border-dashed border-border hover:border-primary">
-                    <AtSign className="h-3.5 w-3.5" /> Tag
+                  <button type="button" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2.5 py-1.5 rounded-xl border border-dashed border-border hover:border-primary bg-muted/30 font-medium">
+                    <AtSign className="h-3.5 w-3.5 text-primary" /> Tag
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-2 space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground">Tag people</p>
+                <PopoverContent className="w-64 p-2 space-y-2 rounded-xl shadow-lg border-border">
+                  <p className="text-xs font-bold text-muted-foreground">Tag Classmates / Teachers</p>
                   {isAdmin && (
                     <button
                       type="button"
@@ -1392,7 +1449,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     placeholder="Search by name…"
                     value={tagSearch}
                     onChange={(e) => handleTagSearchChange(e.target.value)}
-                    className="h-8 text-xs"
+                    className="h-8 text-xs rounded-lg"
                     autoFocus
                   />
                   <div className="max-h-40 overflow-y-auto space-y-0.5">
@@ -1402,13 +1459,13 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                         key={r.id}
                         type="button"
                         onClick={() => addTag(r)}
-                        className="w-full text-left text-xs px-3 py-1.5 rounded-md hover:bg-muted flex items-center gap-2"
+                        className="w-full text-left text-xs px-3 py-1.5 rounded-lg hover:bg-muted flex items-center gap-2"
                       >
                         <Avatar className="h-6 w-6">
                           {r.avatar_url && <AvatarImage src={getAvatarUrl(r.avatar_url)} />}
                           <AvatarFallback className="text-[9px] gradient-primary text-primary-foreground">{initials(r)}</AvatarFallback>
                         </Avatar>
-                        <span className="truncate">{r.first_name ? `${r.first_name} ${r.last_name || ""}`.trim() : r.username}</span>
+                        <span className="truncate font-medium">{r.first_name ? `${r.first_name} ${r.last_name || ""}`.trim() : r.username}</span>
                       </button>
                     ))}
                   </div>
@@ -1424,21 +1481,21 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   }
                   setIsScheduling(!isScheduling);
                 }}
-                className={`flex items-center gap-1 text-xs transition-all px-2.5 py-1.5 rounded-lg border border-dashed font-semibold ${
+                className={`inline-flex items-center gap-1 text-xs transition-all px-2.5 py-1.5 rounded-xl border border-dashed font-semibold ${
                   isScheduling
                     ? "bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-300"
-                    : "border-border text-muted-foreground hover:text-foreground hover:border-primary"
+                    : "border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:border-primary"
                 }`}
               >
                 <Clock className="h-3.5 w-3.5" />
-                {isScheduling ? "Scheduled" : "Schedule"}
+                {isScheduling ? "Scheduled ⏱️" : "Schedule"}
               </button>
 
               {/* Tagged chips */}
               {taggedUsers.length > 0 && (
                 <div className="flex flex-wrap gap-1 w-full mt-1">
                   {taggedUsers.map(t => (
-                    <span key={t.id} className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold ${t.id === "__everyone__" ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-400/30" : "bg-primary/10 text-primary border border-primary/20"}`}>
+                    <span key={t.id} className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${t.id === "__everyone__" ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-400/30" : "bg-primary/10 text-primary border border-primary/20"}`}>
                       <AtSign className="h-2.5 w-2.5" />{t.name}
                       <button type="button" onClick={() => removeTag(t.id)} className="ml-0.5 hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
                     </span>
@@ -1447,20 +1504,20 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               )}
 
               <div className="flex-1" />
-              <Button size="sm" variant="ghost" onClick={() => { setShowNew(false); setMediaFile(null); setPostKind("text"); setPollOptions(["", ""]); setTaggedUsers([]); setIsScheduling(false); setScheduledDate(""); }}>Cancel</Button>
+              <Button size="sm" variant="ghost" className="rounded-xl text-xs" onClick={() => { setShowNew(false); setMediaFile(null); setPostKind("text"); setPollOptions(["", ""]); setTaggedUsers([]); setIsScheduling(false); setScheduledDate(""); }}>Cancel</Button>
               <Button
                 size="sm"
                 onClick={createPost}
                 disabled={uploadingPost || (isScheduling && !scheduledDate)}
-                className={isScheduling ? "bg-amber-600 hover:bg-amber-700 text-white font-bold" : ""}
+                className={`rounded-xl text-xs font-bold px-4 shadow-sm ${isScheduling ? "bg-amber-600 hover:bg-amber-700 text-white" : "gradient-primary text-primary-foreground"}`}
               >
-                {uploadingPost ? "Saving..." : isScheduling ? "Schedule Post ⏱️" : "Post"}
+                {uploadingPost ? "Saving..." : isScheduling ? "Schedule Post ⏱️" : "Publish Post 🚀"}
               </Button>
             </div>
 
             {/* Expandable Scheduling Box */}
             {isScheduling && (
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
                     <Calendar className="h-4 w-4 text-amber-600" />
@@ -1468,32 +1525,32 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] text-muted-foreground font-medium">Presets:</span>
+                    <span className="text-[10px] text-muted-foreground font-semibold">Presets:</span>
                     <button
                       type="button"
                       onClick={() => setSchedulePreset("1h")}
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-background border hover:bg-muted font-semibold text-foreground"
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-background border hover:bg-muted font-bold text-foreground transition-colors"
                     >
                       +1 Hour
                     </button>
                     <button
                       type="button"
                       onClick={() => setSchedulePreset("tomorrow_morning")}
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-background border hover:bg-muted font-semibold text-foreground"
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-background border hover:bg-muted font-bold text-foreground transition-colors"
                     >
                       Tomorrow 9 AM
                     </button>
                     <button
                       type="button"
                       onClick={() => setSchedulePreset("tomorrow_evening")}
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-background border hover:bg-muted font-semibold text-foreground"
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-background border hover:bg-muted font-bold text-foreground transition-colors"
                     >
                       Tomorrow 6 PM
                     </button>
                     <button
                       type="button"
                       onClick={() => setSchedulePreset("weekend")}
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-background border hover:bg-muted font-semibold text-foreground"
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-background border hover:bg-muted font-bold text-foreground transition-colors"
                     >
                       Weekend
                     </button>
