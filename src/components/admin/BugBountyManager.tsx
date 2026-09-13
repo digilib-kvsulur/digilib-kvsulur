@@ -35,6 +35,7 @@ export default function BugBountyManager() {
   const [campaign, setCampaign] = useState<BugBountyCampaign | null>(null);
   const [reports, setReports] = useState<BugReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [allottingStudent, setAllottingStudent] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
@@ -47,6 +48,9 @@ export default function BugBountyManager() {
   const loadData = async () => {
     setLoading(true);
     try {
+      const { data: profile } = await supabase.from('profiles').select('role').single();
+      setUserRole(profile?.role || null);
+
       // 1. Load active campaign
       const { data: campaignData } = await supabase
         .from("bug_bounty_campaigns")
@@ -126,6 +130,13 @@ export default function BugBountyManager() {
   const verifyBug = async (reportId: string, reporterId: string) => {
     setActionLoading(reportId);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id === reporterId) {
+        toast({ title: "Forbidden", description: "You cannot verify your own bug reports!", variant: "destructive" });
+        setActionLoading(null);
+        return;
+      }
+
       // 1. Update report status
       const { error: reportErr } = await supabase
         .from("bug_reports")
@@ -199,9 +210,11 @@ export default function BugBountyManager() {
             <CardDescription>Reward students for finding and reporting system bugs.</CardDescription>
           </div>
           {!campaign ? (
-            <Button onClick={startCampaign} className="gap-2">
-              <Plus className="h-4 w-4" /> Start Campaign
-            </Button>
+            userRole === 'admin' && (
+              <Button onClick={startCampaign} className="gap-2">
+                <Plus className="h-4 w-4" /> Start Campaign
+              </Button>
+            )
           ) : (
             <Badge variant="default" className="bg-emerald-500 text-white">Active</Badge>
           )}
@@ -227,7 +240,7 @@ export default function BugBountyManager() {
                     </p>
                   )}
 
-                  {!campaign.student_id && (
+                  {!campaign.student_id && userRole === 'admin' && (
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <div className="relative flex-1">

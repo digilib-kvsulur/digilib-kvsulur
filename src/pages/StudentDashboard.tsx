@@ -27,6 +27,7 @@ import ClassCompetitions from "@/components/student/ClassCompetitions";
 import StudyPlan from "@/components/student/StudyPlan";
 import StudyGuide from "@/components/student/StudyGuide";
 import { LibraryBot } from "@/components/chat/LibraryBot";
+import BugBountyManager from "@/components/admin/BugBountyManager";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
 import LevelUpBanner from "@/components/rewards/LevelUpBanner";
 import Rankings from "@/components/dashboard/Rankings";
@@ -212,6 +213,7 @@ const StudentDashboard = () => {
         { id: "rankings" as Tab, label: "Rankings", icon: Medal },
         { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
         { id: "community" as Tab, label: "Community", icon: Users },
+        ...(activeBounty ? [{ id: "bounty" as Tab, label: "Bug Bounty", icon: Trophy }] : []),
         { id: "events" as Tab, label: "Events", icon: CalendarDays },
       ],
     },
@@ -1124,6 +1126,7 @@ const StudentDashboard = () => {
 
           {/* Feedback Tab */}
           {activeTab === "feedback" && <Feedback isEmbedded={true} />}
+          {activeTab === "bounty" && <BugBountyManager />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && <StudentProfile user={user} onProfileUpdate={handleProfileUpdate} />}
