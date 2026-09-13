@@ -253,9 +253,8 @@ export default function BugBountyManager() {
                           <Search className="absolute right-2 top-2 h-4 w-4 text-muted-foreground" />
                         </div>
                         <Button
-                          disabled={!allottingStudent}
+                          disabled={!allottingStudent || actionLoading === "allot"}
                           onClick={allotStudent}
-                          disabled={actionLoading === "allot"}
                         >
                           {actionLoading === "allot" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Allot"}
                         </Button>
