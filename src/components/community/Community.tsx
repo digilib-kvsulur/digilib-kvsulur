@@ -1076,7 +1076,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 />
               </DialogContent>
             </Dialog>
-            {(activeTab === "feed" || activeTab === "reels") && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
+            {activeTab === "feed" && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
               <Button size="sm" className="gradient-primary border-0" onClick={() => setShowNew((s) => !s)}>
                 <Plus className="h-4 w-4 mr-2" />Create
               </Button>
@@ -1136,37 +1136,6 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               </div>
             )}
           </div>
-
-        <TabsContent value="reels" className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {posts.filter(p => p.post_type === "reel" && (!p.scheduled_for || new Date(p.scheduled_for).getTime() <= Date.now())).map(reel => (
-              <div
-                key={reel.id}
-                className="relative aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer group border border-border/50 hover:border-primary/50 transition-all"
-                onClick={() => setActiveReelId(reel.id)}
-              >
-                <video
-                  src={reel.media_url}
-                  className="w-full h-full object-cover"
-                  muted
-                  loop
-                  playsInline
-                  onMouseEnter={(e) => e.currentTarget.play()}
-                  onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                  <p className="text-white text-xs font-bold truncate">{reel.title}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          {posts.filter(p => p.post_type === "reel").length === 0 && (
-            <div className="text-center py-20 text-muted-foreground">
-              <Video className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No reels shared yet. Be the first to upload one!</p>
-            </div>
-          )}
-        </TabsContent>
 
       {showNew && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
         <Card className="border-primary/30">
