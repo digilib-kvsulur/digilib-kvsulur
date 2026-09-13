@@ -2487,7 +2487,8 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
   };
 
   return (
-    <Tabs defaultValue="friends" className="space-y-3">
+    <div>
+      <Tabs defaultValue="friends" className="space-y-3">
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="friends" className="text-xs">Friends {accepted.length > 0 && `(${accepted.length})`}</TabsTrigger>
         <TabsTrigger value="incoming" className="text-xs">Requests {incoming.length > 0 && `(${incoming.length})`}</TabsTrigger>
