@@ -537,19 +537,19 @@ export default function BugBountyManager() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-300">
       {/* Top Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 p-6 sm:p-8 text-white border border-indigo-900/50 shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 p-5 sm:p-7 md:p-8 text-white border border-indigo-900/50 shadow-xl">
         <div className="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
         <div className="absolute right-40 -bottom-10 h-48 w-48 rounded-full bg-indigo-500/15 blur-2xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
+          <div className="space-y-1.5 sm:space-y-2 max-w-xl">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 backdrop-blur-md">
-                <ShieldAlert className="h-6 w-6" />
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 backdrop-blur-md shrink-0">
+                <ShieldAlert className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
                 PM SHRI Bug Bounty Hub
               </h2>
             </div>
@@ -559,26 +559,26 @@ export default function BugBountyManager() {
           </div>
 
           {/* Campaign Live Countdown & Action */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 shrink-0">
             {campaign && !timeLeft.isExpired ? (
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 border border-slate-700/80 backdrop-blur-md">
+              <div className="flex items-center justify-between sm:justify-start gap-3 p-2.5 sm:p-3 rounded-2xl bg-slate-800/80 border border-slate-700/80 backdrop-blur-md">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                   </span>
-                  <span>LIVE</span>
+                  <span>LIVE HUNT</span>
                 </div>
                 <div className="h-4 w-px bg-slate-700" />
                 <div className="text-right">
-                  <p className="text-[10px] text-slate-400 font-medium">Time Left</p>
-                  <p className="text-sm font-mono font-extrabold text-white">
+                  <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium">Time Left</p>
+                  <p className="text-xs sm:text-sm font-mono font-extrabold text-white">
                     {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
                   </p>
                 </div>
               </div>
             ) : (
-              <Badge variant="outline" className="h-10 px-3 border-slate-700 text-slate-400 bg-slate-900/50">
+              <Badge variant="outline" className="h-10 px-3 border-slate-700 text-slate-400 bg-slate-900/50 justify-center">
                 Campaign Inactive
               </Badge>
             )}
@@ -589,14 +589,14 @@ export default function BugBountyManager() {
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="rounded-xl font-bold h-11 text-xs px-4 shadow-md"
+                  className="rounded-xl font-bold h-10 sm:h-11 text-xs px-4 shadow-md w-full sm:w-auto"
                   onClick={handleEndCampaign}
                 >
                   End Campaign
                 </Button>
               ) : (
                 <Button
-                  className="rounded-xl font-bold h-11 text-xs px-5 gradient-primary border-0 shadow-lg hover:shadow-xl text-white gap-2"
+                  className="rounded-xl font-bold h-10 sm:h-11 text-xs px-5 gradient-primary border-0 shadow-lg hover:shadow-xl text-white gap-2 w-full sm:w-auto"
                   onClick={() => setShowStartModal(true)}
                 >
                   <Plus className="h-4 w-4" /> Start New Campaign
@@ -605,7 +605,7 @@ export default function BugBountyManager() {
             ) : (
               campaign && !timeLeft.isExpired && (
                 <Button
-                  className="rounded-xl font-bold h-11 text-xs px-5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white shadow-lg gap-2 border-0"
+                  className="rounded-xl font-bold h-10 sm:h-11 text-xs px-5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white shadow-lg gap-2 border-0 w-full sm:w-auto"
                   onClick={() => setShowReportModal(true)}
                 >
                   <Bug className="h-4 w-4" /> Report a Bug (+100 XP)
@@ -617,49 +617,49 @@ export default function BugBountyManager() {
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <Card className="p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+        <Card className="p-3.5 sm:p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Total Reports</span>
-            <Bug className="h-4 w-4 text-primary" />
+            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">Total Reports</span>
+            <Bug className="h-4 w-4 text-primary shrink-0" />
           </div>
-          <p className="text-2xl font-black mt-2 text-foreground">{metrics.total}</p>
+          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-foreground">{metrics.total}</p>
         </Card>
 
-        <Card className="p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm">
+        <Card className="p-3.5 sm:p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Under Review</span>
-            <Clock className="h-4 w-4 text-amber-500" />
+            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">Under Review</span>
+            <Clock className="h-4 w-4 text-amber-500 shrink-0" />
           </div>
-          <p className="text-2xl font-black mt-2 text-amber-500">{metrics.pending}</p>
+          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-amber-500">{metrics.pending}</p>
         </Card>
 
-        <Card className="p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm">
+        <Card className="p-3.5 sm:p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Verified Bugs</span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">Verified Bugs</span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
           </div>
-          <p className="text-2xl font-black mt-2 text-emerald-500">{metrics.verified}</p>
+          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-emerald-500">{metrics.verified}</p>
         </Card>
 
-        <Card className="p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm">
+        <Card className="p-3.5 sm:p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">XP Distributed</span>
-            <Trophy className="h-4 w-4 text-amber-400" />
+            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">XP Distributed</span>
+            <Trophy className="h-4 w-4 text-amber-400 shrink-0" />
           </div>
-          <p className="text-2xl font-black mt-2 text-primary">{metrics.totalXp} XP</p>
+          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-primary">{metrics.totalXp} XP</p>
         </Card>
       </div>
 
       {/* Main Content: Reports Feed + Top Hunters Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
         {/* Reports Queue (2 Cols) */}
         <div className="lg:col-span-2 space-y-4">
           <Card className="rounded-3xl border-border">
-            <CardHeader className="p-5 pb-3">
+            <CardHeader className="p-4 sm:p-5 pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                     <Bug className="h-5 w-5 text-indigo-500" /> Bug Reports Queue
                   </CardTitle>
                   <CardDescription className="text-xs">
@@ -673,7 +673,7 @@ export default function BugBountyManager() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs rounded-xl gap-1.5"
+                    className="h-8 text-xs rounded-xl gap-1.5 self-start sm:self-auto"
                     onClick={exportToCSV}
                   >
                     <Download className="h-3.5 w-3.5" /> Export CSV
@@ -683,8 +683,8 @@ export default function BugBountyManager() {
 
               {/* Filter Tabs & Search Bar */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-border mt-3">
-                {/* Status Tabs */}
-                <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border">
+                {/* Status Tabs - Scrollable on small screens */}
+                <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border overflow-x-auto no-scrollbar shrink-0">
                   {[
                     { id: "all", label: "All" },
                     { id: "pending", label: "Pending", count: metrics.pending },
@@ -694,7 +694,7 @@ export default function BugBountyManager() {
                     <button
                       key={tab.id}
                       onClick={() => setStatusFilter(tab.id as any)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${
                         statusFilter === tab.id
                           ? "bg-background text-foreground shadow-xs border border-border"
                           : "text-muted-foreground hover:text-foreground"
@@ -711,19 +711,19 @@ export default function BugBountyManager() {
                 </div>
 
                 {/* Search & Severity Filter */}
-                <div className="flex items-center gap-2 flex-1">
-                  <div className="relative flex-1">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="relative flex-1 min-w-0">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       placeholder="Search reports..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-8 text-xs pl-8 rounded-xl"
+                      className="h-8 text-xs pl-8 rounded-xl w-full"
                     />
                   </div>
 
                   <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                    <SelectTrigger className="h-8 text-xs w-28 rounded-xl">
+                    <SelectTrigger className="h-8 text-xs w-28 sm:w-32 rounded-xl shrink-0">
                       <SelectValue placeholder="Severity" />
                     </SelectTrigger>
                     <SelectContent>
@@ -738,7 +738,7 @@ export default function BugBountyManager() {
               </div>
             </CardHeader>
 
-            <CardContent className="p-5 pt-0 space-y-3">
+            <CardContent className="p-4 sm:p-5 pt-0 space-y-3">
               {filteredReports.length === 0 ? (
                 <div className="text-center py-12 space-y-3">
                   <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
@@ -940,9 +940,9 @@ export default function BugBountyManager() {
 
       {/* Admin Start Campaign Modal */}
       <Dialog open={showStartModal} onOpenChange={setShowStartModal}>
-        <DialogContent className="max-w-md rounded-3xl p-6">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto rounded-3xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+            <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
               <Plus className="h-5 w-5 text-primary" /> Start Bug Bounty Campaign
             </DialogTitle>
             <DialogDescription className="text-xs">
@@ -977,12 +977,12 @@ export default function BugBountyManager() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" className="rounded-xl text-xs" onClick={() => setShowStartModal(false)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button variant="outline" className="rounded-xl text-xs w-full sm:w-auto" onClick={() => setShowStartModal(false)}>
               Cancel
             </Button>
             <Button
-              className="rounded-xl text-xs font-bold gradient-primary text-white border-0"
+              className="rounded-xl text-xs font-bold gradient-primary text-white border-0 w-full sm:w-auto"
               onClick={handleStartCampaign}
               disabled={actionLoading === "start"}
             >
@@ -994,9 +994,9 @@ export default function BugBountyManager() {
 
       {/* Admin Verify Bug Modal */}
       <Dialog open={verifyModalOpen} onOpenChange={setVerifyModalOpen}>
-        <DialogContent className="max-w-md rounded-3xl p-6">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto rounded-3xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-emerald-600">
+            <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-emerald-600">
               <CheckCircle2 className="h-5 w-5" /> Verify Bug & Award XP
             </DialogTitle>
             <DialogDescription className="text-xs">
@@ -1029,12 +1029,12 @@ export default function BugBountyManager() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" className="rounded-xl text-xs" onClick={() => setVerifyModalOpen(false)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button variant="outline" className="rounded-xl text-xs w-full sm:w-auto" onClick={() => setVerifyModalOpen(false)}>
               Cancel
             </Button>
             <Button
-              className="rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto"
               onClick={handleConfirmVerify}
               disabled={actionLoading === actionReport?.id}
             >
@@ -1046,9 +1046,9 @@ export default function BugBountyManager() {
 
       {/* Admin Reject Bug Modal */}
       <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
-        <DialogContent className="max-w-md rounded-3xl p-6">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto rounded-3xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-destructive">
+            <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-destructive">
               <XCircle className="h-5 w-5" /> Reject Bug Report
             </DialogTitle>
             <DialogDescription className="text-xs">
@@ -1073,13 +1073,13 @@ export default function BugBountyManager() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" className="rounded-xl text-xs" onClick={() => setRejectModalOpen(false)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button variant="outline" className="rounded-xl text-xs w-full sm:w-auto" onClick={() => setRejectModalOpen(false)}>
               Cancel
             </Button>
             <Button
               variant="destructive"
-              className="rounded-xl text-xs font-bold"
+              className="rounded-xl text-xs font-bold w-full sm:w-auto"
               onClick={handleConfirmReject}
               disabled={actionLoading === actionReport?.id}
             >
@@ -1091,9 +1091,9 @@ export default function BugBountyManager() {
 
       {/* Student Submit Bug Modal */}
       <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
-        <DialogContent className="max-w-lg rounded-3xl p-6">
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto rounded-3xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+            <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
               <Bug className="h-5 w-5 text-rose-500" /> Report a Bug / Glitch
             </DialogTitle>
             <DialogDescription className="text-xs">
@@ -1113,7 +1113,7 @@ export default function BugBountyManager() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold">Module / Feature</Label>
                 <Select value={bugModule} onValueChange={setBugModule}>
@@ -1160,7 +1160,7 @@ export default function BugBountyManager() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold">Expected Behavior</Label>
                 <Input
@@ -1182,12 +1182,12 @@ export default function BugBountyManager() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 pt-2">
-            <Button variant="outline" className="rounded-xl text-xs" onClick={() => setShowReportModal(false)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-2">
+            <Button variant="outline" className="rounded-xl text-xs w-full sm:w-auto" onClick={() => setShowReportModal(false)}>
               Cancel
             </Button>
             <Button
-              className="rounded-xl text-xs font-bold gradient-primary text-white border-0 gap-1.5"
+              className="rounded-xl text-xs font-bold gradient-primary text-white border-0 gap-1.5 w-full sm:w-auto"
               onClick={handleSubmitBugReport}
               disabled={submittingBug}
             >
@@ -1200,3 +1200,4 @@ export default function BugBountyManager() {
     </div>
   );
 }
+
