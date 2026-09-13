@@ -327,6 +327,16 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       return;
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // Personalised live answers from the student's own records
+    // ─────────────────────────────────────────────────────────────
+    const personalAnswer = await checkPersonalAnswer(textToSend);
+    if (personalAnswer) {
+      setMessages([...newMessages, { role: 'assistant', content: personalAnswer }]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
