@@ -35,13 +35,17 @@ CREATE POLICY "All authenticated users can view active campaigns" ON bug_bounty_
 CREATE POLICY "Admins can manage reports" ON bug_reports 
     FOR ALL TO authenticated USING ( (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin' );
 
+CREATE POLICY "Students can view their own reports" ON bug_reports 
+    FOR SELECT TO authenticated USING (reporter_id = auth.uid());
+
+-- Corrected INSERT policy for bug_reports
+-- For INSERT policies, the 'USING' clause is for existing rows (which don't exist yet for INSERT).
+-- We must use 'WITH CHECK' for INSERT policies to validate the new row.
 CREATE POLICY "Assigned students can report bugs" ON bug_reports 
-    FOR INSERT TO authenticated USING (
+    FOR INSERT TO authenticated WITH CHECK (
+        reporter_id = auth.uid() AND
         EXISTS (
             SELECT 1 FROM bug_bounty_campaigns 
             WHERE id = campaign_id AND student_id = auth.uid() AND is_active = true AND ends_at > now()
         )
     );
-
-CREATE POLICY "Students can view their own reports" ON bug_reports 
-    FOR SELECT TO authenticated USING (reporter_id = auth.uid());

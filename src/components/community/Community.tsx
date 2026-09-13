@@ -1410,6 +1410,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           
           return [
             { id: "all", label: "All Posts" },
+            { id: "reels", label: "🎬 Reels", count: posts.filter(p => p.post_type === "reel" && isLivePost(p)).length },
             { id: "doubts", label: "❓ Academic Doubts", count: posts.filter(p => p.post_type === "doubt" && isLivePost(p)).length },
             { id: "stories", label: "📖 Student Stories", count: posts.filter(p => p.post_type === "story" && isLivePost(p)).length },
             { id: "polls", label: "📊 Polls", count: posts.filter(p => p.post_type === "poll" && isLivePost(p)).length },
@@ -2566,6 +2567,43 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
         )}
       </TabsContent>
     </Tabs>
+
+      {/* Floating Action Button for New Content */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              size="icon"
+              className="h-14 w-14 rounded-full shadow-2xl gradient-primary text-primary-foreground hover:scale-110 transition-transform"
+            >
+              <Plus className="h-6 w-6" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="top" align="end" className="w-48 p-2 space-y-1">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 h-10"
+              onClick={() => { setShowNew(true); setPostKind("text"); }}
+            >
+              <FileText className="h-4 w-4" /> Create Post
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 h-10"
+              onClick={() => { setShowNew(true); setPostKind("reel"); }}
+            >
+              <Video className="h-4 w-4" /> Upload Reel
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 h-10"
+              onClick={() => { setShowNew(true); setPostKind("doubt"); }}
+            >
+              <HelpCircle className="h-4 w-4" /> Ask Doubt
+            </Button>
+          </PopoverContent>
+        </Popover>
+      </div>
   );
 }
 
