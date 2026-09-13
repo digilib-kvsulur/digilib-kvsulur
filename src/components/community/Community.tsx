@@ -1101,42 +1101,44 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
             </Card>
           )}
 
-          {/* Reels Section - Highlighted */}
-          <div className="p-4 rounded-3xl bg-gradient-to-br from-primary/10 via-background to-primary/5 border border-primary/20 mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Video className="h-5 w-5 text-primary" />
-              <h3 className="font-bold text-foreground">Community Reels</h3>
-              <Badge variant="secondary" className="text-[10px] ml-2">New</Badge>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {/* Reels Stories Bar - Instagram Style */}
+          <div className="flex items-center gap-4 mb-6 pb-2 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-3">
               {posts.filter(p => p.post_type === "reel" && (!p.scheduled_for || new Date(p.scheduled_for).getTime() <= Date.now())).map(reel => (
                 <div
                   key={reel.id}
-                  className="relative aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer group border border-border/50 hover:border-primary/50 transition-all"
+                  className="flex flex-col items-center gap-1 cursor-pointer group shrink-0"
                   onClick={() => setActiveReelId(reel.id)}
                 >
-                  <video
-                    src={reel.media_url}
-                    className="w-full h-full object-cover"
-                    muted
-                    loop
-                    playsInline
-                    onMouseEnter={(e) => e.currentTarget.play()}
-                    onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                    <p className="text-white text-xs font-bold truncate">{reel.title}</p>
+                  <div className="p-0.5 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 group-hover:scale-105 transition-transform">
+                    <div className="p-0.5 rounded-full bg-background">
+                      <Avatar className="h-14 w-14 border border-border">
+                        {reel.author?.avatar_url && <AvatarImage src={getAvatarUrl(reel.author.avatar_url)} className="object-cover" />}
+                        <AvatarFallback className="gradient-primary text-white text-xs font-bold">{initials(reel.author)}</AvatarFallback>
+                      </Avatar>
+                    </div>
                   </div>
+                  <p className="text-[10px] text-muted-foreground truncate w-14 text-center group-hover:text-primary transition-colors">
+                    {nameOf(reel.author)}
+                  </p>
                 </div>
               ))}
             </div>
-            {posts.filter(p => p.post_type === "reel").length === 0 && (
-              <div className="text-center py-10 text-muted-foreground">
-                <Video className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                <p className="text-xs">No reels shared yet. Be the first to upload one!</p>
-              </div>
+            {posts.filter(p => p.post_type === "reel").length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs font-bold text-primary hover:bg-primary/10 rounded-full px-3"
+                onClick={() => {
+                  const firstReel = posts.find(p => p.post_type === "reel");
+                  if (firstReel) setActiveReelId(firstReel.id);
+                }}
+              >
+                View All Reels <Video className="h-3 w-3 ml-1" />
+              </Button>
             )}
           </div>
+
 
       {showNew && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
         <Card className="border-primary/30">
