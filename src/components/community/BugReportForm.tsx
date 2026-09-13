@@ -32,7 +32,6 @@ export default function BugReportForm({ currentUserId }: { currentUserId: string
       const { data } = await supabase
         .from("bug_bounty_campaigns")
         .select("*")
-        .eq("student_id", currentUserId)
         .eq("is_active", true)
         .maybeSingle();
 
@@ -74,12 +73,11 @@ export default function BugReportForm({ currentUserId }: { currentUserId: string
       const { data: campaign } = await supabase
         .from("bug_bounty_campaigns")
         .select("id")
-        .eq("student_id", currentUserId)
         .eq("is_active", true)
         .maybeSingle();
 
       if (!campaign) {
-        throw new Error("No active campaign found for you.");
+        throw new Error("No active campaign found.");
       }
 
       // 2. Submit report
