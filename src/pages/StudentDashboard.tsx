@@ -151,6 +151,7 @@ const StudentDashboard = () => {
   usePushSubscription(user?.id);
 
   const [activeBounty, setActiveBounty] = useState<any>(null);
+  const [activeLoan, setActiveLoan] = useState<any>(null);
 
   useEffect(() => {
     if (user?.id) {
