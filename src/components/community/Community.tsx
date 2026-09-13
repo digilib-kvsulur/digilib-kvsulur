@@ -14,7 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
 import { ReelViewer } from "./ReelViewer";
-import BugReportForm from "./BugReportForm";
 import { getAvatarUrl } from "@/lib/utils";
 import BookClubs from "@/components/dashboard/BookClubs";
 import SuggestionVoting from "./SuggestionVoting";
@@ -1470,7 +1469,6 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       )}
 
       {/* Feed Sub-filters */}
-      <BugReportForm currentUserId={currentUserId} />
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
         {(() => {
           const isLivePost = (p: Post) => !p.scheduled_for || new Date(p.scheduled_for).getTime() <= Date.now();
