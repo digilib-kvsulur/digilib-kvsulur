@@ -11,6 +11,9 @@ interface Message {
 
 const DEFAULT_PROMPTS = [
   "🎫 Raise Support Ticket",
+  "My books & due dates",
+  "Do I have any fine?",
+  "My XP and rank",
   "How to borrow a book",
   "Library timings",
   "Overdue fine amount",
@@ -140,6 +143,95 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     } finally {
       setSubmittingTicket(false);
     }
+  };
+
+  // Answers questions about the signed-in user's own library records
+  const checkPersonalAnswer = async (text: string): Promise<string | null> => {
+    const t = text.toLowerCase().trim();
+    const isPersonal = /\b(my|mine|i have|do i)\b/.test(t);
+    if (!isPersonal) return null;
+    if (!currentUser?.id) {
+      return "🔒 Please sign in to your library account and I can show your borrowed books, due dates, fines and XP instantly.";
+    }
+
+    try {
+      // My books / due dates
+      if (t.includes("book") || t.includes("due") || t.includes("borrow") || t.includes("issue") || t.includes("return")) {
+        const { data } = await supabase
+          .from("book_issues")
+          .select("book_title, due_date, status, accession_number")
+          .eq("user_id", currentUser.id)
+          .eq("status", "issued")
+          .order("due_date", { ascending: true });
+
+        if (!data || data.length === 0) {
+          return "📚 **Your borrowed books**\n\nYou have no books with you right now. Head to the **Catalog** and request a book — students may keep 1 book for 7 days.";
+        }
+
+        const today = new Date();
+        const lines = data.map((b: any) => {
+          const due = new Date(b.due_date);
+          const days = Math.ceil((due.getTime() - today.getTime()) / 86400000);
+          const when =
+            days < 0 ? `**${Math.abs(days)} day(s) overdue** (fine ₹${Math.abs(days)})` :
+            days === 0 ? "**due today**" :
+            `due in **${days} day(s)**`;
+          return `• ${b.book_title || "Library book"} — ${when} (${due.toLocaleDateString("en-IN")})`;
+        });
+        return `📚 **Your borrowed books (${data.length})**\n\n${lines.join("\n")}\n\nNeed more time? Open **My Requests** and tap *Request Renewal*.`;
+      }
+
+      // My fines
+      if (t.includes("fine") || t.includes("due amount") || t.includes("pay") || t.includes("penalty")) {
+        const { data } = await supabase
+          .from("library_fines")
+          .select("book_title, total_amount, status")
+          .eq("user_id", currentUser.id)
+          .neq("status", "paid");
+
+        const total = (data || []).reduce((s: number, f: any) => s + Number(f.total_amount || 0), 0);
+        if (!data || data.length === 0 || total === 0) {
+          return "✅ **No pending fines**\n\nYour library account is clear. Keep returning books on time!";
+        }
+        const lines = data.map((f: any) => `• ${f.book_title || "Library book"} — ₹${Number(f.total_amount).toFixed(0)}`);
+        return `💰 **Your pending fines: ₹${total.toFixed(0)}**\n\n${lines.join("\n")}\n\nPay at the library counter in cash or UPI to clear your account.`;
+      }
+
+      // My points / rank / level
+      if (t.includes("point") || t.includes("xp") || t.includes("rank") || t.includes("level") || t.includes("score")) {
+        const points = currentUser.points || 0;
+        let rankLine = "";
+        if (currentUser.student_class) {
+          const { data: rank } = await supabase.rpc("get_user_class_rank", {
+            user_class: currentUser.student_class,
+            user_points: points,
+          });
+          if (rank) rankLine = `\n• Rank in ${currentUser.student_class}: **#${rank}**`;
+        }
+        return `🏆 **Your library score**\n\n• Total XP: **${points}**${rankLine}\n\nEarn more by returning books on time, daily logins, quizzes, reviews and the Games Corner.`;
+      }
+
+      // My requests
+      if (t.includes("request") || t.includes("status") || t.includes("approve")) {
+        const { data } = await supabase
+          .from("book_requests")
+          .select("requested_title, status, created_at")
+          .eq("user_id", currentUser.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (!data || data.length === 0) {
+          return "📄 **Your requests**\n\nYou have not made any book requests yet. Find a book in the **Catalog** and tap *Request*.";
+        }
+        const lines = data.map((r: any) => `• ${r.requested_title || "Book request"} — **${r.status}**`);
+        return `📄 **Your latest requests**\n\n${lines.join("\n")}`;
+      }
+    } catch (err) {
+      console.warn("Personal answer lookup failed", err);
+      return null;
+    }
+
+    return null;
   };
 
   const sendMessage = async (overrideText?: string | React.MouseEvent) => {
@@ -317,6 +409,16 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
 
       return null;
     };
+
+    // ─────────────────────────────────────────────────────────────
+    // Personalised live answers from the student's own records
+    // ─────────────────────────────────────────────────────────────
+    const personalAnswer = await checkPersonalAnswer(textToSend);
+    if (personalAnswer) {
+      setMessages([...newMessages, { role: 'assistant', content: personalAnswer }]);
+      setLoading(false);
+      return;
+    }
 
     const localAnswer = checkPredefinedAnswer(textToSend);
     if (localAnswer) {

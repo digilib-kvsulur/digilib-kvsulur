@@ -609,6 +609,79 @@ export async function verifyAndPublishRotationalCycle(
 }
 
 /**
+ * Update the physical badge collection details of the active verified cycle
+ * and optionally notify every winner about the change.
+ */
+export async function updateRotationalCollectionDetails(
+  updates: { collectionDate: string; collectionVenue: string; librarianNote: string },
+  notifyWinners: boolean
+): Promise<{ success: boolean; notified: number; error?: string }> {
+  try {
+    const cycle = await getActiveRotationalCycle();
+    if (!cycle) return { success: false, notified: 0, error: "No active verified cycle found." };
+
+    const { data: authUser } = await supabase.auth.getUser();
+    const adminId = authUser?.user?.id;
+
+    const updatedCycle: VerifiedRotationalCycle = {
+      ...cycle,
+      settings: { ...cycle.settings, ...updates }
+    };
+
+    const { error: cycleError } = await supabase.from("system_settings").upsert(
+      { key: "rotational_badge_active_cycle", value: updatedCycle as any },
+      { onConflict: "key" }
+    );
+    if (cycleError) throw cycleError;
+
+    // Keep history in sync
+    const { data: histData } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "rotational_badge_history")
+      .maybeSingle();
+
+    if (histData?.value) {
+      let history: any[] =
+        typeof histData.value === "string" ? JSON.parse(histData.value) : (histData.value as any[]);
+      history = history.map((h: any) => (h.cycleId === cycle.cycleId ? updatedCycle : h));
+      await supabase.from("system_settings").upsert(
+        { key: "rotational_badge_history", value: history as any },
+        { onConflict: "key" }
+      );
+    }
+
+    let notified = 0;
+    if (notifyWinners && updatedCycle.winners?.length) {
+      const formatted = new Date(updates.collectionDate).toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+
+      const rows = updatedCycle.winners.map((w) => ({
+        target_user_id: w.studentId,
+        sent_by: adminId,
+        title: "📅 Badge collection date updated",
+        message: `The physical badge collection for "${w.badgeName}" (${updatedCycle.cycleLabel}) is now on ${formatted} at ${updates.collectionVenue}. ${updates.librarianNote}`,
+        type: "award",
+        action_link: "/student-dashboard?tab=badges"
+      }));
+
+      const { error: notifyError } = await supabase.from("notifications").insert(rows);
+      if (notifyError) throw notifyError;
+      notified = rows.length;
+    }
+
+    return { success: true, notified };
+  } catch (err: any) {
+    console.error("Error updating rotational collection details:", err);
+    return { success: false, notified: 0, error: err?.message || "Update failed" };
+  }
+}
+
+/**
  * Check if the given student is a winner in the active rotational cycle
  * and whether they haven't acknowledged it yet.
  */
