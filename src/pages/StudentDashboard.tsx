@@ -215,6 +215,7 @@ const StudentDashboard = () => {
         { id: "rankings" as Tab, label: "Rankings", icon: Medal },
         { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
         { id: "community" as Tab, label: "Community", icon: Users },
+        { id: "network" as Tab, label: "Network", icon: Users },
         { id: "bounty" as Tab, label: "Bug Bounty", icon: Trophy },
         { id: "events" as Tab, label: "Events", icon: CalendarDays },
       ],
@@ -907,6 +908,7 @@ const StudentDashboard = () => {
                       { label: "Study Materials",icon: FileText,    tab: "materials", color: "text-indigo-600", bg: "bg-indigo-50" },
                       { label: "Library Events", icon: CalendarDays,tab: "events",    color: "text-rose-600",   bg: "bg-rose-50" },
                       { label: "Community",       icon: Users,       tab: "community", color: "text-orange-600", bg: "bg-orange-50" },
+                      { label: "Network & Friends",icon: Users,      tab: "network",   color: "text-sky-600",    bg: "bg-sky-50" },
                       { label: "Book Issued",     icon: BookCheck,   tab: "issued",   color: "text-violet-600", bg: "bg-violet-50" },
                     ].map(a => (
                       <button

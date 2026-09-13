@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import * as Icons from "lucide-react";
 import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
+import ProfilePasswordResetCard from "./ProfilePasswordResetCard";
 
 interface StudentProfileProps {
   user: any;
@@ -378,6 +379,9 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Security & Password Card ── */}
+      <ProfilePasswordResetCard userEmail={user?.email || formData.email} />
     </div>
   );
 };

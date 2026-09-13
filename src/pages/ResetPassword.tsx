@@ -80,7 +80,7 @@ const ResetPassword = () => {
           return;
         }
 
-        // C. Check hash fragments for error
+        // C. Check hash fragments for access token or error
         const hash = window.location.hash;
         if (hash) {
           const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
@@ -97,16 +97,21 @@ const ResetPassword = () => {
             return;
           }
 
-          // If hash has access_token and type=recovery, supabase client will process it
-          if (hashParams.get("access_token")) {
-            // Wait briefly for supabase client auth listener to set session
-            await new Promise((r) => setTimeout(r, 600));
-            const { data: { session: hashSession } } = await supabase.auth.getSession();
-            if (hashSession && isMounted) {
-              setSessionValid(true);
-              setIsVerifying(false);
-              window.history.replaceState({}, document.title, window.location.pathname);
-              return;
+          const accessToken = hashParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token");
+          if (accessToken) {
+            try {
+              const { data, error: setErr } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken || "",
+              });
+              if (!setErr && data?.session && isMounted) {
+                setSessionValid(true);
+                setIsVerifying(false);
+                return;
+              }
+            } catch (e) {
+              console.warn("setSession error:", e);
             }
           }
         }
@@ -119,7 +124,6 @@ const ResetPassword = () => {
           });
           if (otpError) {
             console.warn("OTP verification error:", otpError.message);
-            // Before declaring error, check if a session was nonetheless initialized
             const { data: { session: checkSession } } = await supabase.auth.getSession();
             if (checkSession && isMounted) {
               setSessionValid(true);
@@ -156,11 +160,10 @@ const ResetPassword = () => {
         if (finalSession && isMounted) {
           setSessionValid(true);
           setIsVerifying(false);
-          window.history.replaceState({}, document.title, window.location.pathname);
           return;
         }
 
-        // Give onAuthStateChange listener an extra second to resolve in case network was slow
+        // Give onAuthStateChange listener a moment to resolve in case network was slow
         const timeout = setTimeout(async () => {
           const { data: { session: retrySession } } = await supabase.auth.getSession();
           if (isMounted) {
@@ -172,7 +175,7 @@ const ResetPassword = () => {
             }
             setIsVerifying(false);
           }
-        }, 1000);
+        }, 1500);
 
         return () => clearTimeout(timeout);
       } catch (err: any) {
