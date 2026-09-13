@@ -1077,9 +1077,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 />
               </DialogContent>
             </Dialog>
-            {activeTab === "feed" && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
+            {(activeTab === "feed" || activeTab === "reels") && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
               <Button size="sm" className="gradient-primary border-0" onClick={() => setShowNew((s) => !s)}>
-                <Plus className="h-4 w-4 mr-2" />New Post
+                <Plus className="h-4 w-4 mr-2" />Create
               </Button>
             )}
           </div>
