@@ -149,9 +149,18 @@ const StudentDashboard = () => {
   const streakData = useLoginStreak(user?.id);
   usePushSubscription(user?.id);
 
-  const [activeLoan, setActiveLoan] = useState<any>(null);
+  const [activeBounty, setActiveBounty] = useState<any>(null);
 
-  const fetchActiveLoan = async (userId: string) => {
+  useEffect(() => {
+    if (user?.id) {
+      supabase.from("bug_bounty_campaigns")
+        .select("*")
+        .eq("student_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle()
+        .then(({ data }) => setActiveBounty(data));
+    }
+  }, [user?.id]);
     try {
       const { data } = await supabase
         .from("book_issues")
