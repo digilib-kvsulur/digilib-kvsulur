@@ -1158,7 +1158,8 @@ const StudentDashboard = () => {
         selectedMonth={capsuleMonth}
       />
 
-      <LibraryBot />
+      {/* Hide LibraryBot in community tab so community create FAB takes its place */}
+      {activeTab !== "community" && <LibraryBot />}
 
       <MobileBottomNav
         activeTab={activeTab}
