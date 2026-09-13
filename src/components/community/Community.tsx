@@ -1769,7 +1769,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                               <div className="h-2 w-2 bg-white rounded-full animate-ping" />
                             </div>
                           </div>
-                        </div}
+                        </div>
                       </div>
                     ) : p.post_type === "story" ? (
                       <div className="mt-2 space-y-2">
