@@ -1752,7 +1752,14 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                         className="mt-2 cursor-pointer group relative rounded-2xl overflow-hidden border border-purple-500/30 aspect-[9/16] max-h-64 mx-auto w-48"
                         onClick={() => setActiveReelId(p.id)}
                       >
-                        <video src={p.media_url} className="h-full w-full object-cover" muted />
+                        <video
+                          src={p.media_url}
+                          className="h-full w-full object-cover"
+                          muted
+                          loop
+                          playsInline
+                          preload="metadata"
+                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
                           <p className="text-white text-xs font-bold truncate">{p.title}</p>
                         </div>
