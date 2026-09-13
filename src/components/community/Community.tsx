@@ -2604,6 +2604,7 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
           </PopoverContent>
         </Popover>
       </div>
+    </div>
   );
 }
 
