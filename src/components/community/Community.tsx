@@ -1053,6 +1053,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         <div className="flex justify-between items-center flex-wrap gap-4 mb-4">
           <TabsList>
             <TabsTrigger value="feed">Feed</TabsTrigger>
+            <TabsTrigger value="reels">🎬 Reels</TabsTrigger>
             {hasClubs && <TabsTrigger value="clubs">Book Clubs</TabsTrigger>}
             <TabsTrigger value="survey">Suggestions Survey</TabsTrigger>
             {isAdmin && (
