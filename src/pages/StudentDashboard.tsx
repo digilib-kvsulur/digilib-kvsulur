@@ -162,6 +162,8 @@ const StudentDashboard = () => {
         .then(({ data }) => setActiveBounty(data));
     }
   }, [user?.id]);
+
+  const fetchActiveLoan = async (userId: string) => {
     try {
       const { data } = await supabase
         .from("book_issues")
