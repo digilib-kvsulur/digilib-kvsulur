@@ -1122,21 +1122,6 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               </TabsTrigger>
             )}
           </TabsList>
-
-          {activeTab === "feed" && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
-            <button
-              type="button"
-              onClick={() => setShowNew((s) => !s)}
-              title={showNew ? "Close Composer" : "Create Post"}
-              className={`h-9 w-9 rounded-xl flex items-center justify-center shadow-md transition-all duration-200 border-0 ${
-                showNew
-                  ? "bg-muted/80 text-foreground hover:bg-muted"
-                  : "gradient-primary text-primary-foreground hover:opacity-90 hover:scale-105"
-              }`}
-            >
-              {showNew ? <X className="h-4 w-4" /> : <Plus className="h-5 w-5" />}
-            </button>
-          )}
         </div>
 
         <TabsContent value="feed" className="space-y-4">
@@ -1823,360 +1808,378 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         return (
           <div className="space-y-4">
             {filteredPosts.map((p, index) => (
-            <Card key={p.id} className="rounded-2xl border border-border/70 hover:border-primary/30 bg-card/90 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden">
-              <CardContent className="p-4 sm:p-5">
-                <div className="flex items-start gap-3 sm:gap-3.5">
-                  <UserHoverCard userId={p.user_id} author={p.author} currentUserId={currentUserId} fetchStats={fetchProfileStats} friendship={friendshipsMap[p.user_id]} onSend={sendFriendRequest} onRespond={respondFriendRequest} onRemove={removeFriend} onView={setProfileDialogUser}>
-                    <Avatar className="h-10 w-10 sm:h-11 sm:w-11 cursor-pointer ring-2 ring-primary/15 hover:ring-primary/50 transition-all shrink-0">
-                      {p.author?.avatar_url && <AvatarImage src={getAvatarUrl(p.author.avatar_url)} className="object-cover" />}
-                      <AvatarFallback className="gradient-primary text-primary-foreground text-xs font-bold">{initials(p.author)}</AvatarFallback>
-                    </Avatar>
-                  </UserHoverCard>
+            <Card key={p.id} className="rounded-3xl border border-border/70 hover:border-primary/40 bg-card/90 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
+              <CardContent className="p-4 sm:p-6 space-y-3.5">
+                {/* Header: Author Info & Post Metadata */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <UserHoverCard userId={p.user_id} author={p.author} currentUserId={currentUserId} fetchStats={fetchProfileStats} friendship={friendshipsMap[p.user_id]} onSend={sendFriendRequest} onRespond={respondFriendRequest} onRemove={removeFriend} onView={setProfileDialogUser}>
+                      <Avatar className="h-11 w-11 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/60 transition-all shrink-0 shadow-xs">
+                        {p.author?.avatar_url && <AvatarImage src={getAvatarUrl(p.author.avatar_url)} className="object-cover" />}
+                        <AvatarFallback className="gradient-primary text-primary-foreground text-xs font-black">{initials(p.author)}</AvatarFallback>
+                      </Avatar>
+                    </UserHoverCard>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <UserHoverCard userId={p.user_id} author={p.author} currentUserId={currentUserId} fetchStats={fetchProfileStats} friendship={friendshipsMap[p.user_id]} onSend={sendFriendRequest} onRespond={respondFriendRequest} onRemove={removeFriend} onView={setProfileDialogUser}>
-                          <p className="text-sm font-bold hover:underline cursor-pointer inline-flex items-center gap-1.5 flex-wrap text-foreground">
-                            <span>{nameOf(p.author)}</span>
-                            <RotationalWinnerBadge userId={p.user_id} size="xs" />
-                            {p.author?.role && p.author.role !== "student" && <Badge variant="outline" className="text-[9px] py-0 px-1.5 capitalize font-semibold border-primary/30 text-primary">{p.author.role}</Badge>}
-                          </p>
-                        </UserHoverCard>
-                        <p className="text-[11px] text-muted-foreground truncate font-medium">
-                          {p.author?.username ? `@${p.author.username} · ` : ""}Class {p.author?.student_class || "—"} · {new Date(p.created_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0 flex-wrap">
-                        {p.scheduled_for && new Date(p.scheduled_for).getTime() > Date.now() && (
-                          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] gap-1 font-bold">
-                            <Clock className="h-3 w-3 text-amber-500" />
-                            Scheduled: {new Date(p.scheduled_for).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
-                          </Badge>
-                        )}
-                        {p.scheduled_for && new Date(p.scheduled_for).getTime() > Date.now() && (p.user_id === currentUserId || isAdmin) && (
-                          <div className="flex items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-[10px] px-2.5 font-bold rounded-lg border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
-                              disabled={actionLoadingId === p.id}
-                              onClick={() => handlePublishNow(p.id)}
-                            >
-                              <Send className="h-2.5 w-2.5 mr-1" /> Publish
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-[10px] px-2.5 font-bold rounded-lg border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
-                              disabled={actionLoadingId === p.id}
-                              onClick={() => {
-                                setReschedulingPost(p);
-                                const d = new Date(p.scheduled_for || Date.now());
-                                const tzOffset = d.getTimezoneOffset() * 60000;
-                                setRescheduleDate(new Date(d.getTime() - tzOffset).toISOString().slice(0, 16));
-                              }}
-                            >
-                              <Calendar className="h-2.5 w-2.5 mr-1" /> Reschedule
-                            </Button>
-                          </div>
-                        )}
-                        {p.is_pinned && (
-                          <Badge variant="secondary" className="text-[10px] gap-1 font-bold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
-                            <Pin className="h-3 w-3 fill-amber-500" /> Pinned
-                          </Badge>
-                        )}
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => togglePin(p)}
-                            className="text-muted-foreground hover:text-primary p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
-                            title={p.is_pinned ? "Unpin" : "Pin to top"}
-                          >
-                            <Pin className={`h-4 w-4 ${p.is_pinned ? "text-primary fill-primary/20" : ""}`} />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setReportingPost(p)}
-                          className="text-muted-foreground hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-500/10 transition-colors"
-                          title="Report post"
-                        >
-                          <Flag className="h-3.5 w-3.5" />
-                        </button>
-                        {(p.user_id === currentUserId || isAdmin) && (
-                          <button onClick={() => deletePost(p.id)} className="text-muted-foreground hover:text-destructive p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="Delete post">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {p.post_type === "doubt" ? (
-                      <div className="mt-3 space-y-2.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[10px] font-extrabold flex items-center gap-1">
-                            <HelpCircle className="h-3 w-3" /> Class {p.doubt_class || "—"} · {p.doubt_subject || "Academic"}
-                          </Badge>
-                          {p.doubt_status === "solved" ? (
-                            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> Solved
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold">
-                              Unsolved · Needs Answer
-                            </Badge>
+                    <div className="min-w-0">
+                      <UserHoverCard userId={p.user_id} author={p.author} currentUserId={currentUserId} fetchStats={fetchProfileStats} friendship={friendshipsMap[p.user_id]} onSend={sendFriendRequest} onRespond={respondFriendRequest} onRemove={removeFriend} onView={setProfileDialogUser}>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-sm font-bold text-foreground hover:underline cursor-pointer">{nameOf(p.author)}</span>
+                          <RotationalWinnerBadge userId={p.user_id} size="xs" />
+                          {p.author?.role && p.author.role !== "student" && (
+                            <Badge variant="outline" className="text-[9px] py-0 px-1.5 capitalize font-semibold border-primary/30 text-primary">{p.author.role}</Badge>
                           )}
                         </div>
-                        <h3 className="font-extrabold text-base text-foreground">{p.title}</h3>
-                        <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 space-y-2">
-                          <p className="text-sm text-foreground/95 leading-relaxed whitespace-pre-wrap">
-                            {renderWithMentions(p.content)}
-                          </p>
-                        </div>
+                      </UserHoverCard>
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium truncate mt-0.5">
+                        {p.author?.username && <span>@{p.author.username}</span>}
+                        {p.author?.student_class && <span>· Class {p.author.student_class}</span>}
+                        <span>· {new Date(p.created_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>
                       </div>
-                    ) : p.post_type === "reel" ? (
-                      <div
-                        className="mt-3 cursor-pointer group relative rounded-2xl overflow-hidden border border-border hover:border-primary/50 aspect-[9/16] max-h-80 mx-auto w-52 shadow-md hover:shadow-xl transition-all bg-black"
-                        onClick={() => setActiveReelId(p.id)}
-                      >
-                        <video
-                          src={p.media_url}
-                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          muted
-                          loop
-                          playsInline
-                          preload="metadata"
-                        />
-                        {/* Top Reel Badge */}
-                        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-white border border-white/10">
-                          <Video className="h-3 w-3 text-rose-400" />
-                          <span>Reel</span>
-                        </div>
-
-                        {/* Bottom Gradient & Title */}
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3.5 z-10">
-                          <p className="text-white text-xs font-bold line-clamp-1 group-hover:text-rose-300 transition-colors">
-                            {p.title}
-                          </p>
-                          <div className="flex items-center justify-between text-[10px] text-white/80 mt-1">
-                            <span className="flex items-center gap-1"><Heart className="h-3 w-3 fill-rose-500 text-rose-500" /> {p.likes || 0}</span>
-                            <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {p.comment_count || 0}</span>
-                          </div>
-                        </div>
-
-                        {/* Center Hover Play Icon Overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 backdrop-blur-[2px]">
-                          <div className="h-12 w-12 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                            <Play className="h-5 w-5 fill-white ml-0.5" />
-                          </div>
-                        </div>
-                      </div>
-                    ) : p.post_type === "story" ? (
-                      <div className="mt-3 space-y-2.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-extrabold flex items-center gap-1">
-                            <Feather className="h-3 w-3" /> Original Story
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px] text-muted-foreground font-medium">
-                            <Clock className="h-3 w-3 mr-1 inline" />
-                            {Math.max(1, Math.round((p.content || "").split(/\s+/).filter(Boolean).length / 180))} min read
-                          </Badge>
-                        </div>
-                        <h3 className="font-extrabold text-base text-foreground">{p.title}</h3>
-                        <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/5 via-primary/5 to-purple-500/5 border border-primary/20 space-y-2.5">
-                          <p className="text-sm font-serif italic text-foreground/90 leading-relaxed line-clamp-3 whitespace-pre-wrap">
-                            {p.content}
-                          </p>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs font-bold rounded-xl border-primary/30 text-primary hover:bg-primary/10 transition-colors"
-                            onClick={() => setViewingStory(p)}
-                          >
-                            <Eye className="h-3.5 w-3.5 mr-1.5" /> Read Full Story
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-2.5 space-y-1.5">
-                        {p.title && <h3 className="font-bold text-base text-foreground">{p.title}</h3>}
-                        {p.content && p.content !== "Poll" && (
-                          <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{renderWithMentions(p.content)}</p>
-                        )}
-                      </div>
-                    )}
-
-                    {p.post_type === "poll" && (p.pollOptions?.length || 0) > 0 && (
-                      <div className="mt-3 space-y-2 rounded-xl border border-border/70 bg-muted/20 p-3.5">
-                        <p className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                          <BarChart3 className="h-3.5 w-3.5 text-primary" /> Poll
-                          {p.myVoteOptionId ? " · You Voted" : " · Tap an option to vote"}
-                        </p>
-                        {(() => {
-                          const totalVotes = (p.pollOptions || []).reduce((s, o) => s + o.votes, 0) || 0;
-                          return (p.pollOptions || []).map((opt) => {
-                            const pct = totalVotes ? Math.round((opt.votes / totalVotes) * 100) : 0;
-                            const mine = p.myVoteOptionId === opt.id;
-                            return (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                disabled={!!p.myVoteOptionId}
-                                onClick={() => votePoll(p, opt.id)}
-                                className={`w-full text-left rounded-xl border px-3.5 py-2.5 text-sm relative overflow-hidden transition-all ${
-                                  mine ? "border-primary bg-primary/10 shadow-xs font-semibold" : "border-border hover:border-primary/40 bg-card/60"
-                                } ${p.myVoteOptionId ? "cursor-default" : "cursor-pointer active:scale-[0.99]"}`}
-                              >
-                                {p.myVoteOptionId && (
-                                  <span
-                                    className="absolute inset-y-0 left-0 bg-primary/15 transition-all duration-500"
-                                    style={{ width: `${pct}%` }}
-                                  />
-                                )}
-                                <span className="relative flex items-center justify-between gap-2 z-10">
-                                  <span className="font-medium text-foreground">{opt.label}</span>
-                                  {p.myVoteOptionId && (
-                                    <span className="text-xs font-bold text-primary shrink-0">{opt.votes} ({pct}%)</span>
-                                  )}
-                                </span>
-                              </button>
-                            );
-                          });
-                        })()}
-                        {(p.pollOptions || []).some((o) => o.votes > 0) && (
-                          <p className="text-[11px] text-muted-foreground font-medium pt-1">
-                            {(p.pollOptions || []).reduce((s, o) => s + o.votes, 0)} total vote(s)
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {p.media_url && p.post_type !== "reel" && (
-                      <div className="mt-3 rounded-xl overflow-hidden border border-border/60">
-                        {p.media_type === "image" && (
-                          <img src={p.media_url} alt="Post media" className="w-full max-h-96 object-contain bg-muted/20" />
-                        )}
-                        {p.media_type === "video" && (
-                          <video src={p.media_url} controls className="w-full max-h-80 bg-black" />
-                        )}
-                        {p.media_type === "pdf" && (
-                          <a href={p.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 hover:bg-muted/40 transition-colors bg-muted/10">
-                            <FileText className="h-5 w-5 text-primary shrink-0" />
-                            <span className="text-sm font-semibold text-primary hover:underline">View Attached Document (PDF)</span>
-                          </a>
-                        )}
-                        {p.media_type === "link" && (
-                          <a href={p.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3 p-3.5 hover:bg-muted/40 transition-colors bg-muted/10 border-l-4 border-primary">
-                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                              <Link2 className="h-4.5 w-4.5 text-primary shrink-0" />
-                              <div className="min-w-0 flex-1">
-                                <span className="text-sm font-bold text-primary truncate block hover:underline">{p.media_url}</span>
-                                <span className="text-xs text-muted-foreground block">Click to open external link</span>
-                              </div>
-                            </div>
-                            <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
-                          </a>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Reaction Toolbar */}
-                    <div className="flex items-center gap-3 sm:gap-5 mt-3.5 pt-3 border-t border-border/50">
-                      <button
-                        type="button"
-                        onClick={() => toggleLike(p)}
-                        className={`flex items-center gap-1.5 text-xs sm:text-sm font-semibold transition-all px-2.5 py-1 rounded-lg hover:bg-muted/60 ${p.liked ? "text-rose-500 font-bold" : "text-muted-foreground hover:text-foreground"}`}
-                      >
-                        <Heart className={`h-4 w-4 ${p.liked ? "fill-rose-500 text-rose-500" : ""}`} />
-                        <span>{p.likes || 0}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => toggleComments(p.id)}
-                        className={`flex items-center gap-1.5 text-xs sm:text-sm font-semibold transition-all px-2.5 py-1 rounded-lg hover:bg-muted/60 ${openComments === p.id ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"}`}
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        <span>{p.comment_count || 0}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/#post-${p.id}`);
-                          toast({ title: "Link Copied 📋", description: "Post link copied to clipboard." });
-                        }}
-                        className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-all px-2.5 py-1 rounded-lg hover:bg-muted/60"
-                        title="Share post"
-                      >
-                        <Share2 className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Share</span>
-                      </button>
                     </div>
+                  </div>
 
-                    {/* Comments Drawer */}
-                    {openComments === p.id && (
-                      <div className="mt-3.5 pt-3.5 border-t border-border/50 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                        {(comments[p.id] || []).length === 0 ? (
-                          <p className="text-xs text-muted-foreground text-center py-3">No comments yet. Start the conversation!</p>
-                        ) : (
-                          (comments[p.id] || []).map((c) => (
-                            <div key={c.id} className={`flex items-start gap-2.5 p-3 rounded-xl border transition-all ${c.id === p.accepted_comment_id || c.is_accepted_solution ? "bg-emerald-500/10 border-emerald-500/40 shadow-xs" : "bg-muted/30 border-border/50"}`}>
-                              <UserHoverCard userId={c.user_id} author={c.author} currentUserId={currentUserId} fetchStats={fetchProfileStats} friendship={friendshipsMap[c.user_id]} onSend={sendFriendRequest} onRespond={respondFriendRequest} onRemove={removeFriend} onView={setProfileDialogUser}>
-                                <Avatar className="h-7 w-7 cursor-pointer shrink-0">
-                                  {c.author?.avatar_url && <AvatarImage src={getAvatarUrl(c.author.avatar_url)} className="object-cover" />}
-                                  <AvatarFallback className="text-[10px] gradient-primary text-primary-foreground font-bold">{initials(c.author)}</AvatarFallback>
-                                </Avatar>
-                              </UserHoverCard>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-xs font-bold text-foreground">{nameOf(c.author)}</span>
-                                  <RotationalWinnerBadge userId={c.user_id} size="xs" />
-                                  <span className="font-normal text-muted-foreground text-[10px]">· {new Date(c.created_at).toLocaleDateString()}</span>
-                                  {(c.id === p.accepted_comment_id || c.is_accepted_solution) && (
-                                    <Badge className="bg-emerald-600 text-white text-[9px] font-bold py-0 px-1.5 ml-auto flex items-center gap-1 shadow-xs">
-                                      <CheckCircle2 className="h-2.5 w-2.5" /> VERIFIED SOLUTION
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs mt-1 leading-relaxed text-foreground/90">{renderWithMentions(c.content)}</p>
-                                {p.post_type === "doubt" && (p.user_id === currentUserId || isAdmin) && p.accepted_comment_id !== c.id && (
-                                  <button
-                                    type="button"
-                                    onClick={() => markCommentAsSolution(p, c.id, c.user_id)}
-                                    className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline mt-1.5 inline-flex items-center gap-1"
-                                  >
-                                    <CheckCircle2 className="h-3.5 w-3.5" /> Accept as Best Solution (+25 XP)
-                                  </button>
-                                )}
-                              </div>
-                              {(c.user_id === currentUserId || isAdmin) && (
-                                <button onClick={() => deleteComment(p.id, c.id)} className="text-muted-foreground hover:text-destructive p-1 rounded-md transition-colors" title="Delete comment">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          ))
-                        )}
-
-                        <div className="flex gap-2 pt-1">
-                          <Input
-                            placeholder="Write a helpful response or comment..."
-                            value={commentDraft}
-                            onChange={(e) => setCommentDraft(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") addComment(p.id); }}
-                            className="rounded-xl h-9 text-xs"
-                          />
-                          <Button size="sm" onClick={() => addComment(p.id)} className="rounded-xl h-9 px-3 gradient-primary text-primary-foreground">
-                            <Send className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                  {/* Top Right Action & Badges Toolbar */}
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                    {p.is_pinned && (
+                      <Badge className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-[10px] font-extrabold flex items-center gap-1">
+                        <Pin className="h-3 w-3 fill-amber-500 text-amber-600" /> Pinned
+                      </Badge>
+                    )}
+                    {p.scheduled_for && new Date(p.scheduled_for).getTime() > Date.now() && (
+                      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] gap-1 font-bold">
+                        <Clock className="h-3 w-3 text-amber-500" />
+                        Scheduled: {new Date(p.scheduled_for).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
+                      </Badge>
+                    )}
+                    {p.scheduled_for && new Date(p.scheduled_for).getTime() > Date.now() && (p.user_id === currentUserId || isAdmin) && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] px-2.5 font-bold rounded-lg border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
+                          disabled={actionLoadingId === p.id}
+                          onClick={() => handlePublishNow(p.id)}
+                        >
+                          <Send className="h-2.5 w-2.5 mr-1" /> Publish
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] px-2.5 font-bold rounded-lg border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                          disabled={actionLoadingId === p.id}
+                          onClick={() => {
+                            setReschedulingPost(p);
+                            const d = new Date(p.scheduled_for || Date.now());
+                            const tzOffset = d.getTimezoneOffset() * 60000;
+                            setRescheduleDate(new Date(d.getTime() - tzOffset).toISOString().slice(0, 16));
+                          }}
+                        >
+                          <Calendar className="h-2.5 w-2.5 mr-1" /> Reschedule
+                        </Button>
                       </div>
+                    )}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => togglePin(p)}
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-muted/70 transition-colors"
+                        title={p.is_pinned ? "Unpin" : "Pin to top"}
+                      >
+                        <Pin className={`h-4 w-4 ${p.is_pinned ? "text-primary fill-primary/20" : ""}`} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setReportingPost(p)}
+                      className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10 transition-colors"
+                      title="Report post"
+                    >
+                      <Flag className="h-3.5 w-3.5" />
+                    </button>
+                    {(p.user_id === currentUserId || isAdmin) && (
+                      <button
+                        type="button"
+                        onClick={() => deletePost(p.id)}
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        title="Delete post"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     )}
                   </div>
                 </div>
+
+                {/* Post Content Area */}
+                {p.post_type === "doubt" ? (
+                  <div className="space-y-3 pt-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className="bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-[11px] font-extrabold flex items-center gap-1.5 py-0.5 px-2.5">
+                        <HelpCircle className="h-3.5 w-3.5 text-indigo-600" /> Class {p.doubt_class || "—"} · {p.doubt_subject || "Academic Question"}
+                      </Badge>
+                      {p.doubt_status === "solved" ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-extrabold flex items-center gap-1 py-0.5 px-2.5">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Solved
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[11px] font-bold py-0.5 px-2.5">
+                          Unsolved · Needs Help
+                        </Badge>
+                      )}
+                    </div>
+                    {p.title && <h3 className="font-black text-base sm:text-lg text-foreground tracking-tight">{p.title}</h3>}
+                    <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-2">
+                      <p className="text-sm text-foreground/95 leading-relaxed whitespace-pre-wrap font-medium">
+                        {renderWithMentions(p.content)}
+                      </p>
+                    </div>
+                  </div>
+                ) : p.post_type === "reel" ? (
+                  <div className="space-y-2 pt-1">
+                    <div
+                      className="cursor-pointer group relative rounded-2xl overflow-hidden border border-border/80 hover:border-primary/50 aspect-[9/16] max-h-80 mx-auto w-52 shadow-md hover:shadow-2xl transition-all bg-black"
+                      onClick={() => setActiveReelId(p.id)}
+                    >
+                      <video
+                        src={p.media_url}
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        muted
+                        loop
+                        playsInline
+                        preload="metadata"
+                      />
+                      {/* Top Reel Badge */}
+                      <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 bg-black/60 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white border border-white/10">
+                        <Video className="h-3 w-3 text-rose-400" />
+                        <span>Reel</span>
+                      </div>
+
+                      {/* Bottom Gradient & Title */}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3.5 z-10">
+                        <p className="text-white text-xs font-bold line-clamp-1 group-hover:text-rose-300 transition-colors">
+                          {p.title}
+                        </p>
+                        <div className="flex items-center justify-between text-[10px] text-white/80 mt-1">
+                          <span className="flex items-center gap-1"><Heart className="h-3 w-3 fill-rose-500 text-rose-500" /> {p.likes || 0}</span>
+                          <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {p.comment_count || 0}</span>
+                        </div>
+                      </div>
+
+                      {/* Center Hover Play Icon Overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 backdrop-blur-[2px]">
+                        <div className="h-12 w-12 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                          <Play className="h-5 w-5 fill-white ml-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : p.post_type === "story" ? (
+                  <div className="space-y-3 pt-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-extrabold flex items-center gap-1 py-0.5 px-2.5">
+                        <Feather className="h-3 w-3" /> Original Student Writing
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px] text-muted-foreground font-semibold">
+                        <Clock className="h-3 w-3 mr-1 inline" />
+                        {Math.max(1, Math.round((p.content || "").split(/\s+/).filter(Boolean).length / 180))} min read
+                      </Badge>
+                    </div>
+                    {p.title && <h3 className="font-extrabold text-base sm:text-lg text-foreground">{p.title}</h3>}
+                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/5 via-primary/5 to-purple-500/5 border border-primary/20 space-y-3">
+                      <p className="text-sm font-serif italic text-foreground/90 leading-relaxed line-clamp-4 whitespace-pre-wrap">
+                        "{p.content}"
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs font-bold rounded-xl border-primary/30 text-primary hover:bg-primary/10 transition-colors shadow-xs"
+                        onClick={() => setViewingStory(p)}
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1.5" /> Read Full Story
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2 pt-1">
+                    {p.title && <h3 className="font-black text-base sm:text-lg text-foreground tracking-tight">{p.title}</h3>}
+                    {p.content && p.content !== "Poll" && (
+                      <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap font-normal">
+                        {renderWithMentions(p.content)}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Poll Options Box */}
+                {p.post_type === "poll" && (p.pollOptions?.length || 0) > 0 && (
+                  <div className="space-y-2 rounded-2xl border border-border/80 bg-muted/20 p-4">
+                    <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                      <BarChart3 className="h-3.5 w-3.5 text-primary" /> Community Poll
+                      {p.myVoteOptionId ? " · You Voted" : " · Tap an option to cast your vote"}
+                    </p>
+                    {(() => {
+                      const totalVotes = (p.pollOptions || []).reduce((s, o) => s + o.votes, 0) || 0;
+                      return (p.pollOptions || []).map((opt) => {
+                        const pct = totalVotes ? Math.round((opt.votes / totalVotes) * 100) : 0;
+                        const mine = p.myVoteOptionId === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            disabled={!!p.myVoteOptionId}
+                            onClick={() => votePoll(p, opt.id)}
+                            className={`w-full text-left rounded-xl border px-3.5 py-2.5 text-sm relative overflow-hidden transition-all ${
+                              mine ? "border-primary bg-primary/10 shadow-xs font-bold" : "border-border hover:border-primary/40 bg-card/70"
+                            } ${p.myVoteOptionId ? "cursor-default" : "cursor-pointer active:scale-[0.99]"}`}
+                          >
+                            {p.myVoteOptionId && (
+                              <span
+                                className="absolute inset-y-0 left-0 bg-primary/15 transition-all duration-500"
+                                style={{ width: `${pct}%` }}
+                              />
+                            )}
+                            <span className="relative flex items-center justify-between gap-2 z-10">
+                              <span className="font-medium text-foreground">{opt.label}</span>
+                              {p.myVoteOptionId && (
+                                <span className="text-xs font-bold text-primary shrink-0">{opt.votes} ({pct}%)</span>
+                              )}
+                            </span>
+                          </button>
+                        );
+                      });
+                    })()}
+                    {(p.pollOptions || []).some((o) => o.votes > 0) && (
+                      <p className="text-[11px] text-muted-foreground font-medium pt-1">
+                        {(p.pollOptions || []).reduce((s, o) => s + o.votes, 0)} total vote(s)
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Media Attachments (Photos, PDFs, Links) */}
+                {p.media_url && p.post_type !== "reel" && (
+                  <div className="rounded-2xl overflow-hidden border border-border/80 shadow-xs">
+                    {p.media_type === "image" && (
+                      <img src={p.media_url} alt="Post media" className="w-full max-h-96 object-contain bg-muted/20" />
+                    )}
+                    {p.media_type === "video" && (
+                      <video src={p.media_url} controls className="w-full max-h-80 bg-black" />
+                    )}
+                    {p.media_type === "pdf" && (
+                      <a href={p.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3.5 hover:bg-muted/40 transition-colors bg-muted/10">
+                        <FileText className="h-5 w-5 text-primary shrink-0" />
+                        <span className="text-sm font-bold text-primary hover:underline">View Attached Document (PDF)</span>
+                      </a>
+                    )}
+                    {p.media_type === "link" && (
+                      <a href={p.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3 p-3.5 hover:bg-muted/40 transition-colors bg-muted/10 border-l-4 border-primary">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <Link2 className="h-4.5 w-4.5 text-primary shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-sm font-bold text-primary truncate block hover:underline">{p.media_url}</span>
+                            <span className="text-xs text-muted-foreground block">Click to open external link</span>
+                          </div>
+                        </div>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Bottom Social Reaction Toolbar */}
+                <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleLike(p)}
+                      className={`flex items-center gap-1.5 text-xs sm:text-sm font-bold transition-all px-3 py-1.5 rounded-xl hover:bg-muted/70 ${p.liked ? "text-rose-500 bg-rose-500/10" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      <Heart className={`h-4 w-4 ${p.liked ? "fill-rose-500 text-rose-500" : ""}`} />
+                      <span>{p.likes || 0}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleComments(p.id)}
+                      className={`flex items-center gap-1.5 text-xs sm:text-sm font-bold transition-all px-3 py-1.5 rounded-xl hover:bg-muted/70 ${openComments === p.id ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      <span>{p.comment_count || 0}</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/#post-${p.id}`);
+                      toast({ title: "Link Copied 📋", description: "Post link copied to clipboard." });
+                    }}
+                    className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-all px-3 py-1.5 rounded-xl hover:bg-muted/70"
+                    title="Share post link"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span>Share</span>
+                  </button>
+                </div>
+
+                {/* Expandable Comments Drawer */}
+                {openComments === p.id && (
+                  <div className="pt-3 border-t border-border/50 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {(comments[p.id] || []).length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-3 font-medium">No comments yet. Be the first to share your thoughts!</p>
+                    ) : (
+                      (comments[p.id] || []).map((c) => (
+                        <div key={c.id} className={`flex items-start gap-2.5 p-3 rounded-2xl border transition-all ${c.id === p.accepted_comment_id || c.is_accepted_solution ? "bg-emerald-500/10 border-emerald-500/40 shadow-xs" : "bg-muted/30 border-border/60"}`}>
+                          <UserHoverCard userId={c.user_id} author={c.author} currentUserId={currentUserId} fetchStats={fetchProfileStats} friendship={friendshipsMap[c.user_id]} onSend={sendFriendRequest} onRespond={respondFriendRequest} onRemove={removeFriend} onView={setProfileDialogUser}>
+                            <Avatar className="h-7 w-7 cursor-pointer shrink-0">
+                              {c.author?.avatar_url && <AvatarImage src={getAvatarUrl(c.author.avatar_url)} className="object-cover" />}
+                              <AvatarFallback className="text-[10px] gradient-primary text-primary-foreground font-black">{initials(c.author)}</AvatarFallback>
+                            </Avatar>
+                          </UserHoverCard>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-bold text-foreground">{nameOf(c.author)}</span>
+                              <RotationalWinnerBadge userId={c.user_id} size="xs" />
+                              <span className="font-normal text-muted-foreground text-[10px]">· {new Date(c.created_at).toLocaleDateString()}</span>
+                              {(c.id === p.accepted_comment_id || c.is_accepted_solution) && (
+                                <Badge className="bg-emerald-600 text-white text-[9px] font-bold py-0 px-1.5 ml-auto flex items-center gap-1 shadow-xs">
+                                  <CheckCircle2 className="h-2.5 w-2.5" /> VERIFIED SOLUTION
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs mt-1 leading-relaxed text-foreground/90 font-medium">{renderWithMentions(c.content)}</p>
+                            {p.post_type === "doubt" && (p.user_id === currentUserId || isAdmin) && p.accepted_comment_id !== c.id && (
+                              <button
+                                type="button"
+                                onClick={() => markCommentAsSolution(p, c.id, c.user_id)}
+                                className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline mt-1.5 inline-flex items-center gap-1"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Accept as Best Solution (+25 XP)
+                              </button>
+                            )}
+                          </div>
+                          {(c.user_id === currentUserId || isAdmin) && (
+                            <button onClick={() => deleteComment(p.id, c.id)} className="text-muted-foreground hover:text-destructive p-1 rounded-md transition-colors" title="Delete comment">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    )}
+
+                    <div className="flex gap-2 pt-1">
+                      <Input
+                        placeholder="Write a helpful response or comment..."
+                        value={commentDraft}
+                        onChange={(e) => setCommentDraft(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") addComment(p.id); }}
+                        className="rounded-xl h-9 text-xs"
+                      />
+                      <Button size="sm" onClick={() => addComment(p.id)} className="rounded-xl h-9 px-3 gradient-primary text-primary-foreground font-bold shadow-xs">
+                        <Send className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
