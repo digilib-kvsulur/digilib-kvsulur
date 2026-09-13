@@ -18,6 +18,7 @@ import BookClubs from "@/components/dashboard/BookClubs";
 import SuggestionVoting from "./SuggestionVoting";
 import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 import ReviewsModeration from "@/components/admin/ReviewsModeration";
+import CommunityTermsGate, { hasAcceptedCommunityTerms } from "./CommunityTermsGate";
 
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
 
@@ -56,6 +57,7 @@ const nameOf = (p: any) => p ? `${p.first_name || ""} ${p.last_name || ""}`.trim
 const initials = (p: any) => nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
 const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin: boolean }) => {
+  const [termsAccepted, setTermsAccepted] = useState(() => hasAcceptedCommunityTerms(currentUserId));
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
@@ -983,6 +985,10 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       console.error(err);
     }
   };
+
+  if (!termsAccepted) {
+    return <CommunityTermsGate userId={currentUserId} onAccept={() => setTermsAccepted(true)} />;
+  }
 
   return (
     <div className="space-y-4">
