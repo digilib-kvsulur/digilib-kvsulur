@@ -57,8 +57,9 @@ import StudentBarcodeGenerator from "@/components/admin/StudentBarcodeGenerator"
 import MetadataFetchDashboard from "@/components/admin/MetadataFetchDashboard";
 import ExpressCirculation from "@/components/admin/ExpressCirculation";
 import AcademicYearRollover from "@/components/admin/AcademicYearRollover";
+import BugBountyManager from "@/components/admin/BugBountyManager";
 
-type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty";
 
 const navSections = [
   {
@@ -118,6 +119,7 @@ const navSections = [
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
       { id: "community" as Tab, label: "Community", icon: MessageSquare },
+      { id: "bug-bounty" as Tab, label: "Bug Bounty", icon: ShieldAlert },
     ],
   },
   {
@@ -459,6 +461,7 @@ const AdminDashboard = () => {
           {activeTab === "student-barcodes" && <StudentBarcodeGenerator />}
           {activeTab === "support" && <SupportTicketsManager />}
           {activeTab === "feedback" && <FeedbackManager />}
+          {activeTab === "bug-bounty" && <BugBountyManager />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>
