@@ -833,6 +833,50 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                           </span>
                         </div>
                       </div>
+
+                      <div className="mt-3 rounded-lg border bg-background p-3 space-y-3">
+                        <p className="text-xs font-bold flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-primary" />
+                          Change collection details &amp; notify winners
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-[11px] font-bold">New Collection Date</Label>
+                            <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                          </div>
+                          <div>
+                            <Label className="text-[11px] font-bold">Collection Venue</Label>
+                            <Input value={editVenue} onChange={(e) => setEditVenue(e.target.value)} />
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-[11px] font-bold">Message to winners</Label>
+                          <Textarea
+                            rows={2}
+                            value={editNote}
+                            onChange={(e) => setEditNote(e.target.value)}
+                            placeholder="Bring your student ID card to collect the badge."
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" disabled={savingCollection} onClick={() => saveCollectionDetails(true)}>
+                            {savingCollection ? (
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <UserCheck className="h-4 w-4 mr-2" />
+                            )}
+                            Update &amp; Notify {activeCycle.winners.length} Winner(s)
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={savingCollection}
+                            onClick={() => saveCollectionDetails(false)}
+                          >
+                            Save without notifying
+                          </Button>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
 
