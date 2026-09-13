@@ -1104,35 +1104,20 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
             )}
           </TabsList>
 
-          <div className="flex items-center gap-2">
-            <Dialog open={friendsOpen} onOpenChange={setFriendsOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline" className="h-9 rounded-xl text-xs font-bold border-border shadow-xs hover:border-primary/40">
-                  <Users className="h-3.5 w-3.5 mr-1.5 text-primary" /> My Network
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
-                <DialogHeader><DialogTitle className="text-base font-bold">My Network & Friends</DialogTitle></DialogHeader>
-                <FriendsPanel
-                  currentUserId={currentUserId}
-                  friendshipsMap={friendshipsMap}
-                  reload={loadFriendshipsMap}
-                  openProfile={(id) => { setFriendsOpen(false); setProfileDialogUser(id); }}
-                />
-              </DialogContent>
-            </Dialog>
-
-            {activeTab === "feed" && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
-              <Button
-                size="sm"
-                className="h-9 rounded-xl text-xs font-bold gradient-primary text-white border-0 shadow-md hover:shadow-lg transition-all"
-                onClick={() => setShowNew((s) => !s)}
-              >
-                <Plus className="h-4 w-4 mr-1.5" />
-                {showNew ? "Close Composer" : "Create Post"}
-              </Button>
-            )}
-          </div>
+          {activeTab === "feed" && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
+            <button
+              type="button"
+              onClick={() => setShowNew((s) => !s)}
+              title={showNew ? "Close Composer" : "Create Post"}
+              className={`h-9 w-9 rounded-xl flex items-center justify-center shadow-md transition-all duration-200 border-0 ${
+                showNew
+                  ? "bg-muted/80 text-foreground hover:bg-muted"
+                  : "gradient-primary text-primary-foreground hover:opacity-90 hover:scale-105"
+              }`}
+            >
+              {showNew ? <X className="h-4 w-4" /> : <Plus className="h-5 w-5" />}
+            </button>
+          )}
         </div>
 
         <TabsContent value="feed" className="space-y-4">
@@ -1670,8 +1655,8 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         </div>
       )}
 
-      {/* Pinned Official WhatsApp Community Notice & Reward */}
-      {feedCategory === "all" && (
+      {/* Pinned Official WhatsApp Community Notice & Reward — hidden once claimed */}
+      {feedCategory === "all" && !waRewardClaimed && (
         <Card className="relative overflow-hidden border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/10 shadow-sm hover:shadow-md transition-all rounded-2xl">
           <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none -mr-14 -mt-14" />
           <CardContent className="p-4 sm:p-5 relative z-10">
