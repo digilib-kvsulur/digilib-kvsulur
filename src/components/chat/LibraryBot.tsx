@@ -11,6 +11,9 @@ interface Message {
 
 const DEFAULT_PROMPTS = [
   "🎫 Raise Support Ticket",
+  "My books & due dates",
+  "Do I have any fine?",
+  "My XP and rank",
   "How to borrow a book",
   "Library timings",
   "Overdue fine amount",
@@ -407,15 +410,6 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       return null;
     };
 
-    const localAnswer = checkPredefinedAnswer(textToSend);
-    if (localAnswer) {
-      setTimeout(() => {
-        setMessages([...newMessages, { role: 'assistant', content: localAnswer }]);
-        setLoading(false);
-      }, 300);
-      return;
-    }
-
     // ─────────────────────────────────────────────────────────────
     // Personalised live answers from the student's own records
     // ─────────────────────────────────────────────────────────────
@@ -423,6 +417,15 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     if (personalAnswer) {
       setMessages([...newMessages, { role: 'assistant', content: personalAnswer }]);
       setLoading(false);
+      return;
+    }
+
+    const localAnswer = checkPredefinedAnswer(textToSend);
+    if (localAnswer) {
+      setTimeout(() => {
+        setMessages([...newMessages, { role: 'assistant', content: localAnswer }]);
+        setLoading(false);
+      }, 300);
       return;
     }
 
