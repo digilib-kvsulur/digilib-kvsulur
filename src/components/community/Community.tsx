@@ -1519,6 +1519,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   </p>
                 </div>
               </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
