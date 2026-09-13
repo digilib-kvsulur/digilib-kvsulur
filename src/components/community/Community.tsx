@@ -1113,13 +1113,17 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   <div className="p-0.5 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 group-hover:scale-105 transition-transform">
                     <div className="p-0.5 rounded-full bg-background">
                       <Avatar className="h-14 w-14 border border-border">
-                        {reel.author?.avatar_url && <AvatarImage src={getAvatarUrl(reel.author.avatar_url)} className="object-cover" />}
-                        <AvatarFallback className="gradient-primary text-white text-xs font-bold">{initials(reel.author)}</AvatarFallback>
+                        {reel.author?.avatar_url ? (
+                          <AvatarImage src={getAvatarUrl(reel.author.avatar_url)} className="object-cover" />
+                        ) : null}
+                        <AvatarFallback className="gradient-primary text-white text-xs font-bold">
+                          {reel.author ? initials(reel.author) : "U"}
+                        </AvatarFallback>
                       </Avatar>
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground truncate w-14 text-center group-hover:text-primary transition-colors">
-                    {nameOf(reel.author)}
+                    {reel.author ? nameOf(reel.author) : "User"}
                   </p>
                 </div>
               ))}
