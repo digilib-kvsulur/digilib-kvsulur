@@ -1163,19 +1163,19 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           </div>
 
 
-      {showNew && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
-        <Card className="rounded-2xl border border-primary/25 bg-card/95 shadow-md backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="bg-gradient-to-r from-primary/10 via-amber-500/5 to-transparent px-4 sm:px-5 py-3 border-b border-border/50 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+      <Dialog open={showNew && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now())} onOpenChange={setShowNew}>
+        <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto rounded-3xl p-0 border border-primary/25 bg-card/98 shadow-2xl backdrop-blur-2xl">
+          <DialogHeader className="bg-gradient-to-r from-primary/10 via-amber-500/5 to-transparent px-5 py-3.5 border-b border-border/50 flex flex-row items-center justify-between space-y-0">
+            <DialogTitle className="flex items-center gap-2 text-sm sm:text-base font-bold text-foreground">
               <div className="h-7 w-7 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
                 <Plus className="h-4 w-4" />
               </div>
-              <span className="text-xs sm:text-sm font-bold text-foreground">Create Community Post</span>
-            </div>
-            <span className="text-[11px] text-muted-foreground font-medium">KV Sulur Lounge</span>
-          </div>
+              <span>Create Community Post</span>
+            </DialogTitle>
+            <span className="text-[11px] text-muted-foreground font-medium pr-6">KV Sulur Lounge</span>
+          </DialogHeader>
 
-          <CardContent className="p-4 sm:p-5 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             {/* Post Kind Selector Tabs */}
             <div className="flex gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/50 overflow-x-auto no-scrollbar">
               <Button
@@ -1519,10 +1519,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   </p>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Feed Sub-filters */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
@@ -2774,121 +2773,83 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
       </TabsContent>
     </Tabs>
 
-      {/* Floating Create Button as a Flying Popup in the Bottom */}
+      {/* Flying Bottom Dock for Community */}
       {(!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
-        <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                size="icon"
-                title="Create in Community"
-                className="h-14 w-14 rounded-full shadow-2xl gradient-primary text-primary-foreground hover:scale-110 active:scale-95 transition-all flex items-center justify-center border-2 border-white/20"
-              >
-                <Plus className="h-6 w-6" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              side="top"
-              align="end"
-              sideOffset={14}
-              className="w-72 p-2 rounded-3xl border border-border/80 bg-card/95 backdrop-blur-xl shadow-2xl space-y-1 animate-in fade-in slide-in-from-bottom-3 duration-200"
+        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[calc(100vw-1rem)] animate-in fade-in slide-in-from-bottom-6 duration-300">
+          <div className="flex items-center gap-1 sm:gap-1.5 p-1.5 sm:p-2 rounded-full bg-card/90 dark:bg-card/95 backdrop-blur-xl border border-primary/30 shadow-2xl shadow-primary/20 ring-1 ring-white/10">
+            {/* Primary Create Button */}
+            <Button
+              size="sm"
+              onClick={() => {
+                setPostKind("text");
+                setShowNew(true);
+              }}
+              className="h-9 sm:h-10 px-3.5 sm:px-5 rounded-full gradient-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 border-0"
             >
-              <div className="px-3.5 py-2.5 border-b border-border/50 mb-1">
-                <p className="text-xs font-black text-foreground">Create in Community</p>
-                <p className="text-[10px] text-muted-foreground font-medium">Choose what you want to share with classmates</p>
-              </div>
+              <Plus className="h-4 w-4 stroke-[3]" />
+              <span>Create Post</span>
+            </Button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setPostKind("text");
-                  setShowNew(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold hover:bg-muted/80 transition-all text-foreground group"
-              >
-                <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                  <FileText className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-foreground">Create Post</p>
-                  <p className="text-[10px] text-muted-foreground font-normal truncate">Share thoughts & recommendations</p>
-                </div>
-              </button>
+            {/* Quick Reel Button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setPostKind("reel");
+                setShowNew(true);
+              }}
+              className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-full text-xs font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5"
+              title="Upload Reel"
+            >
+              <Video className="h-4 w-4 shrink-0 text-rose-500" />
+              <span className="hidden xs:inline sm:inline">Reel</span>
+            </Button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setPostKind("reel");
-                  setShowNew(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold hover:bg-rose-500/10 transition-all text-foreground group"
-              >
-                <div className="h-9 w-9 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                  <Video className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-rose-600 dark:text-rose-400">Upload Reel</p>
-                  <p className="text-[10px] text-muted-foreground font-normal truncate">Short video & book summary</p>
-                </div>
-              </button>
+            {/* Quick Ask Doubt Button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setPostKind("doubt");
+                setShowNew(true);
+              }}
+              className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-full text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-500/10 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5"
+              title="Ask Academic Doubt"
+            >
+              <HelpCircle className="h-4 w-4 shrink-0 text-amber-500" />
+              <span className="hidden sm:inline">Doubt</span>
+            </Button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setPostKind("doubt");
-                  setShowNew(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold hover:bg-amber-500/10 transition-all text-foreground group"
-              >
-                <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                  <HelpCircle className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-amber-700 dark:text-amber-400">Ask Doubt</p>
-                  <p className="text-[10px] text-muted-foreground font-normal truncate">Academic questions for classmates</p>
-                </div>
-              </button>
+            {/* Quick Story Button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setPostKind("story");
+                setShowNew(true);
+              }}
+              className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-full text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-500/10 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5"
+              title="Write Story"
+            >
+              <Feather className="h-4 w-4 shrink-0 text-emerald-500" />
+              <span className="hidden md:inline">Story</span>
+            </Button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setPostKind("story");
-                  setShowNew(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold hover:bg-amber-500/10 transition-all text-foreground group"
-              >
-                <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                  <Feather className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-foreground">Story / Writing</p>
-                  <p className="text-[10px] text-muted-foreground font-normal truncate">Creative story, poem or review</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPostKind("poll");
-                  setShowNew(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold hover:bg-indigo-500/10 transition-all text-foreground group"
-              >
-                <div className="h-9 w-9 rounded-xl bg-indigo-500/15 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                  <BarChart3 className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-foreground">Community Poll</p>
-                  <p className="text-[10px] text-muted-foreground font-normal truncate">Gather peer votes & opinions</p>
-                </div>
-              </button>
-            </PopoverContent>
-          </Popover>
+            {/* Quick Poll Button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setPostKind("poll");
+                setShowNew(true);
+              }}
+              className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-full text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-500/10 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5"
+              title="Community Poll"
+            >
+              <BarChart3 className="h-4 w-4 shrink-0 text-indigo-500" />
+              <span className="hidden md:inline">Poll</span>
+            </Button>
+          </div>
         </div>
       )}
     </div>
