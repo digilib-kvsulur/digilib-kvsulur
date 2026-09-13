@@ -1100,8 +1100,6 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               </div>
             </Card>
           )}
-          {/* ... (rest of feed content) */}
-        </TabsContent>
 
         <TabsContent value="reels" className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
