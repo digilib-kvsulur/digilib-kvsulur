@@ -194,7 +194,10 @@ export default function BugBountyManager() {
       setSearchResults([]);
       return;
     }
-    const { data } = await supabase.rpc("search_public_profiles", { _q: val.trim() });
+    const { data } = await supabase.rpc("search_public_profiles", {
+      _q: val.trim(),
+      _exclude: userId
+    });
     setSearchResults(data || []);
   };
 
