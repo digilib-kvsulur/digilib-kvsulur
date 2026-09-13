@@ -1627,6 +1627,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           }
           if (feedCategory === "stories") return p.post_type === "story";
           if (feedCategory === "polls") return p.post_type === "poll";
+          if (feedCategory === "reels") return p.post_type === "reel";
           if (feedCategory === "media") return !!p.media_url;
           return true;
         });
@@ -1647,6 +1648,8 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     ? "No Student Stories Shared Yet"
                     : feedCategory === "polls"
                     ? "No Community Polls Open"
+                    : feedCategory === "reels"
+                    ? "No Community Reels Yet"
                     : "No Community Posts Yet"}
                 </h3>
                 <p className="text-sm text-muted-foreground max-w-sm mb-5">
@@ -1658,6 +1661,8 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     ? "Share your book review, summary, or creative reading reflections."
                     : feedCategory === "polls"
                     ? "Create a quick poll for your peers to vote on reading preferences and library suggestions."
+                    : feedCategory === "reels"
+                    ? "Share a short video and express yourself through community reels!"
                     : "Be the first to share an academic question, book reflection, or announcement!"}
                 </p>
                 <Button
@@ -1665,6 +1670,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     if (feedCategory === "doubts") setPostKind("doubt");
                     else if (feedCategory === "stories") setPostKind("story");
                     else if (feedCategory === "polls") setPostKind("poll");
+                    else if (feedCategory === "reels") setPostKind("reel");
                     setShowNew(true);
                   }}
                   className="gap-2 shadow-xs"
