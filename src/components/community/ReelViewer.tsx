@@ -14,12 +14,14 @@ interface ReelViewerProps {
 
 const ReelItem = ({
   reel,
+  index,
   isActive,
   onLike,
   onComment,
   onReport
 }: {
   reel: Post;
+  index: number;
   isActive: boolean;
   onLike: (post: Post) => void;
   onComment: (postId: string) => void;
@@ -41,7 +43,10 @@ const ReelItem = ({
   }, [isActive]);
 
   return (
-    <div className="h-screen w-full snap-start relative flex items-center justify-center bg-black">
+    <div
+      data-index={index}
+      className="h-screen w-full snap-start relative flex items-center justify-center bg-black"
+    >
       <video
         ref={videoRef}
         src={reel.media_url}
