@@ -1100,6 +1100,43 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
             </Card>
           )}
 
+          {/* Reels Section - Highlighted */}
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-primary/10 via-background to-primary/5 border border-primary/20 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Video className="h-5 w-5 text-primary" />
+              <h3 className="font-bold text-foreground">Community Reels</h3>
+              <Badge variant="secondary" className="text-[10px] ml-2">New</Badge>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {posts.filter(p => p.post_type === "reel" && (!p.scheduled_for || new Date(p.scheduled_for).getTime() <= Date.now())).map(reel => (
+                <div
+                  key={reel.id}
+                  className="relative aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer group border border-border/50 hover:border-primary/50 transition-all"
+                  onClick={() => setActiveReelId(reel.id)}
+                >
+                  <video
+                    src={reel.media_url}
+                    className="w-full h-full object-cover"
+                    muted
+                    loop
+                    playsInline
+                    onMouseEnter={(e) => e.currentTarget.play()}
+                    onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                    <p className="text-white text-xs font-bold truncate">{reel.title}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {posts.filter(p => p.post_type === "reel").length === 0 && (
+              <div className="text-center py-10 text-muted-foreground">
+                <Video className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-xs">No reels shared yet. Be the first to upload one!</p>
+              </div>
+            )}
+          </div>
+
         <TabsContent value="reels" className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {posts.filter(p => p.post_type === "reel" && (!p.scheduled_for || new Date(p.scheduled_for).getTime() <= Date.now())).map(reel => (
