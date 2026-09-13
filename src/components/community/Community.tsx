@@ -103,9 +103,18 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [activeReelId, setActiveReelId] = useState<string | null>(null);
   const [feedCategory, setFeedCategory] = useState<"all" | "doubts" | "stories" | "polls" | "media" | "scheduled" | "reels">("all");
   
-  // WhatsApp Community & Reward State
+  // WhatsApp Community & Reward State (persist per device and per user)
   const WHATSAPP_COMMUNITY_URL = "https://chat.whatsapp.com/FuoV7sig8CwHEMRKvpA9A5";
-  const [waRewardClaimed, setWaRewardClaimed] = useState(false);
+  const [waRewardClaimed, setWaRewardClaimed] = useState(() => {
+    try {
+      return (
+        (currentUserId && localStorage.getItem(`wa_claimed_${currentUserId}`) === "true") ||
+        localStorage.getItem("wa_community_claimed_device") === "true"
+      );
+    } catch {
+      return false;
+    }
+  });
   const [claimingWaReward, setClaimingWaReward] = useState(false);
 
   // Post Scheduling State
@@ -722,7 +731,10 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
       if (!rpcErr) {
         setWaRewardClaimed(true);
-        try { localStorage.setItem(`wa_claimed_${currentUserId}`, "true"); } catch {}
+        try {
+          localStorage.setItem(`wa_claimed_${currentUserId}`, "true");
+          localStorage.setItem("wa_community_claimed_device", "true");
+        } catch {}
         toast({
           title: "🎉 250 Points Awarded!",
           description: "Thank you for joining the PM SHRI KV Sulur WhatsApp Community! 250 XP has been added to your profile.",
@@ -740,8 +752,12 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
       if (profErr) throw profErr;
 
-      if ((profile as any)?.whatsapp_reward_claimed || localStorage.getItem(`wa_claimed_${currentUserId}`) === "true") {
+      if ((profile as any)?.whatsapp_reward_claimed || localStorage.getItem(`wa_claimed_${currentUserId}`) === "true" || localStorage.getItem("wa_community_claimed_device") === "true") {
         setWaRewardClaimed(true);
+        try {
+          localStorage.setItem(`wa_claimed_${currentUserId}`, "true");
+          localStorage.setItem("wa_community_claimed_device", "true");
+        } catch {}
         return;
       }
 
@@ -774,7 +790,10 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       });
 
       setWaRewardClaimed(true);
-      try { localStorage.setItem(`wa_claimed_${currentUserId}`, "true"); } catch {}
+      try {
+        localStorage.setItem(`wa_claimed_${currentUserId}`, "true");
+        localStorage.setItem("wa_community_claimed_device", "true");
+      } catch {}
 
       toast({
         title: "🎉 250 Points Awarded!",
@@ -2034,7 +2053,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                       </div>
                     )}
 
-                    {p.media_url && (
+                    {p.media_url && p.post_type !== "reel" && (
                       <div className="mt-3 rounded-xl overflow-hidden border border-border/60">
                         {p.media_type === "image" && (
                           <img src={p.media_url} alt="Post media" className="w-full max-h-96 object-contain bg-muted/20" />
@@ -2793,41 +2812,22 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
       </TabsContent>
     </Tabs>
 
-      <div className="fixed bottom-6 right-6 z-50">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              size="icon"
-              className="h-14 w-14 rounded-full shadow-2xl gradient-primary text-primary-foreground hover:scale-110 transition-transform"
-            >
-              <Plus className="h-6 w-6" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent side="top" align="end" className="w-48 p-2 space-y-1">
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 h-10"
-              onClick={() => { setShowNew(true); setPostKind("text"); }}
-            >
-              <FileText className="h-4 w-4" /> Create Post
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 h-10"
-              onClick={() => { setShowNew(true); setPostKind("reel"); }}
-            >
-              <Video className="h-4 w-4" /> Upload Reel
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 h-10"
-              onClick={() => { setShowNew(true); setPostKind("doubt"); }}
-            >
-              <HelpCircle className="h-4 w-4" /> Ask Doubt
-            </Button>
-          </PopoverContent>
-        </Popover>
-      </div>
+      {/* Floating Create Button in place of LibraryBot */}
+      {(!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
+        <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40">
+          <Button
+            size="icon"
+            onClick={() => {
+              setShowNew((prev) => !prev);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            title={showNew ? "Close Composer" : "Create Post"}
+            className="h-14 w-14 rounded-full shadow-2xl gradient-primary text-primary-foreground hover:scale-105 active:scale-95 transition-all flex items-center justify-center border-2 border-white/20"
+          >
+            {showNew ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
