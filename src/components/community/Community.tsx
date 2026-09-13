@@ -13,6 +13,7 @@ import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Chec
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
+import { ReelViewer } from "./ReelViewer";
 import { getAvatarUrl } from "@/lib/utils";
 import BookClubs from "@/components/dashboard/BookClubs";
 import SuggestionVoting from "./SuggestionVoting";
@@ -57,7 +58,7 @@ const captureThumbnail = async (file: File): Promise<Blob> => {
 };
 
 interface PollOption { id: string; label: string; sort_order: number; votes: number }
-interface Post {
+export interface Post {
   id: string;
   title: string;
   content: string;
