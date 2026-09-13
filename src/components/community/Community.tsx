@@ -1061,47 +1061,6 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   return (
     <div className="space-y-5 animate-in fade-in duration-300">
-      {/* Community Hero Header Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950/80 via-slate-900 to-indigo-950/90 p-5 sm:p-6 text-white border border-indigo-800/40 shadow-lg">
-        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-indigo-500/15 blur-2xl pointer-events-none" />
-        <div className="absolute right-32 -bottom-8 h-32 w-32 rounded-full bg-rose-500/10 blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-rose-500 p-0.5 shadow-md flex items-center justify-center shrink-0">
-              <div className="h-full w-full rounded-[14px] bg-slate-950/80 backdrop-blur flex items-center justify-center text-white">
-                <Users className="h-6 w-6 text-indigo-400" />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  Readers Lounge
-                </h2>
-                <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-400/30 text-[10px] h-4">
-                  Student Community
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Share reflections, watch student reels, ask academic doubts & connect
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Stats Chips */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 backdrop-blur-md text-xs font-semibold text-white flex items-center gap-1.5">
-              <MessageCircle className="h-3.5 w-3.5 text-indigo-400" />
-              <span>{posts.length} Posts</span>
-            </div>
-            <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 backdrop-blur-md text-xs font-semibold text-white flex items-center gap-1.5">
-              <Video className="h-3.5 w-3.5 text-rose-400" />
-              <span>{posts.filter(p => p.post_type === "reel").length} Reels</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
           <TabsList className="h-10 p-1 bg-muted/70 rounded-2xl border border-border">
@@ -1911,7 +1870,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
                 {/* Post Content Area */}
                 {p.post_type === "doubt" ? (
-                  <div className="space-y-3 pt-1">
+                  <div className="space-y-3 pt-1 px-1 sm:px-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge className="bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-[11px] font-extrabold flex items-center gap-1.5 py-0.5 px-2.5">
                         <HelpCircle className="h-3.5 w-3.5 text-indigo-600" /> Class {p.doubt_class || "—"} · {p.doubt_subject || "Academic Question"}
@@ -1926,7 +1885,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                         </Badge>
                       )}
                     </div>
-                    {p.title && <h3 className="font-black text-base sm:text-lg text-foreground tracking-tight">{p.title}</h3>}
+                    {p.title && <h3 className="font-black text-base sm:text-lg text-foreground tracking-tight leading-snug">{p.title}</h3>}
                     <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-2">
                       <p className="text-sm text-foreground/95 leading-relaxed whitespace-pre-wrap font-medium">
                         {renderWithMentions(p.content)}
@@ -1934,7 +1893,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     </div>
                   </div>
                 ) : p.post_type === "reel" ? (
-                  <div className="space-y-2 pt-1">
+                  <div className="space-y-2 pt-1 px-1 sm:px-2">
                     <div
                       className="cursor-pointer group relative rounded-2xl overflow-hidden border border-border/80 hover:border-primary/50 aspect-[9/16] max-h-80 mx-auto w-52 shadow-md hover:shadow-2xl transition-all bg-black"
                       onClick={() => setActiveReelId(p.id)}
@@ -1973,7 +1932,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     </div>
                   </div>
                 ) : p.post_type === "story" ? (
-                  <div className="space-y-3 pt-1">
+                  <div className="space-y-3 pt-1 px-1 sm:px-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-extrabold flex items-center gap-1 py-0.5 px-2.5">
                         <Feather className="h-3 w-3" /> Original Student Writing
@@ -1983,7 +1942,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                         {Math.max(1, Math.round((p.content || "").split(/\s+/).filter(Boolean).length / 180))} min read
                       </Badge>
                     </div>
-                    {p.title && <h3 className="font-extrabold text-base sm:text-lg text-foreground">{p.title}</h3>}
+                    {p.title && <h3 className="font-extrabold text-base sm:text-lg text-foreground leading-snug">{p.title}</h3>}
                     <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/5 via-primary/5 to-purple-500/5 border border-primary/20 space-y-3">
                       <p className="text-sm font-serif italic text-foreground/90 leading-relaxed line-clamp-4 whitespace-pre-wrap">
                         "{p.content}"
@@ -1999,8 +1958,8 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2 pt-1">
-                    {p.title && <h3 className="font-black text-base sm:text-lg text-foreground tracking-tight">{p.title}</h3>}
+                  <div className="space-y-2 py-1 px-1 sm:px-2">
+                    {p.title && <h3 className="font-black text-base sm:text-lg text-foreground tracking-tight leading-snug">{p.title}</h3>}
                     {p.content && p.content !== "Poll" && (
                       <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap font-normal">
                         {renderWithMentions(p.content)}
