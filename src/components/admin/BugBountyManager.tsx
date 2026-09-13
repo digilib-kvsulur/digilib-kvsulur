@@ -36,6 +36,7 @@ export default function BugBountyManager() {
   const [reports, setReports] = useState<BugReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [allottingStudent, setAllottingStudent] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
@@ -48,6 +49,9 @@ export default function BugBountyManager() {
   const loadData = async () => {
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+
       const { data: profile } = await supabase.from('profiles').select('role').single();
       setUserRole(profile?.role || null);
 
@@ -118,7 +122,7 @@ export default function BugBountyManager() {
       toast({ title: "Student Allotted!", description: "The student can now report bugs." });
       setAllottingStudent("");
       setStudentSearch("");
-      searchResults.length = 0;
+      setSearchResults([]);
       loadData();
     } catch (e: any) {
       toast({ title: "Failed to allot student", description: e.message, variant: "destructive" });
@@ -327,7 +331,7 @@ export default function BugBountyManager() {
                       <p className="text-[10px] text-muted-foreground mt-1">Reported: {new Date(report.created_at).toLocaleString()}</p>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      {report.status === 'pending' && (
+                      {report.status === 'pending' && (userRole === 'admin' || campaign?.student_id === userId) && (
                         <>
                           <Button
                             size="sm"

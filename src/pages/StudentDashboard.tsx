@@ -156,7 +156,6 @@ const StudentDashboard = () => {
     if (user?.id) {
       supabase.from("bug_bounty_campaigns")
         .select("*")
-        .eq("student_id", user.id)
         .eq("is_active", true)
         .maybeSingle()
         .then(({ data }) => setActiveBounty(data));
