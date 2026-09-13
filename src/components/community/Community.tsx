@@ -2568,7 +2568,6 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
       </TabsContent>
     </Tabs>
 
-      {/* Floating Action Button for New Content */}
       <div className="fixed bottom-6 right-6 z-50">
         <Popover>
           <PopoverTrigger asChild>
