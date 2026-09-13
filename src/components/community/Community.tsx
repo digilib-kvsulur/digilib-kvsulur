@@ -27,6 +27,35 @@ const containsBadWords = (text: string): boolean => {
   return BAD_WORDS.some(w => lower.includes(w));
 };
 
+const captureThumbnail = async (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    video.src = URL.createObjectURL(file);
+    video.muted = true;
+    video.playsInline = true;
+
+    video.onloadeddata = () => {
+      video.currentTime = 1; // Capture frame at 1 second
+    };
+
+    video.onseeked = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(video.src);
+        if (blob) resolve(blob);
+        else reject(new Error("Thumbnail generation failed"));
+      }, "image/jpeg", 0.7);
+    };
+
+    video.onerror = (e) => reject(e);
+  });
+};
+
 interface PollOption { id: string; label: string; sort_order: number; votes: number }
 interface Post {
   id: string;
@@ -532,6 +561,24 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     }
     if (!draft.title.trim()) { toast({ title: "Add a title", variant: "destructive" }); return; }
     if ((postKind === "text" || postKind === "story") && !draft.content.trim()) { toast({ title: "Add content", variant: "destructive" }); return; }
+    if (postKind === "reel") {
+      if (!mediaFile) { toast({ title: "Attach a video", variant: "destructive" }); return; }
+      if (mediaFile.size > 20 * 1024 * 1024) { toast({ title: "File too large", description: "Reels must be under 20MB", variant: "destructive" }); return; }
+
+      const video = document.createElement("video");
+      video.src = URL.createObjectURL(mediaFile);
+      await new Promise((resolve) => {
+        video.onloadedmetadata = () => {
+          if (video.duration > 60) {
+            toast({ title: "Video too long", description: "Reels must be under 60 seconds", variant: "destructive" });
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        };
+      });
+      URL.revokeObjectURL(video.src);
+    }
     if (postKind === "link" && !linkUrl.trim()) { toast({ title: "Add a link URL", variant: "destructive" }); return; }
     if (postKind === "link" && !linkUrl.startsWith("http://") && !linkUrl.startsWith("https://")) {
       toast({ title: "Invalid URL", description: "Link URL must start with http:// or https://", variant: "destructive" });
