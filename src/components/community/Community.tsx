@@ -62,7 +62,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [draft, setDraft] = useState({ title: "", content: "" });
-  const [postKind, setPostKind] = useState<"text" | "poll" | "link" | "story" | "doubt">("text");
+  const [postKind, setPostKind] = useState<"text" | "poll" | "link" | "story" | "doubt" | "reel">("text");
   const [storyGenre, setStoryGenre] = useState("Adventure");
   const [doubtSubject, setDoubtSubject] = useState("Mathematics");
   const [doubtClass, setDoubtClass] = useState("10");
@@ -70,7 +70,8 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [doubtFilterClass, setDoubtFilterClass] = useState("all");
   const [doubtFilterStatus, setDoubtFilterStatus] = useState<"all" | "unsolved" | "solved">("all");
   const [viewingStory, setViewingStory] = useState<Post | null>(null);
-  const [feedCategory, setFeedCategory] = useState<"all" | "doubts" | "stories" | "polls" | "media" | "scheduled">("all");
+  const [activeReelId, setActiveReelId] = useState<string | null>(null);
+  const [feedCategory, setFeedCategory] = useState<"all" | "doubts" | "stories" | "polls" | "media" | "scheduled" | "reels">("all");
   
   // WhatsApp Community & Reward State
   const WHATSAPP_COMMUNITY_URL = "https://chat.whatsapp.com/FuoV7sig8CwHEMRKvpA9A5";
@@ -1587,7 +1588,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
         return (
           <div className="space-y-3">
-            {filteredPosts.map((p) => (
+            {filteredPosts.map((p, index) => (
             <Card key={p.id} className="border-border/50 hover-lift">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -1698,6 +1699,23 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                             {renderWithMentions(p.content)}
                           </p>
                         </div>
+                      </div>
+                    ) : p.post_type === "reel" ? (
+                      <div
+                        className="mt-2 cursor-pointer group relative rounded-2xl overflow-hidden border border-purple-500/30 aspect-[9/16] max-h-64 mx-auto w-48"
+                        onClick={() => setActiveReelId(p.id)}
+                      >
+                        <video src={p.media_url} className="h-full w-full object-cover" muted />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
+                          <p className="text-white text-xs font-bold truncate">{p.title}</p>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                          <div className="bg-white/20 backdrop-blur-md p-2 rounded-full">
+                            <div className="h-8 w-8 border-2 border-white rounded-full flex items-center justify-center">
+                              <div className="h-2 w-2 bg-white rounded-full animate-ping" />
+                            </div>
+                          </div>
+                        </div}
                       </div>
                     ) : p.post_type === "story" ? (
                       <div className="mt-2 space-y-2">
@@ -1975,8 +1993,29 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         </DialogContent>
       </Dialog>
 
+      {/* Reel Viewer Dialog */}
+      <Dialog open={activeReelId !== null} onOpenChange={(o) => !o && setActiveReelId(null)}>
+        <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden">
+          {activeReelId !== null && (() => {
+            const filtered = posts.filter(p => p.post_type === "reel" && (!p.scheduled_for || new Date(p.scheduled_for).getTime() <= Date.now()));
+            const index = filtered.findIndex(p => p.id === activeReelId);
+            return (
+              <ReelViewer
+                reels={filtered}
+                initialIndex={index !== -1 ? index : 0}
+                onClose={() => setActiveReelId(null)}
+                onLike={toggleLike}
+                onComment={toggleComments}
+                onReport={setReportingPost}
+              />
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* Report Post Dialog */}
       <Dialog open={!!reportingPost} onOpenChange={(o) => !o && setReportingPost(null)}>
+
         <DialogContent className="max-w-md rounded-2xl p-5 gap-4">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
