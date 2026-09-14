@@ -12,8 +12,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 
-const nameOf = (p: any) => p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
-const initials = (p: any) => nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+function nameOf(p: any) {
+  return p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
+}
+function initials(p: any) {
+  return nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+}
 
 interface Props {
   userId: string;
