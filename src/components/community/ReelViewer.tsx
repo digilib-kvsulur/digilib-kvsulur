@@ -405,6 +405,8 @@ const ReelItem = ({
   );
 };
 
+import { useBackHandler } from "@/hooks/useBackHandler";
+
 export const ReelViewer = ({
   reels,
   initialIndex,
@@ -423,6 +425,27 @@ export const ReelViewer = ({
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newCommentText, setNewCommentText] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  // Device back button: Back closes comments drawer first, then closes reel viewer
+  useBackHandler({
+    enabled: commentsDrawerOpen,
+    priority: 100,
+    stateName: "reel_comments",
+    onBack: () => {
+      setCommentsDrawerOpen(false);
+      return true;
+    },
+  });
+
+  useBackHandler({
+    enabled: !commentsDrawerOpen,
+    priority: 90,
+    stateName: "reel_viewer",
+    onBack: () => {
+      onClose();
+      return true;
+    },
+  });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const observer = useRef<IntersectionObserver | null>(null);

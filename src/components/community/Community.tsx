@@ -20,6 +20,7 @@ import SuggestionVoting from "./SuggestionVoting";
 import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 import ReviewsModeration from "@/components/admin/ReviewsModeration";
 import CommunityTermsGate, { hasAcceptedCommunityTerms } from "./CommunityTermsGate";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
 
@@ -87,6 +88,39 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     }
   });
   const [claimingWaReward, setClaimingWaReward] = useState(false);
+
+  // Back handler for Story Viewer
+  useBackHandler({
+    enabled: viewingStory !== null,
+    priority: 85,
+    stateName: "community_story_viewer",
+    onBack: () => {
+      setViewingStory(null);
+      return true;
+    },
+  });
+
+  // Back handler for Create Post Modal
+  useBackHandler({
+    enabled: showNew,
+    priority: 80,
+    stateName: "community_create_post",
+    onBack: () => {
+      setShowNew(false);
+      return true;
+    },
+  });
+
+  // Back handler for Report Post Dialog
+  useBackHandler({
+    enabled: reportingPost !== null,
+    priority: 80,
+    stateName: "community_report_post",
+    onBack: () => {
+      setReportingPost(null);
+      return true;
+    },
+  });
 
   // Post Scheduling State
   const [isScheduling, setIsScheduling] = useState(false);

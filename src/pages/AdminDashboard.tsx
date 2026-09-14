@@ -131,6 +131,8 @@ const navSections = [
   },
 ];
 
+import { useBackHandler } from "@/hooks/useBackHandler";
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -138,10 +140,52 @@ const AdminDashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [tabHistory, setTabHistory] = useState<Tab[]>(["overview"]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, booksIssued: 0, activeQuizzes: 0, dbSize: 0, storageSize: 0 });
 
   usePushSubscription(user?.id);
+
+  // Track tab history
+  useEffect(() => {
+    setTabHistory((prev) => {
+      if (prev[prev.length - 1] === activeTab) return prev;
+      return [...prev, activeTab];
+    });
+  }, [activeTab]);
+
+  // Back handler for mobile navigation drawer
+  useBackHandler({
+    enabled: mobileNavOpen,
+    priority: 85,
+    stateName: "admin_mobile_drawer",
+    onBack: () => {
+      setMobileNavOpen(false);
+      return true;
+    },
+  });
+
+  // Back handler for tab navigation history
+  useBackHandler({
+    enabled: activeTab !== "overview" && !mobileNavOpen,
+    priority: 50,
+    stateName: `admin_tab_${activeTab}`,
+    onBack: () => {
+      setTabHistory((prev) => {
+        if (prev.length > 1) {
+          const next = [...prev];
+          next.pop();
+          const target = next[next.length - 1] || "overview";
+          setActiveTab(target);
+          return next;
+        } else {
+          setActiveTab("overview");
+          return ["overview"];
+        }
+      });
+      return true;
+    },
+  });
 
   // Auto-close mobile navigation on tab or route change
   useEffect(() => {

@@ -173,11 +173,16 @@ const DashboardRedirect = () => {
   return <Navigate to={redirectTo} replace />;
 };
 
+import { backNavigation } from "@/lib/backNavigation";
+
 const App = () => {
   const [showSplash, setShowSplash] = useState(isNative); // only show splash in native apps by default
   const [isMaintenance, setIsMaintenance] = useState(() => Date.now() < MAINTENANCE_UNTIL.getTime());
 
-  useEffect(() => { recoverInvalidAuthSession(); }, []);
+  useEffect(() => {
+    recoverInvalidAuthSession();
+    backNavigation.init();
+  }, []);
 
   // Lift maintenance mode automatically once the window passes
   useEffect(() => {

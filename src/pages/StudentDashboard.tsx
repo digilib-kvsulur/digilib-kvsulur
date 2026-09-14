@@ -66,6 +66,7 @@ import StudentPortfolio from "./StudentPortfolio";
 import Feedback from "./Feedback";
 import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
 import MobileBottomNav, { mobileNavSections } from "@/components/dashboard/MobileBottomNav";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
 type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty";
 
@@ -98,6 +99,7 @@ const StudentDashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [tabHistory, setTabHistory] = useState<Tab[]>(["overview"]);
   const [showBookRequest, setShowBookRequest] = useState(false);
   const [classRank, setClassRank] = useState<number | string>("N/A");
   const [currentBooksCount, setCurrentBooksCount] = useState(0);
@@ -114,6 +116,70 @@ const StudentDashboard = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showMemoryCapsule, setShowMemoryCapsule] = useState(false);
   const [capsuleMonth, setCapsuleMonth] = useState<string | undefined>(undefined);
+
+  // Track tab history stack
+  useEffect(() => {
+    setTabHistory((prev) => {
+      if (prev[prev.length - 1] === activeTab) return prev;
+      return [...prev, activeTab];
+    });
+  }, [activeTab]);
+
+  // Back handler 1: Close mobile drawer
+  useBackHandler({
+    enabled: mobileNavOpen,
+    priority: 85,
+    stateName: "student_mobile_drawer",
+    onBack: () => {
+      setMobileNavOpen(false);
+      return true;
+    },
+  });
+
+  // Back handler 2: Close Memory Capsule
+  useBackHandler({
+    enabled: showMemoryCapsule,
+    priority: 80,
+    stateName: "student_memory_capsule",
+    onBack: () => {
+      setShowMemoryCapsule(false);
+      return true;
+    },
+  });
+
+  // Back handler 3: Close Book Request Modal
+  useBackHandler({
+    enabled: showBookRequest,
+    priority: 75,
+    stateName: "student_book_request",
+    onBack: () => {
+      setShowBookRequest(false);
+      return true;
+    },
+  });
+
+  // Back handler 4: Tab navigation history within dashboard
+  useBackHandler({
+    enabled: activeTab !== "overview" && !mobileNavOpen && !showMemoryCapsule && !showBookRequest,
+    priority: 50,
+    stateName: `student_tab_${activeTab}`,
+    onBack: () => {
+      setTabHistory((prev) => {
+        if (prev.length > 1) {
+          const next = [...prev];
+          next.pop(); // remove current
+          const target = next[next.length - 1] || "overview";
+          setActiveTab(target);
+          return next;
+        } else {
+          setActiveTab("overview");
+          return ["overview"];
+        }
+      });
+      return true;
+    },
+  });
+
   // Auto-close mobile navigation on page/tab/route change
   useEffect(() => {
     setMobileNavOpen(false);
