@@ -41,7 +41,6 @@ export default function WordScramble({ books, onComplete, onExit }: GameProps) {
   const [timeLeft, setTimeLeft] = useState(90);
   const [over, setOver] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [seed, setSeed] = useState(0);
 
   const word = pool[round] || "";
   const scrambled = useMemo(() => scrambleWord(word), [word, seed]);
