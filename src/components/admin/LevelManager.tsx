@@ -360,7 +360,9 @@ const LevelManager = () => {
                 <LevelForm />
               </DialogContent>
             </Dialog>
+            </div>
           </div>
+          <BulkImportRewards mode="levels" open={bulkOpen} onOpenChange={setBulkOpen} onImported={loadLevels} />
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
