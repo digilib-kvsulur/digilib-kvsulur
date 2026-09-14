@@ -29,31 +29,8 @@ const containsBadWords = (text: string): boolean => {
   return BAD_WORDS.some(w => lower.includes(w));
 };
 
-interface PollOption { id: string; label: string; sort_order: number; votes: number }
-export interface Post {
-  id: string;
-  title: string;
-  content: string;
-  user_id: string;
-  created_at: string;
-  author?: any;
-  likes: number;
-  liked: boolean;
-  comment_count: number;
-  media_url?: string;
-  media_type?: string;
-  is_pinned?: boolean;
-  post_type?: string;
-  poll_ends_at?: string | null;
-  pollOptions?: PollOption[];
-  myVoteOptionId?: string | null;
-  doubt_subject?: string;
-  doubt_class?: string;
-  doubt_status?: "unsolved" | "solved";
-  accepted_comment_id?: string | null;
-  scheduled_for?: string | null;
-}
-interface Comment { id: string; content: string; user_id: string; created_at: string; author?: any; is_accepted_solution?: boolean; }
+export type { Post, Comment, PollOption } from "./types";
+import type { Post, Comment, PollOption } from "./types";
 
 const nameOf = (p: any) => p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
 const initials = (p: any) => nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
