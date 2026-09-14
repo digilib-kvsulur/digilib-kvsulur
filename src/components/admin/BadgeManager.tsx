@@ -57,6 +57,7 @@ export default function BadgeManager() {
   const [earnerLoading, setEarnerLoading] = useState(false);
   const [physicalBadgeOpen, setPhysicalBadgeOpen] = useState(false);
   const [rotationalBadgeOpen, setRotationalBadgeOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   // Cache of all users for auto-badge earner computation
   const [cachedAllUsers, setCachedAllUsers] = useState<any[]>([]);
