@@ -2541,13 +2541,15 @@ function UserHoverCard({ userId, author, currentUserId, fetchStats, friendship, 
   );
 }
 
-const StatMini = ({ icon, value, label }: any) => (
-  <div className="rounded-md bg-muted/40 p-1.5">
-    <div className="flex justify-center mb-0.5">{icon}</div>
-    <p className="text-xs font-bold leading-none">{value}</p>
-    <p className="text-[8px] text-muted-foreground mt-0.5">{label}</p>
-  </div>
-);
+function StatMini({ icon, value, label }: any) {
+  return (
+    <div className="rounded-md bg-muted/40 p-1.5">
+      <div className="flex justify-center mb-0.5">{icon}</div>
+      <p className="text-xs font-bold leading-none">{value}</p>
+      <p className="text-[8px] text-muted-foreground mt-0.5">{label}</p>
+    </div>
+  );
+}
 
 /* ============ Full profile dialog ============ */
 function ProfileDialog({ userId, currentUserId, fetchStats, friendship, onSend, onRespond, onRemove, onClose }: any) {
@@ -2634,13 +2636,15 @@ function ProfileDialog({ userId, currentUserId, fetchStats, friendship, onSend, 
   );
 }
 
-const BigStat = ({ icon, value, label }: any) => (
-  <div className="rounded-lg bg-muted/40 p-2 text-center">
-    <div className="flex justify-center mb-1">{icon}</div>
-    <p className="text-lg font-bold leading-none">{value}</p>
-    <p className="text-[9px] text-muted-foreground mt-1">{label}</p>
-  </div>
-);
+function BigStat({ icon, value, label }: any) {
+  return (
+    <div className="rounded-lg bg-muted/40 p-2 text-center">
+      <div className="flex justify-center mb-1">{icon}</div>
+      <p className="text-lg font-bold leading-none">{value}</p>
+      <p className="text-[9px] text-muted-foreground mt-1">{label}</p>
+    </div>
+  );
+}
 
 /* ============ Friends panel ============ */
 function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: any) {
