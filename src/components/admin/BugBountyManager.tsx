@@ -99,7 +99,7 @@ export default function BugBountyManager() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Search & Filters
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "verified" | "rejected">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "verified" | "rejected" | "my_reports">("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedReport, setSelectedReport] = useState<BugReport | null>(null);
@@ -178,7 +178,7 @@ export default function BugBountyManager() {
         setUserRole(profile?.role || null);
       }
 
-      // 1. Load active campaign
+      // 1. Load active campaign (or latest campaign)
       const { data: campaignData } = await supabase
         .from("bug_bounty_campaigns")
         .select("*")
@@ -189,31 +189,33 @@ export default function BugBountyManager() {
 
       setCampaign(campaignData || null);
 
-      // 2. Load reports
+      // 2. Load reports: verified reports (accessible to all) + own reports (for logged-in user) + all (if admin)
+      let query = supabase
+        .from("bug_reports")
+        .select("*, profiles(first_name, last_name, username, avatar_url, role)")
+        .order("created_at", { ascending: false });
+
       if (campaignData) {
-        let query = supabase
-          .from("bug_reports")
-          .select("*, profiles(first_name, last_name, username, avatar_url, role)")
-          .eq("campaign_id", campaignData.id)
-          .order("created_at", { ascending: false });
-
-        const { data: reportsData } = await query;
-
-        const formatted = (reportsData || []).map(r => ({
-          ...r,
-          reporter_name: r.profiles
-            ? `${r.profiles.first_name || ""} ${r.profiles.last_name || ""}`.trim() || r.profiles.username
-            : "User",
-          reporter_username: r.profiles?.username,
-          reporter_avatar: r.profiles?.avatar_url,
-          reporter_role: r.profiles?.role,
-          parsed: parseBugDescription(r.description),
-        }));
-
-        setReports(formatted);
-      } else {
-        setReports([]);
+        query = query.eq("campaign_id", campaignData.id);
       }
+
+      const { data: reportsData, error: reportsErr } = await query;
+      if (reportsErr) {
+        console.warn("Error fetching reports:", reportsErr);
+      }
+
+      const formatted = (reportsData || []).map(r => ({
+        ...r,
+        reporter_name: r.profiles
+          ? `${r.profiles.first_name || ""} ${r.profiles.last_name || ""}`.trim() || r.profiles.username
+          : "User",
+        reporter_username: r.profiles?.username,
+        reporter_avatar: r.profiles?.avatar_url,
+        reporter_role: r.profiles?.role,
+        parsed: parseBugDescription(r.description),
+      }));
+
+      setReports(formatted);
     } catch (e) {
       console.error("Error loading bug bounty data:", e);
       toast({ title: "Error loading data", variant: "destructive" });
@@ -465,7 +467,11 @@ export default function BugBountyManager() {
   // Filtered reports
   const filteredReports = useMemo(() => {
     return reports.filter(r => {
-      if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (statusFilter === "my_reports") {
+        if (r.reporter_id !== userId) return false;
+      } else if (statusFilter !== "all" && r.status !== statusFilter) {
+        return false;
+      }
       if (severityFilter !== "all" && r.parsed?.severity !== severityFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -476,7 +482,7 @@ export default function BugBountyManager() {
       }
       return true;
     });
-  }, [reports, statusFilter, severityFilter, searchQuery]);
+  }, [reports, statusFilter, severityFilter, searchQuery, userId]);
 
   // Metrics
   const metrics = useMemo(() => {
@@ -484,23 +490,31 @@ export default function BugBountyManager() {
     const pending = reports.filter(r => r.status === 'pending').length;
     const verified = reports.filter(r => r.status === 'verified').length;
     const rejected = reports.filter(r => r.status === 'rejected').length;
+    const myCount = userId ? reports.filter(r => r.reporter_id === userId).length : 0;
     const totalXp = verified * 100;
-    return { total, pending, verified, rejected, totalXp };
-  }, [reports]);
+    return { total, pending, verified, rejected, myCount, totalXp };
+  }, [reports, userId]);
 
-  // Top Bug Hunters
+  // Top Bug Hunters Leaderboard
   const topHunters = useMemo(() => {
-    const map = new Map<string, { name: string; count: number; xp: number; role?: string }>();
+    const map = new Map<string, { id: string; name: string; username?: string; avatar?: string; count: number; xp: number; role?: string }>();
     reports.filter(r => r.status === 'verified').forEach(r => {
-      const prev = map.get(r.reporter_id) || { name: r.reporter_name || "Hunter", count: 0, xp: 0, role: r.reporter_role };
-      map.set(r.reporter_id, {
+      const prev = map.get(r.reporter_id) || {
+        id: r.reporter_id,
         name: r.reporter_name || "Hunter",
+        username: r.reporter_username,
+        avatar: r.reporter_avatar,
+        count: 0,
+        xp: 0,
+        role: r.reporter_role,
+      };
+      map.set(r.reporter_id, {
+        ...prev,
         count: prev.count + 1,
         xp: prev.xp + 100,
-        role: r.reporter_role,
       });
     });
-    return Array.from(map.values()).sort((a, b) => b.xp - a.xp).slice(0, 5);
+    return Array.from(map.values()).sort((a, b) => b.xp - a.xp).slice(0, 10);
   }, [reports]);
 
   const severityBadge = (severity?: string) => {
@@ -685,12 +699,17 @@ export default function BugBountyManager() {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-border mt-3">
                 {/* Status Tabs - Scrollable on small screens */}
                 <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border overflow-x-auto no-scrollbar shrink-0">
-                  {[
+                  {(userRole === 'admin' ? [
                     { id: "all", label: "All" },
                     { id: "pending", label: "Pending", count: metrics.pending },
-                    { id: "verified", label: "Verified", count: metrics.verified },
+                    { id: "verified", label: "Verified / Accepted", count: metrics.verified },
                     { id: "rejected", label: "Rejected" },
-                  ].map(tab => (
+                    { id: "my_reports", label: "My Reports", count: metrics.myCount },
+                  ] : [
+                    { id: "verified", label: "🏆 Accepted Bugs", count: metrics.verified },
+                    { id: "my_reports", label: "📝 My Submissions", count: metrics.myCount },
+                    { id: "all", label: "🌐 All Reports" },
+                  ]).map(tab => (
                     <button
                       key={tab.id}
                       onClick={() => setStatusFilter(tab.id as any)}
@@ -894,30 +913,44 @@ export default function BugBountyManager() {
                   No verified bugs awarded yet in this campaign.
                 </p>
               ) : (
-                topHunters.map((hunter, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/40 border border-border text-xs"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className={`h-6 w-6 rounded-full flex items-center justify-center font-black text-xs ${
-                        i === 0 ? "bg-amber-400 text-slate-950 shadow-xs" :
-                        i === 1 ? "bg-slate-300 text-slate-900" :
-                        i === 2 ? "bg-amber-700 text-white" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
-                        {i + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="font-bold text-foreground truncate">{hunter.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{hunter.count} bugs caught</p>
+                topHunters.map((hunter, i) => {
+                  const isMe = Boolean(userId && hunter.id === userId);
+                  return (
+                    <div
+                      key={hunter.id || i}
+                      className={`flex items-center justify-between p-2.5 rounded-2xl border text-xs transition-all ${
+                        isMe
+                          ? "bg-amber-500/10 border-amber-500/40 shadow-xs ring-1 ring-amber-500/20"
+                          : "bg-muted/40 border-border"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={`h-6 w-6 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${
+                          i === 0 ? "bg-amber-400 text-slate-950 shadow-xs" :
+                          i === 1 ? "bg-slate-300 text-slate-900" :
+                          i === 2 ? "bg-amber-700 text-white" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-foreground truncate flex items-center gap-1.5">
+                            <span className="truncate">{hunter.name}</span>
+                            {isMe && (
+                              <Badge className="bg-amber-500 text-slate-950 font-black text-[9px] h-3.5 px-1 py-0 shrink-0">
+                                YOU
+                              </Badge>
+                            )}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">{hunter.count} verified {hunter.count === 1 ? 'bug' : 'bugs'}</p>
+                        </div>
                       </div>
+                      <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] font-extrabold shrink-0">
+                        +{hunter.xp} XP
+                      </Badge>
                     </div>
-                    <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] font-extrabold">
-                      +{hunter.xp} XP
-                    </Badge>
-                  </div>
-                ))
+                  );
+                })
               )}
             </CardContent>
           </Card>
