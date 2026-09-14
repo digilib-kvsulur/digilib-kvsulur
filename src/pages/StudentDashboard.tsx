@@ -9,7 +9,7 @@ import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, BookmarkCheck, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
