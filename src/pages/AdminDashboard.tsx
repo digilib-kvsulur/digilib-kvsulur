@@ -154,6 +154,15 @@ const AdminDashboard = () => {
     });
   }, [activeTab]);
 
+  // Handle URL query parameter (?tab=...)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab") as Tab | null;
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
+
   // Back handler for mobile navigation drawer
   useBackHandler({
     enabled: mobileNavOpen,

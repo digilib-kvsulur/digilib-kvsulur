@@ -661,18 +661,33 @@ export const ReelViewer = ({
   };
 
   // Share Reel Handler
-  const handleShareReel = (post: Post) => {
-    const url = `${window.location.origin}/community?reel=${post.id}`;
+  const handleShareReel = async (post: Post) => {
+    const url = `${window.location.origin}/dashboard?tab=community&reel=${post.id}`;
     if (navigator.share) {
-      navigator
-        .share({
+      try {
+        await navigator.share({
           title: post.title || "Check out this Reel on KV Sulur DLMS",
           text: post.content || "Watch this student reel!",
           url: url,
-        })
-        .catch(() => {});
-    } else {
-      navigator.clipboard.writeText(url);
+        });
+        return;
+      } catch (err: any) {
+        if (err.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "Link Copied! 📋",
+        description: "Reel link copied to clipboard.",
+      });
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = url;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
       toast({
         title: "Link Copied! 📋",
         description: "Reel link copied to clipboard.",

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
@@ -32,12 +32,22 @@ type TeacherTab = "progress" | "badges" | "reading-lists" | "recommendations" | 
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   
   const [teacher, setTeacher] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TeacherTab>("progress");
   const [tabHistory, setTabHistory] = useState<TeacherTab[]>(["progress"]);
+
+  // URL query parameter tab handler (?tab=community)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab") as TeacherTab | null;
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
   
   // Class selection
   const [selectedClass, setSelectedClass] = useState<string>("");

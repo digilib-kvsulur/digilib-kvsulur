@@ -465,9 +465,15 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   useEffect(() => { if (currentUserId) { load(); loadFriendshipsMap(); } }, [currentUserId]);
 
   useEffect(() => {
-    if (!loading && posts.length > 0) {
+    if (!loading) {
       const urlParams = new URLSearchParams(window.location.search);
+      const reelParam = urlParams.get("reel");
       const targetPostId = urlParams.get("post") || window.location.hash.replace("#post-", "");
+
+      if (reelParam) {
+        setActiveReelId(reelParam);
+      }
+
       if (targetPostId) {
         setTimeout(() => {
           const el = document.getElementById(`post-${targetPostId}`);
@@ -478,7 +484,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               el.classList.remove("animate-pulse");
             }, 3000);
           }
-        }, 300);
+        }, 400);
       }
     }
   }, [loading, posts.length]);
@@ -2099,10 +2105,32 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       const shareUrl = `${window.location.origin}/dashboard?tab=community&post=${p.id}`;
-                      navigator.clipboard.writeText(shareUrl);
-                      toast({ title: "Link Copied 📋", description: "Direct post share link copied to clipboard." });
+                      if (navigator.share) {
+                        try {
+                          await navigator.share({
+                            title: p.title || "KV Sulur DLMS Community Post",
+                            text: p.content ? p.content.slice(0, 150) : "Check out this post on KV Sulur DLMS!",
+                            url: shareUrl,
+                          });
+                          return;
+                        } catch (err: any) {
+                          if (err.name === "AbortError") return;
+                        }
+                      }
+                      try {
+                        await navigator.clipboard.writeText(shareUrl);
+                        toast({ title: "Link Copied 📋", description: "Direct post share link copied to clipboard." });
+                      } catch {
+                        const el = document.createElement("textarea");
+                        el.value = shareUrl;
+                        document.body.appendChild(el);
+                        el.select();
+                        document.execCommand("copy");
+                        document.body.removeChild(el);
+                        toast({ title: "Link Copied 📋", description: "Direct post share link copied to clipboard." });
+                      }
                     }}
                     className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-all px-3 py-1.5 rounded-xl hover:bg-muted/70"
                     title="Share post link"
@@ -2810,17 +2838,17 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
       </TabsContent>
     </Tabs>
 
-      {/* Floating Create Button as a Flying Popup in the Bottom */}
+      {/* Floating Create Button in Bottom Right */}
       {(!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
-        <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-50">
+        <div className="fixed bottom-20 right-5 sm:bottom-8 sm:right-8 z-50">
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 size="icon"
                 title="Create in Community"
-                className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-transform animate-in zoom-in border border-primary-foreground/20 p-0 flex items-center justify-center"
+                className="h-14 w-14 sm:h-16 sm:w-16 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-blue-500/40 hover:scale-110 active:scale-95 transition-all duration-300 animate-in zoom-in border-2 border-white/20 p-0 flex items-center justify-center cursor-pointer"
               >
-                <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
+                <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-white stroke-[2.5]" />
               </Button>
             </PopoverTrigger>
             <PopoverContent

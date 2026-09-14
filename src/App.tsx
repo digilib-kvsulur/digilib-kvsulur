@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
 import { supabase } from "@/integrations/supabase/client";
@@ -149,9 +149,11 @@ const AppRouter = isNative ? HashRouter : BrowserRouter;
 
 const DashboardRedirect = () => {
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     let mounted = true;
+    const search = location.search || "";
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         if (!mounted) return;
@@ -159,16 +161,16 @@ const DashboardRedirect = () => {
           supabase.from("profiles").select("role").eq("id", session.user.id).single()
             .then(({ data }) => {
               if (!mounted) return;
-              if (data?.role === "admin") setRedirectTo("/admin-dashboard");
-              else if (data?.role === "teacher") setRedirectTo("/teacher-dashboard");
-              else setRedirectTo("/student-dashboard");
+              if (data?.role === "admin") setRedirectTo(`/admin-dashboard${search}`);
+              else if (data?.role === "teacher") setRedirectTo(`/teacher-dashboard${search}`);
+              else setRedirectTo(`/student-dashboard${search}`);
             })
             .catch(() => {
               // Profile fetch failed — fall back to student dashboard
-              if (mounted) setRedirectTo("/student-dashboard");
+              if (mounted) setRedirectTo(`/student-dashboard${search}`);
             });
         } else {
-          setRedirectTo("/");
+          setRedirectTo(`/login${search ? `?redirect=${encodeURIComponent(location.pathname + search)}` : ""}`);
         }
       })
       .catch(() => {
@@ -176,7 +178,7 @@ const DashboardRedirect = () => {
         if (mounted) setRedirectTo("/login");
       });
     return () => { mounted = false; };
-  }, []);
+  }, [location.search, location.pathname]);
 
   if (!redirectTo) return <PageLoader />;
   return <Navigate to={redirectTo} replace />;
@@ -237,6 +239,8 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<DashboardRedirect />} />
+                <Route path="/community" element={<DashboardRedirect />} />
+                <Route path="/reels" element={<DashboardRedirect />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/catalog" element={<Catalog />} />

@@ -240,9 +240,31 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
                   size="sm"
                   variant="secondary"
                   className="rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 flex-1 sm:flex-none h-10 font-bold transition-all"
-                  onClick={() => {
-                    navigator.clipboard.writeText(shareLink);
-                    toast({ title: "Link copied!", description: "Share your portfolio using your username link." });
+                  onClick={async () => {
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: `${profile?.first_name || "Student"} - DLMS Portfolio`,
+                          text: `Check out my reading achievements and portfolio on KV Sulur DLMS!`,
+                          url: shareLink,
+                        });
+                        return;
+                      } catch (err: any) {
+                        if (err.name === "AbortError") return;
+                      }
+                    }
+                    try {
+                      await navigator.clipboard.writeText(shareLink);
+                      toast({ title: "Link copied!", description: "Share your portfolio using your username link." });
+                    } catch {
+                      const el = document.createElement("textarea");
+                      el.value = shareLink;
+                      document.body.appendChild(el);
+                      el.select();
+                      document.execCommand("copy");
+                      document.body.removeChild(el);
+                      toast({ title: "Link copied!", description: "Share your portfolio using your username link." });
+                    }
                   }}
                 >
                   <Share2 className="h-4 w-4 mr-1.5" /> Share Profile
