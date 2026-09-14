@@ -5,12 +5,12 @@
  * overlays, dialogs, drawers, and views.
  *
  * - On Native Android (Capacitor): Registers into BackNavigationManager priority stack.
- *   Hardware back button calls onBack() without touching browser history.
+ *   Hardware back button calls onBack() directly without touching browser history.
  *
- * - On Web / PWA: Pushes a lightweight history state when pushHistoryState is true.
+ * - On Web / PWA: Pushes a lightweight history state for overlays when pushHistoryState is true.
  *   When the browser back button or edge swipe occurs, popstate runs onBack().
  *   When the component closes programmatically (e.g. clicking the 'X' button),
- *   it safely pops the dummy state so history stays clean.
+ *   it safely pops the dummy state so history stays completely clean.
  */
 
 import { useEffect, useRef } from 'react';
@@ -52,13 +52,12 @@ export function useBackHandler({
   useEffect(() => {
     if (!enabled) return;
 
-    // Push dummy history entry on Web/PWA so that device/gesture back triggers popstate
-    // On native Capacitor, hardware backButton listener handles it directly without history pollution
+    // Only push dummy state on Web/PWA for overlays, NEVER on native Capacitor
     const shouldPush = pushHistoryState && !backNavigation.isNative;
 
     if (shouldPush && !pushedRef.current) {
       try {
-        window.history.pushState({ dlms_overlay: stateName, time: Date.now() }, '');
+        window.history.pushState({ dlms_overlay: true, stateName, time: Date.now() }, '');
         pushedRef.current = true;
       } catch {
         // ignore
@@ -73,17 +72,10 @@ export function useBackHandler({
       unregister();
       if (pushedRef.current) {
         pushedRef.current = false;
-        // If this unmount was NOT caused by browser popstate (e.g. user tapped the close button on screen)
-        // rather than by pressing the browser back button (which already popped history),
-        // we must pop the dummy history entry we pushed to keep history clean.
+        // If unmount was NOT from a popstate event (i.e. user clicked close button on screen),
+        // cleanly pop the dummy state that this hook pushed.
         if (!backNavigation.isPopping) {
-          try {
-            if (window.history.state?.dlms_overlay === stateName) {
-              window.history.back();
-            }
-          } catch {
-            // ignore
-          }
+          backNavigation.popDummyState();
         }
       }
     };

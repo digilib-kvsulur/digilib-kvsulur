@@ -1,17 +1,8 @@
 /**
  * backNavigation.ts
  *
- * Unified priority-based Android & PWA back-navigation manager.
- * 
- * Works across:
- *  1. Native Capacitor Android App (APK):
- *     Intercepts hardware back button via @capacitor/app listener.
- *     Consumes event if any registered overlay/drawer/modal/tab handler handles it.
- *     Falls back to router back, and double-press to exit on root pages.
- *
- *  2. Web / Mobile Browser / PWA (Android Chrome, edge swipe back):
- *     Coordinates with useBackHandler via popstate listener.
- *     Tracks whether back action originated from popstate to avoid duplicate history pops.
+ * Robust, priority-based back-navigation manager for Capacitor Android (APK)
+ * and Web / PWA / Browser environments.
  */
 
 import { App } from '@capacitor/app';
@@ -30,22 +21,25 @@ class BackNavigationManager {
   private handlers: RegisteredHandler[] = [];
   private isInitialized = false;
   private lastBackPressTime = 0;
-  private _isPopping = false;
+  private isSilentPop = false;
+  private isHandlingPopstate = false;
+
+  /** True when running as a native Capacitor Android or iOS application */
   public readonly isNative: boolean = Capacitor.isNativePlatform();
 
   public init() {
     if (this.isInitialized) return;
     this.isInitialized = true;
 
-    // ── 1. Capacitor native Android hardware back button ────────────────
+    // ── 1. Native Capacitor Android Hardware Back Button ────────────────
     if (this.isNative) {
       try {
-        App.addListener('backButton', (event) => {
+        App.addListener('backButton', ({ canGoBack }) => {
           const handled = this.handleBack();
           if (!handled) {
             if (this.isRootPage()) {
               this.handleAppExit();
-            } else if (event.canGoBack || window.history.length > 1) {
+            } else if (canGoBack || window.history.length > 1) {
               window.history.back();
             } else {
               this.handleAppExit();
@@ -55,14 +49,18 @@ class BackNavigationManager {
       } catch (e) {
         console.warn('Capacitor backButton listener init error:', e);
       }
+      return;
     }
 
-    // ── 2. Web / PWA browser popstate listener ──────────────────────────
+    // ── 2. Web / PWA / Browser Popstate Listener ─────────────────────────
     window.addEventListener('popstate', () => {
-      // On native Capacitor, backButton listener handles it directly
-      if (this.isNative) return;
+      // If this popstate was triggered by our own silent history cleanup, ignore it
+      if (this.isSilentPop) {
+        this.isSilentPop = false;
+        return;
+      }
 
-      this._isPopping = true;
+      this.isHandlingPopstate = true;
       try {
         const handled = this.handleBack();
         if (!handled && this.isRootPage()) {
@@ -71,22 +69,38 @@ class BackNavigationManager {
       } catch (err) {
         console.error('Error in popstate back handler:', err);
       } finally {
-        // Keep _isPopping true briefly while React unmount & cleanup effects execute
+        // Keep isHandlingPopstate true briefly so unmounting React components know not to double-pop
         setTimeout(() => {
-          this._isPopping = false;
+          this.isHandlingPopstate = false;
         }, 120);
       }
     });
   }
 
   public get isPopping(): boolean {
-    return this._isPopping;
+    return this.isHandlingPopstate;
+  }
+
+  /**
+   * Safely pop a dummy history state when an overlay is closed programmatically
+   * (e.g. clicking the 'X' button or backdrop on screen), without triggering back handlers.
+   */
+  public popDummyState() {
+    if (this.isNative) return;
+    try {
+      if (window.history.state && window.history.state.dlms_overlay) {
+        this.isSilentPop = true;
+        window.history.back();
+      }
+    } catch {
+      this.isSilentPop = false;
+    }
   }
 
   public register(handler: BackHandler, priority = 10): () => void {
     const id = Math.random().toString(36).substring(2, 9);
     this.handlers.push({ id, priority, handler });
-    // Sort descending by priority so highest priority runs first
+    // Sort descending by priority so highest priority executes first
     this.handlers.sort((a, b) => b.priority - a.priority);
     return () => {
       this.handlers = this.handlers.filter((h) => h.id !== id);
@@ -97,7 +111,8 @@ class BackNavigationManager {
     for (const item of this.handlers) {
       try {
         const res = item.handler();
-        // If handler explicitly returned false, pass to the next handler
+        // Returning false explicitly means "pass to next lower priority handler"
+        // Any other return value (true, undefined) consumes the back action
         if (res !== false) {
           return true;
         }
