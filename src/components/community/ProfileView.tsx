@@ -204,17 +204,21 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
   );
 };
 
-const StatBlock = ({ value, label }: any) => (
-  <div className="rounded-lg py-1.5">
-    <p className="text-lg font-bold leading-none">{value ?? 0}</p>
-    <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
-  </div>
-);
+function StatBlock({ value, label }: any) {
+  return (
+    <div className="rounded-lg py-1.5">
+      <p className="text-lg font-bold leading-none">{value ?? 0}</p>
+      <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
+    </div>
+  );
+}
 
-const BigStat = ({ icon, value, label }: any) => (
-  <div className="rounded-lg bg-muted/40 p-2 text-center">
-    <div className="flex justify-center mb-1">{icon}</div>
-    <p className="text-lg font-bold leading-none">{value}</p>
-    <p className="text-[9px] text-muted-foreground mt-1">{label}</p>
-  </div>
-);
+function BigStat({ icon, value, label }: any) {
+  return (
+    <div className="rounded-lg bg-muted/40 p-2 text-center">
+      <div className="flex justify-center mb-1">{icon}</div>
+      <p className="text-lg font-bold leading-none">{value}</p>
+      <p className="text-[9px] text-muted-foreground mt-1">{label}</p>
+    </div>
+  );
+}
