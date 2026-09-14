@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Plus, Trash2, Award, Eye } from "lucide-react";
+import { Edit, Plus, Trash2, Award, Eye, FileSpreadsheet } from "lucide-react";
+import BulkImportRewards from "./BulkImportRewards";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import * as Icons from "lucide-react";
@@ -49,6 +50,7 @@ const LevelManager = () => {
   const [editingLevel, setEditingLevel] = useState<Level | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -336,6 +338,11 @@ const LevelManager = () => {
                 Configure student levels and progression system
               </CardDescription>
             </div>
+            <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setBulkOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Bulk Import
+            </Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={resetForm}>
@@ -353,7 +360,9 @@ const LevelManager = () => {
                 <LevelForm />
               </DialogContent>
             </Dialog>
+            </div>
           </div>
+          <BulkImportRewards mode="levels" open={bulkOpen} onOpenChange={setBulkOpen} onImported={loadLevels} />
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
