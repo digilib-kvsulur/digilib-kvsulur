@@ -29,13 +29,12 @@ const containsBadWords = (text: string): boolean => {
   return BAD_WORDS.some(w => lower.includes(w));
 };
 
-export type { Post, Comment, PollOption } from "./types";
 import type { Post, Comment, PollOption } from "./types";
 
 const nameOf = (p: any) => p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
 const initials = (p: any) => nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
-const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin: boolean }) => {
+function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin: boolean }) {
   const [termsAccepted, setTermsAccepted] = useState(() => hasAcceptedCommunityTerms(currentUserId));
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2722,7 +2721,7 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
         <div className="flex gap-1">{actions}</div>
       </div>
     );
-  };
+  }
 
   return (
     <div>
