@@ -28,35 +28,6 @@ const containsBadWords = (text: string): boolean => {
   return BAD_WORDS.some(w => lower.includes(w));
 };
 
-const captureThumbnail = async (file: File): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement("video");
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    video.src = URL.createObjectURL(file);
-    video.muted = true;
-    video.playsInline = true;
-
-    video.onloadeddata = () => {
-      video.currentTime = 1; // Capture frame at 1 second
-    };
-
-    video.onseeked = () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => {
-        URL.revokeObjectURL(video.src);
-        if (blob) resolve(blob);
-        else reject(new Error("Thumbnail generation failed"));
-      }, "image/jpeg", 0.7);
-    };
-
-    video.onerror = (e) => reject(e);
-  });
-};
-
 interface PollOption { id: string; label: string; sort_order: number; votes: number }
 export interface Post {
   id: string;
@@ -596,12 +567,26 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
       const isTooLong = await new Promise<boolean>((resolve) => {
         const video = document.createElement("video");
-        video.src = URL.createObjectURL(mediaFile);
+        const url = URL.createObjectURL(mediaFile);
+        video.src = url;
+
+        const cleanup = () => URL.revokeObjectURL(url);
+
+        const timeoutId = setTimeout(() => {
+          cleanup();
+          resolve(false); // Assume okay if metadata doesn't load in 5s
+        }, 5000);
+
         video.onloadedmetadata = () => {
-          URL.revokeObjectURL(video.src);
+          clearTimeout(timeoutId);
+          cleanup();
           resolve(video.duration > 60);
         };
-        video.onerror = () => resolve(false);
+        video.onerror = () => {
+          clearTimeout(timeoutId);
+          cleanup();
+          resolve(false);
+        };
       });
 
       if (isTooLong) {
