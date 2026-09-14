@@ -303,9 +303,13 @@ export default function BadgeManager() {
             <Crown className="h-4 w-4 mr-2 text-amber-500" />
             Top 3 Per Class Badges
           </Button>
+          <Button variant="outline" onClick={() => setBulkOpen(true)}><FileSpreadsheet className="h-4 w-4 mr-2" />Bulk Import</Button>
           <Button onClick={openNew} className="gradient-primary border-0"><Plus className="h-4 w-4 mr-2" />New Badge</Button>
         </div>
       </div>
+
+      <BulkImportRewards mode="badges" open={bulkOpen} onOpenChange={setBulkOpen} onImported={load} />
+
 
       {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
