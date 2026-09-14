@@ -842,16 +842,39 @@ const StudentDashboard = () => {
               />
 
               {activeBounty && (
-                <Card className="border-amber-500/40 bg-amber-500/5 cursor-pointer hover:bg-amber-500/10 transition-colors" onClick={() => setActiveTab("bounty")}>
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                      <Trophy className="h-5 w-5 text-amber-600" />
+                <Card
+                  className="rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-primary/10 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group"
+                  onClick={() => setActiveTab("bounty")}
+                >
+                  <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform">
+                        <Bug className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                            Active Campaign
+                          </span>
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <Sparkles className="h-3.5 w-3.5" /> +100 XP per Bug
+                          </span>
+                        </div>
+                        <h4 className="text-base font-black text-foreground truncate">
+                          {activeBounty.title || "Library Bug Hunters Season"}
+                        </h4>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          Spot bugs in DLMS and earn 100 XP reward for each verified report!
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-foreground">Bug Bounty Active! 🐛</p>
-                      <p className="text-xs text-muted-foreground truncate">You've been allotted as the bounty hunter for this campaign. Report bugs to earn 100 XP!</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Button
+                      size="sm"
+                      className="w-full sm:w-auto rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-1.5 shrink-0"
+                    >
+                      <span>Report a Bug</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </CardContent>
                 </Card>
               )}
