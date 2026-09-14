@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Award, Plus, Edit, Trash2, UserPlus, Users, CheckCircle, Crown } from "lucide-react";
 import PhysicalBadgeGenerator from "./PhysicalBadgeGenerator";
 import RotationalBadgeManager from "./RotationalBadgeManager";
+import BulkImportRewards from "./BulkImportRewards";
+import { FileSpreadsheet } from "lucide-react";
 
 interface BadgeRow {
   id: string; name: string; description?: string; icon_name?: string; color?: string;
