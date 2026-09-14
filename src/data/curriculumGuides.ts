@@ -197,6 +197,9 @@ export const CURRICULUM_GUIDES: Record<string, CurriculumGuide> = {
         options: ["q / ε0", "2q / ε0", "Zero", "-q / ε0"],
         answer: 2
       }
+    ]
+  },
+
   // Class 10 Science - Metals and Non-metals
   "10_Science_Metals and Non-metals": {
     summary: "Metals and non-metals differ significantly in physical and chemical properties. Metals are electropositive, form basic oxides, and react with acids and water based on the reactivity series, while non-metals form covalent or acidic oxides.",
