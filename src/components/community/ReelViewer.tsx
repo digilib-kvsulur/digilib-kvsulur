@@ -555,34 +555,47 @@ export const ReelViewer = ({
 
   const handleSendComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCommentText.trim() || !activeCommentPost || !currentUserId) return;
+    if (!newCommentText.trim() || !activeCommentPost) return;
 
     setSubmittingComment(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const uid = user?.id || currentUserId;
+      if (!uid) {
+        throw new Error("You must be logged in to comment on reels.");
+      }
+
       const text = newCommentText.trim();
-      const { data, error } = await supabase
+      const { data: inserted, error: insertErr } = await supabase
         .from("post_comments")
         .insert({
           post_id: activeCommentPost.id,
-          user_id: currentUserId,
+          user_id: uid,
           content: text,
         })
-        .select("*, profiles(first_name, last_name, username, avatar_url, role)")
+        .select()
         .single();
 
-      if (error) throw error;
+      if (insertErr) throw insertErr;
+
+      // Load profile info for the author
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, username, avatar_url, role")
+        .eq("id", uid)
+        .maybeSingle();
 
       const newC: InReelComment = {
-        id: data.id,
-        post_id: data.post_id,
-        user_id: data.user_id,
-        content: data.content,
-        created_at: data.created_at,
-        author_name: data.profiles
-          ? `${data.profiles.first_name || ""} ${data.profiles.last_name || ""}`.trim() || data.profiles.username || "You"
+        id: inserted.id,
+        post_id: inserted.post_id,
+        user_id: inserted.user_id,
+        content: inserted.content,
+        created_at: inserted.created_at,
+        author_name: profile
+          ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || profile.username || "You"
           : "You",
-        author_avatar: data.profiles?.avatar_url,
-        author_role: data.profiles?.role,
+        author_avatar: profile?.avatar_url,
+        author_role: profile?.role,
       };
 
       setCommentsList((prev) => [...prev, newC]);
