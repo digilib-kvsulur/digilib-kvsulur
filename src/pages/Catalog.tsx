@@ -34,6 +34,7 @@ const Catalog = () => {
   const [recommendCounts, setRecommendCounts] = useState<Record<string, number>>({});
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [myReservations, setMyReservations] = useState<Set<string>>(new Set());
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -583,8 +584,13 @@ const Catalog = () => {
                       className="group cursor-pointer bg-slate-50/80 hover:bg-white rounded-xl p-2 border border-slate-200/70 hover:border-indigo-300 transition-all duration-200 hover:shadow-md flex flex-col justify-between"
                     >
                       <div className="aspect-[2/3] w-full rounded-lg overflow-hidden mb-2 bg-slate-200/80 relative shadow-xs">
-                        {b.cover_url ? (
-                          <img src={b.cover_url} alt={b.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        {b.cover_url && !failedImages.has(`feat-${b.id}`) ? (
+                          <img
+                            src={b.cover_url}
+                            alt={b.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={() => setFailedImages((prev) => new Set(prev).add(`feat-${b.id}`))}
+                          />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-slate-100 text-slate-600">
                             <BookOpen className="h-5 w-5 text-indigo-500 mb-1" />
@@ -623,8 +629,13 @@ const Catalog = () => {
                       >
                         <div>
                           <div className="aspect-[2/3] w-full rounded-xl bg-slate-100 overflow-hidden relative shadow-inner mb-3">
-                            {book.cover_url ? (
-                              <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            {book.cover_url && !failedImages.has(book.id) ? (
+                              <img
+                                src={book.cover_url}
+                                alt={book.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                onError={() => setFailedImages((prev) => new Set(prev).add(book.id))}
+                              />
                             ) : (
                               <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-indigo-50 to-slate-100">
                                 <BookOpen className="h-7 w-7 text-indigo-500/70 mb-1.5" />

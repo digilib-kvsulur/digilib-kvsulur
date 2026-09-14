@@ -128,6 +128,20 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
   const todayXp = todayPlays.reduce((a, p) => a + (p.points_earned || 0), 0);
   const playsFor = (key: string) => todayPlays.filter((p) => p.game_key === key).length;
 
+  const startNewSession = async (gameKey: string) => {
+    setStartedAt(Date.now());
+    setSessionId(null);
+    try {
+      const { data, error } = await supabase.rpc("start_game_session", { p_game_key: gameKey });
+      if (!error) {
+        const row: any = Array.isArray(data) ? data[0] : data;
+        if (row?.session_id) setSessionId(row.session_id);
+      }
+    } catch {
+      /* offline */
+    }
+  };
+
   const openGame = async (g: GameDef) => {
     if (g.daily_play_limit > 0 && playsFor(g.key) >= g.daily_play_limit) {
       toast({
@@ -135,18 +149,8 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
         description: `Come back tomorrow to play ${g.name} for XP again.`,
       });
     }
-    setStartedAt(Date.now());
-    setSessionId(null);
     setActive(g);
-    try {
-      const { data, error } = await supabase.rpc("start_game_session", { p_game_key: g.key });
-      if (!error) {
-        const row: any = Array.isArray(data) ? data[0] : data;
-        if (row?.session_id) setSessionId(row.session_id);
-      }
-    } catch {
-      /* offline: play continues, XP granted after sync */
-    }
+    await startNewSession(g.key);
   };
 
   const handleComplete = async (win: boolean, score: number, answers?: any) => {
@@ -174,6 +178,8 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       toast({ title: "Score saved (offline)", description: "Your play was queued and will sync when online." });
     }
     loadPlays();
+    // Pre-initialize fresh session for subsequent rounds / Play Again
+    void startNewSession(active.key);
   };
 
 

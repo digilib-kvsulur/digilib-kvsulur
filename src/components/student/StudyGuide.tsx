@@ -74,7 +74,7 @@ export default function StudyGuide({ userId, studentClass }: { userId?: string; 
   const chapterKey = `${selectedClass}_${selectedSubject}`;
   const chapters = CHAPTER_SUGGESTIONS[chapterKey] || [];
 
-  const chapterToUse = customChapter.trim() || selectedChapter;
+  const chapterToUse = selectedChapter === "__custom__" ? customChapter.trim() : (selectedChapter || customChapter.trim());
 
   const generateGuide = async () => {
     if (!selectedSubject || !chapterToUse) {
@@ -116,7 +116,7 @@ The "answer" field should be the 0-based index of the correct option. Focus on N
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 9000); // 9 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/library-bot`, {
           method: "POST",
@@ -182,7 +182,7 @@ The "answer" field should be the 0-based index of the correct option. Focus on N
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">Class</Label>
-              <Select value={selectedClass} onValueChange={v => { setSelectedClass(v); setSelectedSubject(""); setSelectedChapter(""); }}>
+              <Select value={selectedClass} onValueChange={v => { setSelectedClass(v); setSelectedSubject(""); setSelectedChapter(""); setCustomChapter(""); }}>
                 <SelectTrigger className="bg-white dark:bg-slate-900">
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
@@ -193,7 +193,7 @@ The "answer" field should be the 0-based index of the correct option. Focus on N
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">Subject</Label>
-              <Select value={selectedSubject} onValueChange={v => { setSelectedSubject(v); setSelectedChapter(""); }}>
+              <Select value={selectedSubject} onValueChange={v => { setSelectedSubject(v); setSelectedChapter(""); setCustomChapter(""); }}>
                 <SelectTrigger className="bg-white dark:bg-slate-900">
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>

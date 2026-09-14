@@ -197,63 +197,153 @@ export const CURRICULUM_GUIDES: Record<string, CurriculumGuide> = {
         options: ["q / ε0", "2q / ε0", "Zero", "-q / ε0"],
         answer: 2
       }
+  // Class 10 Science - Metals and Non-metals
+  "10_Science_Metals and Non-metals": {
+    summary: "Metals and non-metals differ significantly in physical and chemical properties. Metals are electropositive, form basic oxides, and react with acids and water based on the reactivity series, while non-metals form covalent or acidic oxides.",
+    keyTopics: ["Physical & Chemical Properties of Metals", "Reactivity Series", "Ionic Bonds & Properties of Ionic Compounds", "Metallurgy: Roasting & Calcination", "Corrosion and Prevention"],
+    importantConcepts: [
+      "Reactivity series arranges metals in order of decreasing chemical reactivity: K > Na > Ca > Mg > Al > Zn > Fe > Pb > [H] > Cu > Hg > Ag > Au.",
+      "Ionic compounds have high melting/boiling points and conduct electricity in molten or aqueous state due to free ions.",
+      "Roasting is heating ores in excess air (sulphides), whereas Calcination is heating in limited air (carbonates).",
+      "Galvanization protects iron by coating it with a thin layer of zinc."
+    ],
+    formulasOrFacts: [
+      "Amphoteric oxides: Al2O3 and ZnO react with both acids and bases to produce salt and water.",
+      "Thermite reaction: Fe2O3 + 2Al -> 2Fe(l) + Al2O3 + Heat",
+      "Aqua Regia: 3:1 mixture of concentrated HCl and concentrated HNO3 (dissolves gold and platinum)."
+    ],
+    studyTips: [
+      "Memorize the reactivity series with a mnemonic (e.g., 'Please Stop Calling Me A Careless Zebra Instead Try Learning How Copper Saves Gold').",
+      "Practice drawing electron dot structures for NaCl, MgCl2, and CaO."
+    ],
+    mcqs: [
+      {
+        q: "Which metal is liquid at room temperature?",
+        options: ["Sodium", "Mercury", "Bromine", "Gallium"],
+        answer: 1
+      },
+      {
+        q: "Aluminium oxide (Al2O3) is classified as:",
+        options: ["Acidic oxide", "Basic oxide", "Amphoteric oxide", "Neutral oxide"],
+        answer: 2
+      },
+      {
+        q: "Which method is commonly used to prevent rusting of iron?",
+        options: ["Galvanisation", "Applying grease or paint", "Electroplating with chromium", "All of the above"],
+        answer: 3
+      }
+    ]
+  },
+
+  // Class 10 Science - Acids, Bases and Salts
+  "10_Science_Acids, Bases and Salts": {
+    summary: "Acids produce H+ (aq) ions in solution, have a sour taste, and turn blue litmus red. Bases produce OH- (aq) ions, are bitter/soapy, and turn red litmus blue. Neutralisation produces salt and water, and pH scale measures hydrogen ion concentration.",
+    keyTopics: ["Indicators (Litmus, Phenolphthalein, Olfactory)", "Chemical Properties of Acids & Bases", "pH Scale & Importance in Everyday Life", "Salts: Bleaching Powder, Baking Soda, Washing Soda, Plaster of Paris"],
+    importantConcepts: [
+      "pH is inversely related to H+ ion concentration: pH = -log[H+]. pH < 7 is acidic, pH = 7 is neutral, pH > 7 is basic.",
+      "Tooth decay begins when mouth pH falls below 5.5 (acid corrodes calcium hydroxyapatite enamel).",
+      "Plaster of Paris (CaSO4.1/2H2O) hardens on adding water to form Gypsum (CaSO4.2H2O)."
+    ],
+    formulasOrFacts: [
+      "Bleaching Powder: CaOCl2 (formed by Cl2 + dry Ca(OH)2)",
+      "Baking Soda: NaHCO3 (Sodium hydrogen carbonate)",
+      "Washing Soda: Na2CO3.10H2O (Sodium carbonate decahydrate)",
+      "Plaster of Paris: CaSO4 · 1/2 H2O"
+    ],
+    studyTips: [
+      "Remember the colors of indicators: Methyl orange turns pink in acid, yellow in base; Phenolphthalein is colorless in acid, pink in base.",
+      "Know the common acid sources: Vinegar (acetic acid), Tamarind (tartaric acid), Tomato (oxalic acid), Ant sting (methanoic acid)."
+    ],
+    mcqs: [
+      {
+        q: "What is the pH range of human blood under normal conditions?",
+        options: ["6.0 - 6.5", "7.35 - 7.45", "8.0 - 8.5", "5.0 - 5.5"],
+        answer: 1
+      },
+      {
+        q: "Which salt is used in soda-acid fire extinguishers?",
+        options: ["Washing soda", "Baking soda (NaHCO3)", "Bleaching powder", "Gypsum"],
+        answer: 1
+      },
+      {
+        q: "The chemical formula of Plaster of Paris is:",
+        options: ["CaSO4 · 2H2O", "CaSO4 · 1/2H2O", "CaSO4 · H2O", "CaSO4"],
+        answer: 1
+      }
     ]
   }
 };
 
 export function getCurriculumFallback(classNum: string, subject: string, chapter: string): CurriculumGuide {
-  // Direct match
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const normClass = norm(classNum);
+  const normSubject = norm(subject);
+  const normChapter = norm(chapter);
+
+  // 1. Direct key match
   const exactKey = `${classNum}_${subject}_${chapter}`;
   if (CURRICULUM_GUIDES[exactKey]) return CURRICULUM_GUIDES[exactKey];
 
-  // Fuzzy match
+  // 2. Exact normalized match
   for (const [key, guide] of Object.entries(CURRICULUM_GUIDES)) {
-    if (key.startsWith(`${classNum}_${subject}`)) {
+    const [kClass, kSubject, kChapter] = key.split("_");
+    if (norm(kClass || "") === normClass && norm(kSubject || "") === normSubject && norm(kChapter || "") === normChapter) {
       return guide;
     }
   }
 
-  // General subject-accurate fallback
+  // 3. Keyword match inside chapter title for that class and subject
+  for (const [key, guide] of Object.entries(CURRICULUM_GUIDES)) {
+    const [kClass, kSubject, kChapter] = key.split("_");
+    if (norm(kClass || "") === normClass && norm(kSubject || "") === normSubject) {
+      const kWords = (kChapter || "").toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      if (kWords.some(w => normChapter.includes(norm(w)))) {
+        return guide;
+      }
+    }
+  }
+
+  // 4. Dynamic subject-accurate fallback with the actual chapter title
   return {
-    summary: `This chapter covers key NCERT concepts and syllabus standards for Class ${classNum} ${subject}. Focus on understanding core definitions, step-by-step proofs, and practical applications.`,
+    summary: `This study guide covers the core NCERT and CBSE syllabus standards for Class ${classNum} ${subject} on "${chapter}". Focus on understanding core definitions, step-by-step principles, and practical problem-solving.`,
     keyTopics: [
-      "Fundamental Definitions and Postulates",
-      "Key Properties, Rules and Axioms",
+      `${chapter} — Fundamental Definitions and Core Concepts`,
+      "Key Scientific/Mathematical Principles & Formulas",
       "Standard Formulae and Equation Derivations",
-      "Typical CBSE Board Exam Problems",
-      "Real-world and Scientific Applications"
+      "Typical CBSE Board Exam Questions",
+      "Real-world and Laboratory Applications"
     ],
     importantConcepts: [
-      `Review core NCERT Class ${classNum} textbook theory thoroughly.`,
-      "Highlight important definitions, units, and constants in your notebook.",
-      "Practice diagrams, flowcharts, and stepwise working to maximize score."
+      `Review NCERT Class ${classNum} ${subject} textbook chapter on ${chapter} thoroughly.`,
+      "Highlight important definitions, key units, and standard laws in your study notes.",
+      "Practice step-by-step diagrams, equations, and derivations to maximize exam marks."
     ],
     formulasOrFacts: [
-      "SI units must always be written for numerical answers.",
-      "Re-check calculations using inverse operations or boundary estimates."
+      `Units and dimensions must always be specified for numerical answers in ${subject}.`,
+      "Re-check calculations using inverse operations or boundary checks."
     ],
     studyTips: [
-      "Solve all NCERT In-text and Chapter-end exercises twice.",
-      "Summarize formulas and diagrams on a single A4 cheat sheet.",
-      "Practice 5-year previous CBSE question papers under timed conditions."
+      `Solve all NCERT In-text and Chapter-end exercises for ${chapter}.`,
+      "Summarize formulas and key concepts on a single cheat sheet for quick revision.",
+      "Practice previous 5 years of CBSE question papers under timed conditions."
     ],
     mcqs: [
       {
         q: `What is the primary focus of ${chapter} in Class ${classNum} ${subject}?`,
         options: [
           "Understanding core conceptual principles and applications",
-          "Rote memorization without derivations",
-          "Ignoring units and dimensions",
-          "Only theoretical definitions"
+          "Rote memorization without understanding",
+          "Ignoring SI units and standard notation",
+          "Only skipping to exam questions"
         ],
         answer: 0
       },
       {
-        q: "When solving multi-step questions, the best practice is to:",
+        q: "When solving multi-step questions in CBSE exams, the recommended practice is to:",
         options: [
-          "Skip intermediate steps",
+          "Skip intermediate working steps",
           "State formula, substitute values with units, and simplify clearly",
-          "Write only the final numerical answer",
+          "Write only the final numerical answer without explanation",
           "Ignore given conditions"
         ],
         answer: 1
@@ -261,9 +351,9 @@ export function getCurriculumFallback(classNum: string, subject: string, chapter
       {
         q: "NCERT textbook exercises are important because:",
         options: [
-          "They directly reflect CBSE examination question patterns",
-          "They are optional for school exams",
-          "They only have historical value",
+          "They directly reflect CBSE examination question patterns and concepts",
+          "They are optional for school examinations",
+          "They have only historical value",
           "They contain no practical problems"
         ],
         answer: 0

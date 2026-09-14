@@ -119,11 +119,15 @@ const StudentDashboard = () => {
 
   // Track tab history stack
   useEffect(() => {
+    if (activeTab === "books") {
+      navigate("/catalog");
+      return;
+    }
     setTabHistory((prev) => {
       if (prev[prev.length - 1] === activeTab) return prev;
       return [...prev, activeTab];
     });
-  }, [activeTab]);
+  }, [activeTab, navigate]);
 
   // Back handler 1: Close mobile drawer
   useBackHandler({
@@ -630,7 +634,15 @@ const StudentDashboard = () => {
       <div className="text-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4" /><p className="text-muted-foreground">Loading your dashboard...</p></div>
     </div>
   );
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4" />
+        <p className="text-muted-foreground font-medium mb-3">Connecting to library services...</p>
+        <Button size="sm" variant="outline" onClick={() => navigate('/login')}>Return to Login</Button>
+      </div>
+    );
+  }
   if (selectedQuiz) return <StudentQuiz quiz={selectedQuiz} onComplete={handleQuizComplete} onBack={() => setSelectedQuiz(null)} />;
 
   if (activeLeagueSession) {

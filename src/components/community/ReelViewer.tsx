@@ -550,25 +550,36 @@ export const ReelViewer = ({
     try {
       const { data, error } = await supabase
         .from("post_comments")
-        .select("*, profiles(first_name, last_name, username, avatar_url, role)")
+        .select("id, post_id, user_id, content, created_at")
         .eq("post_id", post.id)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
 
+      const rawComments = data || [];
+      const userIds = Array.from(new Set(rawComments.map((c: any) => c.user_id)));
+      let profileMap = new Map<string, any>();
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase.rpc("get_public_profiles", { _ids: userIds });
+        profileMap = new Map((profs || []).map((p: any) => [p.id, p]));
+      }
+
       setCommentsList(
-        (data || []).map((c: any) => ({
-          id: c.id,
-          post_id: c.post_id,
-          user_id: c.user_id,
-          content: c.content,
-          created_at: c.created_at,
-          author_name: c.profiles
-            ? `${c.profiles.first_name || ""} ${c.profiles.last_name || ""}`.trim() || c.profiles.username || "Reader"
-            : "Reader",
-          author_avatar: c.profiles?.avatar_url,
-          author_role: c.profiles?.role,
-        }))
+        rawComments.map((c: any) => {
+          const prof = profileMap.get(c.user_id);
+          return {
+            id: c.id,
+            post_id: c.post_id,
+            user_id: c.user_id,
+            content: c.content,
+            created_at: c.created_at,
+            author_name: prof
+              ? `${prof.first_name || ""} ${prof.last_name || ""}`.trim() || prof.username || "Reader"
+              : "Reader",
+            author_avatar: prof?.avatar_url,
+            author_role: prof?.role,
+          };
+        })
       );
     } catch (e) {
       console.error("Error loading comments:", e);

@@ -56,7 +56,7 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
     finally { setCheckingAttempt(false); }
   };
 
-  // Proctored Anti-Cheating: Tab switch, blur & inspect restrictions
+  // Proctored Anti-Cheating: Tab switch & inspect restrictions
   useEffect(() => {
     if (isCompleted || alreadyTaken || checkingAttempt) return;
 
@@ -64,10 +64,6 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
       if (document.visibilityState === "hidden") {
         handleSecurityViolation("Tab switch / application minimized");
       }
-    };
-
-    const onBlur = () => {
-      handleSecurityViolation("Window focus lost");
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -88,12 +84,10 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
     };
 
     document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("blur", onBlur);
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("blur", onBlur);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [isCompleted, alreadyTaken, checkingAttempt, tabSwitches]);

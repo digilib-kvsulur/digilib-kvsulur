@@ -197,8 +197,8 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         return `💰 **Your pending fines: ₹${total.toFixed(0)}**\n\n${lines.join("\n")}\n\nPay at the library counter in cash or UPI to clear your account.`;
       }
 
-      // My points / rank / level
-      if (t.includes("point") || t.includes("xp") || t.includes("rank") || t.includes("level") || t.includes("score")) {
+      // My points / rank / level — use word boundaries so "main point of a book", "difficulty level" etc. are NOT captured
+      if (/\b(my points?|my xp|my rank|my level|my score|how many points|how much xp|what(?:'s| is) my (?:rank|score|level|xp|points?))\b/.test(t)) {
         const points = currentUser.points || 0;
         let rankLine = "";
         if (currentUser.student_class) {
@@ -211,8 +211,8 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         return `🏆 **Your library score**\n\n• Total XP: **${points}**${rankLine}\n\nEarn more by returning books on time, daily logins, quizzes, reviews and the Games Corner.`;
       }
 
-      // My requests
-      if (t.includes("request") || t.includes("status") || t.includes("approve")) {
+      // My requests — require "my" to avoid intercepting general status questions
+      if (/\b(my requests?|my book request|request status|approve my|my pending)\b/.test(t)) {
         const { data } = await supabase
           .from("book_requests")
           .select("requested_title, status, created_at")
@@ -267,7 +267,14 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       }
 
       // Developer Information (G V Tanish Vettrivel)
-      if (t.includes("developer") || t.includes("who developed") || t.includes("who made") || t.includes("who built") || t.includes("who created") || t.includes("tanish") || t.includes("vettrivel") || t.includes("about developer") || t.includes("creator") || t.includes("programmer") || t.includes("who designed") || t.includes("developer contact") || t.includes("developer phone") || t.includes("developer number")) {
+      // Use precise phrases so "who is the creator of Sherlock Holmes?" is NOT captured
+      if (
+        /\b(who (?:developed|made|built|created|designed) (?:dlms|this app|this system|this library system|the dlms))\b/.test(t) ||
+        t.includes("developer contact") || t.includes("developer phone") || t.includes("developer number") ||
+        t.includes("about developer") || t.includes("tanish") || t.includes("vettrivel") ||
+        t.includes("gvtanish") || t.includes("9865190190") ||
+        /\bdeveloper\b/.test(t)
+      ) {
         return "👨‍💻 **DLMS Developer: G V Tanish Vettrivel**\n\nThe PM SHRI KV AFS Sulur Digital Library Management System (DLMS) was architected and developed by **G V Tanish Vettrivel**, an innovative student programmer and ISRO Yuvika participant from PM SHRI Kendriya Vidyalaya AFS Sulur (Class 11).\n\n🚀 **Key Achievements:**\n• **Software Innovation:** Developed India's first student-centric Kendriya Vidyalaya DLMS featuring one-click book issues, automated barcode stickers, Reading Wrap capsules, gamified XP, and integrated NCERT/CBSE digital resources (launched July 2026).\n• **ISRO Yuvika:** Selected for ISRO's prestigious Young Scientist Programme (YUVIKA 2025) at the Vikram Sarabhai Space Centre (VSSC) in Thiruvananthapuram — chosen as 1 of only 10 students across all of Tamil Nadu.\n• **IIT Kharagpur:** Selected for a 6-week program for IIT Kharagpur's i-Kites / RISE event.\n\n📞 **Developer Contact Details:**\n• **Phone / WhatsApp:** **+91 9865190190**\n• **Social Media Handles:** **@gvtanish** (Instagram, GitHub, LinkedIn)\n• **School Channels:** `@pmshrikvsulur` · `@kvian_rocks`";
       }
 
@@ -351,8 +358,12 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         return "⏳ **Book Reservation**\n\nIf a book shows 0 available copies:\n1. Click **'Request'** on the book — your request will be queued.\n2. The librarian will notify you when the book is available.\n3. You can track your request status in **My Requests** tab.";
       }
 
-      // Points & Rewards
-      if (t.includes("point") || t.includes("reward") || t.includes("score") || t.includes("badge") || t.includes("level") || t.includes("rank") || t.includes("xp") || t.includes("leaderboard")) {
+      // Points & Rewards — use word boundaries to avoid hijacking "point of the story", "score a goal", "level of difficulty"
+      if (
+        /\b(earn points?|library points?|how (?:do i|can i|to) earn|reward system|points? system|badge system|xp system|leaderboard|how does xp work|how do points? work)\b/.test(t) ||
+        t.includes("leaderboard") || t.includes("rotational badge") ||
+        (/\b(points?|xp|rank|score|level|badge)\b/.test(t) && /\b(how|earn|get|gain|library|what|explain)\b/.test(t))
+      ) {
         return "🏆 **Points & Rewards System**\n\nYou earn points for:\n• ✅ Borrowing and returning books on time → **+10 pts**\n• 📝 Completing quizzes → **+5 pts each**\n• 🔥 Daily login streak → **+2–10 pts**\n• ⭐ Writing book reviews → **+3 pts**\n• 📅 Attending events → **+5 pts**\n\nPoints appear on the **Rankings** tab. Top students earn special badges and certificates!";
       }
 
@@ -366,13 +377,21 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         return "📝 **How to Register**\n\n1. Click **'Register'** on the home page.\n2. Fill in your name, email, class, and admission number.\n3. Set a password and submit.\n4. Wait for the librarian/admin to **approve your account**.\n5. Once approved, you will receive an email confirmation.\n\n📌 Use your school email address for registration.";
       }
 
-      // Study materials / NCERT
-      if (t.includes("study material") || t.includes("ncert") || t.includes("cbse") || t.includes("chapter") || t.includes("notes") || t.includes("pdf") || t.includes("study guide")) {
+      // Study materials / NCERT — require explicit study-related phrasing
+      // Bare "chapter" or "notes" alone should NOT be captured (user may be asking about a book)
+      if (
+        t.includes("study material") || t.includes("ncert") || t.includes("cbse resource") ||
+        t.includes("study guide") || t.includes("study hub") ||
+        /\b(chapter (pdf|notes|summary|resource)|ncert (pdf|notes|chapter)|cbse (notes|chapter)|download (notes|pdf))\b/.test(t)
+      ) {
         return "📚 **Study Materials**\n\nDigital study materials are available in the **Study Hub** tab:\n• NCERT chapter PDFs (Class 6–12)\n• CBSE curriculum resources\n• AI-generated chapter summaries\n• Subject-wise key concept notes\n\nGo to your dashboard → **Study Hub** tab to access them.";
       }
 
-      // Quiz
-      if (t.includes("quiz") || t.includes("test") || t.includes("mcq") || t.includes("question")) {
+      // Quiz — only if asking about the library quiz feature, not asking a general question
+      if (
+        /\b(library quiz|book quiz|generate quiz|take a quiz|start quiz|quiz feature|quiz for (a )?book|earn points? (?:from|with|via) quiz)\b/.test(t) ||
+        t.includes("mcq")
+      ) {
         return "📝 **Library Quizzes**\n\n1. Go to a book in the **Catalog** and open its detail page.\n2. Click **'Generate Quiz'** to create an AI quiz on that book.\n3. Answer the MCQs to earn points!\n\nYou can also find quizzes in the **Study Hub** for your NCERT chapters.";
       }
 
@@ -396,8 +415,14 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         return "🗺️ **Library Map**\n\nThe PM SHRI KV AFS Sulur Library is located inside the school campus.\n\nLibrary sections:\n• 📗 Fiction & Novels — Left wing\n• 🔬 Science & Math — Center shelves\n• 📜 History & Geography — Right wing\n• 📚 NCERT & Textbooks — Reference section\n• 📰 Periodicals & Magazines — Reading lounge\n\nOpen the **Library Map** tab in your dashboard for the interactive map!";
       }
 
-      // Contact / Support / Tickets
-      if (t.includes("ticket") || t.includes("raise ticket") || t.includes("create ticket") || t.includes("support") || t.includes("complaint") || t.includes("help request") || t.includes("issue") || t.includes("problem")) {
+      // Contact / Support / Tickets — avoid bare "issue" or "problem" which are too broad
+      // "issue a book" and "I have a problem with my homework" should NOT open the ticket form
+      if (
+        t.includes("ticket") || t.includes("raise ticket") || t.includes("create ticket") ||
+        t.includes("support ticket") || t.includes("complaint") || t.includes("help request") ||
+        /\b(i have an? (?:issue|problem) with (?:the library|my account|my fine|my book|the app|the system|dlms))\b/.test(t) ||
+        /\b(report (?:an? )?(?:issue|problem|bug)|contact (?:the )?librarian|contact support)\b/.test(t)
+      ) {
         setShowTicketForm(true);
         return "🎫 I have opened the **Support Ticket Form** above! Please fill in your subject and details, and hit **Submit Ticket**. The librarian will review it promptly.";
       }
