@@ -69,6 +69,44 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   });
   const [claimingWaReward, setClaimingWaReward] = useState(false);
 
+  // Post Scheduling State
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [reschedulingPost, setReschedulingPost] = useState<Post | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  const [linkUrl, setLinkUrl] = useState("");
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [uploadingPost, setUploadingPost] = useState(false);
+  const [openComments, setOpenComments] = useState<string | null>(null);
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [commentDraft, setCommentDraft] = useState("");
+  const [profileCache, setProfileCache] = useState<Record<string, any>>({});
+  const [statsCache, setStatsCache] = useState<Record<string, any>>({});
+  const [friendshipsMap, setFriendshipsMap] = useState<Record<string, any>>({});
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [profileDialogUser, setProfileDialogUser] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const [activeTab, setActiveTab] = useState("feed");
+  const [hasClubs, setHasClubs] = useState(true);
+  const [blockedUntil, setBlockedUntil] = useState<string | null>(null);
+
+  // Tagging state
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
+  const [tagResults, setTagResults] = useState<any[]>([]);
+  const [taggedUsers, setTaggedUsers] = useState<{ id: string; name: string }[]>([]);
+  const tagSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Report Post State
+  const [reportingPost, setReportingPost] = useState<Post | null>(null);
+  const [reportReason, setReportReason] = useState("inappropriate");
+  const [reportDetails, setReportDetails] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+
   // Back handler for Story Viewer
   useBackHandler({
     enabled: viewingStory !== null,
@@ -101,13 +139,6 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       return true;
     },
   });
-
-  // Post Scheduling State
-  const [isScheduling, setIsScheduling] = useState(false);
-  const [scheduledDate, setScheduledDate] = useState("");
-  const [reschedulingPost, setReschedulingPost] = useState<Post | null>(null);
-  const [rescheduleDate, setRescheduleDate] = useState("");
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const getMinDateTime = () => {
     const now = new Date();
@@ -175,37 +206,6 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       setActionLoadingId(null);
     }
   };
-
-  const [linkUrl, setLinkUrl] = useState("");
-  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [uploadingPost, setUploadingPost] = useState(false);
-  const [openComments, setOpenComments] = useState<string | null>(null);
-  const [comments, setComments] = useState<Record<string, Comment[]>>({});
-  const [commentDraft, setCommentDraft] = useState("");
-  const [profileCache, setProfileCache] = useState<Record<string, any>>({});
-  const [statsCache, setStatsCache] = useState<Record<string, any>>({});
-  const [friendshipsMap, setFriendshipsMap] = useState<Record<string, any>>({});
-  const [friendsOpen, setFriendsOpen] = useState(false);
-  const [profileDialogUser, setProfileDialogUser] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  const [activeTab, setActiveTab] = useState("feed");
-  const [hasClubs, setHasClubs] = useState(true);
-  const [blockedUntil, setBlockedUntil] = useState<string | null>(null);
-
-  // Tagging state
-  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
-  const [tagSearch, setTagSearch] = useState("");
-  const [tagResults, setTagResults] = useState<any[]>([]);
-  const [taggedUsers, setTaggedUsers] = useState<{ id: string; name: string }[]>([]);
-  const tagSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Report Post State
-  const [reportingPost, setReportingPost] = useState<Post | null>(null);
-  const [reportReason, setReportReason] = useState("inappropriate");
-  const [reportDetails, setReportDetails] = useState("");
-  const [submittingReport, setSubmittingReport] = useState(false);
 
   const handleReportPost = async () => {
     if (!reportingPost) return;

@@ -61,12 +61,29 @@ export function PWAControls({ userId, className = "flex items-center gap-1", but
       }
 
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
-      });
+      const appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource;
 
-      if (userId) {
+      let subscription: PushSubscription | null = null;
+      try {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: appServerKey,
+        });
+      } catch (subErr) {
+        const existingSub = await registration.pushManager.getSubscription();
+        if (existingSub) {
+          console.warn("Push subscription key mismatch or invalid state, unsubscribing and re-subscribing...", subErr);
+          await existingSub.unsubscribe();
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: appServerKey,
+          });
+        } else {
+          throw subErr;
+        }
+      }
+
+      if (userId && subscription) {
         await supabase.from("push_subscriptions").upsert(
           { user_id: userId, subscription_object: subscription.toJSON() as any },
           { onConflict: "user_id" }
