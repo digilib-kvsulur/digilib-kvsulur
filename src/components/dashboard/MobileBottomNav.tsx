@@ -1,5 +1,5 @@
 import {
-  Home, BookOpen, Search, FileText, Menu, Target, Brain, User,
+  Home, BookOpen, Search, FileText, Menu, Target, Brain, User, Trophy,
   BookCheck, Compass, Timer, Award, Medal, CalendarDays, Users,
   StickyNote, LifeBuoy, MessageSquare, Gamepad2, GraduationCap, Sparkles
 } from "lucide-react";
