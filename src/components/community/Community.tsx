@@ -592,7 +592,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     if ((postKind === "text" || postKind === "story") && !draft.content.trim()) { toast({ title: "Add content", variant: "destructive" }); return; }
     if (postKind === "reel") {
       if (!mediaFile) { toast({ title: "Attach a video", variant: "destructive" }); return; }
-      if (mediaFile.size > 20 * 1024 * 1024) { toast({ title: "File too large", description: "Reels must be under 20MB", variant: "destructive" }); return; }
+      if (mediaFile.size > 100 * 1024 * 1024) { toast({ title: "File too large", description: "Reels must be under 100MB", variant: "destructive" }); return; }
 
       const isTooLong = await new Promise<boolean>((resolve) => {
         const video = document.createElement("video");
