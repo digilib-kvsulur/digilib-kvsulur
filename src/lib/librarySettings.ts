@@ -181,6 +181,7 @@ export interface DevMessageSettings {
   message: string;
   linkUrl?: string;
   linkText?: string;
+  imageUrl?: string;
 }
 
 export const DEFAULT_DEV_MESSAGE: DevMessageSettings = {
@@ -189,13 +190,14 @@ export const DEFAULT_DEV_MESSAGE: DevMessageSettings = {
   message: "Welcome to the digital library!",
   linkUrl: "",
   linkText: "",
+  imageUrl: "",
 };
 
 export async function fetchDevMessageSettings(): Promise<DevMessageSettings> {
   const { data } = await supabase
     .from("system_settings")
     .select("key, value")
-    .in("key", ["dev_message_enabled", "dev_message_title", "dev_message_body", "dev_message_link_url", "dev_message_link_text"]);
+    .in("key", ["dev_message_enabled", "dev_message_title", "dev_message_body", "dev_message_link_url", "dev_message_link_text", "dev_message_image_url"]);
 
   const settings = { ...DEFAULT_DEV_MESSAGE };
   (data || []).forEach((row) => {
@@ -207,6 +209,7 @@ export async function fetchDevMessageSettings(): Promise<DevMessageSettings> {
     if (row.key === "dev_message_body") settings.message = parseJsonSetting(row.value).replace(/^"|"$/g, "");
     if (row.key === "dev_message_link_url") settings.linkUrl = parseJsonSetting(row.value).replace(/^"|"$/g, "");
     if (row.key === "dev_message_link_text") settings.linkText = parseJsonSetting(row.value).replace(/^"|"$/g, "");
+    if (row.key === "dev_message_image_url") settings.imageUrl = parseJsonSetting(row.value).replace(/^"|"$/g, "");
   });
   return settings;
 }

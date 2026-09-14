@@ -41,6 +41,7 @@ export default function LibrarySettings() {
   const [devMessageBody, setDevMessageBody] = useState("");
   const [devMessageLinkUrl, setDevMessageLinkUrl] = useState("");
   const [devMessageLinkText, setDevMessageLinkText] = useState("Learn More");
+  const [devMessageImageUrl, setDevMessageImageUrl] = useState("");
   const [globalNewsColor, setGlobalNewsColor] = useState("blue");
 
   // Games Schedule
@@ -86,6 +87,7 @@ export default function LibrarySettings() {
       setDevMessageBody(devMsg.message);
       setDevMessageLinkUrl(devMsg.linkUrl || "");
       setDevMessageLinkText(devMsg.linkText || "Learn More");
+      setDevMessageImageUrl(devMsg.imageUrl || "");
       setGlobalNewsColor(newsColor);
       setGamesScheduleEnabled(gamesSch.enable);
       setGamesScheduleStart(gamesSch.start);
@@ -148,6 +150,7 @@ export default function LibrarySettings() {
         { key: "dev_message_body", value: devMessageBody.trim() as any },
         { key: "dev_message_link_url", value: devMessageLinkUrl.trim() as any },
         { key: "dev_message_link_text", value: devMessageLinkText.trim() as any },
+        { key: "dev_message_image_url", value: devMessageImageUrl.trim() as any },
         { key: "enable_games_schedule", value: gamesScheduleEnabled as any },
         { key: "games_schedule_start", value: gamesScheduleStart as any },
         { key: "games_schedule_end", value: gamesScheduleEnd as any },
@@ -382,6 +385,15 @@ export default function LibrarySettings() {
                   onChange={(e) => setDevMessageBody(e.target.value)}
                   placeholder="Enter the news or developer message..."
                   rows={4}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="devMsgImageUrl">Optional Banner Image URL</Label>
+                <Input
+                  id="devMsgImageUrl"
+                  value={devMessageImageUrl}
+                  onChange={(e) => setDevMessageImageUrl(e.target.value)}
+                  placeholder="e.g. https://images.unsplash.com/... (Leave blank for text only)"
                 />
               </div>
               <div className="space-y-1.5">

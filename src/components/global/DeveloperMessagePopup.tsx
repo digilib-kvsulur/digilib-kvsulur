@@ -8,6 +8,7 @@ export default function DeveloperMessagePopup() {
   const [message, setMessage] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
     const checkSettings = async () => {
@@ -22,6 +23,7 @@ export default function DeveloperMessagePopup() {
           setMessage(settings.message);
           setLinkUrl(settings.linkUrl || "");
           setLinkText(settings.linkText || "Learn More");
+          setImageUrl(settings.imageUrl || "");
           setShowModal(true);
         }
       } catch (err) {
@@ -47,13 +49,20 @@ export default function DeveloperMessagePopup() {
       }}
     >
       <div
-        className="glass-card relative w-full max-w-lg p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl space-y-4"
+        className="glass-card relative w-full max-w-lg p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl space-y-4 overflow-hidden"
         style={{ border: "1px solid hsl(var(--primary) / 0.45)", background: "hsl(var(--card))" }}
       >
+        {/* Banner Image if present */}
+        {imageUrl && (
+          <div className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8 mb-4 overflow-hidden rounded-t-2xl sm:rounded-t-3xl max-h-56 bg-muted">
+            <img src={imageUrl} alt="Global News" className="w-full h-full object-cover" />
+          </div>
+        )}
+
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-muted transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-full bg-background/70 backdrop-blur-md hover:bg-muted transition-colors shadow-xs z-10"
           style={{ color: "hsl(var(--muted-foreground))" }}
           aria-label="Close"
         >
@@ -84,7 +93,7 @@ export default function DeveloperMessagePopup() {
 
         {/* Body */}
         <div
-          className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto pr-2"
+          className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap max-h-[40vh] overflow-y-auto pr-2"
           style={{ color: "hsl(var(--muted-foreground))" }}
         >
           {message}

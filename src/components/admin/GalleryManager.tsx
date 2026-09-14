@@ -49,11 +49,11 @@ export default function GalleryManager() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Authentication required to manage gallery.");
+
       const newImages = [];
 
       if (files.length > 0) {
-        if (!user) throw new Error("Not signed in");
-        
         for (const f of files) {
           const options = {
             maxSizeMB: 2,
@@ -77,8 +77,11 @@ export default function GalleryManager() {
           });
         }
       } else {
+        if (!form.image_url.trim()) {
+          throw new Error("Please select an image file or provide an image URL.");
+        }
         newImages.push({
-          image_url: form.image_url,
+          image_url: form.image_url.trim(),
           caption: "",
           is_active: form.is_active
         });

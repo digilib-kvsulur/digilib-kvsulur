@@ -479,6 +479,25 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   useEffect(() => { if (currentUserId) { load(); loadFriendshipsMap(); } }, [currentUserId]);
 
+  useEffect(() => {
+    if (!loading && posts.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetPostId = urlParams.get("post") || window.location.hash.replace("#post-", "");
+      if (targetPostId) {
+        setTimeout(() => {
+          const el = document.getElementById(`post-${targetPostId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.classList.add("ring-2", "ring-primary", "ring-offset-2", "animate-pulse");
+            setTimeout(() => {
+              el.classList.remove("animate-pulse");
+            }, 3000);
+          }
+        }, 300);
+      }
+    }
+  }, [loading, posts.length]);
+
   // ── Helper: insert a notification row ──────────────────────────────────────
   const sendNotification = async (targetUserId: string, title: string, message: string, type = "info", actionLink = "") => {
     if (targetUserId === currentUserId) return; // never notify yourself
@@ -1767,7 +1786,7 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         return (
           <div className="space-y-4">
             {filteredPosts.map((p, index) => (
-            <Card key={p.id} className="rounded-3xl border border-border/70 hover:border-primary/40 bg-card/90 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
+            <Card id={`post-${p.id}`} key={p.id} className="rounded-3xl border border-border/70 hover:border-primary/40 bg-card/90 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
               <CardContent className="p-4 sm:p-6 space-y-3.5">
                 {/* Header: Author Info & Post Metadata */}
                 <div className="flex items-start justify-between gap-3">
@@ -2069,8 +2088,9 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/#post-${p.id}`);
-                      toast({ title: "Link Copied 📋", description: "Post link copied to clipboard." });
+                      const shareUrl = `${window.location.origin}/dashboard?tab=community&post=${p.id}`;
+                      navigator.clipboard.writeText(shareUrl);
+                      toast({ title: "Link Copied 📋", description: "Direct post share link copied to clipboard." });
                     }}
                     className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-all px-3 py-1.5 rounded-xl hover:bg-muted/70"
                     title="Share post link"
@@ -2776,15 +2796,15 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
 
       {/* Floating Create Button as a Flying Popup in the Bottom */}
       {(!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
-        <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40">
+        <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-50">
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 size="icon"
                 title="Create in Community"
-                className="h-14 w-14 rounded-full shadow-2xl gradient-primary text-primary-foreground hover:scale-110 active:scale-95 transition-all flex items-center justify-center border-2 border-white/20"
+                className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-transform animate-in zoom-in border border-primary-foreground/20 p-0 flex items-center justify-center"
               >
-                <Plus className="h-6 w-6" />
+                <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
               </Button>
             </PopoverTrigger>
             <PopoverContent

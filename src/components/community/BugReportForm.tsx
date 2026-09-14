@@ -85,6 +85,13 @@ export default function BugReportForm({ currentUserId }: { currentUserId: string
 
     setSubmitting(true);
     try {
+      // 0. Ensure authenticated user for RLS
+      const { data: { user } } = await supabase.auth.getUser();
+      const reporterId = user?.id || currentUserId;
+      if (!reporterId) {
+        throw new Error("You must be logged in to submit a bug report.");
+      }
+
       // 1. Find active campaign
       const { data: campaign } = await supabase
         .from("bug_bounty_campaigns")
@@ -93,7 +100,7 @@ export default function BugReportForm({ currentUserId }: { currentUserId: string
         .maybeSingle();
 
       if (!campaign) {
-        throw new Error("No active campaign found.");
+        throw new Error("No active bug bounty campaign found right now.");
       }
 
       // 2. Submit report payload
@@ -111,7 +118,7 @@ export default function BugReportForm({ currentUserId }: { currentUserId: string
         .from("bug_reports")
         .insert({
           campaign_id: campaign.id,
-          reporter_id: currentUserId,
+          reporter_id: reporterId,
           description: JSON.stringify(payload),
           status: 'pending'
         });
