@@ -338,6 +338,11 @@ const LevelManager = () => {
                 Configure student levels and progression system
               </CardDescription>
             </div>
+            <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setBulkOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Bulk Import
+            </Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={resetForm}>
