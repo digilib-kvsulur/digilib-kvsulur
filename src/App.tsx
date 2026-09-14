@@ -152,20 +152,29 @@ const DashboardRedirect = () => {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (session) {
-        supabase.from("profiles").select("role").eq("id", session.user.id).single()
-          .then(({ data }) => {
-            if (!mounted) return;
-            if (data?.role === "admin") setRedirectTo("/admin-dashboard");
-            else if (data?.role === "teacher") setRedirectTo("/teacher-dashboard");
-            else setRedirectTo("/student-dashboard");
-          });
-      } else {
-        setRedirectTo("/");
-      }
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return;
+        if (session) {
+          supabase.from("profiles").select("role").eq("id", session.user.id).single()
+            .then(({ data }) => {
+              if (!mounted) return;
+              if (data?.role === "admin") setRedirectTo("/admin-dashboard");
+              else if (data?.role === "teacher") setRedirectTo("/teacher-dashboard");
+              else setRedirectTo("/student-dashboard");
+            })
+            .catch(() => {
+              // Profile fetch failed — fall back to student dashboard
+              if (mounted) setRedirectTo("/student-dashboard");
+            });
+        } else {
+          setRedirectTo("/");
+        }
+      })
+      .catch(() => {
+        // Session load failed — send to login
+        if (mounted) setRedirectTo("/login");
+      });
     return () => { mounted = false; };
   }, []);
 
