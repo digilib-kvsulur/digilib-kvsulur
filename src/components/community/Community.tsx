@@ -900,7 +900,20 @@ const Community = ({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       await handleModerationStrike();
       return;
     }
-    await supabase.from("post_comments").insert({ post_id: postId, user_id: currentUserId, content: commentDraft });
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const uid = user?.id || currentUserId;
+    if (!uid) {
+      toast({ title: "Authentication Error", description: "You must be logged in to comment.", variant: "destructive" });
+      return;
+    }
+
+    const { error } = await supabase.from("post_comments").insert({ post_id: postId, user_id: uid, content: commentDraft });
+    if (error) {
+      toast({ title: "Comment Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
     setCommentDraft(""); await loadComments(postId);
     setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p));
     // notify post author
