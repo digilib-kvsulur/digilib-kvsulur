@@ -100,6 +100,7 @@ const TeacherDashboard = () => {
     enabled: activeTab !== "progress" && !selectedStudent && !showChallengeDialog && !showListDialog && !showRecDialog,
     priority: 50,
     stateName: `teacher_tab_${activeTab}`,
+    pushHistoryState: false, // Tab changes are not overlays; no sentinel needed
     onBack: () => {
       setTabHistory((prev) => {
         if (prev.length > 1) {

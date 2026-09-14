@@ -170,6 +170,7 @@ const AdminDashboard = () => {
     enabled: activeTab !== "overview" && !mobileNavOpen,
     priority: 50,
     stateName: `admin_tab_${activeTab}`,
+    pushHistoryState: false, // Tab changes are not overlays; no sentinel needed
     onBack: () => {
       setTabHistory((prev) => {
         if (prev.length > 1) {

@@ -163,6 +163,7 @@ const StudentDashboard = () => {
     enabled: activeTab !== "overview" && !mobileNavOpen && !showMemoryCapsule && !showBookRequest,
     priority: 50,
     stateName: `student_tab_${activeTab}`,
+    pushHistoryState: false, // Tab changes are not overlays; no sentinel needed
     onBack: () => {
       setTabHistory((prev) => {
         if (prev.length > 1) {

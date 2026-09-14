@@ -426,7 +426,7 @@ export const ReelViewer = ({
   const [newCommentText, setNewCommentText] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  // Device back button: Back closes comments drawer first, then closes reel viewer
+  // Device back button: comments drawer closes first (priority 100), then reel viewer (priority 90)
   useBackHandler({
     enabled: commentsDrawerOpen,
     priority: 100,
@@ -438,10 +438,11 @@ export const ReelViewer = ({
   });
 
   useBackHandler({
-    enabled: !commentsDrawerOpen,
+    enabled: true, // Reel viewer is always an overlay – always active
     priority: 90,
     stateName: "reel_viewer",
     onBack: () => {
+      if (commentsDrawerOpen) return false; // Let the higher-priority handler above take it
       onClose();
       return true;
     },
