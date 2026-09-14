@@ -9,7 +9,7 @@ import {
   BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, BookmarkCheck, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -67,13 +67,14 @@ import Feedback from "./Feedback";
 import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
 import MobileBottomNav, { mobileNavSections } from "@/components/dashboard/MobileBottomNav";
 
-type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty";
+type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
   { id: "portfolio", label: "My Portfolio", icon: FileText },
-  { id: "books", label: "Books", icon: BookOpen },
+  { id: "catalog", label: "Books Catalog", icon: BookOpen },
   { id: "issued", label: "Book Issued", icon: BookCheck },
+  { id: "books", label: "My Books", icon: BookMarked },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "study", label: "Study Tracker", icon: Timer },
@@ -198,7 +199,6 @@ const StudentDashboard = () => {
       items: [
         { id: "overview" as Tab, label: "Overview", icon: Home },
         { id: "portfolio" as Tab, label: "My Portfolio", icon: FileText },
-        { id: "issued" as Tab, label: "Book Issued", icon: BookCheck },
       ],
     },
     {
@@ -213,7 +213,9 @@ const StudentDashboard = () => {
     {
       title: "Library",
       items: [
-        { id: "books" as Tab, label: "Books Catalog", icon: BookOpen },
+        { id: "catalog" as Tab, label: "Books Catalog", icon: BookOpen },
+        { id: "issued" as Tab, label: "Book Issued", icon: BookCheck },
+        { id: "books" as Tab, label: "My Books", icon: BookMarked },
         { id: "locator" as Tab, label: "Library Map", icon: Compass },
         ...(periodicalsVisible ? [{ id: "periodicals" as Tab, label: "Periodicals", icon: Newspaper }] : []),
       ],
@@ -630,7 +632,13 @@ const StudentDashboard = () => {
               {sec.items.map(item => (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    if (item.id === "catalog") {
+                      navigate("/catalog");
+                    } else {
+                      setActiveTab(item.id);
+                    }
+                  }}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                     activeTab === item.id
                       ? 'gradient-primary text-primary-foreground shadow-sm shadow-primary/25 font-bold'
@@ -706,7 +714,14 @@ const StudentDashboard = () => {
                           <button
                             key={item.id}
                             type="button"
-                            onClick={() => { setActiveTab(item.id as Tab); setMobileNavOpen(false); }}
+                            onClick={() => {
+                              setMobileNavOpen(false);
+                              if (item.id === "catalog") {
+                                navigate("/catalog");
+                              } else {
+                                setActiveTab(item.id as Tab);
+                              }
+                            }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeTab === item.id ? "gradient-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:bg-muted"}`}
                           >
                             <navItem.icon className="h-4 w-4 shrink-0" /> {navItem.label || item.label}
@@ -723,8 +738,8 @@ const StudentDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 pb-40 lg:pb-8 lg:ml-64 lg:pt-6">
-        <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 pb-40 lg:pb-8 lg:ml-64 lg:pt-1">
+        <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-5 lg:p-6 lg:pt-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 
           {/* Overview Tab */}
@@ -1025,8 +1040,8 @@ const StudentDashboard = () => {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-bold text-foreground">Books</h2>
-                  <p className="text-sm text-muted-foreground">Your reading log and borrow history</p>
+                  <h2 className="text-xl font-bold text-foreground">My Books</h2>
+                  <p className="text-sm text-muted-foreground">Your personal reading log and borrow history</p>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   <Button variant="outline" size="sm" className="flex-1 sm:flex-none border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold h-9" onClick={() => navigate('/catalog')}>

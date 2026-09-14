@@ -362,15 +362,6 @@ export default function BookDetails() {
               )}
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPicker(true)}
-              className="w-full text-xs font-semibold rounded-xl border-indigo-200 bg-indigo-50/50 text-indigo-700 hover:bg-indigo-100 flex items-center justify-center gap-1.5 h-9"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> Search Online Covers & Details
-            </Button>
-
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <Button 
@@ -626,14 +617,6 @@ export default function BookDetails() {
           </div>
         )}
       </main>
-
-      <BookFetchPicker
-        open={showPicker}
-        onOpenChange={setShowPicker}
-        initialTitle={book?.title || ""}
-        initialAuthor={book?.author || ""}
-        onSelectBook={handlePickerSelect}
-      />
     </div>
   );
 }
