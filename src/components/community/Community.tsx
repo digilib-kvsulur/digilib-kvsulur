@@ -24,15 +24,19 @@ import { useBackHandler } from "@/hooks/useBackHandler";
 
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
 
-const containsBadWords = (text: string): boolean => {
+function containsBadWords(text: string): boolean {
   const lower = text.toLowerCase();
   return BAD_WORDS.some(w => lower.includes(w));
-};
+}
 
 import type { Post, Comment, PollOption } from "./types";
 
-const nameOf = (p: any) => p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
-const initials = (p: any) => nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+function nameOf(p: any) {
+  return p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
+}
+function initials(p: any) {
+  return nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+}
 
 function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin: boolean }) {
   const [termsAccepted, setTermsAccepted] = useState(() => hasAcceptedCommunityTerms(currentUserId));
