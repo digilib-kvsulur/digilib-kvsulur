@@ -50,6 +50,7 @@ const LevelManager = () => {
   const [editingLevel, setEditingLevel] = useState<Level | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
