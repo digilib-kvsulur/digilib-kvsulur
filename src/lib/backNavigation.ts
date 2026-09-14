@@ -1,24 +1,21 @@
 /**
  * backNavigation.ts
  *
- * Priority-based Android back-button handler.
+ * Unified priority-based Android & PWA back-navigation manager.
+ * 
+ * Works across:
+ *  1. Native Capacitor Android App (APK):
+ *     Intercepts hardware back button via @capacitor/app listener.
+ *     Consumes event if any registered overlay/drawer/modal/tab handler handles it.
+ *     Falls back to router back, and double-press to exit on root pages.
  *
- * Strategy:
- *  - On native Android (Capacitor): intercept the `backButton` hardware event.
- *    Walk the handler stack highest-priority first; first one that returns `true`
- *    consumes the event.  If nobody handles it we fall back to double-press-to-exit.
- *
- *  - On PWA / browser: listen for `popstate` ONLY on states we pushed ourselves
- *    (marked with `{ dlms_back: true }`). React Router pushes its own states
- *    WITHOUT this marker, so we never intercept those – keeping navbar navigation
- *    completely unaffected.
- *
- * Handlers must NOT push dummy history entries. Only the manager pushes one
- * sentinel entry per overlay so the browser back gesture fires `popstate`.
- * The sentinel is cleaned up (go-forward or pop) when the overlay closes.
+ *  2. Web / Mobile Browser / PWA (Android Chrome, edge swipe back):
+ *     Coordinates with useBackHandler via popstate listener.
+ *     Tracks whether back action originated from popstate to avoid duplicate history pops.
  */
 
 import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
 
 export type BackHandler = () => boolean | void;
@@ -29,76 +26,67 @@ interface RegisteredHandler {
   handler: BackHandler;
 }
 
-const SENTINEL_STATE_KEY = 'dlms_back';
-
 class BackNavigationManager {
   private handlers: RegisteredHandler[] = [];
   private isInitialized = false;
   private lastBackPressTime = 0;
-  /** Number of sentinel entries we have pushed into history (for overlays) */
-  private sentinelDepth = 0;
+  private _isPopping = false;
+  public readonly isNative: boolean = Capacitor.isNativePlatform();
 
   public init() {
     if (this.isInitialized) return;
     this.isInitialized = true;
 
-    // ── 1. Capacitor native Android back button ──────────────────────────
-    try {
-      App.addListener('backButton', (event) => {
-        const handled = this.handleBack();
-        if (!handled) {
-          if (event.canGoBack) {
-            window.history.back();
-          } else {
-            this.handleAppExit();
+    // ── 1. Capacitor native Android hardware back button ────────────────
+    if (this.isNative) {
+      try {
+        App.addListener('backButton', (event) => {
+          const handled = this.handleBack();
+          if (!handled) {
+            if (this.isRootPage()) {
+              this.handleAppExit();
+            } else if (event.canGoBack || window.history.length > 1) {
+              window.history.back();
+            } else {
+              this.handleAppExit();
+            }
           }
-        }
-      });
-    } catch {
-      // Not available in browser / Electron
+        });
+      } catch (e) {
+        console.warn('Capacitor backButton listener init error:', e);
+      }
     }
 
-    // ── 2. PWA / browser popstate ────────────────────────────────────────
-    // We ONLY handle popstate events that match a sentinel we pushed.
-    // React Router states do NOT have `dlms_back: true`.
-    window.addEventListener('popstate', (e) => {
-      if (e.state && e.state[SENTINEL_STATE_KEY]) {
-        // This is OUR sentinel being popped by browser/gesture back.
-        this.sentinelDepth = Math.max(0, this.sentinelDepth - 1);
+    // ── 2. Web / PWA browser popstate listener ──────────────────────────
+    window.addEventListener('popstate', () => {
+      // On native Capacitor, backButton listener handles it directly
+      if (this.isNative) return;
+
+      this._isPopping = true;
+      try {
         const handled = this.handleBack();
-        if (!handled) {
-          // No handler claimed it; let it continue naturally
+        if (!handled && this.isRootPage()) {
+          this.handleWebRootBack();
         }
+      } catch (err) {
+        console.error('Error in popstate back handler:', err);
+      } finally {
+        // Keep _isPopping true briefly while React unmount & cleanup effects execute
+        setTimeout(() => {
+          this._isPopping = false;
+        }, 120);
       }
-      // If it's a React Router state, we do NOTHING — router handles it.
     });
   }
 
-  /** Push a sentinel history entry for a new overlay. Call on overlay open. */
-  public pushSentinel(name: string) {
-    try {
-      window.history.pushState({ [SENTINEL_STATE_KEY]: true, name }, '');
-      this.sentinelDepth++;
-    } catch {
-      // ignore
-    }
-  }
-
-  /** Clean up the sentinel when an overlay closes programmatically (not via back button). */
-  public popSentinel() {
-    if (this.sentinelDepth > 0) {
-      try {
-        this.sentinelDepth--;
-        window.history.back();
-      } catch {
-        // ignore
-      }
-    }
+  public get isPopping(): boolean {
+    return this._isPopping;
   }
 
   public register(handler: BackHandler, priority = 10): () => void {
     const id = Math.random().toString(36).substring(2, 9);
     this.handlers.push({ id, priority, handler });
+    // Sort descending by priority so highest priority runs first
     this.handlers.sort((a, b) => b.priority - a.priority);
     return () => {
       this.handlers = this.handlers.filter((h) => h.id !== id);
@@ -109,9 +97,12 @@ class BackNavigationManager {
     for (const item of this.handlers) {
       try {
         const res = item.handler();
-        if (res !== false) return true;
+        // If handler explicitly returned false, pass to the next handler
+        if (res !== false) {
+          return true;
+        }
       } catch (err) {
-        console.error('Error in back handler:', err);
+        console.error('Error executing back handler:', err);
       }
     }
     return false;
@@ -136,10 +127,29 @@ class BackNavigationManager {
   private handleAppExit() {
     const now = Date.now();
     if (now - this.lastBackPressTime < 2000) {
-      try { App.exitApp(); } catch { /* ignore */ }
+      try {
+        App.exitApp();
+      } catch {
+        // ignore
+      }
     } else {
       this.lastBackPressTime = now;
       toast.info('Press back again to exit DLMS', { duration: 2000 });
+    }
+  }
+
+  private handleWebRootBack() {
+    const now = Date.now();
+    if (now - this.lastBackPressTime < 2000) {
+      // User pressed back twice at root on web
+    } else {
+      this.lastBackPressTime = now;
+      toast.info('Press back again to exit DLMS', { duration: 2000 });
+      try {
+        window.history.pushState({ root_guard: true }, '');
+      } catch {
+        // ignore
+      }
     }
   }
 }

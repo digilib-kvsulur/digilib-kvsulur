@@ -1,47 +1,39 @@
 /**
  * useBackHandler.ts
  *
- * Hook to register a back-navigation handler for overlays (drawers, modals,
- * reel viewers, etc.).
+ * React hook to register a back-navigation handler for components,
+ * overlays, dialogs, drawers, and views.
  *
- * Behaviour:
- *  - When `enabled` becomes true  → register handler + push ONE sentinel history
- *    entry (so browser/PWA swipe-back triggers popstate for our overlay).
- *  - When back is pressed         → handler runs, sentinel is consumed by the popstate
- *    listener in BackNavigationManager, no extra cleanup needed.
- *  - When `enabled` becomes false → unregister handler + call popSentinel() to
- *    clean up the dummy entry if the overlay was closed programmatically
- *    (e.g. user tapped the ✕ button instead of pressing device back).
+ * - On Native Android (Capacitor): Registers into BackNavigationManager priority stack.
+ *   Hardware back button calls onBack() without touching browser history.
  *
- * IMPORTANT: This hook does NOT push to window.history directly — the manager
- * does that via pushSentinel(). React Router's own history is never touched.
+ * - On Web / PWA: Pushes a lightweight history state when pushHistoryState is true.
+ *   When the browser back button or edge swipe occurs, popstate runs onBack().
+ *   When the component closes programmatically (e.g. clicking the 'X' button),
+ *   it safely pops the dummy state so history stays clean.
  */
 
 import { useEffect, useRef } from 'react';
 import { backNavigation } from '@/lib/backNavigation';
 
 interface UseBackHandlerOptions {
-  /** Only register when true (e.g. when a drawer is open). */
+  /** Only register when true (e.g. when a modal/drawer is open). Default: true */
   enabled?: boolean;
   /** Higher number = runs first. Default 10. */
   priority?: number;
   /**
    * Called when device back button / browser back gesture fires.
    * Return `true` (or void) to consume the event.
-   * Return `false` to pass to the next handler.
+   * Return `false` to pass to the next lower-priority handler.
    */
   onBack: () => boolean | void;
   /**
-   * Label for the sentinel history state (useful for debugging).
-   * Default: 'overlay'
+   * Label for the dummy history state (useful for debugging). Default: 'overlay'
    */
   stateName?: string;
   /**
-   * Whether to push a sentinel history entry so browser/PWA gesture-back
-   * fires a popstate event for this overlay.
-   * Set to false for tab-history handlers on dashboards (no overlay sentinel
-   * needed — Capacitor native back button is sufficient).
-   * Default: true
+   * Whether to push a history state entry on Web/PWA so browser gesture-back
+   * triggers popstate. Default: true
    */
   pushHistoryState?: boolean;
 }
@@ -55,17 +47,22 @@ export function useBackHandler({
 }: UseBackHandlerOptions) {
   const onBackRef = useRef(onBack);
   onBackRef.current = onBack;
-
-  // Track whether WE pushed a sentinel this render cycle
-  const sentinelPushed = useRef(false);
+  const pushedRef = useRef(false);
 
   useEffect(() => {
     if (!enabled) return;
 
-    // Push sentinel so browser back gesture works for this overlay
-    if (pushHistoryState) {
-      backNavigation.pushSentinel(stateName);
-      sentinelPushed.current = true;
+    // Push dummy history entry on Web/PWA so that device/gesture back triggers popstate
+    // On native Capacitor, hardware backButton listener handles it directly without history pollution
+    const shouldPush = pushHistoryState && !backNavigation.isNative;
+
+    if (shouldPush && !pushedRef.current) {
+      try {
+        window.history.pushState({ dlms_overlay: stateName, time: Date.now() }, '');
+        pushedRef.current = true;
+      } catch {
+        // ignore
+      }
     }
 
     const unregister = backNavigation.register(() => {
@@ -74,13 +71,21 @@ export function useBackHandler({
 
     return () => {
       unregister();
-      // If overlay was closed programmatically (not via back button),
-      // pop the sentinel we pushed so history stays clean.
-      if (sentinelPushed.current && pushHistoryState) {
-        sentinelPushed.current = false;
-        backNavigation.popSentinel();
+      if (pushedRef.current) {
+        pushedRef.current = false;
+        // If this unmount was NOT caused by browser popstate (e.g. user tapped the close button on screen)
+        // rather than by pressing the browser back button (which already popped history),
+        // we must pop the dummy history entry we pushed to keep history clean.
+        if (!backNavigation.isPopping) {
+          try {
+            if (window.history.state?.dlms_overlay === stateName) {
+              window.history.back();
+            }
+          } catch {
+            // ignore
+          }
+        }
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, priority, pushHistoryState, stateName]);
 }
