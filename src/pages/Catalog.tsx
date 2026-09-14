@@ -150,12 +150,14 @@ const Catalog = () => {
           query = query.gte("first_added_at", oneMonthAgoIso);
         }
 
-        // Primary: most issued (popular) books first, then books with covers, then user sort
-        query = query.order("issue_count", { ascending: false, nullsFirst: false });
+        // Primary: books with covers first, then highest issues, then sort
         query = query.order("cover_url", { ascending: false, nullsFirst: false });
+        query = query.order("issue_count", { ascending: false, nullsFirst: false });
 
         if (sortBy === "newest") {
           query = query.order("created_at", { ascending: false });
+        } else if (sortBy === "most_borrowed") {
+          query = query.order("issue_count", { ascending: false, nullsFirst: false });
         } else if (sortBy === "title_az") {
           query = query.order("title", { ascending: true });
         } else {
@@ -209,12 +211,26 @@ const Catalog = () => {
   };
 
   const oneMonthAgo = Date.now() - 30 * 86400_000;
-  const displayedBooks = debouncedSearch.trim()
-    ? books.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-    : books;
+  const displayedBooks = useMemo(() => {
+    const raw = debouncedSearch.trim()
+      ? books.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+      : books;
+    if (currentPage === 1 && !debouncedSearch.trim() && sortBy === "newest") {
+      return [...raw].sort((a, b) => {
+        const aHasCover = a.cover_url && a.cover_url.trim().length > 5 ? 1 : 0;
+        const bHasCover = b.cover_url && b.cover_url.trim().length > 5 ? 1 : 0;
+        if (aHasCover !== bHasCover) return bHasCover - aHasCover;
+        return (b.issue_count || 0) - (a.issue_count || 0);
+      });
+    }
+    return raw;
+  }, [books, debouncedSearch, currentPage, pageSize, sortBy]);
 
   const showFeatured = !debouncedSearch && selectedGenre === "all" && selectedSubject === "all" && selectedClass === "all" && currentPage === 1 && books.length > 0;
-  const withCovers = useMemo(() => books.filter((b) => b.cover_url && b.cover_url.trim().length > 5), [books]);
+  const withCovers = useMemo(() => {
+    const valid = books.filter((b) => b.cover_url && b.cover_url.trim().length > 5);
+    return [...valid].sort((a, b) => (b.issue_count || 0) - (a.issue_count || 0));
+  }, [books]);
   const featuredList = useMemo(() => (withCovers.length >= 4 ? withCovers : books).slice(0, 6), [withCovers, books]);
   const featuredIdSet = useMemo(() => new Set(featuredList.map(b => b.id)), [featuredList]);
 
@@ -603,70 +619,70 @@ const Catalog = () => {
                       <div
                         key={book.id}
                         onClick={() => navigate(`/book/${book.id}`)}
-                        className="group cursor-pointer flex flex-col bg-white rounded-xl shadow-2xs hover:shadow-md border border-slate-200/90 hover:border-indigo-300 transition-all duration-200 overflow-hidden p-2.5 h-full"
+                        className="group cursor-pointer flex flex-col bg-white rounded-2xl shadow-xs hover:shadow-xl hover:-translate-y-1 border border-slate-200/90 hover:border-indigo-300 transition-all duration-300 overflow-hidden p-3 h-full justify-between"
                       >
-                        <div className="aspect-[2/3] w-full rounded-lg bg-slate-100 overflow-hidden relative shadow-inner mb-2.5">
-                          {book.cover_url ? (
-                            <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                          ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-slate-50">
-                              <BookOpen className="h-6 w-6 text-indigo-500/70 mb-1" />
-                              <span className="text-[10px] font-semibold text-slate-800 line-clamp-3 leading-snug">{book.title}</span>
-                            </div>
-                          )}
-                          {/* Status indicator badge */}
-                          <div className="absolute top-1.5 left-1.5 right-1.5 flex items-start justify-between gap-1 pointer-events-none">
-                            <div className="flex flex-wrap gap-1">
-                              {isNew && <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shadow-xs">NEW</span>}
-                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold shadow-xs ${book.available_copies > 0 ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-200"}`}>
-                                {book.available_copies > 0 ? `Available (${book.available_copies})` : "Borrowed"}
-                              </span>
-                            </div>
-                            {user?.role === 'admin' && (
-                              <Button size="icon" variant="secondary" className="h-5 w-5 rounded bg-white/90 shadow-xs hover:bg-white hover:text-indigo-700 text-indigo-600 z-10 pointer-events-auto shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/admin-dashboard'); }}>
-                                <Edit className="h-3 w-3" />
-                              </Button>
+                        <div>
+                          <div className="aspect-[2/3] w-full rounded-xl bg-slate-100 overflow-hidden relative shadow-inner mb-3">
+                            {book.cover_url ? (
+                              <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-indigo-50 to-slate-100">
+                                <BookOpen className="h-7 w-7 text-indigo-500/70 mb-1.5" />
+                                <span className="text-[11px] font-bold text-slate-800 line-clamp-3 leading-snug">{book.title}</span>
+                              </div>
                             )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex-1 flex flex-col justify-between">
-                          <div>
-                            <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1">{book.title}</h4>
-                            <p className="text-[11px] text-slate-500 truncate mb-2 font-medium">by {book.author}</p>
-                            
-                            <div className="flex flex-wrap gap-1 mb-2">
-                              {book.category && <span className="text-[9px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 truncate max-w-[100px]">{book.category}</span>}
-                              {book.class_level && <span className="text-[9px] font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">Class {book.class_level}</span>}
+                            {/* Status indicator badge */}
+                            <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1 pointer-events-none">
+                              <div className="flex flex-wrap gap-1">
+                                {isNew && <span className="bg-indigo-600 text-white text-[9px] px-2 py-0.5 rounded-md font-extrabold uppercase tracking-wider shadow-sm">NEW</span>}
+                                <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold shadow-sm ${book.available_copies > 0 ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-200"}`}>
+                                  {book.available_copies > 0 ? `${book.available_copies} Available` : "Borrowed"}
+                                </span>
+                              </div>
+                              {user?.role === 'admin' && (
+                                <Button size="icon" variant="secondary" className="h-6 w-6 rounded-md bg-white/95 shadow-xs hover:bg-white hover:text-indigo-700 text-indigo-600 z-10 pointer-events-auto shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/admin-dashboard'); }}>
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                           
                           <div>
-                            {!!(r || borrowCounts[book.id] > 0) && (
-                              <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium mb-2">
-                                {r && (
-                                  <div className="flex items-center gap-0.5 text-amber-600 font-bold">
-                                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {r.avg.toFixed(1)}
-                                  </div>
-                                )}
-                                {borrowCounts[book.id] > 0 && <span className="ml-auto text-[10px] text-slate-400">{borrowCounts[book.id]} borrows</span>}
-                              </div>
-                            )}
+                            <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1">{book.title}</h4>
+                            <p className="text-[11px] text-slate-500 truncate mb-2 font-medium">by {book.author || "Unknown Author"}</p>
                             
-                            <div className="flex gap-1 pt-2 border-t border-slate-100 relative z-20" onClick={(e) => e.stopPropagation()}>
-                              {book.available_copies > 0 ? (
-                                <Button size="sm" className="h-8 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-xs border-0 flex-1 transition-all" onClick={() => requestBook(book.id)}>
-                                  Borrow
-                                </Button>
-                              ) : (
-                                <Button size="sm" variant="secondary" className="h-8 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex-1 transition-all" onClick={() => reserveBook(book.id)}>
-                                  Waitlist
-                                </Button>
-                              )}
-                              <Button size="sm" variant="outline" className={`h-8 w-8 p-0 rounded-lg shrink-0 border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
-                                {wishlist.has(book.id) ? <BookmarkCheck className="h-4 w-4 text-indigo-600" /> : <Bookmark className="h-4 w-4" />}
-                              </Button>
+                            <div className="flex flex-wrap gap-1 mb-2.5">
+                              {book.category && <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 truncate max-w-[110px]">{book.category}</span>}
+                              {book.class_level && <span className="text-[9px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">Class {book.class_level}</span>}
                             </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          {!!(r || borrowCounts[book.id] > 0) && (
+                            <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium mb-2.5 pt-1">
+                              {r ? (
+                                <div className="flex items-center gap-1 text-amber-600 font-extrabold bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60 text-[10px]">
+                                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {r.avg.toFixed(1)}
+                                </div>
+                              ) : <span />}
+                              {borrowCounts[book.id] > 0 && <span className="text-[10px] text-slate-400 font-medium">{borrowCounts[book.id]} issue{borrowCounts[book.id] > 1 ? "s" : ""}</span>}
+                            </div>
+                          )}
+                          
+                          <div className="flex gap-1.5 pt-2 border-t border-slate-100 relative z-20" onClick={(e) => e.stopPropagation()}>
+                            {book.available_copies > 0 ? (
+                              <Button size="sm" className="h-8.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-xs border-0 flex-1 transition-all" onClick={() => requestBook(book.id)}>
+                                Borrow
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="secondary" className="h-8.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex-1 transition-all" onClick={() => reserveBook(book.id)}>
+                                Waitlist
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline" className={`h-8.5 w-8.5 p-0 rounded-xl shrink-0 border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
+                              {wishlist.has(book.id) ? <BookmarkCheck className="h-4 w-4 text-indigo-600" /> : <Bookmark className="h-4 w-4" />}
+                            </Button>
                           </div>
                         </div>
                       </div>
