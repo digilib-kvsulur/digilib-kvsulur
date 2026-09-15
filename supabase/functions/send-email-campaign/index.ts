@@ -192,11 +192,15 @@ Deno.serve(async (request) => {
 
     const { data: recipients } = await admin
       .from("profiles")
-      .select("id, first_name, notification_email, notification_email_confirmed_at")
-      .in("id", recipientIds)
-      .not("notification_email_confirmed_at", "is", null);
+      .select("id, first_name, email, notification_email")
+      .in("id", recipientIds);
 
-    const valid = (recipients || []).filter((p: any) => p.notification_email);
+    const valid = (recipients || [])
+      .map((p: any) => ({
+        ...p,
+        targetEmail: (p.notification_email || p.email || "").trim(),
+      }))
+      .filter((p: any) => Boolean(p.targetEmail));
 
     const key = Deno.env.get("RESEND_API_KEY");
     const from = Deno.env.get("LIBRARY_FROM_EMAIL") || "KV Sulur Library <onboarding@resend.dev>";
@@ -219,7 +223,7 @@ Deno.serve(async (request) => {
           },
           body: JSON.stringify({
             from,
-            to: [p.notification_email],
+            to: [p.targetEmail],
             subject: template.subject,
             html,
           }),
