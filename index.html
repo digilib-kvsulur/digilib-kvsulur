@@ -64,11 +64,24 @@
       }
     </script>
     <script>
+      // Capture beforeinstallprompt BEFORE React mounts — store globally so it's never lost
+      window.__pwaInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaInstallPrompt = e;
+        // Dispatch a custom event so React components can react even if already mounted
+        window.dispatchEvent(new CustomEvent('pwa-install-ready', { detail: e }));
+      });
+      window.addEventListener('appinstalled', function() {
+        window.__pwaInstallPrompt = null;
+        window.dispatchEvent(new CustomEvent('pwa-installed'));
+      });
+
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then((reg) => {
-            reg.update().catch(() => {});
-          }).catch(() => {});
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            reg.update().catch(function() {});
+          }).catch(function() {});
         });
       }
     </script>
