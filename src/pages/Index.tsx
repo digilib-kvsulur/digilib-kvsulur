@@ -352,7 +352,7 @@ const Index = () => {
           <div className="flex items-center gap-6 text-slate-600">
             <span className="flex items-center gap-2 font-medium"><MapPin className="h-4 w-4 text-indigo-600" /> PM SHRI KV AFS Sulur, Coimbatore</span>
             <span className="h-3.5 w-px bg-slate-300 hidden md:block" />
-            <span className="flex items-center gap-2 hidden md:flex font-medium"><Mail className="h-4 w-4 text-indigo-600" /> kvafssulurlibrary@gmail.com</span>
+            <span className="flex items-center gap-2 hidden md:flex font-medium"><Mail className="h-4 w-4 text-indigo-600" /> dlms@kvsulur.in</span>
           </div>
           <span className="flex items-center gap-2 text-indigo-900 font-bold px-3 py-1 bg-white/60 rounded-full border border-indigo-100 shadow-sm">
             <Sparkles className="h-3.5 w-3.5 text-amber-500" /> PM SHRI National Excellence School

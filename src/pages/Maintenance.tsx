@@ -294,7 +294,7 @@ export default function Maintenance() {
           {/* Contact button */}
           <a
             id="maintenance-support-btn"
-            href="mailto:tanishvettrivel2010@gmail.com"
+            href="mailto:dlms@kvsulur.in"
             className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
             style={{
               background: "var(--gradient-warm)",
@@ -311,12 +311,12 @@ export default function Maintenance() {
             }}
           >
             <Mail className="w-4 h-4 flex-shrink-0" />
-            <span>Contact Developer</span>
+            <span>Contact Support</span>
           </a>
         </div>
 
         <p className="text-[10px] sm:text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
-          tanishvettrivel2010@gmail.com
+          dlms@kvsulur.in
         </p>
       </div>
 

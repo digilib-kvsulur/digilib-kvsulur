@@ -19,7 +19,7 @@ type Payload = {
 
 async function sendResendEmail(opts: { to: string; subject: string; html: string }) {
   const apiKey = Deno.env.get("RESEND_API_KEY");
-  const from = Deno.env.get("LIBRARY_FROM_EMAIL") || "KV Sulur Library <onboarding@resend.dev>";
+  const from = Deno.env.get("LIBRARY_FROM_EMAIL") || "PM SHRI KV Sulur Library <dlms@kvsulur.in>";
   if (!apiKey) {
     console.warn("RESEND_API_KEY not set — email skipped");
     return { skipped: true };
