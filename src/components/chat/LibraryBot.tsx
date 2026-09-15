@@ -551,63 +551,49 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   return (
     <div className="fixed bottom-20 md:bottom-6 right-3.5 md:right-6 z-40">
       {isOpen ? (
-        <div className="bg-background border shadow-2xl rounded-2xl w-[360px] sm:w-[400px] max-w-[calc(100vw-1.5rem)] h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 border-border/80">
-          {/* Header */}
-          <div className="bg-primary/10 p-3.5 border-b flex justify-between items-center shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="bg-primary text-primary-foreground p-2 rounded-full shadow-xs">
-                <Bot className="h-5 w-5" />
+        <div className="bg-background border shadow-2xl rounded-2xl w-[360px] sm:w-[400px] max-w-[calc(100vw-1.5rem)] h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 border-border/60">
+
+          {/* ── Gradient Header ──────────────────────────── */}
+          <div className="shrink-0 bg-gradient-to-r from-primary/15 via-primary/8 to-violet-500/10 border-b border-border/50 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative shrink-0">
+                <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center shadow-md ring-2 ring-primary/20">
+                  <Bot className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="font-bold text-sm text-foreground">{botName}</h3>
-                  <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                </div>
-                <p className="text-[11px] text-muted-foreground">KV Sulur Library Assistant</p>
+                <h3 className="font-bold text-sm text-foreground leading-tight">{botName}</h3>
+                <p className="text-[10px] text-muted-foreground">KV Sulur Library Assistant · Online</p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsOpen(false)}
-                className="h-8 w-8 rounded-full hover:bg-background/80"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 rounded-full hover:bg-background/80 text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </Button>
           </div>
 
-          {/* Messages & Interactive Area */}
-          <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5">
+          {/* ── Messages & Widget Area ────────────────────── */}
+          <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role === 'assistant' && (
-                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-auto">
+                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-auto ring-1 ring-primary/15">
                     <Bot className="h-3.5 w-3.5 text-primary" />
                   </div>
                 )}
-                <div className="flex flex-col gap-1.5 max-w-[85%]">
-                  <div className={`px-3.5 py-2 rounded-2xl text-xs sm:text-sm ${
+                <div className="flex flex-col gap-1 max-w-[84%]">
+                  <div className={`px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed ${
                     m.role === 'user'
-                      ? 'bg-primary text-primary-foreground rounded-br-xs'
-                      : 'bg-muted/80 text-foreground rounded-bl-xs border border-border/40'
+                      ? 'bg-gradient-to-br from-primary to-primary/85 text-primary-foreground rounded-tr-xs shadow-sm'
+                      : 'bg-muted/60 text-foreground rounded-tl-xs border border-border/40 shadow-xs'
                   }`}>
                     {renderFormattedMessage(m.content)}
                   </div>
                   {m.role === 'assistant' && i === messages.length - 1 && (m.content.includes("trouble") || m.content.includes("failed")) && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        const lastUserMsg = [...messages].reverse().find(msg => msg.role === 'user');
-                        if (lastUserMsg) {
-                          setMessages(prev => prev.slice(0, -1));
-                          sendMessage(lastUserMsg.content);
-                        }
-                      }} 
-                      className="text-[10px] self-start gap-1 py-1 px-2.5 h-auto rounded-full bg-background border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                    >
+                    <Button variant="outline" size="sm" onClick={() => {
+                      const lastUserMsg = [...messages].reverse().find(msg => msg.role === 'user');
+                      if (lastUserMsg) { setMessages(prev => prev.slice(0, -1)); sendMessage(lastUserMsg.content); }
+                    }} className="text-[10px] self-start gap-1 py-1 px-2.5 h-auto rounded-full bg-background border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
                       <RefreshCw className="h-3 w-3" /> Retry Connection
                     </Button>
                   )}
@@ -615,108 +601,76 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
               </div>
             ))}
 
+            {/* ── Animated typing dots ─────────────────────── */}
             {loading && (
               <div className="flex gap-2 justify-start">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-auto">
+                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-auto ring-1 ring-primary/15">
                   <Bot className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <div className="px-3.5 py-2 rounded-2xl bg-muted/80 rounded-bl-xs text-xs flex items-center gap-2 border border-border/40">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Thinking...
+                <div className="px-4 py-3 rounded-2xl rounded-tl-xs bg-muted/60 border border-border/40 shadow-xs flex items-center gap-1">
+                  {[0, 150, 300].map((delay) => (
+                    <span key={delay} className="h-1.5 w-1.5 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: `${delay}ms`, animationDuration: "900ms" }} />
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Interactive Cards */}
-            {activeWidget === 'ticket' && (
-              <InChatTicketWidget
-                currentUser={currentUser}
-                onClose={() => setActiveWidget('none')}
-                onTicketCreated={handleTicketCreated}
-              />
-            )}
-
-            {activeWidget === 'profile' && (
-              <InChatProfileEditor
-                currentUser={currentUser}
-                onClose={() => setActiveWidget('none')}
-                onProfileUpdated={handleProfileUpdated}
-              />
-            )}
-
-            {activeWidget === 'feedback' && (
-              <InChatFeedbackWidget
-                currentUser={currentUser}
-                onClose={() => setActiveWidget('none')}
-                onFeedbackSubmitted={handleFeedbackSubmitted}
-              />
-            )}
-
-            {activeWidget === 'badges' && (
-              <InChatBadgeCard
-                currentUser={currentUser}
-                onClose={() => setActiveWidget('none')}
-              />
-            )}
-
-            {activeWidget === 'certificates' && (
-              <InChatCertificateCard
-                currentUser={currentUser}
-                onClose={() => setActiveWidget('none')}
-              />
-            )}
-
-            {activeWidget === 'level' && (
-              <InChatLevelCard
-                currentUser={currentUser}
-                onClose={() => setActiveWidget('none')}
-              />
-            )}
+            {/* ── Interactive Cards ────────────────────────── */}
+            {activeWidget === 'ticket' && <InChatTicketWidget currentUser={currentUser} onClose={() => setActiveWidget('none')} onTicketCreated={handleTicketCreated} />}
+            {activeWidget === 'profile' && <InChatProfileEditor currentUser={currentUser} onClose={() => setActiveWidget('none')} onProfileUpdated={handleProfileUpdated} />}
+            {activeWidget === 'feedback' && <InChatFeedbackWidget currentUser={currentUser} onClose={() => setActiveWidget('none')} onFeedbackSubmitted={handleFeedbackSubmitted} />}
+            {activeWidget === 'badges' && <InChatBadgeCard currentUser={currentUser} onClose={() => setActiveWidget('none')} />}
+            {activeWidget === 'certificates' && <InChatCertificateCard currentUser={currentUser} onClose={() => setActiveWidget('none')} />}
+            {activeWidget === 'level' && <InChatLevelCard currentUser={currentUser} onClose={() => setActiveWidget('none')} />}
 
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Prompt Chips & Input Controls */}
-          <div className="p-2.5 bg-muted/25 border-t border-border/60 flex flex-col gap-2 shrink-0">
+          {/* ── Bottom: Chip strip + Input ───────────────── */}
+          <div className="shrink-0 border-t border-border/50 bg-background/95 backdrop-blur-sm">
             {prompts.length > 0 && (
-              <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none no-scrollbar py-0.5">
-                {prompts.map((p, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => sendMessage(p)}
-                    className="text-[10px] whitespace-nowrap px-2.5 py-1 rounded-full border border-primary/25 text-primary bg-background hover:bg-primary/10 hover:border-primary transition-all shrink-0 font-medium shadow-2xs"
-                  >
-                    {p}
-                  </button>
-                ))}
+              <div className="px-3 pt-2 pb-1">
+                <div
+                  className="flex gap-1.5 overflow-x-auto scrollbar-none"
+                  style={{
+                    maskImage: "linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent)",
+                    WebkitMaskImage: "linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent)",
+                  }}
+                >
+                  <div className="w-2 shrink-0" />
+                  {prompts.map((p, idx) => (
+                    <button key={idx} onClick={() => sendMessage(p)}
+                      className="whitespace-nowrap text-[10px] px-2.5 py-1 rounded-full border border-primary/30 text-primary bg-background hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-xs transition-all duration-150 shrink-0 font-medium">
+                      {p}
+                    </button>
+                  ))}
+                  <div className="w-2 shrink-0" />
+                </div>
               </div>
             )}
-
-            <div className="flex gap-1.5 items-center">
-              <Input 
-                value={input} 
-                onChange={e => setInput(e.target.value)} 
-                onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                placeholder="Ask or command Avenyx..." 
-                className="bg-background text-xs h-9 rounded-full border-muted-foreground/20 focus-visible:ring-primary/30"
+            <div className="flex gap-1.5 items-center px-3 pb-3 pt-1.5">
+              <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !loading && sendMessage()}
+                placeholder="Ask or command Avenyx…"
+                className="bg-muted/40 text-xs h-9 rounded-full border-border/40 focus-visible:ring-primary/30 focus-visible:bg-background transition-colors placeholder:text-muted-foreground/60"
               />
-              <Button
-                size="icon"
-                onClick={() => sendMessage()}
-                disabled={!input.trim() || loading}
-                className="h-9 w-9 rounded-full shrink-0 shadow-xs"
-              >
+              <Button size="icon" onClick={() => sendMessage()} disabled={!input.trim() || loading}
+                className="h-9 w-9 rounded-full shrink-0 bg-primary hover:bg-primary/90 disabled:opacity-35 shadow-sm transition-all hover:scale-105 active:scale-95">
                 <Send className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </div>
       ) : (
-        <Button 
-          onClick={() => setIsOpen(true)}
-          className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-transform animate-in zoom-in border border-primary-foreground/20 p-0 flex items-center justify-center"
-        >
-          <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
-        </Button>
+        /* ── FAB with presence ring ─────────────────────── */
+        <div className="relative">
+          <Button onClick={() => setIsOpen(true)}
+            className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-transform animate-in zoom-in border border-primary-foreground/20 p-0 flex items-center justify-center">
+            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
+          </Button>
+          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-emerald-500 border-2 border-background shadow-sm flex items-center justify-center">
+            <span className="h-full w-full rounded-full bg-emerald-400 animate-ping opacity-70" />
+          </span>
+        </div>
       )}
     </div>
   );

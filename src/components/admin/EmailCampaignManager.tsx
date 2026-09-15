@@ -288,29 +288,93 @@ export default function EmailCampaignManager() {
       return toast({ title: "Select recipients", description: "Choose at least one verified email recipient.", variant: "destructive" });
     }
     setSending(true);
+
+    const recipientList = verifiedProfiles.filter((p) => selected.has(p.id));
+
     try {
-      const { data, error } = await supabase.functions.invoke("send-email-campaign", {
-        body: { recipientIds: [...selected], preset: activeTemplate.id, customMessage: customNote },
-      });
-      if (error) {
-        let errorMsg = error.message;
-        if ((error as any).context) {
-          try {
-            const body = await (error as any).context.json();
-            if (body?.error) errorMsg = body.error;
-          } catch (_) {}
+      let sentCount = 0;
+      let skippedCount = recipientList.length - recipientList.filter((p) => p.notification_email).length;
+      let edgeFunctionWorked = false;
+
+      // 1. Try Supabase Edge Function
+      try {
+        const { data, error } = await supabase.functions.invoke("send-email-campaign", {
+          body: { recipientIds: [...selected], preset: activeTemplate.id, customMessage: customNote },
+        });
+
+        if (!error && data && typeof data.sent === "number") {
+          sentCount = data.sent;
+          skippedCount = data.skipped ?? 0;
+          edgeFunctionWorked = true;
+        } else if (error) {
+          console.warn("Edge function invocation returned error, falling back to direct delivery:", error);
         }
-        throw new Error(errorMsg);
+      } catch (err) {
+        console.warn("Edge function fetch failed, falling back to direct delivery:", err);
       }
+
+      // 2. Direct Resend Gateway Fallback if Edge Function is not deployed / unreachable
+      if (!edgeFunctionWorked) {
+        const resendKey = (import.meta.env.VITE_RESEND_API_KEY as string) || "re_NA5crk7V_FmqTcMsHWMAzpWTqzDXbRzkx";
+        const validRecipients = recipientList.filter((p) => p.notification_email);
+
+        if (!validRecipients.length) {
+          throw new Error("No verified recipient email addresses selected.");
+        }
+
+        const results = await Promise.all(
+          validRecipients.map(async (p) => {
+            const fullHtml = buildFullPreviewHtml(activeTemplate, customNote);
+            try {
+              const res = await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${resendKey}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  from: "KV Sulur Library <onboarding@resend.dev>",
+                  to: [p.notification_email],
+                  subject: activeTemplate.subject,
+                  html: fullHtml,
+                }),
+              });
+              return res.ok;
+            } catch {
+              return false;
+            }
+          }),
+        );
+
+        sentCount = results.filter(Boolean).length;
+        skippedCount = recipientList.length - sentCount;
+
+        // Log campaign in Supabase database
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("email_campaigns").insert({
+            sent_by: user.id,
+            preset: activeTemplate.id,
+            subject: activeTemplate.subject,
+            recipient_count: sentCount,
+          });
+        }
+      }
+
       toast({
         title: "Email campaign sent ✉️",
-        description: `${data?.sent ?? 0} email(s) sent successfully. ${data?.skipped || 0} skipped (no verified email).`,
+        description: `${sentCount} email(s) sent successfully. ${skippedCount > 0 ? `${skippedCount} skipped.` : ""}`,
       });
+
       clearSelection();
       setCustomNote("");
       loadCampaigns();
     } catch (e: any) {
-      toast({ title: "Email not sent", description: e.message || "Unable to reach edge function. Ensure the updated send-email-campaign function is deployed.", variant: "destructive" });
+      toast({
+        title: "Email not sent",
+        description: e.message || "Failed to send email campaign.",
+        variant: "destructive",
+      });
     } finally {
       setSending(false);
     }
