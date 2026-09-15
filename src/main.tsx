@@ -22,6 +22,7 @@ if ('serviceWorker' in navigator) {
 
 // ─── Domain Migration Landing: show welcome + install nudge ───────────────────
 if (new URLSearchParams(window.location.search).get('migrated') === 'true') {
+  sessionStorage.setItem('pwa_migration_flow', 'true');
   // Clean the URL without reload
   window.history.replaceState({}, '', window.location.pathname);
   // Fire a toast after React mounts (small delay so Sonner Toaster is ready)
@@ -29,7 +30,7 @@ if (new URLSearchParams(window.location.search).get('migrated') === 'true') {
     try {
       const { toast } = await import('sonner');
       toast.success('🎉 Welcome to the official KV Sulur DigiLib domain!', {
-        description: 'You\'re now on dlms.kvsulur.in — tap "Install" to add it to your home screen.',
+        description: 'You\'re now on dlms.kvsulur.in — follow the steps to add it to your home screen.',
         duration: 8000,
       });
     } catch { /* ignore */ }

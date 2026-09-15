@@ -15,6 +15,7 @@ import { Seo } from "@/components/seo/Seo";
 import { GlobalNotificationsProvider } from "@/components/global/GlobalNotificationsProvider";
 import { CommandPalette } from "@/components/global/CommandPalette";
 import DomainMigrationBanner from "@/components/global/DomainMigrationBanner";
+import MigrationInstallGuide from "@/components/global/MigrationInstallGuide";
 
 const queryClient = new QueryClient();
 const Login = lazy(() => import("./pages/Login"));
@@ -90,7 +91,7 @@ const isStandalone = () =>
   window.matchMedia?.("(display-mode: standalone)")?.matches || (navigator as any).standalone === true;
 
 const PWAInstallBanner = () => {
-  const [prompt, setPrompt] = useState<any>(null);
+  const [prompt, setPrompt] = useState<any>(() => (window as any).__pwaInstallPrompt || null);
   const [dismissed, setDismissed] = useState(() => !!localStorage.getItem("pwa_install_dismissed"));
 
   useEffect(() => {
@@ -98,17 +99,22 @@ const PWAInstallBanner = () => {
       e.preventDefault();
       setPrompt(e);
     };
+    const onCustomReady = (e: CustomEvent) => {
+      setPrompt(e.detail);
+    };
     const installed = () => {
       localStorage.setItem("pwa_install_dismissed", "1");
       setPrompt(null);
       void awardPwaInstall();
     };
     window.addEventListener("beforeinstallprompt", handler as any);
+    window.addEventListener("pwa-install-ready" as any, onCustomReady as any);
     window.addEventListener("appinstalled", installed);
     // Already-installed users (or pending award from a signed-out install)
     if (isStandalone() || localStorage.getItem("pwa_install_pending_award")) void awardPwaInstall();
     return () => {
       window.removeEventListener("beforeinstallprompt", handler as any);
+      window.removeEventListener("pwa-install-ready" as any, onCustomReady as any);
       window.removeEventListener("appinstalled", installed);
     };
   }, []);
@@ -237,6 +243,7 @@ const App = () => {
             <UpdateBanner />
             <PWAInstallBanner />
             <DomainMigrationBanner />
+            <MigrationInstallGuide />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Index />} />
