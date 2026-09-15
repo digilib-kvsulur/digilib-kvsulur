@@ -10,7 +10,7 @@ import {
   Calendar, RefreshCw, Star, AlertTriangle, Barcode, HardDrive, Server,
   Gamepad2, AlertCircle, FileSpreadsheet, LifeBuoy, Library as LibraryIcon,
   ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon,
-  Newspaper, Users as UsersIcon, Crown, Sparkles, Zap
+  Newspaper, Users as UsersIcon, Crown, Sparkles, Zap, Mail
 } from "lucide-react";
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
@@ -58,8 +58,9 @@ import MetadataFetchDashboard from "@/components/admin/MetadataFetchDashboard";
 import ExpressCirculation from "@/components/admin/ExpressCirculation";
 import AcademicYearRollover from "@/components/admin/AcademicYearRollover";
 import BugBountyManager from "@/components/admin/BugBountyManager";
+import EmailCampaignManager from "@/components/admin/EmailCampaignManager";
 
-type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty";
 
 const navSections = [
   {
@@ -118,6 +119,7 @@ const navSections = [
       { id: "gallery" as Tab, label: "Gallery", icon: ImageIcon },
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
+      { id: "email" as Tab, label: "Email Centre", icon: Mail },
       { id: "community" as Tab, label: "Community", icon: MessageSquare },
       { id: "bug-bounty" as Tab, label: "Bug Bounty", icon: ShieldAlert },
     ],
@@ -509,6 +511,7 @@ const AdminDashboard = () => {
           {activeTab === "levels" && <LevelManager />}
           {activeTab === "analytics" && <ClassAnalytics />}
           {activeTab === "notifications" && <NotificationSender />}
+          {activeTab === "email" && <EmailCampaignManager />}
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
           {activeTab === "materials" && <StudyMaterialsManager />}
           {activeTab === "barcodes" && <BarcodeGenerator />}
