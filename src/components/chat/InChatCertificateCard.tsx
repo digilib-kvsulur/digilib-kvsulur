@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Award, FileText, Download, X, Loader2, Sparkles, ExternalLink } from "lucide-react";
+import { Award, FileText, X, Loader2, Sparkles, ExternalLink, BadgeCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface InChatCertificateCardProps {
@@ -12,7 +12,7 @@ interface InChatCertificateCardProps {
 export const InChatCertificateCard = ({
   currentUser,
   onClose,
-  onNavigateToCertificates
+  onNavigateToCertificates,
 }: InChatCertificateCardProps) => {
   const [loading, setLoading] = useState(true);
   const [certificates, setCertificates] = useState<any[]>([]);
@@ -22,10 +22,7 @@ export const InChatCertificateCard = ({
   }, [currentUser]);
 
   const loadCertificates = async () => {
-    if (!currentUser?.id) {
-      setLoading(false);
-      return;
-    }
+    if (!currentUser?.id) { setLoading(false); return; }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -33,22 +30,32 @@ export const InChatCertificateCard = ({
         .select("*")
         .eq("user_id", currentUser.id)
         .order("issued_at", { ascending: false });
-
       if (error) throw error;
       setCertificates(data || []);
     } catch (err) {
-      console.error("Error fetching certificates in bot:", err);
+      console.error("Certificate fetch error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-3 bg-card border border-primary/30 rounded-2xl shadow-lg space-y-2.5 animate-in fade-in slide-in-from-bottom-2 text-xs">
-      <div className="flex items-center justify-between border-b border-border/60 pb-2">
-        <div className="flex items-center gap-1.5 font-bold text-foreground">
-          <Award className="h-4 w-4 text-primary" />
-          <span>Issued Certificates ({certificates.length})</span>
+    <div className="bg-card border border-border/60 rounded-2xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-bottom-3 text-xs">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border-b border-border/50 px-3 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-emerald-500/20">
+            <Award className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <p className="font-bold text-[11px] text-foreground">
+              Issued Certificates
+              <span className="ml-1.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full text-[9px] font-bold">
+                {loading ? "…" : certificates.length}
+              </span>
+            </p>
+            <p className="text-[9px] text-muted-foreground">Official KV Sulur recognitions</p>
+          </div>
         </div>
         <Button
           variant="ghost"
@@ -60,63 +67,78 @@ export const InChatCertificateCard = ({
         </Button>
       </div>
 
-      {!currentUser?.id ? (
-        <p className="text-muted-foreground">🔒 Sign in to view your issued library certificates and accolades.</p>
-      ) : loading ? (
-        <div className="flex items-center justify-center py-6 gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading certificates...
-        </div>
-      ) : certificates.length === 0 ? (
-        <div className="p-3 text-center bg-muted/20 rounded-xl border border-dashed text-muted-foreground text-[11px] space-y-1">
-          <FileText className="h-6 w-6 mx-auto opacity-40 text-primary" />
-          <p className="font-semibold text-foreground">No certificates issued yet</p>
-          <p className="text-[10px]">
-            Participate in Library Reading Weeks, Book Quizzes, and Events to earn official KV Sulur certificates!
+      <div className="p-3 space-y-2.5">
+        {!currentUser?.id ? (
+          <p className="text-muted-foreground py-1">
+            🔒 Sign in to view your issued library certificates.
           </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
-            {certificates.map((cert) => (
-              <div
-                key={cert.id}
-                className="p-2 bg-background rounded-lg border border-border/70 flex flex-col gap-1 shadow-2xs"
-              >
-                <div className="flex items-start justify-between gap-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-foreground text-[11px]">
-                    <Sparkles className="h-3 w-3 text-amber-500 shrink-0" />
-                    <span className="truncate">{cert.title || "Certificate of Excellence"}</span>
+        ) : loading ? (
+          <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+            <span className="text-[11px]">Loading certificates...</span>
+          </div>
+        ) : certificates.length === 0 ? (
+          <div className="flex flex-col items-center py-5 text-center border border-dashed border-border/60 rounded-xl bg-muted/20">
+            <FileText className="h-7 w-7 text-muted-foreground/25 mb-1.5" />
+            <p className="text-[11px] font-semibold text-foreground">No certificates yet</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px] leading-relaxed">
+              Participate in Library Reading Weeks, Book Quizzes & Events to earn official certificates!
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="space-y-1.5 max-h-[150px] overflow-y-auto pr-0.5">
+              {certificates.map((cert) => (
+                <div
+                  key={cert.id}
+                  className="p-2.5 bg-background rounded-xl border border-border/60 hover:border-emerald-500/30 transition-colors shadow-xs"
+                  style={{ borderLeftWidth: 3, borderLeftColor: "#10b981" }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-1.5 font-semibold text-foreground text-[11px] min-w-0">
+                      <Sparkles className="h-3 w-3 text-amber-500 shrink-0" />
+                      <span className="truncate">{cert.title || "Certificate of Excellence"}</span>
+                    </div>
+                    <span className="text-[9px] text-muted-foreground shrink-0 font-mono">
+                      {new Date(cert.issued_at).toLocaleDateString("en-IN", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
                   </div>
-                  <span className="text-[9px] text-muted-foreground shrink-0 font-mono">
-                    {new Date(cert.issued_at).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
-                  </span>
+                  {cert.description && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 pl-4">{cert.description}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-border/40">
+                    <span className="text-[9px] font-mono text-muted-foreground/70">ID: {cert.id.slice(0, 8)}…</span>
+                    <span className="flex items-center gap-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <BadgeCheck className="h-2.5 w-2.5" /> Verified Official
+                    </span>
+                  </div>
                 </div>
-                {cert.description && (
-                  <p className="text-[10px] text-muted-foreground line-clamp-2">{cert.description}</p>
-                )}
-                <div className="flex items-center justify-between text-[9px] text-muted-foreground pt-0.5 border-t border-border/40 mt-0.5">
-                  <span className="font-mono">ID: {cert.id.slice(0, 8)}...</span>
-                  <span className="text-primary font-medium">Verified Official</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <div className="p-2 bg-primary/5 rounded-xl border border-primary/20 text-[10px] text-foreground flex items-center justify-between">
-            <span>Download High-Res PDF in <strong>Student Dashboard &gt; Certificates</strong></span>
-            {onNavigateToCertificates && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onNavigateToCertificates}
-                className="h-6 text-[10px] text-primary hover:text-primary px-2"
-              >
-                Open <ExternalLink className="h-2.5 w-2.5 ml-1" />
-              </Button>
-            )}
+            {/* Download CTA */}
+            <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl px-2.5 py-2 text-[10px]">
+              <span className="text-foreground leading-snug">
+                Download PDF in <strong>Student Dashboard → Certificates</strong>
+              </span>
+              {onNavigateToCertificates && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onNavigateToCertificates}
+                  className="h-6 text-[10px] text-primary hover:text-primary px-2 shrink-0 ml-2"
+                >
+                  Open <ExternalLink className="h-2.5 w-2.5 ml-1" />
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
