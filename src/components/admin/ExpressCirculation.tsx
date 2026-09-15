@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { sendBookIssueEmail, sendBookReturnEmail } from "@/lib/autoEmail";
 import {
   Barcode,
   Camera,
@@ -184,6 +185,7 @@ export const ExpressCirculation: React.FC = () => {
           title: "Book Returned! 📚↩️",
           description: `"${existingLoan.book?.title}" returned by ${selectedStudent.first_name}.`,
         });
+        sendBookReturnEmail(selectedStudent.id, existingLoan.book?.title || "Book");
 
         loadStudentLoans(selectedStudent.id);
         setBookScanInput("");
@@ -270,6 +272,7 @@ export const ExpressCirculation: React.FC = () => {
         title: "Book Issued! 📖⚡",
         description: `"${targetBook.title}" issued to ${selectedStudent.first_name}. Due: ${dueDate} (${loanDays} days)`,
       });
+      sendBookIssueEmail(selectedStudent.id, targetBook.title, dueDate);
 
       loadStudentLoans(selectedStudent.id);
       setBookScanInput("");

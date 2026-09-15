@@ -48,6 +48,75 @@ interface Template {
 
 const TEMPLATES: Template[] = [
   {
+    id: "book_issued",
+    label: "Book Issued Receipt",
+    description: "Automatic confirmation email sent when a book is issued to a student",
+    subject: "Book Issued — KV Sulur Digital Library",
+    icon: BookOpen,
+    color: "text-blue-600",
+    previewHtml: (name, note) => `
+      <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
+      <p>A book has been issued to your account at the <strong>PM SHRI KV AFS Sulur Digital Library</strong>.</p>
+      <div style="background:#f0f9ff;border-left:4px solid #0284c7;padding:16px 20px;border-radius:8px;margin:20px 0;">
+        <p style="margin:0;font-size:15px;color:#0369a1;font-weight:700;">📖 Borrow Details</p>
+        <p style="margin:8px 0 0 0;font-size:14px;color:#0f172a;">${note || "Book Title: 'Wings of Fire' · Due Date: 14 Days"}</p>
+      </div>
+      <p style="color:#475569;font-size:13px;">Please handle the book with care and return or renew on time.</p>
+      <p style="margin-bottom:0;">Happy Reading!<br/><strong>— PM SHRI KV AFS Sulur Library Team</strong></p>`,
+  },
+  {
+    id: "book_returned",
+    label: "Book Returned Receipt",
+    description: "Automatic receipt sent when a student returns a borrowed book",
+    subject: "Book Return Receipt — KV Sulur Library",
+    icon: CheckCircle2,
+    color: "text-emerald-600",
+    previewHtml: (name, note) => `
+      <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
+      <p>Thank you for returning your library book! We have updated your account status.</p>
+      <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:16px 20px;border-radius:8px;margin:20px 0;">
+        <p style="margin:0;font-size:15px;color:#15803d;font-weight:700;">✅ Return Summary</p>
+        <p style="margin:8px 0 0 0;font-size:14px;color:#0f172a;">${note || "Book Title: 'Wings of Fire' · Returned into collection."}</p>
+      </div>
+      <p style="color:#475569;font-size:13px;">You are now eligible to borrow your next favorite book from the catalog!</p>
+      <p style="margin-bottom:0;">— PM SHRI KV AFS Sulur Library Team</p>`,
+  },
+  {
+    id: "badge_awarded",
+    label: "Badge Awarded",
+    description: "Celebratory email when a student unlocks a new achievement badge",
+    subject: "🏆 Congratulations! You Earned a New Badge — KV Sulur Library",
+    icon: Award,
+    color: "text-amber-500",
+    previewHtml: (name, note) => `
+      <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
+      <p>Congratulations! You have been awarded a new achievement badge in the <strong>Digital Library</strong> 🎉</p>
+      <div style="background:#fffbeb;border:2px dashed #f59e0b;padding:20px;border-radius:12px;margin:20px 0;text-align:center;">
+        <div style="font-size:48px;line-height:1;margin-bottom:10px;">🏆</div>
+        <p style="margin:0;font-size:18px;color:#b45309;font-weight:700;">${note || "Master Reader Badge"}</p>
+        <p style="margin:6px 0 0 0;font-size:12px;color:#78350f;">View your showcase on the Digital Library Student Dashboard.</p>
+      </div>
+      <p style="color:#475569;font-size:13px;">Keep participating in library activities, reading books, and taking quizzes to unlock more badges!</p>
+      <p style="margin-bottom:0;">— PM SHRI KV AFS Sulur Library Team</p>`,
+  },
+  {
+    id: "level_up",
+    label: "Level Up / Rank Earned",
+    description: "Notification sent when a student reaches a new level or rank",
+    subject: "🌟 Level Up! You Reached a New Rank — KV Sulur Library",
+    icon: Coffee,
+    color: "text-purple-600",
+    previewHtml: (name, note) => `
+      <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
+      <p>Awesome progress! Your reading activity and library points have leveled up your rank 🚀</p>
+      <div style="background:#faf5ff;border-left:4px solid #9333ea;padding:18px 22px;border-radius:10px;margin:20px 0;">
+        <p style="margin:0;font-size:16px;color:#7e22ce;font-weight:700;">🌟 New Rank Unlocked</p>
+        <p style="margin:8px 0 0 0;font-size:15px;color:#1e1b4b;font-weight:600;">${note || "Level 5: Scholar Reader (150 Points)"}</p>
+      </div>
+      <p style="color:#475569;font-size:13px;">Check the Leaderboard on the Digital Library to see your standing among classmates!</p>
+      <p style="margin-bottom:0;">— PM SHRI KV AFS Sulur Library Team</p>`,
+  },
+  {
     id: "library_update",
     label: "Library Update",
     description: "General news or announcement from the library",
@@ -194,15 +263,20 @@ const PREVIEW_NAME = "Arjun Kumar";
 function buildFullPreviewHtml(template: Template, note: string): string {
   const body = template.previewHtml(PREVIEW_NAME, note);
   return `
-    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
-      <div style="background:#1a56db;padding:20px 24px;">
-        <p style="color:#fff;margin:0;font-weight:700;font-size:16px;">📚 PM SHRI KV AFS Sulur — Digital Library</p>
+    <div style="font-family:sans-serif;max-width:580px;margin:0 auto;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px -5px rgba(15,23,42,0.08);">
+      <div style="background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);padding:24px 28px;">
+        <p style="margin:0;color:#bfdbfe;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">PM SHRI KENDRIYA VIDYALAYA AFS SULUR</p>
+        <p style="color:#fff;margin:4px 0 0 0;font-weight:800;font-size:18px;">📚 Digital Library System</p>
       </div>
-      <div style="padding:24px;background:#fff;color:#111;font-size:14px;line-height:1.7;">
+      <div style="background:#f8fafc;padding:12px 28px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:between;">
+        <span style="background:#dbeafe;color:#1e40af;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;">${template.label}</span>
+      </div>
+      <div style="padding:28px;background:#fff;color:#1e293b;font-size:14px;line-height:1.7;">
         ${body}
       </div>
-      <div style="background:#f9fafb;padding:12px 24px;border-top:1px solid #e5e7eb;font-size:11px;color:#6b7280;text-align:center;">
-        PM SHRI Kendriya Vidyalaya AFS Sulur · KV Digital Library Management System
+      <div style="background:#f8fafc;padding:16px 28px;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;text-align:center;">
+        PM SHRI Kendriya Vidyalaya AFS Sulur · Digital Library Automation Portal<br/>
+        <a href="https://dlms.kvsulur.in" style="color:#2563eb;text-decoration:none;font-weight:600;">dlms.kvsulur.in</a>
       </div>
     </div>`;
 }

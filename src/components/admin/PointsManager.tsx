@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { sendLevelUpEmail } from "@/lib/autoEmail";
 import { cn } from "@/lib/utils";
 import {
   Award, Plus, CheckSquare, BookOpen, Settings2, CheckCircle, XCircle, Clock,
@@ -163,6 +164,7 @@ const PointsManager = () => {
       }
 
       toast({ title: "Success", description: `Successfully awarded ${points} points!` });
+      sendLevelUpEmail(selectedUserId, `Awarded +${points} Points (${actualReason})`, newPoints);
       setSelectedUserId("");
       setPointsToAward("");
       setReason("");

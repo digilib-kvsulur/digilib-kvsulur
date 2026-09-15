@@ -14,6 +14,7 @@ import PhysicalBadgeGenerator from "./PhysicalBadgeGenerator";
 import RotationalBadgeManager from "./RotationalBadgeManager";
 import BulkImportRewards from "./BulkImportRewards";
 import { FileSpreadsheet } from "lucide-react";
+import { sendBadgeAwardedEmail } from "@/lib/autoEmail";
 
 interface BadgeRow {
   id: string; name: string; description?: string; icon_name?: string; color?: string;
@@ -263,12 +264,17 @@ export default function BadgeManager() {
     }
     setEarnerLoading(false);
   };
+
   const doAward = async () => {
     if (!awardOpen || !selectedStudent) return;
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("badge_awards").insert({ user_id: selectedStudent, badge_id: awardOpen.id, awarded_by: user!.id, award_type: "manual" });
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Badge awarded" }); setAwardOpen(null); }
+    else {
+      toast({ title: "Badge awarded 🏆", description: "Student notified by email." });
+      sendBadgeAwardedEmail(selectedStudent, awardOpen.name, awardOpen.description || "");
+      setAwardOpen(null);
+    }
   };
 
   const matchingStudents = useMemo(() => {

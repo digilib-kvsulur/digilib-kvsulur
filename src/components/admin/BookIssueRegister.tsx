@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { getDaysOverdue, fetchFineSettings, LibraryFineSettings } from "@/lib/librarySettings";
+import { sendBookIssueEmail, sendBookReturnEmail } from "@/lib/autoEmail";
 
 interface BookIssue {
   id: string;
@@ -241,6 +242,7 @@ const BookIssueRegister = () => {
         });
         if (issueError) throw issueError;
         toast({ title: "Success", description: "Book issued successfully" });
+        sendBookIssueEmail(selectedUser, books.find((b) => b.id === selectedBook)?.title || "Book", dueDate);
         setSelectedBook("");
       }
       setSelectedUser(""); setIssueDate(today); setDueDate(defaultDue); setAccessionNumberInput("");
@@ -334,6 +336,10 @@ const BookIssueRegister = () => {
         if (stockErr) throw stockErr;
       }
       toast({ title: "Success", description: "Book returned and stock updated." });
+      const targetIssue = bookIssues.find((i) => i.id === issueId);
+      if (targetIssue) {
+        sendBookReturnEmail(targetIssue.user_id, targetIssue.books?.title || "Book");
+      }
       loadData();
 
       // Check if book was overdue and prompt fine payment right there
