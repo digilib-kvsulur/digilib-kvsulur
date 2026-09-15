@@ -1,5 +1,28 @@
-// Minimal Service Worker for installability, caching, and push notifications.
-const CACHE_NAME = 'kvsulur-dlms-v4';
+// Service Worker for KV Sulur DLMS — installability, caching, and push notifications.
+// ─── Domain Migration: Self-destruct if running on the old Vercel origin ────────
+const NEW_ORIGIN = 'https://dlms.kvsulur.in';
+const LEGACY_HOST = 'dlmskvsulur.vercel.app';
+
+if (self.location.hostname === LEGACY_HOST) {
+  // On the legacy domain: skip waiting, wipe all caches, unregister SW,
+  // and tell the open tab to show the migration prompt.
+  self.addEventListener('install', () => self.skipWaiting());
+  self.addEventListener('activate', (event) => {
+    event.waitUntil(
+      caches.keys()
+        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        .then(() => self.clients.matchAll({ includeUncontrolled: true, type: 'window' }))
+        .then((clients) => {
+          clients.forEach((c) => c.postMessage({ type: 'DOMAIN_MIGRATED', newOrigin: NEW_ORIGIN }));
+          return self.registration.unregister();
+        })
+    );
+    self.clients.claim();
+  });
+} else {
+
+// ─── Normal Service Worker for dlms.kvsulur.in ─────────────────────────────────
+const CACHE_NAME = 'kvsulur-dlms-v5';
 const ASSETS = [
   '/',
   '/index.html',
@@ -119,3 +142,5 @@ self.addEventListener('message', (ev) => {
     })();
   }
 });
+
+} // end else (normal domain)

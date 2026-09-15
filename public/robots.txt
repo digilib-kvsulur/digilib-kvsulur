@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://dlmskvsulur.vercel.app/sitemap.xml
+Sitemap: https://dlms.kvsulur.in/sitemap.xml

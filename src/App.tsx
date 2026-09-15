@@ -14,6 +14,7 @@ import DeveloperMessagePopup from "@/components/global/DeveloperMessagePopup";
 import { Seo } from "@/components/seo/Seo";
 import { GlobalNotificationsProvider } from "@/components/global/GlobalNotificationsProvider";
 import { CommandPalette } from "@/components/global/CommandPalette";
+import DomainMigrationBanner from "@/components/global/DomainMigrationBanner";
 
 const queryClient = new QueryClient();
 const Login = lazy(() => import("./pages/Login"));
@@ -235,6 +236,7 @@ const App = () => {
             <Seo />
             <UpdateBanner />
             <PWAInstallBanner />
+            <DomainMigrationBanner />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Index />} />

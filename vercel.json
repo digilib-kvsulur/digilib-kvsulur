@@ -1,5 +1,14 @@
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex" },
+        { "key": "X-Domain-Migrated-To", "value": "https://dlms.kvsulur.in" }
+      ]
+    }
   ]
 }
