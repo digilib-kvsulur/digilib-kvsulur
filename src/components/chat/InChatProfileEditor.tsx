@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { UserCog, X, Save, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { UserCog, X, Save, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,7 +15,7 @@ interface InChatProfileEditorProps {
 export const InChatProfileEditor = ({
   currentUser,
   onClose,
-  onProfileUpdated
+  onProfileUpdated,
 }: InChatProfileEditorProps) => {
   const { toast } = useToast();
   const [bio, setBio] = useState(currentUser?.bio || "");
@@ -23,18 +23,26 @@ export const InChatProfileEditor = ({
   const [rollNumber, setRollNumber] = useState(currentUser?.roll_number || "");
   const [studentClass, setStudentClass] = useState(currentUser?.student_class || "");
   const [username, setUsername] = useState(currentUser?.username || "");
-  
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   if (!currentUser?.id) {
     return (
-      <div className="p-3.5 bg-card border border-primary/25 rounded-2xl shadow-md text-xs space-y-2">
-        <div className="flex items-center justify-between border-b pb-2">
-          <span className="font-bold flex items-center gap-1.5"><UserCog className="h-4 w-4 text-primary" /> Profile Editor</span>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-full" onClick={onClose}><X className="h-3.5 w-3.5" /></Button>
+      <div className="bg-card border border-border/60 rounded-2xl shadow-lg overflow-hidden animate-in fade-in text-xs">
+        <div className="bg-gradient-to-r from-violet-500/15 via-primary/10 to-transparent border-b border-border/50 px-3 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/15">
+              <UserCog className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <p className="font-bold text-[11px] text-foreground">Profile Editor</p>
+          </div>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-full" onClick={onClose}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
         </div>
-        <p className="text-muted-foreground">🔒 Please sign in to your library account to edit your profile details.</p>
+        <p className="p-3 text-muted-foreground">
+          🔒 Sign in to edit your bio, phone, class, or username.
+        </p>
       </div>
     );
   }
@@ -42,48 +50,31 @@ export const InChatProfileEditor = ({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
-
-    // Basic validation
-    const cleanUsername = username.trim().toLowerCase().replace(/\s+/g, "_");
     if (phone && phone.trim().length > 15) {
       setErrorMsg("Phone number cannot exceed 15 digits.");
       return;
     }
-
     setSaving(true);
     try {
+      const cleanUsername = username.trim().toLowerCase().replace(/\s+/g, "_");
       const updatePayload: Record<string, any> = {
         bio: bio.trim(),
         phone: phone.trim(),
         roll_number: rollNumber.trim(),
         student_class: studentClass.trim().toUpperCase(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
-
-      if (cleanUsername) {
-        updatePayload.username = cleanUsername;
-      }
+      if (cleanUsername) updatePayload.username = cleanUsername;
 
       const { error } = await supabase
         .from("profiles")
         .update(updatePayload)
         .eq("id", currentUser.id);
-
       if (error) throw error;
 
-      const updated = {
-        ...currentUser,
-        ...updatePayload
-      };
-
-      toast({
-        title: "Profile Updated ✨",
-        description: "Your library profile details have been saved."
-      });
-
-      onProfileUpdated(updated);
+      toast({ title: "Profile updated ✨", description: "Your changes have been saved." });
+      onProfileUpdated({ ...currentUser, ...updatePayload });
     } catch (err: any) {
-      console.error("In-chat profile update error:", err);
       setErrorMsg(err.message || "Failed to update profile.");
     } finally {
       setSaving(false);
@@ -91,11 +82,17 @@ export const InChatProfileEditor = ({
   };
 
   return (
-    <div className="p-3 bg-card border border-primary/30 rounded-2xl shadow-lg space-y-2.5 animate-in fade-in slide-in-from-bottom-2 text-xs">
-      <div className="flex items-center justify-between border-b border-border/60 pb-2">
-        <div className="flex items-center gap-1.5 font-bold text-foreground">
-          <UserCog className="h-4 w-4 text-primary" />
-          <span>Quick Profile Editor</span>
+    <div className="bg-card border border-border/60 rounded-2xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-bottom-3 text-xs">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-violet-500/15 via-primary/10 to-transparent border-b border-border/50 px-3 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-primary/15">
+            <UserCog className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <div>
+            <p className="font-bold text-[11px] text-foreground">Quick Profile Editor</p>
+            <p className="text-[9px] text-muted-foreground">Only you can edit these fields</p>
+          </div>
         </div>
         <Button
           variant="ghost"
@@ -107,76 +104,81 @@ export const InChatProfileEditor = ({
         </Button>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-2">
+      <form onSubmit={handleSave} className="p-3 space-y-2.5">
+        {/* Bio */}
         <div>
-          <label className="text-[10px] font-semibold text-muted-foreground uppercase">Bio / Reading Interests</label>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-medium text-muted-foreground">Bio & interests</p>
+            <span className="text-[9px] text-muted-foreground/60">{bio.length}/180</span>
+          </div>
           <Textarea
-            placeholder="e.g. Science fiction lover, Class 11 CS"
+            placeholder="e.g. Science fiction lover, aspiring coder, Class 11 CS..."
             value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            className="text-xs min-h-[45px] p-2 rounded-lg border border-border bg-background focus:ring-1 focus:ring-primary outline-hidden resize-none"
-            maxLength={180}
+            onChange={(e) => setBio(e.target.value.slice(0, 180))}
+            className="text-xs min-h-[48px] p-2 rounded-xl border-border/60 focus-visible:ring-primary/30 resize-none"
           />
-          <div className="text-[9px] text-right text-muted-foreground">{bio.length}/180</div>
         </div>
 
+        {/* Class + Roll */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase">Class & Section</label>
+            <p className="text-[10px] font-medium text-muted-foreground mb-1">Class & section</p>
             <Input
-              placeholder="e.g. 11A or 10B"
+              placeholder="e.g. 11A"
               value={studentClass}
               onChange={(e) => setStudentClass(e.target.value)}
-              className="h-7.5 text-xs rounded-lg"
+              className="h-8 text-xs rounded-xl border-border/60 focus-visible:ring-primary/30"
             />
           </div>
-
           <div>
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase">Roll No.</label>
+            <p className="text-[10px] font-medium text-muted-foreground mb-1">Roll number</p>
             <Input
               placeholder="e.g. 24"
               value={rollNumber}
               onChange={(e) => setRollNumber(e.target.value)}
-              className="h-7.5 text-xs rounded-lg"
+              className="h-8 text-xs rounded-xl border-border/60 focus-visible:ring-primary/30"
             />
           </div>
         </div>
 
+        {/* Phone + Username */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase">Phone Number</label>
+            <p className="text-[10px] font-medium text-muted-foreground mb-1">Phone number</p>
             <Input
-              placeholder="e.g. 9876543210"
+              placeholder="9876543210"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="h-7.5 text-xs font-mono rounded-lg"
+              className="h-8 text-xs font-mono rounded-xl border-border/60 focus-visible:ring-primary/30"
             />
           </div>
-
           <div>
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase">Username</label>
-            <Input
-              placeholder="e.g. aryan_kv"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="h-7.5 text-xs font-mono rounded-lg"
-            />
+            <p className="text-[10px] font-medium text-muted-foreground mb-1">Username</p>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 text-[11px]">@</span>
+              <Input
+                placeholder="aryan_kv"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="h-8 text-xs font-mono rounded-xl border-border/60 focus-visible:ring-primary/30 pl-5"
+              />
+            </div>
           </div>
         </div>
 
         {errorMsg && (
-          <p className="text-[11px] text-destructive flex items-center gap-1 font-medium">
+          <p className="text-[11px] text-destructive flex items-center gap-1.5 bg-destructive/5 border border-destructive/20 rounded-lg px-2 py-1.5">
             <AlertCircle className="h-3 w-3 shrink-0" /> {errorMsg}
           </p>
         )}
 
-        <div className="flex gap-2 pt-1">
+        <div className="flex gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-7 text-xs flex-1 rounded-lg"
+            className="h-8 text-xs flex-none px-3 rounded-xl text-muted-foreground"
           >
             Cancel
           </Button>
@@ -184,10 +186,13 @@ export const InChatProfileEditor = ({
             type="submit"
             size="sm"
             disabled={saving}
-            className="h-7 text-xs flex-1 rounded-lg bg-primary text-primary-foreground font-semibold"
+            className="h-8 text-xs flex-1 rounded-xl font-semibold bg-gradient-to-r from-primary to-primary/80 shadow-xs"
           >
-            {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
-            Save Changes
+            {saving ? (
+              <><Loader2 className="h-3 w-3 animate-spin mr-1.5" /> Saving...</>
+            ) : (
+              <><Save className="h-3 w-3 mr-1.5" /> Save Changes</>
+            )}
           </Button>
         </div>
       </form>
