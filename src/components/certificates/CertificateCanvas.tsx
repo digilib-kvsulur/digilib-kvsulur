@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import type { CertificateLayout, CertFieldLayout } from "@/lib/librarySettings";
+import { OFFICIAL_KV_TEMPLATE_URL } from "@/components/certificates/BuiltinTemplates";
 import { cn } from "@/lib/utils";
 
 export type CertFieldKey = keyof CertificateLayout;
@@ -12,16 +13,26 @@ export interface CertificateRenderData {
   description?: string | null;
   issuedAt: string;
   templateUrl?: string | null;
+  certNumber?: string | null;
+  schoolName?: string | null;
 }
 
 export const CERT_FIELD_LABELS: { key: CertFieldKey; label: string }[] = [
   { key: "name", label: "Student name" },
   { key: "className", label: "Class" },
-  { key: "event", label: "Event name" },
-  { key: "title", label: "Certificate title" },
+  { key: "event", label: "Event / Activity" },
+  { key: "title", label: "Position / Achievement" },
   { key: "description", label: "Description" },
   { key: "date", label: "Date" },
+  { key: "certNumber", label: "Certificate No / ID" },
+  { key: "schoolName", label: "School Header" },
 ];
+
+function getFontFamilyCss(family?: string): string {
+  if (family === "serif") return "'Playfair Display', Georgia, 'Times New Roman', serif";
+  if (family === "display") return "'Cinzel', Georgia, serif";
+  return "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+}
 
 function fieldBoxStyle(f: CertFieldLayout, editable: boolean, selected: boolean): CSSProperties {
   const justify =
@@ -31,63 +42,71 @@ function fieldBoxStyle(f: CertFieldLayout, editable: boolean, selected: boolean)
     left: `${f.x}%`,
     top: `${f.y}%`,
     transform: "translate(-50%, -50%)",
-    width: "min(92%, 520px)",
+    width: "auto",
+    maxWidth: "92%",
+    minWidth: editable ? "80px" : undefined,
     display: "flex",
     justifyContent: justify,
     textAlign: f.align,
     fontSize: `${f.fontSize}px`,
-    lineHeight: 1.25,
-    color: "#0f172a",
-    padding: editable ? "6px 10px" : "0 4%",
+    lineHeight: 1.2,
+    color: f.color || "#0f172a",
+    fontWeight: f.bold ? 700 : 500,
+    fontFamily: getFontFamilyCss(f.fontFamily),
+    padding: editable ? "4px 8px" : "0",
     boxSizing: "border-box",
     pointerEvents: editable ? "auto" : "none",
     cursor: editable ? "grab" : "default",
     userSelect: editable ? "none" : undefined,
-    borderRadius: editable ? 8 : undefined,
+    borderRadius: editable ? 6 : undefined,
     outline: editable
       ? selected
         ? "2px solid hsl(221 83% 53%)"
-        : "1px dashed rgba(15, 23, 42, 0.35)"
+        : "1px dashed rgba(15, 23, 42, 0.4)"
       : undefined,
     background: editable
       ? selected
-        ? "rgba(37, 99, 235, 0.12)"
-        : "rgba(255, 255, 255, 0.35)"
+        ? "rgba(37, 99, 235, 0.15)"
+        : "rgba(255, 255, 255, 0.55)"
       : undefined,
-    boxShadow: editable && selected ? "0 0 0 3px rgba(37, 99, 235, 0.2)" : undefined,
-    zIndex: selected ? 20 : 10,
+    boxShadow: editable && selected ? "0 0 0 3px rgba(37, 99, 235, 0.25)" : undefined,
+    zIndex: selected ? 25 : 10,
     touchAction: editable ? "none" : undefined,
+    whiteSpace: "nowrap",
   };
 }
 
 function fieldText(key: CertFieldKey, data: CertificateRenderData): string {
   switch (key) {
     case "name":
-      return data.studentName || "Student";
+      return data.studentName || "Student Name";
     case "className":
-      return data.studentClass ? `Class ${data.studentClass}` : "Class —";
+      return data.studentClass || "Class —";
     case "event":
-      return data.eventName || "Event name";
+      return data.eventName || "Library Activity";
     case "title":
-      return data.title || "Certificate title";
+      return data.title || "First (1st)";
     case "description":
-      return data.description || (data.title ? `Awarded for: ${data.title}` : "Description");
+      return data.description || (data.title ? `Awarded for: ${data.title}` : "");
     case "date":
-      return new Date(data.issuedAt).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
+      try {
+        const d = new Date(data.issuedAt);
+        if (Number.isNaN(d.getTime())) return data.issuedAt;
+        return d.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      } catch {
+        return data.issuedAt;
+      }
+    case "certNumber":
+      return data.certNumber ? `ID: ${data.certNumber}` : "ID: KVS-CERT-2026-0001";
+    case "schoolName":
+      return data.schoolName || "PM SHRI KENDRIYA VIDYALAYA AFS SULUR · DIGITAL LIBRARY";
     default:
       return "";
   }
-}
-
-function fieldClassName(key: CertFieldKey): string {
-  if (key === "name") return "font-serif font-bold";
-  if (key === "event" || key === "title") return "font-semibold";
-  if (key === "description" || key === "date") return "text-slate-700";
-  return "";
 }
 
 interface Props {
@@ -124,9 +143,13 @@ export default function CertificateCanvas({
     [canvasRef]
   );
 
-  const bg = data.templateUrl
-    ? { backgroundImage: `url(${data.templateUrl})`, backgroundSize: "cover" as const, backgroundPosition: "center" }
-    : { background: "linear-gradient(135deg,#f8fafc,#e2e8f0)" };
+  const activeTemplate = data.templateUrl || OFFICIAL_KV_TEMPLATE_URL;
+  const bg = {
+    backgroundImage: `url(${activeTemplate})`,
+    backgroundSize: "100% 100%",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  };
 
   const updateFromPointer = (key: CertFieldKey, clientX: number, clientY: number) => {
     const el = localRef.current;
@@ -169,10 +192,12 @@ export default function CertificateCanvas({
   };
 
   const visibleKeys = CERT_FIELD_LABELS.map((f) => f.key).filter((key) => {
-    if (!layout[key].visible) return false;
+    const fieldCfg = layout[key];
+    if (!fieldCfg || !fieldCfg.visible) return false;
     if (editable) return true;
     if (key === "className") return !!data.studentClass;
     if (key === "event") return !!data.eventName;
+    if (key === "description") return !!data.description;
     return true;
   });
 
@@ -180,23 +205,29 @@ export default function CertificateCanvas({
     <div
       ref={setRefs}
       className={cn(
-        "relative aspect-[1.414] w-full overflow-hidden rounded-lg border bg-white",
-        editable && "ring-1 ring-border select-none",
+        "relative aspect-[1.416] w-full overflow-hidden rounded-lg border bg-white shadow-sm",
+        editable && "ring-2 ring-primary/20 select-none",
         className
       )}
       style={bg}
     >
       {editable && (
-        <div className="absolute inset-x-0 top-0 z-30 pointer-events-none bg-gradient-to-b from-black/45 to-transparent px-3 py-2">
+        <div className="absolute inset-x-0 top-0 z-30 pointer-events-none bg-gradient-to-b from-black/60 to-transparent px-3 py-1.5 flex items-center justify-between">
           <p className="text-[11px] font-medium text-white drop-shadow">
-            Drag fields to position · click a field to select
+            🎯 Drag fields onto the certificate lines · Click field to customize style
           </p>
+          <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded">
+            Interactive Editor
+          </span>
         </div>
       )}
 
       {visibleKeys.map((key) => {
         const f = layout[key];
         const selected = selectedField === key;
+        const text = fieldText(key, data);
+        if (!text && !editable) return null;
+
         return (
           <div
             key={key}
@@ -205,13 +236,17 @@ export default function CertificateCanvas({
             onPointerMove={editable ? onPointerMove : undefined}
             onPointerUp={editable ? endDrag : undefined}
             onPointerCancel={editable ? endDrag : undefined}
-            className={cn(dragging === key && "cursor-grabbing")}
+            className={cn(
+              dragging === key && "cursor-grabbing",
+              editable && "transition-shadow"
+            )}
             title={editable ? CERT_FIELD_LABELS.find((x) => x.key === key)?.label : undefined}
           >
-            <span className={fieldClassName(key)}>{fieldText(key, data)}</span>
+            <span>{text}</span>
           </div>
         );
       })}
     </div>
   );
 }
+

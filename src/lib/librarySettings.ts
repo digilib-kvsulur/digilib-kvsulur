@@ -93,16 +93,26 @@ export async function fetchMonthlyReadingGoal(): Promise<number> {
   return parseNumberSetting(data?.value, 3);
 }
 
+import { OFFICIAL_KV_TEMPLATE_URL, OFFICIAL_KV_LAYOUT } from "@/components/certificates/BuiltinTemplates";
+
 export async function fetchCertificateTemplateUrl(): Promise<string | null> {
   const { data } = await supabase
     .from("system_settings")
     .select("value")
     .eq("key", "certificate_template_url")
     .maybeSingle();
-  if (!data?.value || data.value === null) return null;
+  if (!data?.value || data.value === null) return OFFICIAL_KV_TEMPLATE_URL;
   const raw = parseJsonSetting(data.value).replace(/^"|"$/g, "");
-  if (!raw || raw === "null") return null;
+  if (!raw || raw === "null") return OFFICIAL_KV_TEMPLATE_URL;
   return raw;
+}
+
+export async function saveCertificateTemplateUrl(url: string | null): Promise<void> {
+  const { error } = await supabase.from("system_settings").upsert(
+    [{ key: "certificate_template_url", value: url as any }],
+    { onConflict: "key" }
+  );
+  if (error) throw error;
 }
 
 export type CertAlign = "left" | "center" | "right";
@@ -113,6 +123,9 @@ export interface CertFieldLayout {
   fontSize: number;
   visible: boolean;
   align: CertAlign;
+  color?: string;
+  bold?: boolean;
+  fontFamily?: "serif" | "sans" | "display";
 }
 
 export interface CertificateLayout {
@@ -122,16 +135,11 @@ export interface CertificateLayout {
   title: CertFieldLayout;
   description: CertFieldLayout;
   date: CertFieldLayout;
+  certNumber: CertFieldLayout;
+  schoolName: CertFieldLayout;
 }
 
-export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
-  name: { x: 50, y: 42, fontSize: 28, visible: true, align: "center" },
-  className: { x: 50, y: 50, fontSize: 14, visible: true, align: "center" },
-  event: { x: 50, y: 56, fontSize: 16, visible: true, align: "center" },
-  title: { x: 50, y: 64, fontSize: 18, visible: true, align: "center" },
-  description: { x: 50, y: 72, fontSize: 13, visible: true, align: "center" },
-  date: { x: 50, y: 82, fontSize: 12, visible: true, align: "center" },
-};
+export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = OFFICIAL_KV_LAYOUT;
 
 function parseFieldLayout(raw: unknown, fallback: CertFieldLayout): CertFieldLayout {
   if (!raw || typeof raw !== "object") return { ...fallback };
@@ -143,6 +151,9 @@ function parseFieldLayout(raw: unknown, fallback: CertFieldLayout): CertFieldLay
     fontSize: typeof o.fontSize === "number" ? o.fontSize : fallback.fontSize,
     visible: typeof o.visible === "boolean" ? o.visible : fallback.visible,
     align,
+    color: typeof o.color === "string" ? o.color : fallback.color,
+    bold: typeof o.bold === "boolean" ? o.bold : fallback.bold,
+    fontFamily: o.fontFamily === "serif" || o.fontFamily === "sans" || o.fontFamily === "display" ? o.fontFamily : fallback.fontFamily,
   };
 }
 
@@ -164,6 +175,8 @@ export async function fetchCertificateLayout(): Promise<CertificateLayout> {
     title: parseFieldLayout(raw.title, DEFAULT_CERTIFICATE_LAYOUT.title),
     description: parseFieldLayout(raw.description, DEFAULT_CERTIFICATE_LAYOUT.description),
     date: parseFieldLayout(raw.date, DEFAULT_CERTIFICATE_LAYOUT.date),
+    certNumber: parseFieldLayout(raw.certNumber, DEFAULT_CERTIFICATE_LAYOUT.certNumber),
+    schoolName: parseFieldLayout(raw.schoolName, DEFAULT_CERTIFICATE_LAYOUT.schoolName),
   };
 }
 
@@ -174,6 +187,7 @@ export async function saveCertificateLayout(layout: CertificateLayout): Promise<
   );
   if (error) throw error;
 }
+
 
 export interface DevMessageSettings {
   enable: boolean;

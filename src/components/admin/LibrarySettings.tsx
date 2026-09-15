@@ -190,15 +190,30 @@ export default function LibrarySettings() {
     try {
       const ext = file.name.split(".").pop() || "png";
       const path = `templates/certificate-template-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("certificates").upload(path, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from("certificates").getPublicUrl(path);
-      setTemplateUrl(data.publicUrl);
+      const { error: uploadError } = await supabase.storage.from("certificates").upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+
+      let publicUrl = "";
+      if (uploadError) {
+        console.warn("Storage upload failed, falling back to data URL:", uploadError);
+        publicUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      } else {
+        const { data } = supabase.storage.from("certificates").getPublicUrl(path);
+        publicUrl = data.publicUrl;
+      }
+
+      setTemplateUrl(publicUrl);
       await supabase.from("system_settings").upsert(
-        [{ key: "certificate_template_url", value: data.publicUrl as any }],
+        [{ key: "certificate_template_url", value: publicUrl as any }],
         { onConflict: "key" }
       );
-      toast({ title: "Template uploaded", description: "Certificate design saved." });
+      toast({ title: "Template uploaded! 🎨", description: "Certificate design saved." });
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     } finally {
@@ -225,13 +240,15 @@ export default function LibrarySettings() {
   };
 
   const clearTemplate = async () => {
-    setTemplateUrl(null);
+    const defaultUrl = "/certificates/kv_sulur_certificate_template.png";
+    setTemplateUrl(defaultUrl);
     await supabase.from("system_settings").upsert(
-      [{ key: "certificate_template_url", value: null as any }],
+      [{ key: "certificate_template_url", value: defaultUrl as any }],
       { onConflict: "key" }
     );
-    toast({ title: "Template removed" });
+    toast({ title: "Template reset", description: "Restored official PM SHRI KV Sulur certificate." });
   };
+
 
   if (loading) {
     return (

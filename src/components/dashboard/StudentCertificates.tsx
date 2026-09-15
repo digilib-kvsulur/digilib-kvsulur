@@ -65,13 +65,18 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
     if (!certRef.current || !preview) return;
     setDownloading(true);
     try {
-      const canvas = await html2canvas(certRef.current, { scale: 2, useCORS: true });
+      const canvas = await html2canvas(certRef.current, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+      });
       const img = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       pdf.addImage(img, "PNG", 0, 0, pageW, pageH);
-      pdf.save(`${preview.title || "certificate"}.pdf`);
+      pdf.save(`${userName || "Student"}_${preview.title || "Certificate"}.pdf`);
     } finally {
       setDownloading(false);
     }
@@ -91,30 +96,37 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Award className="h-5 w-5 text-primary" /> My Certificates
         </h2>
-        <p className="text-sm text-muted-foreground">Certificates awarded by the library.</p>
+        <p className="text-sm text-muted-foreground">Official certificates of merit awarded by the library.</p>
       </div>
 
       {certs.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-sm text-muted-foreground">
-            No certificates yet. Participate in library events to earn one!
+            No certificates yet. Participate in library events and reading challenges to earn one!
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {certs.map((c) => (
-            <Card key={c.id} className="border-border/50">
+            <Card key={c.id} className="border-border/60 hover:border-primary/40 transition-colors shadow-sm">
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-semibold text-sm">{c.title}</p>
+                    <p className="font-semibold text-sm text-foreground">{c.title}</p>
                     {c.description && <p className="text-xs text-muted-foreground mt-1">{c.description}</p>}
-                    <p className="text-xs text-muted-foreground mt-2">{new Date(c.issued_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground mt-2">Awarded on {new Date(c.issued_at).toLocaleDateString()}</p>
                   </div>
-                  <Badge variant="secondary">Awarded</Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                      Awarded
+                    </Badge>
+                    {c.certificate_no && (
+                      <span className="text-[10px] font-mono text-muted-foreground">{c.certificate_no}</span>
+                    )}
+                  </div>
                 </div>
                 <Button size="sm" variant="outline" className="w-full" onClick={() => setPreview(c)}>
-                  <Download className="h-3.5 w-3.5 mr-1.5" /> View / Download PDF
+                  <Download className="h-3.5 w-3.5 mr-1.5" /> View / Download Certificate
                 </Button>
               </CardContent>
             </Card>
@@ -123,30 +135,42 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
       )}
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Certificate</DialogTitle>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{preview?.title || "Certificate of Merit"}</span>
+              {preview?.certificate_no && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {preview.certificate_no}
+                </Badge>
+              )}
+            </DialogTitle>
           </DialogHeader>
           {preview && (
             <div className="space-y-4">
-              <CertificateCanvas
-                canvasRef={certRef}
-                layout={layout}
-                data={{
-                  studentName: userName || "Student",
-                  studentClass: profileClass,
-                  eventName: preview.event_id ? events[preview.event_id] : null,
-                  title: preview.title,
-                  description: preview.description,
-                  issuedAt: preview.issued_at,
-                  templateUrl: preview.template_url,
-                }}
-              />
-              <div className="flex gap-2">
+              <div className="shadow-lg rounded-xl overflow-hidden border bg-white">
+                <CertificateCanvas
+                  canvasRef={certRef}
+                  layout={layout}
+                  data={{
+                    studentName: userName || "Student",
+                    studentClass: profileClass,
+                    eventName: preview.event_id ? events[preview.event_id] : null,
+                    title: preview.title,
+                    description: preview.description,
+                    issuedAt: preview.issued_at,
+                    templateUrl: preview.template_url,
+                    certNumber: preview.certificate_no,
+                  }}
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
                 <Button onClick={downloadPdf} disabled={downloading} className="flex-1">
-                  <Download className="h-4 w-4 mr-2" /> {downloading ? "Generating..." : "Download PDF"}
+                  <Download className="h-4 w-4 mr-2" /> {downloading ? "Generating High-Res PDF…" : "Download PDF"}
                 </Button>
-                <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-2" /> Print</Button>
+                <Button variant="outline" onClick={() => window.print()}>
+                  <Printer className="h-4 w-4 mr-2" /> Print
+                </Button>
               </div>
             </div>
           )}
@@ -155,3 +179,4 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
     </div>
   );
 }
+
