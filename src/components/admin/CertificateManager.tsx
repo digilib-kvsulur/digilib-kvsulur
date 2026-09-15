@@ -129,11 +129,13 @@ export default function CertificateManager() {
 
   // Issuing Dialog State
   const [issuing, setIssuing] = useState(false);
-  const [issueMode, setIssueMode] = useState<"single" | "class" | "multi">("single");
+  const [issueMode, setIssueMode] = useState<"single" | "class" | "multi" | "csv">("single");
   const [issueSearch, setIssueSearch] = useState("");
   const [issueClassFilter, setIssueClassFilter] = useState("all");
   const [targetClass, setTargetClass] = useState("");
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [csvInput, setCsvInput] = useState("");
+  const [issueTab, setIssueTab] = useState<"details" | "preview">("details");
 
   // Bilingual Form State
   const [form, setForm] = useState({
@@ -210,6 +212,8 @@ export default function CertificateManager() {
     setIssueClassFilter("all");
     setTargetClass("");
     setSelectedStudentIds([]);
+    setCsvInput("");
+    setIssueTab("details");
 
     const [{ data: studs }, { data: evts }] = await Promise.all([
       supabase
@@ -284,6 +288,81 @@ export default function CertificateManager() {
     return events.find((e) => e.id === form.event_id) || null;
   }, [events, form.event_id]);
 
+  // CSV Admission Number Import Parsing & Matching
+  const parsedAdmissions = useMemo(() => {
+    if (!csvInput.trim()) return [];
+    const items = csvInput
+      .split(/[\n,;\r\t]+/)
+      .map((s) => s.trim().replace(/^['"]|['"]$/g, ""))
+      .filter((s) => s.length > 0);
+    return Array.from(new Set(items));
+  }, [csvInput]);
+
+  const csvMatchedStudents = useMemo(() => {
+    if (parsedAdmissions.length === 0) return [];
+    const set = new Set(parsedAdmissions.map((a) => a.toLowerCase()));
+    return students.filter(
+      (s) => s.admission_number && set.has(s.admission_number.trim().toLowerCase())
+    );
+  }, [students, parsedAdmissions]);
+
+  const csvUnmatchedAdmissions = useMemo(() => {
+    if (parsedAdmissions.length === 0) return [];
+    const matchedSet = new Set(
+      csvMatchedStudents.map((s) => (s.admission_number || "").trim().toLowerCase())
+    );
+    return parsedAdmissions.filter((a) => !matchedSet.has(a.toLowerCase()));
+  }, [parsedAdmissions, csvMatchedStudents]);
+
+  const handleFileUploadCsv = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (text) setCsvInput(text);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  // Determine sample student for live preview inside Issue Dialog
+  const previewSampleStudent = useMemo(() => {
+    if (issueMode === "single" && form.user_id) {
+      return students.find((s) => s.id === form.user_id) || null;
+    }
+    if (issueMode === "class" && targetClass) {
+      return students.find((s) => s.student_class === targetClass) || null;
+    }
+    if (issueMode === "multi" && selectedStudentIds.length > 0) {
+      return students.find((s) => s.id === selectedStudentIds[0]) || null;
+    }
+    if (issueMode === "csv" && csvMatchedStudents.length > 0) {
+      return csvMatchedStudents[0];
+    }
+    return selectedStudent || students[0] || null;
+  }, [issueMode, form.user_id, targetClass, selectedStudentIds, csvMatchedStudents, selectedStudent, students]);
+
+  const liveIssuePreviewData = useMemo(() => {
+    const s = previewSampleStudent;
+    return {
+      studentName: s ? `${s.first_name || ""} ${s.last_name || ""}`.trim() : "Student Name",
+      nameHindi: (issueMode === "single" && form.name_hindi.trim()) || s?.hindi_name || "छात्र का नाम",
+      studentClass: s?.student_class || "8-A",
+      classHindi: s?.student_class || "8-A",
+      eventName: form.event_id ? events.find((e) => e.id === form.event_id)?.title : form.event_name || null,
+      eventHindi: form.event_hindi || null,
+      during: form.during_text || null,
+      title: form.title || "First Position",
+      titleHindi: form.title_hindi || "प्रथम स्थान",
+      commonText: commonText || null,
+      description: form.description || null,
+      issuedAt: form.issued_at || new Date().toISOString().slice(0, 10),
+      templateUrl: templateUrl,
+      certNumber: form.certificate_no || "KVS-LIB-2026-0001",
+    };
+  }, [previewSampleStudent, issueMode, form, events, commonText, templateUrl]);
+
   // Pick a single student and sync name & Hindi name
   const handleSelectSingleStudent = (s: any) => {
     setForm((prev) => ({
@@ -331,12 +410,22 @@ export default function CertificateManager() {
         return;
       }
       targetStudents = students.filter((s) => s.student_class === targetClass);
-    } else {
+    } else if (issueMode === "multi") {
       if (selectedStudentIds.length === 0) {
         toast({ title: "No students selected", description: "Please check at least one student.", variant: "destructive" });
         return;
       }
       targetStudents = students.filter((s) => selectedStudentIds.includes(s.id));
+    } else if (issueMode === "csv") {
+      if (csvMatchedStudents.length === 0) {
+        toast({
+          title: "No students matched from CSV",
+          description: "None of the CSV admission numbers matched an approved student profile.",
+          variant: "destructive",
+        });
+        return;
+      }
+      targetStudents = csvMatchedStudents;
     }
 
     if (targetStudents.length === 0) {
@@ -1052,310 +1141,485 @@ export default function CertificateManager() {
         </TabsContent>
       </Tabs>
 
-      {/* Issuing Modal with Search & Bulk Issuance */}
+      {/* Issuing Modal with Search, Bulk CSV & Real Canvas Preview */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[94vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Award className="h-5 w-5 text-amber-500" /> Issue Bilingual Certificate
-            </DialogTitle>
+            <div className="flex items-center justify-between flex-wrap gap-2 pr-6">
+              <DialogTitle className="flex items-center gap-2 text-lg">
+                <Award className="h-5 w-5 text-amber-500" /> Issue Bilingual Certificate
+              </DialogTitle>
+
+              {/* View Toggle: Details Form vs Live Real Preview */}
+              <div className="flex items-center bg-muted p-1 rounded-lg text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setIssueTab("details")}
+                  className={`px-3 py-1 rounded-md transition-all ${
+                    issueTab === "details"
+                      ? "bg-background text-foreground shadow-sm font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  📝 Details &amp; Recipients
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIssueTab("preview")}
+                  className={`px-3 py-1 rounded-md flex items-center gap-1.5 transition-all ${
+                    issueTab === "preview"
+                      ? "bg-primary text-primary-foreground shadow-sm font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Eye className="h-3.5 w-3.5" /> Real Certificate Preview
+                </button>
+              </div>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Mode Switcher: 3 Modes */}
-            <div className="grid grid-cols-3 gap-2 bg-muted p-1 rounded-lg text-xs font-semibold">
-              <button
-                type="button"
-                className={`py-1.5 rounded-md transition-all ${
-                  issueMode === "single" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={() => setIssueMode("single")}
-              >
-                1. Single Student
-              </button>
-              <button
-                type="button"
-                className={`py-1.5 rounded-md transition-all ${
-                  issueMode === "class" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={() => setIssueMode("class")}
-              >
-                2. Entire Class
-              </button>
-              <button
-                type="button"
-                className={`py-1.5 rounded-md transition-all ${
-                  issueMode === "multi" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={() => setIssueMode("multi")}
-              >
-                3. Multi-Select Students ({selectedStudentIds.length})
-              </button>
-            </div>
-
-            {/* Recipient Selection with Live Search */}
-            {issueMode === "class" ? (
-              <div className="space-y-1.5">
-                <Label>Select Class for Batch Award *</Label>
-                <Select value={targetClass} onValueChange={setTargetClass}>
-                  <SelectTrigger><SelectValue placeholder="Choose a class" /></SelectTrigger>
-                  <SelectContent>
-                    {availableClasses.map((c) => {
-                      const count = students.filter((s) => s.student_class === c).length;
-                      return (
-                        <SelectItem key={c} value={c}>
-                          Class {c} ({count} approved students)
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+          {issueTab === "preview" ? (
+            <div className="space-y-3.5 py-1">
+              <div className="bg-amber-500/10 border border-amber-300 dark:border-amber-700/50 rounded-xl p-3 flex items-center justify-between text-xs flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span>
+                    Previewing for recipient: <strong className="text-foreground">{liveIssuePreviewData.studentName}</strong> ({liveIssuePreviewData.nameHindi})
+                    {previewSampleStudent?.student_class ? ` · Class ${previewSampleStudent.student_class}` : ""}
+                  </span>
+                </div>
+                <Badge variant="outline" className="font-mono text-[10px] bg-background">
+                  {liveIssuePreviewData.certNumber}
+                </Badge>
               </div>
-            ) : (
-              <div className="space-y-2 border rounded-xl p-3 bg-muted/20">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider">
-                    {issueMode === "single" ? "Search & Select Student *" : "Select Students to Award (Multi-Select) *"}
-                  </Label>
-                  {issueMode === "multi" && (
-                    <div className="flex items-center gap-1.5">
-                      <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={handleSelectAllFiltered}>
-                        Select All Filtered ({filteredIssueStudents.length})
+
+              <div className="shadow-lg rounded-xl overflow-hidden border bg-white">
+                <CertificateCanvas
+                  layout={layout}
+                  data={liveIssuePreviewData}
+                />
+              </div>
+
+              <p className="text-[11px] text-center text-muted-foreground">
+                ✨ High-resolution 2K canvas preview. Exact font size, alignment, Devanagari rendering, and plain text reflect your settings.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Mode Switcher: 4 Modes */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-muted p-1 rounded-lg text-xs font-semibold">
+                <button
+                  type="button"
+                  className={`py-1.5 px-2 rounded-md transition-all text-center ${
+                    issueMode === "single" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setIssueMode("single")}
+                >
+                  1. Single Student
+                </button>
+                <button
+                  type="button"
+                  className={`py-1.5 px-2 rounded-md transition-all text-center ${
+                    issueMode === "class" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setIssueMode("class")}
+                >
+                  2. Entire Class
+                </button>
+                <button
+                  type="button"
+                  className={`py-1.5 px-2 rounded-md transition-all text-center ${
+                    issueMode === "multi" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setIssueMode("multi")}
+                >
+                  3. Multi-Select ({selectedStudentIds.length})
+                </button>
+                <button
+                  type="button"
+                  className={`py-1.5 px-2 rounded-md transition-all text-center flex items-center justify-center gap-1 ${
+                    issueMode === "csv" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setIssueMode("csv")}
+                >
+                  <FileText className="h-3.5 w-3.5 text-primary" />
+                  4. CSV Import ({csvMatchedStudents.length})
+                </button>
+              </div>
+
+              {/* Mode 2: Entire Class */}
+              {issueMode === "class" && (
+                <div className="space-y-1.5">
+                  <Label>Select Class for Batch Award *</Label>
+                  <Select value={targetClass} onValueChange={setTargetClass}>
+                    <SelectTrigger><SelectValue placeholder="Choose a class" /></SelectTrigger>
+                    <SelectContent>
+                      {availableClasses.map((c) => {
+                        const count = students.filter((s) => s.student_class === c).length;
+                        return (
+                          <SelectItem key={c} value={c}>
+                            Class {c} ({count} approved students)
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Mode 4: CSV Admission Numbers */}
+              {issueMode === "csv" && (
+                <div className="space-y-3 border rounded-xl p-3.5 bg-muted/20">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <Upload className="h-4 w-4 text-primary" /> Bulk Admission Number CSV Import
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground">
+                        Paste admission numbers or upload a CSV file to issue certificates in bulk.
+                      </p>
+                    </div>
+                    <label className="cursor-pointer">
+                      <Input
+                        type="file"
+                        accept=".csv,.txt"
+                        onChange={handleFileUploadCsv}
+                        className="hidden"
+                      />
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-xs gap-1.5 pointer-events-none">
+                        <Upload className="h-3.5 w-3.5" /> Upload .CSV File
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={handleClearSelection}>
-                        Clear ({selectedStudentIds.length})
-                      </Button>
+                    </label>
+                  </div>
+
+                  <Textarea
+                    rows={3}
+                    value={csvInput}
+                    onChange={(e) => setCsvInput(e.target.value)}
+                    placeholder="Paste admission numbers here (one per line, or separated by commas)... e.g.&#10;1024&#10;1025&#10;1026"
+                    className="font-mono text-xs bg-background"
+                  />
+
+                  {/* Live Match Results */}
+                  {parsedAdmissions.length > 0 && (
+                    <div className="space-y-2 pt-1 border-t">
+                      <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-emerald-600 text-white text-[11px]">
+                            ✓ {csvMatchedStudents.length} Students Matched
+                          </Badge>
+                          {csvUnmatchedAdmissions.length > 0 && (
+                            <Badge variant="destructive" className="text-[11px]">
+                              ⚠️ {csvUnmatchedAdmissions.length} Not Found
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          Parsed {parsedAdmissions.length} admission number{parsedAdmissions.length > 1 ? "s" : ""}
+                        </span>
+                      </div>
+
+                      {/* Matched Students List */}
+                      {csvMatchedStudents.length > 0 && (
+                        <div className="max-h-36 overflow-y-auto border rounded-lg bg-background divide-y">
+                          {csvMatchedStudents.map((s) => (
+                            <div key={s.id} className="p-2 px-3 flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                <span className="font-medium">{s.first_name} {s.last_name || ""}</span>
+                                {s.hindi_name && (
+                                  <span className="text-primary text-[11px]">({s.hindi_name})</span>
+                                )}
+                                <span className="text-muted-foreground font-mono text-[10px]">[{s.admission_number}]</span>
+                              </div>
+                              {s.student_class && (
+                                <Badge variant="outline" className="text-[10px]">Class {s.student_class}</Badge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Unmatched list warning */}
+                      {csvUnmatchedAdmissions.length > 0 && (
+                        <div className="p-2 bg-red-50 dark:bg-red-950/30 rounded-lg text-[11px] text-red-700 dark:text-red-300">
+                          <p className="font-semibold mb-1">Unmatched Admission Numbers (Not in student profiles):</p>
+                          <div className="flex flex-wrap gap-1 font-mono">
+                            {csvUnmatchedAdmissions.map((adm) => (
+                              <span key={adm} className="bg-red-100 dark:bg-red-900/40 px-1.5 py-0.5 rounded text-[10px]">
+                                {adm}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
+              )}
 
-                {/* Search Bar & Class Filter */}
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px] gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      className="pl-9 h-9 text-xs"
-                      placeholder="Type student name, admission no, roll no…"
-                      value={issueSearch}
-                      onChange={(e) => setIssueSearch(e.target.value)}
-                    />
+              {/* Mode 1 & 3: Single / Multi-Select Search */}
+              {(issueMode === "single" || issueMode === "multi") && (
+                <div className="space-y-2 border rounded-xl p-3 bg-muted/20">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider">
+                      {issueMode === "single" ? "Search & Select Student *" : "Select Students to Award (Multi-Select) *"}
+                    </Label>
+                    {issueMode === "multi" && (
+                      <div className="flex items-center gap-1.5">
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={handleSelectAllFiltered}>
+                          Select All Filtered ({filteredIssueStudents.length})
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={handleClearSelection}>
+                          Clear ({selectedStudentIds.length})
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  <Select value={issueClassFilter} onValueChange={setIssueClassFilter}>
-                    <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Class" /></SelectTrigger>
+
+                  {/* Search Bar & Class Filter */}
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px] gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        className="pl-9 h-9 text-xs"
+                        placeholder="Type student name, admission no, roll no…"
+                        value={issueSearch}
+                        onChange={(e) => setIssueSearch(e.target.value)}
+                      />
+                    </div>
+                    <Select value={issueClassFilter} onValueChange={setIssueClassFilter}>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Class" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Classes</SelectItem>
+                        {availableClasses.map((c) => (
+                          <SelectItem key={c} value={c}>Class {c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Student Results List */}
+                  <div className="max-h-48 overflow-y-auto border rounded-lg bg-background divide-y">
+                    {filteredIssueStudents.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-muted-foreground">No students match your search.</div>
+                    ) : (
+                      filteredIssueStudents.map((s) => {
+                        const isSelected =
+                          issueMode === "single"
+                            ? form.user_id === s.id
+                            : selectedStudentIds.includes(s.id);
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={() => {
+                              if (issueMode === "single") handleSelectSingleStudent(s);
+                              else toggleStudentSelection(s.id);
+                            }}
+                            className={`p-2 px-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/50 transition-colors ${
+                              isSelected ? "bg-primary/10 font-semibold" : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {issueMode === "multi" ? (
+                                isSelected ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <div className={`h-3 w-3 rounded-full border ${isSelected ? "border-primary bg-primary" : "border-muted-foreground"}`} />
+                              )}
+                              <div>
+                                <span>{s.first_name} {s.last_name || ""}</span>
+                                {s.hindi_name && (
+                                  <span className="ml-1.5 text-primary text-[11px]">({s.hindi_name})</span>
+                                )}
+                                {s.admission_number && (
+                                  <span className="ml-1.5 text-muted-foreground font-mono text-[10px]">[{s.admission_number}]</span>
+                                )}
+                              </div>
+                            </div>
+                            {s.student_class && (
+                              <Badge variant="outline" className="text-[10px]">Class {s.student_class}</Badge>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* If single student selected, allow editing Hindi Name right here */}
+                  {issueMode === "single" && selectedStudent && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <div className="space-y-1">
+                        <Label className="text-xs">English Name</Label>
+                        <Input
+                          disabled
+                          value={`${selectedStudent.first_name} ${selectedStudent.last_name || ""}`}
+                          className="h-8 text-xs bg-muted/40"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-primary font-semibold">छात्र का नाम (Hindi Name) *</Label>
+                        <Input
+                          value={form.name_hindi}
+                          onChange={(e) => setForm((f) => ({ ...f, name_hindi: e.target.value }))}
+                          placeholder="e.g. आरव शर्मा"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Award Preset Chips */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground font-semibold">Quick Award Presets (Sets English &amp; Hindi)</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {AWARD_PRESETS.map((preset) => (
+                    <button
+                      key={preset.titleEng}
+                      type="button"
+                      onClick={() => applyPreset(preset)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                        form.title === preset.titleEng
+                          ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
+                          : "bg-background hover:bg-muted text-foreground border-border"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bilingual Titles */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Position / Title (English) *</Label>
+                  <Input
+                    value={form.title}
+                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                    placeholder="e.g. First Position"
+                    className="h-9 text-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-primary font-semibold">स्थान / उपाधि (Hindi Title) *</Label>
+                  <Input
+                    value={form.title_hindi}
+                    onChange={(e) => setForm((f) => ({ ...f, title_hindi: e.target.value }))}
+                    placeholder="e.g. प्रथम स्थान"
+                    className="h-9 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Bilingual Events */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Event / Competition (English)</Label>
+                  <Select
+                    value={form.event_id || "none"}
+                    onValueChange={(v) => {
+                      const evt = events.find((e) => e.id === v);
+                      setForm((f) => ({
+                        ...f,
+                        event_id: v === "none" ? "" : v,
+                        event_name: evt ? evt.title : "",
+                      }));
+                    }}
+                  >
+                    <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Link event" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Classes</SelectItem>
-                      {availableClasses.map((c) => (
-                        <SelectItem key={c} value={c}>Class {c}</SelectItem>
+                      <SelectItem value="none">General / No Event</SelectItem>
+                      {events.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* Student Results List */}
-                <div className="max-h-48 overflow-y-auto border rounded-lg bg-background divide-y">
-                  {filteredIssueStudents.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-muted-foreground">No students match your search.</div>
-                  ) : (
-                    filteredIssueStudents.map((s) => {
-                      const isSelected =
-                        issueMode === "single"
-                          ? form.user_id === s.id
-                          : selectedStudentIds.includes(s.id);
-                      return (
-                        <div
-                          key={s.id}
-                          onClick={() => {
-                            if (issueMode === "single") handleSelectSingleStudent(s);
-                            else toggleStudentSelection(s.id);
-                          }}
-                          className={`p-2 px-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/50 transition-colors ${
-                            isSelected ? "bg-primary/10 font-semibold" : ""
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            {issueMode === "multi" ? (
-                              isSelected ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <div className={`h-3 w-3 rounded-full border ${isSelected ? "border-primary bg-primary" : "border-muted-foreground"}`} />
-                            )}
-                            <div>
-                              <span>{s.first_name} {s.last_name || ""}</span>
-                              {s.hindi_name && (
-                                <span className="ml-1.5 text-primary text-[11px]">({s.hindi_name})</span>
-                              )}
-                              {s.admission_number && (
-                                <span className="ml-1.5 text-muted-foreground font-mono text-[10px]">[{s.admission_number}]</span>
-                              )}
-                            </div>
-                          </div>
-                          {s.student_class && (
-                            <Badge variant="outline" className="text-[10px]">Class {s.student_class}</Badge>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">प्रतियोगिता का नाम (Hindi Event)</Label>
+                  <Input
+                    value={form.event_hindi}
+                    onChange={(e) => setForm((f) => ({ ...f, event_hindi: e.target.value }))}
+                    placeholder="e.g. राष्ट्रीय पठन माह प्रतियोगिता"
+                    className="h-9 text-xs"
+                  />
                 </div>
-
-                {/* If single student selected, allow editing Hindi Name right here */}
-                {issueMode === "single" && selectedStudent && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    <div className="space-y-1">
-                      <Label className="text-xs">English Name</Label>
-                      <Input
-                        disabled
-                        value={`${selectedStudent.first_name} ${selectedStudent.last_name || ""}`}
-                        className="h-8 text-xs bg-muted/40"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-primary font-semibold">छात्र का नाम (Hindi Name) *</Label>
-                      <Input
-                        value={form.name_hindi}
-                        onChange={(e) => setForm((f) => ({ ...f, name_hindi: e.target.value }))}
-                        placeholder="e.g. आरव शर्मा"
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
-            )}
 
-            {/* Award Preset Chips */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground font-semibold">Quick Award Presets (Sets English & Hindi)</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {AWARD_PRESETS.map((preset) => (
-                  <button
-                    key={preset.titleEng}
-                    type="button"
-                    onClick={() => applyPreset(preset)}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
-                      form.title === preset.titleEng
-                        ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
-                        : "bg-background hover:bg-muted text-foreground border-border"
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
+              {/* During Period & Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">During Period (Line 6)</Label>
+                  <Input
+                    value={form.during_text}
+                    onChange={(e) => setForm((f) => ({ ...f, during_text: e.target.value }))}
+                    placeholder="e.g. August 2026"
+                    className="h-9 text-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Certificate ID Ref</Label>
+                  <Input
+                    value={form.certificate_no}
+                    onChange={(e) => setForm((f) => ({ ...f, certificate_no: e.target.value }))}
+                    className="h-9 text-xs font-mono"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Date (दिनांक)</Label>
+                  <Input
+                    type="date"
+                    value={form.issued_at}
+                    onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))}
+                    className="h-9 text-xs"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Bilingual Titles */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Description */}
               <div className="space-y-1.5">
-                <Label className="text-xs">Position / Title (English) *</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  placeholder="e.g. First Position"
-                  className="h-9 text-xs"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-primary font-semibold">स्थान / उपाधि (Hindi Title) *</Label>
-                <Input
-                  value={form.title_hindi}
-                  onChange={(e) => setForm((f) => ({ ...f, title_hindi: e.target.value }))}
-                  placeholder="e.g. प्रथम स्थान"
-                  className="h-9 text-xs"
+                <Label className="text-xs">Description / Remarks (Optional)</Label>
+                <Textarea
+                  rows={1}
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="For outstanding participation in reading..."
+                  className="text-xs"
                 />
               </div>
             </div>
+          )}
 
-            {/* Bilingual Events */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Event / Competition (English)</Label>
-                <Select
-                  value={form.event_id || "none"}
-                  onValueChange={(v) => {
-                    const evt = events.find((e) => e.id === v);
-                    setForm((f) => ({
-                      ...f,
-                      event_id: v === "none" ? "" : v,
-                      event_name: evt ? evt.title : "",
-                    }));
-                  }}
+          <DialogFooter className="mt-4 flex items-center justify-between gap-2 border-t pt-3">
+            <div className="text-xs text-muted-foreground">
+              {issueTab === "details" && (
+                <button
+                  type="button"
+                  onClick={() => setIssueTab("preview")}
+                  className="text-primary hover:underline flex items-center gap-1 font-medium"
                 >
-                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Link event" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">General / No Event</SelectItem>
-                    {events.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">प्रतियोगिता का नाम (Hindi Event)</Label>
-                <Input
-                  value={form.event_hindi}
-                  onChange={(e) => setForm((f) => ({ ...f, event_hindi: e.target.value }))}
-                  placeholder="e.g. राष्ट्रीय पठन माह प्रतियोगिता"
-                  className="h-9 text-xs"
-                />
-              </div>
+                  <Eye className="h-3.5 w-3.5" /> Check live preview before issuing →
+                </button>
+              )}
             </div>
-
-            {/* During Period & Date */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">During Period (Line 6)</Label>
-                <Input
-                  value={form.during_text}
-                  onChange={(e) => setForm((f) => ({ ...f, during_text: e.target.value }))}
-                  placeholder="e.g. August 2026"
-                  className="h-9 text-xs"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Certificate ID Ref</Label>
-                <Input
-                  value={form.certificate_no}
-                  onChange={(e) => setForm((f) => ({ ...f, certificate_no: e.target.value }))}
-                  className="h-9 text-xs font-mono"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Date (दिनांक)</Label>
-                <Input
-                  type="date"
-                  value={form.issued_at}
-                  onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleIssue} disabled={issuing}>
+                {issuing
+                  ? "Issuing Certificates…"
+                  : issueMode === "single"
+                  ? "Issue Certificate"
+                  : issueMode === "class"
+                  ? `Batch Issue to Class ${targetClass}`
+                  : issueMode === "multi"
+                  ? `Batch Issue to (${selectedStudentIds.length}) Students`
+                  : `Batch Issue to (${csvMatchedStudents.length}) CSV Students`}
+              </Button>
             </div>
-
-            {/* Description */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">Description / Remarks (Optional)</Label>
-              <Textarea
-                rows={1}
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="For outstanding participation in reading..."
-                className="text-xs"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleIssue} disabled={issuing}>
-              {issuing
-                ? "Issuing Certificates…"
-                : issueMode === "single"
-                ? "Issue Certificate"
-                : issueMode === "class"
-                ? `Batch Issue to Class ${targetClass}`
-                : `Batch Issue to (${selectedStudentIds.length}) Students`}
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
