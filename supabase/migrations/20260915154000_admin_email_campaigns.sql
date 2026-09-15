@@ -7,8 +7,12 @@ CREATE TABLE IF NOT EXISTS public.email_campaigns (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.email_campaigns ENABLE ROW LEVEL SECURITY;
-GRANT SELECT ON public.email_campaigns TO authenticated;
+GRANT ALL ON public.email_campaigns TO authenticated;
 GRANT ALL ON public.email_campaigns TO service_role;
+
+DROP POLICY IF EXISTS "staff manage email campaigns" ON public.email_campaigns;
 DROP POLICY IF EXISTS "staff view email campaigns" ON public.email_campaigns;
-CREATE POLICY "staff view email campaigns" ON public.email_campaigns FOR SELECT TO authenticated
-  USING (public.is_staff_or_admin(auth.uid()));
+
+CREATE POLICY "staff manage email campaigns" ON public.email_campaigns FOR ALL TO authenticated
+  USING (public.is_staff_or_admin(auth.uid()))
+  WITH CHECK (public.is_staff_or_admin(auth.uid()));

@@ -289,81 +289,28 @@ export default function EmailCampaignManager() {
     }
     setSending(true);
 
-    const recipientList = verifiedProfiles.filter((p) => selected.has(p.id));
-
     try {
-      let sentCount = 0;
-      let skippedCount = recipientList.length - recipientList.filter((p) => p.notification_email).length;
-      let edgeFunctionWorked = false;
+      const { data, error } = await supabase.functions.invoke("send-email-campaign", {
+        body: { recipientIds: [...selected], preset: activeTemplate.id, customMessage: customNote },
+      });
 
-      // 1. Try Supabase Edge Function
-      try {
-        const { data, error } = await supabase.functions.invoke("send-email-campaign", {
-          body: { recipientIds: [...selected], preset: activeTemplate.id, customMessage: customNote },
-        });
-
-        if (!error && data && typeof data.sent === "number") {
-          sentCount = data.sent;
-          skippedCount = data.skipped ?? 0;
-          edgeFunctionWorked = true;
-        } else if (error) {
-          console.warn("Edge function invocation returned error, falling back to direct delivery:", error);
+      if (error) {
+        let errorMsg = error.message;
+        if ((error as any).context) {
+          try {
+            const body = await (error as any).context.json();
+            if (body?.error) errorMsg = body.error;
+          } catch (_) {}
         }
-      } catch (err) {
-        console.warn("Edge function fetch failed, falling back to direct delivery:", err);
-      }
-
-      // 2. Direct Resend Gateway Fallback if Edge Function is not deployed / unreachable
-      if (!edgeFunctionWorked) {
-        const resendKey = (import.meta.env.VITE_RESEND_API_KEY as string) || "re_NA5crk7V_FmqTcMsHWMAzpWTqzDXbRzkx";
-        const validRecipients = recipientList.filter((p) => p.notification_email);
-
-        if (!validRecipients.length) {
-          throw new Error("No verified recipient email addresses selected.");
+        if (errorMsg.includes("Failed to send a request") || errorMsg.includes("CORS") || errorMsg.includes("preflight")) {
+          errorMsg = "The Edge Function 'send-email-campaign' is not deployed on your Supabase project (bgwvkpcqmroaokkmpwmb). Please deploy it using CLI: supabase functions deploy send-email-campaign";
         }
-
-        const results = await Promise.all(
-          validRecipients.map(async (p) => {
-            const fullHtml = buildFullPreviewHtml(activeTemplate, customNote);
-            try {
-              const res = await fetch("https://api.resend.com/emails", {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${resendKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  from: "KV Sulur Library <onboarding@resend.dev>",
-                  to: [p.notification_email],
-                  subject: activeTemplate.subject,
-                  html: fullHtml,
-                }),
-              });
-              return res.ok;
-            } catch {
-              return false;
-            }
-          }),
-        );
-
-        sentCount = results.filter(Boolean).length;
-        skippedCount = recipientList.length - sentCount;
-
-        // Log campaign in Supabase database
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from("email_campaigns").insert({
-            sent_by: user.id,
-            preset: activeTemplate.id,
-            subject: activeTemplate.subject,
-            recipient_count: sentCount,
-          });
-        }
+        throw new Error(errorMsg);
       }
 
       toast({
         title: "Email campaign sent ✉️",
-        description: `${sentCount} email(s) sent successfully. ${skippedCount > 0 ? `${skippedCount} skipped.` : ""}`,
+        description: `${data?.sent ?? 0} email(s) sent successfully. ${data?.skipped ? `${data.skipped} skipped.` : ""}`,
       });
 
       clearSelection();
