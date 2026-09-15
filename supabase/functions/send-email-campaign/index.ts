@@ -199,8 +199,8 @@ Deno.serve(async (request) => {
     const valid = (recipients || []).filter((p: any) => p.notification_email);
 
     const key = Deno.env.get("RESEND_API_KEY");
-    const from = Deno.env.get("LIBRARY_FROM_EMAIL");
-    if (!key || !from) throw new Error("Email sender is not configured (RESEND_API_KEY / LIBRARY_FROM_EMAIL missing)");
+    const from = Deno.env.get("LIBRARY_FROM_EMAIL") || "KV Sulur Library <onboarding@resend.dev>";
+    if (!key) throw new Error("Email sender is not configured (RESEND_API_KEY missing)");
 
     const template = PRESETS[preset];
     const note = String(customMessage || "").trim().slice(0, 2000);

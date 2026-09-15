@@ -292,16 +292,25 @@ export default function EmailCampaignManager() {
       const { data, error } = await supabase.functions.invoke("send-email-campaign", {
         body: { recipientIds: [...selected], preset: activeTemplate.id, customMessage: customNote },
       });
-      if (error) throw error;
+      if (error) {
+        let errorMsg = error.message;
+        if ((error as any).context) {
+          try {
+            const body = await (error as any).context.json();
+            if (body?.error) errorMsg = body.error;
+          } catch (_) {}
+        }
+        throw new Error(errorMsg);
+      }
       toast({
         title: "Email campaign sent ✉️",
-        description: `${data.sent} email(s) sent successfully. ${data.skipped || 0} skipped (no verified email).`,
+        description: `${data?.sent ?? 0} email(s) sent successfully. ${data?.skipped || 0} skipped (no verified email).`,
       });
       clearSelection();
       setCustomNote("");
       loadCampaigns();
     } catch (e: any) {
-      toast({ title: "Email not sent", description: e.message || "Unknown error", variant: "destructive" });
+      toast({ title: "Email not sent", description: e.message || "Unable to reach edge function. Ensure the updated send-email-campaign function is deployed.", variant: "destructive" });
     } finally {
       setSending(false);
     }
