@@ -24,9 +24,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
 import CertificateCanvas from "@/components/certificates/CertificateCanvas";
+import {
+  generateCertificatePdf,
+  printCertificateDirect,
+  type CertificateRenderData,
+} from "@/components/certificates/certificateGenerator";
 import {
   DEFAULT_CERTIFICATE_LAYOUT,
   fetchCertificateLayout,
@@ -210,27 +213,51 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
     }
   };
 
+  const getActiveRenderData = (): CertificateRenderData | null => {
+    if (!preview) return null;
+    return {
+      studentName: userName || "Student",
+      nameHindi: preview.name_hindi || hindiName || null,
+      studentClass: profileClass,
+      classHindi: preview.class_hindi || profileClass || null,
+      eventName: preview.event_id ? events[preview.event_id] : null,
+      eventHindi: preview.event_hindi || (preview.event_id ? events[preview.event_id] : null),
+      during: preview.during_text || null,
+      title: preview.title,
+      titleHindi: preview.title_hindi || null,
+      commonText: preview.common_text || null,
+      description: preview.description || null,
+      issuedAt: preview.issued_at,
+      templateUrl: preview.template_url,
+      certNumber: preview.certificate_no,
+    };
+  };
+
   const downloadPdf = async () => {
-    if (!certRef.current || !preview) return;
+    const data = getActiveRenderData();
+    if (!data) return;
     setDownloading(true);
     try {
-      const canvas = await html2canvas(certRef.current, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-      });
-      const img = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      pdf.addImage(img, "PNG", 0, 0, pageW, pageH);
-      pdf.save(`${userName || "Student"}_${preview.title || "Certificate"}.pdf`);
-      toast.success("Certificate downloaded successfully! 🎓");
+      await generateCertificatePdf(
+        data,
+        layout,
+        `${(userName || "Student").replace(/\s+/g, "_")}_${(preview.title || "Certificate").replace(/\s+/g, "_")}.pdf`
+      );
+      toast.success("High-Resolution Certificate Downloaded! 🎓");
     } catch (e: any) {
       toast.error("Download failed", { description: e.message });
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const handlePrint = async () => {
+    const data = getActiveRenderData();
+    if (!data) return;
+    try {
+      await printCertificateDirect(data, layout);
+    } catch (e: any) {
+      window.print();
     }
   };
 
@@ -539,7 +566,7 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
                   <Download className="h-4 w-4" />
                   {downloading ? "Generating High-Res PDF…" : "Download High-Res PDF (A4)"}
                 </Button>
-                <Button variant="outline" onClick={() => window.print()} className="gap-2">
+                <Button variant="outline" onClick={handlePrint} className="gap-2">
                   <Printer className="h-4 w-4" /> Print
                 </Button>
               </div>

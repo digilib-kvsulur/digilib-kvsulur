@@ -1,27 +1,24 @@
-import { useCallback, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type RefObject,
+} from "react";
 import type { CertificateLayout, CertFieldLayout } from "@/lib/librarySettings";
-import { OFFICIAL_KV_TEMPLATE_URL } from "@/components/certificates/BuiltinTemplates";
 import { cn } from "@/lib/utils";
+import {
+  CERT_CANVAS_WIDTH,
+  CERT_CANVAS_HEIGHT,
+  drawCertificateToCanvas,
+  resolveFieldText,
+  type CertificateRenderData,
+  type CertFieldKey,
+} from "@/components/certificates/certificateGenerator";
 
-export type CertFieldKey = keyof CertificateLayout;
-
-export interface CertificateRenderData {
-  studentName: string;
-  nameHindi?: string | null;
-  studentClass?: string | null;
-  classHindi?: string | null;
-  eventName?: string | null;
-  eventHindi?: string | null;
-  during?: string | null;
-  title: string;
-  titleHindi?: string | null;
-  commonText?: string | null;
-  description?: string | null;
-  issuedAt: string;
-  templateUrl?: string | null;
-  certNumber?: string | null;
-  schoolName?: string | null;
-}
+export type { CertFieldKey, CertificateRenderData };
 
 export const CERT_FIELD_LABELS: { key: CertFieldKey; label: string; group?: string }[] = [
   // Hindi Section
@@ -45,46 +42,37 @@ export const CERT_FIELD_LABELS: { key: CertFieldKey; label: string; group?: stri
   { key: "description", label: "Description", group: "Shared" },
 ];
 
-function getFontFamilyCss(family?: string): string {
-  if (family === "serif") return "'Playfair Display', Georgia, 'Times New Roman', 'Noto Serif Devanagari', serif";
-  if (family === "display") return "'Cinzel', Georgia, serif";
-  return "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Devanagari', sans-serif";
-}
-
 function fieldBoxStyle(f: CertFieldLayout, editable: boolean, selected: boolean): CSSProperties {
-  const justify =
-    f.align === "left" ? "flex-start" : f.align === "right" ? "flex-end" : "center";
+  const translateX = f.align === "left" ? "0%" : f.align === "right" ? "-100%" : "-50%";
   return {
     position: "absolute",
     left: `${f.x}%`,
     top: `${f.y}%`,
-    transform: "translate(-50%, -50%)",
+    transform: `translate(${translateX}, -50%)`,
     width: "auto",
     maxWidth: "92%",
-    minWidth: editable ? "80px" : undefined,
+    minWidth: editable ? "60px" : undefined,
     display: "flex",
-    justifyContent: justify,
+    justifyContent: f.align === "left" ? "flex-start" : f.align === "right" ? "flex-end" : "center",
     textAlign: f.align,
-    fontSize: `${f.fontSize}px`,
+    fontSize: "13px",
     lineHeight: 1.2,
-    color: f.color || "#0f172a",
-    fontWeight: f.bold ? 700 : 500,
-    fontFamily: getFontFamilyCss(f.fontFamily),
-    padding: editable ? "4px 8px" : "0",
+    color: "transparent", // Canvas renders the text crisp; DOM box is for drag handle in editor
+    padding: editable ? "6px 10px" : "0",
     boxSizing: "border-box",
     pointerEvents: editable ? "auto" : "none",
     cursor: editable ? "grab" : "default",
     userSelect: editable ? "none" : undefined,
     borderRadius: editable ? 6 : undefined,
-    outline: editable
+    border: editable
       ? selected
-        ? "2px solid hsl(221 83% 53%)"
-        : "1px dashed rgba(15, 23, 42, 0.4)"
+        ? "2px solid #2563eb"
+        : "1px dashed rgba(37, 99, 235, 0.45)"
       : undefined,
     background: editable
       ? selected
         ? "rgba(37, 99, 235, 0.15)"
-        : "rgba(255, 255, 255, 0.55)"
+        : "rgba(255, 255, 255, 0.25)"
       : undefined,
     boxShadow: editable && selected ? "0 0 0 3px rgba(37, 99, 235, 0.25)" : undefined,
     zIndex: selected ? 25 : 10,
@@ -93,57 +81,11 @@ function fieldBoxStyle(f: CertFieldLayout, editable: boolean, selected: boolean)
   };
 }
 
-function fieldText(key: CertFieldKey, data: CertificateRenderData): string {
-  switch (key) {
-    case "nameHindi":
-      return data.nameHindi || data.studentName || "आरव शर्मा";
-    case "classHindi":
-      return data.classHindi || (data.studentClass ? `${data.studentClass}` : "8-A");
-    case "eventHindi":
-      return data.eventHindi || data.eventName || "पुस्तकालय प्रतियोगिता";
-    case "titleHindi":
-      return data.titleHindi || "प्रथम स्थान";
-    case "name":
-      return data.studentName || "Student Name";
-    case "className":
-      return data.studentClass || "Class —";
-    case "event":
-      return data.eventName || "Library Activity";
-    case "during":
-      return data.during || "August 2026";
-    case "title":
-      return data.title || "First Position";
-    case "commonText":
-      return data.commonText || "";
-    case "description":
-      return data.description || (data.title ? `Awarded for: ${data.title}` : "");
-    case "date":
-      try {
-        const d = new Date(data.issuedAt);
-        if (Number.isNaN(d.getTime())) return data.issuedAt;
-        return d.toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        });
-      } catch {
-        return data.issuedAt;
-      }
-    case "certNumber":
-      return data.certNumber ? `ID: ${data.certNumber}` : "ID: KVS-CERT-2026-0001";
-    case "schoolName":
-      return data.schoolName || "PM SHRI KENDRIYA VIDYALAYA AFS SULUR · DIGITAL LIBRARY";
-    default:
-      return "";
-  }
-}
-
-
 interface Props {
   data: CertificateRenderData;
   layout: CertificateLayout;
   className?: string;
-  canvasRef?: RefObject<HTMLDivElement | null>;
+  canvasRef?: RefObject<HTMLDivElement | HTMLCanvasElement | null>;
   /** Enable drag-to-position editing */
   editable?: boolean;
   selectedField?: CertFieldKey | null;
@@ -161,28 +103,63 @@ export default function CertificateCanvas({
   onSelectField,
   onMoveField,
 }: Props) {
-  const localRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const internalCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const dragRef = useRef<{ key: CertFieldKey; pointerId: number } | null>(null);
   const [dragging, setDragging] = useState<CertFieldKey | null>(null);
+  const [rendering, setRendering] = useState(false);
 
-  const setRefs = useCallback(
+  // Sync ref to parent
+  const setContainerNode = useCallback(
     (node: HTMLDivElement | null) => {
-      localRef.current = node;
-      if (canvasRef) (canvasRef as any).current = node;
+      containerRef.current = node;
+      if (canvasRef) {
+        (canvasRef as any).current = node;
+      }
     },
     [canvasRef]
   );
 
-  const activeTemplate = data.templateUrl || OFFICIAL_KV_TEMPLATE_URL;
-  const bg = {
-    backgroundImage: `url(${activeTemplate})`,
-    backgroundSize: "100% 100%",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-  };
+  // Draw certificate onto canvas on every change
+  useEffect(() => {
+    const canvas = internalCanvasRef.current;
+    if (!canvas) return;
+
+    let isMounted = true;
+    setRendering(true);
+
+    drawCertificateToCanvas(canvas, data, layout, {
+      targetWidth: CERT_CANVAS_WIDTH,
+      targetHeight: CERT_CANVAS_HEIGHT,
+    })
+      .catch((err) => console.error("Canvas draw error:", err))
+      .finally(() => {
+        if (isMounted) setRendering(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    data.studentName,
+    data.nameHindi,
+    data.studentClass,
+    data.classHindi,
+    data.eventName,
+    data.eventHindi,
+    data.during,
+    data.title,
+    data.titleHindi,
+    data.commonText,
+    data.description,
+    data.issuedAt,
+    data.templateUrl,
+    data.certNumber,
+    layout,
+  ]);
 
   const updateFromPointer = (key: CertFieldKey, clientX: number, clientY: number) => {
-    const el = localRef.current;
+    const el = containerRef.current;
     if (!el || !onMoveField) return;
     const rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
@@ -233,18 +210,29 @@ export default function CertificateCanvas({
 
   return (
     <div
-      ref={setRefs}
+      ref={setContainerNode}
       className={cn(
-        "relative aspect-[1.416] w-full overflow-hidden rounded-lg border bg-white shadow-sm",
-        editable && "ring-2 ring-primary/20 select-none",
+        "relative aspect-[1.416] w-full overflow-hidden rounded-lg border bg-white shadow-sm select-none",
+        editable && "ring-2 ring-primary/20",
         className
       )}
-      style={bg}
     >
+      {/* High-Resolution Canvas Element */}
+      <canvas
+        ref={internalCanvasRef}
+        width={CERT_CANVAS_WIDTH}
+        height={CERT_CANVAS_HEIGHT}
+        className="w-full h-full block object-contain pointer-events-none"
+        style={{
+          aspectRatio: "1.416",
+        }}
+      />
+
+      {/* Editor Banner */}
       {editable && (
         <div className="absolute inset-x-0 top-0 z-30 pointer-events-none bg-gradient-to-b from-black/60 to-transparent px-3 py-1.5 flex items-center justify-between">
           <p className="text-[11px] font-medium text-white drop-shadow">
-            🎯 Drag fields onto the certificate lines · Click field to customize style
+            🎯 Drag handles onto certificate lines · Click to customize font & alignment
           </p>
           <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded">
             Interactive Editor
@@ -252,31 +240,33 @@ export default function CertificateCanvas({
         </div>
       )}
 
-      {visibleKeys.map((key) => {
-        const f = layout[key];
-        const selected = selectedField === key;
-        const text = fieldText(key, data);
-        if (!text && !editable) return null;
+      {/* Interactive Overlays for Studio Editor */}
+      {editable &&
+        visibleKeys.map((key) => {
+          const f = layout[key];
+          const selected = selectedField === key;
+          const text = resolveFieldText(key, data) || key;
 
-        return (
-          <div
-            key={key}
-            style={fieldBoxStyle(f, editable, selected)}
-            onPointerDown={(e) => onPointerDown(key, e)}
-            onPointerMove={editable ? onPointerMove : undefined}
-            onPointerUp={editable ? endDrag : undefined}
-            onPointerCancel={editable ? endDrag : undefined}
-            className={cn(
-              dragging === key && "cursor-grabbing",
-              editable && "transition-shadow"
-            )}
-            title={editable ? CERT_FIELD_LABELS.find((x) => x.key === key)?.label : undefined}
-          >
-            <span>{text}</span>
-          </div>
-        );
-      })}
+          return (
+            <div
+              key={key}
+              style={fieldBoxStyle(f, editable, selected)}
+              onPointerDown={(e) => onPointerDown(key, e)}
+              onPointerMove={editable ? onPointerMove : undefined}
+              onPointerUp={editable ? endDrag : undefined}
+              onPointerCancel={editable ? endDrag : undefined}
+              className={cn(
+                dragging === key && "cursor-grabbing",
+                "transition-colors"
+              )}
+              title={CERT_FIELD_LABELS.find((x) => x.key === key)?.label}
+            >
+              <span className="text-[11px] font-bold text-blue-900 bg-white/80 px-1.5 py-0.5 rounded shadow-sm border border-blue-300">
+                {CERT_FIELD_LABELS.find((x) => x.key === key)?.label || key}
+              </span>
+            </div>
+          );
+        })}
     </div>
   );
 }
-

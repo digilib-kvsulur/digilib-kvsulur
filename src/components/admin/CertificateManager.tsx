@@ -34,8 +34,11 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import {
+  generateCertificatePdf,
+  printCertificateDirect,
+  type CertificateRenderData,
+} from "@/components/certificates/certificateGenerator";
 import {
   fetchCertificateTemplateUrl,
   saveCertificateTemplateUrl,
@@ -491,28 +494,47 @@ export default function CertificateManager() {
     toast({ title: "Reset Complete", description: "Bilingual KV Sulur template restored." });
   };
 
-  // Download PDF
+  const getCertRenderData = (cert: CertificateRow): CertificateRenderData => ({
+    studentName: `${cert.profiles?.first_name || ""} ${cert.profiles?.last_name || ""}`.trim() || "Student",
+    nameHindi: cert.name_hindi || cert.profiles?.hindi_name || null,
+    studentClass: cert.profiles?.student_class || null,
+    classHindi: cert.class_hindi || cert.profiles?.student_class || null,
+    eventName: cert.event_id ? events.find((e) => e.id === cert.event_id)?.title : null,
+    eventHindi: cert.event_hindi || null,
+    during: cert.during_text || null,
+    title: cert.title,
+    titleHindi: cert.title_hindi || null,
+    commonText: cert.common_text || commonText || null,
+    description: cert.description || null,
+    issuedAt: cert.issued_at,
+    templateUrl: cert.template_url || templateUrl,
+    certNumber: cert.certificate_no,
+  });
+
+  // Download High-Resolution PDF
   const downloadPdf = async (cert: CertificateRow) => {
-    if (!previewCanvasRef.current) return;
     setGeneratingPdf(true);
     try {
-      const canvas = await html2canvas(previewCanvasRef.current, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-      });
-      const img = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      pdf.addImage(img, "PNG", 0, 0, pageW, pageH);
-      pdf.save(`${cert.profiles?.first_name || "Student"}_Certificate.pdf`);
-      toast({ title: "PDF Exported! 📄" });
+      const data = getCertRenderData(cert);
+      await generateCertificatePdf(
+        data,
+        layout,
+        `${(cert.profiles?.first_name || "Student").replace(/\s+/g, "_")}_${(cert.title || "Certificate").replace(/\s+/g, "_")}.pdf`
+      );
+      toast({ title: "PDF Exported! 📄", description: "2K Print Resolution Generated" });
     } catch (e: any) {
       toast({ title: "Export failed", description: e.message, variant: "destructive" });
     } finally {
       setGeneratingPdf(false);
+    }
+  };
+
+  const handlePrintAdmin = async (cert: CertificateRow) => {
+    try {
+      const data = getCertRenderData(cert);
+      await printCertificateDirect(data, layout);
+    } catch {
+      window.print();
     }
   };
 
@@ -1397,7 +1419,7 @@ export default function CertificateManager() {
                   >
                     <Copy className="h-4 w-4 mr-1.5" /> Copy ID
                   </Button>
-                  <Button variant="outline" onClick={() => window.print()}>
+                  <Button variant="outline" onClick={() => handlePrintAdmin(previewCert)}>
                     <Printer className="h-4 w-4 mr-1.5" /> Print
                   </Button>
                   <Button onClick={() => downloadPdf(previewCert)} disabled={generatingPdf}>

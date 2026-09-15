@@ -12,34 +12,34 @@ export const OFFICIAL_KV_TEMPLATE_URL = "/certificates/kv_sulur_certificate_temp
 // Calibrated field coordinates for the official bilingual KV Sulur certificate image
 export const OFFICIAL_KV_LAYOUT = {
   // ── Hindi Line 1: प्रमाणित किया जाता है कि मास्टर /मिस [ Aarav Sharma / आरव शर्मा ]
-  nameHindi: { x: 65.0, y: 45.8, fontSize: 16, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "serif" as const },
+  nameHindi: { x: 73.0, y: 45.4, fontSize: 18, visible: true, align: "center" as const, color: "#1e3a8a", bold: true, fontFamily: "serif" as const },
   // ── Hindi Line 2 Left: कक्षा [ 8-A ]
-  classHindi: { x: 28.0, y: 52.0, fontSize: 15, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  classHindi: { x: 32.8, y: 51.5, fontSize: 16, visible: true, align: "center" as const, color: "#1e3a8a", bold: true, fontFamily: "serif" as const },
   // ── Hindi Line 2 Right: पुस्तकालय की [ राष्ट्रीय पठन माह प्रतियोगिता ]
-  eventHindi: { x: 78.0, y: 52.0, fontSize: 14, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  eventHindi: { x: 84.0, y: 51.5, fontSize: 15, visible: true, align: "center" as const, color: "#1e3a8a", bold: true, fontFamily: "serif" as const },
   // ── Hindi Line 3: प्रतियोगिता में भाग लिया और [ प्रथम स्थान ] स्थान प्राप्त किया।
-  titleHindi: { x: 49.0, y: 58.2, fontSize: 15, visible: true, align: "left" as const, color: "#b91c1c", bold: true, fontFamily: "serif" as const },
+  titleHindi: { x: 47.2, y: 57.6, fontSize: 16, visible: true, align: "center" as const, color: "#b91c1c", bold: true, fontFamily: "serif" as const },
 
   // ── English Line 4: This is to certify that Master/Miss [ Aarav Sharma ] of
-  name: { x: 64.0, y: 64.5, fontSize: 16, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  name: { x: 64.0, y: 63.8, fontSize: 18, visible: true, align: "center" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
   // ── English Line 5 Left: class [ 8-A ]
-  className: { x: 27.5, y: 70.8, fontSize: 15, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  className: { x: 28.8, y: 70.0, fontSize: 16, visible: true, align: "center" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
   // ── English Line 5 Right: has participated in [ National Reading Month Competition ]
-  event: { x: 67.0, y: 70.8, fontSize: 14, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  event: { x: 65.2, y: 70.0, fontSize: 15, visible: true, align: "center" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
   // ── English Line 6: During [ August 2026 ] in the year 2026 - 2027
-  during: { x: 36.0, y: 76.5, fontSize: 14, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  during: { x: 44.5, y: 75.8, fontSize: 15, visible: true, align: "center" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
   // ── English Line 7: and secured [ First ] position.
-  title: { x: 42.0, y: 82.8, fontSize: 15, visible: true, align: "left" as const, color: "#b91c1c", bold: true, fontFamily: "sans" as const },
+  title: { x: 41.2, y: 81.9, fontSize: 16, visible: true, align: "center" as const, color: "#b91c1c", bold: true, fontFamily: "sans" as const },
 
   // Common plain text / Custom text for all certificates
-  commonText: { x: 50.0, y: 88.5, fontSize: 12, visible: false, align: "center" as const, color: "#475569", bold: false, fontFamily: "sans" as const },
+  commonText: { x: 50.0, y: 87.5, fontSize: 13, visible: false, align: "center" as const, color: "#475569", bold: false, fontFamily: "sans" as const },
 
   // Optional description
-  description: { x: 50.0, y: 89.0, fontSize: 12, visible: false, align: "center" as const, color: "#475569", bold: false, fontFamily: "sans" as const },
+  description: { x: 50.0, y: 88.5, fontSize: 13, visible: false, align: "center" as const, color: "#475569", bold: false, fontFamily: "sans" as const },
   // Date: दिनांक : / Date : [ 15/09/2026 ]
-  date: { x: 26.0, y: 94.3, fontSize: 13, visible: true, align: "left" as const, color: "#0f172a", bold: true, fontFamily: "sans" as const },
+  date: { x: 27.5, y: 94.2, fontSize: 13, visible: true, align: "left" as const, color: "#0f172a", bold: true, fontFamily: "sans" as const },
   // Certificate ID / verification serial at bottom right
-  certNumber: { x: 88.0, y: 94.8, fontSize: 11, visible: true, align: "right" as const, color: "#64748b", bold: false, fontFamily: "sans" as const },
+  certNumber: { x: 88.0, y: 94.5, fontSize: 12, visible: true, align: "right" as const, color: "#64748b", bold: false, fontFamily: "sans" as const },
   schoolName: { x: 50.0, y: 15.0, fontSize: 18, visible: false, align: "center" as const, color: "#0f172a", bold: true, fontFamily: "sans" as const },
 };
 
