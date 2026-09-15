@@ -5,14 +5,20 @@ import { Card } from "@/components/ui/card";
 import { GameProps, formatClock, shuffle } from "./gameTypes";
 import { RotateCcw, Trophy, Eraser, Check } from "lucide-react";
 
-const FALLBACK = ["A stack of books", "A reading lamp", "A bookmark", "An open magazine"];
+const FALLBACK = [
+  "A stack of books", "A reading lamp", "A bookmark", "An open magazine",
+  "A library bookshelf", "An open encyclopedia", "A student studying", "A globe"
+];
 
 export default function QuickDraw({ content, onComplete, onExit }: GameProps) {
   const [seed, setSeed] = useState(0);
-  const prompt = useMemo(() => {
+  const [currentPrompt, setCurrentPrompt] = useState<string>("");
+
+  useEffect(() => {
     const list = content.filter((c) => c.kind === "prompt").map((c) => c.value);
-    return shuffle(list.length ? list : FALLBACK)[0];
-  }, [content, seed]);
+    const pool = list.length ? list : FALLBACK;
+    setCurrentPrompt((prev) => (prev ? prev : shuffle(pool)[0] || FALLBACK[0]));
+  }, [content]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
@@ -73,14 +79,20 @@ export default function QuickDraw({ content, onComplete, onExit }: GameProps) {
   };
 
   const restart = () => {
-    clear(); setTimeLeft(60); setDone(false); setSeed((s) => s + 1);
+    clear();
+    setTimeLeft(60);
+    setDone(false);
+    setSeed((s) => s + 1);
+    const list = content.filter((c) => c.kind === "prompt").map((c) => c.value);
+    const pool = list.length ? list : FALLBACK;
+    setCurrentPrompt(shuffle(pool)[0] || FALLBACK[0]);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex gap-2">
-          <Badge>{prompt}</Badge>
+          <Badge>{currentPrompt || "Drawing Prompt"}</Badge>
           <Badge variant={timeLeft < 15 ? "destructive" : "secondary"}>{formatClock(timeLeft)}</Badge>
         </div>
         <div className="flex gap-2">

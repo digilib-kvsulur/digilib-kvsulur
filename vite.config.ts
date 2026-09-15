@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           react: ["react", "react-dom", "react-router-dom"],
           supabase: ["@supabase/supabase-js", "@tanstack/react-query"],
+          pdf: ["jspdf", "jspdf-autotable", "html2canvas"],
+          charts: ["recharts"],
+          data: ["papaparse", "date-fns"],
         },
       },
     },

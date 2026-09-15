@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Calendar, MapPin, Users, Download, FileText, Eye, Clock, X, CloudUpload, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import { Calendar, MapPin, Users, Download, FileText, Eye, Clock, X, CloudUpload, Loader2, Sparkles, CheckCircle2, ExternalLink } from "lucide-react";
 import { formatDeadline, isRegistrationClosed, isSubmissionClosed } from "@/lib/eventDeadlines";
 
 interface ScheduleFile {
@@ -267,6 +267,31 @@ export default function EventDetailModal({
               <p className="text-slate-700 leading-relaxed text-sm bg-slate-50 rounded-xl p-4 border border-slate-100">
                 {event.description}
               </p>
+            )}
+
+            {/* Internal Page / Feature Redirect Option */}
+            {event.redirect_url && (
+              <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-foreground">Related Feature / Page</p>
+                  <p className="text-[11px] text-muted-foreground">Jump directly to this event's dedicated page</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="rounded-xl font-bold gap-1.5 shadow-sm shrink-0"
+                  onClick={() => {
+                    onClose();
+                    if (event.redirect_url.startsWith("http")) {
+                      window.open(event.redirect_url, "_blank");
+                    } else {
+                      window.location.href = event.redirect_url;
+                    }
+                  }}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open Feature
+                </Button>
+              </div>
             )}
 
             {/* Schedule / Guideline Files */}

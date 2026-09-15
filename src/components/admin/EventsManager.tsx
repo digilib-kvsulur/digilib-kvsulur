@@ -29,6 +29,7 @@ export default function EventsManager() {
     title: "", description: "", event_date: "", end_date: "", location: "", capacity: "",
     registration_deadline: "", submission_deadline: "",
     image_orientation: "horizontal",
+    redirect_url: "",
     allow_submissions: false,
     submission_types: ["image", "pdf"] as string[],
     max_submission_days: 1
@@ -82,6 +83,7 @@ export default function EventsManager() {
       title: "", description: "", event_date: "", end_date: "", location: "", capacity: "",
       registration_deadline: "", submission_deadline: "",
       image_orientation: "horizontal",
+      redirect_url: "",
       allow_submissions: false,
       submission_types: ["image", "pdf"],
       max_submission_days: 1
@@ -115,11 +117,14 @@ export default function EventsManager() {
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("You must be logged in as an admin to create or edit events.");
+      }
 
       let imageUrl = null;
       if (file) {
         const ext = file.name.split(".").pop();
-        const path = `${user?.id || "admin"}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("event-images").upload(path, file, {
           contentType: file.type, upsert: false,
         });
@@ -130,7 +135,7 @@ export default function EventsManager() {
 
       // Build event first to get ID (for editing) or insert
       const eventId = editingId || crypto.randomUUID();
-      const allScheduleFiles = await uploadScheduleFiles(user?.id || "admin", eventId);
+      const allScheduleFiles = await uploadScheduleFiles(user.id, eventId);
 
       const payload = {
         title: form.title,
@@ -142,6 +147,7 @@ export default function EventsManager() {
         location: form.location || null,
         capacity: form.capacity ? parseInt(form.capacity) : null,
         image_orientation: form.image_orientation,
+        redirect_url: form.redirect_url.trim() || null,
         schedule_files: JSON.stringify(allScheduleFiles),
         allow_submissions: form.allow_submissions,
         submission_types: form.submission_types,
@@ -156,7 +162,7 @@ export default function EventsManager() {
         ({ error } = await supabase.from("library_events").insert({
           ...payload,
           id: eventId,
-          created_by: user?.id,
+          created_by: user.id,
           image_url: imageUrl,
         }));
       }
@@ -184,6 +190,7 @@ export default function EventsManager() {
       location: ev.location || "",
       capacity: ev.capacity ? String(ev.capacity) : "",
       image_orientation: ev.image_orientation || "horizontal",
+      redirect_url: ev.redirect_url || "",
       allow_submissions: ev.allow_submissions || false,
       submission_types: ev.submission_types || ["image", "pdf"],
       max_submission_days: ev.max_submission_days || 1
@@ -257,6 +264,15 @@ export default function EventsManager() {
               </div>
               <div><Label>Location</Label><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
               <div><Label>Capacity (optional)</Label><Input type="number" value={form.capacity} onChange={e => setForm({ ...form, capacity: e.target.value })} /></div>
+              <div>
+                <Label>Internal Page / Feature Redirect Link (Optional)</Label>
+                <Input
+                  value={form.redirect_url}
+                  onChange={e => setForm({ ...form, redirect_url: e.target.value })}
+                  placeholder="e.g. /catalog, /community, /quizzes, /games"
+                />
+                <p className="text-[11px] text-muted-foreground mt-0.5">Students can tap a button on the event card to jump directly to this internal page.</p>
+              </div>
 
               {/* Event Image */}
               <div>

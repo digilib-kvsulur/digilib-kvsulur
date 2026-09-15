@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw, Loader2, GraduationCap, Trash2, Eye } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw, Loader2, GraduationCap, Trash2, Eye, EyeOff, Mail, Check } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -44,7 +44,9 @@ const UserApproval = () => {
   const [syncing, setSyncing] = useState(false);
   const [resetTarget, setResetTarget] = useState<PendingUser | null>(null);
   const [generatedPassword, setGeneratedPassword] = useState("");
+  const [showAdminPass, setShowAdminPass] = useState(true);
   const [resetting, setResetting] = useState(false);
+  const [sendingResetEmail, setSendingResetEmail] = useState(false);
   const [editingClassTarget, setEditingClassTarget] = useState<PendingUser | null>(null);
   const [newClassVal, setNewClassVal] = useState("");
   const [updatingClass, setUpdatingClass] = useState(false);
@@ -134,23 +136,64 @@ const UserApproval = () => {
 
   const openResetDialog = (u: PendingUser) => {
     setGeneratedPassword(generateTempPassword());
+    setShowAdminPass(true);
     setResetTarget(u);
   };
 
   const confirmResetPassword = async () => {
-    if (!resetTarget || !generatedPassword) return;
+    if (!resetTarget || !generatedPassword.trim()) {
+      toast({ title: "Password required", description: "Please enter or generate a password.", variant: "destructive" });
+      return;
+    }
+    if (generatedPassword.trim().length < 6) {
+      toast({ title: "Too short", description: "Password must be at least 6 characters long.", variant: "destructive" });
+      return;
+    }
+
     setResetting(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-reset-password", {
-        body: { user_id: resetTarget.id, new_password: generatedPassword }
+        body: { user_id: resetTarget.id, new_password: generatedPassword.trim() }
       });
       if (error || (data as any)?.error) throw new Error(error?.message || (data as any)?.error);
-      toast({ title: "Password Reset!", description: `Password for ${resetTarget.first_name} has been updated. Copy the password and hand it to the student.` });
+      
+      navigator.clipboard.writeText(generatedPassword.trim());
+      toast({
+        title: "Password Updated & Copied! 🔐",
+        description: `New password for ${resetTarget.first_name} ${resetTarget.last_name} is set and copied to your clipboard.`,
+      });
+      setResetTarget(null);
     } catch (e: any) {
       toast({ title: "Reset Failed", description: e.message, variant: "destructive" });
-      setResetTarget(null);
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleSendEmailReset = async (u: PendingUser) => {
+    if (!u.email) {
+      toast({ title: "No email address", description: "This user does not have a registered email.", variant: "destructive" });
+      return;
+    }
+    setSendingResetEmail(true);
+    try {
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(u.email, {
+        redirectTo: redirectUrl,
+      });
+      if (error) throw error;
+      toast({
+        title: "Recovery Link Sent! ✉️",
+        description: `Password recovery email sent to ${u.email}.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Failed to send link",
+        description: err.message || "Could not send reset email.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingResetEmail(false);
     }
   };
 
@@ -488,26 +531,101 @@ const UserApproval = () => {
 
       {/* Reset Password Dialog */}
       <Dialog open={!!resetTarget} onOpenChange={(open) => { if (!open && !resetting) setResetTarget(null); }}>
-        <DialogContent className="max-w-sm rounded-2xl">
+        <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><KeyRound className="h-5 w-5 text-orange-500" /> Reset Password</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-orange-500" /> Admin Password Override
+            </DialogTitle>
             <DialogDescription>
-              A new temporary password will be set for <strong>{resetTarget?.first_name} {resetTarget?.last_name}</strong>. Give this password to the student so they can log in and set a new one.
+              Set a custom password or generate a random one for{" "}
+              <strong>{resetTarget?.first_name} {resetTarget?.last_name}</strong> ({resetTarget?.role} - {resetTarget?.email || "No email"}).
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 mt-2">
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-              <code className="text-lg font-mono font-bold tracking-widest text-slate-900 select-all">{generatedPassword}</code>
-              <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(generatedPassword); toast({ title: "Copied!", description: "Temporary password copied to clipboard." }); }}>
-                <Copy className="h-4 w-4" />
-              </Button>
+            {/* Custom Password Input */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700">New Password</label>
+                <button
+                  type="button"
+                  onClick={() => setGeneratedPassword(generateTempPassword())}
+                  className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  <RotateCcw className="h-3 w-3" /> Generate Random
+                </button>
+              </div>
+              <div className="relative flex items-center">
+                <Input
+                  type={showAdminPass ? "text" : "password"}
+                  value={generatedPassword}
+                  onChange={(e) => setGeneratedPassword(e.target.value)}
+                  placeholder="Enter or generate password (min 6 chars)..."
+                  className="font-mono pr-20 text-sm h-10"
+                />
+                <div className="absolute right-2 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPass(!showAdminPass)}
+                    className="p-1 text-muted-foreground hover:text-foreground rounded"
+                    title={showAdminPass ? "Hide" : "Show"}
+                  >
+                    {showAdminPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!generatedPassword) return;
+                      navigator.clipboard.writeText(generatedPassword);
+                      toast({ title: "Copied!", description: "Password copied to clipboard." });
+                    }}
+                    className="p-1 text-muted-foreground hover:text-foreground rounded"
+                    title="Copy to clipboard"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">The student will be able to log in with this password. They should change it after logging in.</p>
-            <div className="flex gap-2 justify-end">
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-semibold text-slate-700">💡 Admin Note:</p>
+              <p>When you click <strong>Confirm Override</strong>, the password is saved immediately and automatically copied to your clipboard so you can hand it to the user.</p>
+            </div>
+
+            {resetTarget?.email && (
+              <div className="pt-1 border-t flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Or send email link:</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={sendingResetEmail}
+                  onClick={() => resetTarget && handleSendEmailReset(resetTarget)}
+                  className="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-semibold gap-1.5 h-8"
+                >
+                  {sendingResetEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                  Send Recovery Link
+                </Button>
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" onClick={() => setResetTarget(null)} disabled={resetting}>Cancel</Button>
-              <Button onClick={confirmResetPassword} disabled={resetting} className="bg-orange-500 hover:bg-orange-600 text-white">
-                {resetting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Resetting...</> : <><KeyRound className="h-4 w-4 mr-2" />Confirm Reset</>}
+              <Button
+                onClick={confirmResetPassword}
+                disabled={resetting || !generatedPassword.trim()}
+                className="bg-orange-500 hover:bg-orange-600 text-white font-bold"
+              >
+                {resetting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Updating...
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="h-4 w-4 mr-2" /> Confirm Override
+                  </>
+                )}
               </Button>
             </div>
           </div>

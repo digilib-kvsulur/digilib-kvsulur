@@ -430,7 +430,7 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md w-[95vw] h-[90vh] max-h-[720px] p-0 overflow-hidden border-0 bg-slate-950 text-white rounded-3xl shadow-2xl flex flex-col focus:outline-none [&>button:first-child]:hidden">
+      <DialogContent className="max-w-md w-[95vw] h-[90vh] max-h-[720px] p-0 overflow-hidden border-0 bg-slate-950 text-white rounded-3xl shadow-2xl flex flex-col focus:outline-none [&>button.absolute]:hidden [&>button:last-child]:hidden">
         {loading ? (
           <div className="flex-1 flex flex-col items-center justify-center space-y-4 p-8 text-center">
             <div className="relative">

@@ -49,43 +49,71 @@ export default function GalleryManager() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Authentication required to manage gallery.");
+
       const newImages = [];
 
       if (files.length > 0) {
-        if (!user) throw new Error("Not signed in");
-        
         for (const f of files) {
-          const options = {
-            maxSizeMB: 2,
-            maxWidthOrHeight: 2000,
-            useWebWorker: true
-          };
-          const compressedFile = await imageCompression(f, options);
-          const ext = f.name.split(".").pop();
+          let fileToUpload = f;
+          try {
+            const options = {
+              maxSizeMB: 2,
+              maxWidthOrHeight: 2000,
+              useWebWorker: true
+            };
+            fileToUpload = await imageCompression(f, options);
+          } catch {
+            fileToUpload = f;
+          }
+          const ext = f.name.split(".").pop() || "jpg";
           const path = `gallery/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
           
-          const { error: upErr } = await supabase.storage.from("gallery-images").upload(path, compressedFile, {
-            contentType: "image/jpeg", upsert: false
-          });
-          if (upErr) throw upErr;
+          let pubUrl = "";
+          let lastErr: any = null;
+
+          const bucketsToTry = ["gallery-images", "event-images", "community-media"];
+          for (const bucket of bucketsToTry) {
+            const { error: upErr } = await supabase.storage.from(bucket).upload(path, fileToUpload, {
+              contentType: f.type || "image/jpeg",
+              upsert: true
+            });
+            if (!upErr) {
+              const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
+              if (pub?.publicUrl) {
+                pubUrl = pub.publicUrl;
+                lastErr = null;
+                break;
+              }
+            } else {
+              lastErr = upErr;
+            }
+          }
+
+          if (!pubUrl && lastErr) throw lastErr;
           
-          const { data: pub } = supabase.storage.from("gallery-images").getPublicUrl(path);
           newImages.push({
-            image_url: pub.publicUrl,
-            caption: "",
+            image_url: pubUrl,
+            caption: form.caption?.trim() || null,
             is_active: form.is_active
           });
         }
       } else {
+        if (!form.image_url.trim()) {
+          throw new Error("Please select an image file or provide an image URL.");
+        }
         newImages.push({
-          image_url: form.image_url,
-          caption: "",
+          image_url: form.image_url.trim(),
+          caption: form.caption?.trim() || null,
           is_active: form.is_active
         });
       }
 
-      const { error } = await supabase.from("gallery_images").insert(newImages);
-      if (error) throw error;
+      if (newImages.length > 0) {
+        const { error } = await supabase.from("gallery_images").insert(newImages);
+        if (error) throw error;
+      }
+
       toast({ title: `${newImages.length} image(s) added successfully` });
       setOpen(false);
       setForm({ image_url: "", caption: "", is_active: true });
@@ -94,7 +122,7 @@ export default function GalleryManager() {
       setPreviewUrls([]);
       load();
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: "Error uploading gallery image", description: e.message || "Failed to upload", variant: "destructive" });
     } finally {
       setLoading(false);
     }

@@ -19,9 +19,10 @@ import {
 } from "@/lib/librarySettings";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, MessageSquare, Megaphone, DownloadCloud, Key } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Clock, MessageSquare, Megaphone, DownloadCloud, Key } from "lucide-react";
 import LibraryBotMessagesManager from "@/components/admin/LibraryBotMessagesManager";
+import LibraryMapConfigEditor from "@/components/admin/LibraryMapConfigEditor";
 
 export default function LibrarySettings() {
   const { toast } = useToast();
@@ -40,6 +41,7 @@ export default function LibrarySettings() {
   const [devMessageBody, setDevMessageBody] = useState("");
   const [devMessageLinkUrl, setDevMessageLinkUrl] = useState("");
   const [devMessageLinkText, setDevMessageLinkText] = useState("Learn More");
+  const [devMessageImageUrl, setDevMessageImageUrl] = useState("");
   const [globalNewsColor, setGlobalNewsColor] = useState("blue");
 
   // Games Schedule
@@ -85,6 +87,7 @@ export default function LibrarySettings() {
       setDevMessageBody(devMsg.message);
       setDevMessageLinkUrl(devMsg.linkUrl || "");
       setDevMessageLinkText(devMsg.linkText || "Learn More");
+      setDevMessageImageUrl(devMsg.imageUrl || "");
       setGlobalNewsColor(newsColor);
       setGamesScheduleEnabled(gamesSch.enable);
       setGamesScheduleStart(gamesSch.start);
@@ -147,6 +150,7 @@ export default function LibrarySettings() {
         { key: "dev_message_body", value: devMessageBody.trim() as any },
         { key: "dev_message_link_url", value: devMessageLinkUrl.trim() as any },
         { key: "dev_message_link_text", value: devMessageLinkText.trim() as any },
+        { key: "dev_message_image_url", value: devMessageImageUrl.trim() as any },
         { key: "enable_games_schedule", value: gamesScheduleEnabled as any },
         { key: "games_schedule_start", value: gamesScheduleStart as any },
         { key: "games_schedule_end", value: gamesScheduleEnd as any },
@@ -401,6 +405,15 @@ export default function LibrarySettings() {
                 />
               </div>
               <div className="space-y-1.5">
+                <Label htmlFor="devMsgImageUrl">Optional Banner Image URL</Label>
+                <Input
+                  id="devMsgImageUrl"
+                  value={devMessageImageUrl}
+                  onChange={(e) => setDevMessageImageUrl(e.target.value)}
+                  placeholder="e.g. https://images.unsplash.com/... (Leave blank for text only)"
+                />
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="devMsgLinkUrl">Optional Button Link URL</Label>
                 <Input
                   id="devMsgLinkUrl"
@@ -480,104 +493,7 @@ export default function LibrarySettings() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Compass className="h-4 w-4 text-indigo-500" /> Library Map Zones Config
-          </CardTitle>
-          <CardDescription>
-            Configure the zones/categories shown on the Library Map Explorer.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {zones.map((zone, idx) => (
-            <div key={idx} className="flex flex-col gap-2 p-4 border rounded-xl bg-slate-50 relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 hover:bg-red-100 text-red-500"
-                onClick={() => setZones(zones.filter((_, i) => i !== idx))}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Zone Label</Label>
-                  <Input
-                    placeholder="e.g. Science & Math"
-                    value={zone.label}
-                    onChange={(e) => {
-                      const updated = [...zones];
-                      updated[idx].label = e.target.value;
-                      setZones(updated);
-                    }}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Color Scheme</Label>
-                  <Select
-                    value={zone.color}
-                    onValueChange={(val) => {
-                      const updated = [...zones];
-                      updated[idx].color = val;
-                      setZones(updated);
-                    }}
-                  >
-                    <SelectTrigger className="w-full text-xs">
-                      <SelectValue placeholder="Color Scheme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bg-blue-100 text-blue-800">Blue</SelectItem>
-                      <SelectItem value="bg-emerald-100 text-emerald-800">Emerald</SelectItem>
-                      <SelectItem value="bg-amber-100 text-amber-800">Amber</SelectItem>
-                      <SelectItem value="bg-indigo-100 text-indigo-800">Indigo</SelectItem>
-                      <SelectItem value="bg-purple-100 text-purple-800">Purple</SelectItem>
-                      <SelectItem value="bg-rose-100 text-rose-800">Rose</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs">Assigned Cupboards (comma separated)</Label>
-                  <Input
-                    placeholder="e.g. C-1, C-2, C-3"
-                    value={(zone as any).cupboards || ""}
-                    onChange={(e) => {
-                      const updated = [...zones];
-                      (updated[idx] as any).cupboards = e.target.value;
-                      setZones(updated);
-                    }}
-                  />
-                </div>
-                <div className="flex gap-2 md:col-span-2">
-                  <div className="space-y-1.5 flex-1">
-                    <Label className="text-xs">X Pos</Label>
-                    <Input type="number" value={(zone as any).x || 50} onChange={e => { const u = [...zones]; (u[idx] as any).x = Number(e.target.value); setZones(u); }} />
-                  </div>
-                  <div className="space-y-1.5 flex-1">
-                    <Label className="text-xs">Y Pos</Label>
-                    <Input type="number" value={(zone as any).y || 50} onChange={e => { const u = [...zones]; (u[idx] as any).y = Number(e.target.value); setZones(u); }} />
-                  </div>
-                  <div className="space-y-1.5 flex-1">
-                    <Label className="text-xs">Width</Label>
-                    <Input type="number" value={(zone as any).w || 200} onChange={e => { const u = [...zones]; (u[idx] as any).w = Number(e.target.value); setZones(u); }} />
-                  </div>
-                  <div className="space-y-1.5 flex-1">
-                    <Label className="text-xs">Height</Label>
-                    <Input type="number" value={(zone as any).h || 200} onChange={e => { const u = [...zones]; (u[idx] as any).h = Number(e.target.value); setZones(u); }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setZones([...zones, { label: "", color: "bg-blue-100 text-blue-800" }])}
-          >
-            Add New Zone
-          </Button>
-        </CardContent>
-      </Card>
+      <LibraryMapConfigEditor zones={zones as any} onChange={setZones} />
 
       <Card>
         <CardHeader>

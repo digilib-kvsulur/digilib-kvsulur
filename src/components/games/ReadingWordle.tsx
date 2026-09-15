@@ -6,7 +6,12 @@ import { Card } from "@/components/ui/card";
 import { GameProps, shuffle, wordsFrom } from "./gameTypes";
 import { RotateCcw, Trophy } from "lucide-react";
 
-const FALLBACK = ["BOOKS", "NOVEL", "PAGES", "STORY", "INDEX", "SHELF", "ATLAS", "PROSE"];
+const FALLBACK = [
+  "BOOKS", "NOVEL", "PAGES", "STORY", "INDEX", "SHELF", "ATLAS", "PROSE",
+  "POEMS", "WORDS", "GENRE", "TOPIC", "TITLE", "ESSAY", "PAPER", "WRITE",
+  "LEARN", "STUDY", "SMART", "BRAIN", "THINK", "QUOTE", "DRAFT", "FOLIO",
+  "COVER", "PRINT", "QUIZZ", "FACTS", "GUIDE", "MEDAL", "HONOR", "BADGE"
+];
 
 export default function ReadingWordle({ books, content, onComplete, onExit }: GameProps) {
   const pool = useMemo(() => {
@@ -17,12 +22,18 @@ export default function ReadingWordle({ books, content, onComplete, onExit }: Ga
     return [...new Set(list)];
   }, [books, content]);
 
-  const [seed, setSeed] = useState(0);
-  const answer = useMemo(() => shuffle(pool)[0] || "BOOKS", [pool, seed]);
+  const [currentAnswer, setCurrentAnswer] = useState<string>("");
+
+  useEffect(() => {
+    setCurrentAnswer((prev) => (prev ? prev : shuffle(pool)[0] || "BOOKS"));
+  }, [pool]);
+
   const [guesses, setGuesses] = useState<string[]>([]);
   const [guess, setGuess] = useState("");
   const [over, setOver] = useState(false);
   const [won, setWon] = useState(false);
+
+  const answer = currentAnswer || "BOOKS";
 
   const colour = (row: string, i: number) => {
     const ch = row[i];
@@ -48,7 +59,11 @@ export default function ReadingWordle({ books, content, onComplete, onExit }: Ga
   };
 
   const restart = () => {
-    setGuesses([]); setGuess(""); setOver(false); setWon(false); setSeed((s) => s + 1);
+    setGuesses([]);
+    setGuess("");
+    setOver(false);
+    setWon(false);
+    setCurrentAnswer(shuffle(pool)[0] || "BOOKS");
   };
 
   return (

@@ -241,6 +241,96 @@ export default function NcertCbseReview() {
   const totalBroken = books.filter(b => b.status === "broken").length;
   const totalRestricted = books.filter(b => b.status === "restricted").length;
 
+  const [reseeding, setReseeding] = useState(false);
+
+  const reseedOfficialNcert = async () => {
+    if (!confirm("⚠️ This will remove existing NCERT records and re-seed clean, verified official textbook chapters for Classes 1 to 12. Continue?")) return;
+    setReseeding(true);
+    try {
+      // 1. Delete existing records from ncert_books
+      const { error: delErr } = await supabase.from("ncert_books").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (delErr) throw delErr;
+
+      // 2. Official NCERT seeds covering Classes 1-12
+      const freshSeeds = [
+        // Class 1
+        { class_number: "1", subject: "Mathematics", book_name: "Joyful Mathematics – Class 1", chapter_title: "Chapter 1 – Finding The Furry Cat", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/aemh101.pdf" },
+        { class_number: "1", subject: "Mathematics", book_name: "Joyful Mathematics – Class 1", chapter_title: "Chapter 2 – What is Long? What is Round?", chapter_number: 2, file_url: "https://ncert.nic.in/textbook/pdf/aemh102.pdf" },
+        { class_number: "1", subject: "English", book_name: "Mridang – Class 1", chapter_title: "Unit 1 – My Family and Me", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/aeen101.pdf" },
+        { class_number: "1", subject: "Hindi", book_name: "Sarangi – Class 1", chapter_title: "पाठ 1 – परिवार (कविता)", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/ahhn101.pdf" },
+
+        // Class 2
+        { class_number: "2", subject: "Mathematics", book_name: "Joyful Mathematics – Class 2", chapter_title: "Chapter 1 – A Day at the Beach", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/bemh101.pdf" },
+        { class_number: "2", subject: "English", book_name: "Mridang – Class 2", chapter_title: "Unit 1 – My Bicycle", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/been101.pdf" },
+        { class_number: "2", subject: "Hindi", book_name: "Sarangi – Class 2", chapter_title: "पाठ 1 – नीम की सीख", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/bhhn101.pdf" },
+
+        // Class 3
+        { class_number: "3", subject: "Mathematics", book_name: "Math-Magic – Class 3", chapter_title: "Chapter 1 – Where to Look From", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/cemh101.pdf" },
+        { class_number: "3", subject: "Science", book_name: "Looking Around – Class 3", chapter_title: "Chapter 1 – Poonam Day Out", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/ceev101.pdf" },
+
+        // Class 4
+        { class_number: "4", subject: "Mathematics", book_name: "Math-Magic – Class 4", chapter_title: "Chapter 1 – Building with Bricks", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/demh101.pdf" },
+        { class_number: "4", subject: "Science", book_name: "Looking Around – Class 4", chapter_title: "Chapter 1 – Going to School", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/deev101.pdf" },
+
+        // Class 5
+        { class_number: "5", subject: "Mathematics", book_name: "Math-Magic – Class 5", chapter_title: "Chapter 1 – The Fish Tale", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/eemh101.pdf" },
+        { class_number: "5", subject: "Science", book_name: "Looking Around – Class 5", chapter_title: "Chapter 1 – Super Senses", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/eeev101.pdf" },
+
+        // Class 6
+        { class_number: "6", subject: "Mathematics", book_name: "Ganita Prakash – Class 6", chapter_title: "Chapter 1 – Patterns in Mathematics", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/femh101.pdf" },
+        { class_number: "6", subject: "Mathematics", book_name: "Ganita Prakash – Class 6", chapter_title: "Chapter 2 – Lines and Angles", chapter_number: 2, file_url: "https://ncert.nic.in/textbook/pdf/femh102.pdf" },
+        { class_number: "6", subject: "Science", book_name: "Curiosity – Class 6", chapter_title: "Chapter 1 – The Wonderful World of Science", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/fesc101.pdf" },
+        { class_number: "6", subject: "Social Science", book_name: "Exploring Society – Class 6", chapter_title: "Chapter 1 – Locating Places on the Earth", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/fess101.pdf" },
+
+        // Class 7
+        { class_number: "7", subject: "Mathematics", book_name: "Mathematics – Class 7", chapter_title: "Chapter 1 – Integers", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/gemh101.pdf" },
+        { class_number: "7", subject: "Science", book_name: "Science – Class 7", chapter_title: "Chapter 1 – Nutrition in Plants", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/gesc101.pdf" },
+        { class_number: "7", subject: "Social Science", book_name: "Our Pasts II – Class 7", chapter_title: "Chapter 1 – Tracing Changes Through a Thousand Years", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/gess101.pdf" },
+
+        // Class 8
+        { class_number: "8", subject: "Mathematics", book_name: "Mathematics – Class 8", chapter_title: "Chapter 1 – Rational Numbers", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/hemh101.pdf" },
+        { class_number: "8", subject: "Science", book_name: "Science – Class 8", chapter_title: "Chapter 1 – Crop Production and Management", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/hesc101.pdf" },
+
+        // Class 9
+        { class_number: "9", subject: "Mathematics", book_name: "Mathematics – Class 9", chapter_title: "Chapter 1 – Number Systems", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/iemh101.pdf" },
+        { class_number: "9", subject: "Mathematics", book_name: "Mathematics – Class 9", chapter_title: "Chapter 2 – Polynomials", chapter_number: 2, file_url: "https://ncert.nic.in/textbook/pdf/iemh102.pdf" },
+        { class_number: "9", subject: "Science", book_name: "Science – Class 9", chapter_title: "Chapter 1 – Matter in Our Surroundings", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/iesc101.pdf" },
+        { class_number: "9", subject: "Social Science", book_name: "India and Contemporary World I", chapter_title: "Chapter 1 – The French Revolution", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/iess101.pdf" },
+
+        // Class 10
+        { class_number: "10", subject: "Mathematics", book_name: "Mathematics – Class 10", chapter_title: "Chapter 1 – Real Numbers", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/jemh101.pdf" },
+        { class_number: "10", subject: "Mathematics", book_name: "Mathematics – Class 10", chapter_title: "Chapter 2 – Polynomials", chapter_number: 2, file_url: "https://ncert.nic.in/textbook/pdf/jemh102.pdf" },
+        { class_number: "10", subject: "Science", book_name: "Science – Class 10", chapter_title: "Chapter 1 – Chemical Reactions and Equations", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/jesc101.pdf" },
+        { class_number: "10", subject: "Science", book_name: "Science – Class 10", chapter_title: "Chapter 6 – Life Processes", chapter_number: 6, file_url: "https://ncert.nic.in/textbook/pdf/jesc106.pdf" },
+        { class_number: "10", subject: "Social Science", book_name: "India and Contemporary World II", chapter_title: "Chapter 1 – The Rise of Nationalism in Europe", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/jess101.pdf" },
+
+        // Class 11
+        { class_number: "11", subject: "Mathematics", book_name: "Mathematics – Class 11", chapter_title: "Chapter 1 – Sets", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/kemh101.pdf" },
+        { class_number: "11", subject: "Physics", book_name: "Physics Part I – Class 11", chapter_title: "Chapter 1 – Units and Measurements", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/keph101.pdf" },
+        { class_number: "11", subject: "Chemistry", book_name: "Chemistry Part I – Class 11", chapter_title: "Chapter 1 – Some Basic Concepts of Chemistry", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/kech101.pdf" },
+        { class_number: "11", subject: "Biology", book_name: "Biology – Class 11", chapter_title: "Chapter 1 – The Living World", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/kebo101.pdf" },
+
+        // Class 12
+        { class_number: "12", subject: "Mathematics", book_name: "Mathematics Part I – Class 12", chapter_title: "Chapter 1 – Relations and Functions", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/lemh101.pdf" },
+        { class_number: "12", subject: "Mathematics", book_name: "Mathematics Part II – Class 12", chapter_title: "Chapter 7 – Integrals", chapter_number: 7, file_url: "https://ncert.nic.in/textbook/pdf/lemh201.pdf" },
+        { class_number: "12", subject: "Physics", book_name: "Physics Part I – Class 12", chapter_title: "Chapter 1 – Electric Charges and Fields", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/leph101.pdf" },
+        { class_number: "12", subject: "Chemistry", book_name: "Chemistry Part I – Class 12", chapter_title: "Chapter 1 – Solutions", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/lech101.pdf" },
+        { class_number: "12", subject: "Biology", book_name: "Biology – Class 12", chapter_title: "Chapter 1 – Sexual Reproduction in Flowering Plants", chapter_number: 1, file_url: "https://ncert.nic.in/textbook/pdf/lebo101.pdf" },
+      ];
+
+      const { error: insErr } = await supabase.from("ncert_books").insert(freshSeeds as any);
+      if (insErr) throw insErr;
+
+      toast.success("Successfully reset & re-seeded official NCERT textbook vault!");
+      await loadBooks();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "Failed to re-seed NCERT books");
+    } finally {
+      setReseeding(false);
+    }
+  };
+
   return (
     <div className="space-y-4 p-1">
       {/* Header */}
@@ -250,6 +340,16 @@ export default function NcertCbseReview() {
           <p className="text-sm text-muted-foreground">Manage, verify, and fix NCERT/CBSE book links and metadata.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={reseeding || loading}
+            onClick={reseedOfficialNcert}
+            className="gap-1 shadow-xs"
+          >
+            <RefreshCw className={`w-4 h-4 ${reseeding ? "animate-spin" : ""}`} />
+            {reseeding ? "Re-seeding..." : "Wipe & Re-seed Official NCERT"}
+          </Button>
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={importCSV} />
           <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
             <Upload className="w-4 h-4 mr-1" /> Import CSV

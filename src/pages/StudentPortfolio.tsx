@@ -13,6 +13,7 @@ import LibraryCard from "@/components/student/LibraryCard";
 import ReadingHeatmap from "@/components/student/ReadingHeatmap";
 import { useToast } from "@/hooks/use-toast";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
+import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 import { defaultStudentBarcode } from "@/lib/barcode";
 
 interface PortfolioProps {
@@ -225,8 +226,9 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
                 </div>
                 <div>
                   <Badge className="bg-white/20 hover:bg-white/30 border-0 text-white text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 mb-2">DLMS Scholar Portfolio</Badge>
-                  <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-none drop-shadow-md">
-                    {user?.first_name} {user?.last_name}
+                  <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-none drop-shadow-md flex items-center gap-2 flex-wrap">
+                    <span>{user?.first_name} {user?.last_name}</span>
+                    <RotationalWinnerBadge userId={user?.id} size="sm" />
                   </h1>
                   <p className="text-indigo-100 text-xs sm:text-sm font-semibold mt-1.5 opacity-90">
                     Class {user?.student_class || "—"} · Adm {user?.admission_number || "—"}
@@ -238,9 +240,31 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
                   size="sm"
                   variant="secondary"
                   className="rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 flex-1 sm:flex-none h-10 font-bold transition-all"
-                  onClick={() => {
-                    navigator.clipboard.writeText(shareLink);
-                    toast({ title: "Link copied!", description: "Share your portfolio using your username link." });
+                  onClick={async () => {
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: `${profile?.first_name || "Student"} - DLMS Portfolio`,
+                          text: `Check out my reading achievements and portfolio on KV Sulur DLMS!`,
+                          url: shareLink,
+                        });
+                        return;
+                      } catch (err: any) {
+                        if (err.name === "AbortError") return;
+                      }
+                    }
+                    try {
+                      await navigator.clipboard.writeText(shareLink);
+                      toast({ title: "Link copied!", description: "Share your portfolio using your username link." });
+                    } catch {
+                      const el = document.createElement("textarea");
+                      el.value = shareLink;
+                      document.body.appendChild(el);
+                      el.select();
+                      document.execCommand("copy");
+                      document.body.removeChild(el);
+                      toast({ title: "Link copied!", description: "Share your portfolio using your username link." });
+                    }
                   }}
                 >
                   <Share2 className="h-4 w-4 mr-1.5" /> Share Profile

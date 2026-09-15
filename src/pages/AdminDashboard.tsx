@@ -10,7 +10,7 @@ import {
   Calendar, RefreshCw, Star, AlertTriangle, Barcode, HardDrive, Server,
   Gamepad2, AlertCircle, FileSpreadsheet, LifeBuoy, Library as LibraryIcon,
   ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon,
-  Newspaper, Users as UsersIcon, Crown, Sparkles
+  Newspaper, Users as UsersIcon, Crown, Sparkles, Zap
 } from "lucide-react";
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
@@ -55,8 +55,11 @@ import BookOfTheWeek from "@/components/admin/BookOfTheWeek";
 import BookClubManager from "@/components/admin/BookClubManager";
 import StudentBarcodeGenerator from "@/components/admin/StudentBarcodeGenerator";
 import MetadataFetchDashboard from "@/components/admin/MetadataFetchDashboard";
+import ExpressCirculation from "@/components/admin/ExpressCirculation";
+import AcademicYearRollover from "@/components/admin/AcademicYearRollover";
+import BugBountyManager from "@/components/admin/BugBountyManager";
 
-type Tab = "overview" | "users" | "books" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty";
 
 const navSections = [
   {
@@ -73,6 +76,7 @@ const navSections = [
     title: "Users",
     items: [
       { id: "users" as Tab, label: "User Approval", icon: Users },
+      { id: "academic-rollover" as Tab, label: "Academic Year Rollover", icon: RefreshCw },
       { id: "points" as Tab, label: "Award Points", icon: Award },
       { id: "student-barcodes" as Tab, label: "Student Barcodes", icon: Barcode },
     ],
@@ -80,6 +84,7 @@ const navSections = [
   {
     title: "Library",
     items: [
+      { id: "express-circulation" as Tab, label: "Express Circulation Kiosk", icon: Zap },
       { id: "books" as Tab, label: "Manage Books", icon: BookOpen },
       { id: "metadata-hub" as Tab, label: "Metadata & Cover Hub", icon: Sparkles },
       { id: "circulation" as Tab, label: "Circulation", icon: LibraryIcon },
@@ -94,7 +99,7 @@ const navSections = [
       { id: "cover-data" as Tab, label: "Cover Pages", icon: ImageIcon },
       { id: "barcodes" as Tab, label: "Barcode Stickers", icon: Barcode },
       { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
-      { id: "reviews" as Tab, label: "Reviews", icon: Star },
+      { id: "reviews" as Tab, label: "Moderation & Reports", icon: ShieldAlert },
       { id: "book-of-the-week" as Tab, label: "Book of the Week", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
       { id: "wishlist" as Tab, label: "Wishlists", icon: Star },
@@ -114,6 +119,7 @@ const navSections = [
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
       { id: "community" as Tab, label: "Community", icon: MessageSquare },
+      { id: "bug-bounty" as Tab, label: "Bug Bounty", icon: ShieldAlert },
     ],
   },
   {
@@ -125,6 +131,8 @@ const navSections = [
   },
 ];
 
+import { useBackHandler } from "@/hooks/useBackHandler";
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -132,10 +140,62 @@ const AdminDashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [tabHistory, setTabHistory] = useState<Tab[]>(["overview"]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, booksIssued: 0, activeQuizzes: 0, dbSize: 0, storageSize: 0 });
 
   usePushSubscription(user?.id);
+
+  // Track tab history
+  useEffect(() => {
+    setTabHistory((prev) => {
+      if (prev[prev.length - 1] === activeTab) return prev;
+      return [...prev, activeTab];
+    });
+  }, [activeTab]);
+
+  // Handle URL query parameter (?tab=...)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab") as Tab | null;
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
+
+  // Back handler for mobile navigation drawer
+  useBackHandler({
+    enabled: mobileNavOpen,
+    priority: 85,
+    stateName: "admin_mobile_drawer",
+    onBack: () => {
+      setMobileNavOpen(false);
+      return true;
+    },
+  });
+
+  // Back handler for tab navigation history
+  useBackHandler({
+    enabled: activeTab !== "overview" && !mobileNavOpen,
+    priority: 50,
+    stateName: `admin_tab_${activeTab}`,
+    pushHistoryState: false, // Tab changes are not overlays; no sentinel needed
+    onBack: () => {
+      setTabHistory((prev) => {
+        if (prev.length > 1) {
+          const next = [...prev];
+          next.pop();
+          const target = next[next.length - 1] || "overview";
+          setActiveTab(target);
+          return next;
+        } else {
+          setActiveTab("overview");
+          return ["overview"];
+        }
+      });
+      return true;
+    },
+  });
 
   // Auto-close mobile navigation on tab or route change
   useEffect(() => {
@@ -416,7 +476,9 @@ const AdminDashboard = () => {
             </div>
           )}
 
-           {activeTab === "users" && <UserApproval />}
+          {activeTab === "users" && <UserApproval />}
+          {activeTab === "academic-rollover" && <AcademicYearRollover />}
+          {activeTab === "express-circulation" && <ExpressCirculation />}
           {activeTab === "books" && <BookManager />}
           {activeTab === "metadata-hub" && <MetadataFetchDashboard />}
           {activeTab === "circulation" && <CirculationDashboard />}
@@ -453,6 +515,7 @@ const AdminDashboard = () => {
           {activeTab === "student-barcodes" && <StudentBarcodeGenerator />}
           {activeTab === "support" && <SupportTicketsManager />}
           {activeTab === "feedback" && <FeedbackManager />}
+          {activeTab === "bug-bounty" && <BugBountyManager />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>

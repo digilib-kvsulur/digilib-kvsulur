@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   Award, Plus, CheckSquare, BookOpen, Settings2, CheckCircle, XCircle, Clock,
-  CheckCheck, X, ChevronsUpDown, Check, AlertTriangle, History, Eraser,
+  CheckCheck, X, ChevronsUpDown, Check, AlertTriangle, History, Eraser, Zap,
 } from "lucide-react";
 
 interface User {
@@ -30,6 +31,7 @@ interface User {
 const PAGE_SIZE = 1000;
 
 const PointsManager = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [awarding, setAwarding] = useState(false);
@@ -627,6 +629,7 @@ const PointsManager = () => {
                         <TableHead>Admission</TableHead>
                         <TableHead>Class</TableHead>
                         <TableHead>Current Points</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -641,9 +644,20 @@ const PointsManager = () => {
                             <TableCell className="font-mono text-xs">{user.admission_number || "—"}</TableCell>
                             <TableCell>{user.student_class || "N/A"}</TableCell>
                             <TableCell>
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300">
                                 {user.points || 0} points
                               </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(`/points-history?userId=${user.id}`)}
+                                className="h-7 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                                title="View Points History"
+                              >
+                                <Zap className="h-3.5 w-3.5" /> History
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}

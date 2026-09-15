@@ -63,6 +63,39 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
   const startTsRef = useRef<number | null>(null);
   const accruedRef = useRef(0);
 
+  // ─── localStorage keys for session persistence (Bug 3) ───────────────────
+  const LS_SESSION_ID  = `study_active_session_${userId}`;
+  const LS_ACCRUED    = `study_accrued_secs_${userId}`;
+  const LS_START_TS   = `study_start_ts_${userId}`;
+  const LS_MODE       = `study_session_mode_${userId}`;
+
+  // On mount — restore a running session that survived a page refresh
+  useEffect(() => {
+    const savedId    = localStorage.getItem(LS_SESSION_ID);
+    const savedTs    = Number(localStorage.getItem(LS_START_TS));
+    const savedAcc   = Number(localStorage.getItem(LS_ACCRUED));
+    const savedMode  = localStorage.getItem(LS_MODE) as SessionMode | null;
+    if (savedId) {
+      setActiveSessionId(savedId);
+      if (savedMode) setMode(savedMode);
+      accruedRef.current = savedAcc || 0;
+      if (savedTs && savedTs > 0) {
+        // Re-anchor the start timestamp so elapsed continues from now
+        startTsRef.current = savedTs;
+        const resumedElapsed = accruedRef.current + Math.floor((Date.now() - savedTs) / 1000);
+        setElapsed(resumedElapsed);
+      } else {
+        // Was paused when page refreshed — stay paused
+        setElapsed(accruedRef.current);
+        startTsRef.current = null;
+        setPaused(true);
+      }
+      setRunning(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
   const load = useCallback(async () => {
     const baseClass = (studentClass || "").replace(/[^0-9]/g, "");
     let matQ = supabase.from("study_materials").select("id, title, subject").order("title").limit(200);
@@ -143,6 +176,12 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
       setPaused(false);
       setRunning(true);
 
+      // Persist so a page refresh doesn't drop the running session (Bug 3)
+      localStorage.setItem(LS_SESSION_ID, res.id);
+      localStorage.setItem(LS_ACCRUED, "0");
+      localStorage.setItem(LS_START_TS, String(startTsRef.current));
+      localStorage.setItem(LS_MODE, mode);
+
       if (!res.success) {
         toast({ title: mode === "break" ? "Break started (offline)" : "Study session started (offline)", description: "Session queued and will sync when online." });
       } else {
@@ -156,12 +195,17 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
       accruedRef.current += Math.floor((Date.now() - startTsRef.current) / 1000);
       startTsRef.current = null;
     }
+    // Persist paused state — clear LS_START_TS so restore knows it was paused
+    localStorage.setItem(LS_ACCRUED, String(accruedRef.current));
+    localStorage.removeItem(LS_START_TS);
     setPaused(true);
   };
 
   const resumeSession = () => {
     if (!running || !paused) return;
     startTsRef.current = Date.now();
+    // Persist resumed start timestamp
+    localStorage.setItem(LS_START_TS, String(startTsRef.current));
     setPaused(false);
   };
 
@@ -209,6 +253,11 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
         setElapsed(0);
         accruedRef.current = 0;
         setSaving(false);
+        // Clear persisted session data (Bug 3)
+        localStorage.removeItem(LS_SESSION_ID);
+        localStorage.removeItem(LS_ACCRUED);
+        localStorage.removeItem(LS_START_TS);
+        localStorage.removeItem(LS_MODE);
         load();
       }
     };

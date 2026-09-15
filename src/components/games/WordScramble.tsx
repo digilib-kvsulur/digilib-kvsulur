@@ -9,6 +9,12 @@ import { RotateCcw, Trophy, SkipForward } from "lucide-react";
 const WORDS = [
   "LIBRARY", "CHAPTER", "AUTHOR", "NOVEL", "POETRY", "SHELF", "FICTION",
   "READER", "STORY", "CATALOG", "BORROW", "SCIENCE", "HISTORY", "DICTIONARY",
+  "ACADEMIC", "ALGEBRA", "BIOGRAPHY", "CHEMICAL", "DISCOVERY", "ELEMENT",
+  "EXPERIMENT", "FANTASY", "GALILEO", "GEOGRAPHY", "GRAMMAR", "GRAVITATION",
+  "INVENTION", "JOURNAL", "KINGDOM", "LANGUAGE", "LITERATURE", "MAGAZINE",
+  "METAPHOR", "MYSTERY", "NEWSPAPER", "NARRATIVE", "ORGANISM", "PARAGRAPH",
+  "PHILOSOPHY", "PHYSICS", "PROSPECT", "RESEARCH", "SCHOLAR", "SYLLABUS",
+  "THEOREM", "TRILOGY", "UNIVERSE", "VOCABULARY", "WONDERLAND", "ZEALOUS"
 ];
 
 const scrambleWord = (w: string) => {
@@ -21,12 +27,13 @@ const scrambleWord = (w: string) => {
 const ROUNDS = 5;
 
 export default function WordScramble({ books, onComplete, onExit }: GameProps) {
+  const [seed, setSeed] = useState(0);
   const pool = useMemo(() => {
     const fromBooks = books
       .map((b) => b.title.replace(/[^a-zA-Z]/g, "").toUpperCase())
       .filter((t) => t.length >= 5 && t.length <= 11);
     return shuffle([...new Set([...fromBooks, ...WORDS])]).slice(0, ROUNDS);
-  }, [books]);
+  }, [books, seed]);
 
   const [round, setRound] = useState(0);
   const [guess, setGuess] = useState("");
@@ -34,7 +41,6 @@ export default function WordScramble({ books, onComplete, onExit }: GameProps) {
   const [timeLeft, setTimeLeft] = useState(90);
   const [over, setOver] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [seed, setSeed] = useState(0);
 
   const word = pool[round] || "";
   const scrambled = useMemo(() => scrambleWord(word), [word, seed]);

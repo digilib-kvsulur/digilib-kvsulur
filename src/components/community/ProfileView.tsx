@@ -10,9 +10,14 @@ import {
   Sparkles, Award, MessageCircle, Heart, FileText, Users as UsersIcon
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 
-const nameOf = (p: any) => p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
-const initials = (p: any) => nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+function nameOf(p: any) {
+  return p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
+}
+function initials(p: any) {
+  return nameOf(p).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+}
 
 interface Props {
   userId: string;
@@ -108,7 +113,10 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
         </div>
 
         <DialogHeader className="text-left space-y-1 mb-3">
-          <DialogTitle className="text-lg">{nameOf(profile)}</DialogTitle>
+          <DialogTitle className="text-lg flex items-center gap-2 flex-wrap">
+            <span>{nameOf(profile)}</span>
+            <RotationalWinnerBadge userId={userId} size="sm" />
+          </DialogTitle>
           <div className="flex flex-wrap items-center gap-1.5">
             {profile.username && <span className="text-xs text-muted-foreground">@{profile.username}</span>}
             {profile.role && <Badge variant="secondary" className="capitalize text-[10px]">{profile.role}</Badge>}
@@ -119,7 +127,12 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
 
         {!isSelf && (
           <div className="mb-4">
-            {!friendship && <Button className="w-full" onClick={() => onSend(userId)}><UserPlus className="h-4 w-4 mr-2" />Follow / Add Friend</Button>}
+            {(!friendship || status === "rejected") && (
+              <Button className="w-full" onClick={() => onSend(userId)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                {status === "rejected" ? "Send Request Again" : "Follow / Add Friend"}
+              </Button>
+            )}
             {status === "pending" && iSent && <Button variant="outline" className="w-full" disabled><Clock className="h-4 w-4 mr-2" />Request Sent</Button>}
             {status === "pending" && !iSent && (
               <div className="flex gap-2">
@@ -191,17 +204,21 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
   );
 };
 
-const StatBlock = ({ value, label }: any) => (
-  <div className="rounded-lg py-1.5">
-    <p className="text-lg font-bold leading-none">{value ?? 0}</p>
-    <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
-  </div>
-);
+function StatBlock({ value, label }: any) {
+  return (
+    <div className="rounded-lg py-1.5">
+      <p className="text-lg font-bold leading-none">{value ?? 0}</p>
+      <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
+    </div>
+  );
+}
 
-const BigStat = ({ icon, value, label }: any) => (
-  <div className="rounded-lg bg-muted/40 p-2 text-center">
-    <div className="flex justify-center mb-1">{icon}</div>
-    <p className="text-lg font-bold leading-none">{value}</p>
-    <p className="text-[9px] text-muted-foreground mt-1">{label}</p>
-  </div>
-);
+function BigStat({ icon, value, label }: any) {
+  return (
+    <div className="rounded-lg bg-muted/40 p-2 text-center">
+      <div className="flex justify-center mb-1">{icon}</div>
+      <p className="text-lg font-bold leading-none">{value}</p>
+      <p className="text-[9px] text-muted-foreground mt-1">{label}</p>
+    </div>
+  );
+}

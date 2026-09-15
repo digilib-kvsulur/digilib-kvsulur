@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { recoverInvalidAuthSession } from "@/lib/authCleanup";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { X, DownloadCloud } from "lucide-react";
 import DeveloperMessagePopup from "@/components/global/DeveloperMessagePopup";
 import { Seo } from "@/components/seo/Seo";
+import { GlobalNotificationsProvider } from "@/components/global/GlobalNotificationsProvider";
+import { CommandPalette } from "@/components/global/CommandPalette";
 
 const queryClient = new QueryClient();
 const Login = lazy(() => import("./pages/Login"));
@@ -30,10 +32,14 @@ const StudentPortfolio = lazy(() => import("./pages/StudentPortfolio"));
 
 const Feedback = lazy(() => import("./pages/Feedback"));
 const Download = lazy(() => import("./pages/Download"));
+const Maintenance = lazy(() => import("./pages/Maintenance"));
 
 const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
 const TEACHER_ROLES = ["teacher", "admin"] as const;
+
+// Maintenance window: until 12 Sep 2026, 4:00 PM IST (10:30 UTC)
+const MAINTENANCE_UNTIL = new Date("2026-09-12T10:30:00Z");
 
 const PageLoader = () => {
   const [show, setShow] = useState(false);
@@ -143,34 +149,60 @@ const AppRouter = isNative ? HashRouter : BrowserRouter;
 
 const DashboardRedirect = () => {
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (session) {
-        supabase.from("profiles").select("role").eq("id", session.user.id).single()
-          .then(({ data }) => {
-            if (!mounted) return;
-            if (data?.role === "admin") setRedirectTo("/admin-dashboard");
-            else if (data?.role === "teacher") setRedirectTo("/teacher-dashboard");
-            else setRedirectTo("/student-dashboard");
-          });
-      } else {
-        setRedirectTo("/");
-      }
-    });
+    const search = location.search || "";
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return;
+        if (session) {
+          supabase.from("profiles").select("role").eq("id", session.user.id).single()
+            .then(({ data }) => {
+              if (!mounted) return;
+              if (data?.role === "admin") setRedirectTo(`/admin-dashboard${search}`);
+              else if (data?.role === "teacher") setRedirectTo(`/teacher-dashboard${search}`);
+              else setRedirectTo(`/student-dashboard${search}`);
+            })
+            .catch(() => {
+              // Profile fetch failed — fall back to student dashboard
+              if (mounted) setRedirectTo(`/student-dashboard${search}`);
+            });
+        } else {
+          setRedirectTo(`/login${search ? `?redirect=${encodeURIComponent(location.pathname + search)}` : ""}`);
+        }
+      })
+      .catch(() => {
+        // Session load failed — send to login
+        if (mounted) setRedirectTo("/login");
+      });
     return () => { mounted = false; };
-  }, []);
+  }, [location.search, location.pathname]);
 
   if (!redirectTo) return <PageLoader />;
   return <Navigate to={redirectTo} replace />;
 };
 
+import { backNavigation } from "@/lib/backNavigation";
+
 const App = () => {
   const [showSplash, setShowSplash] = useState(isNative); // only show splash in native apps by default
+  const [isMaintenance, setIsMaintenance] = useState(() => Date.now() < MAINTENANCE_UNTIL.getTime());
 
-  useEffect(() => { recoverInvalidAuthSession(); }, []);
+  useEffect(() => {
+    recoverInvalidAuthSession();
+    backNavigation.init();
+  }, []);
+
+  // Lift maintenance mode automatically once the window passes
+  useEffect(() => {
+    if (!isMaintenance) return;
+    const remaining = MAINTENANCE_UNTIL.getTime() - Date.now();
+    if (remaining <= 0) { setIsMaintenance(false); return; }
+    const timer = setTimeout(() => setIsMaintenance(false), remaining);
+    return () => clearTimeout(timer);
+  }, [isMaintenance]);
 
   // Check for Android updates after splash clears
   const handleSplashComplete = () => {
@@ -184,73 +216,85 @@ const App = () => {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
+  if (isMaintenance) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Maintenance />
+      </Suspense>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <DeveloperMessagePopup />
-        <Toaster />
         <Sonner position="top-right" richColors closeButton />
         <AppRouter>
-          <Seo />
-          <UpdateBanner />
-          <PWAInstallBanner />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<DashboardRedirect />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/catalog" element={<Catalog />} />
-              <Route path="/support" element={<Support />} />
-              <Route path="/feedback" element={<Feedback />} />
-              <Route path="/download" element={<Download />} />
-              <Route
-                path="/student-dashboard"
-                element={(
-                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                    <StudentDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/admin-dashboard"
-                element={(
-                  <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/points-history"
-                element={(
-                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                    <PointsHistory />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/student-portfolio"
-                element={(
-                  <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                    <StudentPortfolio embedded={false} />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route path="/portfolio/:username" element={<StudentPortfolio embedded={false} />} />
-              <Route
-                path="/teacher-dashboard"
-                element={(
-                  <ProtectedRoute allowedRoles={TEACHER_ROLES}>
-                    <TeacherDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route path="/book/:id" element={<BookDetails />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+          <GlobalNotificationsProvider>
+            <CommandPalette />
+            <Seo />
+            <UpdateBanner />
+            <PWAInstallBanner />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/dashboard" element={<DashboardRedirect />} />
+                <Route path="/community" element={<DashboardRedirect />} />
+                <Route path="/reels" element={<DashboardRedirect />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/catalog" element={<Catalog />} />
+                <Route path="/support" element={<Support />} />
+                <Route path="/feedback" element={<Feedback />} />
+                <Route path="/download" element={<Download />} />
+                <Route
+                  path="/student-dashboard"
+                  element={(
+                    <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                      <StudentDashboard />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route
+                  path="/admin-dashboard"
+                  element={(
+                    <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route
+                  path="/points-history"
+                  element={(
+                    <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                      <PointsHistory />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route
+                  path="/student-portfolio"
+                  element={(
+                    <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                      <StudentPortfolio embedded={false} />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route path="/portfolio/:username" element={<StudentPortfolio embedded={false} />} />
+                <Route
+                  path="/teacher-dashboard"
+                  element={(
+                    <ProtectedRoute allowedRoles={TEACHER_ROLES}>
+                      <TeacherDashboard />
+                    </ProtectedRoute>
+                  )}
+                />
+                <Route path="/book/:id" element={<BookDetails />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </GlobalNotificationsProvider>
         </AppRouter>
       </TooltipProvider>
     </QueryClientProvider>

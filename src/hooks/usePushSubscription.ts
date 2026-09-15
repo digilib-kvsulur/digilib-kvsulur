@@ -41,6 +41,20 @@ export function usePushSubscription(userId: string | null | undefined) {
           }
           if (permStatus.receive !== 'granted') return;
 
+          // Ensure notification channel exists on Android
+          try {
+            await PushNotifications.createChannel({
+              id: 'default',
+              name: 'KV Sulur DLMS Notifications',
+              description: 'General notifications and updates from PM SHRI KV AFS Sulur DLMS',
+              importance: 5,
+              visibility: 1,
+              vibration: true,
+            });
+          } catch (channelErr) {
+            console.warn('Could not create notification channel:', channelErr);
+          }
+
           await PushNotifications.register();
 
           PushNotifications.addListener('registration', async (token) => {
@@ -56,6 +70,17 @@ export function usePushSubscription(userId: string | null | undefined) {
               console.warn('Failed to save native FCM token:', error.message);
             } else {
               subscribed.current = true;
+            }
+          });
+
+          PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            console.log('Push notification received in foreground:', notification);
+          });
+
+          PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+            const data = action.notification?.data;
+            if (data?.url) {
+              window.location.href = data.url;
             }
           });
 
@@ -89,12 +114,31 @@ export function usePushSubscription(userId: string | null | undefined) {
 
         // 2. Get the active service worker registration
         const registration = await navigator.serviceWorker.ready;
+        const appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource;
 
-        // 3. Subscribe to push
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
-        });
+        // 3. Subscribe to push (safely handle existing subscriptions with old/different keys)
+        let subscription: PushSubscription | null = null;
+        try {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: appServerKey,
+          });
+        } catch (subErr) {
+          // If a subscription with a different applicationServerKey already exists, unsubscribe first
+          const existingSub = await registration.pushManager.getSubscription();
+          if (existingSub) {
+            console.warn('Push subscription key mismatch or invalid state, unsubscribing and re-subscribing...', subErr);
+            await existingSub.unsubscribe();
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: appServerKey,
+            });
+          } else {
+            throw subErr;
+          }
+        }
+
+        if (!subscription) return;
 
         // 4. Upsert subscription to Supabase
         const { error } = await supabase.from('push_subscriptions').upsert(

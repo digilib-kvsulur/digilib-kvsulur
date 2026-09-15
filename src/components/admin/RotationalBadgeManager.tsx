@@ -17,6 +17,7 @@ import {
   computeRotationalBadges, 
   verifyAndPublishRotationalCycle, 
   getActiveRotationalCycle,
+  updateRotationalCollectionDetails,
   RotationalAwardCandidate, 
   RotationalBadgeSettings, 
   DEFAULT_ROTATIONAL_SETTINGS, 
@@ -53,6 +54,10 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifyConfirmOpen, setVerifyConfirmOpen] = useState(false);
+  const [editDate, setEditDate] = useState("");
+  const [editVenue, setEditVenue] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [savingCollection, setSavingCollection] = useState(false);
 
   // Analysis state
   const [classAwards, setClassAwards] = useState<RotationalAwardCandidate[]>([]);
@@ -96,10 +101,41 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
     }
   }, [open, selectedYear, selectedMonth, evalMode, customStartDate, customEndDate]);
 
+  const saveCollectionDetails = async (notify: boolean) => {
+    if (!editDate) {
+      toast({ title: "Date required", description: "Pick a badge collection date first.", variant: "destructive" });
+      return;
+    }
+    setSavingCollection(true);
+    try {
+      const res = await updateRotationalCollectionDetails(
+        { collectionDate: editDate, collectionVenue: editVenue, librarianNote: editNote },
+        notify
+      );
+      if (!res.success) throw new Error(res.error);
+      toast({
+        title: "Collection details updated",
+        description: notify
+          ? `${res.notified} winner(s) notified about the new collection date.`
+          : "Saved without sending notifications.",
+      });
+      await loadActiveCycle();
+    } catch (err: any) {
+      toast({ title: "Update failed", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSavingCollection(false);
+    }
+  };
+
   const loadActiveCycle = async () => {
     try {
       const cycle = await getActiveRotationalCycle();
       setActiveCycle(cycle);
+      if (cycle?.settings) {
+        setEditDate(cycle.settings.collectionDate || "");
+        setEditVenue(cycle.settings.collectionVenue || "");
+        setEditNote(cycle.settings.librarianNote || "");
+      }
       if (cycle?.settings?.collectionDate) {
         setSettings((prev) => ({
           ...prev,
@@ -795,6 +831,50 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                           <span className="font-semibold text-foreground block mt-0.5">
                             {activeCycle.settings.collectionVenue}
                           </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 rounded-lg border bg-background p-3 space-y-3">
+                        <p className="text-xs font-bold flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-primary" />
+                          Change collection details &amp; notify winners
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-[11px] font-bold">New Collection Date</Label>
+                            <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                          </div>
+                          <div>
+                            <Label className="text-[11px] font-bold">Collection Venue</Label>
+                            <Input value={editVenue} onChange={(e) => setEditVenue(e.target.value)} />
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-[11px] font-bold">Message to winners</Label>
+                          <Textarea
+                            rows={2}
+                            value={editNote}
+                            onChange={(e) => setEditNote(e.target.value)}
+                            placeholder="Bring your student ID card to collect the badge."
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" disabled={savingCollection} onClick={() => saveCollectionDetails(true)}>
+                            {savingCollection ? (
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <UserCheck className="h-4 w-4 mr-2" />
+                            )}
+                            Update &amp; Notify {activeCycle.winners.length} Winner(s)
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={savingCollection}
+                            onClick={() => saveCollectionDetails(false)}
+                          >
+                            Save without notifying
+                          </Button>
                         </div>
                       </div>
                     </CardContent>

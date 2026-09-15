@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
@@ -26,15 +26,28 @@ import { LifeBuoy } from "lucide-react";
 import NetworkTab from "@/components/dashboard/NetworkTab";
 import TeacherProfileCompletionDialog from "@/components/dashboard/TeacherProfileCompletionDialog";
 
+import { useBackHandler } from "@/hooks/useBackHandler";
+
 type TeacherTab = "progress" | "badges" | "reading-lists" | "recommendations" | "materials" | "community" | "network" | "book-requests" | "profile";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   
   const [teacher, setTeacher] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TeacherTab>("progress");
+  const [tabHistory, setTabHistory] = useState<TeacherTab[]>(["progress"]);
+
+  // URL query parameter tab handler (?tab=community)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab") as TeacherTab | null;
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
   
   // Class selection
   const [selectedClass, setSelectedClass] = useState<string>("");
@@ -59,6 +72,61 @@ const TeacherDashboard = () => {
   const [showChallengeDialog, setShowChallengeDialog] = useState(false);
   const [showListDialog, setShowListDialog] = useState(false);
   const [showRecDialog, setShowRecDialog] = useState(false);
+
+  // Tab history tracking
+  useEffect(() => {
+    setTabHistory((prev) => {
+      if (prev[prev.length - 1] === activeTab) return prev;
+      return [...prev, activeTab];
+    });
+  }, [activeTab]);
+
+  // Back handler for student drilldown modal
+  useBackHandler({
+    enabled: selectedStudent !== null,
+    priority: 85,
+    stateName: "teacher_student_drilldown",
+    onBack: () => {
+      setSelectedStudent(null);
+      return true;
+    },
+  });
+
+  // Back handler for dialogs
+  useBackHandler({
+    enabled: showChallengeDialog || showListDialog || showRecDialog,
+    priority: 80,
+    stateName: "teacher_dialog",
+    onBack: () => {
+      setShowChallengeDialog(false);
+      setShowListDialog(false);
+      setShowRecDialog(false);
+      return true;
+    },
+  });
+
+  // Back handler for tabs
+  useBackHandler({
+    enabled: activeTab !== "progress" && !selectedStudent && !showChallengeDialog && !showListDialog && !showRecDialog,
+    priority: 50,
+    stateName: `teacher_tab_${activeTab}`,
+    pushHistoryState: false, // Tab changes are not overlays; no sentinel needed
+    onBack: () => {
+      setTabHistory((prev) => {
+        if (prev.length > 1) {
+          const next = [...prev];
+          next.pop();
+          const target = next[next.length - 1] || "progress";
+          setActiveTab(target);
+          return next;
+        } else {
+          setActiveTab("progress");
+          return ["progress"];
+        }
+      });
+      return true;
+    },
+  });
 
   // Form inputs
   const [challengeForm, setChallengeForm] = useState({ title: "", description: "", targetValue: 3, type: "books_read", rewardPoints: 50, deadline: "" });

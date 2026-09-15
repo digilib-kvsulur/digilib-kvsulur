@@ -7,7 +7,16 @@ import { GameProps, normalise, shuffle } from "./gameTypes";
 import { RotateCcw, Trophy, SkipForward, Lightbulb } from "lucide-react";
 
 const FALLBACK = [
-  { value: "I have pages but no leaves of a tree, a spine but no back. What am I?", answer: "A book", hint: "Common in a library" },
+  { value: "I have pages but no leaves of a tree, a spine but no back. What am I?", answer: "Book", hint: "Found in thousands here" },
+  { value: "I have keys that open no door, but give you access to thousands of books. What am I?", answer: "Keyboard", hint: "Used for typing" },
+  { value: "I travel around the world while staying in one corner. What am I?", answer: "Stamp", hint: "Attached to letters" },
+  { value: "I am full of holes but I can still hold water. What am I?", answer: "Sponge", hint: "Used for cleaning" },
+  { value: "The more you take away from me, the larger I become. What am I?", answer: "Hole", hint: "Found in the ground" },
+  { value: "I have words, chapters, and index, but I never speak. What am I?", answer: "Dictionary", hint: "Reference volume" },
+  { value: "I have cities without houses, mountains without trees, and oceans without water. What am I?", answer: "Map", hint: "Cartography" },
+  { value: "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", answer: "Echo", hint: "Sound reflection" },
+  { value: "What gets wetter the more it dries?", answer: "Towel", hint: "Found in the bathroom" },
+  { value: "I am tall when I am young, and short when I am old. What am I?", answer: "Candle", hint: "Provides light" }
 ];
 
 export default function RiddleRounds({ content, onComplete, onExit }: GameProps) {
@@ -17,7 +26,7 @@ export default function RiddleRounds({ content, onComplete, onExit }: GameProps)
       .filter((c) => c.kind === "riddle")
       .map((c) => ({ value: c.value, answer: String(c.extra?.answer || ""), hint: c.hint || "" }))
       .filter((r) => r.answer);
-    return shuffle(list.length ? list : FALLBACK).slice(0, 5);
+    return shuffle(list.length >= 5 ? list : FALLBACK).slice(0, 5);
   }, [content, seed]);
 
   const [i, setI] = useState(0);

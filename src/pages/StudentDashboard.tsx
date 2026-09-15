@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/utils";
 import {
-  BookOpen, LogOut, Trophy, Target, User, BookPlus, Home, Brain,
+  BookOpen, LogOut, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
-  StickyNote, Users, GraduationCap, FileText, Bookmark, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles
+  StickyNote, Users, GraduationCap, FileText, Bookmark, BookmarkCheck, CalendarDays, Award,
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,17 +23,19 @@ import LoginStreakCard from "@/components/dashboard/LoginStreakCard";
 import ReadingChallenges from "@/components/rewards/ReadingChallenges";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import BookRequestForm from "@/components/BookRequestForm";
-import ReadingVelocity from "@/components/student/ReadingVelocity";
 import ClassCompetitions from "@/components/student/ClassCompetitions";
-import CurrentlyReading from "@/components/student/CurrentlyReading";
 import StudyPlan from "@/components/student/StudyPlan";
 import StudyGuide from "@/components/student/StudyGuide";
 import { LibraryBot } from "@/components/chat/LibraryBot";
+import BugBountyManager from "@/components/admin/BugBountyManager";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
 import LevelUpBanner from "@/components/rewards/LevelUpBanner";
 import Rankings from "@/components/dashboard/Rankings";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
 import { LiveQuizAlert } from "@/components/quiz/LiveQuizAlert";
+import { UpcomingQuizLeagueCard } from "@/components/quiz/UpcomingQuizLeagueCard";
+import { MultiplayerLobby } from "@/components/quiz/MultiplayerLobby";
+import { LiveQuizRunner } from "@/components/quiz/LiveQuizRunner";
 import MemoryCapsule from "@/components/rewards/MemoryCapsule";
 
 import QuickBookmarks from "@/components/dashboard/QuickBookmarks";
@@ -51,6 +53,7 @@ import NetworkTab from "@/components/dashboard/NetworkTab";
 import ProfileCompletionDialog from "@/components/dashboard/ProfileCompletionDialog";
 import ReturnedBookReviewPrompt from "@/components/dashboard/ReturnedBookReviewPrompt";
 import RotationalBadgeWinningPopup from "@/components/dashboard/RotationalBadgeWinningPopup";
+import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 import SupportCenter from "@/components/support/SupportCenter";
 import MonthlyGoalsWidget from "@/components/dashboard/MonthlyGoalsWidget";
 import StudentCertificates from "@/components/dashboard/StudentCertificates";
@@ -63,14 +66,16 @@ import StudentPortfolio from "./StudentPortfolio";
 import Feedback from "./Feedback";
 import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
 import MobileBottomNav, { mobileNavSections } from "@/components/dashboard/MobileBottomNav";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
-type Tab = "overview" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator";
+type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
   { id: "portfolio", label: "My Portfolio", icon: FileText },
-  { id: "books", label: "Books", icon: BookOpen },
+  { id: "catalog", label: "Books Catalog", icon: BookOpen },
   { id: "issued", label: "Book Issued", icon: BookCheck },
+  { id: "books", label: "My Books", icon: BookMarked },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "study", label: "Study Tracker", icon: Timer },
@@ -94,6 +99,7 @@ const StudentDashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [tabHistory, setTabHistory] = useState<Tab[]>(["overview"]);
   const [showBookRequest, setShowBookRequest] = useState(false);
   const [classRank, setClassRank] = useState<number | string>("N/A");
   const [currentBooksCount, setCurrentBooksCount] = useState(0);
@@ -110,25 +116,106 @@ const StudentDashboard = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showMemoryCapsule, setShowMemoryCapsule] = useState(false);
   const [capsuleMonth, setCapsuleMonth] = useState<string | undefined>(undefined);
+
+  // Track tab history stack
+  useEffect(() => {
+    if (activeTab === "books") {
+      navigate("/catalog");
+      return;
+    }
+    setTabHistory((prev) => {
+      if (prev[prev.length - 1] === activeTab) return prev;
+      return [...prev, activeTab];
+    });
+  }, [activeTab, navigate]);
+
+  // Back handler 1: Close mobile drawer
+  useBackHandler({
+    enabled: mobileNavOpen,
+    priority: 85,
+    stateName: "student_mobile_drawer",
+    onBack: () => {
+      setMobileNavOpen(false);
+      return true;
+    },
+  });
+
+  // Back handler 2: Close Memory Capsule
+  useBackHandler({
+    enabled: showMemoryCapsule,
+    priority: 80,
+    stateName: "student_memory_capsule",
+    onBack: () => {
+      setShowMemoryCapsule(false);
+      return true;
+    },
+  });
+
+  // Back handler 3: Close Book Request Modal
+  useBackHandler({
+    enabled: showBookRequest,
+    priority: 75,
+    stateName: "student_book_request",
+    onBack: () => {
+      setShowBookRequest(false);
+      return true;
+    },
+  });
+
+  // Back handler 4: Tab navigation history within dashboard
+  useBackHandler({
+    enabled: activeTab !== "overview" && !mobileNavOpen && !showMemoryCapsule && !showBookRequest,
+    priority: 50,
+    stateName: `student_tab_${activeTab}`,
+    pushHistoryState: false, // Tab changes are not overlays; no sentinel needed
+    onBack: () => {
+      setTabHistory((prev) => {
+        if (prev.length > 1) {
+          const next = [...prev];
+          next.pop(); // remove current
+          const target = next[next.length - 1] || "overview";
+          setActiveTab(target);
+          return next;
+        } else {
+          setActiveTab("overview");
+          return ["overview"];
+        }
+      });
+      return true;
+    },
+  });
+
   // Auto-close mobile navigation on page/tab/route change
   useEffect(() => {
     setMobileNavOpen(false);
   }, [activeTab, location.pathname, location.search]);
 
-  // Auto-open Memory Capsule wrap once per month on first visit (days 1–7 of month)
+  const [capsuleEnabled, setCapsuleEnabled] = useState(false);
+
   useEffect(() => {
     if (!user?.id) return;
-    const now = new Date();
-    const isFirst7Days = now.getDate() <= 7;
-    if (!isFirst7Days) return;
-    // Key is per-user per previous month's wrap (YYYY-MM of the previous month)
-    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const monthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, "0")}`;
-    const storageKey = `kv_wrap_seen_${user.id}_${monthKey}`;
-    if (!localStorage.getItem(storageKey)) {
-      localStorage.setItem(storageKey, "1");
-      setShowMemoryCapsule(true);
-    }
+    supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "memory_capsule_enabled")
+      .maybeSingle()
+      .then(({ data }) => {
+        const isEnabled = data?.value === "true" || data?.value === true;
+        setCapsuleEnabled(isEnabled);
+
+        if (isEnabled) {
+          const now = new Date();
+          const isFirst7Days = now.getDate() <= 7;
+          if (!isFirst7Days) return;
+          const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const monthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, "0")}`;
+          const storageKey = `kv_wrap_seen_${user.id}_${monthKey}`;
+          if (!localStorage.getItem(storageKey)) {
+            localStorage.setItem(storageKey, "1");
+            setShowMemoryCapsule(true);
+          }
+        }
+      });
   }, [user?.id]);
 
   // Once the student completes profile setup, this permanently hides the dialog
@@ -141,28 +228,132 @@ const StudentDashboard = () => {
   const [periodicalsVisible, setPeriodicalsVisible] = useState(false);
   const [issueHistory, setIssueHistory] = useState<any[]>([]);
   const [hasCertificates, setHasCertificates] = useState(false);
+  const [activeLeagueSession, setActiveLeagueSession] = useState<any | null>(null);
+  const [inLeagueRunner, setInLeagueRunner] = useState(false);
 
   const streakData = useLoginStreak(user?.id);
   usePushSubscription(user?.id);
 
+  const [activeBounty, setActiveBounty] = useState<any>(null);
+  const [activeLoan, setActiveLoan] = useState<any>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      supabase.from("bug_bounty_campaigns")
+        .select("*")
+        .eq("is_active", true)
+        .maybeSingle()
+        .then(({ data }) => setActiveBounty(data));
+    }
+  }, [user?.id]);
+
+  const fetchActiveLoan = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("book_issues")
+        .select("id, issue_date, due_date, accession_number, books(id, title, author, cover_url)")
+        .eq("user_id", userId)
+        .eq("status", "issued")
+        .order("issue_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      setActiveLoan(data || null);
+    } catch (e) {
+      console.warn("fetchActiveLoan error:", e);
+    }
+  };
+
+  const navSections = useMemo(() => [
+    {
+      title: "Main",
+      items: [
+        { id: "overview" as Tab, label: "Overview", icon: Home },
+        { id: "portfolio" as Tab, label: "My Portfolio", icon: FileText },
+      ],
+    },
+    {
+      title: "Academics",
+      items: [
+        { id: "materials" as Tab, label: "Study Materials", icon: FileText },
+        { id: "study" as Tab, label: "Study Tracker", icon: Timer },
+        { id: "study-guide" as Tab, label: "AI Study Guide", icon: Sparkles },
+        { id: "notes" as Tab, label: "My Notes", icon: StickyNote },
+      ],
+    },
+    {
+      title: "Library",
+      items: [
+        { id: "catalog" as Tab, label: "Books Catalog", icon: BookOpen },
+        { id: "issued" as Tab, label: "Book Issued", icon: BookCheck },
+        { id: "books" as Tab, label: "My Books", icon: BookMarked },
+        { id: "locator" as Tab, label: "Library Map", icon: Compass },
+        ...(periodicalsVisible ? [{ id: "periodicals" as Tab, label: "Periodicals", icon: Newspaper }] : []),
+      ],
+    },
+    {
+      title: "Engagement & Rewards",
+      items: [
+        { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
+        { id: "badges" as Tab, label: "Badge Cabinet", icon: Award },
+        ...(hasCertificates ? [{ id: "certificates" as Tab, label: "Certificates", icon: Award }] : []),
+        { id: "rankings" as Tab, label: "Rankings", icon: Medal },
+        { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
+        { id: "community" as Tab, label: "Community", icon: Users },
+        { id: "network" as Tab, label: "Network", icon: Users },
+        { id: "bounty" as Tab, label: "Bug Bounty", icon: Target },
+        { id: "events" as Tab, label: "Events", icon: CalendarDays },
+      ],
+    },
+    {
+      title: "Support & Account",
+      items: [
+        { id: "support" as Tab, label: "Help & Support", icon: LifeBuoy },
+        { id: "feedback" as Tab, label: "Feedback", icon: MessageSquare },
+        { id: "profile" as Tab, label: "My Profile", icon: User },
+      ],
+    },
+  ], [periodicalsVisible, hasCertificates]);
+
   const navItems = useMemo(() => {
-    const items = [...baseNavItems];
-    const badgesIdx = items.findIndex((i) => i.id === "badges");
-    if (hasCertificates && badgesIdx >= 0) {
-      items.splice(badgesIdx + 1, 0, { id: "certificates" as Tab, label: "Certificates", icon: Award });
-    }
-    if (periodicalsVisible) {
-      const eventsIdx = items.findIndex((i) => i.id === "events");
-      items.splice(eventsIdx >= 0 ? eventsIdx + 1 : items.length, 0, {
-        id: "periodicals" as Tab,
-        label: "Periodicals",
-        icon: Newspaper,
-      });
-    }
-    return items;
-  }, [periodicalsVisible, hasCertificates]);
+    return navSections.flatMap((s) => s.items);
+  }, [navSections]);
 
   useEffect(() => { checkAuth(); }, []);
+
+  // Handle URL query parameters (e.g. ?room=UXE6P0 or ?tab=quizzes) for league links
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const roomParam = params.get("room");
+    const tabParam = params.get("tab") as Tab | null;
+
+    if (tabParam && navItems.some(n => n.id === tabParam)) {
+      setActiveTab(tabParam);
+    }
+
+    if (roomParam) {
+      const fetchRoomSession = async () => {
+        try {
+          const { data } = await supabase
+            .from("quiz_sessions")
+            .select("*, quizzes(*)")
+            .eq("room_code", roomParam.toUpperCase().trim())
+            .in("status", ["waiting", "active", "scheduled"])
+            .maybeSingle();
+
+          if (data) {
+            setActiveLeagueSession(data);
+            if (data.status === "active") {
+              setInLeagueRunner(true);
+            }
+          }
+        } catch (e) {
+          console.warn("Could not lookup league room from URL:", e);
+        }
+      };
+      fetchRoomSession();
+    }
+  }, [location.search, navItems]);
 
   const checkAuth = async () => {
     try {
@@ -204,6 +395,7 @@ const StudentDashboard = () => {
         } catch (e) { console.error(e); }
       }
       setUser(mergedUser);
+      fetchActiveLoan(session.user.id);
       if (mergedUser.student_class && profile.points !== null) {
         try {
           const { data: rankData, error: rankError } = await supabase.rpc('get_user_class_rank', { user_class: mergedUser.student_class, user_points: profile.points || 0 });
@@ -442,8 +634,44 @@ const StudentDashboard = () => {
       <div className="text-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4" /><p className="text-muted-foreground">Loading your dashboard...</p></div>
     </div>
   );
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4" />
+        <p className="text-muted-foreground font-medium mb-3">Connecting to library services...</p>
+        <Button size="sm" variant="outline" onClick={() => navigate('/login')}>Return to Login</Button>
+      </div>
+    );
+  }
   if (selectedQuiz) return <StudentQuiz quiz={selectedQuiz} onComplete={handleQuizComplete} onBack={() => setSelectedQuiz(null)} />;
+
+  if (activeLeagueSession) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background text-foreground flex flex-col h-dvh w-screen overflow-hidden select-none">
+        {inLeagueRunner ? (
+          <LiveQuizRunner
+            quiz={activeLeagueSession.quizzes}
+            sessionId={activeLeagueSession.id}
+            isHost={false}
+            onFinish={() => {
+              setActiveLeagueSession(null);
+              setInLeagueRunner(false);
+              checkAuth();
+            }}
+          />
+        ) : (
+          <MultiplayerLobby
+            quizId={activeLeagueSession.quiz_id}
+            quizTitle={activeLeagueSession.league_name || activeLeagueSession.quizzes?.title || "Live Quiz League"}
+            isHost={false}
+            existingSessionId={activeLeagueSession.id}
+            onStart={() => setInLeagueRunner(true)}
+            onCancel={() => setActiveLeagueSession(null)}
+          />
+        )}
+      </div>
+    );
+  }
 
   const getTimeAgo = (d: string) => {
     const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
@@ -474,13 +702,33 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        <nav className="flex-1 min-h-0 p-3 space-y-1 overflow-y-auto">
-          {navItems.map(item => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === item.id ? 'gradient-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-              <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
-            </button>
+        <nav className="flex-1 min-h-0 p-3 space-y-4 overflow-y-auto">
+          {navSections.map(sec => (
+            <div key={sec.title} className="space-y-1">
+              <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider px-3 mb-1">
+                {sec.title}
+              </p>
+              {sec.items.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (item.id === "catalog") {
+                      navigate("/catalog");
+                    } else {
+                      setActiveTab(item.id);
+                    }
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    activeTab === item.id
+                      ? 'gradient-primary text-primary-foreground shadow-sm shadow-primary/25 font-bold'
+                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
+                  }`}
+                >
+                  <item.icon className={`h-4 w-4 shrink-0 ${activeTab === item.id ? 'text-white' : 'text-muted-foreground'}`} />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
 
@@ -493,7 +741,10 @@ const StudentDashboard = () => {
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-foreground truncate">{user?.first_name} {user?.last_name}</p>
+              <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                <span>{user?.first_name} {user?.last_name}</span>
+                <RotationalWinnerBadge userId={user?.id} size="xs" />
+              </p>
               <p className="text-xs text-muted-foreground">Class {user?.student_class}</p>
             </div>
             <NotificationBell />
@@ -542,7 +793,14 @@ const StudentDashboard = () => {
                           <button
                             key={item.id}
                             type="button"
-                            onClick={() => { setActiveTab(item.id as Tab); setMobileNavOpen(false); }}
+                            onClick={() => {
+                              setMobileNavOpen(false);
+                              if (item.id === "catalog") {
+                                navigate("/catalog");
+                              } else {
+                                setActiveTab(item.id as Tab);
+                              }
+                            }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeTab === item.id ? "gradient-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:bg-muted"}`}
                           >
                             <navItem.icon className="h-4 w-4 shrink-0" /> {navItem.label || item.label}
@@ -559,8 +817,8 @@ const StudentDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-16 pb-24 lg:pb-0 lg:ml-64 lg:pt-4">
-        <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 pb-40 lg:pb-8 lg:ml-64 lg:pt-1">
+        <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-5 lg:p-6 lg:pt-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
 
           {/* Overview Tab */}
@@ -623,6 +881,7 @@ const StudentDashboard = () => {
 
               {/* Monthly Memory Capsule Banner */}
               {(() => {
+                if (!capsuleEnabled) return null;
                 const nowDate = new Date();
                 const isWrapFirst7Days = nowDate.getDate() <= 7;
                 const wrapPrevMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() - 1, 1).toLocaleString("default", { month: "long" });
@@ -670,37 +929,63 @@ const StudentDashboard = () => {
                 );
               })()}
 
-              {/* Catalog Search */}
-              <Card className="border-border/50 overflow-hidden">
-                <div className="h-1 bg-gradient-to-r from-primary to-accent" />
-                <CardContent className="p-4">
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const q = (e.currentTarget.elements.namedItem("q") as HTMLInputElement)?.value.trim();
-                      navigate(q ? `/catalog?q=${encodeURIComponent(q)}` : "/catalog");
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <div className="relative flex-1">
-                      <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        name="q"
-                        placeholder="Search books by title, author or ISBN…"
-                        className="w-full h-10 pl-9 pr-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
-                      />
+              <UpcomingQuizLeagueCard
+                userId={user?.id}
+                userClass={user?.student_class}
+                onJoinLeague={(session) => {
+                  setActiveLeagueSession(session);
+                  if (session.status === "active") {
+                    setInLeagueRunner(true);
+                  }
+                }}
+              />
+              <LiveQuizAlert
+                onJoinLeague={(session) => {
+                  setActiveLeagueSession(session);
+                  if (session.status === "active") {
+                    setInLeagueRunner(true);
+                  }
+                }}
+              />
+
+              {activeBounty && (
+                <Card
+                  className="rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-primary/10 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group"
+                  onClick={() => setActiveTab("bounty")}
+                >
+                  <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform">
+                        <Bug className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                            Active Campaign
+                          </span>
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <Sparkles className="h-3.5 w-3.5" /> +100 XP per Bug
+                          </span>
+                        </div>
+                        <h4 className="text-base font-black text-foreground truncate">
+                          {activeBounty.title || "Library Bug Hunters Season"}
+                        </h4>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          Spot bugs in DLMS and earn 100 XP reward for each verified report!
+                        </p>
+                      </div>
                     </div>
-                    <Button type="submit" size="sm" className="gradient-primary border-0 shrink-0">Search</Button>
-                    <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => navigate("/catalog")}>Browse All</Button>
-                  </form>
-                </CardContent>
-              </Card>
+                    <Button
+                      size="sm"
+                      className="w-full sm:w-auto rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-1.5 shrink-0"
+                    >
+                      <span>Report a Bug</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
-              {/* Currently Reading Status */}
-              <CurrentlyReading user={user} onUpdate={checkAuth} />
-
-              <LiveQuizAlert />
-              
               {/* Level + Streak Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <LevelProgress userPoints={user?.points || 0} />
@@ -713,8 +998,6 @@ const StudentDashboard = () => {
                   />
                 )}
               </div>
-
-              {user?.id && <ReadingVelocity userId={user.id} />}
 
               {user?.student_class && <ClassCompetitions userClass={user.student_class} />}
 
@@ -755,6 +1038,7 @@ const StudentDashboard = () => {
                       { label: "Study Materials",icon: FileText,    tab: "materials", color: "text-indigo-600", bg: "bg-indigo-50" },
                       { label: "Library Events", icon: CalendarDays,tab: "events",    color: "text-rose-600",   bg: "bg-rose-50" },
                       { label: "Community",       icon: Users,       tab: "community", color: "text-orange-600", bg: "bg-orange-50" },
+                      { label: "Network & Friends",icon: Users,      tab: "network",   color: "text-sky-600",    bg: "bg-sky-50" },
                       { label: "Book Issued",     icon: BookCheck,   tab: "issued",   color: "text-violet-600", bg: "bg-violet-50" },
                     ].map(a => (
                       <button
@@ -835,8 +1119,8 @@ const StudentDashboard = () => {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-bold text-foreground">Books</h2>
-                  <p className="text-sm text-muted-foreground">Your reading log and borrow history</p>
+                  <h2 className="text-xl font-bold text-foreground">My Books</h2>
+                  <p className="text-sm text-muted-foreground">Your personal reading log and borrow history</p>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   <Button variant="outline" size="sm" className="flex-1 sm:flex-none border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold h-9" onClick={() => navigate('/catalog')}>
@@ -922,7 +1206,18 @@ const StudentDashboard = () => {
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={false} />}
 
           {/* Quizzes Tab */}
-          {activeTab === "quizzes" && <QuizPage quizzes={availableQuizzes} results={quizResults} onSelectQuiz={setSelectedQuiz} />}
+          {activeTab === "quizzes" && (
+            <div className="space-y-6">
+              <UpcomingQuizLeagueCard
+                userId={user?.id}
+                userClass={user?.student_class}
+                onJoinLeague={(session) => {
+                  setActiveLeagueSession(session);
+                }}
+              />
+              <QuizPage quizzes={availableQuizzes} results={quizResults} onSelectQuiz={setSelectedQuiz} />
+            </div>
+          )}
 
           {/* Challenges Tab */}
           {activeTab === "challenges" && (
@@ -965,6 +1260,7 @@ const StudentDashboard = () => {
 
           {/* Feedback Tab */}
           {activeTab === "feedback" && <Feedback isEmbedded={true} />}
+          {activeTab === "bounty" && <BugBountyManager />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && <StudentProfile user={user} onProfileUpdate={handleProfileUpdate} />}
@@ -992,7 +1288,8 @@ const StudentDashboard = () => {
         selectedMonth={capsuleMonth}
       />
 
-      <LibraryBot />
+      {/* Hide LibraryBot in community tab so community create FAB takes its place */}
+      {activeTab !== "community" && <LibraryBot />}
 
       <MobileBottomNav
         activeTab={activeTab}

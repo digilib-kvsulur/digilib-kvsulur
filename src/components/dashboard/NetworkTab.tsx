@@ -76,14 +76,61 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
 
   const sendFriendRequest = async (targetId: string) => {
     if (!user?.id) return;
-    const { error, data } = await supabase
-      .from("friendships")
-      .insert({ requester_id: user.id, addressee_id: targetId })
-      .select().single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    setFriendshipsMap(m => ({ ...m, [targetId]: data }));
-    toast({ title: "Friend request sent!" });
-    await loadFriendshipsMap();
+    try {
+      const existing = friendshipsMap[targetId];
+      if (existing?.id) {
+        const { error, data } = await supabase
+          .from("friendships")
+          .update({
+            status: "pending",
+            requester_id: user.id,
+            addressee_id: targetId,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", existing.id)
+          .select().single();
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        setFriendshipsMap(m => ({ ...m, [targetId]: data }));
+        toast({ title: "Friend request sent!" });
+        await loadFriendshipsMap();
+        return;
+      }
+
+      const { data: dbExisting } = await supabase
+        .from("friendships")
+        .select("id")
+        .or(`and(requester_id.eq.${user.id},addressee_id.eq.${targetId}),and(requester_id.eq.${targetId},addressee_id.eq.${user.id})`)
+        .maybeSingle();
+
+      if (dbExisting?.id) {
+        const { error, data } = await supabase
+          .from("friendships")
+          .update({
+            status: "pending",
+            requester_id: user.id,
+            addressee_id: targetId,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", dbExisting.id)
+          .select().single();
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        setFriendshipsMap(m => ({ ...m, [targetId]: data }));
+        toast({ title: "Friend request sent!" });
+        await loadFriendshipsMap();
+        return;
+      }
+
+      const { error, data } = await supabase
+        .from("friendships")
+        .insert({ requester_id: user.id, addressee_id: targetId, status: "pending" })
+        .select().single();
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      setFriendshipsMap(m => ({ ...m, [targetId]: data }));
+      toast({ title: "Friend request sent!" });
+      await loadFriendshipsMap();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to send request", variant: "destructive" });
+    }
   };
 
   const respondFriendRequest = async (targetId: string, status: string) => {
@@ -288,8 +335,8 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
                             <p className="text-xs text-muted-foreground truncate">@{r.username || "—"} · Class {r.student_class || "—"}</p>
                           </div>
                         </div>
-                        {!existing ? (
-                          <Button size="sm" onClick={() => sendFriendRequest(r.id)} className="h-8 bg-indigo-600 hover:bg-indigo-700 rounded-lg">
+                        {!existing || existing.status === "rejected" ? (
+                          <Button size="sm" onClick={() => sendFriendRequest(r.id)} className="h-8 bg-indigo-600 hover:bg-indigo-700 rounded-lg" title={existing?.status === "rejected" ? "Send Request Again" : "Add Friend"}>
                             <UserPlus className="h-4 w-4" />
                           </Button>
                         ) : existing.status === "accepted" ? (

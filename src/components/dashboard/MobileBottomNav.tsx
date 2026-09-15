@@ -1,5 +1,5 @@
 import {
-  Home, BookOpen, Search, FileText, Menu, Target, Brain, User,
+  Home, BookOpen, Search, FileText, Menu, Target, Brain, User, Trophy,
   BookCheck, Compass, Timer, Award, Medal, CalendarDays, Users,
   StickyNote, LifeBuoy, MessageSquare, Gamepad2, GraduationCap, Sparkles
 } from "lucide-react";
@@ -88,6 +88,7 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
       { id: "events", label: "Events", icon: CalendarDays },
       { id: "periodicals", label: "Periodicals", icon: BookOpen },
       { id: "community", label: "Community", icon: Users },
+      { id: "bounty", label: "Bug Bounty", icon: Trophy },
       { id: "games", label: "Games Corner", icon: Gamepad2 },
       { id: "network", label: "Network", icon: Users },
     ],

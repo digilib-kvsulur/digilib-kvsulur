@@ -10,6 +10,7 @@ import { User, Edit, Save, X, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getAvatarUrl } from "@/lib/utils";
+import ProfilePasswordResetCard from "@/components/dashboard/ProfilePasswordResetCard";
 
 const compressImage = (file: File, maxW: number, maxH: number, quality: number): Promise<File> => {
   return new Promise((resolve) => {
@@ -319,6 +320,9 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Security & Password Card ── */}
+      <ProfilePasswordResetCard userEmail={user?.email || formData.email} />
     </div>
   );
 };
