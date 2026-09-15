@@ -209,6 +209,8 @@ Deno.serve(async (request) => {
     const template = PRESETS[preset];
     const note = String(customMessage || "").trim().slice(0, 2000);
 
+    const errors: string[] = [];
+
     const results = await Promise.all(
       valid.map(async (p: any) => {
         const recipientName = p.first_name || "Library Member";
@@ -228,11 +230,23 @@ Deno.serve(async (request) => {
             html,
           }),
         });
-        return res.ok;
+
+        const resBody = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = resBody?.message || resBody?.error?.message || `HTTP ${res.status}`;
+          console.error(`Resend send failed for ${p.targetEmail}:`, msg);
+          errors.push(msg);
+          return false;
+        }
+        return true;
       }),
     );
 
     const sent = results.filter(Boolean).length;
+
+    if (sent === 0 && valid.length > 0 && errors.length > 0) {
+      throw new Error(`Resend error: ${errors[0]}`);
+    }
 
     await admin.from("email_campaigns").insert({
       sent_by: user.id,
