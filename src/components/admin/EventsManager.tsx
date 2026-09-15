@@ -158,13 +158,24 @@ export default function EventsManager() {
       let error;
       if (editingId) {
         ({ error } = await supabase.from("library_events").update(payload).eq("id", editingId));
+        if (error && (error.message?.includes("redirect_url") || error.code === "PGRST204")) {
+          // Schema fallback if redirect_url column isn't in Supabase DB yet
+          const fallbackPayload = { ...payload };
+          delete (fallbackPayload as any).redirect_url;
+          ({ error } = await supabase.from("library_events").update(fallbackPayload).eq("id", editingId));
+        }
       } else {
-        ({ error } = await supabase.from("library_events").insert({
+        const insertPayload: any = {
           ...payload,
           id: eventId,
           created_by: user.id,
           image_url: imageUrl,
-        }));
+        };
+        ({ error } = await supabase.from("library_events").insert(insertPayload));
+        if (error && (error.message?.includes("redirect_url") || error.code === "PGRST204")) {
+          delete insertPayload.redirect_url;
+          ({ error } = await supabase.from("library_events").insert(insertPayload));
+        }
       }
 
       if (error) throw error;
