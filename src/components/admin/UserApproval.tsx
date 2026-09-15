@@ -145,26 +145,45 @@ const UserApproval = () => {
       toast({ title: "Password required", description: "Please enter or generate a password.", variant: "destructive" });
       return;
     }
-    if (generatedPassword.trim().length < 6) {
+    const cleanPass = generatedPassword.trim();
+    if (cleanPass.length < 6) {
       toast({ title: "Too short", description: "Password must be at least 6 characters long.", variant: "destructive" });
       return;
     }
 
     setResetting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-reset-password", {
-        body: { user_id: resetTarget.id, new_password: generatedPassword.trim() }
+      let resetSuccess = false;
+      // 1. Try direct SQL RPC call first (instant, bypasses Deno network & edge function deployment issues)
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_custom_reset_password", {
+        target_user_id: resetTarget.id,
+        new_password: cleanPass,
       });
-      if (error || (data as any)?.error) throw new Error(error?.message || (data as any)?.error);
-      
-      navigator.clipboard.writeText(generatedPassword.trim());
-      toast({
-        title: "Password Updated & Copied! 🔐",
-        description: `New password for ${resetTarget.first_name} ${resetTarget.last_name} is set and copied to your clipboard.`,
-      });
-      setResetTarget(null);
+
+      if (!rpcErr && (rpcRes as any)?.success) {
+        resetSuccess = true;
+      } else {
+        // 2. Fall back to Edge Function if SQL RPC is not created yet
+        const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+          body: { user_id: resetTarget.id, new_password: cleanPass }
+        });
+        if (error || (data as any)?.error) throw new Error(error?.message || (data as any)?.error);
+        resetSuccess = true;
+      }
+
+      if (resetSuccess) {
+        try {
+          await navigator.clipboard.writeText(cleanPass);
+        } catch { /* ignore clipboard permission block */ }
+
+        toast({
+          title: "Password Updated & Copied! 🔐",
+          description: `New password for ${resetTarget.first_name} ${resetTarget.last_name} is set to "${cleanPass}" (copied to clipboard).`,
+        });
+        setResetTarget(null);
+      }
     } catch (e: any) {
-      toast({ title: "Reset Failed", description: e.message, variant: "destructive" });
+      toast({ title: "Reset Failed", description: e.message || "Failed to update user password.", variant: "destructive" });
     } finally {
       setResetting(false);
     }
