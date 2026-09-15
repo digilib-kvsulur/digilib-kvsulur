@@ -182,6 +182,7 @@ const Register = () => {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Email *</Label>
                   <Input type="email" placeholder="your.email@example.com" value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} className="h-11 rounded-xl" required />
+                  <p className="text-[10px] text-muted-foreground">We’ll use this address for library updates and important notices.</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Role *</Label>

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { clearStoredAuthSession, isInvalidRefreshTokenError } from "@/lib/authCleanup";
 import { ForgotPasswordView } from "@/components/auth/ForgotPasswordView";
+import NotificationEmailDialog from "@/components/auth/NotificationEmailDialog";
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -22,6 +23,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [recentUsers, setRecentUsers] = useState<{ initials: string; color: string }[]>([]);
+  const [pendingNotificationEmail, setPendingNotificationEmail] = useState<{ id: string; email?: string | null; role?: string } | null>(null);
 
   useEffect(() => {
     if (searchParams.get("forgot") === "true") {
@@ -80,15 +82,20 @@ const Login = () => {
         return;
       }
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
-      toast({ title: "Login Successful", description: "Welcome back!" });
-      setTimeout(() => {
+      const continueToDashboard = () => {
         switch (profile?.role) {
           case "admin": navigate("/admin-dashboard", { replace: true }); break;
           case "teacher": navigate("/teacher-dashboard", { replace: true }); break;
           case "student": navigate("/student-dashboard", { replace: true }); break;
           default: navigate("/", { replace: true });
         }
-      }, 100);
+      };
+      toast({ title: "Login Successful", description: "Welcome back!" });
+      if (!profile?.needs_profile_update && !profile?.notification_email_confirmed_at) {
+        setPendingNotificationEmail({ id: data.user.id, email: profile?.notification_email || profile?.email, role: profile?.role });
+      } else {
+        setTimeout(continueToDashboard, 100);
+      }
     } catch (error) {
       console.error('Login error:', error);
       toast({ title: "Login Failed", description: "An unexpected error occurred", variant: "destructive" });
@@ -288,6 +295,21 @@ const Login = () => {
             </div>
           </div>
         </div>
+      )}
+      {pendingNotificationEmail && (
+        <NotificationEmailDialog
+          open
+          userId={pendingNotificationEmail.id}
+          currentEmail={pendingNotificationEmail.email}
+          onComplete={() => {
+            const role = pendingNotificationEmail.role;
+            setPendingNotificationEmail(null);
+            if (role === "admin") navigate("/admin-dashboard", { replace: true });
+            else if (role === "teacher") navigate("/teacher-dashboard", { replace: true });
+            else if (role === "student") navigate("/student-dashboard", { replace: true });
+            else navigate("/", { replace: true });
+          }}
+        />
       )}
     </div>
   );

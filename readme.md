@@ -326,13 +326,14 @@ Set Edge Function secrets in the Supabase dashboard:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `OPENAI_API_KEY` (for AI quiz generation and library bot)
 - `VAPID_PRIVATE_KEY` (for push notifications)
-- SMTP variables (for ticket email notifications)
+- `RESEND_API_KEY` and `LIBRARY_FROM_EMAIL` (for ticket email notifications)
 
 ### 4. Configure Auth
 
 - Add your production domain to **Redirect URLs** in Supabase Auth settings
 - Enable **Email** provider
-- Optionally configure custom SMTP for branded emails
+- Configure custom SMTP with the same GoDaddy professional mailbox for Supabase Auth emails (confirmations and password resets). Use the mailbox's SMTP host, port, username, and app password in Supabase Auth → SMTP Settings; keep those credentials out of this repository.
+- For Edge Function emails, set `LIBRARY_FROM_EMAIL` to the same verified GoDaddy address (for example, `KV Sulur Library <library@your-domain.in>`) and verify that domain in Resend. This keeps ticket and future notification mail on the same public sender address.
 
 ---
 

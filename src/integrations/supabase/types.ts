@@ -2025,6 +2025,8 @@ export type Database = {
           last_name: string | null
           library_card_barcode: string | null
           needs_profile_update: boolean
+          notification_email: string | null
+          notification_email_confirmed_at: string | null
           phone: string | null
           points: number
           pwa_installed_at: string | null
@@ -2052,6 +2054,8 @@ export type Database = {
           last_name?: string | null
           library_card_barcode?: string | null
           needs_profile_update?: boolean
+          notification_email?: string | null
+          notification_email_confirmed_at?: string | null
           phone?: string | null
           points?: number
           pwa_installed_at?: string | null
@@ -2079,6 +2083,8 @@ export type Database = {
           last_name?: string | null
           library_card_barcode?: string | null
           needs_profile_update?: boolean
+          notification_email?: string | null
+          notification_email_confirmed_at?: string | null
           phone?: string | null
           points?: number
           pwa_installed_at?: string | null

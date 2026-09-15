@@ -73,6 +73,8 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
           roll_number: rollNumber.trim(),
           phone: phone.trim(),
           email: email.trim(),
+          notification_email: email.trim().toLowerCase(),
+          notification_email_confirmed_at: new Date().toISOString(),
           username: username.trim().toLowerCase(),
           needs_profile_update: false,
           updated_at: new Date().toISOString()
@@ -225,7 +227,7 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
               required
             />
             <p className="text-[10px] text-muted-foreground leading-normal">
-              Used for account recovery and notifications.
+              Used for account recovery, library notices, and newsletter updates.
             </p>
           </div>
 
