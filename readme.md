@@ -318,6 +318,7 @@ npx supabase functions deploy admin-bulk-create-users
 npx supabase functions deploy admin-delete-user
 npx supabase functions deploy admin-reset-password
 npx supabase functions deploy send-ticket-email
+npx supabase functions deploy send-password-reset
 npx supabase functions deploy student-first-login-setup
 npx supabase functions deploy create-admin
 ```
@@ -334,6 +335,7 @@ Set Edge Function secrets in the Supabase dashboard:
 - Enable **Email** provider
 - Configure custom SMTP with the same GoDaddy professional mailbox for Supabase Auth emails (confirmations and password resets). Use the mailbox's SMTP host, port, username, and app password in Supabase Auth → SMTP Settings; keep those credentials out of this repository.
 - For Edge Function emails, set `LIBRARY_FROM_EMAIL` to the same verified GoDaddy address (for example, `KV Sulur Library <library@your-domain.in>`) and verify that domain in Resend. This keeps ticket and future notification mail on the same public sender address.
+- The `send-password-reset` function sends Supabase-generated recovery links to the confirmed profile email. It needs the same `RESEND_API_KEY` and `LIBRARY_FROM_EMAIL` secrets as ticket email. It deliberately keeps the public response generic and rate-limits each account to one request per minute.
 
 ---
 

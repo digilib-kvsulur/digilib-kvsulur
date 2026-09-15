@@ -165,8 +165,8 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
 
     setIsSendingEmail(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(accountData.auth_email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const { error } = await supabase.functions.invoke("send-password-reset", {
+        body: { identifier: identifier || accountData.admission_number || accountData.auth_email, redirectTo: `${window.location.origin}/reset-password` },
       });
 
       if (error) throw error;
@@ -175,8 +175,8 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
       setRateLimitHit(false);
       setCooldown(60);
       toast({
-        title: "Password Reset Link Dispatched",
-        description: `Sent to ${accountData.masked_email || "your registered email address"}.`,
+        title: "Password Reset Link Requested",
+        description: `If the account details match, a link has been sent to ${accountData.masked_email || "your registered email address"}.`,
       });
     } catch (err: any) {
       const isRateLimit = err.message?.toLowerCase().includes("rate limit") || err.status === 429;

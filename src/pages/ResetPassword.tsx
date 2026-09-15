@@ -212,8 +212,8 @@ const ResetPassword = () => {
     setIsSendingLink(true);
     try {
       const redirectUrl = `${window.location.origin}/reset-password`;
-      const { error } = await supabase.auth.resetPasswordForEmail(requestEmail.trim(), {
-        redirectTo: redirectUrl,
+      const { error } = await supabase.functions.invoke("send-password-reset", {
+        body: { identifier: requestEmail.trim(), redirectTo: redirectUrl },
       });
       if (error) throw error;
       setLinkSent(true);

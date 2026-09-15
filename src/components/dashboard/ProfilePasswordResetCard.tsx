@@ -102,8 +102,8 @@ export default function ProfilePasswordResetCard({ userEmail }: ProfilePasswordR
     setSendingEmail(true);
     try {
       const redirectUrl = `${window.location.origin}/reset-password`;
-      const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
-        redirectTo: redirectUrl,
+      const { error } = await supabase.functions.invoke("send-password-reset", {
+        body: { identifier: userEmail, redirectTo: redirectUrl },
       });
       if (error) throw error;
 
