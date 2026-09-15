@@ -13,6 +13,7 @@ import {
   HelpCircle, BookOpen, ChevronRight, Info
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   computeRotationalBadges, 
   verifyAndPublishRotationalCycle, 
@@ -58,6 +59,7 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   const [editVenue, setEditVenue] = useState("");
   const [editNote, setEditNote] = useState("");
   const [savingCollection, setSavingCollection] = useState(false);
+  const [managingWinnerId, setManagingWinnerId] = useState<string | null>(null);
 
   // Analysis state
   const [classAwards, setClassAwards] = useState<RotationalAwardCandidate[]>([]);
@@ -125,6 +127,29 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
     } finally {
       setSavingCollection(false);
     }
+  };
+
+  const manageWinner = async (winner: any, action: "reissue" | "remove") => {
+    if (!activeCycle) return;
+    if (action === "remove" && !window.confirm(`Remove ${winner.studentName}'s rotational badge from this active cycle?`)) return;
+    setManagingWinnerId(winner.studentId + winner.badgeType);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (action === "reissue") {
+        const { error } = await supabase.from("notifications").insert({ target_user_id: winner.studentId, sent_by: user?.id, title: `🏆 Rotational badge reissued: ${winner.badgeName}`, message: `Your ${winner.badgeName} award for ${winner.scopeValue} (${activeCycle.cycleLabel}) has been reissued. Collection: ${activeCycle.settings.collectionDate} at ${activeCycle.settings.collectionVenue}.`, type: "award", action_link: "/student-dashboard?tab=badges" });
+        if (error) throw error;
+        toast({ title: "Award notice reissued", description: `${winner.studentName} will see a fresh badge notification.` });
+      } else {
+        const nextCycle = { ...activeCycle, winners: activeCycle.winners.filter((w) => !(w.studentId === winner.studentId && w.badgeType === winner.badgeType)) };
+        const { error: cycleError } = await supabase.from("system_settings").upsert({ key: "rotational_badge_active_cycle", value: nextCycle as any }, { onConflict: "key" });
+        if (cycleError) throw cycleError;
+        await supabase.from("badge_awards").delete().eq("user_id", winner.studentId).eq("award_type", "rotational_award").ilike("note", `%(${activeCycle.cycleLabel})%`);
+        await supabase.from("notifications").insert({ target_user_id: winner.studentId, sent_by: user?.id, title: "Rotational badge record updated", message: `Your ${winner.badgeName} award for ${activeCycle.cycleLabel} has been removed by the library team.`, type: "info" });
+        setActiveCycle(nextCycle);
+        toast({ title: "Rotational award removed" });
+      }
+    } catch (error: any) { toast({ title: "Could not update award", description: error.message, variant: "destructive" }); }
+    finally { setManagingWinnerId(null); }
   };
 
   const loadActiveCycle = async () => {
@@ -884,7 +909,7 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                   <div className="border rounded-xl divide-y divide-border overflow-hidden">
                     <div className="p-3 bg-muted/40 font-bold text-xs flex justify-between">
                       <span>Award Winner</span>
-                      <span>Award Category</span>
+                      <span>Award controls</span>
                     </div>
                     {activeCycle.winners.map((w) => (
                       <div key={w.studentId + w.badgeType} className="p-3 flex items-center justify-between text-xs hover:bg-muted/20">
@@ -894,9 +919,11 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                             {w.scopeValue} · Admn #{w.admissionNumber} · {w.points} XP · {w.booksIssuedCount} Books Borrowed
                           </p>
                         </div>
-                        <Badge className={w.badgeType === "best_library_user" ? "bg-amber-500 text-white" : "bg-indigo-600 text-white"}>
-                          {w.badgeType === "best_library_user" ? "👑 Best Library User" : "📚 Reader of the Month"}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={w.badgeType === "best_library_user" ? "bg-amber-500 text-white" : "bg-indigo-600 text-white"}>{w.badgeType === "best_library_user" ? "👑 Best Library User" : "📚 Reader of the Month"}</Badge>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={!!managingWinnerId} onClick={() => manageWinner(w, "reissue")}>Reissue</Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-destructive" disabled={!!managingWinnerId} onClick={() => manageWinner(w, "remove")}>Remove</Button>
+                        </div>
                       </div>
                     ))}
                   </div>

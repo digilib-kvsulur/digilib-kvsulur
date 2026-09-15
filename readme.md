@@ -319,6 +319,7 @@ npx supabase functions deploy admin-delete-user
 npx supabase functions deploy admin-reset-password
 npx supabase functions deploy send-ticket-email
 npx supabase functions deploy send-password-reset
+npx supabase functions deploy send-email-campaign
 npx supabase functions deploy student-first-login-setup
 npx supabase functions deploy create-admin
 ```

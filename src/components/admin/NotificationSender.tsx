@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bell, Send, Trash2, Users, User, Info, AlertTriangle, CheckCircle, GraduationCap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import EmailCampaignManager from "./EmailCampaignManager";
 
 interface Notification {
   id: string;
@@ -201,6 +202,8 @@ const NotificationSender = () => {
         <h2 className="text-2xl font-bold text-foreground">Notifications Panel</h2>
         <p className="text-sm text-muted-foreground">Broadcast notifications or target specific classrooms and individuals.</p>
       </div>
+
+      <EmailCampaignManager />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Compose */}

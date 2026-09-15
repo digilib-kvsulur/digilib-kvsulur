@@ -127,6 +127,8 @@ export default function CertificateManager() {
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("all");
   const [uploadingTemplate, setUploadingTemplate] = useState(false);
+  const [bulkUnlockAt, setBulkUnlockAt] = useState("");
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   // Issuing Dialog State
   const [issuing, setIssuing] = useState(false);
@@ -527,6 +529,18 @@ export default function CertificateManager() {
     }
   };
 
+  const applyBulkUnlockDate = async () => {
+    if (!filteredRows.length) return;
+    if (!window.confirm(`Update the scheduled release date for ${filteredRows.length} visible certificate(s)?`)) return;
+    setBulkUpdating(true);
+    const unlockAt = bulkUnlockAt ? new Date(bulkUnlockAt).toISOString() : null;
+    const { error } = await supabase.from("issued_certificates").update({ unlock_at: unlockAt } as any).in("id", filteredRows.map((row) => row.id));
+    setBulkUpdating(false);
+    if (error) return toast({ title: "Schedule update failed", description: error.message, variant: "destructive" });
+    toast({ title: "Certificate schedule updated", description: `${filteredRows.length} certificate(s) updated.` });
+    load();
+  };
+
   // Upload Custom Certificate Template
   const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -792,6 +806,17 @@ export default function CertificateManager() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-end gap-2 rounded-lg border bg-muted/30 p-3">
+                <div className="min-w-[220px] flex-1">
+                  <Label className="text-xs font-semibold">Bulk scheduled release for visible certificates</Label>
+                  <Input type="datetime-local" value={bulkUnlockAt} onChange={(e) => setBulkUnlockAt(e.target.value)} className="mt-1 h-9 text-xs" />
+                </div>
+                <Button size="sm" variant="outline" onClick={applyBulkUnlockDate} disabled={bulkUpdating || !filteredRows.length}>
+                  <Calendar className="mr-1.5 h-3.5 w-3.5" />{bulkUpdating ? "Updating…" : "Apply schedule"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setBulkUnlockAt(""); }} disabled={bulkUpdating}>Clear input</Button>
+                <p className="w-full text-[11px] text-muted-foreground">Use current search/class filters to selectively update certificates. Leave the date blank and apply to remove a scheduled release.</p>
               </div>
             </CardHeader>
             <CardContent>
