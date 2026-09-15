@@ -7,9 +7,15 @@ export type CertFieldKey = keyof CertificateLayout;
 
 export interface CertificateRenderData {
   studentName: string;
+  nameHindi?: string | null;
   studentClass?: string | null;
+  classHindi?: string | null;
   eventName?: string | null;
+  eventHindi?: string | null;
+  during?: string | null;
   title: string;
+  titleHindi?: string | null;
+  commonText?: string | null;
   description?: string | null;
   issuedAt: string;
   templateUrl?: string | null;
@@ -17,21 +23,32 @@ export interface CertificateRenderData {
   schoolName?: string | null;
 }
 
-export const CERT_FIELD_LABELS: { key: CertFieldKey; label: string }[] = [
-  { key: "name", label: "Student name" },
-  { key: "className", label: "Class" },
-  { key: "event", label: "Event / Activity" },
-  { key: "title", label: "Position / Achievement" },
-  { key: "description", label: "Description" },
-  { key: "date", label: "Date" },
-  { key: "certNumber", label: "Certificate No / ID" },
-  { key: "schoolName", label: "School Header" },
+export const CERT_FIELD_LABELS: { key: CertFieldKey; label: string; group?: string }[] = [
+  // Hindi Section
+  { key: "nameHindi", label: "छात्र का नाम (Hindi Name)", group: "Hindi" },
+  { key: "classHindi", label: "कक्षा (Hindi Class)", group: "Hindi" },
+  { key: "eventHindi", label: "प्रतियोगिता (Hindi Event)", group: "Hindi" },
+  { key: "titleHindi", label: "स्थान / उपलब्धि (Hindi Position)", group: "Hindi" },
+
+  // English Section
+  { key: "name", label: "Student Name (English)", group: "English" },
+  { key: "className", label: "Class (English)", group: "English" },
+  { key: "event", label: "Event / Activity (English)", group: "English" },
+  { key: "during", label: "During Period (English)", group: "English" },
+  { key: "title", label: "Position / Award (English)", group: "English" },
+
+  // Shared Section
+  { key: "commonText", label: "Plain Text (Common for All)", group: "Shared" },
+  { key: "date", label: "Date (दिनांक)", group: "Shared" },
+  { key: "certNumber", label: "Certificate ID", group: "Shared" },
+  { key: "schoolName", label: "School Header", group: "Shared" },
+  { key: "description", label: "Description", group: "Shared" },
 ];
 
 function getFontFamilyCss(family?: string): string {
-  if (family === "serif") return "'Playfair Display', Georgia, 'Times New Roman', serif";
+  if (family === "serif") return "'Playfair Display', Georgia, 'Times New Roman', 'Noto Serif Devanagari', serif";
   if (family === "display") return "'Cinzel', Georgia, serif";
-  return "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  return "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Devanagari', sans-serif";
 }
 
 function fieldBoxStyle(f: CertFieldLayout, editable: boolean, selected: boolean): CSSProperties {
@@ -78,14 +95,26 @@ function fieldBoxStyle(f: CertFieldLayout, editable: boolean, selected: boolean)
 
 function fieldText(key: CertFieldKey, data: CertificateRenderData): string {
   switch (key) {
+    case "nameHindi":
+      return data.nameHindi || data.studentName || "आरव शर्मा";
+    case "classHindi":
+      return data.classHindi || (data.studentClass ? `${data.studentClass}` : "8-A");
+    case "eventHindi":
+      return data.eventHindi || data.eventName || "पुस्तकालय प्रतियोगिता";
+    case "titleHindi":
+      return data.titleHindi || "प्रथम स्थान";
     case "name":
       return data.studentName || "Student Name";
     case "className":
       return data.studentClass || "Class —";
     case "event":
       return data.eventName || "Library Activity";
+    case "during":
+      return data.during || "August 2026";
     case "title":
-      return data.title || "First (1st)";
+      return data.title || "First Position";
+    case "commonText":
+      return data.commonText || "";
     case "description":
       return data.description || (data.title ? `Awarded for: ${data.title}` : "");
     case "date":
@@ -108,6 +137,7 @@ function fieldText(key: CertFieldKey, data: CertificateRenderData): string {
       return "";
   }
 }
+
 
 interface Props {
   data: CertificateRenderData;

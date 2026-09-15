@@ -27,6 +27,10 @@ import {
   Copy,
   Sliders,
   Palette,
+  CheckSquare,
+  Square,
+  Type,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +41,8 @@ import {
   saveCertificateTemplateUrl,
   fetchCertificateLayout,
   saveCertificateLayout,
+  fetchCertificateCommonText,
+  saveCertificateCommonText,
   DEFAULT_CERTIFICATE_LAYOUT,
   type CertificateLayout,
   type CertFieldLayout,
@@ -60,25 +66,32 @@ interface CertificateRow {
   issued_at: string;
   event_id?: string | null;
   certificate_no?: string | null;
+  name_hindi?: string | null;
+  class_hindi?: string | null;
+  event_hindi?: string | null;
+  title_hindi?: string | null;
+  during_text?: string | null;
+  common_text?: string | null;
   profiles?: {
     id: string;
     first_name: string | null;
     last_name: string | null;
+    hindi_name?: string | null;
     admission_number: string | null;
     student_class: string | null;
   };
 }
 
 const AWARD_PRESETS = [
-  { label: "🥇 First Position (प्रथम)", title: "First Position / प्रथम स्थान" },
-  { label: "🥈 Second Position (द्वितीय)", title: "Second Position / द्वितीय स्थान" },
-  { label: "🥉 Third Position (तृतीय)", title: "Third Position / तृतीय स्थान" },
-  { label: "🎖️ Certificate of Merit", title: "Certificate of Merit / योग्यता प्रमाण-पत्र" },
-  { label: "🌟 Star Reader of the Month", title: "Star Reader of the Month / माह का श्रेष्ठ पाठक" },
-  { label: "📚 Book Review Champion", title: "Best Book Reviewer / पुस्तक समीक्षा पुरस्कार" },
-  { label: "💡 Quiz Top Scorer", title: "Library Quiz Master / प्रश्नोत्तरी विजेता" },
-  { label: "🤝 Library Volunteer", title: "Library Volunteer / पुस्तकालय स्वयंसेवक" },
-  { label: "📜 Participation Award", title: "Certificate of Participation / सहभागिता प्रमाण-पत्र" },
+  { label: "🥇 1st Position", titleEng: "First Position", titleHin: "प्रथम स्थान" },
+  { label: "🥈 2nd Position", titleEng: "Second Position", titleHin: "द्वितीय स्थान" },
+  { label: "🥉 3rd Position", titleEng: "Third Position", titleHin: "तृतीय स्थान" },
+  { label: "🎖️ Certificate of Merit", titleEng: "Certificate of Merit", titleHin: "योग्यता प्रमाण-पत्र" },
+  { label: "🌟 Star Reader", titleEng: "Star Reader of the Month", titleHin: "माह का श्रेष्ठ पाठक" },
+  { label: "📚 Book Reviewer", titleEng: "Best Book Reviewer", titleHin: "पुस्तक समीक्षा पुरस्कार" },
+  { label: "💡 Quiz Master", titleEng: "Library Quiz Master", titleHin: "प्रश्नोत्तरी विजेता" },
+  { label: "🤝 Volunteer", titleEng: "Library Volunteer", titleHin: "पुस्तकालय स्वयंसेवक" },
+  { label: "📜 Participation", titleEng: "Certificate of Participation", titleHin: "सहभागिता प्रमाण-पत्र" },
 ];
 
 const COLOR_SWATCHES = [
@@ -104,21 +117,32 @@ export default function CertificateManager() {
   const [events, setEvents] = useState<any[]>([]);
   const [templateUrl, setTemplateUrl] = useState<string>(OFFICIAL_KV_TEMPLATE_URL);
   const [layout, setLayout] = useState<CertificateLayout>(DEFAULT_CERTIFICATE_LAYOUT);
-  const [selectedField, setSelectedField] = useState<CertFieldKey>("name");
+  const [commonText, setCommonText] = useState<string>("");
+  const [selectedField, setSelectedField] = useState<CertFieldKey>("nameHindi");
   const [savingLayout, setSavingLayout] = useState(false);
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("all");
   const [uploadingTemplate, setUploadingTemplate] = useState(false);
 
-  // Issuing Form State
+  // Issuing Dialog State
   const [issuing, setIssuing] = useState(false);
-  const [issueMode, setIssueMode] = useState<"single" | "class">("single");
+  const [issueMode, setIssueMode] = useState<"single" | "class" | "multi">("single");
+  const [issueSearch, setIssueSearch] = useState("");
+  const [issueClassFilter, setIssueClassFilter] = useState("all");
   const [targetClass, setTargetClass] = useState("");
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+
+  // Bilingual Form State
   const [form, setForm] = useState({
     user_id: "",
-    title: "First Position / प्रथम स्थान",
-    description: "For outstanding achievement in the library competition.",
+    title: "First Position",
+    title_hindi: "प्रथम स्थान",
+    name_hindi: "",
     event_id: "",
+    event_name: "",
+    event_hindi: "",
+    during_text: "वर्ष 2026-2027 / Year 2026-2027",
+    description: "For outstanding performance in library activities.",
     certificate_no: generateCertNo(),
     issued_at: new Date().toISOString().slice(0, 10),
   });
@@ -131,20 +155,22 @@ export default function CertificateManager() {
   const load = async () => {
     setLoading(true);
     try {
-      const [{ data: certs }, tpl, lay] = await Promise.all([
+      const [{ data: certs }, tpl, lay, commText] = await Promise.all([
         supabase.from("issued_certificates").select("*").order("issued_at", { ascending: false }),
         fetchCertificateTemplateUrl(),
         fetchCertificateLayout(),
+        fetchCertificateCommonText(),
       ]);
       setTemplateUrl(tpl || OFFICIAL_KV_TEMPLATE_URL);
       setLayout(lay);
+      setCommonText(commText);
       const list = (certs as any[]) || [];
       const userIds = Array.from(new Set(list.map((c) => c.user_id)));
       let profileMap: Record<string, any> = {};
       if (userIds.length) {
         const { data: profs } = await supabase
           .from("profiles")
-          .select("id, first_name, last_name, admission_number, student_class")
+          .select("id, first_name, last_name, hindi_name, admission_number, student_class")
           .in("id", userIds);
         (profs || []).forEach((p) => {
           profileMap[p.id] = p;
@@ -165,19 +191,27 @@ export default function CertificateManager() {
   const openIssueDialog = async () => {
     setForm({
       user_id: "",
-      title: "First Position / प्रथम स्थान",
-      description: "For outstanding achievement in the library competition.",
+      title: "First Position",
+      title_hindi: "प्रथम स्थान",
+      name_hindi: "",
       event_id: "",
+      event_name: "",
+      event_hindi: "",
+      during_text: "वर्ष 2026-2027 / Year 2026-2027",
+      description: "For outstanding performance in library activities.",
       certificate_no: generateCertNo(),
       issued_at: new Date().toISOString().slice(0, 10),
     });
     setIssueMode("single");
+    setIssueSearch("");
+    setIssueClassFilter("all");
     setTargetClass("");
+    setSelectedStudentIds([]);
 
     const [{ data: studs }, { data: evts }] = await Promise.all([
       supabase
         .from("profiles")
-        .select("id, first_name, last_name, admission_number, student_class")
+        .select("id, first_name, last_name, hindi_name, admission_number, student_class")
         .eq("role", "student")
         .eq("is_approved", true)
         .order("student_class", { ascending: true })
@@ -190,7 +224,7 @@ export default function CertificateManager() {
     setOpen(true);
   };
 
-  // Available classes for filtering and batch issuing
+  // Available classes for filtering
   const availableClasses = useMemo(() => {
     const set = new Set<string>();
     students.forEach((s) => {
@@ -202,31 +236,33 @@ export default function CertificateManager() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   }, [students, rows]);
 
-  const filteredStudents = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return students
-      .filter((s) => {
-        if (targetClass && s.student_class !== targetClass) return false;
-        if (!q) return true;
-        const name = `${s.first_name || ""} ${s.last_name || ""}`.toLowerCase();
-        return (
-          name.includes(q) ||
-          (s.admission_number || "").toLowerCase().includes(q) ||
-          (s.student_class || "").toLowerCase().includes(q)
-        );
-      })
-      .slice(0, 100);
-  }, [students, search, targetClass]);
+  // Filter students for Issue Dialog with instant search
+  const filteredIssueStudents = useMemo(() => {
+    const q = issueSearch.trim().toLowerCase();
+    return students.filter((s) => {
+      if (issueClassFilter !== "all" && s.student_class !== issueClassFilter) return false;
+      if (!q) return true;
+      const name = `${s.first_name || ""} ${s.last_name || ""}`.toLowerCase();
+      const hindiName = (s.hindi_name || "").toLowerCase();
+      const adm = (s.admission_number || "").toLowerCase();
+      const cls = (s.student_class || "").toLowerCase();
+      return name.includes(q) || hindiName.includes(q) || adm.includes(q) || cls.includes(q);
+    });
+  }, [students, issueSearch, issueClassFilter]);
 
+  // Main table filtered rows
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
       if (classFilter !== "all" && r.profiles?.student_class !== classFilter) return false;
       if (!q) return true;
       const name = `${r.profiles?.first_name || ""} ${r.profiles?.last_name || ""}`.toLowerCase();
+      const hindiName = (r.name_hindi || r.profiles?.hindi_name || "").toLowerCase();
       return (
         name.includes(q) ||
+        hindiName.includes(q) ||
         r.title.toLowerCase().includes(q) ||
+        (r.title_hindi || "").toLowerCase().includes(q) ||
         (r.certificate_no || "").toLowerCase().includes(q) ||
         (r.profiles?.admission_number || "").toLowerCase().includes(q) ||
         (r.profiles?.student_class || "").toLowerCase().includes(q)
@@ -234,7 +270,7 @@ export default function CertificateManager() {
     });
   }, [rows, search, classFilter]);
 
-  // Selected student details for live preview in dialog
+  // Selected student details for live preview
   const selectedStudent = useMemo(() => {
     if (!form.user_id) return null;
     return students.find((s) => s.id === form.user_id) || null;
@@ -245,41 +281,89 @@ export default function CertificateManager() {
     return events.find((e) => e.id === form.event_id) || null;
   }, [events, form.event_id]);
 
+  // Pick a single student and sync name & Hindi name
+  const handleSelectSingleStudent = (s: any) => {
+    setForm((prev) => ({
+      ...prev,
+      user_id: s.id,
+      name_hindi: s.hindi_name || prev.name_hindi,
+    }));
+  };
+
+  // Toggle multi-select student
+  const toggleStudentSelection = (id: string) => {
+    setSelectedStudentIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllFiltered = () => {
+    const ids = filteredIssueStudents.map((s) => s.id);
+    setSelectedStudentIds(ids);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedStudentIds([]);
+  };
+
+  const applyPreset = (preset: typeof AWARD_PRESETS[0]) => {
+    setForm((prev) => ({
+      ...prev,
+      title: preset.titleEng,
+      title_hindi: preset.titleHin,
+    }));
+  };
+
   const handleIssue = async () => {
-    if (issueMode === "single" && !form.user_id) {
-      toast({ title: "Student required", description: "Please select a student.", variant: "destructive" });
-      return;
+    let targetStudents: any[] = [];
+    if (issueMode === "single") {
+      if (!form.user_id) {
+        toast({ title: "Select a student", description: "Please pick a student to award.", variant: "destructive" });
+        return;
+      }
+      targetStudents = students.filter((s) => s.id === form.user_id);
+    } else if (issueMode === "class") {
+      if (!targetClass) {
+        toast({ title: "Select a class", description: "Please pick a class for batch issuance.", variant: "destructive" });
+        return;
+      }
+      targetStudents = students.filter((s) => s.student_class === targetClass);
+    } else {
+      if (selectedStudentIds.length === 0) {
+        toast({ title: "No students selected", description: "Please check at least one student.", variant: "destructive" });
+        return;
+      }
+      targetStudents = students.filter((s) => selectedStudentIds.includes(s.id));
     }
-    if (issueMode === "class" && !targetClass) {
-      toast({ title: "Class required", description: "Please select a class for batch issuance.", variant: "destructive" });
-      return;
-    }
-    if (!form.title.trim()) {
-      toast({ title: "Title required", description: "Please enter a certificate title or select a preset.", variant: "destructive" });
+
+    if (targetStudents.length === 0) {
+      toast({ title: "No recipients found", description: "No approved students matched the selection.", variant: "destructive" });
       return;
     }
 
     setIssuing(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
 
-      const targetStudents =
-        issueMode === "single"
-          ? students.filter((s) => s.id === form.user_id)
-          : students.filter((s) => s.student_class === targetClass);
-
-      if (targetStudents.length === 0) {
-        toast({ title: "No students found", description: "No approved students in selected class.", variant: "destructive" });
-        return;
+      // If single student and custom hindi_name provided, update profile
+      if (issueMode === "single" && form.name_hindi.trim() && selectedStudent) {
+        await supabase
+          .from("profiles")
+          .update({ hindi_name: form.name_hindi.trim() })
+          .eq("id", selectedStudent.id);
       }
 
       const inserts = targetStudents.map((s, idx) => ({
         user_id: s.id,
         title: form.title.trim(),
-        description: form.description.trim() || null,
+        title_hindi: form.title_hindi.trim() || null,
+        name_hindi: issueMode === "single" ? (form.name_hindi.trim() || s.hindi_name || null) : (s.hindi_name || null),
+        class_hindi: s.student_class || null,
         event_id: form.event_id || null,
+        event_hindi: form.event_hindi.trim() || (selectedEvent ? selectedEvent.title : null),
+        during_text: form.during_text.trim() || null,
+        common_text: commonText.trim() || null,
+        description: form.description.trim() || null,
         template_url: templateUrl,
         issued_by: user?.id || null,
         issued_at: new Date(form.issued_at).toISOString(),
@@ -289,35 +373,35 @@ export default function CertificateManager() {
       const { error } = await supabase.from("issued_certificates").insert(inserts);
       if (error) throw error;
 
-      // Dispatch notifications in bulk
-      const notifications = targetStudents.map((s) => ({
+      // Send notifications
+      const notifs = targetStudents.map((s) => ({
         target_user_id: s.id,
         sent_by: user?.id || s.id,
         title: "🏆 Certificate Awarded!",
-        message: `You received: "${form.title.trim()}". View and download it on your dashboard!`,
+        message: `You have been awarded: "${form.title.trim()} / ${form.title_hindi.trim()}". View & download it now!`,
         type: "success",
       }));
-      await supabase.from("notifications").insert(notifications);
+      await supabase.from("notifications").insert(notifs);
 
       toast({
-        title: "Certificates issued! 🎉",
+        title: "Certificates Issued! 🎉",
         description: `Successfully awarded to ${targetStudents.length} student${targetStudents.length > 1 ? "s" : ""}.`,
       });
       setOpen(false);
       load();
     } catch (e: any) {
-      toast({ title: "Failed to issue", description: e.message, variant: "destructive" });
+      toast({ title: "Issuing Failed", description: e.message, variant: "destructive" });
     } finally {
       setIssuing(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this issued certificate?")) return;
+    if (!window.confirm("Delete this certificate record?")) return;
     const { error } = await supabase.from("issued_certificates").delete().eq("id", id);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else {
-      toast({ title: "Certificate deleted" });
+      toast({ title: "Deleted" });
       load();
     }
   };
@@ -327,7 +411,7 @@ export default function CertificateManager() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast({ title: "Invalid file", description: "Please upload an image (PNG, JPG, WebP).", variant: "destructive" });
+      toast({ title: "Invalid file", description: "Please upload an image.", variant: "destructive" });
       return;
     }
     setUploadingTemplate(true);
@@ -335,7 +419,6 @@ export default function CertificateManager() {
       const ext = file.name.split(".").pop() || "png";
       const path = `templates/custom-cert-${Date.now()}.${ext}`;
 
-      // Upload to storage bucket 'certificates'
       const { error: uploadError } = await supabase.storage.from("certificates").upload(path, file, {
         upsert: true,
         contentType: file.type,
@@ -343,8 +426,6 @@ export default function CertificateManager() {
 
       let publicUrl = "";
       if (uploadError) {
-        console.warn("Storage upload warning, using local data URL fallback:", uploadError);
-        // Fallback: Read as base64 data URL so user isn't stuck
         publicUrl = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
@@ -357,7 +438,7 @@ export default function CertificateManager() {
 
       setTemplateUrl(publicUrl);
       await saveCertificateTemplateUrl(publicUrl);
-      toast({ title: "Template updated! 🎨", description: "New certificate design is now active." });
+      toast({ title: "Template updated! 🎨", description: "Custom design is now active." });
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     } finally {
@@ -373,7 +454,7 @@ export default function CertificateManager() {
       await saveCertificateLayout(OFFICIAL_KV_LAYOUT);
     }
     await saveCertificateTemplateUrl(tpl.previewUrl);
-    toast({ title: `Selected "${tpl.name}"`, description: "Certificate template applied." });
+    toast({ title: `Selected "${tpl.name}"` });
   };
 
   // Layout Designer
@@ -388,10 +469,13 @@ export default function CertificateManager() {
   const handleSaveLayout = async () => {
     setSavingLayout(true);
     try {
-      await saveCertificateLayout(layout);
-      toast({ title: "Layout saved! ✨", description: "Field coordinates and styles updated." });
+      await Promise.all([
+        saveCertificateLayout(layout),
+        saveCertificateCommonText(commonText),
+      ]);
+      toast({ title: "Layout & Common Text Saved! ✨" });
     } catch (e: any) {
-      toast({ title: "Error saving layout", description: e.message, variant: "destructive" });
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
     } finally {
       setSavingLayout(false);
     }
@@ -400,9 +484,11 @@ export default function CertificateManager() {
   const resetToOfficialKvLayout = async () => {
     setLayout(OFFICIAL_KV_LAYOUT);
     setTemplateUrl(OFFICIAL_KV_TEMPLATE_URL);
-    await saveCertificateLayout(OFFICIAL_KV_LAYOUT);
-    await saveCertificateTemplateUrl(OFFICIAL_KV_TEMPLATE_URL);
-    toast({ title: "Reset Complete", description: "Restored official PM SHRI KV Sulur layout & template." });
+    await Promise.all([
+      saveCertificateLayout(OFFICIAL_KV_LAYOUT),
+      saveCertificateTemplateUrl(OFFICIAL_KV_TEMPLATE_URL),
+    ]);
+    toast({ title: "Reset Complete", description: "Bilingual KV Sulur template restored." });
   };
 
   // Download PDF
@@ -411,7 +497,7 @@ export default function CertificateManager() {
     setGeneratingPdf(true);
     try {
       const canvas = await html2canvas(previewCanvasRef.current, {
-        scale: 3, // High DPI for crisp printing
+        scale: 3,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
@@ -422,7 +508,7 @@ export default function CertificateManager() {
       const pageH = pdf.internal.pageSize.getHeight();
       pdf.addImage(img, "PNG", 0, 0, pageW, pageH);
       pdf.save(`${cert.profiles?.first_name || "Student"}_Certificate.pdf`);
-      toast({ title: "PDF Downloaded! 📄" });
+      toast({ title: "PDF Exported! 📄" });
     } catch (e: any) {
       toast({ title: "Export failed", description: e.message, variant: "destructive" });
     } finally {
@@ -430,25 +516,10 @@ export default function CertificateManager() {
     }
   };
 
-  // Stats
-  const thisMonthCount = useMemo(() => {
-    const now = new Date();
-    const curMonth = now.getMonth();
-    const curYear = now.getFullYear();
-    return rows.filter((r) => {
-      const d = new Date(r.issued_at);
-      return d.getMonth() === curMonth && d.getFullYear() === curYear;
-    }).length;
-  }, [rows]);
-
-  const uniqueStudentsAwarded = useMemo(() => {
-    return new Set(rows.map((r) => r.user_id)).size;
-  }, [rows]);
-
   const selectedLayoutField = layout[selectedField] || {
     x: 50,
     y: 50,
-    fontSize: 16,
+    fontSize: 15,
     visible: true,
     align: "center" as const,
     color: "#0f172a",
@@ -473,7 +544,7 @@ export default function CertificateManager() {
             <Award className="h-7 w-7 text-amber-500" /> Certificate Management & Studio
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Issue, design, and print official merit certificates for students & reading stars.
+            Bilingual certificate issuance, batch awarding, custom plain text, and layout customizer.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -500,11 +571,11 @@ export default function CertificateManager() {
         <Card className="shadow-sm border-blue-200/60 bg-blue-50/30">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">This Month</p>
-              <p className="text-2xl font-black text-blue-600 mt-1">{thisMonthCount}</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Students Honored</p>
+              <p className="text-2xl font-black text-blue-600 mt-1">{new Set(rows.map((r) => r.user_id)).size}</p>
             </div>
             <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-              <Calendar className="h-5 w-5" />
+              <Users className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
@@ -512,11 +583,11 @@ export default function CertificateManager() {
         <Card className="shadow-sm border-emerald-200/60 bg-emerald-50/30">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Students Honored</p>
-              <p className="text-2xl font-black text-emerald-600 mt-1">{uniqueStudentsAwarded}</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Bilingual Support</p>
+              <p className="text-sm font-bold text-emerald-700 mt-1">English + हिंदी</p>
             </div>
             <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-              <Users className="h-5 w-5" />
+              <Type className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
@@ -524,7 +595,7 @@ export default function CertificateManager() {
         <Card className="shadow-sm border-purple-200/60 bg-purple-50/30">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Active Template</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Active Design</p>
               <p className="text-xs font-semibold text-purple-700 mt-1.5 truncate max-w-[140px]">
                 {templateUrl === OFFICIAL_KV_TEMPLATE_URL ? "KV Sulur Official" : "Custom / Preset"}
               </p>
@@ -546,7 +617,7 @@ export default function CertificateManager() {
             <Palette className="h-4 w-4" /> Template Studio
           </TabsTrigger>
           <TabsTrigger value="layout" className="gap-2">
-            <LayoutTemplate className="h-4 w-4" /> Drag & Drop Layout
+            <LayoutTemplate className="h-4 w-4" /> Bilingual Layout & Plain Text
           </TabsTrigger>
         </TabsList>
 
@@ -556,29 +627,27 @@ export default function CertificateManager() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <CardTitle className="text-base">All Issued Certificates</CardTitle>
-                  <CardDescription>Search, preview, print, or download certificates awarded to students.</CardDescription>
+                  <CardTitle className="text-base">Issued Certificates</CardTitle>
+                  <CardDescription>Search and filter by English/Hindi names, admission number, or class.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="relative w-64">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      className="pl-9 h-9"
-                      placeholder="Search student, class, ID…"
+                      className="pl-9 h-9 text-xs"
+                      placeholder="Search English / Hindi name, class, ID…"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
                   </div>
                   <Select value={classFilter} onValueChange={setClassFilter}>
-                    <SelectTrigger className="h-9 w-32">
+                    <SelectTrigger className="h-9 w-32 text-xs">
                       <SelectValue placeholder="Class" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Classes</SelectItem>
                       {availableClasses.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          Class {c}
-                        </SelectItem>
+                        <SelectItem key={c} value={c}>Class {c}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -590,13 +659,9 @@ export default function CertificateManager() {
                 <div className="text-center py-12 border border-dashed rounded-lg">
                   <Award className="h-10 w-10 text-muted-foreground/50 mx-auto mb-2" />
                   <p className="font-medium text-sm text-foreground">No certificates found</p>
-                  <p className="text-xs text-muted-foreground mt-1 mb-4">
-                    {search || classFilter !== "all"
-                      ? "Try changing your search or filter settings."
-                      : "Issue certificates to recognize student achievements in library events."}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 mb-4">Click "Issue Certificate" to reward students.</p>
                   <Button size="sm" onClick={openIssueDialog}>
-                    <Plus className="h-4 w-4 mr-1.5" /> Issue First Certificate
+                    <Plus className="h-4 w-4 mr-1.5" /> Issue Certificate
                   </Button>
                 </div>
               ) : (
@@ -606,17 +671,24 @@ export default function CertificateManager() {
                       <CardContent className="p-4 flex flex-col justify-between h-full gap-3">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-semibold text-sm text-foreground">
                                 {r.profiles?.first_name} {r.profiles?.last_name || ""}
                               </p>
+                              {(r.name_hindi || r.profiles?.hindi_name) && (
+                                <Badge variant="secondary" className="text-[11px] font-normal text-primary">
+                                  {r.name_hindi || r.profiles?.hindi_name}
+                                </Badge>
+                              )}
                               {r.profiles?.student_class && (
-                                <Badge variant="outline" className="text-[11px] font-normal">
+                                <Badge variant="outline" className="text-[10px]">
                                   Class {r.profiles.student_class}
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-xs font-medium text-primary mt-1">{r.title}</p>
+                            <p className="text-xs font-medium text-primary mt-1">
+                              {r.title} {r.title_hindi ? `· ${r.title_hindi}` : ""}
+                            </p>
                             {r.description && (
                               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{r.description}</p>
                             )}
@@ -627,23 +699,21 @@ export default function CertificateManager() {
                         </div>
 
                         <div className="flex items-center justify-between pt-2 border-t text-xs text-muted-foreground">
-                          <span>Issued {new Date(r.issued_at).toLocaleDateString()}</span>
+                          <span>Awarded {new Date(r.issued_at).toLocaleDateString()}</span>
                           <div className="flex items-center gap-1">
                             <Button
                               size="sm"
                               variant="ghost"
                               className="h-8 px-2 text-primary"
                               onClick={() => setPreviewCert(r)}
-                              title="Preview & Download"
                             >
-                              <Eye className="h-4 w-4 mr-1" /> Preview
+                              <Eye className="h-4 w-4 mr-1" /> Preview & Print
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
                               onClick={() => handleDelete(r.id)}
-                              title="Delete Certificate"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -668,7 +738,7 @@ export default function CertificateManager() {
                     <Sparkles className="h-4 w-4 text-amber-500" /> Certificate Template Studio
                   </CardTitle>
                   <CardDescription>
-                    Select official KV Sulur template, choose built-in vector themes, or upload your own school design.
+                    Switch between the official KV Sulur template, vector styles, or upload your own background.
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -686,13 +756,12 @@ export default function CertificateManager() {
                     onChange={handleTemplateUpload}
                   />
                   <Button variant="ghost" size="sm" onClick={resetToOfficialKvLayout}>
-                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Reset to KV Sulur Default
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Reset to Official KV Sulur
                   </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Template Gallery Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {BUILTIN_TEMPLATES.map((t) => {
                   const isActive = templateUrl === t.previewUrl;
@@ -713,7 +782,7 @@ export default function CertificateManager() {
                         )}
                         {t.isOfficial && (
                           <div className="absolute top-2 left-2 bg-amber-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
-                            OFFICIAL
+                            OFFICIAL BILINGUAL
                           </div>
                         )}
                       </div>
@@ -725,67 +794,65 @@ export default function CertificateManager() {
                   );
                 })}
               </div>
-
-              {/* Live Preview of Active Template */}
-              <div className="border rounded-xl p-4 bg-muted/20 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
-                    Active Certificate Preview
-                  </span>
-                  <Badge variant="outline" className="text-xs">
-                    Landscape A4
-                  </Badge>
-                </div>
-                <div className="max-w-2xl mx-auto shadow-md rounded-lg overflow-hidden">
-                  <CertificateCanvas
-                    layout={layout}
-                    data={{
-                      studentName: "Aarav Sharma",
-                      studentClass: "8-A",
-                      eventName: "National Reading Month 2026",
-                      title: "First Position / प्रथम स्थान",
-                      description: "For securing the highest points in library activities",
-                      issuedAt: new Date().toISOString(),
-                      templateUrl,
-                      certNumber: "KVS-LIB-2026-0042",
-                    }}
-                  />
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Tab 3: Drag & Drop Layout Designer */}
+        {/* Tab 3: Drag & Drop Layout & Plain Text Studio */}
         <TabsContent value="layout" className="space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Sliders className="h-4 w-4 text-primary" /> Visual Layout & Typography Studio
+                    <Sliders className="h-4 w-4 text-primary" /> Bilingual Layout & Plain Text Studio
                   </CardTitle>
                   <CardDescription>
-                    Drag fields to align exactly with certificate blank lines. Adjust text colors, fonts, and sizes.
+                    Calibrate positions for English lines, Hindi lines, and configure common plain text for all certificates.
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={resetToOfficialKvLayout}>
-                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Re-calibrate for KV Sulur
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Reset to Calibrated KV Sulur
                   </Button>
                   <Button onClick={handleSaveLayout} disabled={savingLayout} size="sm">
-                    <Save className="h-4 w-4 mr-1.5" /> {savingLayout ? "Saving…" : "Save Layout"}
+                    <Save className="h-4 w-4 mr-1.5" /> {savingLayout ? "Saving…" : "Save Layout & Plain Text"}
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6">
+            <CardContent className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-6">
               {/* Field Control Sidebar */}
               <div className="space-y-4 order-2 xl:order-1">
+                {/* Common Plain Text Section */}
+                <div className="rounded-xl border p-3.5 bg-amber-500/5 space-y-2 border-amber-200">
+                  <Label className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5" /> Plain Text (Common for All Certificates)
+                  </Label>
+                  <Input
+                    value={commonText}
+                    onChange={(e) => setCommonText(e.target.value)}
+                    placeholder="e.g. During Library Reading Month / पठन माह"
+                    className="text-xs bg-white"
+                  />
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Show this text on all certificates:</span>
+                    <label className="flex items-center gap-1 font-medium cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={layout.commonText.visible}
+                        onChange={(e) => updateField("commonText", { visible: e.target.checked })}
+                      />
+                      Enable
+                    </label>
+                  </div>
+                </div>
+
+                {/* Field Selection List */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground uppercase font-semibold">Certificate Fields</Label>
-                  <div className="flex flex-col gap-1">
-                    {CERT_FIELD_LABELS.map(({ key, label }) => {
+                  <Label className="text-xs text-muted-foreground uppercase font-semibold">Fields (Drag to Reposition)</Label>
+                  <div className="flex flex-col gap-1 max-h-72 overflow-y-auto pr-1">
+                    {CERT_FIELD_LABELS.map(({ key, label, group }) => {
                       const active = selectedField === key;
                       const fieldCfg = layout[key] || { visible: false };
                       const shown = fieldCfg.visible;
@@ -794,20 +861,22 @@ export default function CertificateManager() {
                           key={key}
                           type="button"
                           onClick={() => setSelectedField(key)}
-                          className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                          className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-left text-xs transition-colors ${
                             active ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted/60"
                           } ${!shown ? "opacity-40" : ""}`}
                         >
-                          <span className="truncate">{label}</span>
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="text-[10px] px-1 py-0.2 rounded bg-muted font-mono">{group}</span>
+                            <span className="truncate">{label}</span>
+                          </div>
                           <label
-                            className="flex items-center gap-1.5 text-[11px] text-muted-foreground ml-2 cursor-pointer"
+                            className="flex items-center gap-1 text-[11px] text-muted-foreground ml-2 cursor-pointer"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <input
                               type="checkbox"
                               checked={shown}
                               onChange={(e) => updateField(key, { visible: e.target.checked })}
-                              className="rounded text-primary"
                             />
                             Show
                           </label>
@@ -820,7 +889,7 @@ export default function CertificateManager() {
                 {/* Selected Field Customizer Box */}
                 <div className="rounded-xl border bg-muted/30 p-3.5 space-y-3.5">
                   <div className="flex items-center justify-between border-b pb-2">
-                    <p className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    <p className="text-xs font-bold text-foreground truncate max-w-[200px]">
                       {CERT_FIELD_LABELS.find((f) => f.key === selectedField)?.label}
                     </p>
                     <Badge variant="outline" className="text-[10px]">
@@ -830,7 +899,7 @@ export default function CertificateManager() {
 
                   {/* Font Color Picker */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Text Color</Label>
+                    <Label className="text-xs">Color</Label>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {COLOR_SWATCHES.map((swatch) => (
                         <button
@@ -856,18 +925,16 @@ export default function CertificateManager() {
 
                   {/* Font Family */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Typography</Label>
+                    <Label className="text-xs">Font Family</Label>
                     <Select
                       value={selectedLayoutField.fontFamily || "sans"}
                       onValueChange={(v) => updateField(selectedField, { fontFamily: v as any })}
                     >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="sans">Modern Sans (Clean)</SelectItem>
-                        <SelectItem value="serif">Formal Serif (Academic)</SelectItem>
-                        <SelectItem value="display">Cinzel Display (Classical)</SelectItem>
+                        <SelectItem value="serif">Formal Serif (Academic / देवनागरी)</SelectItem>
+                        <SelectItem value="display">Cinzel Display</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -899,7 +966,7 @@ export default function CertificateManager() {
                         className="w-full h-8 text-xs font-bold"
                         onClick={() => updateField(selectedField, { bold: !selectedLayoutField.bold })}
                       >
-                        {selectedLayoutField.bold ? "Bold Text" : "Normal"}
+                        {selectedLayoutField.bold ? "Bold" : "Normal"}
                       </Button>
                     </div>
                     <div className="space-y-1">
@@ -908,9 +975,7 @@ export default function CertificateManager() {
                         value={selectedLayoutField.align}
                         onValueChange={(v) => updateField(selectedField, { align: v as any })}
                       >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="left">Left</SelectItem>
                           <SelectItem value="center">Center</SelectItem>
@@ -922,7 +987,7 @@ export default function CertificateManager() {
                 </div>
 
                 <Button onClick={handleSaveLayout} disabled={savingLayout} className="w-full shadow">
-                  <Save className="h-4 w-4 mr-2" /> {savingLayout ? "Saving…" : "Save Field Layout"}
+                  <Save className="h-4 w-4 mr-2" /> {savingLayout ? "Saving…" : "Save Layout & Plain Text"}
                 </Button>
               </div>
 
@@ -932,7 +997,7 @@ export default function CertificateManager() {
                   <Label className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
                     Interactive Certificate Canvas
                   </Label>
-                  <p className="text-[11px] text-muted-foreground">Click and drag fields directly on the design</p>
+                  <p className="text-[11px] text-muted-foreground">Click and drag fields onto blanks</p>
                 </div>
                 <div className="shadow-lg rounded-xl overflow-hidden border">
                   <CertificateCanvas
@@ -943,10 +1008,16 @@ export default function CertificateManager() {
                     onMoveField={moveField}
                     data={{
                       studentName: "Aarav Sharma",
+                      nameHindi: "आरव शर्मा",
                       studentClass: "8-A",
-                      eventName: "National Reading Month 2026",
-                      title: "First Position / प्रथम स्थान",
-                      description: "For outstanding performance in reading and quiz",
+                      classHindi: "8-A",
+                      eventName: "National Reading Month Competition",
+                      eventHindi: "राष्ट्रीय पठन माह प्रतियोगिता",
+                      during: "वर्ष 2026-2027",
+                      title: "First Position",
+                      titleHindi: "प्रथम स्थान",
+                      commonText: commonText || "PM SHRI KV AFS SULUR LIBRARY",
+                      description: "For securing top position in library reading activities",
                       issuedAt: new Date().toISOString(),
                       templateUrl,
                       certNumber: "KVS-LIB-2026-0042",
@@ -959,64 +1030,53 @@ export default function CertificateManager() {
         </TabsContent>
       </Tabs>
 
-      {/* Issuing Modal */}
+      {/* Issuing Modal with Search & Bulk Issuance */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-amber-500" /> Issue Certificate of Merit
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Award className="h-5 w-5 text-amber-500" /> Issue Bilingual Certificate
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Mode Switcher: Single Student vs Entire Class */}
-            <div className="grid grid-cols-2 gap-2 bg-muted p-1 rounded-lg">
+            {/* Mode Switcher: 3 Modes */}
+            <div className="grid grid-cols-3 gap-2 bg-muted p-1 rounded-lg text-xs font-semibold">
               <button
                 type="button"
-                className={`py-1.5 text-xs font-semibold rounded-md transition-all ${
+                className={`py-1.5 rounded-md transition-all ${
                   issueMode === "single" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
                 onClick={() => setIssueMode("single")}
               >
-                Individual Student
+                1. Single Student
               </button>
               <button
                 type="button"
-                className={`py-1.5 text-xs font-semibold rounded-md transition-all ${
+                className={`py-1.5 rounded-md transition-all ${
                   issueMode === "class" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
                 onClick={() => setIssueMode("class")}
               >
-                Batch by Class ({targetClass ? `${students.filter((s) => s.student_class === targetClass).length} students` : "Select Class"})
+                2. Entire Class
+              </button>
+              <button
+                type="button"
+                className={`py-1.5 rounded-md transition-all ${
+                  issueMode === "multi" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+                onClick={() => setIssueMode("multi")}
+              >
+                3. Multi-Select Students ({selectedStudentIds.length})
               </button>
             </div>
 
-            {/* Recipient Selection */}
-            {issueMode === "single" ? (
-              <div className="space-y-1.5">
-                <Label>Select Student *</Label>
-                <Select value={form.user_id} onValueChange={(v) => setForm((f) => ({ ...f, user_id: v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Search or select student" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-64">
-                    {filteredStudents.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.first_name} {s.last_name || ""}
-                        {s.student_class ? ` · Class ${s.student_class}` : ""}
-                        {s.admission_number ? ` (${s.admission_number})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
+            {/* Recipient Selection with Live Search */}
+            {issueMode === "class" ? (
               <div className="space-y-1.5">
                 <Label>Select Class for Batch Award *</Label>
                 <Select value={targetClass} onValueChange={setTargetClass}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a class to award all students" />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Choose a class" /></SelectTrigger>
                   <SelectContent>
                     {availableClasses.map((c) => {
                       const count = students.filter((s) => s.student_class === c).length;
@@ -1029,20 +1089,129 @@ export default function CertificateManager() {
                   </SelectContent>
                 </Select>
               </div>
+            ) : (
+              <div className="space-y-2 border rounded-xl p-3 bg-muted/20">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider">
+                    {issueMode === "single" ? "Search & Select Student *" : "Select Students to Award (Multi-Select) *"}
+                  </Label>
+                  {issueMode === "multi" && (
+                    <div className="flex items-center gap-1.5">
+                      <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={handleSelectAllFiltered}>
+                        Select All Filtered ({filteredIssueStudents.length})
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={handleClearSelection}>
+                        Clear ({selectedStudentIds.length})
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Search Bar & Class Filter */}
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px] gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="pl-9 h-9 text-xs"
+                      placeholder="Type student name, admission no, roll no…"
+                      value={issueSearch}
+                      onChange={(e) => setIssueSearch(e.target.value)}
+                    />
+                  </div>
+                  <Select value={issueClassFilter} onValueChange={setIssueClassFilter}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Class" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Classes</SelectItem>
+                      {availableClasses.map((c) => (
+                        <SelectItem key={c} value={c}>Class {c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Student Results List */}
+                <div className="max-h-48 overflow-y-auto border rounded-lg bg-background divide-y">
+                  {filteredIssueStudents.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-muted-foreground">No students match your search.</div>
+                  ) : (
+                    filteredIssueStudents.map((s) => {
+                      const isSelected =
+                        issueMode === "single"
+                          ? form.user_id === s.id
+                          : selectedStudentIds.includes(s.id);
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => {
+                            if (issueMode === "single") handleSelectSingleStudent(s);
+                            else toggleStudentSelection(s.id);
+                          }}
+                          className={`p-2 px-3 flex items-center justify-between text-xs cursor-pointer hover:bg-muted/50 transition-colors ${
+                            isSelected ? "bg-primary/10 font-semibold" : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {issueMode === "multi" ? (
+                              isSelected ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <div className={`h-3 w-3 rounded-full border ${isSelected ? "border-primary bg-primary" : "border-muted-foreground"}`} />
+                            )}
+                            <div>
+                              <span>{s.first_name} {s.last_name || ""}</span>
+                              {s.hindi_name && (
+                                <span className="ml-1.5 text-primary text-[11px]">({s.hindi_name})</span>
+                              )}
+                              {s.admission_number && (
+                                <span className="ml-1.5 text-muted-foreground font-mono text-[10px]">[{s.admission_number}]</span>
+                              )}
+                            </div>
+                          </div>
+                          {s.student_class && (
+                            <Badge variant="outline" className="text-[10px]">Class {s.student_class}</Badge>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* If single student selected, allow editing Hindi Name right here */}
+                {issueMode === "single" && selectedStudent && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    <div className="space-y-1">
+                      <Label className="text-xs">English Name</Label>
+                      <Input
+                        disabled
+                        value={`${selectedStudent.first_name} ${selectedStudent.last_name || ""}`}
+                        className="h-8 text-xs bg-muted/40"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-primary font-semibold">छात्र का नाम (Hindi Name) *</Label>
+                      <Input
+                        value={form.name_hindi}
+                        onChange={(e) => setForm((f) => ({ ...f, name_hindi: e.target.value }))}
+                        placeholder="e.g. आरव शर्मा"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Award Preset Chips */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Quick Award Presets</Label>
+              <Label className="text-xs text-muted-foreground font-semibold">Quick Award Presets (Sets English & Hindi)</Label>
               <div className="flex flex-wrap gap-1.5">
                 {AWARD_PRESETS.map((preset) => (
                   <button
-                    key={preset.title}
+                    key={preset.titleEng}
                     type="button"
-                    onClick={() => setForm((f) => ({ ...f, title: preset.title }))}
+                    onClick={() => applyPreset(preset)}
                     className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
-                      form.title === preset.title
-                        ? "bg-primary text-primary-foreground border-primary font-medium"
+                      form.title === preset.titleEng
+                        ? "bg-primary text-primary-foreground border-primary font-medium shadow-sm"
                         : "bg-background hover:bg-muted text-foreground border-border"
                     }`}
                   >
@@ -1052,85 +1221,103 @@ export default function CertificateManager() {
               </div>
             </div>
 
-            {/* Title & Event */}
+            {/* Bilingual Titles */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Award / Position Title *</Label>
+                <Label className="text-xs">Position / Title (English) *</Label>
                 <Input
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  placeholder="e.g. First Position / प्रथम स्थान"
+                  placeholder="e.g. First Position"
+                  className="h-9 text-xs"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Associated Event (Optional)</Label>
+                <Label className="text-xs text-primary font-semibold">स्थान / उपाधि (Hindi Title) *</Label>
+                <Input
+                  value={form.title_hindi}
+                  onChange={(e) => setForm((f) => ({ ...f, title_hindi: e.target.value }))}
+                  placeholder="e.g. प्रथम स्थान"
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Bilingual Events */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Event / Competition (English)</Label>
                 <Select
                   value={form.event_id || "none"}
-                  onValueChange={(v) => setForm((f) => ({ ...f, event_id: v === "none" ? "" : v }))}
+                  onValueChange={(v) => {
+                    const evt = events.find((e) => e.id === v);
+                    setForm((f) => ({
+                      ...f,
+                      event_id: v === "none" ? "" : v,
+                      event_name: evt ? evt.title : "",
+                    }));
+                  }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Link library event" />
-                  </SelectTrigger>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Link event" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">General / No Event</SelectItem>
                     {events.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.title}
-                      </SelectItem>
+                      <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">प्रतियोगिता का नाम (Hindi Event)</Label>
+                <Input
+                  value={form.event_hindi}
+                  onChange={(e) => setForm((f) => ({ ...f, event_hindi: e.target.value }))}
+                  placeholder="e.g. राष्ट्रीय पठन माह प्रतियोगिता"
+                  className="h-9 text-xs"
+                />
+              </div>
             </div>
 
-            {/* Certificate ID & Issue Date */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* During Period & Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label>Certificate ID / Ref No</Label>
+                <Label className="text-xs">During Period (Line 6)</Label>
                 <Input
-                  value={form.certificate_no}
-                  onChange={(e) => setForm((f) => ({ ...f, certificate_no: e.target.value }))}
+                  value={form.during_text}
+                  onChange={(e) => setForm((f) => ({ ...f, during_text: e.target.value }))}
+                  placeholder="e.g. August 2026"
+                  className="h-9 text-xs"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Date of Issue</Label>
+                <Label className="text-xs">Certificate ID Ref</Label>
+                <Input
+                  value={form.certificate_no}
+                  onChange={(e) => setForm((f) => ({ ...f, certificate_no: e.target.value }))}
+                  className="h-9 text-xs font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Date (दिनांक)</Label>
                 <Input
                   type="date"
                   value={form.issued_at}
                   onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))}
+                  className="h-9 text-xs"
                 />
               </div>
             </div>
 
             {/* Description */}
             <div className="space-y-1.5">
-              <Label>Description / Remarks (Optional)</Label>
+              <Label className="text-xs">Description / Remarks (Optional)</Label>
               <Textarea
-                rows={2}
+                rows={1}
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="For securing top position in reading marathon..."
+                placeholder="For outstanding participation in reading..."
+                className="text-xs"
               />
-            </div>
-
-            {/* Modal Live Preview */}
-            <div className="border rounded-lg p-3 bg-muted/30 space-y-1.5">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Live Certificate Preview</p>
-              <div className="max-w-md mx-auto shadow rounded overflow-hidden">
-                <CertificateCanvas
-                  layout={layout}
-                  data={{
-                    studentName: selectedStudent ? `${selectedStudent.first_name} ${selectedStudent.last_name || ""}` : "Student Name",
-                    studentClass: selectedStudent?.student_class || targetClass || "8-A",
-                    eventName: selectedEvent?.title || "Library Event",
-                    title: form.title,
-                    description: form.description,
-                    issuedAt: form.issued_at,
-                    templateUrl,
-                    certNumber: form.certificate_no,
-                  }}
-                />
-              </div>
             </div>
           </div>
 
@@ -1139,13 +1326,19 @@ export default function CertificateManager() {
               Cancel
             </Button>
             <Button onClick={handleIssue} disabled={issuing}>
-              {issuing ? "Issuing Certificates…" : issueMode === "single" ? "Issue Certificate" : `Batch Issue to Class ${targetClass}`}
+              {issuing
+                ? "Issuing Certificates…"
+                : issueMode === "single"
+                ? "Issue Certificate"
+                : issueMode === "class"
+                ? `Batch Issue to Class ${targetClass}`
+                : `Batch Issue to (${selectedStudentIds.length}) Students`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Certificate Preview & Print / PDF Modal */}
+      {/* Preview & Print Modal */}
       <Dialog open={!!previewCert} onOpenChange={(o) => !o && setPreviewCert(null)}>
         <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
@@ -1169,9 +1362,15 @@ export default function CertificateManager() {
                   layout={layout}
                   data={{
                     studentName: `${previewCert.profiles?.first_name || ""} ${previewCert.profiles?.last_name || ""}`.trim() || "Student",
+                    nameHindi: previewCert.name_hindi || previewCert.profiles?.hindi_name,
                     studentClass: previewCert.profiles?.student_class,
+                    classHindi: previewCert.class_hindi || previewCert.profiles?.student_class,
                     eventName: previewCert.event_id ? events.find((e) => e.id === previewCert.event_id)?.title : null,
+                    eventHindi: previewCert.event_hindi,
+                    during: previewCert.during_text,
                     title: previewCert.title,
+                    titleHindi: previewCert.title_hindi,
+                    commonText: previewCert.common_text || commonText,
                     description: previewCert.description,
                     issuedAt: previewCert.issued_at,
                     templateUrl: previewCert.template_url || templateUrl,
@@ -1183,7 +1382,8 @@ export default function CertificateManager() {
               <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t">
                 <div className="text-xs text-muted-foreground">
                   Awarded to: <strong className="text-foreground">{previewCert.profiles?.first_name} {previewCert.profiles?.last_name || ""}</strong>
-                  {previewCert.profiles?.student_class ? ` (Class ${previewCert.profiles.student_class})` : ""}
+                  {previewCert.name_hindi || previewCert.profiles?.hindi_name ? ` (${previewCert.name_hindi || previewCert.profiles?.hindi_name})` : ""}
+                  {previewCert.profiles?.student_class ? ` · Class ${previewCert.profiles.student_class}` : ""}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -1191,7 +1391,7 @@ export default function CertificateManager() {
                     onClick={() => {
                       if (previewCert.certificate_no) {
                         navigator.clipboard.writeText(previewCert.certificate_no);
-                        toast({ title: "Copied!", description: "Certificate ID copied to clipboard." });
+                        toast({ title: "Copied!", description: "Certificate ID copied." });
                       }
                     }}
                   >
@@ -1212,4 +1412,5 @@ export default function CertificateManager() {
     </div>
   );
 }
+
 

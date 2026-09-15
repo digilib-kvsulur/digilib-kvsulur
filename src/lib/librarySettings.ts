@@ -129,11 +129,20 @@ export interface CertFieldLayout {
 }
 
 export interface CertificateLayout {
+  // English Fields
   name: CertFieldLayout;
   className: CertFieldLayout;
   event: CertFieldLayout;
+  during: CertFieldLayout;
   title: CertFieldLayout;
   description: CertFieldLayout;
+  // Hindi Fields
+  nameHindi: CertFieldLayout;
+  classHindi: CertFieldLayout;
+  eventHindi: CertFieldLayout;
+  titleHindi: CertFieldLayout;
+  // Shared / Common Fields
+  commonText: CertFieldLayout;
   date: CertFieldLayout;
   certNumber: CertFieldLayout;
   schoolName: CertFieldLayout;
@@ -172,8 +181,16 @@ export async function fetchCertificateLayout(): Promise<CertificateLayout> {
     name: parseFieldLayout(raw.name, DEFAULT_CERTIFICATE_LAYOUT.name),
     className: parseFieldLayout(raw.className, DEFAULT_CERTIFICATE_LAYOUT.className),
     event: parseFieldLayout(raw.event, DEFAULT_CERTIFICATE_LAYOUT.event),
+    during: parseFieldLayout(raw.during, DEFAULT_CERTIFICATE_LAYOUT.during),
     title: parseFieldLayout(raw.title, DEFAULT_CERTIFICATE_LAYOUT.title),
     description: parseFieldLayout(raw.description, DEFAULT_CERTIFICATE_LAYOUT.description),
+
+    nameHindi: parseFieldLayout(raw.nameHindi, DEFAULT_CERTIFICATE_LAYOUT.nameHindi),
+    classHindi: parseFieldLayout(raw.classHindi, DEFAULT_CERTIFICATE_LAYOUT.classHindi),
+    eventHindi: parseFieldLayout(raw.eventHindi, DEFAULT_CERTIFICATE_LAYOUT.eventHindi),
+    titleHindi: parseFieldLayout(raw.titleHindi, DEFAULT_CERTIFICATE_LAYOUT.titleHindi),
+
+    commonText: parseFieldLayout(raw.commonText, DEFAULT_CERTIFICATE_LAYOUT.commonText),
     date: parseFieldLayout(raw.date, DEFAULT_CERTIFICATE_LAYOUT.date),
     certNumber: parseFieldLayout(raw.certNumber, DEFAULT_CERTIFICATE_LAYOUT.certNumber),
     schoolName: parseFieldLayout(raw.schoolName, DEFAULT_CERTIFICATE_LAYOUT.schoolName),
@@ -187,6 +204,25 @@ export async function saveCertificateLayout(layout: CertificateLayout): Promise<
   );
   if (error) throw error;
 }
+
+export async function fetchCertificateCommonText(): Promise<string> {
+  const { data } = await supabase
+    .from("system_settings")
+    .select("value")
+    .eq("key", "certificate_common_text")
+    .maybeSingle();
+  if (!data?.value) return "";
+  return parseJsonSetting(data.value).replace(/^"|"$/g, "");
+}
+
+export async function saveCertificateCommonText(text: string): Promise<void> {
+  const { error } = await supabase.from("system_settings").upsert(
+    [{ key: "certificate_common_text", value: text as any }],
+    { onConflict: "key" }
+  );
+  if (error) throw error;
+}
+
 
 
 export interface DevMessageSettings {

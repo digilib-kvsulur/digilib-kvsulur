@@ -9,24 +9,40 @@ export interface CertificateTemplateInfo {
 
 export const OFFICIAL_KV_TEMPLATE_URL = "/certificates/kv_sulur_certificate_template.png";
 
-// Calibrated field coordinates for the official KV Sulur certificate image
+// Calibrated field coordinates for the official bilingual KV Sulur certificate image
 export const OFFICIAL_KV_LAYOUT = {
-  // English name line: "This is to certify that Master/Miss [ Aarav Sharma ] of"
-  name: { x: 64, y: 64.5, fontSize: 16, visible: true, align: "left" as const, color: "#1e3a8a", bold: true },
-  // Class line: "class [ 8-A ] has participated in [ National Reading Month ]"
-  className: { x: 28, y: 70.8, fontSize: 15, visible: true, align: "left" as const, color: "#1e3a8a", bold: true },
-  // Event line on same line or Hindi blank
-  event: { x: 67, y: 70.8, fontSize: 14, visible: true, align: "left" as const, color: "#1e3a8a", bold: true },
-  // Position / Achievement: "and secured [ First (1st) ] position."
-  title: { x: 43, y: 83.2, fontSize: 15, visible: true, align: "left" as const, color: "#b91c1c", bold: true },
-  // Description / Details (optional additional line or during blank)
-  description: { x: 42, y: 77.0, fontSize: 13, visible: false, align: "left" as const, color: "#334155", bold: false },
-  // Date: "दिनांक : / Date : [ 15/09/2026 ]"
-  date: { x: 26, y: 94.5, fontSize: 13, visible: true, align: "left" as const, color: "#0f172a", bold: true },
-  // Certificate ID watermark / serial at bottom right
-  certNumber: { x: 88, y: 95.0, fontSize: 11, visible: true, align: "right" as const, color: "#64748b", bold: false },
-  schoolName: { x: 50, y: 15.0, fontSize: 18, visible: false, align: "center" as const, color: "#0f172a", bold: true },
+  // ── Hindi Line 1: प्रमाणित किया जाता है कि मास्टर /मिस [ Aarav Sharma / आरव शर्मा ]
+  nameHindi: { x: 65.0, y: 45.8, fontSize: 16, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "serif" as const },
+  // ── Hindi Line 2 Left: कक्षा [ 8-A ]
+  classHindi: { x: 28.0, y: 52.0, fontSize: 15, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  // ── Hindi Line 2 Right: पुस्तकालय की [ राष्ट्रीय पठन माह प्रतियोगिता ]
+  eventHindi: { x: 78.0, y: 52.0, fontSize: 14, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  // ── Hindi Line 3: प्रतियोगिता में भाग लिया और [ प्रथम स्थान ] स्थान प्राप्त किया।
+  titleHindi: { x: 49.0, y: 58.2, fontSize: 15, visible: true, align: "left" as const, color: "#b91c1c", bold: true, fontFamily: "serif" as const },
+
+  // ── English Line 4: This is to certify that Master/Miss [ Aarav Sharma ] of
+  name: { x: 64.0, y: 64.5, fontSize: 16, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  // ── English Line 5 Left: class [ 8-A ]
+  className: { x: 27.5, y: 70.8, fontSize: 15, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  // ── English Line 5 Right: has participated in [ National Reading Month Competition ]
+  event: { x: 67.0, y: 70.8, fontSize: 14, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  // ── English Line 6: During [ August 2026 ] in the year 2026 - 2027
+  during: { x: 36.0, y: 76.5, fontSize: 14, visible: true, align: "left" as const, color: "#1e3a8a", bold: true, fontFamily: "sans" as const },
+  // ── English Line 7: and secured [ First ] position.
+  title: { x: 42.0, y: 82.8, fontSize: 15, visible: true, align: "left" as const, color: "#b91c1c", bold: true, fontFamily: "sans" as const },
+
+  // Common plain text / Custom text for all certificates
+  commonText: { x: 50.0, y: 88.5, fontSize: 12, visible: false, align: "center" as const, color: "#475569", bold: false, fontFamily: "sans" as const },
+
+  // Optional description
+  description: { x: 50.0, y: 89.0, fontSize: 12, visible: false, align: "center" as const, color: "#475569", bold: false, fontFamily: "sans" as const },
+  // Date: दिनांक : / Date : [ 15/09/2026 ]
+  date: { x: 26.0, y: 94.3, fontSize: 13, visible: true, align: "left" as const, color: "#0f172a", bold: true, fontFamily: "sans" as const },
+  // Certificate ID / verification serial at bottom right
+  certNumber: { x: 88.0, y: 94.8, fontSize: 11, visible: true, align: "right" as const, color: "#64748b", bold: false, fontFamily: "sans" as const },
+  schoolName: { x: 50.0, y: 15.0, fontSize: 18, visible: false, align: "center" as const, color: "#0f172a", bold: true, fontFamily: "sans" as const },
 };
+
 
 // Generates an SVG data URL for a vector certificate background
 function createSvgTemplate(type: "gold" | "blue" | "emerald" | "purple"): string {
