@@ -203,6 +203,15 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
 
   // Student clicks "View / Download Certificate"
   const handleViewCertificate = (c: any) => {
+    const isLocked = Boolean(c.unlock_at && new Date(c.unlock_at) > new Date());
+    if (isLocked) {
+      toast.error("🔒 Certificate Scheduled / समय से पहले बंद है", {
+        description: `यह प्रमाणपत्र ${new Date(c.unlock_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })} को अनलॉक होगा। (Unlocks on ${new Date(c.unlock_at).toLocaleString()})`,
+        duration: 6000,
+      });
+      return;
+    }
+
     const effectiveHindiName = c.name_hindi || hindiName;
     if (!effectiveHindiName) {
       // Prompt user to enter Hindi name before viewing
@@ -218,10 +227,10 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
     return {
       studentName: userName || "Student",
       nameHindi: preview.name_hindi || hindiName || null,
-      studentClass: profileClass,
+      studentClass: profileClass || preview.class_hindi || null,
       classHindi: preview.class_hindi || profileClass || null,
-      eventName: preview.event_id ? events[preview.event_id] : null,
-      eventHindi: preview.event_hindi || (preview.event_id ? events[preview.event_id] : null),
+      eventName: preview.event_id && events[preview.event_id] ? events[preview.event_id] : null,
+      eventHindi: preview.event_hindi || null,
       during: preview.during_text || null,
       title: preview.title,
       titleHindi: preview.title_hindi || null,
@@ -233,7 +242,7 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
     };
   };
 
-  const downloadPdf = async () => {
+  const handleDownloadPdf = async () => {
     const data = getActiveRenderData();
     if (!data) return;
     setDownloading(true);
@@ -241,11 +250,11 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
       await generateCertificatePdf(
         data,
         layout,
-        `${(userName || "Student").replace(/\s+/g, "_")}_${(preview.title || "Certificate").replace(/\s+/g, "_")}.pdf`
+        `${(userName || "Student").replace(/\s+/g, "_")}_Certificate.pdf`
       );
-      toast.success("High-Resolution Certificate Downloaded! 🎓");
+      toast.success("PDF प्रमाणपत्र डाउनलोड हो गया / Certificate Downloaded!");
     } catch (e: any) {
-      toast.error("Download failed", { description: e.message });
+      toast.error("प्रमाणपत्र डाउनलोड में विफल / Failed to download PDF", { description: e.message });
     } finally {
       setDownloading(false);
     }
@@ -344,12 +353,16 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
         <div className="grid gap-3 sm:grid-cols-2">
           {certs.map((c) => {
             const hasHindi = Boolean(c.name_hindi || hindiName);
+            const isLocked = Boolean(c.unlock_at && new Date(c.unlock_at) > new Date());
             return (
-              <Card key={c.id} className="border-border/60 hover:border-primary/40 transition-colors shadow-sm">
+              <Card key={c.id} className={`border-border/60 transition-colors shadow-sm ${isLocked ? "bg-amber-500/5 border-amber-300 dark:border-amber-700/40" : "hover:border-primary/40"}`}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-semibold text-sm text-foreground">{c.title}</p>
+                      <p className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                        {isLocked && <span title="Locked until scheduled time">🔒</span>}
+                        {c.title}
+                      </p>
                       {c.title_hindi && (
                         <p className="text-xs font-medium text-primary mt-0.5">{c.title_hindi}</p>
                       )}
@@ -361,14 +374,26 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
-                        Awarded
-                      </Badge>
+                      {isLocked ? (
+                        <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border-amber-300">
+                          🔒 Unlocks {new Date(c.unlock_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                          Awarded
+                        </Badge>
+                      )}
                       {c.certificate_no && (
                         <span className="text-[10px] font-mono text-muted-foreground">{c.certificate_no}</span>
                       )}
                     </div>
                   </div>
+
+                  {isLocked && (
+                    <div className="p-2 bg-amber-100/60 dark:bg-amber-950/40 rounded-lg text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                      🔒 <span>Available to view &amp; download on <strong>{new Date(c.unlock_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</strong></span>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-border/40 text-muted-foreground">
                     <span className="flex items-center gap-1">
@@ -382,17 +407,21 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
                       )}
                     </span>
                     <span className="font-mono text-[10px]">
-                      {c.event_id && events[c.event_id] ? events[c.event_id] : "Library Event"}
+                      {c.event_id && events[c.event_id] ? events[c.event_id] : (c.event_hindi || "Library Event")}
                     </span>
                   </div>
 
                   <Button
                     size="sm"
-                    variant={hasHindi ? "default" : "outline"}
-                    className="w-full gap-1.5"
+                    variant={isLocked ? "outline" : hasHindi ? "default" : "outline"}
+                    className={`w-full gap-1.5 ${isLocked ? "opacity-75" : ""}`}
                     onClick={() => handleViewCertificate(c)}
                   >
-                    <Download className="h-3.5 w-3.5" /> View / Download Certificate
+                    {isLocked ? (
+                      <>🔒 Unlocks on {new Date(c.unlock_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</>
+                    ) : (
+                      <><Download className="h-3.5 w-3.5" /> View / Download Certificate</>
+                    )}
                   </Button>
                 </CardContent>
               </Card>

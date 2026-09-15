@@ -75,6 +75,7 @@ interface CertificateRow {
   title_hindi?: string | null;
   during_text?: string | null;
   common_text?: string | null;
+  unlock_at?: string | null;
   profiles?: {
     id: string;
     first_name: string | null;
@@ -150,6 +151,7 @@ export default function CertificateManager() {
     description: "For outstanding performance in library activities.",
     certificate_no: generateCertNo(),
     issued_at: new Date().toISOString().slice(0, 10),
+    unlock_at: "",
   });
 
   // Preview & Download Modal
@@ -206,6 +208,7 @@ export default function CertificateManager() {
       description: "For outstanding performance in library activities.",
       certificate_no: generateCertNo(),
       issued_at: new Date().toISOString().slice(0, 10),
+      unlock_at: "",
     });
     setIssueMode("single");
     setIssueSearch("");
@@ -215,18 +218,37 @@ export default function CertificateManager() {
     setCsvInput("");
     setIssueTab("details");
 
-    const [{ data: studs }, { data: evts }] = await Promise.all([
-      supabase
+    // Fetch ALL student profiles without 1000 limit using range pagination
+    let allStuds: any[] = [];
+    let fromIndex = 0;
+    const chunkSize = 1000;
+    let hasMore = true;
+    while (hasMore) {
+      const { data, error } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, hindi_name, admission_number, student_class")
         .eq("role", "student")
         .eq("is_approved", true)
         .order("student_class", { ascending: true })
         .order("first_name", { ascending: true })
-        .limit(2000),
-      supabase.from("library_events").select("id, title").order("event_date", { ascending: false }).limit(50),
-    ]);
-    setStudents(studs || []);
+        .range(fromIndex, fromIndex + chunkSize - 1);
+
+      if (error || !data || data.length === 0) {
+        hasMore = false;
+      } else {
+        allStuds = [...allStuds, ...data];
+        if (data.length < chunkSize) hasMore = false;
+        else fromIndex += chunkSize;
+      }
+    }
+
+    const { data: evts } = await supabase
+      .from("library_events")
+      .select("id, title")
+      .order("event_date", { ascending: false })
+      .limit(100);
+
+    setStudents(allStuds);
     setEvents(evts || []);
     setOpen(true);
   };
@@ -445,6 +467,8 @@ export default function CertificateManager() {
           .eq("id", selectedStudent.id);
       }
 
+      const unlockTimeIso = form.unlock_at ? new Date(form.unlock_at).toISOString() : null;
+
       const inserts = targetStudents.map((s, idx) => ({
         user_id: s.id,
         title: form.title.trim(),
@@ -452,17 +476,22 @@ export default function CertificateManager() {
         name_hindi: issueMode === "single" ? (form.name_hindi.trim() || s.hindi_name || null) : (s.hindi_name || null),
         class_hindi: s.student_class || null,
         event_id: form.event_id || null,
-        event_hindi: form.event_hindi.trim() || (selectedEvent ? selectedEvent.title : null),
+        event_hindi: form.event_hindi.trim() || (selectedEvent ? selectedEvent.title : form.event_name || null),
         during_text: form.during_text.trim() || null,
         common_text: commonText.trim() || null,
         description: form.description.trim() || null,
         template_url: templateUrl,
         issued_by: user?.id || null,
         issued_at: new Date(form.issued_at).toISOString(),
+        unlock_at: unlockTimeIso,
         certificate_no: `${form.certificate_no.replace(/-\d+$/, "")}-${String(idx + 1).padStart(4, "0")}`,
       }));
 
-      const { error } = await supabase.from("issued_certificates").insert(inserts);
+      let { error } = await supabase.from("issued_certificates").insert(inserts);
+      if (error && (error.message?.includes("unlock_at") || error.code === "PGRST204")) {
+        const fallbackInserts = inserts.map(({ unlock_at, ...rest }) => rest);
+        ({ error } = await supabase.from("issued_certificates").insert(fallbackInserts));
+      }
       if (error) throw error;
 
       // Send notifications
@@ -1516,29 +1545,51 @@ export default function CertificateManager() {
               {/* Bilingual Events */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Event / Competition (English)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Event / Competition (English)</Label>
+                    {form.event_name && !form.event_id && (
+                      <span className="text-[10px] text-amber-600 font-semibold">Custom Title Active</span>
+                    )}
+                  </div>
                   <Select
-                    value={form.event_id || "none"}
+                    value={form.event_id || (form.event_name ? "custom" : "none")}
                     onValueChange={(v) => {
-                      const evt = events.find((e) => e.id === v);
-                      setForm((f) => ({
-                        ...f,
-                        event_id: v === "none" ? "" : v,
-                        event_name: evt ? evt.title : "",
-                      }));
+                      if (v === "none") {
+                        setForm((f) => ({ ...f, event_id: "", event_name: "" }));
+                      } else if (v === "custom") {
+                        setForm((f) => ({ ...f, event_id: "", event_name: f.event_name || "Library Reading Challenge" }));
+                      } else {
+                        const evt = events.find((e) => e.id === v);
+                        setForm((f) => ({
+                          ...f,
+                          event_id: v,
+                          event_name: evt ? evt.title : "",
+                        }));
+                      }
                     }}
                   >
-                    <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Link event" /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select or Type Event" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">General / No Event</SelectItem>
                       {events.map((e) => (
                         <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
                       ))}
+                      <SelectItem value="custom">✍️ Type Custom Event Name...</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {/* Custom English Event Input when custom selected or set */}
+                  {(!form.event_id || form.event_id === "") && (
+                    <Input
+                      value={form.event_name}
+                      onChange={(e) => setForm((f) => ({ ...f, event_name: e.target.value }))}
+                      placeholder="Type custom English event name..."
+                      className="h-8 text-xs mt-1 bg-amber-500/5 border-amber-300"
+                    />
+                  )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">प्रतियोगिता का नाम (Hindi Event)</Label>
+                  <Label className="text-xs font-semibold text-primary">प्रतियोगिता का नाम (Hindi Event)</Label>
                   <Input
                     value={form.event_hindi}
                     onChange={(e) => setForm((f) => ({ ...f, event_hindi: e.target.value }))}
@@ -1548,8 +1599,8 @@ export default function CertificateManager() {
                 </div>
               </div>
 
-              {/* During Period & Date */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* During Period, Date & Scheduled Unlock */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">During Period (Line 6)</Label>
                   <Input
@@ -1568,7 +1619,7 @@ export default function CertificateManager() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Date (दिनांक)</Label>
+                  <Label className="text-xs">Issue Date (दिनांक)</Label>
                   <Input
                     type="date"
                     value={form.issued_at}
@@ -1576,7 +1627,23 @@ export default function CertificateManager() {
                     className="h-9 text-xs"
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                    🔒 Scheduled Unlock (Optional)
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    value={form.unlock_at}
+                    onChange={(e) => setForm((f) => ({ ...f, unlock_at: e.target.value }))}
+                    className="h-9 text-xs"
+                  />
+                </div>
               </div>
+              {form.unlock_at && (
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-500/10 p-2 rounded-lg border border-amber-300 flex items-center gap-1.5">
+                  🔒 <strong>Scheduled Release Active:</strong> Students will see this certificate awarded on their dashboard, but cannot open, view, or download PDF until <strong>{new Date(form.unlock_at).toLocaleString()}</strong>.
+                </p>
+              )}
 
               {/* Description */}
               <div className="space-y-1.5">
