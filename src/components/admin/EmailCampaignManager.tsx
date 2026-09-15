@@ -22,6 +22,7 @@ type Profile = {
   last_name: string | null;
   student_class: string | null;
   admission_number: string | null;
+  email: string | null;
   notification_email: string | null;
   notification_email_confirmed_at: string | null;
 };
@@ -231,7 +232,7 @@ export default function EmailCampaignManager() {
   const loadProfiles = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, student_class, admission_number, notification_email, notification_email_confirmed_at")
+      .select("id, first_name, last_name, student_class, admission_number, email, notification_email, notification_email_confirmed_at")
       .eq("is_approved", true)
       .order("first_name");
     setProfiles((data as Profile[]) || []);
@@ -253,7 +254,7 @@ export default function EmailCampaignManager() {
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const verifiedProfiles = profiles.filter(
-    (p) => p.notification_email_confirmed_at && p.notification_email,
+    (p) => Boolean(p.notification_email || p.email),
   );
 
   const classes = useMemo(
