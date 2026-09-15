@@ -59,6 +59,7 @@ export default function NotificationEmailDialog({ open, userId, currentEmail, on
       setError("We could not save your email. Please try again.");
       return;
     }
+    sendEmailVerifiedEmail(userId, normalizedEmail);
     onComplete();
   };
 

@@ -19,6 +19,43 @@ interface TemplateData {
 }
 
 const PRESETS: Record<string, TemplateData> = {
+  first_login: {
+    subject: "Welcome to KV Sulur Digital Library — Setup Complete",
+    heading: "First Login Setup Complete",
+    badgeText: "Account Activated",
+    badgeBg: "#dcfce7",
+    badgeColor: "#166534",
+    body: (name, note) => `
+      <p style="margin-top:0;">Dear <strong>${esc(name)}</strong>,</p>
+      <p>Congratulations! You have successfully completed your first login setup at the <strong>PM SHRI KV AFS Sulur Digital Library</strong> 🎉</p>
+      <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:16px 20px;border-radius:8px;margin:20px 0;">
+        <p style="margin:0;font-size:15px;color:#15803d;font-weight:700;">🚀 What You Can Do Now</p>
+        <ul style="margin:8px 0 0 0;padding-left:20px;font-size:14px;color:#0f172a;line-height:1.6;">
+          <li>📖 Search &amp; request books from the online catalog</li>
+          <li>📝 Participate in daily library quizzes and earn points</li>
+          <li>🏆 Earn achievement badges and track your rank on the Leaderboard</li>
+          <li>⚡ Express Circulation barcode borrowing at the library counter</li>
+        </ul>
+      </div>
+      <p style="margin-bottom:0;">Happy Reading!<br/><strong>— PM SHRI KV AFS Sulur Library Team</strong></p>`,
+  },
+
+  email_verified: {
+    subject: "Email Address Verified — KV Sulur Digital Library",
+    heading: "Email Address Confirmed",
+    badgeText: "Email Verified",
+    badgeBg: "#ccfbf1",
+    badgeColor: "#0f766e",
+    body: (name, note) => `
+      <p style="margin-top:0;">Dear <strong>${esc(name)}</strong>,</p>
+      <p>Your notification email address has been <strong>successfully verified and confirmed</strong> ✅</p>
+      <div style="background:#f0fdfa;border-left:4px solid #14b8a6;padding:16px 20px;border-radius:8px;margin:20px 0;">
+        <p style="margin:0;font-size:14px;color:#0f766e;font-weight:600;">📧 Notification Preferences</p>
+        <p style="margin:6px 0 0 0;font-size:14px;color:#1e293b;">${esc(note || "You will now receive automatic receipts for book issues, returns, due reminders, and achievement updates.")}</p>
+      </div>
+      <p style="margin-bottom:0;">— PM SHRI KV AFS Sulur Library Team</p>`,
+  },
+
   book_issued: {
     subject: "Book Issued — KV Sulur Digital Library",
     heading: "Book Issue Receipt",
