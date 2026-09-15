@@ -299,8 +299,14 @@ export default function EmailCampaignManager() {
         let errorMsg = error.message;
         if ((error as any).context) {
           try {
-            const body = await (error as any).context.json();
-            if (body?.error) errorMsg = body.error;
+            const ctx = (error as any).context;
+            const text = await ctx.text();
+            try {
+              const json = JSON.parse(text);
+              if (json?.error) errorMsg = json.error;
+            } catch (_) {
+              if (text && text.length < 300) errorMsg = text;
+            }
           } catch (_) {}
         }
         if (errorMsg.includes("Failed to send a request") || errorMsg.includes("CORS") || errorMsg.includes("preflight")) {
