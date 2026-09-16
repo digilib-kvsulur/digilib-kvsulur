@@ -88,8 +88,12 @@ export default function DeveloperMessagePopup() {
   useEffect(() => {
     const checkSettings = async () => {
       // Don't show if they've dismissed it this session
-      const dismissed = sessionStorage.getItem("dev_message_dismissed");
-      if (dismissed === "true") return;
+      try {
+        if (typeof window !== "undefined" && window.sessionStorage) {
+          const dismissed = window.sessionStorage.getItem("dev_message_dismissed");
+          if (dismissed === "true") return;
+        }
+      } catch (_) {}
 
       try {
         const [settings, color] = await Promise.all([
@@ -112,10 +116,29 @@ export default function DeveloperMessagePopup() {
     checkSettings();
   }, []);
 
-  const handleClose = () => {
-    sessionStorage.setItem("dev_message_dismissed", "true");
+  const handleClose = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    try {
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        window.sessionStorage.setItem("dev_message_dismissed", "true");
+      }
+    } catch (err) {
+      console.warn("Could not save dismissal to sessionStorage:", err);
+    }
     setShowModal(false);
   };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    if (showModal) {
+      window.addEventListener("keydown", onKeyDown);
+      return () => window.removeEventListener("keydown", onKeyDown);
+    }
+  }, [showModal]);
 
   const theme = THEMES[colorTheme] || THEMES.blue;
 
@@ -123,8 +146,8 @@ export default function DeveloperMessagePopup() {
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in"
       style={{ background: "hsl(var(--background) / 0.85)", backdropFilter: "blur(8px)" }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) handleClose(e);
       }}
     >
       <div
@@ -143,9 +166,9 @@ export default function DeveloperMessagePopup() {
 
         {/* Close button */}
         <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full bg-background/70 backdrop-blur-md hover:bg-muted transition-colors shadow-xs z-10"
-          style={{ color: "hsl(var(--muted-foreground))" }}
+          type="button"
+          onClick={(e) => handleClose(e)}
+          className="absolute top-4 right-4 p-1.5 rounded-full bg-background/80 backdrop-blur-md hover:bg-muted transition-colors shadow-xs z-20 cursor-pointer text-muted-foreground hover:text-foreground"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
@@ -188,8 +211,9 @@ export default function DeveloperMessagePopup() {
             </a>
           )}
           <button
-            onClick={handleClose}
-            className={`px-5 py-2.5 rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95 ${theme.btnBg} ${theme.btnText}`}
+            type="button"
+            onClick={(e) => handleClose(e)}
+            className={`px-5 py-2.5 rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${theme.btnBg} ${theme.btnText}`}
             style={{
               boxShadow: theme.btnShadow,
             }}
