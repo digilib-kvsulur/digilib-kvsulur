@@ -1,4 +1,23 @@
+# Robots.txt for PM SHRI KV Sulur Digital Library
 User-agent: *
 Allow: /
+Allow: /catalog
+Allow: /download
+Allow: /support
+Allow: /feedback
+Allow: /book/
+Allow: /logos/
+Allow: /assets/
 
+# Disallow private dashboards and student session data
+Disallow: /admin-dashboard
+Disallow: /teacher-dashboard
+Disallow: /student-dashboard
+Disallow: /points-history
+Disallow: /student-portfolio
+Disallow: /portfolio/
+Disallow: /reset-password
+
+# Sitemap & Preferred Host
+Host: dlms.kvsulur.in
 Sitemap: https://dlms.kvsulur.in/sitemap.xml
