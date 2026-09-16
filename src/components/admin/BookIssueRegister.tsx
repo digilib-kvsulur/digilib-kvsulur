@@ -248,9 +248,9 @@ const BookIssueRegister = () => {
       }
       setSelectedUser(""); setIssueDate(today); setDueDate(defaultDue); setAccessionNumberInput("");
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error issuing book:', error);
-      toast({ title: "Error", description: "Failed to issue book", variant: "destructive" });
+      toast({ title: "Issue Failed", description: error?.message || "Failed to issue book. Check copy availability or student loan limit.", variant: "destructive" });
     } finally { setIsSubmitting(false); }
   };
 

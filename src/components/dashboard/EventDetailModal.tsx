@@ -226,6 +226,9 @@ export default function EventDetailModal({
               <DialogTitle className="text-2xl font-black text-slate-900 leading-tight">
                 {event.title}
               </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                {event.description ? event.description.slice(0, 160) : "Event schedule, venue, and participation details."}
+              </DialogDescription>
             </DialogHeader>
 
             {/* Meta row */}
@@ -456,6 +459,10 @@ export default function EventDetailModal({
       {previewUrl && (
         <Dialog open={!!previewUrl} onOpenChange={(o) => !o && setPreviewUrl(null)}>
           <DialogContent className="max-w-4xl max-h-[95vh] p-2 overflow-hidden">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Document Preview</DialogTitle>
+              <DialogDescription>Previewing attached document or image file</DialogDescription>
+            </DialogHeader>
             <div className="flex items-center justify-between mb-2 px-2">
               <span className="text-sm font-semibold text-slate-700">Preview</span>
               <Button size="sm" variant="ghost" onClick={() => setPreviewUrl(null)}>
