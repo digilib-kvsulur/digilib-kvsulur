@@ -59,8 +59,8 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       return;
     }
     try {
-      const { data } = await supabase.storage.from("avatars").createSignedUrl(path, 3600);
-      setAvatarUrl(data?.signedUrl || null);
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      setAvatarUrl(data?.publicUrl || null);
     } catch (e) {
       console.error("Error loading avatar:", e);
     }

@@ -93,7 +93,7 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
         fetchCertificateLayout(),
         supabase
           .from("profiles")
-          .select("student_class, hindi_name, full_name")
+          .select("student_class, hindi_name")
           .eq("id", userId)
           .maybeSingle(),
       ]);
@@ -542,6 +542,9 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
                 </Badge>
               )}
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Bilingual library merit certificate preview and download.
+            </DialogDescription>
           </DialogHeader>
 
           {preview && (
@@ -591,7 +594,7 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
 
               {/* Action Buttons */}
               <div className="flex gap-2 flex-wrap">
-                <Button onClick={downloadPdf} disabled={downloading} className="flex-1 gap-2">
+                <Button onClick={handleDownloadPdf} disabled={downloading} className="flex-1 gap-2">
                   <Download className="h-4 w-4" />
                   {downloading ? "Generating High-Res PDF…" : "Download High-Res PDF (A4)"}
                 </Button>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -194,6 +194,17 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
   return (
     <Dialog open={open} onOpenChange={(val) => !val && handleAcknowledge()}>
       <DialogContent className="w-[94vw] max-w-md max-h-[90vh] overflow-y-auto p-0 border-2 border-amber-500/40 shadow-2xl rounded-2xl sm:rounded-3xl focus:outline-none [&>button.absolute]:hidden">
+        <DialogHeader className="sr-only">
+          <DialogTitle>
+            {awardType === "rotational"
+              ? (isClassAward ? "Class Standard Library Champion" : "Section Reader of the Month")
+              : "Event Winner Celebration"}
+          </DialogTitle>
+          <DialogDescription>
+            Congratulations on your library achievement award and recognition.
+          </DialogDescription>
+        </DialogHeader>
+
         {/* Top Celebratory Header */}
         <div className={`p-5 sm:p-6 text-center text-white relative overflow-hidden ${
           awardType === "rotational"

@@ -80,8 +80,8 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
       setAvatarUrl(p);
       return;
     }
-    const { data } = await supabase.storage.from("avatars").createSignedUrl(p, 60 * 60 * 24 * 7);
-    setAvatarUrl(data?.signedUrl || getAvatarUrl(p) || null);
+    const { data } = supabase.storage.from("avatars").getPublicUrl(p);
+    setAvatarUrl(data?.publicUrl || getAvatarUrl(p) || null);
   };
 
   useEffect(() => {

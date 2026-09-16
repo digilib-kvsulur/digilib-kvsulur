@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Search, UserPlus, UserX, Check, X, Clock
@@ -60,8 +60,8 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
         await Promise.all((profs || []).map(async (p: any) => {
           let avatarUrl = p.avatar_url || null;
           if (avatarUrl && !avatarUrl.startsWith("http")) {
-            const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(avatarUrl, 3600);
-            avatarUrl = signed?.signedUrl || null;
+            const { data: pub } = supabase.storage.from("avatars").getPublicUrl(avatarUrl);
+            avatarUrl = pub?.publicUrl || null;
           }
           pMap[p.id] = { ...p, avatar_url: avatarUrl };
         }));
@@ -364,6 +364,10 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
       {/* Profile Dialog */}
       <Dialog open={!!profileDialogUser} onOpenChange={(o) => !o && setProfileDialogUser(null)}>
         <DialogContent className="max-w-lg p-0 overflow-hidden bg-background rounded-xl border border-border/40 shadow-xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>User Profile</DialogTitle>
+            <DialogDescription>View user profile and network options</DialogDescription>
+          </DialogHeader>
           {profileDialogUser && (
             <ProfileView
               userId={profileDialogUser}

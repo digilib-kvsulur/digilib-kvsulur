@@ -79,8 +79,8 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
         if (p.avatar_url.startsWith("http")) {
           setAvatarUrl(p.avatar_url);
         } else {
-          const { data: signed } = await supabase.storage.from("avatars").createSignedUrl(p.avatar_url, 3600);
-          setAvatarUrl(signed?.signedUrl || null);
+          const { data: pub } = supabase.storage.from("avatars").getPublicUrl(p.avatar_url);
+          setAvatarUrl(pub?.publicUrl || null);
         }
       } else {
         setAvatarUrl(null);

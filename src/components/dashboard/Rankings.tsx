@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Trophy, Users, Shield, Award, Medal, Crown } from "lucide-react";
 import SchoolLeaderboard from "@/components/rewards/SchoolLeaderboard";
 import { supabase } from "@/integrations/supabase/client";
@@ -246,6 +246,10 @@ const Rankings = ({ user }: RankingsProps) => {
 
       <Dialog open={!!profileUserId} onOpenChange={open => !open && setProfileUserId(null)}>
         <DialogContent className="max-w-lg p-0 overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Student Profile</DialogTitle>
+            <DialogDescription>View student profile and leaderboard achievements</DialogDescription>
+          </DialogHeader>
           {profileUserId && <ProfileView userId={profileUserId} currentUserId={user.id} friendship={profileFriendship} onSend={sendRequest} onRespond={respondRequest} onRemove={removeRequest} />}
         </DialogContent>
       </Dialog>

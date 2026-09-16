@@ -234,7 +234,7 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-0 border-2 border-indigo-500/30 rounded-2xl">
         {/* Header */}
-        <div className="p-5 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-blue-500/5 border-b">
+        <DialogHeader className="p-5 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-blue-500/5 border-b">
           <DialogTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
             <Award className="h-6 w-6 text-indigo-600" />
             Customise &amp; Issue E-Certificate: {data.studentName}
@@ -242,7 +242,7 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
           <DialogDescription className="text-xs text-muted-foreground mt-1">
             Real-time live certificate preview with bilingual typography and custom styling.
           </DialogDescription>
-        </div>
+        </DialogHeader>
 
         <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Form Column */}

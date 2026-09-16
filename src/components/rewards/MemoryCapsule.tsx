@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -431,6 +431,10 @@ export const MemoryCapsule: React.FC<MemoryCapsuleProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md w-[95vw] h-[90vh] max-h-[720px] p-0 overflow-hidden border-0 bg-slate-950 text-white rounded-3xl shadow-2xl flex flex-col focus:outline-none [&>button.absolute]:hidden [&>button:last-child]:hidden">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Monthly Reading Capsule</DialogTitle>
+          <DialogDescription>Your monthly reading achievements and recap</DialogDescription>
+        </DialogHeader>
         {loading ? (
           <div className="flex-1 flex flex-col items-center justify-center space-y-4 p-8 text-center">
             <div className="relative">
