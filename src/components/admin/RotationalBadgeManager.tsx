@@ -942,28 +942,10 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                                 No Badge
                               </Badge>
                             )}
-                          </div>
                         )}
                       </div>
                     );
                   })}
-                </div>
-              </div>
-                            <span className="text-[10px] text-muted-foreground">
-                              {sa.winner.points} XP · {sa.winner.booksIssuedCount} Books Borrowed
-                            </span>
-                          </div>
-                          <Badge variant="outline" className="text-[10px] font-bold border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30">
-                            Qualified
-                          </Badge>
-                        </div>
-                      ) : (
-                        <Badge variant="outline" className="text-[10px] font-bold border-rose-400 text-rose-600 bg-rose-50 dark:bg-rose-950/30">
-                          No Badge Awarded
-                        </Badge>
-                      )}
-                    </div>
-                  ))}
                 </div>
               </div>
             </TabsContent>
