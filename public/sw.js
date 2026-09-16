@@ -22,7 +22,7 @@ if (self.location.hostname === LEGACY_HOST) {
 } else {
 
 // ─── Normal Service Worker for dlms.kvsulur.in ─────────────────────────────────
-const CACHE_NAME = 'kvsulur-dlms-v5';
+const CACHE_NAME = 'kvsulur-dlms-v6';
 const ASSETS = [
   '/',
   '/index.html',
@@ -57,12 +57,39 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
 
-  // Simple network-first fetching strategy
+  // Skip chrome-extension, API calls, Supabase endpoints, and non-http(s)
+  if (!url.protocol.startsWith('http')) return;
+  if (url.pathname.startsWith('/rest/') || url.pathname.startsWith('/auth/') || url.hostname.includes('supabase.co')) return;
+
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
-    })
+    (async () => {
+      try {
+        const networkResponse = await fetch(event.request);
+        if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache).catch(() => {});
+          });
+        }
+        return networkResponse;
+      } catch (err) {
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        if (event.request.mode === 'navigate') {
+          const indexResponse = await caches.match('/index.html');
+          if (indexResponse) return indexResponse;
+        }
+        return new Response('Network error occurred and no cache available', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({ 'Content-Type': 'text/plain' }),
+        });
+      }
+    })()
   );
 });
 
