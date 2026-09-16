@@ -936,11 +936,11 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                                 <span className="text-[10px] text-muted-foreground">
                                   {activeWinner.points} XP · {activeWinner.booksIssuedCount} Books
                                 </span>
-                              </div>
                             ) : (
                               <Badge variant="outline" className="text-[10px] font-bold border-rose-400 text-rose-600 bg-rose-50 dark:bg-rose-950/30">
                                 No Badge
                               </Badge>
+                            )}
                           </div>
                         )}
                       </div>
