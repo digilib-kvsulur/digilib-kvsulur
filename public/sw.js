@@ -22,7 +22,7 @@ if (self.location.hostname === LEGACY_HOST) {
 } else {
 
 // ─── Normal Service Worker for dlms.kvsulur.in ─────────────────────────────────
-const CACHE_NAME = 'kvsulur-dlms-v6';
+const CACHE_NAME = 'kvsulur-dlms-v7';
 const ASSETS = [
   '/',
   '/index.html',
@@ -37,7 +37,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS);
-    })
+    }).catch(() => {})
   );
   self.skipWaiting();
 });
@@ -63,29 +63,56 @@ self.addEventListener('fetch', (event) => {
   if (!url.protocol.startsWith('http')) return;
   if (url.pathname.startsWith('/rest/') || url.pathname.startsWith('/auth/') || url.hostname.includes('supabase.co')) return;
 
+  const isAsset = url.pathname.startsWith('/assets/');
+
   event.respondWith(
     (async () => {
       try {
-        const networkResponse = await fetch(event.request);
-        if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache).catch(() => {});
+        if (isAsset) {
+          try {
+            const cachedAsset = await caches.match(event.request);
+            if (cachedAsset) return cachedAsset;
+          } catch (e) {
+            /* ignore cache match error */
+          }
+        }
+
+        try {
+          const networkResponse = await fetch(event.request);
+          if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
+            try {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache).catch(() => {});
+              }).catch(() => {});
+            } catch (e) {
+              /* ignore clone error */
+            }
+          }
+          return networkResponse;
+        } catch (netErr) {
+          try {
+            const cachedResponse = await caches.match(event.request);
+            if (cachedResponse) return cachedResponse;
+
+            if (event.request.mode === 'navigate') {
+              const indexResponse = await caches.match('/index.html');
+              if (indexResponse) return indexResponse;
+            }
+          } catch (cErr) {
+            /* ignore cache match error */
+          }
+
+          return new Response('Network error occurred and no cache available', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({ 'Content-Type': 'text/plain' }),
           });
         }
-        return networkResponse;
-      } catch (err) {
-        const cachedResponse = await caches.match(event.request);
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        if (event.request.mode === 'navigate') {
-          const indexResponse = await caches.match('/index.html');
-          if (indexResponse) return indexResponse;
-        }
-        return new Response('Network error occurred and no cache available', {
-          status: 503,
-          statusText: 'Service Unavailable',
+      } catch (fatalErr) {
+        return new Response('Service Worker Error', {
+          status: 500,
+          statusText: 'Internal Server Error',
           headers: new Headers({ 'Content-Type': 'text/plain' }),
         });
       }

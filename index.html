@@ -64,6 +64,12 @@
       }
     </script>
     <script>
+      // Automatically recover when Vite chunk loading fails after a new deployment
+      window.addEventListener('vite:preloadError', function(event) {
+        event.preventDefault();
+        window.location.reload();
+      });
+
       // Capture beforeinstallprompt BEFORE React mounts — store globally so it's never lost
       window.__pwaInstallPrompt = null;
       window.addEventListener('beforeinstallprompt', function(e) {
