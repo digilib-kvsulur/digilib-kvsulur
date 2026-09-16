@@ -1373,12 +1373,16 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                 {verifying ? "Issuing..." : "Confirm & Issue Badges"}
               </Button>
             </DialogFooter>
-      {/* Winner E-Certificate Generation & Preview Modal */}
-      <WinnerCertificateModal
-        open={certModalOpen}
-        onOpenChange={setCertModalOpen}
-        data={certModalData}
-      />
+          </DialogContent>
+        </Dialog>
+
+        {/* Winner E-Certificate Generation & Preview Modal */}
+        <WinnerCertificateModal
+          open={certModalOpen}
+          onOpenChange={setCertModalOpen}
+          data={certModalData}
+        />
+      </DialogContent>
     </Dialog>
   );
 };
