@@ -20,6 +20,7 @@ import {
   getActiveRotationalCycle,
   updateRotationalCollectionDetails,
   RotationalAwardCandidate, 
+  StudentScoreCandidate,
   RotationalBadgeSettings, 
   DEFAULT_ROTATIONAL_SETTINGS, 
   VerifiedRotationalCycle 
@@ -64,6 +65,9 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   // Analysis state
   const [classAwards, setClassAwards] = useState<RotationalAwardCandidate[]>([]);
   const [sectionAwards, setSectionAwards] = useState<RotationalAwardCandidate[]>([]);
+  const [allCandidates, setAllCandidates] = useState<StudentScoreCandidate[]>([]);
+  const [excludedAwardScopes, setExcludedAwardScopes] = useState<string[]>([]);
+  const [customWinnersMap, setCustomWinnersMap] = useState<Record<string, string>>({});
   const [stats, setStats] = useState<{
     totalStudentsEvaluated: number;
     eligibleStudentsCount: number;
@@ -185,9 +189,12 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
         endDate: evalMode === "date_range" ? customEndDate : undefined,
       };
       const res = await computeRotationalBadges(currentSettings, selectedYear, selectedMonth);
+      setAllCandidates(res.allCandidates);
       setClassAwards(res.classAwards);
       setSectionAwards(res.sectionAwards);
       setStats(res.statistics);
+      setExcludedAwardScopes([]);
+      setCustomWinnersMap({});
     } catch (err: any) {
       console.error("Error computing rotational badges:", err);
       toast({
@@ -218,12 +225,36 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
         startDate: evalMode === "date_range" ? customStartDate : undefined,
         endDate: evalMode === "date_range" ? customEndDate : undefined,
       };
+
+      // Filter and apply selective winner overrides
+      const effectiveClassAwards = classAwards
+        .filter((ca) => !excludedAwardScopes.includes(`class-${ca.scopeValue}`))
+        .map((ca) => {
+          const customId = customWinnersMap[`class-${ca.scopeValue}`];
+          if (customId) {
+            const cand = allCandidates.find((c) => c.id === customId);
+            if (cand) return { ...ca, winner: cand, status: "awarded" as const, runnerUpNote: "Selected by Admin" };
+          }
+          return ca;
+        });
+
+      const effectiveSectionAwards = sectionAwards
+        .filter((sa) => !excludedAwardScopes.includes(`section-${sa.scopeValue}`))
+        .map((sa) => {
+          const customId = customWinnersMap[`section-${sa.scopeValue}`];
+          if (customId) {
+            const cand = allCandidates.find((c) => c.id === customId);
+            if (cand) return { ...sa, winner: cand, status: "awarded" as const, runnerUpNote: "Selected by Admin" };
+          }
+          return sa;
+        });
+
       const result = await verifyAndPublishRotationalCycle(
         cycleId,
         cycleLabel,
         currentSettings,
-        classAwards,
-        sectionAwards
+        effectiveClassAwards,
+        effectiveSectionAwards
       );
 
       if (result.success) {
@@ -690,55 +721,107 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                 </div>
 
                 <div className="border rounded-xl overflow-hidden shadow-2xs divide-y divide-border">
-                  {classAwards.map((ca) => (
-                    <div
-                      key={ca.scopeValue}
-                      className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center font-bold text-xs shrink-0">
-                          {ca.scopeValue.replace("Class ", "Std ")}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-foreground">{ca.scopeValue}</span>
-                            <Badge className="bg-amber-500 hover:bg-amber-600 text-[10px] text-white">
-                              👑 Best Library User
-                            </Badge>
-                          </div>
-                          {ca.winner ? (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Winner: <strong className="text-foreground">{ca.winner.first_name} {ca.winner.last_name || ""}</strong> (Sec {ca.winner.section} · Admn #{ca.winner.admission_number})
-                            </p>
-                          ) : (
-                            <p className="text-xs text-rose-500 font-medium mt-0.5">
-                              {ca.runnerUpNote || "No student met the minimum points threshold."}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                  {classAwards.map((ca) => {
+                    const scopeKey = `class-${ca.scopeValue}`;
+                    const isExcluded = excludedAwardScopes.includes(scopeKey);
+                    const customWinnerId = customWinnersMap[scopeKey];
+                    const activeWinner = customWinnerId
+                      ? allCandidates.find((c) => c.id === customWinnerId) || ca.winner
+                      : ca.winner;
+                    const scopeCandidates = allCandidates.filter((c) => c.standard === ca.scopeValue);
 
-                      {ca.winner ? (
-                        <div className="flex items-center gap-4 shrink-0 sm:text-right">
-                          <div>
-                            <span className="text-xs font-black text-primary block">
-                              {ca.winner.compositeScore} Score
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {ca.winner.points} XP · {ca.winner.booksIssuedCount} Books Borrowed
-                            </span>
+                    return (
+                      <div
+                        key={ca.scopeValue}
+                        className={`p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                          isExcluded ? "bg-rose-50/40 dark:bg-rose-950/10 opacity-60" : "hover:bg-muted/30"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={!isExcluded}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setExcludedAwardScopes((prev) => prev.filter((k) => k !== scopeKey));
+                              } else {
+                                setExcludedAwardScopes((prev) => [...prev, scopeKey]);
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 shrink-0"
+                            title="Include/Exclude this class award"
+                          />
+                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center font-bold text-xs shrink-0">
+                            {ca.scopeValue.replace("Class ", "Std ")}
                           </div>
-                          <Badge variant="outline" className="text-[10px] font-bold border-emerald-500 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30">
-                            Qualified
-                          </Badge>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-sm text-foreground">{ca.scopeValue}</span>
+                              <Badge className="bg-amber-500 hover:bg-amber-600 text-[10px] text-white">
+                                👑 Best Library User
+                              </Badge>
+                              {customWinnerId && (
+                                <Badge variant="outline" className="text-[9px] font-bold border-amber-500 text-amber-600">
+                                  ✏️ Custom Override
+                                </Badge>
+                              )}
+                              {isExcluded && (
+                                <Badge variant="destructive" className="text-[9px] font-bold">
+                                  Excluded
+                                </Badge>
+                              )}
+                            </div>
+                            {activeWinner && !isExcluded ? (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Winner: <strong className="text-foreground">{activeWinner.first_name} {activeWinner.last_name || ""}</strong> (Sec {activeWinner.section} · Admn #{activeWinner.admission_number})
+                              </p>
+                            ) : (
+                              <p className="text-xs text-rose-500 font-medium mt-0.5">
+                                {isExcluded ? "Badge excluded for this cycle." : (ca.runnerUpNote || "No student met minimum threshold.")}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      ) : (
-                        <Badge variant="outline" className="text-[10px] font-bold border-rose-400 text-rose-600 bg-rose-50 dark:bg-rose-950/30">
-                          No Badge Awarded
-                        </Badge>
-                      )}
-                    </div>
-                  ))}
+
+                        {!isExcluded && (
+                          <div className="flex items-center gap-3 shrink-0 flex-wrap sm:justify-end">
+                            {/* Override dropdown */}
+                            {scopeCandidates.length > 0 && (
+                              <select
+                                value={customWinnerId || (activeWinner ? activeWinner.id : "")}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setCustomWinnersMap((prev) => ({ ...prev, [scopeKey]: val }));
+                                }}
+                                className="text-xs font-medium px-2 py-1 rounded-md border bg-background text-foreground max-w-[180px]"
+                              >
+                                {scopeCandidates.map((cand) => (
+                                  <option key={cand.id} value={cand.id}>
+                                    {cand.first_name} {cand.last_name || ""} ({cand.compositeScore} Score)
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+
+                            {activeWinner ? (
+                              <div className="text-right">
+                                <span className="text-xs font-black text-primary block">
+                                  {activeWinner.compositeScore} Score
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {activeWinner.points} XP · {activeWinner.booksIssuedCount} Books
+                                </span>
+                              </div>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] font-bold border-rose-400 text-rose-600 bg-rose-50 dark:bg-rose-950/30">
+                                No Badge
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -755,48 +838,117 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                 </div>
 
                 <div className="border rounded-xl overflow-hidden shadow-2xs divide-y divide-border">
-                  {sectionAwards.map((sa) => (
-                    <div
-                      key={sa.scopeValue}
-                      className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 flex items-center justify-center font-bold text-xs shrink-0">
-                          {sa.scopeValue}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-foreground">Section {sa.scopeValue}</span>
-                            <Badge className="bg-indigo-600 hover:bg-indigo-700 text-[10px] text-white">
-                              📚 Reader of the Month
-                            </Badge>
+                  {sectionAwards.map((sa) => {
+                    const scopeKey = `section-${sa.scopeValue}`;
+                    const isExcluded = excludedAwardScopes.includes(scopeKey);
+                    const customWinnerId = customWinnersMap[scopeKey];
+                    const activeWinner = customWinnerId
+                      ? allCandidates.find((c) => c.id === customWinnerId) || sa.winner
+                      : sa.winner;
+                    const scopeCandidates = allCandidates.filter((c) => c.section === sa.scopeValue);
+
+                    return (
+                      <div
+                        key={sa.scopeValue}
+                        className={`p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                          isExcluded ? "bg-rose-50/40 dark:bg-rose-950/10 opacity-60" : "hover:bg-muted/30"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={!isExcluded}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setExcludedAwardScopes((prev) => prev.filter((k) => k !== scopeKey));
+                              } else {
+                                setExcludedAwardScopes((prev) => [...prev, scopeKey]);
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0"
+                            title="Include/Exclude this section award"
+                          />
+                          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 flex items-center justify-center font-bold text-xs shrink-0">
+                            {sa.scopeValue}
                           </div>
-                          {sa.winner ? (
-                            <div>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Winner: <strong className="text-foreground">{sa.winner.first_name} {sa.winner.last_name || ""}</strong> (Admn #{sa.winner.admission_number})
-                              </p>
-                              {sa.runnerUpNote && (
-                                <p className="text-[10px] text-amber-700 dark:text-amber-300 font-medium mt-0.5 flex items-center gap-1">
-                                  <Info className="h-3 w-3 inline shrink-0" />
-                                  {sa.runnerUpNote}
-                                </p>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-sm text-foreground">Section {sa.scopeValue}</span>
+                              <Badge className="bg-indigo-600 hover:bg-indigo-700 text-[10px] text-white">
+                                📚 Reader of the Month
+                              </Badge>
+                              {customWinnerId && (
+                                <Badge variant="outline" className="text-[9px] font-bold border-indigo-500 text-indigo-600">
+                                  ✏️ Custom Override
+                                </Badge>
+                              )}
+                              {isExcluded && (
+                                <Badge variant="destructive" className="text-[9px] font-bold">
+                                  Excluded
+                                </Badge>
                               )}
                             </div>
-                          ) : (
-                            <p className="text-xs text-rose-500 font-medium mt-0.5">
-                              {sa.runnerUpNote || "No student in this section met the minimum points threshold."}
-                            </p>
-                          )}
+                            {activeWinner && !isExcluded ? (
+                              <div>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Winner: <strong className="text-foreground">{activeWinner.first_name} {activeWinner.last_name || ""}</strong> (Admn #{activeWinner.admission_number})
+                                </p>
+                                {sa.runnerUpNote && !customWinnerId && (
+                                  <p className="text-[10px] text-amber-700 dark:text-amber-300 font-medium mt-0.5 flex items-center gap-1">
+                                    <Info className="h-3 w-3 inline shrink-0" />
+                                    {sa.runnerUpNote}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-rose-500 font-medium mt-0.5">
+                                {isExcluded ? "Badge excluded for this section." : (sa.runnerUpNote || "No student met minimum threshold.")}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
 
-                      {sa.winner ? (
-                        <div className="flex items-center gap-4 shrink-0 sm:text-right">
-                          <div>
-                            <span className="text-xs font-black text-primary block">
-                              {sa.winner.compositeScore} Score
-                            </span>
+                        {!isExcluded && (
+                          <div className="flex items-center gap-3 shrink-0 flex-wrap sm:justify-end">
+                            {/* Override dropdown */}
+                            {scopeCandidates.length > 0 && (
+                              <select
+                                value={customWinnerId || (activeWinner ? activeWinner.id : "")}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setCustomWinnersMap((prev) => ({ ...prev, [scopeKey]: val }));
+                                }}
+                                className="text-xs font-medium px-2 py-1 rounded-md border bg-background text-foreground max-w-[180px]"
+                              >
+                                {scopeCandidates.map((cand) => (
+                                  <option key={cand.id} value={cand.id}>
+                                    {cand.first_name} {cand.last_name || ""} ({cand.compositeScore} Score)
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+
+                            {activeWinner ? (
+                              <div className="text-right">
+                                <span className="text-xs font-black text-primary block">
+                                  {activeWinner.compositeScore} Score
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {activeWinner.points} XP · {activeWinner.booksIssuedCount} Books
+                                </span>
+                              </div>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] font-bold border-rose-400 text-rose-600 bg-rose-50 dark:bg-rose-950/30">
+                                No Badge
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
                             <span className="text-[10px] text-muted-foreground">
                               {sa.winner.points} XP · {sa.winner.booksIssuedCount} Books Borrowed
                             </span>

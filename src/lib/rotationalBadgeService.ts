@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sendAutoEmail } from "@/lib/autoEmail";
 
 export interface StudentScoreCandidate {
   id: string;
@@ -600,6 +601,23 @@ export async function verifyAndPublishRotationalCycle(
     if (notificationRows.length > 0) {
       await supabase.from("notifications").insert(notificationRows);
     }
+
+    // 7. Dispatch automated emails to all winning students
+    winners.forEach((w) => {
+      const emailNote = `Rotational Badge: 🏆 ${w.badgeName} (${w.scopeValue})\nCycle: ${cycleLabel}\nPhysical Badge Collection Date: ${formattedCollectionDate}\nVenue: ${settings.collectionVenue}\n${settings.librarianNote}`;
+
+      sendAutoEmail({
+        recipientId: w.studentId,
+        preset: "badge_awarded",
+        customMessage: emailNote,
+        details: {
+          badgeName: w.badgeName,
+          badgeDescription: `Awarded for ${w.scopeValue} (${cycleLabel})`,
+          collectionDate: settings.collectionDate,
+          collectionVenue: settings.collectionVenue,
+        },
+      });
+    });
 
     return { success: true, winnersCount: winners.length };
   } catch (err: any) {
