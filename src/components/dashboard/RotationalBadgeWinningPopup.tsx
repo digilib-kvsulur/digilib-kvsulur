@@ -6,6 +6,7 @@ import {
   Crown, Award, Calendar, MapPin, Sparkles, CheckCircle, 
   Printer, BookOpen, Star, Trophy, HeartHandshake, X, FileText, Download
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   getStudentRotationalAwardInfo, 
   acknowledgeStudentRotationalAward, 
@@ -35,8 +36,32 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
 
   const [acknowledging, setAcknowledging] = useState(false);
 
+  // Fallback profile state to ensure name, class, and admission number are never blank
+  const [userProfile, setUserProfile] = useState<{
+    name: string;
+    studentClass: string;
+    admissionNumber: string;
+  } | null>(null);
+
   useEffect(() => {
     if (!userId) return;
+
+    // Fetch user profile
+    supabase
+      .from("profiles")
+      .select("first_name, last_name, student_class, admission_number")
+      .eq("id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          const fullName = `${data.first_name || ""} ${data.last_name || ""}`.trim();
+          setUserProfile({
+            name: fullName || "Student",
+            studentClass: data.student_class || "—",
+            admissionNumber: data.admission_number || "—",
+          });
+        }
+      });
 
     const checkAwards = async () => {
       try {
@@ -66,6 +91,44 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
     checkAwards();
   }, [userId]);
 
+  // Enhance Event Title if it defaulted to "Library Event"
+  useEffect(() => {
+    if (!eventWinner) return;
+    if (eventWinner.eventTitle === "Library Event") {
+      // 1. Check certificate for custom event_name
+      if (eventWinner.certificateId) {
+        supabase
+          .from("issued_certificates")
+          .select("event_name, bilingual_data, during_text, title")
+          .eq("id", eventWinner.certificateId)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.event_name && !/[\u0900-\u097F]/.test(data.event_name)) {
+              setEventWinner((prev) => prev ? { ...prev, eventTitle: data.event_name } : prev);
+            } else if (data?.bilingual_data?.event_name) {
+              setEventWinner((prev) => prev ? { ...prev, eventTitle: data.bilingual_data.event_name } : prev);
+            } else if (data?.during_text) {
+              const cleaned = data.during_text.replace(/^Event:\s*/i, "").trim();
+              if (cleaned) setEventWinner((prev) => prev ? { ...prev, eventTitle: cleaned } : prev);
+            }
+          });
+      }
+      // 2. Check library_events table
+      if (eventWinner.eventId) {
+        supabase
+          .from("library_events")
+          .select("title")
+          .eq("id", eventWinner.eventId)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.title) {
+              setEventWinner((prev) => prev ? { ...prev, eventTitle: data.title } : prev);
+            }
+          });
+      }
+    }
+  }, [eventWinner?.eventId, eventWinner?.certificateId, eventWinner?.eventTitle]);
+
   if (!open || !awardType) return null;
 
   const handleAcknowledge = async () => {
@@ -85,6 +148,27 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
       setAcknowledging(false);
     }
   };
+
+  // Resolved student and event details
+  const displayStudentName = (
+    awardType === "rotational"
+      ? rotationalWinner?.studentName
+      : (eventWinner?.studentName && eventWinner.studentName !== "Student" ? eventWinner.studentName : null)
+  ) || userProfile?.name || "Student";
+
+  const displayClass = (
+    awardType === "rotational"
+      ? rotationalWinner?.studentClass
+      : (eventWinner?.studentClass && eventWinner.studentClass !== "—" ? eventWinner.studentClass : null)
+  ) || userProfile?.studentClass || "—";
+
+  const displayAdmissionNumber = (
+    awardType === "rotational"
+      ? rotationalWinner?.admissionNumber
+      : (eventWinner?.admissionNumber && eventWinner.admissionNumber !== "—" ? eventWinner.admissionNumber : null)
+  ) || userProfile?.admissionNumber || "—";
+
+  const displayEventTitle = eventWinner?.eventTitle || "Library Event";
 
   // --- Rotational Render Data ---
   const isClassAward = rotationalWinner?.badgeType === "best_library_user";
@@ -111,14 +195,14 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    const studentName = awardType === "rotational" ? rotationalWinner?.studentName : eventWinner?.studentName;
+    const studentName = displayStudentName;
     const title = awardType === "rotational"
       ? (isClassAward ? "👑 BEST LIBRARY USER" : "📚 READER OF THE MONTH")
       : (eventWinner?.positionTitle || "🏆 EVENT WINNER");
-    const scope = awardType === "rotational" ? rotationalWinner?.scopeValue : eventWinner?.eventTitle;
-    const cycleOrEvent = awardType === "rotational" ? rotationalCycle?.cycleLabel : eventWinner?.eventTitle;
-    const stdClass = awardType === "rotational" ? rotationalWinner?.studentClass : eventWinner?.studentClass;
-    const admnNo = awardType === "rotational" ? rotationalWinner?.admissionNumber : eventWinner?.admissionNumber;
+    const scope = awardType === "rotational" ? rotationalWinner?.scopeValue : displayEventTitle;
+    const cycleOrEvent = awardType === "rotational" ? rotationalCycle?.cycleLabel : displayEventTitle;
+    const stdClass = displayClass;
+    const admnNo = displayAdmissionNumber;
     const dateStr = awardType === "rotational" ? rotCollectionDate : evtCollectionDate;
     const venueStr = awardType === "rotational"
       ? rotationalCycle?.settings?.collectionVenue
@@ -241,7 +325,7 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
           </div>
 
           <Badge className="bg-white/20 backdrop-blur-md text-white border border-white/30 text-[9px] sm:text-[10px] font-black uppercase tracking-wider mb-2">
-            {awardType === "rotational" ? `Rotational Winner · ${rotationalCycle?.cycleLabel}` : `Event Winner · ${eventWinner?.eventTitle}`}
+            {awardType === "rotational" ? `Rotational Winner · ${rotationalCycle?.cycleLabel}` : `Event Winner · ${displayEventTitle}`}
           </Badge>
 
           <h2 className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
@@ -253,7 +337,7 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
           <p className="text-xs sm:text-sm text-white/95 font-medium mt-1">
             {awardType === "rotational"
               ? `Official Rotational Award for ${rotationalWinner?.scopeValue}`
-              : `Event: ${eventWinner?.eventTitle}`}
+              : `Event: ${displayEventTitle}`}
           </p>
         </div>
 
@@ -265,10 +349,10 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
               Congratulations
             </p>
             <h3 className="text-lg sm:text-xl font-black text-foreground break-words">
-              {awardType === "rotational" ? rotationalWinner?.studentName : eventWinner?.studentName}
+              {displayStudentName}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Class {awardType === "rotational" ? rotationalWinner?.studentClass : eventWinner?.studentClass} · Admission No: <span className="font-mono text-foreground font-semibold">{awardType === "rotational" ? rotationalWinner?.admissionNumber : eventWinner?.admissionNumber}</span>
+              Class {displayClass} · Admission No: <span className="font-mono text-foreground font-semibold">{displayAdmissionNumber}</span>
             </p>
 
             {awardType === "rotational" && rotationalWinner && (

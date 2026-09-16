@@ -311,6 +311,11 @@ export async function releaseEventWinners(
       .from("event_winners" as any)
       .upsert(finalRows, { onConflict: "id" });
 
+    // Also ensure library_events is marked published so students can query the event title
+    try {
+      await supabase.from("library_events").update({ is_published: true }).eq("id", eventId);
+    } catch (_) {}
+
     // Fallback: store in system_settings
     const systemWinners: EventWinnerRecord[] = updatedInputs.map((inp, idx) => ({
       id: inp.id || `ew-${eventId}-${idx}`,
@@ -431,32 +436,90 @@ export async function getStudentEventWinnersInfo(userId: string): Promise<{
       const serverAck = ackUserIds.includes(userId);
 
       if (!localAck && !serverAck) {
-        // Fetch event title if missing
-        let eventTitle = cand.eventTitle || "Library Event";
-        if (!cand.eventTitle && cand.event_id) {
+        const eventId = cand.event_id || cand.eventId;
+        const certId = cand.certificate_id || cand.certificateId;
+
+        // 1. Resolve Profile Details (Name, Class, Admission Number)
+        let studentName = cand.studentName;
+        let admissionNumber = cand.admissionNumber;
+        let studentClass = cand.studentClass;
+
+        if (!studentName || studentName === "Student" || !admissionNumber || admissionNumber === "—" || !studentClass || studentClass === "—") {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, admission_number, student_class")
+            .eq("id", userId)
+            .maybeSingle();
+
+          if (prof) {
+            const fullName = `${prof.first_name || ""} ${prof.last_name || ""}`.trim();
+            if (fullName) studentName = fullName;
+            if (prof.admission_number) admissionNumber = prof.admission_number;
+            if (prof.student_class) studentClass = prof.student_class;
+          }
+        }
+
+        // 2. Resolve Event Title
+        let eventTitle = cand.eventTitle;
+
+        // A. Check library_events
+        if ((!eventTitle || eventTitle === "Library Event") && eventId) {
           const { data: ev } = await supabase
             .from("library_events")
             .select("title")
-            .eq("id", cand.event_id)
+            .eq("id", eventId)
             .maybeSingle();
           if (ev?.title) eventTitle = ev.title;
         }
 
+        // B. Check issued_certificates if eventTitle still default
+        if ((!eventTitle || eventTitle === "Library Event") && certId) {
+          const { data: cert } = await supabase
+            .from("issued_certificates")
+            .select("event_name, title, during_text, bilingual_data")
+            .eq("id", certId)
+            .maybeSingle();
+          if (cert?.event_name && !/[\u0900-\u097F]/.test(cert.event_name)) {
+            eventTitle = cert.event_name;
+          } else if (cert?.bilingual_data?.event_name) {
+            eventTitle = cert.bilingual_data.event_name;
+          } else if (cert?.during_text) {
+            eventTitle = cert.during_text.replace(/^Event:\s*/i, "").trim();
+          }
+        }
+
+        // C. Check system_settings event_winners_<eventId>
+        if ((!eventTitle || eventTitle === "Library Event") && eventId) {
+          const { data: sysData } = await supabase
+            .from("system_settings")
+            .select("value")
+            .eq("key", `event_winners_${eventId}`)
+            .maybeSingle();
+          if (sysData?.value) {
+            const parsed = typeof sysData.value === "string" ? JSON.parse(sysData.value) : sysData.value;
+            if (Array.isArray(parsed) && parsed[0]?.eventTitle) {
+              eventTitle = parsed[0].eventTitle;
+            }
+          }
+        }
+
+        if (!eventTitle) eventTitle = "Library Event";
+
         const winnerRecord: EventWinnerRecord = {
           id: cand.id,
-          eventId: cand.event_id || cand.eventId,
+          eventId,
           eventTitle,
           userId: cand.user_id || cand.userId,
-          studentName: cand.studentName || "Student",
-          admissionNumber: cand.admissionNumber || "—",
-          studentClass: cand.studentClass || "—",
+          studentName: studentName || "Student",
+          admissionNumber: admissionNumber || "—",
+          studentClass: studentClass || "—",
           position: cand.position,
           positionTitle: cand.position_title || cand.positionTitle,
           positionTitleHindi: cand.position_title_hindi || cand.positionTitleHindi,
           collectionDate: cand.collection_date || cand.collectionDate,
           collectionVenue: cand.collection_venue || cand.collectionVenue || "Central Library Counter",
           librarianNote: cand.librarian_note || cand.librarianNote || "",
-          certificateId: cand.certificate_id || cand.certificateId,
+          certificateId: certId,
           isPublished: true,
         };
 

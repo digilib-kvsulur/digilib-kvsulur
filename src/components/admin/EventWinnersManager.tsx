@@ -4,9 +4,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { 
   Trophy, Calendar, Award, Medal, Search, Plus, Trash2, Mail, 
   CheckCircle2, FileText, Sparkles, Send, RefreshCw, AlertCircle, 
@@ -79,6 +81,64 @@ export default function EventWinnersManager() {
     () => events.find((e) => e.id === selectedEventId) || null,
     [events, selectedEventId]
   );
+
+  // New unscheduled event creation state
+  const [createEventOpen, setCreateEventOpen] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventDate, setNewEventDate] = useState(new Date().toISOString().split("T")[0]);
+  const [newEventLocation, setNewEventLocation] = useState("Central Library");
+  const [newEventDesc, setNewEventDesc] = useState("");
+  const [creatingEvent, setCreatingEvent] = useState(false);
+
+  const handleCreateUnscheduledEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEventTitle.trim()) {
+      toast({
+        title: "Event title required",
+        description: "Please enter an event or competition title.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCreatingEvent(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const { data: created, error } = await supabase
+        .from("library_events")
+        .insert({
+          title: newEventTitle.trim(),
+          description: newEventDesc.trim() || null,
+          event_date: newEventDate ? new Date(newEventDate).toISOString() : new Date().toISOString(),
+          location: newEventLocation.trim() || "Central Library",
+          is_published: true,
+          created_by: user?.id || null,
+        })
+        .select("id, title, description, event_date, location, image_url, is_published")
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "🎉 Event Created!",
+        description: `"${created.title}" is ready. You can now add winners below.`,
+      });
+
+      setEvents((prev) => [created, ...prev]);
+      setSelectedEventId(created.id);
+      setCreateEventOpen(false);
+      setNewEventTitle("");
+      setNewEventDesc("");
+    } catch (err: any) {
+      toast({
+        title: "Failed to create event",
+        description: err.message || "An error occurred while creating the event.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingEvent(false);
+    }
+  };
 
   // Load events
   const loadEvents = async () => {
@@ -346,6 +406,14 @@ export default function EventWinnersManager() {
 
         <div className="flex items-center gap-2">
           <Button
+            size="sm"
+            onClick={() => setCreateEventOpen(true)}
+            className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-xs"
+          >
+            <Plus className="h-4 w-4" />
+            + New / Unscheduled Event
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             onClick={loadEvents}
@@ -363,13 +431,26 @@ export default function EventWinnersManager() {
         <div className="lg:col-span-4 space-y-4">
           <Card className="rounded-2xl border-border/60 shadow-xs">
             <CardHeader className="pb-3 pt-4 px-4 border-b">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-amber-600" />
-                Select Event
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Choose an event to view or assign awards
-              </CardDescription>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-amber-600" />
+                    Select Event
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Choose an event or add an unscheduled one
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCreateEventOpen(true)}
+                  className="h-8 text-xs font-semibold rounded-xl border-amber-400/70 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  New
+                </Button>
+              </div>
               <div className="relative mt-2">
                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
@@ -382,8 +463,17 @@ export default function EventWinnersManager() {
             </CardHeader>
             <CardContent className="p-2 space-y-1.5 max-h-[520px] overflow-y-auto">
               {filteredEvents.length === 0 ? (
-                <div className="text-center py-8 text-xs text-muted-foreground">
-                  No matching events found.
+                <div className="text-center py-8 px-4 text-xs text-muted-foreground space-y-2">
+                  <p>No matching events found.</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCreateEventOpen(true)}
+                    className="text-xs rounded-xl border-amber-400 text-amber-800 dark:text-amber-300"
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Create Unscheduled Event
+                  </Button>
                 </div>
               ) : (
                 filteredEvents.map((ev) => {
@@ -826,6 +916,99 @@ export default function EventWinnersManager() {
           }}
         />
       )}
+
+      {/* Create Unscheduled Event Modal */}
+      <Dialog open={createEventOpen} onOpenChange={setCreateEventOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-6 border shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black flex items-center gap-2 text-foreground">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              Add Unscheduled / Custom Event
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Create an ad-hoc competition, spot event, or external contest directly here to immediately record and award its winners.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateUnscheduledEvent} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="newEventTitle" className="text-xs font-bold text-foreground">
+                Event Name / Competition Title <span className="text-rose-500">*</span>
+              </Label>
+              <Input
+                id="newEventTitle"
+                placeholder="e.g. Hindi Pakhwada 2026 - Debate Competition"
+                value={newEventTitle}
+                onChange={(e) => setNewEventTitle(e.target.value)}
+                required
+                className="h-9 text-xs rounded-xl"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="newEventDate" className="text-xs font-bold text-foreground">
+                  Event / Conduct Date
+                </Label>
+                <Input
+                  id="newEventDate"
+                  type="date"
+                  value={newEventDate}
+                  onChange={(e) => setNewEventDate(e.target.value)}
+                  className="h-9 text-xs rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="newEventLocation" className="text-xs font-bold text-foreground">
+                  Venue / Location
+                </Label>
+                <Input
+                  id="newEventLocation"
+                  placeholder="e.g. Central Library / Stage"
+                  value={newEventLocation}
+                  onChange={(e) => setNewEventLocation(e.target.value)}
+                  className="h-9 text-xs rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="newEventDesc" className="text-xs font-bold text-foreground">
+                Brief Description / Notes (Optional)
+              </Label>
+              <Textarea
+                id="newEventDesc"
+                placeholder="e.g. Annual inter-house literary competition conducted for Classes 6-12."
+                value={newEventDesc}
+                onChange={(e) => setNewEventDesc(e.target.value)}
+                rows={3}
+                className="text-xs rounded-xl resize-none"
+              />
+            </div>
+
+            <DialogFooter className="pt-2 flex sm:justify-between items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setCreateEventOpen(false)}
+                className="rounded-xl text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={creatingEvent || !newEventTitle.trim()}
+                className="rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
+              >
+                {creatingEvent ? "Creating..." : "Create & Start Adding Winners"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
