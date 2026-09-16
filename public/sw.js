@@ -78,13 +78,16 @@ self.addEventListener('fetch', (event) => {
         try {
           const networkResponse = await fetch(event.request);
           if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
-            try {
-              const responseToCache = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseToCache).catch(() => {});
-              }).catch(() => {});
-            } catch (e) {
-              /* ignore clone error */
+            // ONLY cache static hashed assets (JS/CSS/images in /assets/), NEVER cache HTML navigation documents
+            if (isAsset) {
+              try {
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                  cache.put(event.request, responseToCache).catch(() => {});
+                }).catch(() => {});
+              } catch (e) {
+                /* ignore clone error */
+              }
             }
           }
           return networkResponse;

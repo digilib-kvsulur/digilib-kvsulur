@@ -67,14 +67,20 @@
       // Automatically recover when Vite chunk loading fails after a new deployment
       // Guard against infinite reload loops with a cooldown and cache eviction
       window.addEventListener('vite:preloadError', function(event) {
-        event.preventDefault();
         var key = 'dlms_preload_reload_ts';
         var lastReload = parseInt(sessionStorage.getItem(key) || '0', 10);
         var now = Date.now();
-        // Allow at most one automatic reload every 15 seconds
-        if (now - lastReload > 15000) {
+        // Allow at most one automatic recovery reload every 20 seconds
+        if (now - lastReload > 20000) {
+          event.preventDefault();
           sessionStorage.setItem(key, String(now));
-          // Clear service worker caches if available so fresh chunks are fetched
+          // Unregister service workers so stale index.html is never served again
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var i = 0; i < regs.length; i++) regs[i].unregister();
+            });
+          }
+          // Clear all browser cache storage so new chunk hashes are fetched fresh
           if ('caches' in window) {
             caches.keys().then(function(keys) {
               return Promise.all(keys.map(function(k) { return caches.delete(k); }));
@@ -85,7 +91,8 @@
             window.location.reload();
           }
         } else {
-          console.error('Vite chunk preload error repeated within cooldown window. Halting reload loop.', event);
+          // Do NOT preventDefault when cooldown is active so the real error surfaces instead of undefined
+          console.error('Vite chunk preload error repeated within cooldown window. Halting reload loop.', event.payload || event);
         }
       });
 
@@ -104,7 +111,7 @@
 
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+          navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function(reg) {
             reg.update().catch(function() {});
           }).catch(function() {});
         });
