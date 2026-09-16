@@ -95,16 +95,24 @@ export function resolveFieldText(key: CertFieldKey, data: CertificateRenderData)
       return data.nameHindi || data.studentName || "";
     case "classHindi":
       return data.classHindi || data.studentClass || "";
-    case "eventHindi":
-      return data.eventHindi || data.eventName || "";
+    case "eventHindi": {
+      const hasDevanagari = (s?: string | null) => Boolean(s && /[\u0900-\u097F]/.test(s));
+      if (data.eventHindi) return data.eventHindi;
+      if (data.eventName && hasDevanagari(data.eventName)) return data.eventName;
+      return data.eventName || "";
+    }
     case "titleHindi":
       return data.titleHindi || "";
     case "name":
       return data.studentName || "";
     case "className":
       return data.studentClass || "";
-    case "event":
-      return data.eventName || data.eventHindi || "";
+    case "event": {
+      const hasDevanagari = (s?: string | null) => Boolean(s && /[\u0900-\u097F]/.test(s));
+      if (data.eventName && !hasDevanagari(data.eventName)) return data.eventName;
+      if (data.eventHindi && !hasDevanagari(data.eventHindi)) return data.eventHindi;
+      return "";
+    }
     case "during":
       return data.during || "";
     case "title":

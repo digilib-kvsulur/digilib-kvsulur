@@ -249,25 +249,40 @@ export async function releaseEventWinners(
 
         const certNo = `KVS-EVT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-        const { data: createdCert, error: certErr } = await supabase
+        const certInsertPayload: any = {
+          user_id: inp.userId,
+          event_id: eventId,
+          title: inp.positionTitle,
+          title_hindi: inp.positionTitleHindi || null,
+          name_hindi: nameHindi,
+          event_name: eventTitle,
+          event_hindi: null,
+          during_text: certOptions.duringText || `Event: ${eventTitle}`,
+          description: certOptions.description || `Winner of ${inp.positionTitle} in ${eventTitle}`,
+          certificate_no: certNo,
+          issued_at: new Date().toISOString().slice(0, 10),
+          unlock_at: certOptions.unlockAt || null,
+          template_url: certOptions.templateUrl || null,
+          common_text: certOptions.commonText || null,
+          bilingual_data: {
+            event_name: eventTitle,
+          },
+        };
+
+        let { data: createdCert, error: certErr } = await supabase
           .from("issued_certificates")
-          .insert({
-            user_id: inp.userId,
-            event_id: eventId,
-            title: inp.positionTitle,
-            title_hindi: inp.positionTitleHindi || null,
-            name_hindi: nameHindi,
-            event_hindi: eventTitle,
-            during_text: certOptions.duringText || `Event: ${eventTitle}`,
-            description: certOptions.description || `Winner of ${inp.positionTitle} in ${eventTitle}`,
-            certificate_no: certNo,
-            issued_at: new Date().toISOString().slice(0, 10),
-            unlock_at: certOptions.unlockAt || null,
-            template_url: certOptions.templateUrl || null,
-            common_text: certOptions.commonText || null,
-          })
+          .insert(certInsertPayload)
           .select("id")
           .single();
+
+        if (certErr && certErr.message?.includes("event_name")) {
+          const { event_name, ...fallbackPayload } = certInsertPayload;
+          ({ data: createdCert, error: certErr } = await supabase
+            .from("issued_certificates")
+            .insert(fallbackPayload)
+            .select("id")
+            .single());
+        }
 
         if (!certErr && createdCert) {
           updatedInputs[i].certificateId = createdCert.id;

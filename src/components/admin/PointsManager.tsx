@@ -215,6 +215,13 @@ const PointsManager = () => {
         );
       }
 
+      // Send auto level / points email to all bulk awarded students
+      Array.from(selectedUserIds).forEach((uid) => {
+        const student = users.find((u) => u.id === uid);
+        const newTotal = (student?.points || 0) + points;
+        sendLevelUpEmail(uid, `Awarded +${points} Points (${actualReason})`, newTotal);
+      });
+
       toast({ title: "Bulk Points Awarded", description: `Successfully awarded +${points} points to ${selectedUserIds.size} students.` });
       setBulkPoints("");
       setBulkReason("");

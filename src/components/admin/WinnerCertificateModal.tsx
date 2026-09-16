@@ -154,7 +154,8 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
         title_hindi: form.title_hindi || null,
         name_hindi: form.name_hindi || null,
         class_hindi: data.studentClass || null,
-        event_hindi: form.event_hindi || form.event_name || null,
+        event_name: form.event_name || null,
+        event_hindi: form.event_hindi || null,
         during_text: form.during_text || null,
         description: form.description || null,
         issued_at: form.issued_at,
@@ -162,8 +163,8 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
         template_url: templateUrl,
         common_text: commonText || null,
         bilingual_data: {
-          event_name: form.event_name,
-          event_hindi: form.event_hindi || form.event_name,
+          event_name: form.event_name || null,
+          event_hindi: form.event_hindi || null,
           award_title: form.title,
           award_title_hindi: form.title_hindi,
         },
@@ -171,15 +172,20 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
 
       if (certId) {
         // Update existing certificate
-        const { error } = await supabase
+        let { error } = await supabase
           .from("issued_certificates")
           .update(certPayload)
           .eq("id", certId);
 
+        if (error && error.message?.includes("event_name")) {
+          const { event_name, ...fallback } = certPayload as any;
+          ({ error } = await supabase.from("issued_certificates").update(fallback).eq("id", certId));
+        }
+
         if (error) throw error;
       } else {
         // Create new certificate
-        const { data: created, error } = await supabase
+        let { data: created, error } = await supabase
           .from("issued_certificates")
           .insert({
             ...certPayload,
@@ -188,6 +194,19 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
           })
           .select("id")
           .single();
+
+        if (error && error.message?.includes("event_name")) {
+          const { event_name, ...fallback } = certPayload as any;
+          ({ data: created, error } = await supabase
+            .from("issued_certificates")
+            .insert({
+              ...fallback,
+              user_id: data.userId,
+              certificate_no: certNo,
+            })
+            .select("id")
+            .single());
+        }
 
         if (error) throw error;
         if (created) certId = created.id;

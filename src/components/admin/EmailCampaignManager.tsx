@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Mail, Send, CheckCircle2, Eye, History, Users, BookOpen,
   Bell, Award, BookMarked, AlertCircle, Newspaper, Coffee,
-  Calendar, ChevronRight, X, Filter, Trophy, Crown,
+  Calendar, ChevronRight, X, Filter, Trophy, Crown, Zap,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ interface Template {
   previewHtml: (name: string, note: string) => string;
   icon: React.ElementType;
   color: string;
+  isAutomated?: boolean;
 }
 
 const TEMPLATES: Template[] = [
@@ -55,6 +56,7 @@ const TEMPLATES: Template[] = [
     subject: "Book Issued — KV Sulur Digital Library",
     icon: BookOpen,
     color: "text-blue-600",
+    isAutomated: true,
     previewHtml: (name, note) => `
       <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
       <p>A book has been issued to your account at the <strong>PM SHRI KV AFS Sulur Digital Library</strong>.</p>
@@ -72,6 +74,7 @@ const TEMPLATES: Template[] = [
     subject: "Book Return Receipt — KV Sulur Library",
     icon: CheckCircle2,
     color: "text-emerald-600",
+    isAutomated: true,
     previewHtml: (name, note) => `
       <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
       <p>Thank you for returning your library book! We have updated your account status.</p>
@@ -89,6 +92,7 @@ const TEMPLATES: Template[] = [
     subject: "🏆 Congratulations! You Earned a New Badge — KV Sulur Library",
     icon: Award,
     color: "text-amber-500",
+    isAutomated: true,
     previewHtml: (name, note) => `
       <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
       <p>Congratulations! You have been awarded a new achievement badge in the <strong>Digital Library</strong> 🎉</p>
@@ -107,6 +111,7 @@ const TEMPLATES: Template[] = [
     subject: "🌟 Level Up! You Reached a New Rank — KV Sulur Library",
     icon: Coffee,
     color: "text-purple-600",
+    isAutomated: true,
     previewHtml: (name, note) => `
       <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
       <p>Awesome progress! Your reading activity and library points have leveled up your rank 🚀</p>
@@ -249,6 +254,7 @@ const TEMPLATES: Template[] = [
     subject: "🏆 Congratulations! You Won an Award in Library Event — KV Sulur",
     icon: Trophy,
     color: "text-amber-500",
+    isAutomated: true,
     previewHtml: (name, note) => `
       <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
       <p>Heartiest Congratulations! We are thrilled to celebrate your outstanding accomplishment in the <strong>PM SHRI KV AFS Sulur Digital Library Event</strong>! 🎉</p>
@@ -270,6 +276,7 @@ const TEMPLATES: Template[] = [
     subject: "👑 Congratulations! You Won the Rotational Badge — KV Sulur Library",
     icon: Crown,
     color: "text-purple-600",
+    isAutomated: true,
     previewHtml: (name, note) => `
       <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
       <p>Outstanding reading achievement! You have been awarded the prestigious <strong>Rotational Library Honour</strong>! 🌟</p>
@@ -479,6 +486,15 @@ export default function EmailCampaignManager() {
 
         {/* ── Compose Tab ─────────────────────────────────────────────────── */}
         <TabsContent value="compose" className="space-y-6 mt-0">
+          {/* Active Automations Notice */}
+          <div className="flex items-start sm:items-center gap-3 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-900 dark:text-emerald-200 text-xs">
+            <Zap className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5 sm:mt-0" />
+            <div>
+              <span className="font-bold">⚡ Real-Time Auto Emails Active: </span>
+              Book Issued Receipts, Book Returned Receipts, Badge Awards, Level Ups, Event Winners, and Rotational Awards are sent automatically by the system when those events take place. You can also use this screen to send bulk announcements or manual receipts as needed.
+            </div>
+          </div>
+
           {/* Template Gallery */}
           <div>
             <Label className="text-base font-semibold mb-3 block">1. Choose a Template</Label>
@@ -490,12 +506,18 @@ export default function EmailCampaignManager() {
                   <button
                     key={t.id}
                     onClick={() => setActiveTemplate(t)}
-                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-center transition-all text-xs font-medium cursor-pointer ${
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-center transition-all text-xs font-medium cursor-pointer relative ${
                       active
                         ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
                         : "border-border/60 hover:border-primary/40 hover:bg-muted/40"
                     }`}
                   >
+                    {t.isAutomated && (
+                      <span className="absolute top-1.5 right-1.5 text-[8px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-1 py-0.2 rounded-full border border-emerald-300/50 dark:border-emerald-700/50 flex items-center gap-0.5">
+                        <Zap className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                        Auto
+                      </span>
+                    )}
                     <div className={`p-2 rounded-full ${active ? "bg-primary/10" : "bg-muted"}`}>
                       <Icon className={`h-5 w-5 ${active ? "text-primary" : t.color}`} />
                     </div>
@@ -507,6 +529,11 @@ export default function EmailCampaignManager() {
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               <span className="font-medium">{activeTemplate.label}:</span> {activeTemplate.description}
+              {activeTemplate.isAutomated && (
+                <span className="ml-2 font-semibold text-emerald-600 dark:text-emerald-400">
+                  (⚡ Dispatched automatically during library operations)
+                </span>
+              )}
             </p>
           </div>
 

@@ -30,6 +30,7 @@ import { LibraryBot } from "@/components/chat/LibraryBot";
 import BugBountyManager from "@/components/admin/BugBountyManager";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
 import LevelUpBanner from "@/components/rewards/LevelUpBanner";
+import { sendLevelUpEmail } from "@/lib/autoEmail";
 import Rankings from "@/components/dashboard/Rankings";
 import { StudentQuiz } from "@/components/quiz/StudentQuiz";
 import { LiveQuizAlert } from "@/components/quiz/LiveQuizAlert";
@@ -412,7 +413,10 @@ const StudentDashboard = () => {
       const { data: newLevelData } = await supabase.rpc('get_user_level', { user_points: newPoints });
       if (newLevelData && newLevelData.length > 0) {
         const newLevel = newLevelData[0].level_number;
-        if (newLevel > previousLevel) setLevelUpBanner({ level_number: newLevel, name: newLevelData[0].name, icon_name: newLevelData[0].icon_name, color: newLevelData[0].color });
+        if (newLevel > previousLevel) {
+          setLevelUpBanner({ level_number: newLevel, name: newLevelData[0].name, icon_name: newLevelData[0].icon_name, color: newLevelData[0].color });
+          sendLevelUpEmail(user.id, `Level ${newLevel}: ${newLevelData[0].name}`, newPoints);
+        }
         setPreviousLevel(newLevel);
       }
     } catch (e) { console.error(e); }

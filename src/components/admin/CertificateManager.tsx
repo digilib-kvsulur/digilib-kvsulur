@@ -165,15 +165,17 @@ export default function CertificateManager() {
   const load = async () => {
     setLoading(true);
     try {
-      const [{ data: certs }, tpl, lay, commText] = await Promise.all([
+      const [{ data: certs }, tpl, lay, commText, { data: evts }] = await Promise.all([
         supabase.from("issued_certificates").select("*").order("issued_at", { ascending: false }),
         fetchCertificateTemplateUrl(),
         fetchCertificateLayout(),
         fetchCertificateCommonText(),
+        supabase.from("library_events").select("id, title").order("event_date", { ascending: false }).limit(200),
       ]);
       setTemplateUrl(tpl || OFFICIAL_KV_TEMPLATE_URL);
       setLayout(lay);
       setCommonText(commText);
+      setEvents(evts || []);
       const list = (certs as any[]) || [];
       const userIds = Array.from(new Set(list.map((c) => c.user_id)));
       let profileMap: Record<string, any> = {};
@@ -457,6 +459,8 @@ export default function CertificateManager() {
       }
 
       const unlockTimeIso = form.unlock_at ? new Date(form.unlock_at).toISOString() : null;
+      const rawEventName = (form.event_id ? selectedEvent?.title : form.event_name.trim()) || null;
+      const rawEventHindi = form.event_hindi.trim() || null;
 
       const inserts = targetStudents.map((s, idx) => ({
         user_id: s.id,
@@ -465,7 +469,8 @@ export default function CertificateManager() {
         name_hindi: issueMode === "single" ? (form.name_hindi.trim() || s.hindi_name || null) : (s.hindi_name || null),
         class_hindi: s.student_class || null,
         event_id: form.event_id || null,
-        event_hindi: form.event_hindi.trim() || (selectedEvent ? selectedEvent.title : form.event_name || null),
+        event_name: rawEventName,
+        event_hindi: rawEventHindi,
         during_text: form.during_text.trim() || null,
         common_text: commonText.trim() || null,
         description: form.description.trim() || null,
@@ -475,14 +480,14 @@ export default function CertificateManager() {
         unlock_at: unlockTimeIso,
         certificate_no: `${form.certificate_no.replace(/-\d+$/, "")}-${String(idx + 1).padStart(4, "0")}`,
         bilingual_data: {
-          event_name: (form.event_id ? selectedEvent?.title : form.event_name) || form.event_hindi || null,
-          event_hindi: form.event_hindi.trim() || (selectedEvent ? selectedEvent.title : form.event_name) || null,
+          event_name: rawEventName,
+          event_hindi: rawEventHindi,
         },
       }));
 
       let { error } = await supabase.from("issued_certificates").insert(inserts);
-      if (error && (error.message?.includes("unlock_at") || error.code === "PGRST204")) {
-        const fallbackInserts = inserts.map(({ unlock_at, ...rest }) => rest);
+      if (error && (error.message?.includes("event_name") || error.message?.includes("unlock_at") || error.code === "PGRST204")) {
+        const fallbackInserts = inserts.map(({ unlock_at, event_name, ...rest }: any) => rest);
         ({ error } = await supabase.from("issued_certificates").insert(fallbackInserts));
       }
       if (error) throw error;
@@ -618,13 +623,20 @@ export default function CertificateManager() {
   };
 
   const getCertRenderData = (cert: CertificateRow): CertificateRenderData => {
-    const evtName = (cert.event_id && events.find((e) => e.id === cert.event_id)?.title)
-      || (cert as any).bilingual_data?.event_name
+    const hasDevanagari = (s?: string | null) => Boolean(s && /[\u0900-\u097F]/.test(s));
+
+    const rawEvtName = (cert as any).bilingual_data?.event_name
       || (cert as any).event_name
-      || cert.event_hindi
+      || (cert.event_id && events.find((e) => e.id === cert.event_id)?.title)
       || null;
+
+    const evtName = (rawEvtName && !hasDevanagari(rawEvtName))
+      ? rawEvtName
+      : (!hasDevanagari(cert.event_hindi) ? cert.event_hindi : (rawEvtName || null));
+
     const evtHindi = cert.event_hindi
       || (cert as any).bilingual_data?.event_hindi
+      || (hasDevanagari((cert as any).event_name) ? (cert as any).event_name : null)
       || (cert.event_id && events.find((e) => e.id === cert.event_id)?.title)
       || evtName
       || null;

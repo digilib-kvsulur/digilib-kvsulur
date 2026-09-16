@@ -85,7 +85,7 @@ export default function EventWinnersManager() {
     setLoadingEvents(true);
     try {
       const { data, error } = await supabase
-        .from("events")
+        .from("library_events")
         .select("id, title, description, event_date, location, image_url, is_published")
         .order("event_date", { ascending: false });
 

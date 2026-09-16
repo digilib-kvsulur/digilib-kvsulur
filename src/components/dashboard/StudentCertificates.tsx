@@ -224,13 +224,20 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
 
   const getActiveRenderData = (): CertificateRenderData | null => {
     if (!preview) return null;
-    const evtName = (preview.event_id && events[preview.event_id])
-      || preview.bilingual_data?.event_name
+    const hasDevanagari = (s?: string | null) => Boolean(s && /[\u0900-\u097F]/.test(s));
+
+    const rawEvtName = preview.bilingual_data?.event_name
       || preview.event_name
-      || preview.event_hindi
+      || (preview.event_id && events[preview.event_id])
       || null;
+
+    const evtName = (rawEvtName && !hasDevanagari(rawEvtName))
+      ? rawEvtName
+      : (!hasDevanagari(preview.event_hindi) ? preview.event_hindi : (rawEvtName || null));
+
     const evtHindi = preview.event_hindi
       || preview.bilingual_data?.event_hindi
+      || (hasDevanagari(preview.event_name) ? preview.event_name : null)
       || (preview.event_id && events[preview.event_id])
       || evtName
       || null;

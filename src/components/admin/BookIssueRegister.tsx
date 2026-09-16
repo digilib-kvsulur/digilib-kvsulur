@@ -232,6 +232,7 @@ const BookIssueRegister = () => {
         });
         if (issueError) throw issueError;
         toast({ title: "Success", description: "Manual book entry created and issued successfully" });
+        sendBookIssueEmail(selectedUser, manualBookTitle || "Book", dueDate);
         setManualBookTitle(""); setManualBookAuthor("");
       } else {
         const { error: issueError } = await supabase.rpc('issue_book_to_user', {
@@ -295,6 +296,7 @@ const BookIssueRegister = () => {
       }
 
       toast({ title: "Success", description: `Book "${issue.books?.title || "book"}" returned successfully!` });
+      sendBookReturnEmail(issue.user_id, issue.books?.title || "Book");
       setQuickReturnBarcode("");
       loadData();
 
