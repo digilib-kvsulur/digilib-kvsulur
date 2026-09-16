@@ -200,7 +200,7 @@ export default function BadgeManager() {
 
   const openAward = async (b: BadgeRow) => {
     setAwardOpen(b); setSelectedStudent(""); setStudentSearch("");
-    const { data } = await supabase.from("profiles").select("id, first_name, last_name, student_class, admission_number").eq("role", "student").eq("is_approved", true).order("first_name");
+    const data = await fetchAllApprovedStudents("id, first_name, last_name, student_class, admission_number");
     setStudents(data || []);
   };
 
@@ -275,6 +275,40 @@ export default function BadgeManager() {
       toast({ title: "Badge awarded 🏆", description: "Student notified by email." });
       sendBadgeAwardedEmail(selectedStudent, awardOpen.name, awardOpen.description || "");
       setAwardOpen(null);
+    }
+  };
+
+  const [sendingBadgeEmails, setSendingBadgeEmails] = useState(false);
+
+  const sendSingleBadgeEmail = async (studentId: string, badgeName: string, desc?: string) => {
+    try {
+      const ok = await sendBadgeAwardedEmail(studentId, badgeName, desc || "Special achievement badge");
+      if (ok) {
+        toast({ title: "📧 Email Sent!", description: `Sent badge notification for "${badgeName}".` });
+      } else {
+        toast({ title: "Email Warning", description: "Email attempt finished.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Email Failed", description: err?.message, variant: "destructive" });
+    }
+  };
+
+  const sendAllEarnerEmails = async () => {
+    if (!earnerOpen || !earnerList.length) return;
+    setSendingBadgeEmails(true);
+    try {
+      let sent = 0;
+      for (const entry of earnerList) {
+        if (entry.user?.id) {
+          await sendBadgeAwardedEmail(entry.user.id, earnerOpen.name, earnerOpen.description || "");
+          sent++;
+        }
+      }
+      toast({ title: "📧 Emails Dispatched!", description: `Sent badge emails to ${sent} student(s).` });
+    } catch (err: any) {
+      toast({ title: "Dispatch Failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setSendingBadgeEmails(false);
     }
   };
 
