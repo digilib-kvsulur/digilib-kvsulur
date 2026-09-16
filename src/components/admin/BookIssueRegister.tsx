@@ -343,7 +343,6 @@ const BookIssueRegister = () => {
       loadData();
 
       // Check if book was overdue and prompt fine payment right there
-      const targetIssue = bookIssues.find((i) => i.id === issueId);
       const daysOverdue = targetIssue?.due_date ? getDaysOverdue(targetIssue.due_date) : 0;
       if (daysOverdue > 0) {
         const rate = fineSettings?.finePerDay || 1;
