@@ -141,45 +141,78 @@ export default function LibrarySettings() {
     try {
       const upserts = [
         { key: "fine_per_day", value: finePerDay as any },
-        { key: "upi_id", value: upiId.trim() as any },
-        { key: "upi_payee_name", value: (upiPayeeName.trim() || "PM SHRI KV AFS Sulur Library") as any },
+        { key: "upi_id", value: (upiId || "").trim() as any },
+        { key: "upi_payee_name", value: ((upiPayeeName || "").trim() || "PM SHRI KV AFS Sulur Library") as any },
         { key: "monthly_reading_goal", value: monthlyGoal as any },
         { key: "certificate_template_url", value: (templateUrl || null) as any },
         { key: "dev_message_enabled", value: devMessageEnabled as any },
-        { key: "dev_message_title", value: devMessageTitle.trim() as any },
-        { key: "dev_message_body", value: devMessageBody.trim() as any },
-        { key: "dev_message_link_url", value: devMessageLinkUrl.trim() as any },
-        { key: "dev_message_link_text", value: devMessageLinkText.trim() as any },
-        { key: "dev_message_image_url", value: devMessageImageUrl.trim() as any },
+        { key: "dev_message_title", value: (devMessageTitle || "").trim() as any },
+        { key: "dev_message_body", value: (devMessageBody || "").trim() as any },
+        { key: "dev_message_link_url", value: (devMessageLinkUrl || "").trim() as any },
+        { key: "dev_message_link_text", value: (devMessageLinkText || "").trim() as any },
+        { key: "dev_message_image_url", value: (devMessageImageUrl || "").trim() as any },
         { key: "enable_games_schedule", value: gamesScheduleEnabled as any },
         { key: "games_schedule_start", value: gamesScheduleStart as any },
         { key: "games_schedule_end", value: gamesScheduleEnd as any },
         { key: "library_map_zones", value: zones as any },
-        { key: "download_apk_url", value: downloadApkUrl.trim() as any },
-        { key: "download_exe_url", value: downloadExeUrl.trim() as any },
-        { key: "google_ai_api_key", value: googleAiKey.trim() as any },
-        { key: "global_news_color", value: globalNewsColor.trim() as any },
+        { key: "download_apk_url", value: (downloadApkUrl || "").trim() as any },
+        { key: "download_exe_url", value: (downloadExeUrl || "").trim() as any },
+        { key: "google_ai_api_key", value: (googleAiKey || "").trim() as any },
+        { key: "global_news_color", value: (globalNewsColor || "blue").trim() as any },
         { key: "library_bot_visible", value: libraryBotVisible as any },
-        { key: "library_bot_name", value: libraryBotName.trim() as any },
+        { key: "library_bot_name", value: (libraryBotName || "LibraryBot").trim() as any },
       ];
       const { error } = await supabase.from("system_settings").upsert(upserts, { onConflict: "key" });
       if (error) throw error;
-      await supabase.from("fine_settings").upsert({
-        id: 1,
-        rate_per_day: finePerDay,
-        upi_id: upiId.trim(),
-        upi_payee_name: upiPayeeName.trim() || "PM SHRI KV AFS Sulur Library",
-        updated_at: new Date().toISOString(),
-      });
-      const month = new Date().toISOString().substring(0, 7);
-      // Upsert school-wide reading goal row
-      await supabase.from("reading_goals").delete().is("user_id", null).eq("month", month);
-      await supabase.from("reading_goals").insert({ user_id: null as any, month, target_books: monthlyGoal });
+      
+      try {
+        await supabase.from("fine_settings").upsert({
+          id: 1,
+          rate_per_day: finePerDay,
+          upi_id: (upiId || "").trim(),
+          upi_payee_name: (upiPayeeName || "").trim() || "PM SHRI KV AFS Sulur Library",
+          updated_at: new Date().toISOString(),
+        });
+      } catch (fErr) {
+        console.warn("fine_settings sync non-blocking error:", fErr);
+      }
+
+      try {
+        const month = new Date().toISOString().substring(0, 7);
+        // Upsert school-wide reading goal row
+        await supabase.from("reading_goals").delete().is("user_id", null).eq("month", month);
+        await supabase.from("reading_goals").insert({ user_id: null as any, month, target_books: monthlyGoal });
+      } catch (rgErr) {
+        console.warn("reading_goals sync non-blocking error:", rgErr);
+      }
+
       toast({ title: "Settings saved", description: "Library settings have been updated." });
     } catch (e: any) {
       toast({ title: "Error", description: e.message || "Failed to save settings.", variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleNewsPopup = async (checked: boolean) => {
+    setDevMessageEnabled(checked);
+    try {
+      const { error } = await supabase.from("system_settings").upsert(
+        [{ key: "dev_message_enabled", value: checked as any }],
+        { onConflict: "key" }
+      );
+      if (error) throw error;
+      toast({
+        title: checked ? "News Popup Enabled" : "News Popup Disabled",
+        description: checked ? "The popup will appear for users." : "Global news popup has been turned off.",
+      });
+    } catch (err: any) {
+      console.error("Failed to toggle popup state:", err);
+      toast({
+        title: "Toggle error",
+        description: err.message || "Failed to update popup status.",
+        variant: "destructive",
+      });
     }
   };
 
