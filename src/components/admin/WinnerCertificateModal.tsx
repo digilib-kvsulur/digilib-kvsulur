@@ -32,6 +32,7 @@ export interface WinnerCertModalData {
   awardTitle: string;
   awardTitleHindi?: string;
   eventSubtitle?: string;
+  eventSubtitleHindi?: string;
   description?: string;
   certificateId?: string | null;
   issuedAt?: string;
@@ -67,6 +68,7 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
     title_hindi: "",
     name_hindi: "",
     event_name: "",
+    event_hindi: "",
     during_text: "वर्ष 2026-2027 / Year 2026-2027",
     description: "",
     certificate_no: generateCertNo(),
@@ -82,6 +84,7 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
         title_hindi: data.awardTitleHindi || "प्रथम स्थान",
         name_hindi: "",
         event_name: data.eventSubtitle || "Digital Library Activity",
+        event_hindi: data.eventSubtitleHindi || data.eventSubtitle || "डिजिटल लाइब्रेरी गतिविधि",
         during_text: `वर्ष 2026-2027 / ${data.eventSubtitle || "Year 2026-2027"}`,
         description: data.description || `Awarded to ${data.studentName} for outstanding excellence.`,
         certificate_no: generateCertNo(),
@@ -123,19 +126,20 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
   if (!data) return null;
 
   const renderData: CertificateRenderData = {
-    certificateNo: form.certificate_no,
+    certNumber: form.certificate_no,
     issuedAt: form.issued_at,
-    studentNameEng: data.studentName,
-    studentNameHindi: form.name_hindi || undefined,
-    studentClass: data.studentClass ? `Class ${data.studentClass}` : undefined,
-    studentClassHindi: data.studentClass ? `कक्षा ${data.studentClass}` : undefined,
-    eventEng: form.event_name,
-    eventHindi: form.event_name,
-    duringText: form.during_text,
-    titleEng: form.title,
+    studentName: data.studentName,
+    nameHindi: form.name_hindi || undefined,
+    studentClass: data.studentClass ? `${data.studentClass}` : undefined,
+    classHindi: data.studentClass ? `${data.studentClass}` : undefined,
+    eventName: form.event_name,
+    eventHindi: form.event_hindi || form.event_name,
+    during: form.during_text,
+    title: form.title,
     titleHindi: form.title_hindi,
     description: form.description,
     commonText: commonText || undefined,
+    templateUrl: templateUrl,
   };
 
   const handleSaveAndIssue = async () => {
@@ -145,22 +149,31 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
 
       let certId = data.certificateId;
 
+      const certPayload = {
+        title: form.title,
+        title_hindi: form.title_hindi || null,
+        name_hindi: form.name_hindi || null,
+        class_hindi: data.studentClass || null,
+        event_hindi: form.event_hindi || form.event_name || null,
+        during_text: form.during_text || null,
+        description: form.description || null,
+        issued_at: form.issued_at,
+        unlock_at: form.unlock_at || null,
+        template_url: templateUrl,
+        common_text: commonText || null,
+        bilingual_data: {
+          event_name: form.event_name,
+          event_hindi: form.event_hindi || form.event_name,
+          award_title: form.title,
+          award_title_hindi: form.title_hindi,
+        },
+      };
+
       if (certId) {
         // Update existing certificate
         const { error } = await supabase
           .from("issued_certificates")
-          .update({
-            title: form.title,
-            title_hindi: form.title_hindi || null,
-            name_hindi: form.name_hindi || null,
-            event_hindi: form.event_name || null,
-            during_text: form.during_text || null,
-            description: form.description || null,
-            issued_at: form.issued_at,
-            unlock_at: form.unlock_at || null,
-            template_url: templateUrl,
-            common_text: commonText || null,
-          })
+          .update(certPayload)
           .eq("id", certId);
 
         if (error) throw error;
@@ -169,18 +182,9 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
         const { data: created, error } = await supabase
           .from("issued_certificates")
           .insert({
+            ...certPayload,
             user_id: data.userId,
-            title: form.title,
-            title_hindi: form.title_hindi || null,
-            name_hindi: form.name_hindi || null,
-            event_hindi: form.event_name || null,
-            during_text: form.during_text || null,
-            description: form.description || null,
             certificate_no: certNo,
-            issued_at: form.issued_at,
-            unlock_at: form.unlock_at || null,
-            template_url: templateUrl,
-            common_text: commonText || null,
           })
           .select("id")
           .single();
@@ -289,11 +293,21 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
               </div>
 
               <div>
-                <Label className="text-xs font-bold">Event / Subtitle</Label>
+                <Label className="text-xs font-bold">Event / Subtitle (English)</Label>
                 <Input
                   value={form.event_name}
                   onChange={(e) => setForm({ ...form, event_name: e.target.value })}
                   placeholder="e.g. Annual Reading Month Competition"
+                  className="h-8 text-xs mt-1"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Event / Subtitle (Hindi / प्रतियोगिता)</Label>
+                <Input
+                  value={form.event_hindi}
+                  onChange={(e) => setForm({ ...form, event_hindi: e.target.value })}
+                  placeholder="e.g. राष्ट्रीय पठन माह प्रतियोगिता"
                   className="h-8 text-xs mt-1"
                 />
               </div>

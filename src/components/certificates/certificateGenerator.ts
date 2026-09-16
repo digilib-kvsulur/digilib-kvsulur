@@ -104,7 +104,7 @@ export function resolveFieldText(key: CertFieldKey, data: CertificateRenderData)
     case "className":
       return data.studentClass || "";
     case "event":
-      return data.eventName || "";
+      return data.eventName || data.eventHindi || "";
     case "during":
       return data.during || "";
     case "title":

@@ -224,13 +224,24 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
 
   const getActiveRenderData = (): CertificateRenderData | null => {
     if (!preview) return null;
+    const evtName = (preview.event_id && events[preview.event_id])
+      || preview.bilingual_data?.event_name
+      || preview.event_name
+      || preview.event_hindi
+      || null;
+    const evtHindi = preview.event_hindi
+      || preview.bilingual_data?.event_hindi
+      || (preview.event_id && events[preview.event_id])
+      || evtName
+      || null;
+
     return {
       studentName: userName || "Student",
       nameHindi: preview.name_hindi || hindiName || null,
       studentClass: profileClass || preview.class_hindi || null,
       classHindi: preview.class_hindi || profileClass || null,
-      eventName: preview.event_id && events[preview.event_id] ? events[preview.event_id] : null,
-      eventHindi: preview.event_hindi || null,
+      eventName: evtName,
+      eventHindi: evtHindi,
       during: preview.during_text || null,
       title: preview.title,
       titleHindi: preview.title_hindi || null,
@@ -573,21 +584,10 @@ export default function StudentCertificates({ userId, userName, studentClass }: 
                 <CertificateCanvas
                   canvasRef={certRef}
                   layout={layout}
-                  data={{
+                  data={getActiveRenderData() || {
                     studentName: userName || "Student",
-                    nameHindi: preview.name_hindi || hindiName || null,
-                    studentClass: profileClass,
-                    classHindi: preview.class_hindi || profileClass || null,
-                    eventName: preview.event_id ? events[preview.event_id] : null,
-                    eventHindi: preview.event_hindi || (preview.event_id ? events[preview.event_id] : null),
-                    during: preview.during_text || null,
-                    title: preview.title,
-                    titleHindi: preview.title_hindi || null,
-                    commonText: preview.common_text || null,
-                    description: preview.description || null,
                     issuedAt: preview.issued_at,
-                    templateUrl: preview.template_url,
-                    certNumber: preview.certificate_no,
+                    title: preview.title,
                   }}
                 />
               </div>

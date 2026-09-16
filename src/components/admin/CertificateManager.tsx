@@ -474,6 +474,10 @@ export default function CertificateManager() {
         issued_at: new Date(form.issued_at).toISOString(),
         unlock_at: unlockTimeIso,
         certificate_no: `${form.certificate_no.replace(/-\d+$/, "")}-${String(idx + 1).padStart(4, "0")}`,
+        bilingual_data: {
+          event_name: (form.event_id ? selectedEvent?.title : form.event_name) || form.event_hindi || null,
+          event_hindi: form.event_hindi.trim() || (selectedEvent ? selectedEvent.title : form.event_name) || null,
+        },
       }));
 
       let { error } = await supabase.from("issued_certificates").insert(inserts);
@@ -613,22 +617,35 @@ export default function CertificateManager() {
     toast({ title: "Reset Complete", description: "Bilingual KV Sulur template restored." });
   };
 
-  const getCertRenderData = (cert: CertificateRow): CertificateRenderData => ({
-    studentName: `${cert.profiles?.first_name || ""} ${cert.profiles?.last_name || ""}`.trim() || "Student",
-    nameHindi: cert.name_hindi || cert.profiles?.hindi_name || null,
-    studentClass: cert.profiles?.student_class || null,
-    classHindi: cert.class_hindi || cert.profiles?.student_class || null,
-    eventName: cert.event_id ? events.find((e) => e.id === cert.event_id)?.title : null,
-    eventHindi: cert.event_hindi || null,
-    during: cert.during_text || null,
-    title: cert.title,
-    titleHindi: cert.title_hindi || null,
-    commonText: cert.common_text || commonText || null,
-    description: cert.description || null,
-    issuedAt: cert.issued_at,
-    templateUrl: cert.template_url || templateUrl,
-    certNumber: cert.certificate_no,
-  });
+  const getCertRenderData = (cert: CertificateRow): CertificateRenderData => {
+    const evtName = (cert.event_id && events.find((e) => e.id === cert.event_id)?.title)
+      || (cert as any).bilingual_data?.event_name
+      || (cert as any).event_name
+      || cert.event_hindi
+      || null;
+    const evtHindi = cert.event_hindi
+      || (cert as any).bilingual_data?.event_hindi
+      || (cert.event_id && events.find((e) => e.id === cert.event_id)?.title)
+      || evtName
+      || null;
+
+    return {
+      studentName: `${cert.profiles?.first_name || ""} ${cert.profiles?.last_name || ""}`.trim() || "Student",
+      nameHindi: cert.name_hindi || cert.profiles?.hindi_name || null,
+      studentClass: cert.profiles?.student_class || null,
+      classHindi: cert.class_hindi || cert.profiles?.student_class || null,
+      eventName: evtName,
+      eventHindi: evtHindi,
+      during: cert.during_text || null,
+      title: cert.title,
+      titleHindi: cert.title_hindi || null,
+      commonText: cert.common_text || commonText || null,
+      description: cert.description || null,
+      issuedAt: cert.issued_at,
+      templateUrl: cert.template_url || templateUrl,
+      certNumber: cert.certificate_no,
+    };
+  };
 
   // Download High-Resolution PDF
   const downloadPdf = async (cert: CertificateRow) => {
@@ -1725,22 +1742,7 @@ export default function CertificateManager() {
                 <CertificateCanvas
                   canvasRef={previewCanvasRef}
                   layout={layout}
-                  data={{
-                    studentName: `${previewCert.profiles?.first_name || ""} ${previewCert.profiles?.last_name || ""}`.trim() || "Student",
-                    nameHindi: previewCert.name_hindi || previewCert.profiles?.hindi_name,
-                    studentClass: previewCert.profiles?.student_class,
-                    classHindi: previewCert.class_hindi || previewCert.profiles?.student_class,
-                    eventName: previewCert.event_id ? events.find((e) => e.id === previewCert.event_id)?.title : null,
-                    eventHindi: previewCert.event_hindi,
-                    during: previewCert.during_text,
-                    title: previewCert.title,
-                    titleHindi: previewCert.title_hindi,
-                    commonText: previewCert.common_text || commonText,
-                    description: previewCert.description,
-                    issuedAt: previewCert.issued_at,
-                    templateUrl: previewCert.template_url || templateUrl,
-                    certNumber: previewCert.certificate_no,
-                  }}
+                  data={getCertRenderData(previewCert)}
                 />
               </div>
 
