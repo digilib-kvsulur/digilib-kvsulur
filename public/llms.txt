@@ -1,14 +1,22 @@
-# KV Sulur Digital Library
+# PM SHRI KV Sulur Digital Library (DLMS)
 
-KV Sulur Digital Library is the Digital Library Management System for PM SHRI Kendriya Vidyalaya AFS Sulur, India. It helps students and staff discover books, manage library activity, and support reading.
+Official Digital Library Management System for PM SHRI Kendriya Vidyalaya Air Force Station Sulur, Coimbatore, Tamil Nadu, India.
 
-## Public pages
+## About
+PM SHRI Kendriya Vidyalaya AFS Sulur operates under Kendriya Vidyalaya Sangathan (KVS), Ministry of Education, Government of India. The Digital Library (DLMS) provides students, teachers, and staff with access to thousands of books, digital reference materials, reading analytics, gamified book quizzes, and catalog search.
 
-- [Home](https://dlms.kvsulur.in/): Overview of the digital library and school reading initiatives.
-- [Book catalogue](https://dlms.kvsulur.in/catalog): Search and browse the public book collection.
-- [Library help and support](https://dlms.kvsulur.in/support): Contact and support information.
-- [Download](https://dlms.kvsulur.in/download): Download the Android or Windows application.
+- Website: https://dlms.kvsulur.in/
+- Institution: PM SHRI Kendriya Vidyalaya AFS Sulur
+- Location: Air Force Station Sulur, Coimbatore, Tamil Nadu - 641401, India
+- Phone: +91 422 2682215
+- Contact: dlms@kvsulur.in
 
-## Notes
+## Public Pages & Services
+- [Home Portal](https://dlms.kvsulur.in/): Central portal with announcements, book of the week, school reading statistics, and events.
+- [Book Catalogue](https://dlms.kvsulur.in/catalog): Search physical library books, textbook copies, and fiction/non-fiction reference titles.
+- [App Download](https://dlms.kvsulur.in/download): Download the Android APK and Windows desktop application.
+- [Help & Support Desk](https://dlms.kvsulur.in/support): Student help desk for account recovery, library ID inquiries, and circulation questions.
+- [Feedback](https://dlms.kvsulur.in/feedback): Suggest book acquisitions and website enhancements.
 
-Authenticated dashboards and individual student data are private and should not be indexed or treated as public information.
+## Privacy Note
+Student reading portfolios, individual issue records, and administrative dashboards require school authentication and are not public records.
