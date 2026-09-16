@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Mail, Send, CheckCircle2, Eye, History, Users, BookOpen,
   Bell, Award, BookMarked, AlertCircle, Newspaper, Coffee,
-  Calendar, ChevronRight, X, Filter, Trophy, Crown, Zap,
+  Calendar, ChevronRight, X, Filter, Trophy, Crown, Zap, Sparkles,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,16 @@ type Campaign = {
   created_at: string;
 };
 
+// ─── Dynamic Merge Tags ───────────────────────────────────────────────────────
+export const DYNAMIC_TAGS = [
+  { tag: "{{first_name}}", label: "First Name", example: "Arjun" },
+  { tag: "{{last_name}}", label: "Last Name", example: "Kumar" },
+  { tag: "{{name}}", label: "Full Name", example: "Arjun Kumar" },
+  { tag: "{{admission_number}}", label: "Admission No.", example: "5421" },
+  { tag: "{{class}}", label: "Class / Sec", example: "10 A" },
+  { tag: "{{email}}", label: "Email", example: "student@kvsulur.in" },
+];
+
 // ─── Template Definitions ────────────────────────────────────────────────────
 interface Template {
   id: string;
@@ -49,6 +59,22 @@ interface Template {
 }
 
 const TEMPLATES: Template[] = [
+  {
+    id: "custom",
+    label: "Custom Direct Email",
+    description: "Compose personalized custom messages using dynamic tags like {{first_name}}, {{admission_number}}, {{class}}",
+    subject: "Important Notice from Library: {{name}}",
+    icon: Mail,
+    color: "text-indigo-600",
+    previewHtml: (name, note) => `
+      <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
+      <div style="font-size:14px;color:#1e293b;line-height:1.7;">
+        ${(note || "This is a direct notification from the PM SHRI KV AFS Sulur Digital Library.").replace(/\n/g, "<br/>")}
+      </div>
+      <p style="margin-top:24px;margin-bottom:0;color:#475569;font-size:13px;">
+        Warm regards,<br/><strong>PM SHRI KV AFS Sulur Library Team</strong>
+      </p>`,
+  },
   {
     id: "book_issued",
     label: "Book Issued Receipt",
@@ -308,17 +334,48 @@ const TEMPLATES: Template[] = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const PREVIEW_NAME = "Arjun Kumar";
+function buildFullPreviewHtml(
+  template: Template,
+  note: string,
+  sampleStudent?: Partial<Profile>
+): string {
+  const p = sampleStudent || {
+    first_name: "Arjun",
+    last_name: "Kumar",
+    admission_number: "5421",
+    student_class: "10 A",
+    email: "arjun.kumar@kvsulur.in",
+  };
+  const firstName = p.first_name || "Arjun";
+  const lastName = p.last_name || "Kumar";
+  const fullName = `${firstName} ${lastName}`.trim() || firstName;
+  const adm = p.admission_number || "5421";
+  const cls = p.student_class || "10 A";
+  const em = p.email || "arjun.kumar@kvsulur.in";
 
-function buildFullPreviewHtml(template: Template, note: string): string {
-  const body = template.previewHtml(PREVIEW_NAME, note);
+  const replaceTags = (text: string) =>
+    (text || "")
+      .replace(/{{first_name}}/gi, firstName)
+      .replace(/{{last_name}}/gi, lastName)
+      .replace(/{{full_name}}/gi, fullName)
+      .replace(/{{name}}/gi, fullName)
+      .replace(/{{student_name}}/gi, fullName)
+      .replace(/{{admission_number}}/gi, adm)
+      .replace(/{{admission_no}}/gi, adm)
+      .replace(/{{adm_no}}/gi, adm)
+      .replace(/{{class}}/gi, cls)
+      .replace(/{{student_class}}/gi, cls)
+      .replace(/{{email}}/gi, em);
+
+  const resolvedNote = replaceTags(note);
+  const body = template.previewHtml(fullName, resolvedNote);
   return `
     <div style="font-family:sans-serif;max-width:580px;margin:0 auto;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px -5px rgba(15,23,42,0.08);">
       <div style="background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);padding:22px 28px;display:flex;align-items:center;gap:14px;">
         <img src="https://dlms.kvsulur.in/logos/kv-square.png" alt="KV Logo" style="width:48px;height:48px;border-radius:50%;background:#fff;padding:2px;box-shadow:0 2px 8px rgba(0,0,0,0.2);object-fit:cover;display:block;" />
         <div>
           <p style="margin:0;color:#bfdbfe;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">PM SHRI KENDRIYA VIDYALAYA AFS SULUR</p>
-          <p style="color:#fff;margin:4px 0 0 0;font-weight:800;font-size:18px;">📚 Digital Library System</p>
+          <p style="color:#fff;margin:4px 0 0 0;font-weight:800;font-size:18px;">📚 Digital Library Management System</p>
         </div>
       </div>
       <div style="background:#f8fafc;padding:12px 28px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:between;">
@@ -328,7 +385,7 @@ function buildFullPreviewHtml(template: Template, note: string): string {
         ${body}
       </div>
       <div style="background:#f8fafc;padding:16px 28px;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;text-align:center;">
-        PM SHRI Kendriya Vidyalaya AFS Sulur · Digital Library Automation Portal<br/>
+        PM SHRI Kendriya Vidyalaya AFS Sulur · India's First Student Centric KVS DLMS<br/>
         <a href="https://dlms.kvsulur.in" style="color:#2563eb;text-decoration:none;font-weight:600;">dlms.kvsulur.in</a>
       </div>
     </div>`;
@@ -349,6 +406,7 @@ export default function EmailCampaignManager() {
 
   // Compose
   const [activeTemplate, setActiveTemplate] = useState<Template>(TEMPLATES[0]);
+  const [customSubject, setCustomSubject] = useState<string>(TEMPLATES[0].subject);
   const [customNote, setCustomNote] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -398,7 +456,25 @@ export default function EmailCampaignManager() {
     [verifiedProfiles, search, classFilter],
   );
 
+  const previewProfile = useMemo(() => {
+    if (selected.size === 0) return undefined;
+    const firstId = Array.from(selected)[0];
+    return profiles.find((p) => p.id === firstId);
+  }, [selected, profiles]);
+
   // ── Handlers ───────────────────────────────────────────────────────────────
+  const handleSelectTemplate = (t: Template) => {
+    setActiveTemplate(t);
+    setCustomSubject(t.subject);
+  };
+
+  const insertTag = (tag: string) => {
+    setCustomNote((prev) => {
+      if (!prev) return tag + " ";
+      return prev + (prev.endsWith(" ") ? "" : " ") + tag + " ";
+    });
+  };
+
   const toggle = (id: string) =>
     setSelected((old) => {
       const next = new Set(old);
@@ -417,7 +493,12 @@ export default function EmailCampaignManager() {
 
     try {
       const { data, error } = await supabase.functions.invoke("send-email-campaign", {
-        body: { recipientIds: [...selected], preset: activeTemplate.id, customMessage: customNote },
+        body: {
+          recipientIds: [...selected],
+          preset: activeTemplate.id,
+          customMessage: customNote,
+          customSubject: customSubject.trim() || activeTemplate.subject,
+        },
       });
 
       if (error) {
@@ -505,7 +586,7 @@ export default function EmailCampaignManager() {
                 return (
                   <button
                     key={t.id}
-                    onClick={() => setActiveTemplate(t)}
+                    onClick={() => handleSelectTemplate(t)}
                     className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-center transition-all text-xs font-medium cursor-pointer relative ${
                       active
                         ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
@@ -617,36 +698,101 @@ export default function EmailCampaignManager() {
             <div className="lg:col-span-2 space-y-4">
               <Label className="text-base font-semibold block">3. Compose &amp; Preview</Label>
 
+              {/* Subject Line */}
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">Subject line</Label>
-                <Input value={activeTemplate.subject} readOnly className="bg-muted/30 text-sm" />
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Subject Line {activeTemplate.id === "custom" && <span className="text-primary font-bold">(Customizable)</span>}
+                  </Label>
+                  {customSubject !== activeTemplate.subject && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomSubject(activeTemplate.subject)}
+                      className="text-[11px] text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                    >
+                      Reset default
+                    </button>
+                  )}
+                </div>
+                <Input
+                  value={customSubject}
+                  onChange={(e) => setCustomSubject(e.target.value)}
+                  placeholder="Email subject line..."
+                  className="bg-background text-sm font-medium"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Supports dynamic tags: <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{"{{name}}"}</code>, <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{"{{first_name}}"}</code>, <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{"{{admission_number}}"}</code>
+                </p>
               </div>
 
+              {/* Merge Tags Assistant */}
+              <div className="p-3 rounded-xl bg-muted/40 border border-border/70 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" /> Personalization Merge Tags
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">Click any tag to insert into message</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {DYNAMIC_TAGS.map((t) => (
+                    <button
+                      key={t.tag}
+                      type="button"
+                      onClick={() => insertTag(t.tag)}
+                      title={`Click to insert ${t.tag} (Sample: ${t.example})`}
+                      className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1 rounded-md bg-background border border-border/80 hover:bg-primary/10 hover:border-primary/50 text-foreground transition-all cursor-pointer shadow-2xs hover:scale-102 active:scale-98"
+                    >
+                      <span className="font-semibold text-primary">{t.tag}</span>
+                      <span className="text-muted-foreground text-[10px]">({t.label})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Message Note / Custom Body */}
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">
-                  Optional personal note <span className="text-[10px]">(appended to the template body · max 2 000 chars)</span>
+                <Label className="text-xs font-semibold text-foreground mb-1 block">
+                  {activeTemplate.id === "custom" ? (
+                    <span>Custom Message Body <span className="text-muted-foreground font-normal">(supports multiline &amp; merge tags)</span></span>
+                  ) : (
+                    <span>Optional personal note <span className="text-muted-foreground font-normal">(appended to template · max 2 000 chars)</span></span>
+                  )}
                 </Label>
                 <Textarea
                   value={customNote}
                   onChange={(e) => setCustomNote(e.target.value)}
-                  maxLength={2000}
-                  rows={3}
-                  placeholder="Add a date, specific instructions, or a personal message…"
+                  maxLength={activeTemplate.id === "custom" ? 4000 : 2000}
+                  rows={activeTemplate.id === "custom" ? 6 : 3}
+                  placeholder={
+                    activeTemplate.id === "custom"
+                      ? "Dear {{first_name}},\n\nWe would like to notify you that your account (Adm No: {{admission_number}}, Class: {{class}}) has an announcement...\n\nWarm regards,\nPM SHRI KV AFS Sulur Library"
+                      : "Add a date, specific instructions, or a personal message with tags like {{admission_number}}…"
+                  }
                 />
               </div>
 
               {/* Live HTML Preview */}
               <div>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-xs text-muted-foreground">Live email preview</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-xs text-muted-foreground">Live email preview</Label>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">
+                    Previewing as:{" "}
+                    <span className="font-semibold text-foreground">
+                      {previewProfile
+                        ? `${previewProfile.first_name || ""} ${previewProfile.last_name || ""} (Adm: ${previewProfile.admission_number || "—"}, Class: ${previewProfile.student_class || "—"})`
+                        : "Sample Student (Arjun Kumar · Adm: 5421 · Class 10 A)"}
+                    </span>
+                  </span>
                 </div>
                 <div className="rounded-xl border border-border/60 overflow-hidden shadow-sm">
                   <iframe
                     title="Email preview"
                     className="w-full"
                     style={{ minHeight: 320, border: "none" }}
-                    srcDoc={`<!doctype html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:16px;background:#f3f4f6;">${buildFullPreviewHtml(activeTemplate, customNote)}</body></html>`}
+                    srcDoc={`<!doctype html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:16px;background:#f3f4f6;">${buildFullPreviewHtml(activeTemplate, customNote, previewProfile)}</body></html>`}
                   />
                 </div>
               </div>

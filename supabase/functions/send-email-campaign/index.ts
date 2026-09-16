@@ -21,6 +21,22 @@ interface TemplateData {
 }
 
 const PRESETS: Record<string, TemplateData> = {
+  custom: {
+    subject: "KV Sulur Digital Library Notification",
+    heading: "Library Notice",
+    badgeText: "Direct Message",
+    badgeBg: "#e0e7ff",
+    badgeColor: "#3730a3",
+    body: (name, note) => `
+      <p style="margin-top:0;">Dear <strong>${esc(name)}</strong>,</p>
+      <div style="font-size:15px;color:#1e293b;line-height:1.7;">
+        ${fmtNote(note || "This is a direct notification from the PM SHRI KV AFS Sulur Digital Library.")}
+      </div>
+      <p style="margin-top:24px;margin-bottom:0;color:#475569;font-size:13px;">
+        Warm regards,<br/><strong>PM SHRI KV AFS Sulur Library Team</strong>
+      </p>`,
+  },
+
   first_login: {
     subject: "Welcome to KV Sulur Digital Library — Setup Complete",
     heading: "First Login Setup Complete",
@@ -415,7 +431,7 @@ Deno.serve(async (request) => {
 
     const admin = createClient(url, service, { auth: { autoRefreshToken: false, persistSession: false } });
     const { data: adminProfile } = await admin.from("profiles").select("role").eq("id", user.id).single();
-    const { recipientIds, preset, customMessage, details } = await request.json();
+    const { recipientIds, preset, customMessage, customSubject, details } = await request.json();
 
     const isStaff = adminProfile?.role === "admin" || adminProfile?.role === "teacher";
     const isSelfNotification = Array.isArray(recipientIds) && recipientIds.length === 1 && recipientIds[0] === user.id;
@@ -433,7 +449,7 @@ Deno.serve(async (request) => {
 
     const { data: recipients } = await admin
       .from("profiles")
-      .select("id, first_name, email, notification_email")
+      .select("id, first_name, last_name, student_class, admission_number, email, notification_email")
       .in("id", recipientIds);
 
     const valid: any[] = [];
@@ -458,14 +474,42 @@ Deno.serve(async (request) => {
     if (!key) throw new Error("Email sender is not configured (RESEND_API_KEY missing)");
 
     const template = PRESETS[preset];
-    const note = String(customMessage || "").trim().slice(0, 2000);
+    const rawNote = String(customMessage || "").trim().slice(0, 4000);
+    const rawSubject = customSubject ? String(customSubject).trim().slice(0, 255) : template.subject;
+
+    // Helper: interpolate dynamic merge tags / placeholders for each student
+    const replacePlaceholders = (text: string, p: any): string => {
+      if (!text) return "";
+      const firstName = p.first_name || "Student";
+      const lastName = p.last_name || "";
+      const fullName = `${p.first_name || ""} ${p.last_name || ""}`.trim() || firstName;
+      const admissionNo = p.admission_number || "";
+      const studentClass = p.student_class || "";
+      const email = p.targetEmail || p.email || "";
+
+      return text
+        .replace(/{{first_name}}/gi, firstName)
+        .replace(/{{last_name}}/gi, lastName)
+        .replace(/{{full_name}}/gi, fullName)
+        .replace(/{{name}}/gi, fullName)
+        .replace(/{{student_name}}/gi, fullName)
+        .replace(/{{admission_number}}/gi, admissionNo)
+        .replace(/{{admission_no}}/gi, admissionNo)
+        .replace(/{{adm_no}}/gi, admissionNo)
+        .replace(/{{class}}/gi, studentClass)
+        .replace(/{{student_class}}/gi, studentClass)
+        .replace(/{{email}}/gi, email);
+    };
 
     const errors: string[] = [];
 
     const results = await Promise.all(
       valid.map(async (p: any) => {
-        const recipientName = p.first_name || "Library Member";
-        const bodyHtml = template.body(recipientName, note, details);
+        const recipientName = `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.first_name || "Library Member";
+        const personalizedNote = replacePlaceholders(rawNote, p);
+        const personalizedSubject = replacePlaceholders(rawSubject, p);
+
+        const bodyHtml = template.body(recipientName, personalizedNote, details);
         const html = buildHtml(
           template.heading,
           template.badgeText,
@@ -483,7 +527,7 @@ Deno.serve(async (request) => {
           body: JSON.stringify({
             from,
             to: [p.targetEmail],
-            subject: template.subject,
+            subject: personalizedSubject,
             html,
           }),
         });
@@ -508,7 +552,7 @@ Deno.serve(async (request) => {
     await admin.from("email_campaigns").insert({
       sent_by: user.id,
       preset,
-      subject: template.subject,
+      subject: rawSubject,
       recipient_count: sent,
     });
 
