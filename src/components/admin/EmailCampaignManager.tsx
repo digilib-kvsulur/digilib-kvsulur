@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Mail, Send, CheckCircle2, Eye, History, Users, BookOpen,
   Bell, Award, BookMarked, AlertCircle, Newspaper, Coffee,
-  Calendar, ChevronRight, X, Filter,
+  Calendar, ChevronRight, X, Filter, Trophy, Crown,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
