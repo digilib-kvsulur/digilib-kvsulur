@@ -65,9 +65,28 @@
     </script>
     <script>
       // Automatically recover when Vite chunk loading fails after a new deployment
+      // Guard against infinite reload loops with a cooldown and cache eviction
       window.addEventListener('vite:preloadError', function(event) {
         event.preventDefault();
-        window.location.reload();
+        var key = 'dlms_preload_reload_ts';
+        var lastReload = parseInt(sessionStorage.getItem(key) || '0', 10);
+        var now = Date.now();
+        // Allow at most one automatic reload every 15 seconds
+        if (now - lastReload > 15000) {
+          sessionStorage.setItem(key, String(now));
+          // Clear service worker caches if available so fresh chunks are fetched
+          if ('caches' in window) {
+            caches.keys().then(function(keys) {
+              return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+            }).finally(function() {
+              window.location.reload();
+            });
+          } else {
+            window.location.reload();
+          }
+        } else {
+          console.error('Vite chunk preload error repeated within cooldown window. Halting reload loop.', event);
+        }
       });
 
       // Capture beforeinstallprompt BEFORE React mounts — store globally so it's never lost

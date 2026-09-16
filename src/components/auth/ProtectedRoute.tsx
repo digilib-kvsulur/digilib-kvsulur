@@ -55,8 +55,17 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
       const roleAllowed = allowedRoles.includes(data.role as AllowedRole);
       const approvalAllowed = !requireApproval || data.is_approved || data.role === "admin";
 
-      if (!roleAllowed || !approvalAllowed) {
-        setRedirectTo("/");
+      if (!approvalAllowed) {
+        setRedirectTo("/login");
+        setLoading(false);
+        return;
+      }
+
+      if (!roleAllowed) {
+        if (data.role === "admin") setRedirectTo("/admin-dashboard");
+        else if (data.role === "teacher") setRedirectTo("/teacher-dashboard");
+        else if (data.role === "student") setRedirectTo("/student-dashboard");
+        else setRedirectTo("/login");
         setLoading(false);
         return;
       }

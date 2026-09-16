@@ -22,10 +22,8 @@ if (self.location.hostname === LEGACY_HOST) {
 } else {
 
 // ─── Normal Service Worker for dlms.kvsulur.in ─────────────────────────────────
-const CACHE_NAME = 'kvsulur-dlms-v7';
+const CACHE_NAME = 'kvsulur-dlms-v8';
 const ASSETS = [
-  '/',
-  '/index.html',
   '/favicon.png',
   '/manifest.json',
   '/pwa-192x192.png',

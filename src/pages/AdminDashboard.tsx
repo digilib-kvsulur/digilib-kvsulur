@@ -210,15 +210,19 @@ const AdminDashboard = () => {
 
   const checkAuth = async () => {
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) { navigate('/login'); return; }
-      const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) { navigate('/login', { replace: true }); return; }
+      const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
       if (error || !profile || profile.role !== 'admin') {
         toast({ title: "Access Denied", description: "You don't have permission.", variant: "destructive" });
-        navigate('/'); return;
+        if (profile?.role === 'teacher') navigate('/teacher-dashboard', { replace: true });
+        else if (profile?.role === 'student') navigate('/student-dashboard', { replace: true });
+        else navigate('/login', { replace: true });
+        return;
       }
       setUser(profile);
-    } catch (e) { navigate('/login'); }
+    } catch (e) { navigate('/login', { replace: true }); }
     finally { setLoading(false); }
   };
 
