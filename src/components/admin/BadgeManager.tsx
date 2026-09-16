@@ -444,13 +444,27 @@ export default function BadgeManager() {
       <Dialog open={!!earnerOpen} onOpenChange={(o) => !o && setEarnerOpen(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-indigo-500" />
-              Who Earned "{earnerOpen?.name}"
-              {!earnerLoading && (
-                <Badge variant="secondary" className="ml-2 text-xs">{earnerList.length} {earnerOpen?.criteria_type === 'manual' ? 'awarded' : 'qualifying'}</Badge>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pr-6">
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-indigo-500" />
+                Who Earned "{earnerOpen?.name}"
+                {!earnerLoading && (
+                  <Badge variant="secondary" className="ml-2 text-xs">{earnerList.length} {earnerOpen?.criteria_type === 'manual' ? 'awarded' : 'qualifying'}</Badge>
+                )}
+              </DialogTitle>
+              {!earnerLoading && earnerList.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-300 self-start sm:self-auto"
+                  disabled={sendingBadgeEmails}
+                  onClick={sendAllEarnerEmails}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  {sendingBadgeEmails ? "Sending..." : "Email All Earners"}
+                </Button>
               )}
-            </DialogTitle>
+            </div>
             {earnerOpen && (
               <p className="text-xs text-muted-foreground mt-1">
                 {earnerOpen.criteria_type === 'manual'
@@ -491,23 +505,37 @@ export default function BadgeManager() {
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0 space-y-0.5">
-                    {entry.award_type === 'manual' && entry.awarder ? (
-                      <p className="text-[10px] text-muted-foreground">
-                        Awarded by <span className="font-medium text-foreground">{entry.awarder.first_name} {entry.awarder.last_name}</span>
-                      </p>
-                    ) : entry.award_type === 'auto' ? (
-                      <Badge variant="outline" className="text-[9px]">
-                        <CheckCircle className="h-2.5 w-2.5 mr-1 text-green-500" />Auto-qualified
-                      </Badge>
-                    ) : null}
-                    {entry.awarded_at && (
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(entry.awarded_at).toLocaleDateString()}
-                      </p>
-                    )}
-                    {entry.note && (
-                      <p className="text-[10px] italic text-muted-foreground max-w-[120px] truncate" title={entry.note}>"{entry.note}"</p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="text-right space-y-0.5">
+                      {entry.award_type === 'manual' && entry.awarder ? (
+                        <p className="text-[10px] text-muted-foreground">
+                          Awarded by <span className="font-medium text-foreground">{entry.awarder.first_name} {entry.awarder.last_name}</span>
+                        </p>
+                      ) : entry.award_type === 'auto' ? (
+                        <Badge variant="outline" className="text-[9px]">
+                          <CheckCircle className="h-2.5 w-2.5 mr-1 text-green-500" />Auto-qualified
+                        </Badge>
+                      ) : null}
+                      {entry.awarded_at && (
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(entry.awarded_at).toLocaleDateString()}
+                        </p>
+                      )}
+                      {entry.note && (
+                        <p className="text-[10px] italic text-muted-foreground max-w-[120px] truncate" title={entry.note}>"{entry.note}"</p>
+                      )}
+                    </div>
+                    {entry.user?.id && earnerOpen && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 px-2 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                        title="Send Badge Notification Email"
+                        onClick={() => sendSingleBadgeEmail(entry.user.id, earnerOpen.name, earnerOpen.description)}
+                      >
+                        <Mail className="h-3.5 w-3.5 mr-1" />
+                        Email
+                      </Button>
                     )}
                   </div>
                 </div>
