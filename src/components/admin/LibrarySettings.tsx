@@ -414,7 +414,7 @@ export default function LibrarySettings() {
               <Label>Enable News Corner Popup</Label>
               <p className="text-sm text-muted-foreground">Turn on to show the popup.</p>
             </div>
-            <Switch checked={devMessageEnabled} onCheckedChange={setDevMessageEnabled} />
+            <Switch checked={devMessageEnabled} onCheckedChange={handleToggleNewsPopup} />
           </div>
           {devMessageEnabled && (
             <div className="space-y-4 pt-2">
