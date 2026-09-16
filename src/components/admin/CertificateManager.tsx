@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllApprovedStudents } from "@/lib/profileFetcher";
 import {
   generateCertificatePdf,
   printCertificateDirect,
@@ -177,13 +178,18 @@ export default function CertificateManager() {
       const userIds = Array.from(new Set(list.map((c) => c.user_id)));
       let profileMap: Record<string, any> = {};
       if (userIds.length) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name, hindi_name, admission_number, student_class")
-          .in("id", userIds);
-        (profs || []).forEach((p) => {
-          profileMap[p.id] = p;
-        });
+        // Chunk userIds to avoid URL length limit or PostgREST row limits
+        const CHUNK_SIZE = 400;
+        for (let i = 0; i < userIds.length; i += CHUNK_SIZE) {
+          const chunk = userIds.slice(i, i + CHUNK_SIZE);
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, hindi_name, admission_number, student_class")
+            .in("id", chunk);
+          (profs || []).forEach((p) => {
+            profileMap[p.id] = p;
+          });
+        }
       }
       setRows(list.map((c) => ({ ...c, profiles: profileMap[c.user_id] })));
     } catch (e) {
@@ -220,29 +226,10 @@ export default function CertificateManager() {
     setCsvInput("");
     setIssueTab("details");
 
-    // Fetch ALL student profiles without 1000 limit using range pagination
-    let allStuds: any[] = [];
-    let fromIndex = 0;
-    const chunkSize = 1000;
-    let hasMore = true;
-    while (hasMore) {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, hindi_name, admission_number, student_class")
-        .eq("role", "student")
-        .eq("is_approved", true)
-        .order("student_class", { ascending: true })
-        .order("first_name", { ascending: true })
-        .range(fromIndex, fromIndex + chunkSize - 1);
-
-      if (error || !data || data.length === 0) {
-        hasMore = false;
-      } else {
-        allStuds = [...allStuds, ...data];
-        if (data.length < chunkSize) hasMore = false;
-        else fromIndex += chunkSize;
-      }
-    }
+    // Fetch ALL student profiles without 1000 limit using profileFetcher
+    const allStuds = await fetchAllApprovedStudents(
+      "id, first_name, last_name, hindi_name, admission_number, student_class"
+    );
 
     const { data: evts } = await supabase
       .from("library_events")
