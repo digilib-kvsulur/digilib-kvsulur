@@ -100,3 +100,82 @@ export async function sendEmailVerifiedEmail(studentId: string, emailAddress: st
     details: { emailAddress },
   });
 }
+
+/** Trigger automatic email when a student is declared an event winner */
+export async function sendEventWinnerEmail(
+  studentId: string,
+  details: {
+    eventTitle: string;
+    positionTitle: string;
+    collectionDate?: string;
+    collectionVenue?: string;
+    librarianNote?: string;
+    hasCertificate?: boolean;
+  }
+) {
+  const formattedDate = details.collectionDate
+    ? new Date(details.collectionDate).toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "the specified date";
+
+  const note = [
+    `Event: "${details.eventTitle}"`,
+    `Award: ${details.positionTitle}`,
+    `Physical Collection Date: ${formattedDate}`,
+    `Venue: ${details.collectionVenue || "Central Library Counter"}`,
+    details.librarianNote ? `Note: ${details.librarianNote}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return sendAutoEmail({
+    recipientId: studentId,
+    preset: "event_winner",
+    customMessage: note,
+    details,
+  });
+}
+
+/** Trigger automatic email when a student wins a rotational badge */
+export async function sendRotationalBadgeEmail(
+  studentId: string,
+  details: {
+    badgeName: string;
+    scopeValue: string;
+    cycleLabel?: string;
+    collectionDate?: string;
+    collectionVenue?: string;
+    librarianNote?: string;
+  }
+) {
+  const formattedDate = details.collectionDate
+    ? new Date(details.collectionDate).toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "the specified date";
+
+  const note = [
+    `Rotational Honour: 🏆 ${details.badgeName} (${details.scopeValue})`,
+    details.cycleLabel ? `Cycle: ${details.cycleLabel}` : "",
+    `Physical Badge Collection Date: ${formattedDate}`,
+    `Venue: ${details.collectionVenue || "Central Library Counter"}`,
+    details.librarianNote ? `Instructions: ${details.librarianNote}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return sendAutoEmail({
+    recipientId: studentId,
+    preset: "rotational_badge",
+    customMessage: note,
+    details,
+  });
+}
+

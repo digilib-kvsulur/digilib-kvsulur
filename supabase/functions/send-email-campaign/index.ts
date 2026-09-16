@@ -8,6 +8,8 @@ const cors = {
 const esc = (v: string) =>
   v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c] || c));
 
+const fmtNote = (v: string) => esc(v || "").replace(/\n/g, "<br/>");
+
 // ─── Template Registry ────────────────────────────────────────────────────────
 interface TemplateData {
   subject: string;
@@ -257,6 +259,48 @@ const PRESETS: Record<string, TemplateData> = {
       <p style="margin-bottom:0;">— PM SHRI KV AFS Sulur Library Team</p>`,
   },
 
+  event_winner: {
+    subject: "🏆 Congratulations! You Won an Award in Library Event — KV Sulur",
+    heading: "Event Award Winner Announcement",
+    badgeText: "Event Winner",
+    badgeBg: "#fef3c7",
+    badgeColor: "#92400e",
+    body: (name, note, details) => `
+      <p style="margin-top:0;">Dear <strong>${esc(name)}</strong>,</p>
+      <p>Heartiest Congratulations! We are thrilled to celebrate your outstanding accomplishment in the <strong>PM SHRI KV AFS Sulur Digital Library Event</strong>! 🎉</p>
+      <div style="background:#fffbeb;border:2px solid #f59e0b;padding:20px;border-radius:12px;margin:20px 0;">
+        <div style="font-size:44px;line-height:1;margin-bottom:10px;text-align:center;">🏆</div>
+        <p style="margin:0;font-size:18px;color:#b45309;font-weight:800;text-align:center;">${esc(details?.positionTitle || "Award Winner")}</p>
+        <p style="margin:4px 0 0 0;font-size:14px;color:#78350f;font-weight:600;text-align:center;">${esc(details?.eventTitle || "Library Event")}</p>
+        ${note ? `<div style="margin-top:14px;padding-top:14px;border-top:1px dashed #fcd34d;font-size:13px;color:#451a03;line-height:1.6;">${fmtNote(note)}</div>` : ""}
+      </div>
+      <div style="background:#f8fafc;border-left:4px solid #3b82f6;padding:14px 18px;border-radius:8px;margin:16px 0;">
+        <p style="margin:0;font-size:13px;color:#1e40af;font-weight:700;">📜 Digital Certificate Available</p>
+        <p style="margin:4px 0 0 0;font-size:13px;color:#334155;">Your official bilingual e-certificate is available under your <strong>Student Dashboard → Certificates</strong>.</p>
+      </div>
+      <p style="color:#475569;font-size:13px;">Keep up the inspiring participation and excellence in reading!</p>
+      <p style="margin-bottom:0;">— PM SHRI KV AFS Sulur Library Team</p>`,
+  },
+
+  rotational_badge: {
+    subject: "👑 Congratulations! You Won the Rotational Badge — KV Sulur Library",
+    heading: "Rotational Badge Awarded",
+    badgeText: "Rotational Honour",
+    badgeBg: "#fef3c7",
+    badgeColor: "#92400e",
+    body: (name, note, details) => `
+      <p style="margin-top:0;">Dear <strong>${esc(name)}</strong>,</p>
+      <p>Outstanding reading achievement! You have been awarded the prestigious <strong>Rotational Library Honour</strong> for your standard/section! 🌟</p>
+      <div style="background:#fffbeb;border:2px solid #f59e0b;padding:22px;border-radius:12px;margin:20px 0;text-align:center;">
+        <div style="font-size:48px;line-height:1;margin-bottom:10px;">👑</div>
+        <p style="margin:0;font-size:20px;color:#b45309;font-weight:800;">${esc(details?.badgeName || "Best Library User")}</p>
+        <p style="margin:6px 0 0 0;font-size:14px;color:#92400e;font-weight:700;">${esc(details?.scopeValue || "Class/Section")}${details?.cycleLabel ? ` · ${esc(details?.cycleLabel)}` : ""}</p>
+        ${note ? `<div style="margin-top:16px;padding-top:14px;border-top:1px dashed #fcd34d;font-size:13px;color:#451a03;text-align:left;line-height:1.6;">${fmtNote(note)}</div>` : ""}
+      </div>
+      <p style="color:#475569;font-size:13px;">Wear your honour proudly and continue setting a wonderful example for your fellow students!</p>
+      <p style="margin-bottom:0;">— PM SHRI KV AFS Sulur Library Team</p>`,
+  },
+
   newsletter: {
     subject: "KV Sulur Digital Library — Monthly Newsletter",
     heading: "Library Digest",
@@ -287,14 +331,17 @@ function buildHtml(heading: string, badgeText: string, badgeBg: string, badgeCol
         <!-- Main Card Container -->
         <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width:580px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px -5px rgba(15,23,42,0.08);border:1px solid #e2e8f0;">
           
-          <!-- Header Banner with Gradient -->
+          <!-- Header Banner with Gradient and KV Emblem Logo DP -->
           <tr>
-            <td style="background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);padding:28px 32px;text-align:left;">
+            <td style="background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);padding:24px 30px;text-align:left;">
               <table width="100%" border="0" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td>
+                  <td width="56" style="vertical-align:middle;padding-right:16px;">
+                    <img src="https://dlms.kvsulur.in/logos/kv-square.png" alt="KV Sulur Logo" width="52" height="52" style="display:block;border-radius:50%;background:#ffffff;padding:2px;box-shadow:0 3px 10px rgba(0,0,0,0.25);border:2px solid #ffffff;object-fit:cover;" />
+                  </td>
+                  <td style="vertical-align:middle;">
                     <p style="margin:0;color:#bfdbfe;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">PM SHRI KENDRIYA VIDYALAYA AFS SULUR</p>
-                    <h1 style="margin:6px 0 0 0;color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-0.5px;line-height:1.3;">📚 Digital Library System</h1>
+                    <h1 style="margin:4px 0 0 0;color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-0.5px;line-height:1.2;">📚 Digital Library System</h1>
                   </td>
                 </tr>
               </table>

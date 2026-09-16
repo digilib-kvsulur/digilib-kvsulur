@@ -59,8 +59,9 @@ import ExpressCirculation from "@/components/admin/ExpressCirculation";
 import AcademicYearRollover from "@/components/admin/AcademicYearRollover";
 import BugBountyManager from "@/components/admin/BugBountyManager";
 import EmailCampaignManager from "@/components/admin/EmailCampaignManager";
+import EventWinnersManager from "@/components/admin/EventWinnersManager";
 
-type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty";
 
 const navSections = [
   {
@@ -116,6 +117,7 @@ const navSections = [
       { id: "periodicals" as Tab, label: "Periodicals", icon: Newspaper },
       { id: "clubs" as Tab, label: "Book Clubs", icon: UsersIcon },
       { id: "events" as Tab, label: "Events", icon: Calendar },
+      { id: "event-winners" as Tab, label: "Manage Event Winners", icon: Trophy },
       { id: "gallery" as Tab, label: "Gallery", icon: ImageIcon },
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
@@ -502,6 +504,7 @@ const AdminDashboard = () => {
           {activeTab === "reviews" && <ReviewsModeration />}
           {activeTab === "book-of-the-week" && <BookOfTheWeek />}
           {activeTab === "events" && <EventsManager />}
+          {activeTab === "event-winners" && <EventWinnersManager />}
           {activeTab === "gallery" && <GalleryManager />}
           {activeTab === "points" && <PointsManager />}
           {activeTab === "quizzes" && <QuizManager />}

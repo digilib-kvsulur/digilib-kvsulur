@@ -243,6 +243,48 @@ const TEMPLATES: Template[] = [
       <p>— KV Sulur Library Team</p>`,
   },
   {
+    id: "event_winner",
+    label: "Event Winner Announcement",
+    description: "Celebratory award notification sent to event winners with trophy/certificate collection details",
+    subject: "🏆 Congratulations! You Won an Award in Library Event — KV Sulur",
+    icon: Trophy,
+    color: "text-amber-500",
+    previewHtml: (name, note) => `
+      <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
+      <p>Heartiest Congratulations! We are thrilled to celebrate your outstanding accomplishment in the <strong>PM SHRI KV AFS Sulur Digital Library Event</strong>! 🎉</p>
+      <div style="background:#fffbeb;border:2px solid #f59e0b;padding:20px;border-radius:12px;margin:20px 0;">
+        <div style="font-size:44px;line-height:1;margin-bottom:10px;text-align:center;">🏆</div>
+        <p style="margin:0;font-size:18px;color:#b45309;font-weight:800;text-align:center;">🥇 First Position</p>
+        <p style="margin:4px 0 0 0;font-size:14px;color:#78350f;font-weight:600;text-align:center;">National Reading Month Competition 2026</p>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px dashed #fcd34d;font-size:13px;color:#451a03;line-height:1.6;">
+          ${(note || "Physical Collection Date: Next Monday\nVenue: Central Library Counter\nBring your student ID.").replace(/\n/g, "<br/>")}
+        </div>
+      </div>
+      <p style="color:#475569;font-size:13px;">Your official bilingual e-certificate is available under your <strong>Student Dashboard → Certificates</strong>.</p>
+      <p style="margin-bottom:0;">— PM SHRI KV AFS Sulur Library Team</p>`,
+  },
+  {
+    id: "rotational_badge",
+    label: "Rotational Badge Award",
+    description: "Send congratulations to students winning Best Library User or Reader of the Month honours",
+    subject: "👑 Congratulations! You Won the Rotational Badge — KV Sulur Library",
+    icon: Crown,
+    color: "text-purple-600",
+    previewHtml: (name, note) => `
+      <p style="margin-top:0;">Dear <strong>${name}</strong>,</p>
+      <p>Outstanding reading achievement! You have been awarded the prestigious <strong>Rotational Library Honour</strong>! 🌟</p>
+      <div style="background:#fffbeb;border:2px solid #f59e0b;padding:22px;border-radius:12px;margin:20px 0;text-align:center;">
+        <div style="font-size:48px;line-height:1;margin-bottom:10px;">👑</div>
+        <p style="margin:0;font-size:20px;color:#b45309;font-weight:800;">Best Library User</p>
+        <p style="margin:6px 0 0 0;font-size:14px;color:#92400e;font-weight:700;">Class 11 · September 2026 Cycle</p>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px dashed #fcd34d;font-size:13px;color:#451a03;text-align:left;line-height:1.6;">
+          ${(note || "Physical Badge Handover: Monday Lunch Break\nVenue: Central Library Counter").replace(/\n/g, "<br/>")}
+        </div>
+      </div>
+      <p style="color:#475569;font-size:13px;">Wear your honour proudly and continue inspiring your classmates!</p>
+      <p style="margin-bottom:0;">— PM SHRI KV AFS Sulur Library Team</p>`,
+  },
+  {
     id: "newsletter",
     label: "Monthly Newsletter",
     description: "Send the library's monthly digest / newsletter",
@@ -265,9 +307,12 @@ function buildFullPreviewHtml(template: Template, note: string): string {
   const body = template.previewHtml(PREVIEW_NAME, note);
   return `
     <div style="font-family:sans-serif;max-width:580px;margin:0 auto;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px -5px rgba(15,23,42,0.08);">
-      <div style="background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);padding:24px 28px;">
-        <p style="margin:0;color:#bfdbfe;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">PM SHRI KENDRIYA VIDYALAYA AFS SULUR</p>
-        <p style="color:#fff;margin:4px 0 0 0;font-weight:800;font-size:18px;">📚 Digital Library System</p>
+      <div style="background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);padding:22px 28px;display:flex;align-items:center;gap:14px;">
+        <img src="https://dlms.kvsulur.in/logos/kv-square.png" alt="KV Logo" style="width:48px;height:48px;border-radius:50%;background:#fff;padding:2px;box-shadow:0 2px 8px rgba(0,0,0,0.2);object-fit:cover;display:block;" />
+        <div>
+          <p style="margin:0;color:#bfdbfe;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">PM SHRI KENDRIYA VIDYALAYA AFS SULUR</p>
+          <p style="color:#fff;margin:4px 0 0 0;font-weight:800;font-size:18px;">📚 Digital Library System</p>
+        </div>
       </div>
       <div style="background:#f8fafc;padding:12px 28px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:between;">
         <span style="background:#dbeafe;color:#1e40af;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;">${template.label}</span>

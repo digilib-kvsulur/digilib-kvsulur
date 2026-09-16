@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Sparkles, KeyRound, Mail, Phone, UserCheck, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { sendFirstLoginEmail, sendEmailVerifiedEmail } from "@/lib/autoEmail";
 
 interface TeacherProfileCompletionDialogProps {
   open: boolean;
@@ -84,6 +85,12 @@ export default function TeacherProfileCompletionDialog({ open, user, onComplete 
       });
 
       await supabase.auth.refreshSession();
+
+      // Trigger welcome & email verification auto-emails
+      sendFirstLoginEmail(user.id, `${firstName.trim()} ${lastName.trim()}`);
+      if (email.trim()) {
+        sendEmailVerifiedEmail(user.id, email.trim().toLowerCase());
+      }
 
       toast({
         title: "Profile Setup Complete!",

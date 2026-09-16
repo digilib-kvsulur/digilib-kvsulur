@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { sendAutoEmail } from "@/lib/autoEmail";
+import { sendAutoEmail, sendEventWinnerEmail } from "@/lib/autoEmail";
 
 export interface EventWinnerRecord {
   id: string;
@@ -127,7 +127,8 @@ export async function getEventWinners(eventId: string, eventTitle?: string): Pro
 export async function saveEventWinners(
   eventId: string,
   eventTitle: string,
-  inputs: EventWinnerInput[]
+  inputs: EventWinnerInput[],
+  notifyEmail?: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const rows = inputs.map((inp) => ({
@@ -174,11 +175,41 @@ export async function saveEventWinners(
       });
     }
 
+    if (notifyEmail) {
+      for (const inp of inputs) {
+        sendEventWinnerEmail(inp.userId, {
+          eventTitle,
+          positionTitle: inp.positionTitle,
+          collectionDate: inp.collectionDate,
+          collectionVenue: inp.collectionVenue,
+          librarianNote: inp.librarianNote,
+          hasCertificate: !!inp.certificateId,
+        });
+      }
+    }
+
     return { success: true };
   } catch (err: any) {
     console.error("Error saving event winners:", err);
     return { success: false, error: err?.message || "Failed to save winners." };
   }
+}
+
+/**
+ * Dispatch email to an individual winner
+ */
+export async function sendSingleWinnerEmail(
+  winner: EventWinnerRecord | EventWinnerInput,
+  eventTitle: string
+): Promise<boolean> {
+  return sendEventWinnerEmail(winner.userId, {
+    eventTitle,
+    positionTitle: winner.positionTitle,
+    collectionDate: winner.collectionDate,
+    collectionVenue: winner.collectionVenue,
+    librarianNote: winner.librarianNote,
+    hasCertificate: !!winner.certificateId,
+  });
 }
 
 /**
@@ -318,28 +349,13 @@ export async function releaseEventWinners(
 
     // 4. Send Automated Emails to Winners (Fire and forget or async)
     for (const w of updatedInputs) {
-      const formattedDate = w.collectionDate
-        ? new Date(w.collectionDate).toLocaleDateString("en-IN", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
-        : "the specified date";
-
-      const emailNote = `Event: "${eventTitle}"\nAward: ${w.positionTitle}\nPhysical Collection Date: ${formattedDate}\nVenue: ${w.collectionVenue || "Central Library Counter"}\n${w.librarianNote ? `Note: ${w.librarianNote}` : ""}`;
-
-      sendAutoEmail({
-        recipientId: w.userId,
-        preset: "certificate_notice",
-        customMessage: emailNote,
-        details: {
-          eventTitle,
-          positionTitle: w.positionTitle,
-          collectionDate: w.collectionDate,
-          collectionVenue: w.collectionVenue,
-          hasCertificate: !!w.certificateId,
-        },
+      sendEventWinnerEmail(w.userId, {
+        eventTitle,
+        positionTitle: w.positionTitle,
+        collectionDate: w.collectionDate,
+        collectionVenue: w.collectionVenue,
+        librarianNote: w.librarianNote,
+        hasCertificate: !!w.certificateId,
       });
     }
 

@@ -25,7 +25,7 @@ import {
   DEFAULT_ROTATIONAL_SETTINGS, 
   VerifiedRotationalCycle 
 } from "@/lib/rotationalBadgeService";
-import { sendAutoEmail } from "@/lib/autoEmail";
+import { sendAutoEmail, sendRotationalBadgeEmail } from "@/lib/autoEmail";
 import { WinnerCertificateModal, WinnerCertModalData } from "./WinnerCertificateModal";
 
 interface RotationalBadgeManagerProps {
@@ -71,17 +71,13 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
 
   const sendIndividualWinnerEmail = async (studentId: string, badgeName: string, scopeValue: string) => {
     try {
-      const formatted = settings.collectionDate
-        ? new Date(settings.collectionDate).toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
-        : "the specified date";
-
-      const note = `Rotational Award: 🏆 ${badgeName} (${scopeValue})\nPhysical Badge Collection Date: ${formatted}\nVenue: ${settings.collectionVenue}\n${settings.librarianNote}`;
-
-      const ok = await sendAutoEmail({
-        recipientId: studentId,
-        preset: "badge_awarded",
-        customMessage: note,
-        details: { badgeName, scopeValue, collectionDate: settings.collectionDate },
+      const ok = await sendRotationalBadgeEmail(studentId, {
+        badgeName,
+        scopeValue,
+        cycleLabel: activeCycle?.cycleLabel || cycleLabel,
+        collectionDate: settings.collectionDate,
+        collectionVenue: settings.collectionVenue,
+        librarianNote: settings.librarianNote,
       });
 
       if (ok) {
@@ -100,14 +96,13 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
     try {
       let sentCount = 0;
       for (const w of activeCycle.winners) {
-        const formatted = new Date(activeCycle.settings.collectionDate).toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-        const note = `Rotational Award: 🏆 ${w.badgeName} (${w.scopeValue})\nCycle: ${activeCycle.cycleLabel}\nPhysical Badge Collection Date: ${formatted}\nVenue: ${activeCycle.settings.collectionVenue}\n${activeCycle.settings.librarianNote}`;
-
-        await sendAutoEmail({
-          recipientId: w.studentId,
-          preset: "badge_awarded",
-          customMessage: note,
-          details: { badgeName: w.badgeName, scopeValue: w.scopeValue },
+        await sendRotationalBadgeEmail(w.studentId, {
+          badgeName: w.badgeName,
+          scopeValue: w.scopeValue,
+          cycleLabel: activeCycle.cycleLabel,
+          collectionDate: activeCycle.settings.collectionDate,
+          collectionVenue: activeCycle.settings.collectionVenue,
+          librarianNote: activeCycle.settings.librarianNote,
         });
         sentCount++;
       }
