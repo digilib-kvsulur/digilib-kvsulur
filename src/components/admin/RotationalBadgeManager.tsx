@@ -941,7 +941,7 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                               <Badge variant="outline" className="text-[10px] font-bold border-rose-400 text-rose-600 bg-rose-50 dark:bg-rose-950/30">
                                 No Badge
                               </Badge>
-                            )}
+                          </div>
                         )}
                       </div>
                     );
