@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Award, Crown, Medal, Calendar, CheckCircle2, AlertTriangle, 
   Printer, Download, RefreshCw, Sparkles, ShieldCheck, UserCheck, 
-  HelpCircle, BookOpen, ChevronRight, Info
+  HelpCircle, BookOpen, ChevronRight, Info, Mail, FileText, Send
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,8 @@ import {
   DEFAULT_ROTATIONAL_SETTINGS, 
   VerifiedRotationalCycle 
 } from "@/lib/rotationalBadgeService";
+import { sendAutoEmail } from "@/lib/autoEmail";
+import { WinnerCertificateModal, WinnerCertModalData } from "./WinnerCertificateModal";
 
 interface RotationalBadgeManagerProps {
   open: boolean;
@@ -61,6 +63,61 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   const [editNote, setEditNote] = useState("");
   const [savingCollection, setSavingCollection] = useState(false);
   const [managingWinnerId, setManagingWinnerId] = useState<string | null>(null);
+
+  // Certificate Modal & Separate Email state
+  const [certModalOpen, setCertModalOpen] = useState(false);
+  const [certModalData, setCertModalData] = useState<WinnerCertModalData | null>(null);
+  const [sendingEmails, setSendingEmails] = useState(false);
+
+  const sendIndividualWinnerEmail = async (studentId: string, badgeName: string, scopeValue: string) => {
+    try {
+      const formatted = settings.collectionDate
+        ? new Date(settings.collectionDate).toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+        : "the specified date";
+
+      const note = `Rotational Award: 🏆 ${badgeName} (${scopeValue})\nPhysical Badge Collection Date: ${formatted}\nVenue: ${settings.collectionVenue}\n${settings.librarianNote}`;
+
+      const ok = await sendAutoEmail({
+        recipientId: studentId,
+        preset: "badge_awarded",
+        customMessage: note,
+        details: { badgeName, scopeValue, collectionDate: settings.collectionDate },
+      });
+
+      if (ok) {
+        toast({ title: "📧 Email Sent!", description: `Dispatched award email for ${badgeName}.` });
+      } else {
+        toast({ title: "Email Dispatch Warning", description: "Email attempt completed.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Email Failed", description: err?.message, variant: "destructive" });
+    }
+  };
+
+  const resendAllWinnerEmails = async () => {
+    if (!activeCycle || !activeCycle.winners?.length) return;
+    setSendingEmails(true);
+    try {
+      let sentCount = 0;
+      for (const w of activeCycle.winners) {
+        const formatted = new Date(activeCycle.settings.collectionDate).toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+        const note = `Rotational Award: 🏆 ${w.badgeName} (${w.scopeValue})\nCycle: ${activeCycle.cycleLabel}\nPhysical Badge Collection Date: ${formatted}\nVenue: ${activeCycle.settings.collectionVenue}\n${activeCycle.settings.librarianNote}`;
+
+        await sendAutoEmail({
+          recipientId: w.studentId,
+          preset: "badge_awarded",
+          customMessage: note,
+          details: { badgeName: w.badgeName, scopeValue: w.scopeValue },
+        });
+        sentCount++;
+      }
+      toast({ title: "📧 Emails Dispatched!", description: `Sent email notifications to ${sentCount} winner(s).` });
+    } catch (err: any) {
+      toast({ title: "Dispatch Failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setSendingEmails(false);
+    }
+  };
 
   // Analysis state
   const [classAwards, setClassAwards] = useState<RotationalAwardCandidate[]>([]);
@@ -1030,6 +1087,16 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                           <Button
                             size="sm"
                             variant="outline"
+                            disabled={sendingEmails}
+                            onClick={resendAllWinnerEmails}
+                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold"
+                          >
+                            <Mail className="h-4 w-4 mr-1.5" />
+                            {sendingEmails ? "Sending Emails..." : `📧 Resend Winner Emails (${activeCycle.winners.length})`}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             disabled={savingCollection}
                             onClick={() => saveCollectionDetails(false)}
                           >
@@ -1044,18 +1111,52 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                   <div className="border rounded-xl divide-y divide-border overflow-hidden">
                     <div className="p-3 bg-muted/40 font-bold text-xs flex justify-between">
                       <span>Award Winner</span>
-                      <span>Award controls</span>
+                      <span>Award controls &amp; E-Certificates</span>
                     </div>
                     {activeCycle.winners.map((w) => (
-                      <div key={w.studentId + w.badgeType} className="p-3 flex items-center justify-between text-xs hover:bg-muted/20">
+                      <div key={w.studentId + w.badgeType} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-muted/20">
                         <div>
                           <p className="font-bold text-foreground text-sm">{w.studentName}</p>
                           <p className="text-muted-foreground text-[11px]">
                             {w.scopeValue} · Admn #{w.admissionNumber} · {w.points} XP · {w.booksIssuedCount} Books Borrowed
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap sm:justify-end">
                           <Badge className={w.badgeType === "best_library_user" ? "bg-amber-500 text-white" : "bg-indigo-600 text-white"}>{w.badgeType === "best_library_user" ? "👑 Best Library User" : "📚 Reader of the Month"}</Badge>
+                          
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-[11px] font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                            onClick={() => {
+                              setCertModalData({
+                                userId: w.studentId,
+                                studentName: w.studentName,
+                                studentClass: w.studentClass,
+                                admissionNumber: w.admissionNumber,
+                                awardTitle: w.badgeName,
+                                awardTitleHindi: w.badgeType === "best_library_user" ? "सर्वश्रेष्ठ पुस्तकालय उपयोगकर्ता" : "माह का श्रेष्ठ पाठक",
+                                eventSubtitle: `Rotational Award · ${activeCycle.cycleLabel}`,
+                                description: `Awarded for outstanding reading achievement in ${w.scopeValue} (${activeCycle.cycleLabel}).`,
+                                issuedAt: new Date().toISOString().slice(0, 10),
+                              });
+                              setCertModalOpen(true);
+                            }}
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            📜 Certificate
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-[11px]"
+                            onClick={() => sendIndividualWinnerEmail(w.studentId, w.badgeName, w.scopeValue)}
+                          >
+                            <Mail className="h-3 w-3 mr-1" />
+                            Email
+                          </Button>
+
                           <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={!!managingWinnerId} onClick={() => manageWinner(w, "reissue")}>Reissue</Button>
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-destructive" disabled={!!managingWinnerId} onClick={() => manageWinner(w, "remove")}>Remove</Button>
                         </div>
@@ -1272,9 +1373,12 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                 {verifying ? "Issuing..." : "Confirm & Issue Badges"}
               </Button>
             </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </DialogContent>
+      {/* Winner E-Certificate Generation & Preview Modal */}
+      <WinnerCertificateModal
+        open={certModalOpen}
+        onOpenChange={setCertModalOpen}
+        data={certModalData}
+      />
     </Dialog>
   );
 };

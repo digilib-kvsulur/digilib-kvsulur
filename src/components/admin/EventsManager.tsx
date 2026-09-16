@@ -21,6 +21,8 @@ import {
   releaseEventWinners, 
   EventWinnerInput 
 } from "@/lib/eventWinnersService";
+import { fetchAllApprovedStudents } from "@/lib/profileFetcher";
+import { WinnerCertificateModal, WinnerCertModalData } from "./WinnerCertificateModal";
 
 const EVENT_WINNER_PRESETS = [
   { position: "1st", titleEng: "🥇 First Position", titleHin: "प्रथम स्थान" },
@@ -81,6 +83,9 @@ export default function EventsManager() {
     unlockAt: "",
   });
 
+  const [evtCertModalOpen, setEvtCertModalOpen] = useState(false);
+  const [evtCertModalData, setEvtCertModalData] = useState<WinnerCertModalData | null>(null);
+
   const openWinnersModal = async (ev: any) => {
     setActiveEventForWinners(ev);
     setCertCustomization({
@@ -118,15 +123,8 @@ export default function EventsManager() {
         setWinnerInputs([]);
       }
 
-      // 2. Load all student profiles
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, student_class, admission_number")
-        .eq("role", "student")
-        .eq("is_approved", true)
-        .order("student_class", { ascending: true })
-        .order("first_name", { ascending: true });
-
+      // 2. Load all student profiles without 1000 truncation limit
+      const profs = await fetchAllApprovedStudents("id, first_name, last_name, student_class, admission_number");
       setAllStudents(profs || []);
       setWinnersModalOpen(true);
     } catch (err: any) {
@@ -962,6 +960,31 @@ export default function EventsManager() {
                           />
 
                           <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2 text-xs font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                            onClick={() => {
+                              setEvtCertModalData({
+                                userId: w.userId,
+                                studentName: w.studentName,
+                                studentClass: w.studentClass,
+                                admissionNumber: w.admissionNumber,
+                                awardTitle: w.positionTitle,
+                                awardTitleHindi: w.positionTitleHindi,
+                                eventSubtitle: activeEventForWinners.title,
+                                description: `Awarded for winning ${w.positionTitle} in ${activeEventForWinners.title}.`,
+                                certificateId: w.certificateId,
+                                issuedAt: new Date().toISOString().slice(0, 10),
+                              });
+                              setEvtCertModalOpen(true);
+                            }}
+                          >
+                            <FileText className="h-3.5 w-3.5 mr-1" />
+                            {w.certificateId ? "Preview / Edit Cert" : "📜 Generate Cert"}
+                          </Button>
+
+                          <Button
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
@@ -1008,6 +1031,22 @@ export default function EventsManager() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Event Winner E-Certificate Generation & Preview Modal */}
+      <WinnerCertificateModal
+        open={evtCertModalOpen}
+        onOpenChange={setEvtCertModalOpen}
+        data={evtCertModalData}
+        onCertificateIssued={(certId) => {
+          if (evtCertModalData) {
+            setWinnerInputs((prev) =>
+              prev.map((item) =>
+                item.userId === evtCertModalData.userId ? { ...item, certificateId: certId } : item
+              )
+            );
+          }
+        }}
+      />
     </div>
   );
 }

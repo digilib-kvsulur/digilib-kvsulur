@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { fetchAllApprovedProfiles } from "@/lib/profileFetcher";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Profile = {
@@ -304,11 +305,9 @@ export default function EmailCampaignManager() {
 
   // ── Load data ──────────────────────────────────────────────────────────────
   const loadProfiles = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, first_name, last_name, student_class, admission_number, email, notification_email, notification_email_confirmed_at")
-      .eq("is_approved", true)
-      .order("first_name");
+    const data = await fetchAllApprovedProfiles(
+      "id, first_name, last_name, student_class, admission_number, email, notification_email, notification_email_confirmed_at"
+    );
     setProfiles((data as Profile[]) || []);
   };
 

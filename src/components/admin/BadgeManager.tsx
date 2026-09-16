@@ -9,12 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Award, Plus, Edit, Trash2, UserPlus, Users, CheckCircle, Crown } from "lucide-react";
+import { Award, Plus, Edit, Trash2, UserPlus, Users, CheckCircle, Crown, Mail } from "lucide-react";
 import PhysicalBadgeGenerator from "./PhysicalBadgeGenerator";
 import RotationalBadgeManager from "./RotationalBadgeManager";
 import BulkImportRewards from "./BulkImportRewards";
 import { FileSpreadsheet } from "lucide-react";
 import { sendBadgeAwardedEmail } from "@/lib/autoEmail";
+import { fetchAllApprovedStudents } from "@/lib/profileFetcher";
 
 interface BadgeRow {
   id: string; name: string; description?: string; icon_name?: string; color?: string;
