@@ -415,9 +415,12 @@ Deno.serve(async (request) => {
 
     const admin = createClient(url, service, { auth: { autoRefreshToken: false, persistSession: false } });
     const { data: adminProfile } = await admin.from("profiles").select("role").eq("id", user.id).single();
-    if (adminProfile?.role !== "admin" && adminProfile?.role !== "teacher") throw new Error("Forbidden");
-
     const { recipientIds, preset, customMessage, details } = await request.json();
+
+    const isStaff = adminProfile?.role === "admin" || adminProfile?.role === "teacher";
+    const isSelfNotification = Array.isArray(recipientIds) && recipientIds.length === 1 && recipientIds[0] === user.id;
+
+    if (!isStaff && !isSelfNotification) throw new Error("Forbidden");
 
     if (
       !Array.isArray(recipientIds) ||
@@ -425,7 +428,7 @@ Deno.serve(async (request) => {
       recipientIds.length > 300 ||
       !PRESETS[preset]
     ) {
-      throw new Error("Invalid campaign payload or unknown preset");
+      throw new Error(`Invalid campaign payload or unknown preset: "${preset}"`);
     }
 
     const { data: recipients } = await admin
@@ -433,12 +436,22 @@ Deno.serve(async (request) => {
       .select("id, first_name, email, notification_email")
       .in("id", recipientIds);
 
-    const valid = (recipients || [])
-      .map((p: any) => ({
-        ...p,
-        targetEmail: (p.notification_email || p.email || "").trim(),
-      }))
-      .filter((p: any) => Boolean(p.targetEmail));
+    const valid: any[] = [];
+    for (const p of recipients || []) {
+      let targetEmail = (p.notification_email || p.email || "").trim();
+      if (!targetEmail) {
+        // Fallback: look up in auth.users
+        try {
+          const { data: authUser } = await admin.auth.admin.getUserById(p.id);
+          if (authUser?.user?.email) {
+            targetEmail = authUser.user.email.trim();
+          }
+        } catch (_) {}
+      }
+      if (targetEmail && !targetEmail.endsWith("@internal") && !targetEmail.endsWith("@dummy")) {
+        valid.push({ ...p, targetEmail });
+      }
+    }
 
     const key = Deno.env.get("RESEND_API_KEY");
     const from = Deno.env.get("LIBRARY_FROM_EMAIL") || "PM SHRI KV Sulur Library <dlms@kvsulur.in>";
