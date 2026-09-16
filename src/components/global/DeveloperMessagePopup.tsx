@@ -87,21 +87,24 @@ export default function DeveloperMessagePopup() {
 
   useEffect(() => {
     const checkSettings = async () => {
-      // Don't show if they've dismissed it this session
-      try {
-        if (typeof window !== "undefined" && window.sessionStorage) {
-          const dismissed = window.sessionStorage.getItem("dev_message_dismissed");
-          if (dismissed === "true") return;
-        }
-      } catch (_) {}
-
       try {
         const [settings, color] = await Promise.all([
           fetchDevMessageSettings(),
           fetchGlobalNewsColor(),
         ]);
         if (color) setColorTheme(color.toLowerCase());
-        if (settings.enable && settings.message.trim()) {
+        if (settings.enable && settings.message?.trim()) {
+          const dismissKey = `dev_msg_dismissed_${encodeURIComponent(settings.title || "news")}_${encodeURIComponent(settings.message.trim().slice(0, 30))}`;
+          try {
+            if (typeof window !== "undefined") {
+              const sessionDismissed = window.sessionStorage?.getItem("dev_message_dismissed");
+              const contentDismissed = window.sessionStorage?.getItem(dismissKey) || window.localStorage?.getItem(dismissKey);
+              if (sessionDismissed === "true" || contentDismissed === "true") {
+                return;
+              }
+            }
+          } catch (_) {}
+
           setTitle(settings.title || "News & Updates");
           setMessage(settings.message);
           setLinkUrl(settings.linkUrl || "");
@@ -121,11 +124,14 @@ export default function DeveloperMessagePopup() {
       e.stopPropagation();
     }
     try {
-      if (typeof window !== "undefined" && window.sessionStorage) {
-        window.sessionStorage.setItem("dev_message_dismissed", "true");
+      if (typeof window !== "undefined") {
+        const dismissKey = `dev_msg_dismissed_${encodeURIComponent(title || "news")}_${encodeURIComponent((message || "").trim().slice(0, 30))}`;
+        window.sessionStorage?.setItem("dev_message_dismissed", "true");
+        window.sessionStorage?.setItem(dismissKey, "true");
+        window.localStorage?.setItem(dismissKey, "true");
       }
     } catch (err) {
-      console.warn("Could not save dismissal to sessionStorage:", err);
+      console.warn("Could not save dismissal:", err);
     }
     setShowModal(false);
   };
@@ -140,19 +146,22 @@ export default function DeveloperMessagePopup() {
     }
   }, [showModal]);
 
+  if (!showModal) return null;
+
   const theme = THEMES[colorTheme] || THEMES.blue;
 
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in"
       style={{ background: "hsl(var(--background) / 0.85)", backdropFilter: "blur(8px)" }}
-      onMouseDown={(e) => {
+      onClick={(e) => {
         if (e.target === e.currentTarget) handleClose(e);
       }}
     >
       <div
         className={`glass-card relative w-full max-w-lg p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl space-y-4 overflow-hidden border ${theme.border}`}
         style={{ background: "hsl(var(--card))" }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Top accent glow line */}
         <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${theme.topGlow}`} />
