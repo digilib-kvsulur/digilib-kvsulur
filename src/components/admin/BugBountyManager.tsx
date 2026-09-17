@@ -450,6 +450,134 @@ export default function BugBountyManager() {
     }
   };
 
+  // Admin Bulk Verify Bug Reports
+  const handleConfirmBulkVerify = async () => {
+    if (selectedReportsList.length === 0) return;
+    setActionLoading("bulk-verify");
+    try {
+      const awardedXP = Number(bulkRewardXP) || 100;
+      const now = new Date().toISOString();
+
+      // 1. Group points to award by reporter_id
+      const reporterPointsMap: Record<string, number> = {};
+      for (const report of selectedReportsList) {
+        reporterPointsMap[report.reporter_id] = (reporterPointsMap[report.reporter_id] || 0) + awardedXP;
+      }
+
+      // 2. Update each selected bug report
+      const reportUpdates = selectedReportsList.map(report => {
+        const updatedDescription = report.parsed
+          ? JSON.stringify({
+              ...report.parsed,
+              adminFeedback: bulkAdminNote.trim()
+                ? `${bulkAdminNote.trim()} (Bulk Verified)`
+                : (report.parsed.adminFeedback || "Verified during review.")
+            })
+          : report.description;
+
+        return supabase
+          .from("bug_reports")
+          .update({
+            status: 'verified',
+            rewarded_at: now,
+            description: updatedDescription
+          })
+          .eq("id", report.id);
+      });
+
+      const reportResults = await Promise.all(reportUpdates);
+      const firstReportErr = reportResults.find(r => r.error)?.error;
+      if (firstReportErr) throw firstReportErr;
+
+      // 3. Award XP points to student profiles
+      const reporterIds = Object.keys(reporterPointsMap);
+      if (reporterIds.length > 0) {
+        const { data: profiles, error: fetchErr } = await supabase
+          .from("profiles")
+          .select("id, points")
+          .in("id", reporterIds);
+
+        if (fetchErr) throw fetchErr;
+
+        const currentPointsMap = new Map((profiles || []).map(p => [p.id, p.points || 0]));
+
+        const profileUpdates = reporterIds.map(repId => {
+          const current = currentPointsMap.get(repId) || 0;
+          const additional = reporterPointsMap[repId] || 0;
+          return supabase
+            .from("profiles")
+            .update({ points: current + additional })
+            .eq("id", repId);
+        });
+
+        const profileResults = await Promise.all(profileUpdates);
+        const firstProfileErr = profileResults.find(r => r.error)?.error;
+        if (firstProfileErr) throw firstProfileErr;
+      }
+
+      const totalAwardedXP = selectedReportsList.length * awardedXP;
+      toast({
+        title: "Bulk Verification Complete! 🎉",
+        description: `Verified ${selectedReportsList.length} report${selectedReportsList.length > 1 ? 's' : ''} and distributed ${totalAwardedXP} XP to ${reporterIds.length} student${reporterIds.length > 1 ? 's' : ''}.`,
+      });
+
+      setBulkVerifyModalOpen(false);
+      clearSelection();
+      setBulkAdminNote("");
+      loadData();
+    } catch (e: any) {
+      console.error("Bulk verification failed:", e);
+      toast({ title: "Bulk Verification Failed", description: e.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Admin Bulk Reject Bug Reports
+  const handleConfirmBulkReject = async () => {
+    if (selectedReportsList.length === 0) return;
+    setActionLoading("bulk-reject");
+    try {
+      const finalFeedback = [bulkRejectReason, bulkRejectFeedback.trim()].filter(Boolean).join(" - ");
+
+      const reportUpdates = selectedReportsList.map(report => {
+        const updatedDescription = report.parsed
+          ? JSON.stringify({
+              ...report.parsed,
+              adminFeedback: finalFeedback || "Report rejected after review."
+            })
+          : report.description;
+
+        return supabase
+          .from("bug_reports")
+          .update({
+            status: 'rejected',
+            description: updatedDescription
+          })
+          .eq("id", report.id);
+      });
+
+      const reportResults = await Promise.all(reportUpdates);
+      const firstReportErr = reportResults.find(r => r.error)?.error;
+      if (firstReportErr) throw firstReportErr;
+
+      toast({
+        title: "Bulk Rejection Complete ❌",
+        description: `Successfully rejected ${selectedReportsList.length} report${selectedReportsList.length > 1 ? 's' : ''}.`,
+      });
+
+      setBulkRejectModalOpen(false);
+      clearSelection();
+      setBulkRejectFeedback("");
+      loadData();
+    } catch (e: any) {
+      console.error("Bulk rejection failed:", e);
+      toast({ title: "Bulk Rejection Failed", description: e.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   // Export reports to CSV
   const exportToCSV = () => {
     if (reports.length === 0) return;
