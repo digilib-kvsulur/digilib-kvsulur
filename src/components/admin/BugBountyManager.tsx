@@ -947,9 +947,87 @@ export default function BugBountyManager() {
                   </Select>
                 </div>
               </div>
+
+              {/* Admin Selection Controls Bar */}
+              {userRole === 'admin' && pendingInView.length > 0 && (
+                <div className="flex items-center justify-between gap-2 pt-2.5 px-0.5 border-t border-border/60 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="select-all-pending"
+                      checked={areAllPendingSelected}
+                      onCheckedChange={toggleSelectAllPending}
+                      className="rounded-md h-4 w-4 data-[state=checked]:bg-primary"
+                    />
+                    <label
+                      htmlFor="select-all-pending"
+                      className="cursor-pointer font-semibold text-foreground/80 hover:text-foreground select-none text-xs flex items-center gap-1.5"
+                    >
+                      <span>{areAllPendingSelected ? "Deselect All Pending" : `Select All Pending in View (${pendingInView.length})`}</span>
+                    </label>
+                  </div>
+
+                  {selectedReportIds.size > 0 && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground font-medium">
+                        {selectedReportIds.size} of {reports.length} selected
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearSelection}
+                        className="h-6 px-2 text-[11px] text-primary hover:text-primary/80 font-bold hover:bg-primary/10 rounded-lg"
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardHeader>
 
             <CardContent className="p-4 sm:p-5 pt-0 space-y-3">
+              {/* Sticky / Prominent Bulk Action Toolbar */}
+              {userRole === 'admin' && selectedReportIds.size > 0 && (
+                <div className="sticky top-2 z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl bg-slate-900 text-white border border-indigo-500/40 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center gap-2.5">
+                    <Badge className="bg-primary hover:bg-primary text-primary-foreground font-black px-2.5 py-0.5 text-xs shadow-xs">
+                      {selectedReportIds.size} Selected
+                    </Badge>
+                    <span className="text-xs text-slate-200">
+                      ({selectedDistinctReporters.length} {selectedDistinctReporters.length === 1 ? 'student hunter' : 'student hunters'})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5 shadow-xs"
+                      onClick={() => setBulkVerifyModalOpen(true)}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Accept & Award ({selectedReportIds.size})
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 text-xs rounded-xl font-bold gap-1.5 shadow-xs"
+                      onClick={() => setBulkRejectModalOpen(true)}
+                    >
+                      <XCircle className="h-3.5 w-3.5" /> Reject ({selectedReportIds.size})
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs rounded-xl text-slate-300 hover:text-white hover:bg-slate-800"
+                      onClick={clearSelection}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {filteredReports.length === 0 ? (
                 <div className="text-center py-12 space-y-3">
                   <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
@@ -970,27 +1048,43 @@ export default function BugBountyManager() {
                   return (
                     <div
                       key={report.id}
-                      className="p-4 rounded-2xl border border-border bg-card hover:bg-muted/30 transition-all space-y-3 shadow-xs"
+                      className={`p-4 rounded-2xl border transition-all space-y-3 shadow-xs ${
+                        selectedReportIds.has(report.id)
+                          ? "border-primary bg-primary/[0.04] ring-1 ring-primary/20 shadow-md"
+                          : "border-border bg-card hover:bg-muted/30"
+                      }`}
                     >
                       {/* Top Header Row */}
                       <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-foreground">
-                              {report.reporter_name}
-                            </span>
-                            {report.reporter_role && (
-                              <Badge variant="outline" className="text-[9px] h-4">
-                                {report.reporter_role}
-                              </Badge>
-                            )}
-                            {severityBadge(p.severity)}
-                            {statusBadge(report.status)}
-                          </div>
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          {userRole === 'admin' && (
+                            <div className="pt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={selectedReportIds.has(report.id)}
+                                onCheckedChange={() => toggleSelectReport(report.id)}
+                                aria-label={`Select report ${report.id}`}
+                                className="rounded-md h-4 w-4 data-[state=checked]:bg-primary"
+                              />
+                            </div>
+                          )}
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-bold text-foreground">
+                                {report.reporter_name}
+                              </span>
+                              {report.reporter_role && (
+                                <Badge variant="outline" className="text-[9px] h-4">
+                                  {report.reporter_role}
+                                </Badge>
+                              )}
+                              {severityBadge(p.severity)}
+                              {statusBadge(report.status)}
+                            </div>
 
-                          <h4 className="text-sm font-extrabold text-foreground truncate">
-                            {p.title || report.description.slice(0, 60)}
-                          </h4>
+                            <h4 className="text-sm font-extrabold text-foreground truncate">
+                              {p.title || report.description.slice(0, 60)}
+                            </h4>
+                          </div>
                         </div>
 
                         {/* Admin Action Buttons */}
@@ -1309,6 +1403,212 @@ export default function BugBountyManager() {
               disabled={actionLoading === actionReport?.id}
             >
               {actionLoading === actionReport?.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Reject Report"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Bulk Verify Modal */}
+      <Dialog open={bulkVerifyModalOpen} onOpenChange={setBulkVerifyModalOpen}>
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto rounded-3xl p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-emerald-600">
+              <CheckCircle2 className="h-5 w-5" /> Bulk Verify & Award XP
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Verify {selectedReportsList.length} selected report{selectedReportsList.length > 1 ? 's' : ''} and distribute XP rewards.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            {/* Quick summary cards */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-2.5 rounded-xl bg-muted/60 border border-border">
+                <span className="text-[10px] text-muted-foreground block font-medium">Reports</span>
+                <span className="text-base font-black text-foreground">{selectedReportsList.length}</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-muted/60 border border-border">
+                <span className="text-[10px] text-muted-foreground block font-medium">Students</span>
+                <span className="text-base font-black text-foreground">{selectedDistinctReporters.length}</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-bold">Total XP</span>
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                  {selectedReportsList.length * (Number(bulkRewardXP) || 100)}
+                </span>
+              </div>
+            </div>
+
+            {/* XP Per Report */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold">Reward Per Report</Label>
+                <div className="flex items-center gap-1">
+                  {[50, 100, 200].map(xpVal => (
+                    <button
+                      key={xpVal}
+                      type="button"
+                      onClick={() => setBulkRewardXP(xpVal)}
+                      className={`px-2 py-0.5 text-[10px] rounded-md font-bold transition-all ${
+                        bulkRewardXP === xpVal
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {xpVal} XP
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Input
+                type="number"
+                value={bulkRewardXP}
+                onChange={(e) => setBulkRewardXP(parseInt(e.target.value) || 100)}
+                className="h-10 rounded-xl"
+                min={10}
+                max={500}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Each verified report grants {bulkRewardXP} XP directly to the submitting student.
+              </p>
+            </div>
+
+            {/* Admin Note */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">Admin Feedback Note (Optional)</Label>
+              <Input
+                placeholder="e.g. Verified in bulk review cycle. Great findings!"
+                value={bulkAdminNote}
+                onChange={(e) => setBulkAdminNote(e.target.value)}
+                className="h-10 rounded-xl"
+              />
+            </div>
+
+            {/* Selected Reports Preview List */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">Reports to Verify ({selectedReportsList.length})</Label>
+              <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 rounded-xl bg-muted/40 border border-border">
+                {selectedReportsList.map(r => (
+                  <div key={r.id} className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-background border border-border/60 text-[11px]">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold truncate text-foreground">
+                        {r.parsed?.title || r.description.slice(0, 40)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        By {r.reporter_name} • {r.parsed?.severity || 'medium'}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-[9px] shrink-0 font-mono">
+                      +{bulkRewardXP} XP
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              className="rounded-xl text-xs w-full sm:w-auto"
+              onClick={() => setBulkVerifyModalOpen(false)}
+              disabled={actionLoading === "bulk-verify"}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto"
+              onClick={handleConfirmBulkVerify}
+              disabled={actionLoading === "bulk-verify" || selectedReportsList.length === 0}
+            >
+              {actionLoading === "bulk-verify" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                `Confirm & Verify (${selectedReportsList.length})`
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Bulk Reject Modal */}
+      <Dialog open={bulkRejectModalOpen} onOpenChange={setBulkRejectModalOpen}>
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto rounded-3xl p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-destructive">
+              <XCircle className="h-5 w-5" /> Bulk Reject Bug Reports
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Reject {selectedReportsList.length} selected report{selectedReportsList.length > 1 ? 's' : ''}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">Rejection Reason</Label>
+              <Select value={bulkRejectReason} onValueChange={setBulkRejectReason}>
+                <SelectTrigger className="h-10 rounded-xl text-xs">
+                  <SelectValue placeholder="Select reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Duplicate report">Duplicate report (Already reported)</SelectItem>
+                  <SelectItem value="Expected behavior">Expected behavior / Not a bug</SelectItem>
+                  <SelectItem value="Cannot reproduce">Cannot reproduce with provided steps</SelectItem>
+                  <SelectItem value="Incomplete details">Incomplete details</SelectItem>
+                  <SelectItem value="Out of campaign scope">Out of campaign scope</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">Additional Feedback (Optional)</Label>
+              <Textarea
+                placeholder="Provide details or instructions for reporters..."
+                value={bulkRejectFeedback}
+                onChange={(e) => setBulkRejectFeedback(e.target.value)}
+                rows={2}
+                className="text-xs rounded-xl"
+              />
+            </div>
+
+            {/* Selected Reports Preview List */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">Reports to Reject ({selectedReportsList.length})</Label>
+              <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 rounded-xl bg-muted/40 border border-border">
+                {selectedReportsList.map(r => (
+                  <div key={r.id} className="p-1.5 rounded-lg bg-background border border-border/60 text-[11px]">
+                    <p className="font-bold truncate text-foreground">
+                      {r.parsed?.title || r.description.slice(0, 40)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      By {r.reporter_name}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              className="rounded-xl text-xs w-full sm:w-auto"
+              onClick={() => setBulkRejectModalOpen(false)}
+              disabled={actionLoading === "bulk-reject"}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="rounded-xl text-xs font-bold w-full sm:w-auto"
+              onClick={handleConfirmBulkReject}
+              disabled={actionLoading === "bulk-reject" || selectedReportsList.length === 0}
+            >
+              {actionLoading === "bulk-reject" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                `Reject (${selectedReportsList.length})`
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
