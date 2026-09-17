@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface BugBountyCampaign {
   id: string;
@@ -119,6 +120,15 @@ export default function BugBountyManager() {
   const [adminNote, setAdminNote] = useState("");
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+
+  // Admin Bulk Actions State
+  const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
+  const [bulkVerifyModalOpen, setBulkVerifyModalOpen] = useState(false);
+  const [bulkRejectModalOpen, setBulkRejectModalOpen] = useState(false);
+  const [bulkRewardXP, setBulkRewardXP] = useState(100);
+  const [bulkAdminNote, setBulkAdminNote] = useState("");
+  const [bulkRejectReason, setBulkRejectReason] = useState("Duplicate report");
+  const [bulkRejectFeedback, setBulkRejectFeedback] = useState("");
 
   // Student Report Bug Modal State
   const [showReportModal, setShowReportModal] = useState(false);
