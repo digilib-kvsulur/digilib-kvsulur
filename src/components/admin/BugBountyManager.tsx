@@ -622,6 +622,60 @@ export default function BugBountyManager() {
     });
   }, [reports, statusFilter, severityFilter, searchQuery, userId]);
 
+  // Selection Helpers for Bulk Operations
+  const toggleSelectReport = (id: string) => {
+    setSelectedReportIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedReportIds(new Set());
+  };
+
+  // Pending reports currently visible in filtered list
+  const pendingInView = useMemo(() => {
+    return filteredReports.filter(r => r.status === 'pending');
+  }, [filteredReports]);
+
+  const areAllPendingSelected = useMemo(() => {
+    if (pendingInView.length === 0) return false;
+    return pendingInView.every(r => selectedReportIds.has(r.id));
+  }, [pendingInView, selectedReportIds]);
+
+  const toggleSelectAllPending = () => {
+    if (areAllPendingSelected) {
+      setSelectedReportIds(prev => {
+        const next = new Set(prev);
+        pendingInView.forEach(r => next.delete(r.id));
+        return next;
+      });
+    } else {
+      setSelectedReportIds(prev => {
+        const next = new Set(prev);
+        pendingInView.forEach(r => next.add(r.id));
+        return next;
+      });
+    }
+  };
+
+  // Reports currently selected
+  const selectedReportsList = useMemo(() => {
+    return reports.filter(r => selectedReportIds.has(r.id));
+  }, [reports, selectedReportIds]);
+
+  // Unique student reporters among selected reports
+  const selectedDistinctReporters = useMemo(() => {
+    const s = new Set(selectedReportsList.map(r => r.reporter_id));
+    return Array.from(s);
+  }, [selectedReportsList]);
+
   // Metrics
   const metrics = useMemo(() => {
     const total = reports.length;
