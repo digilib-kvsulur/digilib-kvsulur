@@ -18,7 +18,7 @@ export async function sendAutoEmail(options: SendAutoEmailOptions): Promise<bool
     if (!recipientId) return false;
 
     // Call edge function asynchronously (fire-and-forget for smooth UI performance)
-    const { error } = await supabase.functions.invoke("send-email-campaign", {
+    const { data, error } = await supabase.functions.invoke("send-email-campaign", {
       body: {
         recipientIds: [recipientId],
         preset,
@@ -28,12 +28,19 @@ export async function sendAutoEmail(options: SendAutoEmailOptions): Promise<bool
     });
 
     if (error) {
-      console.warn("Auto email dispatch warning:", error.message);
+      let detail = error.message;
+      try {
+        if ("context" in error && typeof (error as any).context?.json === "function") {
+          const body = await (error as any).context.json();
+          if (body?.error) detail = `${error.message}: ${body.error}`;
+        }
+      } catch (_) {}
+      console.warn("Auto email dispatch notice:", detail);
       return false;
     }
     return true;
   } catch (err) {
-    console.warn("Auto email dispatch failed:", err);
+    console.warn("Auto email dispatch notice:", err);
     return false;
   }
 }

@@ -461,7 +461,7 @@ Deno.serve(async (request) => {
     const { data: adminProfile } = await admin.from("profiles").select("role").eq("id", user.id).single();
     const { recipientIds, preset, customMessage, customSubject, details } = await request.json();
 
-    const isStaff = adminProfile?.role === "admin" || adminProfile?.role === "teacher";
+    const isStaff = adminProfile?.role === "admin" || adminProfile?.role === "teacher" || adminProfile?.role === "librarian";
     const isSelfNotification = Array.isArray(recipientIds) && recipientIds.length === 1 && recipientIds[0] === user.id;
 
     if (!isStaff && !isSelfNotification) throw new Error("Forbidden");
@@ -573,22 +573,30 @@ Deno.serve(async (request) => {
 
     const sent = results.filter(Boolean).length;
 
-    if (sent === 0 && valid.length > 0 && errors.length > 0) {
-      throw new Error(`Resend error: ${errors[0]}`);
+    try {
+      if (isStaff) {
+        await admin.from("email_campaigns").insert({
+          sent_by: user.id,
+          preset,
+          subject: rawSubject,
+          recipient_count: sent,
+        });
+      }
+    } catch (campaignErr) {
+      console.warn("Failed to log campaign record:", campaignErr);
     }
 
-    await admin.from("email_campaigns").insert({
-      sent_by: user.id,
-      preset,
-      subject: rawSubject,
-      recipient_count: sent,
-    });
-
     return new Response(
-      JSON.stringify({ sent, skipped: recipientIds.length - valid.length }),
+      JSON.stringify({
+        success: true,
+        sent,
+        skipped: recipientIds.length - valid.length,
+        errors: errors.length > 0 ? errors : undefined,
+      }),
       { headers: { ...cors, "Content-Type": "application/json" } },
     );
   } catch (error: any) {
+    console.error("send-email-campaign error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Unable to send email" }),
       { status: 400, headers: { ...cors, "Content-Type": "application/json" } },
