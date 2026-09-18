@@ -1159,6 +1159,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           </TabsList>
         </div>
 
+        <TabsContent value="feed" className="mt-0 space-y-4">
           {!isAdmin && blockedUntil && new Date(blockedUntil).getTime() > Date.now() && (
             <Card className="border-destructive/50 bg-destructive/5 text-destructive p-4">
               <div className="flex items-start gap-3">
