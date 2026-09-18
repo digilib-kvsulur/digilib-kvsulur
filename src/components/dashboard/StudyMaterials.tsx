@@ -749,6 +749,10 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
               <button
                 key={i}
                 onClick={() => {
+                  if (!ch.url) {
+                    toast({ title: "Resource Updating", description: "The digital textbook chapter is being linked." });
+                    return;
+                  }
                   if (ch.url.includes("ncert.nic.in")) window.open(ch.url, "_blank");
                   else setViewMaterial({ title: `${ncertBook.name} - ${ch.title}`, url: ch.url });
                 }}
@@ -779,6 +783,10 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
               <button
                 key={i}
                 onClick={() => {
+                  if (!ch.url) {
+                    toast({ title: "Resource Updating", description: "The syllabus resource is being updated." });
+                    return;
+                  }
                   if (ch.url.includes("ncert.nic.in") || ch.url.includes("cbseacademic.nic.in")) window.open(ch.url, "_blank");
                   else setViewMaterial({ title: `${cbseBook.name} - ${ch.title}`, url: ch.url });
                 }}

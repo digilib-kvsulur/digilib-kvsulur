@@ -274,6 +274,86 @@ export const CURRICULUM_GUIDES: Record<string, CurriculumGuide> = {
         answer: 1
       }
     ]
+  },
+
+  // Class 10 History / Social Science - Nationalism in India
+  "10_History_Nationalism in India": {
+    summary: "Nationalism in India explores the growth of modern nationalism intimately connected to the anti-colonial movement. Led by Mahatma Gandhi, mass mobilisations like the Non-Cooperation Movement and the Civil Disobedience Movement united diverse social groups across India.",
+    keyTopics: ["The First World War, Khilafat and Non-Cooperation", "Differing Strands within the Movement (Towns, Countryside, Plantations)", "Towards Civil Disobedience & Salt March", "The Sense of Collective Belonging (Bharat Mata, Folklore, Swadeshi Flag)"],
+    importantConcepts: [
+      "Satyagraha: Novel method of mass agitation based on truth and non-violence introduced by Mahatma Gandhi (Champaran 1917, Kheda 1917, Ahmedabad 1918).",
+      "Rowlatt Act (1919) & Jallianwala Bagh Massacre (13 April 1919) ordered by General Dyer triggered widespread national outrage.",
+      "Non-Cooperation Movement launched in 1920, later called off in February 1922 due to violence at Chauri Chaura.",
+      "Salt March from Sabarmati to Dandi (March 12 - April 6, 1930) marked the launch of the Civil Disobedience Movement.",
+      "Poona Pact (September 1932) between Dr. B.R. Ambedkar and Gandhiji gave depressed classes reserved seats in provincial legislative councils."
+    ],
+    formulasOrFacts: [
+      "Resolution of Non-Cooperation: Adopted at the Nagpur session of the Congress in December 1920.",
+      "Purna Swaraj (Complete Independence): Formalised at the Lahore Congress session in December 1929 presided by Jawaharlal Nehru.",
+      "Dandi March distance: 240 miles from Sabarmati ashram to coastal town of Dandi (24 days)."
+    ],
+    studyTips: [
+      "Prepare a timeline of major events from 1915 to 1947 for quick chronological revision.",
+      "Practice NCERT map work marking important Congress sessions (Calcutta, Nagpur, Madras, Lahore) and Satyagraha centers (Champaran, Kheda, Ahmedabad, Amritsar, Chauri Chaura, Dandi).",
+      "Structure long answers with clear headings: Causes, Scope/Participation of different classes, and Consequences."
+    ],
+    mcqs: [
+      {
+        q: "Where was the Non-Cooperation program adopted by the Indian National Congress in December 1920?",
+        options: ["Calcutta", "Nagpur", "Lahore", "Bombay"],
+        answer: 1
+      },
+      {
+        q: "Why did Mahatma Gandhi decide to withdraw the Non-Cooperation Movement in February 1922?",
+        options: ["Arrival of Simon Commission", "The violent incident at Chauri Chaura", "The arrest of all top leaders", "British granted Dominion Status"],
+        answer: 1
+      },
+      {
+        q: "Who was the author of the famous book 'Hind Swaraj' published in 1909?",
+        options: ["Jawaharlal Nehru", "Subhas Chandra Bose", "Mahatma Gandhi", "Bal Gangadhar Tilak"],
+        answer: 2
+      }
+    ]
+  },
+
+  // Class 10 Social Science - Nationalism in India (alias)
+  "10_Social Science_Nationalism in India": {
+    summary: "Nationalism in India explores the growth of modern nationalism intimately connected to the anti-colonial movement. Led by Mahatma Gandhi, mass mobilisations like the Non-Cooperation Movement and the Civil Disobedience Movement united diverse social groups across India.",
+    keyTopics: ["The First World War, Khilafat and Non-Cooperation", "Differing Strands within the Movement (Towns, Countryside, Plantations)", "Towards Civil Disobedience & Salt March", "The Sense of Collective Belonging (Bharat Mata, Folklore, Swadeshi Flag)"],
+    importantConcepts: [
+      "Satyagraha: Novel method of mass agitation based on truth and non-violence introduced by Mahatma Gandhi (Champaran 1917, Kheda 1917, Ahmedabad 1918).",
+      "Rowlatt Act (1919) & Jallianwala Bagh Massacre (13 April 1919) ordered by General Dyer triggered widespread national outrage.",
+      "Non-Cooperation Movement launched in 1920, later called off in February 1922 due to violence at Chauri Chaura.",
+      "Salt March from Sabarmati to Dandi (March 12 - April 6, 1930) marked the launch of the Civil Disobedience Movement.",
+      "Poona Pact (September 1932) between Dr. B.R. Ambedkar and Gandhiji gave depressed classes reserved seats in provincial legislative councils."
+    ],
+    formulasOrFacts: [
+      "Resolution of Non-Cooperation: Adopted at the Nagpur session of the Congress in December 1920.",
+      "Purna Swaraj (Complete Independence): Formalised at the Lahore Congress session in December 1929 presided by Jawaharlal Nehru.",
+      "Dandi March distance: 240 miles from Sabarmati ashram to coastal town of Dandi (24 days)."
+    ],
+    studyTips: [
+      "Prepare a timeline of major events from 1915 to 1947 for quick chronological revision.",
+      "Practice NCERT map work marking important Congress sessions and Satyagraha centers.",
+      "Structure long answers with clear headings: Causes, Scope/Participation of different classes, and Consequences."
+    ],
+    mcqs: [
+      {
+        q: "Where was the Non-Cooperation program adopted by the Indian National Congress in December 1920?",
+        options: ["Calcutta", "Nagpur", "Lahore", "Bombay"],
+        answer: 1
+      },
+      {
+        q: "Why did Mahatma Gandhi decide to withdraw the Non-Cooperation Movement in February 1922?",
+        options: ["Arrival of Simon Commission", "The violent incident at Chauri Chaura", "The arrest of all top leaders", "British granted Dominion Status"],
+        answer: 1
+      },
+      {
+        q: "Who was the author of the famous book 'Hind Swaraj' published in 1909?",
+        options: ["Jawaharlal Nehru", "Subhas Chandra Bose", "Mahatma Gandhi", "Bal Gangadhar Tilak"],
+        answer: 2
+      }
+    ]
   }
 };
 
@@ -298,7 +378,7 @@ export function getCurriculumFallback(classNum: string, subject: string, chapter
   // 3. Keyword match inside chapter title for that class and subject
   for (const [key, guide] of Object.entries(CURRICULUM_GUIDES)) {
     const [kClass, kSubject, kChapter] = key.split("_");
-    if (norm(kClass || "") === normClass && norm(kSubject || "") === normSubject) {
+    if (norm(kClass || "") === normClass && (norm(kSubject || "") === normSubject || normSubject.includes("social") || (kSubject || "").toLowerCase().includes("history"))) {
       const kWords = (kChapter || "").toLowerCase().split(/\s+/).filter(w => w.length > 3);
       if (kWords.some(w => normChapter.includes(norm(w)))) {
         return guide;
@@ -307,6 +387,68 @@ export function getCurriculumFallback(classNum: string, subject: string, chapter
   }
 
   // 4. Dynamic subject-accurate fallback with the actual chapter title
+  const isHumanities = /history|civics|political|geography|social|english|hindi|sanskrit/i.test(subject);
+
+  if (isHumanities) {
+    return {
+      summary: `This study guide covers the core NCERT Class ${classNum} ${subject} curriculum on "${chapter}". Focus on historical causes, key movements, constitutional provisions, timeline analysis, and societal impacts.`,
+      keyTopics: [
+        `${chapter} — Historical Context and Origin`,
+        "Key Movements, Leaders and Key Participants",
+        "Socio-political and Economic Impacts",
+        "Primary Sources, Quotes and Treaties",
+        "CBSE Examination High-frequency Themes & Map Items"
+      ],
+      importantConcepts: [
+        `Study the chronological timeline of events described in the NCERT chapter on ${chapter}.`,
+        "Understand the viewpoints and roles of different social classes and communities involved.",
+        "Link historical causes with their lasting social, economic, and political outcomes.",
+        "Prepare point-wise answers with relevant historical dates and leader names for maximum exam marks."
+      ],
+      formulasOrFacts: [
+        `Key dates and locations are essential for scoring full marks in ${subject}.`,
+        "Always memorize exact names of acts, resolutions, and treaties mentioned in the NCERT text."
+      ],
+      studyTips: [
+        `Create a one-page timeline of all major events in ${chapter}.`,
+        "Practice NCERT questions and previous years' CBSE questions focusing on 3-mark and 5-mark answer structures.",
+        "Practice map-pointing questions related to this chapter."
+      ],
+      mcqs: [
+        {
+          q: `What is a primary learning objective when studying "${chapter}" in Class ${classNum} ${subject}?`,
+          options: [
+            "Understanding historical causes, social impacts, and chronological developments",
+            "Memorizing disconnected numbers without historical context",
+            "Skipping NCERT source boxes and maps",
+            "Writing answers without mentioning key dates or events"
+          ],
+          answer: 0
+        },
+        {
+          q: "In CBSE Social Science / History examinations, high-scoring answers typically include:",
+          options: [
+            "Vague general statements without headings",
+            "Clear point-wise presentation, relevant dates, and historical terminology",
+            "Only one long single paragraph without structure",
+            "Fictional commentary"
+          ],
+          answer: 1
+        },
+        {
+          q: "Why are NCERT primary source boxes and cartoon interpretations important?",
+          options: [
+            "They frequently form the basis of CBSE source-based and competency-based questions",
+            "They are excluded from the examination syllabus",
+            "They are meant only for leisure reading",
+            "They contain obsolete information"
+          ],
+          answer: 0
+        }
+      ]
+    };
+  }
+
   return {
     summary: `This study guide covers the core NCERT and CBSE syllabus standards for Class ${classNum} ${subject} on "${chapter}". Focus on understanding core definitions, step-by-step principles, and practical problem-solving.`,
     keyTopics: [

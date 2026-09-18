@@ -867,21 +867,41 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   };
 
   const toggleLike = async (post: Post) => {
-    if (post.liked) {
-      await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", currentUserId);
-    } else {
-      await supabase.from("post_likes").insert({ post_id: post.id, user_id: currentUserId });
-      // notify post author
-      if (post.user_id !== currentUserId) {
-        sendNotification(post.user_id, "❤️ Someone liked your post", `Your post "${post.title}" received a new like!`, "info");
+    const isCurrentlyLiked = !!post.liked;
+    const currentLikes = typeof post.likes === "number" ? post.likes : 0;
+    const nextLikes = Math.max(0, currentLikes + (isCurrentlyLiked ? -1 : 1));
+
+    // Immediate optimistic update
+    setPosts((ps) => ps.map((p) => p.id === post.id ? { ...p, liked: !isCurrentlyLiked, likes: nextLikes } : p));
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const uid = user?.id || currentUserId;
+      if (!uid) return;
+
+      if (isCurrentlyLiked) {
+        await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", uid);
+      } else {
+        await supabase.from("post_likes").insert({ post_id: post.id, user_id: uid });
+        // notify post author safely (DB trigger also handles this)
+        if (post.user_id !== uid) {
+          try {
+            sendNotification(post.user_id, "❤️ Someone liked your post", `Your post "${post.title}" received a new like!`, "info");
+          } catch {
+            // non-admin notification insert handled by backend trigger
+          }
+        }
       }
+    } catch (err) {
+      console.warn("toggleLike error:", err);
+      // Rollback on failure
+      setPosts((ps) => ps.map((p) => p.id === post.id ? { ...p, liked: isCurrentlyLiked, likes: currentLikes } : p));
     }
-    setPosts((ps) => ps.map((p) => p.id === post.id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p));
   };
 
   const loadComments = async (postId: string) => {
     const { data } = await supabase.from("post_comments")
-      .select("id, post_id, user_id, content, created_at")
+      .select("id, post_id, user_id, content, created_at, is_accepted_solution")
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
     if (!data) return;
@@ -924,7 +944,9 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     // notify post author
     const post = posts.find(p => p.id === postId);
     if (post && post.user_id !== currentUserId) {
-      sendNotification(post.user_id, "💬 New comment on your post", `Someone replied to "${post.title}"`, "info");
+      try {
+        sendNotification(post.user_id, "💬 New comment on your post", `Someone replied to "${post.title}"`, "info");
+      } catch {}
     }
   };
   const deleteComment = async (postId: string, id: string) => {
@@ -940,18 +962,22 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         accepted_comment_id: commentId,
       }).eq("id", post.id);
 
-      await supabase.from("post_comments").update({
-        is_accepted_solution: true,
-      } as any).eq("id", commentId);
+      try {
+        await supabase.from("post_comments").update({
+          is_accepted_solution: true,
+        } as any).eq("id", commentId);
+      } catch {}
 
       // Award +25 XP to solver if it's someone else
       if (commentAuthorId !== currentUserId) {
-        await (supabase.rpc as any)("award_user_points", {
-          _user_id: commentAuthorId,
-          _points: 25,
-          _reason: "Accepted Solution to Academic Doubt",
-        });
-        sendNotification(commentAuthorId, "🏆 Solution Accepted (+25 XP)!", `Your answer was marked as the accepted solution to: "${post.title}"`, "success");
+        try {
+          await (supabase.rpc as any)("award_user_points", {
+            _user_id: commentAuthorId,
+            _points: 25,
+            _reason: "Accepted Solution to Academic Doubt",
+          });
+          sendNotification(commentAuthorId, "🏆 Solution Accepted (+25 XP)!", `Your answer was marked as the accepted solution to: "${post.title}"`, "success");
+        } catch {}
       }
 
       toast({
@@ -960,11 +986,19 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       });
 
       setPosts((ps) => ps.map((p) => p.id === post.id ? { ...p, doubt_status: "solved", accepted_comment_id: commentId } : p));
+      setComments((c) => ({
+        ...c,
+        [post.id]: (c[post.id] || []).map((cm) => ({
+          ...cm,
+          is_accepted_solution: cm.id === commentId,
+        }))
+      }));
       await loadComments(post.id);
     } catch (e: any) {
       toast({ title: "Failed to mark solution", description: e.message, variant: "destructive" });
     }
   };
+
 
   const sendFriendRequest = async (userId: string) => {
     try {
@@ -1060,7 +1094,9 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       setFriendshipsMap((m) => ({ ...m, [userId]: { ...(f || {}), id: fid, status } }));
       toast({ title: status === "accepted" ? "🎉 Friend request accepted!" : "Friend request declined" });
       if (status === "accepted") {
-        sendNotification(userId, "🎉 Friend Request Accepted", "Your friend request was accepted! You are now friends.", "success");
+        try {
+          sendNotification(userId, "🎉 Friend Request Accepted", "Your friend request was accepted! You are now friends.", "success");
+        } catch {}
       }
       loadFriendshipsMap();
     } catch (err: any) {
@@ -2955,6 +2991,21 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
           </Popover>
         </div>
       )}
+
+      {/* Floating Create Post Button (Bottom Left, Round, Blue) */}
+      <button
+        type="button"
+        onClick={() => {
+          setPostKind("text");
+          setShowNew(true);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        className="fixed bottom-20 sm:bottom-6 left-6 z-40 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-xl shadow-blue-500/30 flex items-center justify-center transition-all duration-200 group focus:outline-none focus:ring-4 focus:ring-blue-300"
+        title="Create new post"
+        aria-label="Create new post"
+      >
+        <Plus className="h-7 w-7 text-white transition-transform duration-200 group-hover:rotate-90" />
+      </button>
     </div>
   );
 }

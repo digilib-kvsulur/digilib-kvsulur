@@ -683,8 +683,11 @@ export default function BugBountyManager() {
     const verified = reports.filter(r => r.status === 'verified').length;
     const rejected = reports.filter(r => r.status === 'rejected').length;
     const myCount = userId ? reports.filter(r => r.reporter_id === userId).length : 0;
+    const myPending = userId ? reports.filter(r => r.reporter_id === userId && r.status === 'pending').length : 0;
+    const myVerified = userId ? reports.filter(r => r.reporter_id === userId && r.status === 'verified').length : 0;
     const totalXp = verified * 100;
-    return { total, pending, verified, rejected, myCount, totalXp };
+    const myXp = myVerified * 100;
+    return { total, pending, verified, rejected, myCount, myPending, myVerified, totalXp, myXp };
   }, [reports, userId]);
 
   // Top Bug Hunters Leaderboard
@@ -826,34 +829,50 @@ export default function BugBountyManager() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
         <Card className="p-3.5 sm:p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">Total Reports</span>
+            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">
+              {userRole === 'admin' ? "Total Reports" : "My Bug Reports"}
+            </span>
             <Bug className="h-4 w-4 text-primary shrink-0" />
           </div>
-          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-foreground">{metrics.total}</p>
+          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-foreground">
+            {userRole === 'admin' ? metrics.total : metrics.myCount}
+          </p>
         </Card>
 
         <Card className="p-3.5 sm:p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">Under Review</span>
+            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">
+              {userRole === 'admin' ? "Under Review" : "My In Review"}
+            </span>
             <Clock className="h-4 w-4 text-amber-500 shrink-0" />
           </div>
-          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-amber-500">{metrics.pending}</p>
+          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-amber-500">
+            {userRole === 'admin' ? metrics.pending : metrics.myPending}
+          </p>
         </Card>
 
         <Card className="p-3.5 sm:p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">Verified Bugs</span>
+            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">
+              {userRole === 'admin' ? "Verified Bugs" : "Verified Fixes"}
+            </span>
             <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
           </div>
-          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-emerald-500">{metrics.verified}</p>
+          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-emerald-500">
+            {userRole === 'admin' ? metrics.verified : `${metrics.myVerified} (${metrics.verified} hall of fame)`}
+          </p>
         </Card>
 
         <Card className="p-3.5 sm:p-4 rounded-2xl border-border bg-card/60 backdrop-blur-sm shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">XP Distributed</span>
+            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground truncate">
+              {userRole === 'admin' ? "XP Distributed" : "My Bounty XP"}
+            </span>
             <Trophy className="h-4 w-4 text-amber-400 shrink-0" />
           </div>
-          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-primary">{metrics.totalXp} XP</p>
+          <p className="text-xl sm:text-2xl font-black mt-1.5 sm:mt-2 text-primary">
+            {userRole === 'admin' ? `${metrics.totalXp} XP` : `${metrics.myXp} XP`}
+          </p>
         </Card>
       </div>
 

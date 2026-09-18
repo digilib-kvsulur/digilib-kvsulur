@@ -234,10 +234,15 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
         };
         const res = await completeSessionLocal(payload);
         if (res.success) {
-          const earned = res.pts ? Number(res.pts) : (mode === "break" ? 0 : Math.floor(duration / 60) * ptsPerMin);
+          const serverAwarded = typeof res.pts === "number" ? res.pts : null;
+          const earned = serverAwarded !== null ? serverAwarded : (mode === "break" ? 0 : Math.floor(duration / 60) * ptsPerMin);
           toast({
             title: mode === "break" ? "Break complete" : "Session complete!",
-            description: earned > 0 ? `+${earned} XP for ${formatTime(duration)} of study` : `Logged ${formatTime(duration)}`,
+            description: earned > 0
+              ? `+${earned} XP for ${formatTime(duration)} of study`
+              : mode === "break"
+              ? `Logged ${formatTime(duration)} break`
+              : `Logged ${formatTime(duration)} · Study 10+ min per block for maximum XP`,
           });
         } else {
           const earned = mode === "break" ? 0 : Math.floor(duration / 60) * ptsPerMin;

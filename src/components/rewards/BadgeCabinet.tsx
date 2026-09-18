@@ -193,26 +193,37 @@ export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
             const progress = b.criteria_type === "manual" ? (awards.has(b.id) ? 100 : 0) : Math.min((val / target) * 100, 100);
 
             return (
-              <Card key={b.id} className={`transition-all relative overflow-hidden group hover:shadow-md ${unlocked ? 'border-yellow-200/50 bg-gradient-to-br from-yellow-50/30 to-amber-50/10 dark:from-yellow-950/5' : 'border-border/40 opacity-85'}`}>
+              <Card key={b.id} className={`transition-all relative overflow-hidden group hover:shadow-md ${unlocked ? 'border-amber-300/70 bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-transparent shadow-xs' : 'border-border/60 bg-card hover:border-border'}`}>
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-2xl shrink-0 ${unlocked ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 shadow-sm' : 'bg-muted text-muted-foreground'}`}>
-                      {unlocked ? <Icon className="h-6 w-6" /> : <Lock className="h-6 w-6 opacity-60" />}
+                    <div className="relative shrink-0">
+                      <div className={`p-3 rounded-2xl ${unlocked ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-amber-300/40' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700'}`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      {!unlocked && (
+                        <div className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-slate-700 text-white flex items-center justify-center shadow-xs">
+                          <Lock className="h-2.5 w-2.5 text-slate-200" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <h4 className={`font-semibold text-sm truncate ${unlocked ? 'text-foreground' : 'text-muted-foreground'}`}>{b.name}</h4>
-                        {unlocked && <Badge className="bg-yellow-500 text-[10px] text-white">+{b.points} XP</Badge>}
+                        <h4 className={`font-bold text-sm truncate ${unlocked ? 'text-amber-900 dark:text-amber-100' : 'text-foreground'}`}>{b.name}</h4>
+                        {unlocked ? (
+                          <Badge className="bg-amber-500 hover:bg-amber-600 text-[10px] text-white font-bold shrink-0">+{b.points} XP</Badge>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-muted-foreground shrink-0">+{b.points} XP</span>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{b.description || (b.criteria_type === "manual" ? "Awarded by admin" : "")}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{b.description || (b.criteria_type === "manual" ? "Awarded by admin for outstanding contributions" : "")}</p>
                     </div>
                   </div>
-                  <div className="mt-4 pt-2 space-y-1.5 border-t border-border/30">
-                    <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
-                      <span>{unlocked ? "Completed" : b.criteria_type === "manual" ? "Awarded by admin" : "Progress"}</span>
-                      {b.criteria_type !== "manual" && <span>{val} / {target}</span>}
+                  <div className="mt-4 pt-3 space-y-1.5 border-t border-border/40">
+                    <div className="flex justify-between text-[11px] font-medium text-muted-foreground">
+                      <span>{unlocked ? "Unlocked 🎉" : b.criteria_type === "manual" ? "Admin Recognition" : "Achievement Progress"}</span>
+                      {b.criteria_type !== "manual" && <span className="font-mono font-semibold">{val} / {target}</span>}
                     </div>
-                    <Progress value={progress} className={`h-1.5 ${unlocked ? 'bg-yellow-100 dark:bg-yellow-950' : ''}`} indicatorClassName={unlocked ? 'bg-yellow-500' : 'bg-primary'} />
+                    <Progress value={progress} className={`h-2 ${unlocked ? 'bg-amber-100 dark:bg-amber-950' : 'bg-slate-100 dark:bg-slate-800'}`} indicatorClassName={unlocked ? 'bg-amber-500' : 'bg-indigo-600'} />
                   </div>
                 </CardContent>
               </Card>

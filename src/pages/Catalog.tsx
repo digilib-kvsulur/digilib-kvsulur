@@ -130,8 +130,10 @@ const Catalog = () => {
           p_limit: 1000 // Grab enough to virtualize locally or paginate
         });
         if (searchErr) throw searchErr;
-        data = searchResults;
         count = searchResults?.length || 0;
+        const from = (currentPage - 1) * pageSize;
+        const to = from + pageSize;
+        data = (searchResults || []).slice(from, to);
       } else {
         let query = supabase
           .from("books")
@@ -413,7 +415,7 @@ const Catalog = () => {
               { val: selectedSubject, set: setSelectedSubject, lbl: "Subject", opts: subjects },
               { val: selectedClass, set: setSelectedClass, lbl: "Class", opts: classLevels, format: (v: string) => `Class ${v}` },
               { val: selectedLang, set: setSelectedLang, lbl: "Language", opts: languages },
-              { val: selectedAuthor, set: setSelectedAuthor, lbl: "Author", opts: authors.slice(0, 100) }
+              { val: selectedAuthor, set: setSelectedAuthor, lbl: "Author", opts: authors }
             ].map((filter, i) => (
               <Select key={i} value={filter.val} onValueChange={filter.set}>
                 <SelectTrigger className="w-36 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-xs h-9 text-xs">
@@ -486,7 +488,7 @@ const Catalog = () => {
               { val: selectedSubject, set: setSelectedSubject, lbl: "Subject", opts: subjects },
               { val: selectedClass, set: setSelectedClass, lbl: "Class Level", opts: classLevels, format: (v: string) => `Class ${v}` },
               { val: selectedLang, set: setSelectedLang, lbl: "Language", opts: languages },
-              { val: selectedAuthor, set: setSelectedAuthor, lbl: "Author", opts: authors.slice(0, 100) }
+              { val: selectedAuthor, set: setSelectedAuthor, lbl: "Author", opts: authors }
             ].map((filter, i) => (
               <div key={i} className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{filter.lbl}</label>

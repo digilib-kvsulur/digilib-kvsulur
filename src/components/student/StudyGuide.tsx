@@ -41,7 +41,13 @@ const CHAPTER_SUGGESTIONS: Record<string, string[]> = {
   "12_Physics": ["Electric Charges","Electrostatic Potential","Current Electricity","Moving Charges","Magnetism","Electromagnetic Induction","Alternating Current","Electromagnetic Waves","Ray Optics","Wave Optics","Dual Nature","Atoms","Nuclei","Semiconductor Devices"],
   "11_Chemistry": ["Some Basic Concepts","Structure of Atom","Classification of Elements","Chemical Bonding","States of Matter","Equilibrium","Organic Chemistry","Hydrocarbons","Environmental Chemistry"],
   "12_Chemistry": ["Solid State","Solutions","Electrochemistry","Chemical Kinetics","Surface Chemistry","Coordination Compounds","Haloalkanes","Alcohols","Carbonyl Compounds","Amines","Biomolecules","Polymers"],
+  "10_History": ["Nationalism in India","The Rise of Nationalism in Europe","The Making of a Global World","The Age of Industrialisation","Print Culture and the Modern World"],
+  "9_History": ["The French Revolution","Socialism in Europe and the Russian Revolution","Nazism and the Rise of Hitler","Forest Society and Colonialism","Pastoralists in the Modern World"],
+  "10_Geography": ["Resources and Development","Forest and Wildlife Resources","Water Resources","Agriculture","Minerals and Energy Resources","Manufacturing Industries","Lifelines of National Economy"],
+  "10_Civics": ["Power Sharing","Federalism","Gender, Religion and Caste","Political Parties","Outcomes of Democracy"],
+  "10_Economics": ["Development","Sectors of the Indian Economy","Money and Credit","Globalisation and the Indian Economy","Consumer Rights"],
 };
+
 
 interface StudySection {
   heading: string;

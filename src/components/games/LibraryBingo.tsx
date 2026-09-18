@@ -57,12 +57,11 @@ export default function LibraryBingo({ onComplete, onExit }: GameProps) {
 
   const completedLines = lines.filter((line) => line.every((i) => marked.includes(i))).length;
 
-  useEffect(() => {
-    if (!won && completedLines > 0) {
-      setWon(true);
-      onComplete(true, completedLines * 20 + marked.length);
-    }
-  }, [completedLines, won, marked.length, onComplete]);
+  const claimBingo = () => {
+    if (won || completedLines <= 0) return;
+    setWon(true);
+    onComplete(true, completedLines * 25 + marked.length);
+  };
 
   const toggle = (i: number) => {
     if (i === 12) return;
@@ -110,14 +109,26 @@ export default function LibraryBingo({ onComplete, onExit }: GameProps) {
         })}
       </div>
 
+      {completedLines > 0 && !won && (
+        <div className="flex justify-center">
+          <Button
+            size="lg"
+            onClick={claimBingo}
+            className="rounded-xl px-6 font-bold gradient-primary shadow-lg hover:shadow-xl text-white gap-2 animate-bounce"
+          >
+            <Trophy className="h-5 w-5" /> Claim Bingo! ({completedLines} Line{completedLines > 1 ? "s" : ""})
+          </Button>
+        </div>
+      )}
+
       {won && (
         <Card className="p-4 flex items-center gap-3 border-primary/40 bg-primary/5">
           <Trophy className="h-5 w-5 text-primary" />
-          <p className="text-sm font-medium">BINGO! You completed {completedLines} line(s).</p>
+          <p className="text-sm font-medium">BINGO! You completed {completedLines} line(s) and claimed your XP!</p>
         </Card>
       )}
-      <p className="text-xs text-muted-foreground">
-        Tick a task once you have actually done it — complete any full row, column or diagonal to win.
+      <p className="text-xs text-muted-foreground text-center">
+        Tick a task once you have actually done it — complete any full row, column or diagonal to claim your win.
       </p>
     </div>
   );

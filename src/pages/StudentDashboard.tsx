@@ -79,6 +79,7 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "books", label: "My Books", icon: BookMarked },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
+  { id: "ncert", label: "NCERT Books", icon: BookOpen },
   { id: "study", label: "Study Tracker", icon: Timer },
   { id: "study-guide", label: "AI Study Guide", icon: Sparkles },
   { id: "games", label: "Games Corner", icon: Gamepad2 },
@@ -265,6 +266,62 @@ const StudentDashboard = () => {
     }
   };
 
+  const [pendingFriendRequests, setPendingFriendRequests] = useState<any[]>([]);
+
+  const fetchPendingFriendRequests = async () => {
+    if (!user?.id) return;
+    try {
+      const { data: friendships } = await supabase
+        .from("friendships")
+        .select("id, requester_id, created_at")
+        .eq("addressee_id", user.id)
+        .eq("status", "pending");
+
+      if (friendships && friendships.length > 0) {
+        const requesterIds = friendships.map((f: any) => f.requester_id);
+        const { data: profs } = await supabase.rpc("get_public_profiles", { _ids: requesterIds });
+        const profMap = new Map((profs || []).map((p: any) => [p.id, p]));
+
+        const enriched = friendships.map((f: any) => {
+          const prof: any = profMap.get(f.requester_id) || {};
+          let avatarUrl = prof.avatar_url || null;
+          if (avatarUrl && !avatarUrl.startsWith("http")) {
+            const { data: pub } = supabase.storage.from("avatars").getPublicUrl(avatarUrl);
+            avatarUrl = pub?.publicUrl || null;
+          }
+          return {
+            id: f.id,
+            requester_id: f.requester_id,
+            name: `${prof.first_name || ""} ${prof.last_name || ""}`.trim() || prof.username || "A student",
+            student_class: prof.student_class,
+            avatar_url: avatarUrl,
+          };
+        });
+        setPendingFriendRequests(enriched);
+      } else {
+        setPendingFriendRequests([]);
+      }
+    } catch (e) {
+      console.warn("Could not fetch pending friend requests:", e);
+    }
+  };
+
+  const handleRespondFriendRequest = async (requestId: string, status: "accepted" | "rejected") => {
+    try {
+      const { error } = await supabase
+        .from("friendships")
+        .update({ status })
+        .eq("id", requestId);
+      if (error) throw error;
+      toast({
+        title: status === "accepted" ? "Friend request accepted! 🎉" : "Request declined",
+      });
+      setPendingFriendRequests((prev) => prev.filter((r) => r.id !== requestId));
+    } catch (e: any) {
+      toast({ title: "Action failed", description: e.message, variant: "destructive" });
+    }
+  };
+
   const navSections = useMemo(() => [
     {
       title: "Main",
@@ -277,6 +334,7 @@ const StudentDashboard = () => {
       title: "Academics",
       items: [
         { id: "materials" as Tab, label: "Study Materials", icon: FileText },
+        { id: "ncert" as Tab, label: "NCERT Books", icon: BookOpen },
         { id: "study" as Tab, label: "Study Tracker", icon: Timer },
         { id: "study-guide" as Tab, label: "AI Study Guide", icon: Sparkles },
         { id: "notes" as Tab, label: "My Notes", icon: StickyNote },
@@ -607,7 +665,7 @@ const StudentDashboard = () => {
   useEffect(() => {
     if (user?.id) {
       fetchCurrentBooks(); fetchQuizResults(); fetchAvailableQuizzes(); fetchChallenges();
-      fetchRecentActivities(); fetchMonthlyBooksRead(); fetchBadgesCount();
+      fetchRecentActivities(); fetchMonthlyBooksRead(); fetchBadgesCount(); fetchPendingFriendRequests();
       supabase.from("library_fines").select("id, status")
         .eq("user_id", user.id)
         .then(({ data }) => {
@@ -990,6 +1048,73 @@ const StudentDashboard = () => {
                 </Card>
               )}
 
+              {/* Pending Friend Requests Card */}
+              {pendingFriendRequests.length > 0 && (
+                <Card className="rounded-3xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/70 via-indigo-50/30 to-purple-50/50 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-slate-900/40 shadow-sm p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                        <Users className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-foreground">Pending Friend Requests ({pendingFriendRequests.length})</h4>
+                        <p className="text-[11px] text-muted-foreground">Classmates wanting to connect with you</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActiveTab("network")}
+                      className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700"
+                    >
+                      View All →
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {pendingFriendRequests.slice(0, 3).map((req) => (
+                      <div key={req.id} className="p-2.5 rounded-2xl bg-card/80 border border-border/40 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Avatar className="h-8 w-8 border border-border shrink-0">
+                            <AvatarImage src={req.avatar_url} />
+                            <AvatarFallback className="text-[11px] font-bold bg-indigo-100 text-indigo-700">
+                              {req.name.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">{req.name}</p>
+                            {req.student_class && (
+                              <p className="text-[10px] text-muted-foreground">Class {req.student_class}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button
+                            size="sm"
+                            onClick={() => handleRespondFriendRequest(req.id, "accepted")}
+                            className="h-7 px-3 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-xs"
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRespondFriendRequest(req.id, "rejected")}
+                            className="h-7 px-2.5 text-[11px] rounded-xl font-medium text-muted-foreground hover:text-foreground"
+                          >
+                            Decline
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {pendingFriendRequests.length > 3 && (
+                      <p className="text-center text-[11px] text-muted-foreground pt-1">
+                        + {pendingFriendRequests.length - 3} more pending in <span className="font-semibold cursor-pointer text-indigo-600 hover:underline" onClick={() => setActiveTab("network")}>Network</span>
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              )}
+
               {/* Level + Streak Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <LevelProgress userPoints={user?.points || 0} />
@@ -1185,6 +1310,9 @@ const StudentDashboard = () => {
 
           {/* Study Materials */}
           {activeTab === "materials" && <StudyMaterials studentClass={user?.student_class} />}
+
+          {/* NCERT Books */}
+          {activeTab === "ncert" && <NCERTBooks studentClass={user?.student_class} />}
 
           {/* Games Corner */}
           {activeTab === "games" && user?.id && <GamesCorner userId={user.id} onPointsEarned={checkAuth} />}

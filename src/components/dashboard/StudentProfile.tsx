@@ -90,9 +90,13 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
   };
 
   const uploadAvatar = async (file: File) => {
-    if (!file || !user?.id) return;
+    if (!file) return;
     setUploading(true);
     try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const uid = authUser?.id || user?.id;
+      if (!uid) throw new Error("Please log in to update your avatar.");
+
       const options = {
         maxSizeMB: 1,
         maxWidthOrHeight: 800,
@@ -100,16 +104,17 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       };
       const compressedFile = await imageCompression(file, options);
 
-      const ext = file.name.split('.').pop();
-      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const rawExt = file.name.split('.').pop() || 'jpg';
+      const cleanExt = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      const path = `${uid}/${Date.now()}.${cleanExt}`;
       
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
         upsert: true,
-        contentType: "image/jpeg"
+        contentType: compressedFile.type || "image/jpeg"
       });
       if (upErr) throw upErr;
 
-      const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", user.id);
+      const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", uid);
       if (dbErr) throw dbErr;
       await loadAvatar(path);
       toast({ title: "Profile picture updated successfully!" });

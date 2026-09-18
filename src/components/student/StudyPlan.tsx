@@ -7,6 +7,7 @@ import {
   Trophy, Sparkles, Coffee, PenLine, Sunrise, Sun, Moon
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Task {
   id: number;
@@ -37,6 +38,7 @@ const SLOT_META = {
 } as const;
 
 export default function StudyPlan({ userId, studentClass }: { userId?: string; studentClass?: string }) {
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState<string>("");
@@ -264,8 +266,35 @@ export default function StudyPlan({ userId, studentClass }: { userId?: string; s
     if (userId) localStorage.setItem(storageKey(userId), JSON.stringify({ tasks: updated, note }));
   };
 
-  const toggleTask = (id: number) => {
-    persist(tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
+  const toggleTask = async (id: number) => {
+    const target = tasks.find((t) => t.id === id);
+    if (!target) return;
+    const isNowCompleted = !target.completed;
+    const updated = tasks.map((t) => (t.id === id ? { ...t, completed: isNowCompleted } : t));
+    persist(updated);
+
+    if (isNowCompleted && target.xp > 0 && userId) {
+      try {
+        const { error } = await (supabase.rpc as any)("award_user_points", {
+          _user_id: userId,
+          _points: target.xp,
+          _reason: `Daily Study Plan: ${target.title}`
+        });
+        if (error) {
+          // Fallback: fetch current and increment
+          const { data: prof } = await supabase.from("profiles").select("points").eq("id", userId).maybeSingle();
+          if (prof) {
+            await supabase.from("profiles").update({ points: (prof.points || 0) + target.xp }).eq("id", userId);
+          }
+        }
+        toast({
+          title: `+${target.xp} XP awarded! 🎉`,
+          description: `Completed: "${target.title}"`,
+        });
+      } catch (err) {
+        console.warn("Could not record XP for study plan task:", err);
+      }
+    }
   };
 
   const done = tasks.filter((t) => t.completed);

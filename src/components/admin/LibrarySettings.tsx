@@ -55,7 +55,7 @@ export default function LibrarySettings() {
 
   const [googleAiKey, setGoogleAiKey] = useState("");
   const [libraryBotVisible, setLibraryBotVisible] = useState(true);
-  const [libraryBotName, setLibraryBotName] = useState("LibraryBot");
+  const [libraryBotName, setLibraryBotName] = useState("Avenyx");
 
   const load = async () => {
     setLoading(true);
@@ -74,7 +74,7 @@ export default function LibrarySettings() {
           return res.data.value === "true" || res.data.value === true;
         }),
         supabase.from("system_settings").select("value").eq("key", "library_bot_name").maybeSingle().then(res => {
-          return res.data?.value ? String(res.data.value).trim() : "LibraryBot";
+          return res.data?.value ? String(res.data.value).trim() : "Avenyx";
         })
       ]);
       setFinePerDay(fine.finePerDay);
@@ -160,7 +160,7 @@ export default function LibrarySettings() {
         { key: "google_ai_api_key", value: (googleAiKey || "").trim() as any },
         { key: "global_news_color", value: (globalNewsColor || "blue").trim() as any },
         { key: "library_bot_visible", value: libraryBotVisible as any },
-        { key: "library_bot_name", value: (libraryBotName || "LibraryBot").trim() as any },
+        { key: "library_bot_name", value: (libraryBotName || "Avenyx").trim() as any },
       ];
       const { error } = await supabase.from("system_settings").upsert(upserts, { onConflict: "key" });
       if (error) throw error;
@@ -653,7 +653,7 @@ export default function LibrarySettings() {
                 id="libraryBotName"
                 value={libraryBotName}
                 onChange={(e) => setLibraryBotName(e.target.value)}
-                placeholder="e.g. LibraryBot or E-Librarian"
+                placeholder="e.g. Avenyx or E-Librarian"
                 className="max-w-xs h-9 text-xs"
               />
             </div>

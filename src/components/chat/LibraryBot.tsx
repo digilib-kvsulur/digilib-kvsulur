@@ -119,7 +119,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         setMessages([
           { 
             role: 'assistant', 
-            content: `Hi! 👋 I'm **${activeName}** — your KV Sulur library AI assistant.\n\nI can help you with:\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Edit Profile Details** (bio, phone, roll no, class)\n• 💬 **Submit Library Feedback & Ratings**\n• 👑 **Check Rotational & Earned Badges**\n• 📜 **View Issued Certificates**\n• ⚡ **Check XP, Level & Class Rank**\n• 📚 **Borrowing Rules, Timings & Fines**\n\nHow can I help you today? Tap any prompt below or type your question!` 
+            content: `Hello! 👋 I am **${activeName}** — your official AI assistant for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Edit Profile Details** (bio, phone, roll no, class)\n• 💬 **Submit Library Feedback & Ratings**\n• 👑 **Check Rotational & Earned Badges**\n• 📜 **View Issued Certificates**\n• ⚡ **Check XP, Level & Class Rank**\n• 📚 **Borrowing Rules, Timings & Fines**\n\nHow can I help you today? Tap any prompt below or type your question!` 
           }
         ]);
       });
