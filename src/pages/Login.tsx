@@ -55,37 +55,6 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
-  useEffect(() => {
-    if (searchParams.get("forgot") === "true") {
-      setShowForgotPassword(true);
-      const idParam = searchParams.get("identifier");
-      if (idParam) setResetEmail(idParam);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    const loadRecentUsers = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("first_name, last_name")
-        .eq("is_approved", true)
-        .eq("role", "student")
-        .order("created_at", { ascending: false })
-        .limit(6);
-      const palette = ["bg-indigo-400", "bg-violet-400", "bg-pink-400", "bg-sky-400", "bg-emerald-400", "bg-amber-400"];
-      setRecentUsers(
-        (data || []).map((u: any, i: number) => ({
-          initials: `${(u.first_name || "?")[0]}${(u.last_name || "")[0] || ""}`.toUpperCase(),
-          color: palette[i % palette.length],
-        }))
-      );
-    };
-    loadRecentUsers();
-  }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
     setIsLoading(true);
     if (!identifier || !password) {
       toast({ title: "Missing Information", description: "Please fill in all fields", variant: "destructive" });
@@ -122,6 +91,7 @@ const Login = () => {
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
       const continueToDashboard = () => {
         switch (profile?.role) {
+          case "admin": navigate("/admin-dashboard", { replace: true }); break;
           case "teacher": navigate("/teacher-dashboard", { replace: true }); break;
           case "student": navigate("/student-dashboard", { replace: true }); break;
           default: navigate("/", { replace: true });
