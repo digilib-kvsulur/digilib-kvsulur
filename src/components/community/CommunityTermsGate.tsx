@@ -93,14 +93,17 @@ export default function CommunityTermsGate({
             ))}
           </div>
 
-          <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4">
+          <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 space-y-2">
             <p className="text-sm font-bold text-destructive flex items-center gap-2">
-              <Ban className="h-4 w-4" /> Important warning
+              <Ban className="h-4 w-4" /> Content Policy &amp; Warnings
             </p>
-            <p className="text-xs text-destructive/90 mt-1.5 leading-relaxed">
-              Using bad words, posting vulgar content, harassing others or spamming the community may lead to a
-              <strong> temporary or permanent ban</strong> from the community, removal of your posts, and loss of
-              earned points. Repeat offences are reported to the librarian and class teacher.
+            <div className="text-xs text-destructive/95 space-y-1.5 font-medium leading-relaxed bg-white/60 p-3 rounded-lg border border-destructive/20">
+              <p><strong>1st Warning :</strong> You will be blocked from posting in DLMS for 24 Hours &amp; Badges during the period will be reverted.</p>
+              <p><strong>2nd Warning :</strong> You will be blocked from posting in DLMS for 48 Hours &amp; Badges during the period will be reverted.</p>
+              <p><strong>3rd Warning :</strong> Your DLMS account will be deactivated.</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground italic">
+              * Administrators and staff members are exempt from community moderation rules.
             </p>
           </div>
 

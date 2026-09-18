@@ -179,3 +179,21 @@ export async function sendRotationalBadgeEmail(
   });
 }
 
+/** Trigger automatic email when a user account receives a moderation warning or action */
+export async function sendModerationWarningEmail(
+  studentId: string,
+  details: {
+    warningTitle: string;
+    warningMessage: string;
+    warningLevel?: number;
+    actionType?: "warning" | "suspended_24h" | "suspended_48h" | "deactivated" | "unblocked";
+  }
+) {
+  return sendAutoEmail({
+    recipientId: studentId,
+    preset: "moderation_warning",
+    customMessage: details.warningMessage,
+    details,
+  });
+}
+

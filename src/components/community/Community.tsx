@@ -21,6 +21,7 @@ import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadg
 import ReviewsModeration from "@/components/admin/ReviewsModeration";
 import CommunityTermsGate, { hasAcceptedCommunityTerms } from "./CommunityTermsGate";
 import { useBackHandler } from "@/hooks/useBackHandler";
+import { applyModerationWarning, isUserExemptFromModeration } from "@/lib/moderationService";
 
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
 
@@ -93,6 +94,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [activeTab, setActiveTab] = useState("feed");
   const [hasClubs, setHasClubs] = useState(true);
   const [blockedUntil, setBlockedUntil] = useState<string | null>(null);
+  const [userWarnCount, setUserWarnCount] = useState<number>(0);
 
   // Tagging state
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
@@ -239,13 +241,24 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   };
 
   const checkUserBlockStatus = async () => {
+    if (isAdmin) {
+      setBlockedUntil(null);
+      return;
+    }
     const { data } = await supabase.from("profiles")
-      .select("community_blocked_until")
+      .select("community_blocked_until, community_warn_count, role")
       .eq("id", currentUserId)
       .maybeSingle();
+
+    if (isUserExemptFromModeration(data?.role)) {
+      setBlockedUntil(null);
+      return;
+    }
+
     if (data?.community_blocked_until) {
       if (new Date(data.community_blocked_until).getTime() > Date.now()) {
         setBlockedUntil(data.community_blocked_until);
+        setUserWarnCount(data.community_warn_count || 0);
       } else {
         setBlockedUntil(null);
       }
@@ -254,39 +267,29 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     }
   };
 
-  const handleModerationStrike = async () => {
+  const handleModerationStrike = async (reason?: string) => {
+    // Admins and staff are completely exempt from moderation policies
+    if (isAdmin) return;
+
     try {
-      const { data: profile } = await supabase.from("profiles")
-        .select("community_warn_count")
-        .eq("id", currentUserId)
-        .single();
-      
-      const nextWarnCount = (profile?.community_warn_count || 0) + 1;
-      
-      if (nextWarnCount >= 2) {
-        const blockedUntilTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-        await supabase.from("profiles").update({
-          community_warn_count: nextWarnCount,
-          community_blocked_until: blockedUntilTime
-        }).eq("id", currentUserId);
-        
-        setBlockedUntil(blockedUntilTime);
-        toast({
-          title: "Account Temporarily Blocked",
-          description: "You have been temporarily blocked from the community for 24 hours due to multiple content policy violations.",
-          variant: "destructive"
-        });
-      } else {
-        await supabase.from("profiles").update({
-          community_warn_count: nextWarnCount
-        }).eq("id", currentUserId);
-        
-        toast({
-          title: "Warning: Content Policy Violation",
-          description: "Your post/comment contains blocked words. Please keep the community respectful. One more warning will result in a 24-hour block.",
-          variant: "destructive"
-        });
+      const res = await applyModerationWarning({
+        userId: currentUserId,
+        reason: reason || "Inappropriate language or prohibited content detected in Community.",
+        isAutoModeration: true,
+      });
+
+      if (res.exempt) return;
+
+      if (res.blockedUntil) {
+        setBlockedUntil(res.blockedUntil);
       }
+      setUserWarnCount(res.warningLevel);
+
+      toast({
+        title: res.title,
+        description: res.message,
+        variant: "destructive",
+      });
     } catch (e: any) {
       console.error("Moderation check error:", e);
     }
@@ -575,7 +578,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const removeTag = (id: string) => setTaggedUsers(prev => prev.filter(t => t.id !== id));
 
   const createPost = async () => {
-    if (blockedUntil && new Date(blockedUntil).getTime() > Date.now()) {
+    if (!isAdmin && blockedUntil && new Date(blockedUntil).getTime() > Date.now()) {
       toast({ title: "Action Blocked", description: "You are temporarily blocked from creating posts.", variant: "destructive" });
       return;
     }
@@ -620,9 +623,9 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       return;
     }
     
-    // Check bad words
-    if (containsBadWords(draft.title) || containsBadWords(draft.content) || (postKind === "link" && containsBadWords(linkUrl))) {
-      await handleModerationStrike();
+    // Check bad words (Admins are exempt)
+    if (!isAdmin && (containsBadWords(draft.title) || containsBadWords(draft.content) || (postKind === "link" && containsBadWords(linkUrl)))) {
+      await handleModerationStrike("Post contains prohibited words or inappropriate language.");
       return;
     }
 
@@ -916,13 +919,13 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     if (!comments[postId]) await loadComments(postId);
   };
   const addComment = async (postId: string) => {
-    if (blockedUntil && new Date(blockedUntil).getTime() > Date.now()) {
+    if (!isAdmin && blockedUntil && new Date(blockedUntil).getTime() > Date.now()) {
       toast({ title: "Action Blocked", description: "You are temporarily blocked from commenting.", variant: "destructive" });
       return;
     }
     if (!commentDraft.trim()) return;
-    if (containsBadWords(commentDraft)) {
-      await handleModerationStrike();
+    if (!isAdmin && containsBadWords(commentDraft)) {
+      await handleModerationStrike("Comment contains prohibited words or inappropriate language.");
       return;
     }
 
@@ -1156,16 +1159,36 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           </TabsList>
         </div>
 
-        <TabsContent value="feed" className="space-y-4">
-          {blockedUntil && new Date(blockedUntil).getTime() > Date.now() && (
+          {!isAdmin && blockedUntil && new Date(blockedUntil).getTime() > Date.now() && (
             <Card className="border-destructive/50 bg-destructive/5 text-destructive p-4">
               <div className="flex items-start gap-3">
-                <UserX className="h-5 w-5 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-semibold text-sm">Community Posting Blocked</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    You have been temporarily suspended from posting or commenting in the community due to content policy violations.
-                    Your access will be restored on: <strong>{new Date(blockedUntil).toLocaleString()}</strong>.
+                <UserX className="h-5 w-5 mt-0.5 shrink-0 text-destructive" />
+                <div className="space-y-1">
+                  <p className="font-bold text-sm text-destructive flex items-center gap-2">
+                    <span>⚠️ Warning Notice: Community Posting Blocked</span>
+                    {userWarnCount > 0 && (
+                      <Badge variant="destructive" className="text-[10px] font-bold">
+                        Warning {userWarnCount} of 3
+                      </Badge>
+                    )}
+                  </p>
+                  <div className="text-xs text-foreground/90 space-y-1">
+                    {userWarnCount === 1 && (
+                      <p><strong>1st Warning:</strong> You will be blocked from posting in DLMS for 24 Hours &amp; Badges during the period will be reverted.</p>
+                    )}
+                    {userWarnCount === 2 && (
+                      <p><strong>2nd Warning:</strong> You will be blocked from posting in DLMS for 48 Hours &amp; Badges during the period will be reverted.</p>
+                    )}
+                    {userWarnCount >= 3 && (
+                      <p><strong>3rd Warning:</strong> Your DLMS account will be deactivated.</p>
+                    )}
+                    {userWarnCount === 0 && (
+                      <p>You have been temporarily suspended from posting or commenting in the community due to content policy violations.</p>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground pt-1">
+                    Your posting access will be restored on: <strong className="text-foreground">{new Date(blockedUntil).toLocaleString()}</strong>.
+                    <span className="block text-destructive/80 font-medium mt-0.5">3rd Warning results in complete DLMS account deactivation.</span>
                   </p>
                 </div>
               </div>
@@ -1236,7 +1259,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
           </div>
 
 
-      {showNew && (!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
+      {showNew && (isAdmin || !blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
         <Card className="rounded-2xl border border-primary/25 bg-card/95 shadow-md backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="bg-gradient-to-r from-primary/10 via-amber-500/5 to-transparent px-4 sm:px-5 py-3 border-b border-border/50 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -2875,7 +2898,7 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
     </Tabs>
 
       {/* Floating Create Button in Bottom Right */}
-      {(!blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
+      {(isAdmin || !blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
         <div className="fixed bottom-20 right-5 sm:bottom-8 sm:right-8 z-50">
           <Popover>
             <PopoverTrigger asChild>

@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Send, Trash2, Users, User, Info, AlertTriangle, CheckCircle, GraduationCap } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Bell, Send, Trash2, Users, User, Info, AlertTriangle, CheckCircle, GraduationCap, Mail, ShieldAlert, UserX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,6 +29,9 @@ interface Student {
   last_name: string | null;
   student_class: string | null;
   admission_number: string | null;
+  community_blocked_until?: string | null;
+  community_warn_count?: number;
+  is_approved?: boolean;
 }
 
 const NotificationSender = () => {
@@ -37,13 +41,16 @@ const NotificationSender = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [actionLink, setActionLink] = useState("");
   const [type, setType] = useState("info");
-  const [targetType, setTargetType] = useState<"all" | "class" | "specific">("all");
+  const [targetType, setTargetType] = useState<
+    "all" | "class" | "specific" | "suspended_community" | "deactivated_dlms" | "all_suspended"
+  >("all");
   const [targetClass, setTargetClass] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [sending, setSending] = useState(false);
+  const [sendAsEmail, setSendAsEmail] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -54,9 +61,8 @@ const NotificationSender = () => {
   const loadStudents = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, student_class, admission_number")
+      .select("id, first_name, last_name, student_class, admission_number, community_blocked_until, community_warn_count, is_approved")
       .eq("role", "student")
-      .eq("is_approved", true)
       .order("first_name");
     if (data) {
       setStudents(data);
@@ -74,6 +80,17 @@ const NotificationSender = () => {
     if (data) setNotifications(data as Notification[]);
   };
 
+  // Suspension & deactivation calculations
+  const communitySuspendedCount = students.filter(
+    s => s.community_blocked_until && new Date(s.community_blocked_until).getTime() > Date.now()
+  ).length;
+
+  const deactivatedCount = students.filter(s => s.is_approved === false).length;
+
+  const allSuspendedCount = students.filter(
+    s => (s.community_blocked_until && new Date(s.community_blocked_until).getTime() > Date.now()) || s.is_approved === false
+  ).length;
+
   const handleSend = async () => {
     if (!title.trim() || !message.trim()) {
       toast({ title: "Missing fields", description: "Title and message are required", variant: "destructive" });
@@ -84,75 +101,91 @@ const NotificationSender = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      let insertRows: any[] = [];
+      let recipientIds: string[] = [];
 
       if (targetType === "all") {
-        insertRows = [{
-          title,
-          message,
-          type,
-          image_url: imageUrl.trim() || null,
-          action_link: actionLink.trim() || null,
-          target_user_id: null,
-          sent_by: user.id,
-        }];
-      } 
-      else if (targetType === "class") {
+        recipientIds = students.filter(s => s.is_approved !== false).map(s => s.id);
+      } else if (targetType === "class") {
         if (!targetClass) {
           toast({ title: "Class Required", description: "Please select a target class.", variant: "destructive" });
           setSending(false);
           return;
         }
-        const classStudents = students.filter(s => s.student_class === targetClass);
-        insertRows = classStudents.map(s => ({
-          title,
-          message,
-          type,
-          image_url: imageUrl.trim() || null,
-          action_link: actionLink.trim() || null,
-          target_user_id: s.id,
-          sent_by: user.id,
-        }));
-      } 
-      else if (targetType === "specific") {
+        recipientIds = students.filter(s => s.student_class === targetClass).map(s => s.id);
+      } else if (targetType === "specific") {
         if (selectedUserIds.size === 0) {
           toast({ title: "Selection Required", description: "Please check at least one student.", variant: "destructive" });
           setSending(false);
           return;
         }
-        insertRows = Array.from(selectedUserIds).map(uid => ({
-          title,
-          message,
-          type,
-          image_url: imageUrl.trim() || null,
-          action_link: actionLink.trim() || null,
-          target_user_id: uid,
-          sent_by: user.id,
-        }));
+        recipientIds = Array.from(selectedUserIds);
+      } else if (targetType === "suspended_community") {
+        recipientIds = students
+          .filter(s => s.community_blocked_until && new Date(s.community_blocked_until).getTime() > Date.now())
+          .map(s => s.id);
+      } else if (targetType === "deactivated_dlms") {
+        recipientIds = students
+          .filter(s => s.is_approved === false)
+          .map(s => s.id);
+      } else if (targetType === "all_suspended") {
+        recipientIds = students
+          .filter(s => (s.community_blocked_until && new Date(s.community_blocked_until).getTime() > Date.now()) || s.is_approved === false)
+          .map(s => s.id);
       }
 
-      if (insertRows.length === 0) {
-        toast({ title: "No Recipients", description: "No target students found.", variant: "destructive" });
+      if (recipientIds.length === 0) {
+        toast({ title: "No Recipients", description: "No matching students found for this selection.", variant: "destructive" });
         setSending(false);
         return;
       }
 
+      const insertRows = recipientIds.map(uid => ({
+        title,
+        message,
+        type,
+        image_url: imageUrl.trim() || null,
+        action_link: actionLink.trim() || null,
+        target_user_id: uid,
+        sent_by: user.id,
+      }));
+
       const { data: inserted, error } = await supabase.from("notifications").insert(insertRows).select();
       if (error) throw error;
 
+      // Dispatch automated email notification campaign if toggle is active
+      if (sendAsEmail && recipientIds.length > 0) {
+        try {
+          await supabase.functions.invoke("send-email-campaign", {
+            body: {
+              recipientIds: recipientIds.slice(0, 300),
+              preset: "moderation_warning",
+              customSubject: title,
+              customMessage: message,
+              details: {
+                warningTitle: title,
+                warningMessage: message,
+              },
+            },
+          });
+        } catch (emailErr) {
+          console.warn("Email dispatch error:", emailErr);
+        }
+      }
+
       // Fire push notifications via Edge Function (non-blocking, best-effort)
       if (inserted && inserted.length > 0) {
-        // For "all" broadcast we send one payload with target_user_id = null.
-        // For targeted rows we send one per unique user to avoid spam.
-        const pushPayloads = inserted.slice(0, 50); // cap at 50 to avoid hammering
+        const pushPayloads = inserted.slice(0, 50);
         pushPayloads.forEach(record => {
           supabase.functions.invoke("push-notification", {
             body: { record },
-          }).catch(() => {/* silently ignore — push is non-critical */});
+          }).catch(() => {});
         });
       }
 
-      toast({ title: "Sent!", description: `Notification dispatched to ${insertRows.length} user(s).` });
+      toast({
+        title: "Dispatched!",
+        description: `Notification sent to ${recipientIds.length} recipient(s)${sendAsEmail ? " and dispatched via email" : ""}.`,
+      });
       setTitle("");
       setMessage("");
       setImageUrl("");
@@ -161,6 +194,7 @@ const NotificationSender = () => {
       setTargetType("all");
       setTargetClass("");
       setSelectedUserIds(new Set());
+      setSendAsEmail(false);
       loadNotifications();
     } catch (e: any) {
       console.error(e);
@@ -198,8 +232,8 @@ const NotificationSender = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Notifications Panel</h2>
-        <p className="text-sm text-muted-foreground">Broadcast notifications or target specific classrooms and individuals.</p>
+        <h2 className="text-2xl font-bold text-foreground">Notifications &amp; Alerts Panel</h2>
+        <p className="text-sm text-muted-foreground">Broadcast notifications or target specific classrooms, individuals, and suspended accounts.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -246,9 +280,18 @@ const NotificationSender = () => {
                 <Select value={targetType} onValueChange={(v: any) => setTargetType(v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Students</SelectItem>
-                    <SelectItem value="class">Specific Class League</SelectItem>
-                    <SelectItem value="specific">Checked Students ({selectedUserIds.size})</SelectItem>
+                    <SelectItem value="all">👥 All Active Students ({students.filter(s => s.is_approved !== false).length})</SelectItem>
+                    <SelectItem value="class">🏫 Specific Class League</SelectItem>
+                    <SelectItem value="specific">🎯 Checked Students ({selectedUserIds.size})</SelectItem>
+                    <SelectItem value="suspended_community">
+                      🚫 Community Suspended Accounts ({communitySuspendedCount})
+                    </SelectItem>
+                    <SelectItem value="deactivated_dlms">
+                      🔒 Deactivated DLMS Accounts ({deactivatedCount})
+                    </SelectItem>
+                    <SelectItem value="all_suspended">
+                      ⚠️ All Suspended &amp; Deactivated ({allSuspendedCount})
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -268,11 +311,17 @@ const NotificationSender = () => {
 
             {targetType === "specific" && (
               <div className="space-y-2 animate-fade-in">
-                <Label>Check Recipient Students</Label>
-                <Input placeholder="Filter students by name..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="h-9 mb-2" />
-                <div className="max-h-48 overflow-y-auto border rounded-lg divide-y divide-border bg-muted/10 p-1">
+                <div className="flex items-center justify-between">
+                  <Label>Check Recipient Students</Label>
+                  <span className="text-[11px] text-muted-foreground">{selectedUserIds.size} selected</span>
+                </div>
+                <Input placeholder="Filter students by name or roll..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="h-9 mb-2" />
+                <div className="max-h-56 overflow-y-auto border rounded-lg divide-y divide-border bg-muted/10 p-1">
                   {filteredStudents.map(s => {
                     const checked = selectedUserIds.has(s.id);
+                    const isCommunitySuspended = s.community_blocked_until && new Date(s.community_blocked_until).getTime() > Date.now();
+                    const isDeactivated = s.is_approved === false;
+
                     return (
                       <label key={s.id} className="flex items-center gap-3 px-3 py-2 text-xs hover:bg-muted transition-colors cursor-pointer rounded">
                         <input
@@ -282,8 +331,16 @@ const NotificationSender = () => {
                           className="rounded text-primary"
                         />
                         <div className="flex-1 min-w-0">
-                          <span className="font-semibold text-foreground">{s.first_name} {s.last_name}</span>
-                          <span className="text-muted-foreground ml-2">Class {s.student_class} · Roll #{s.admission_number || "—"}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-foreground">{s.first_name} {s.last_name}</span>
+                            {isCommunitySuspended && (
+                              <Badge className="bg-amber-500 text-white text-[9px] py-0 font-bold">🚫 Community Suspended</Badge>
+                            )}
+                            {isDeactivated && (
+                              <Badge variant="destructive" className="text-[9px] py-0 font-bold">🔒 Deactivated</Badge>
+                            )}
+                          </div>
+                          <span className="text-muted-foreground text-[11px]">Class {s.student_class || "—"} · Adm #{s.admission_number || "—"}</span>
                         </div>
                       </label>
                     );
@@ -295,71 +352,98 @@ const NotificationSender = () => {
               </div>
             )}
 
-            <Button onClick={handleSend} disabled={sending} className="w-full gradient-primary border-0">
-              <Send className="h-4 w-4 mr-2" /> {sending ? "Sending..." : "Dispatch Notification"}
-            </Button>
-            
-            {/* Live Preview */}
-            {(title || message) && (
-              <div className="mt-4 pt-4 border-t border-border/50">
-                <Label className="text-muted-foreground mb-2 block">Live Preview</Label>
-                <div className="p-4 rounded-xl border border-border/50 bg-slate-50/50 shadow-sm relative overflow-hidden group">
-                  <div className="flex gap-3 relative z-10">
-                    <div className="mt-0.5 shrink-0 bg-white p-1.5 rounded-full shadow-sm border border-slate-100">{typeIcon(type)}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-slate-800 text-sm">{title || "Notification Title"}</p>
-                      <p className="text-xs text-slate-600 mt-1">{message || "Your message will appear here..."}</p>
-                      
-                      {imageUrl && (
-                        <div className="mt-3 relative h-32 w-full rounded-lg overflow-hidden border border-slate-200">
-                          <img src={imageUrl} alt="preview" className="absolute inset-0 w-full h-full object-cover" />
-                        </div>
-                      )}
-                      
-                      {actionLink && (
-                        <Button size="sm" variant="outline" className="mt-3 h-7 text-xs bg-white hover:bg-slate-50" onClick={() => window.open(actionLink, "_blank")}>
-                          View Action Link
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+            {/* Target Audience Summary Callouts */}
+            {targetType === "suspended_community" && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
+                <UserX className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+                <div>
+                  <p className="font-bold">Targeting Community-Suspended Accounts ({communitySuspendedCount})</p>
+                  <p className="text-[11px] text-amber-800/90 mt-0.5">
+                    This notification will be dispatched to students who currently have an active community posting block.
+                  </p>
                 </div>
               </div>
             )}
+
+            {targetType === "deactivated_dlms" && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-900 flex items-start gap-2">
+                <ShieldAlert className="h-4 w-4 mt-0.5 text-rose-600 shrink-0" />
+                <div>
+                  <p className="font-bold">Targeting Deactivated DLMS Accounts ({deactivatedCount})</p>
+                  <p className="text-[11px] text-rose-800/90 mt-0.5">
+                    This notification will be dispatched to students whose accounts have been deactivated (pending or 3rd strike).
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {targetType === "all_suspended" && (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+                <div>
+                  <p className="font-bold">Targeting All Suspended &amp; Deactivated Accounts ({allSuspendedCount})</p>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Dispatched to all accounts with active community suspensions or deactivated DLMS access.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Also Send as Email Checkbox */}
+            <div className="pt-2 border-t border-border/60">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground hover:text-primary transition-colors">
+                <Checkbox
+                  checked={sendAsEmail}
+                  onCheckedChange={v => setSendAsEmail(v === true)}
+                />
+                <span className="flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 text-indigo-600" />
+                  Also dispatch as official Email Notice to recipient addresses
+                </span>
+              </label>
+            </div>
+
+            <Button onClick={handleSend} disabled={sending} className="w-full gradient-primary border-0">
+              <Send className="h-4 w-4 mr-2" /> {sending ? "Sending..." : "Dispatch Notification"}
+            </Button>
           </CardContent>
         </Card>
 
-        {/* History */}
+        {/* Recent Notifications */}
         <Card className="border-border/50 bg-white">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary animate-pulse" /> Recent Outbox
+              <Bell className="h-5 w-5 text-primary" /> Dispatched Notifications ({notifications.length})
             </CardTitle>
-            <CardDescription>Last 50 notifications dispatched</CardDescription>
+            <CardDescription>Recently sent broadcasts and alerts</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {notifications.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">No notifications sent yet</p>
+                <p className="text-sm text-muted-foreground text-center py-8">No notifications sent yet.</p>
               )}
               {notifications.map(n => (
-                <div key={n.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 group border border-transparent hover:border-border/40 transition-all">
-                  {typeIcon(n.type)}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{n.title}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0">
-                        {n.target_user_id ? <User className="h-2.5 w-2.5 mr-1" /> : <GraduationCap className="h-2.5 w-2.5 mr-1" />}
-                        {n.target_user_id ? "Direct Target" : "Broadcast"}
-                      </Badge>
-                      <span className="text-[9px] text-muted-foreground font-mono">
-                        {new Date(n.created_at).toLocaleDateString()}
+                <div key={n.id} className="p-3.5 rounded-xl border border-border/60 hover:border-border transition-colors bg-muted/20 flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="mt-0.5 shrink-0">{typeIcon(n.type)}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-sm text-foreground truncate">{n.title}</p>
+                        <Badge variant="outline" className="text-[10px] capitalize py-0">{n.type}</Badge>
+                        {n.target_user_id ? (
+                          <Badge variant="secondary" className="text-[10px] py-0">Targeted</Badge>
+                        ) : (
+                          <Badge className="bg-primary/10 text-primary text-[10px] py-0 border-0">Broadcast</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{n.message}</p>
+                      <span className="text-[10px] text-muted-foreground/80 mt-1 block">
+                        {new Date(n.created_at).toLocaleString()}
                       </span>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => handleDelete(n.id)}>
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive shrink-0" onClick={() => handleDelete(n.id)}>
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               ))}

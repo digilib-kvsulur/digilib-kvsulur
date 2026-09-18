@@ -5,7 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star, Eye, EyeOff, Trash2, Flag, ShieldAlert, CheckCircle2, UserX, Eraser, AlertTriangle, User } from "lucide-react";
+import { Star, Eye, EyeOff, Trash2, Flag, ShieldAlert, CheckCircle2, UserX, Eraser, AlertTriangle, User, ChevronDown, Ban, ShieldCheck } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { applyModerationWarning, resetUserModeration, isUserExemptFromModeration } from "@/lib/moderationService";
 
 export default function ReviewsModeration() {
   const { toast } = useToast();
@@ -13,6 +15,7 @@ export default function ReviewsModeration() {
   const [showHidden, setShowHidden] = useState(false);
   const [reports, setReports] = useState<any[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
+  const [moderatingId, setModeratingId] = useState<string | null>(null);
 
   const loadReviews = async () => {
     let q = supabase.from("book_reviews")
@@ -60,7 +63,7 @@ export default function ReviewsModeration() {
       if (authorIds.length) {
         const { data: authorsData } = await supabase
           .from("profiles")
-          .select("id, first_name, last_name, username, student_class, admission_number, avatar_url, community_blocked_until")
+          .select("id, first_name, last_name, username, student_class, admission_number, avatar_url, role, community_blocked_until, community_warn_count, is_approved")
           .in("id", authorIds);
         (authorsData || []).forEach((a: any) => { authorMap[a.id] = a; });
       }
@@ -136,22 +139,51 @@ export default function ReviewsModeration() {
     }
   };
 
-  const blockUserFromCommunity = async (authorId: string, authorName: string, durationHours: number) => {
+  const handleApplyWarning = async (authorId: string, authorName: string, level: 1 | 2 | 3, reason?: string) => {
     try {
-      const blockedUntil = new Date(Date.now() + durationHours * 3600 * 1000).toISOString();
-      const { error } = await supabase.from("profiles").update({
-        community_blocked_until: blockedUntil
-      }).eq("id", authorId);
+      setModeratingId(authorId);
+      const { data: { user } } = await supabase.auth.getUser();
+      const res = await applyModerationWarning({
+        userId: authorId,
+        targetLevel: level,
+        reason: reason || "Community moderation action",
+        adminId: user?.id,
+      });
 
-      if (error) throw error;
+      if (res.exempt) {
+        toast({
+          title: "Admin Exempt",
+          description: `${authorName} is an administrator or staff member and exempt from moderation policy.`,
+        });
+        return;
+      }
 
       toast({
-        title: "User Blocked 🚫",
-        description: `${authorName} has been blocked from posting/commenting for ${durationHours >= 720 ? '30 days' : durationHours >= 168 ? '7 days' : durationHours + ' hours'}.`,
+        title: res.title,
+        description: `${authorName}: ${res.message}${res.revertedBadgesCount ? ` (${res.revertedBadgesCount} badge(s) reverted)` : ""}`,
       });
-      loadReports();
+      await loadReports();
     } catch (e: any) {
-      toast({ title: "Error blocking user", description: e.message, variant: "destructive" });
+      toast({ title: "Operation failed", description: e.message, variant: "destructive" });
+    } finally {
+      setModeratingId(null);
+    }
+  };
+
+  const handleResetWarnings = async (authorId: string, authorName: string) => {
+    try {
+      setModeratingId(authorId);
+      const { data: { user } } = await supabase.auth.getUser();
+      await resetUserModeration(authorId, user?.id);
+      toast({
+        title: "Warnings Cleared ✅",
+        description: `All warnings and suspensions for ${authorName} have been cleared and access restored.`,
+      });
+      await loadReports();
+    } catch (e: any) {
+      toast({ title: "Reset failed", description: e.message, variant: "destructive" });
+    } finally {
+      setModeratingId(null);
     }
   };
 
@@ -248,58 +280,112 @@ export default function ReviewsModeration() {
                     )}
 
                     {/* Reported Author Profile & Administrative Actions */}
-                    {rep.author && (
-                      <div className="pt-2 border-t border-amber-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/60 p-3 rounded-xl border border-amber-100">
-                        <div className="min-w-0">
+                    {rep.author && (() => {
+                      const isExempt = isUserExemptFromModeration(rep.author.role);
+                      const warnCount = rep.author.community_warn_count || 0;
+                      const isDeactivated = rep.author.is_approved === false;
+
+                      return (
+                        <div className="pt-2 border-t border-amber-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/60 p-3 rounded-xl border border-amber-100">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Post Author:</span>
+                              <span className="text-xs font-black text-foreground">{authorName}</span>
+                              {rep.author.student_class && (
+                                <Badge variant="outline" className="text-[10px] py-0">Class {rep.author.student_class}</Badge>
+                              )}
+                              {rep.author.admission_number && (
+                                <span className="text-[10px] text-muted-foreground font-mono">Adm: {rep.author.admission_number}</span>
+                              )}
+                              
+                              {/* Policy Status Badges */}
+                              {isExempt ? (
+                                <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 text-[10px] font-bold">
+                                  <ShieldCheck className="h-3 w-3 mr-1 text-indigo-600" /> Admin/Staff Exempt
+                                </Badge>
+                              ) : isDeactivated ? (
+                                <Badge variant="destructive" className="text-[10px] font-bold bg-rose-700">
+                                  🚫 Deactivated (3rd Warning)
+                                </Badge>
+                              ) : warnCount === 2 ? (
+                                <Badge className="bg-orange-600 text-white text-[10px] font-bold">
+                                  ⚠️ 2nd Warning (48h Block)
+                                </Badge>
+                              ) : warnCount === 1 ? (
+                                <Badge className="bg-amber-500 text-white text-[10px] font-bold">
+                                  ⚠️ 1st Warning (24h Block)
+                                </Badge>
+                              ) : isAuthorBlocked ? (
+                                <Badge className="bg-destructive text-[10px] font-bold">
+                                  🚫 Currently Blocked
+                                </Badge>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          {/* Admin History Actions & Moderation Dropdown */}
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Post Author:</span>
-                            <span className="text-xs font-black text-foreground">{authorName}</span>
-                            {rep.author.student_class && (
-                              <Badge variant="outline" className="text-[10px] py-0">Class {rep.author.student_class}</Badge>
-                            )}
-                            {rep.author.admission_number && (
-                              <span className="text-[10px] text-muted-foreground font-mono">Adm: {rep.author.admission_number}</span>
-                            )}
-                            {isAuthorBlocked && (
-                              <Badge className="bg-destructive text-[10px] font-bold">🚫 Currently Blocked</Badge>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="h-8 text-xs font-bold bg-rose-600 hover:bg-rose-700"
+                              onClick={() => clearAllUserMessages(rep.author.id, authorName)}
+                              title="Purge all posts and replies by this author"
+                            >
+                              <Eraser className="h-3.5 w-3.5 mr-1" /> Clear All Posts &amp; Replies
+                            </Button>
+
+                            {isExempt ? (
+                              <span className="text-xs text-muted-foreground italic px-2">
+                                Admin exempt from policy
+                              </span>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={moderatingId === rep.author.id}
+                                    className="h-8 text-xs border-amber-400 text-amber-900 bg-amber-50 hover:bg-amber-100 font-bold"
+                                  >
+                                    <AlertTriangle className="h-3.5 w-3.5 mr-1 text-amber-600" />
+                                    Moderate Account
+                                    <ChevronDown className="h-3 w-3 ml-1 text-muted-foreground" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-72">
+                                  <DropdownMenuItem
+                                    onClick={() => handleApplyWarning(rep.author.id, authorName, 1, `Reported for ${rep.reason || 'inappropriate content'}`)}
+                                    className="text-xs font-semibold text-amber-700 cursor-pointer"
+                                  >
+                                    <span className="font-bold mr-1.5">1️⃣</span> 1st Warning (24h Block &amp; Revert Badges)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleApplyWarning(rep.author.id, authorName, 2, `Reported for ${rep.reason || 'inappropriate content'}`)}
+                                    className="text-xs font-semibold text-orange-700 cursor-pointer"
+                                  >
+                                    <span className="font-bold mr-1.5">2️⃣</span> 2nd Warning (48h Block &amp; Revert Badges)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleApplyWarning(rep.author.id, authorName, 3, `Repeated violations. Reported for ${rep.reason || 'inappropriate content'}`)}
+                                    className="text-xs font-semibold text-rose-700 cursor-pointer"
+                                  >
+                                    <span className="font-bold mr-1.5">3️⃣</span> 3rd Warning (Deactivate DLMS Account)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleResetWarnings(rep.author.id, authorName)}
+                                    className="text-xs text-emerald-700 cursor-pointer font-medium"
+                                  >
+                                    <ShieldCheck className="h-3.5 w-3.5 mr-1.5 text-emerald-600" /> Restore Access / Reset Warnings
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
                           </div>
                         </div>
-
-                        {/* Admin History Actions */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="h-8 text-xs font-bold bg-rose-600 hover:bg-rose-700"
-                            onClick={() => clearAllUserMessages(rep.author.id, authorName)}
-                            title="Purge all posts and replies by this author"
-                          >
-                            <Eraser className="h-3.5 w-3.5 mr-1" /> Clear All User Posts &amp; Replies
-                          </Button>
-
-                          {!isAuthorBlocked ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 text-xs border-amber-400 text-amber-800 hover:bg-amber-100 font-semibold"
-                              onClick={() => blockUserFromCommunity(rep.author.id, authorName, 24)}
-                            >
-                              <UserX className="h-3.5 w-3.5 mr-1 text-amber-600" /> Suspend 24h
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 text-xs font-semibold"
-                              onClick={() => blockUserFromCommunity(rep.author.id, authorName, 0)}
-                            >
-                              Unblock
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               );

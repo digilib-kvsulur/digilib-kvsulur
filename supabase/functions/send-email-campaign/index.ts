@@ -329,6 +329,34 @@ const PRESETS: Record<string, TemplateData> = {
       ${note ? `<div style="background:#fdf2f8;border-left:4px solid #ec4899;padding:16px 20px;border-radius:8px;margin:20px 0;"><p style="margin:0;color:#9d174d;font-size:14px;line-height:1.6;">${esc(note)}</p></div>` : "<p>Discover new book additions, top readers, upcoming events, and quiz champions.</p>"}
       <p style="margin-bottom:0;">Happy Reading!<br/>— PM SHRI KV AFS Sulur Library Team</p>`,
   },
+
+  moderation_warning: {
+    subject: "Notice: DLMS Content Moderation & Warning Policy",
+    heading: "Account Moderation Notice",
+    badgeText: "Policy Notice",
+    badgeBg: "#fee2e2",
+    badgeColor: "#991b1b",
+    body: (name, note, details) => `
+      <p style="margin-top:0;">Dear <strong>${esc(name)}</strong>,</p>
+      <p>This is an official notice regarding content moderation on your <strong>PM SHRI KV AFS Sulur Digital Library</strong> account.</p>
+      
+      <div style="background:#fef2f2;border:2px solid #ef4444;border-radius:12px;padding:18px 22px;margin:20px 0;">
+        <p style="margin:0;font-size:16px;color:#991b1b;font-weight:700;">⚠️ ${esc(details?.warningTitle || "Moderation Action Taken")}</p>
+        <p style="margin:8px 0 0 0;font-size:14px;color:#1e293b;line-height:1.6;">${fmtNote(note || details?.warningMessage || "")}</p>
+      </div>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:20px 0;">
+        <p style="margin:0;font-size:13px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.5px;">📋 Official DLMS Moderation Policy:</p>
+        <ul style="margin:8px 0 0 0;padding-left:20px;font-size:13px;color:#334155;line-height:1.7;">
+          <li><strong>1st Warning:</strong> You will be blocked from posting in DLMS for 24 Hours &amp; Badges during the period will be reverted.</li>
+          <li><strong>2nd Warning:</strong> You will be blocked from posting in DLMS for 48 Hours &amp; Badges during the period will be reverted.</li>
+          <li><strong>3rd Warning:</strong> Your DLMS account will be deactivated.</li>
+        </ul>
+      </div>
+
+      <p style="color:#64748b;font-size:13px;">Please adhere to library rules and maintain mutual respect in community discussions. For any queries, contact the school librarian.</p>
+      <p style="margin-bottom:0;">— PM SHRI KV AFS Sulur Library Team</p>`,
+  },
 };
 
 // ─── High-End Responsive HTML Email Template ─────────────────────────────────
