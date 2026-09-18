@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -238,6 +239,7 @@ const App = () => {
         <DeveloperMessagePopup />
         <Sonner position="top-right" richColors closeButton />
         <Analytics />
+        <SpeedInsights />
         <AppRouter>
           <GlobalNotificationsProvider>
             <CommandPalette />
