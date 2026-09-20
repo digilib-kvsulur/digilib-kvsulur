@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import type { Json } from "@/integrations/supabase/types";
 
 /**
  * Converts a base64url string to a Uint8Array (needed to pass VAPID public key to PushManager).
@@ -67,7 +68,7 @@ export async function subscribeWebPush(userId: string): Promise<boolean> {
     const { error } = await supabase.from('push_subscriptions').upsert(
       {
         user_id: userId,
-        subscription_object: subscription.toJSON() as any,
+        subscription_object: subscription.toJSON() as unknown as Json,
       },
       { onConflict: 'user_id' }
     );
@@ -125,7 +126,7 @@ export function usePushSubscription(userId: string | null | undefined) {
             const { error } = await supabase.from('push_subscriptions').upsert(
               {
                 user_id: userId,
-                subscription_object: { type: 'capacitor', token: token.value } as any,
+                subscription_object: { type: 'capacitor', token: token.value } as unknown as Json,
               },
               { onConflict: 'user_id' }
             );
@@ -184,7 +185,7 @@ export function usePushSubscription(userId: string | null | undefined) {
             await supabase.from('push_subscriptions').upsert(
               {
                 user_id: userId,
-                subscription_object: subscription.toJSON() as any,
+                subscription_object: subscription.toJSON() as unknown as Json,
               },
               { onConflict: 'user_id' }
             );

@@ -4,23 +4,30 @@ import { Button } from "@/components/ui/button";
 import { Download as DownloadIcon, Smartphone, Monitor, ChevronRight, Sparkles, CheckCircle2, ShieldCheck, Zap, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 export default function Download() {
   const { toast } = useToast();
   const [apkGuideOpen, setApkGuideOpen] = useState(false);
   const [pwaGuideOpen, setPwaGuideOpen] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(() => (window as any).__pwaInstallPrompt || null);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(() => {
+    return (window as unknown as { __pwaInstallPrompt?: BeforeInstallPromptEvent }).__pwaInstallPrompt || null;
+  });
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
     setIsInstalled(isStandalone);
 
-    const onPrompt = (e: any) => {
+    const onPrompt = (e: Event) => {
       e.preventDefault();
-      setInstallPrompt(e);
+      setInstallPrompt(e as BeforeInstallPromptEvent);
     };
-    const onCustomReady = (e: any) => {
-      setInstallPrompt(e.detail);
+    const onCustomReady = (e: Event) => {
+      setInstallPrompt((e as CustomEvent<BeforeInstallPromptEvent>).detail);
     };
     const onInstalled = () => {
       setIsInstalled(true);

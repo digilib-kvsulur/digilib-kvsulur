@@ -78,30 +78,30 @@ export default function UIReformChallengeView({ userId }: UIReformChallengeViewP
     try {
       // 1. Fetch latest or active campaign
       const { data: cData, error: cErr } = await supabase
-        .from("ui_reform_campaigns" as any)
+        .from("ui_reform_campaigns" as never)
         .select("*")
         .order("created_at", { ascending: false })
         .limit(1);
 
-      if (!cErr && cData && cData.length > 0) {
-        const camp = cData[0] as Campaign;
+      if (!cErr && cData && (cData as unknown as Campaign[]).length > 0) {
+        const camp = (cData as unknown as Campaign[])[0];
         setCampaign(camp);
 
         // 2. Fetch my submissions
         if (userId) {
           const { data: myData } = await supabase
-            .from("ui_reform_submissions" as any)
+            .from("ui_reform_submissions" as never)
             .select("*")
             .eq("campaign_id", camp.id)
             .eq("student_id", userId)
             .order("created_at", { ascending: false });
 
-          if (myData) setMySubmissions(myData as Submission[]);
+          if (myData) setMySubmissions(myData as unknown as Submission[]);
         }
 
         // 3. Fetch showcase (shortlisted / winners / implemented)
         const { data: showData } = await supabase
-          .from("ui_reform_submissions" as any)
+          .from("ui_reform_submissions" as never)
           .select("*, profiles:student_id(first_name, last_name, student_class)")
           .eq("campaign_id", camp.id)
           .in("status", ["shortlisted", "winner", "implemented", "reviewed"])
@@ -109,8 +109,9 @@ export default function UIReformChallengeView({ userId }: UIReformChallengeViewP
           .limit(15);
 
         if (showData) {
+          const rawList = showData as unknown as Array<Submission & { profiles?: Submission["student"] }>;
           setShowcaseSubmissions(
-            showData.map((s: any) => ({
+            rawList.map((s) => ({
               ...s,
               student: s.profiles,
             }))
@@ -141,7 +142,7 @@ export default function UIReformChallengeView({ userId }: UIReformChallengeViewP
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("ui_reform_submissions" as any).insert([
+      const { error } = await supabase.from("ui_reform_submissions" as never).insert([
         {
           campaign_id: campaign.id,
           student_id: userId,
@@ -152,7 +153,7 @@ export default function UIReformChallengeView({ userId }: UIReformChallengeViewP
           mockup_url: mockupUrl.trim() || null,
           status: "pending",
         }
-      ]);
+      ] as never);
 
       if (error) throw error;
 
@@ -167,8 +168,9 @@ export default function UIReformChallengeView({ userId }: UIReformChallengeViewP
       setMockupUrl("");
       setSubmitModalOpen(false);
       loadData();
-    } catch (e: any) {
-      toast({ title: "Submission Failed", description: e.message || "An error occurred", variant: "destructive" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "An error occurred";
+      toast({ title: "Submission Failed", description: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
