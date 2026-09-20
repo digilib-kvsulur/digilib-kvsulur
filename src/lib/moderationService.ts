@@ -217,3 +217,65 @@ export async function resetUserModeration(userId: string, adminId?: string): Pro
 
   return true;
 }
+
+export interface SpamCheckResult {
+  isSpam: boolean;
+  reason: string;
+}
+
+/**
+ * Detects spam patterns including character flooding, word flooding, duplicate content, and velocity.
+ */
+export function detectSpamPattern(
+  content: string,
+  history: {
+    recentTimestamps: number[];
+    recentContents: string[];
+    velocityLimitMax: number;
+    velocityWindowMs: number;
+  }
+): SpamCheckResult {
+  const text = (content || "").trim();
+  const now = Date.now();
+
+  // 1. Repetitive character flooding: e.g. "aaaaaaa..." or "!!!!!"
+  if (/(.)\1{14,}/.test(text)) {
+    return {
+      isSpam: true,
+      reason: "Excessive repetitive characters detected",
+    };
+  }
+
+  // 2. Repetitive words flooding: e.g. "spam spam spam spam spam..."
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length >= 6) {
+    const firstWord = words[0].toLowerCase();
+    const allSame = words.every((w) => w.toLowerCase() === firstWord);
+    if (allSame) {
+      return {
+        isSpam: true,
+        reason: "Repetitive word flooding detected",
+      };
+    }
+  }
+
+  // 3. Duplicate content spam (same text submitted recently in last 3 minutes)
+  if (text.length >= 3 && history.recentContents.some((prev) => prev.toLowerCase() === text.toLowerCase())) {
+    return {
+      isSpam: true,
+      reason: "Duplicate identical message submitted within a short timeframe",
+    };
+  }
+
+  // 4. Rate / velocity limit
+  const recentInWindow = history.recentTimestamps.filter((t) => now - t < history.velocityWindowMs);
+  if (recentInWindow.length >= history.velocityLimitMax) {
+    const secs = Math.round(history.velocityWindowMs / 1000);
+    return {
+      isSpam: true,
+      reason: `Posting velocity exceeded (limit: max ${history.velocityLimitMax} within ${secs} seconds)`,
+    };
+  }
+
+  return { isSpam: false, reason: "" };
+}

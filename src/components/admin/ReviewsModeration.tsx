@@ -58,7 +58,24 @@ export default function ReviewsModeration() {
         (postsData || []).forEach((p: any) => { postMap[p.id] = p; });
       }
 
-      const authorIds = Array.from(new Set(Object.values(postMap).map((p: any) => p.user_id).filter(Boolean))) as string[];
+      const commentIds = Array.from(new Set((data || []).map((r: any) => r.comment_id).filter(Boolean))) as string[];
+      let commentMap: Record<string, any> = {};
+      if (commentIds.length) {
+        const { data: commentsData } = await supabase.from("post_comments").select("*").in("id", commentIds);
+        (commentsData || []).forEach((c: any) => { commentMap[c.id] = c; });
+      }
+
+      // Collect authors: for comment reports it's comment.user_id; for post reports it's post.user_id
+      const authorIds = Array.from(new Set((data || []).map((r: any) => {
+        if (r.comment_id && commentMap[r.comment_id]) {
+          return commentMap[r.comment_id].user_id;
+        }
+        if (r.post_id && postMap[r.post_id]) {
+          return postMap[r.post_id].user_id;
+        }
+        return null;
+      }).filter(Boolean))) as string[];
+
       let authorMap: Record<string, any> = {};
       if (authorIds.length) {
         const { data: authorsData } = await supabase
@@ -75,12 +92,19 @@ export default function ReviewsModeration() {
         (profs || []).forEach((p: any) => { reporterMap[p.id] = p; });
       }
 
-      setReports((data || []).map((r: any) => ({
-        ...r,
-        post: postMap[r.post_id],
-        author: postMap[r.post_id] ? authorMap[postMap[r.post_id].user_id] : null,
-        reporter: reporterMap[r.reporter_id],
-      })));
+      setReports((data || []).map((r: any) => {
+        const post = postMap[r.post_id] || null;
+        const comment = r.comment_id ? commentMap[r.comment_id] || null : null;
+        const authorId = comment ? comment.user_id : post ? post.user_id : null;
+        return {
+          ...r,
+          is_reply_report: Boolean(r.comment_id),
+          post,
+          comment,
+          author: authorId ? authorMap[authorId] : null,
+          reporter: reporterMap[r.reporter_id],
+        };
+      }));
     } catch {
       setReports([]);
     } finally {
@@ -113,6 +137,18 @@ export default function ReviewsModeration() {
       loadReports();
     } catch (e: any) {
       toast({ title: "Error deleting post", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const deleteReportedComment = async (commentId: string, reportId: string) => {
+    if (!confirm("Delete this reported reply/comment from the community?")) return;
+    try {
+      await supabase.from("post_comments").delete().eq("id", commentId);
+      await (supabase as any).from("community_reports").delete().eq("id", reportId);
+      toast({ title: "Reply deleted", description: "The reported comment/reply has been removed from the post." });
+      loadReports();
+    } catch (e: any) {
+      toast({ title: "Error deleting reply", description: e.message, variant: "destructive" });
     }
   };
 
@@ -209,23 +245,23 @@ export default function ReviewsModeration() {
       <Tabs defaultValue="reports" className="space-y-4">
         <TabsList>
           <TabsTrigger value="reports" className="flex items-center gap-2">
-            <Flag className="h-4 w-4 text-amber-500" /> Reported Posts ({reports.length})
+            <Flag className="h-4 w-4 text-amber-500" /> Reported Posts &amp; Replies ({reports.length})
           </TabsTrigger>
           <TabsTrigger value="reviews" className="flex items-center gap-2">
             <Star className="h-4 w-4 text-yellow-500" /> Book Reviews ({rows.length})
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: Reported Posts */}
+        {/* TAB 1: Reported Posts & Replies */}
         <TabsContent value="reports" className="space-y-3">
           {loadingReports ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">Loading reported posts...</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">Loading reported content...</p>
           ) : reports.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="p-8 text-center text-muted-foreground space-y-2">
                 <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
-                <p className="font-semibold text-foreground">No pending reported posts</p>
-                <p className="text-xs">All community posts are clean and follow library guidelines.</p>
+                <p className="font-semibold text-foreground">No pending reports</p>
+                <p className="text-xs">All community posts and replies are clean and follow library guidelines.</p>
               </CardContent>
             </Card>
           ) : (
@@ -242,6 +278,15 @@ export default function ReviewsModeration() {
                     {/* Header: Flag reason & Reporter */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-3">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {rep.is_reply_report ? (
+                          <Badge className="bg-purple-100 text-purple-900 border-purple-300 font-bold text-xs">
+                            💬 Reply Report
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-sky-100 text-sky-900 border-sky-300 font-bold text-xs">
+                            📝 Post Report
+                          </Badge>
+                        )}
                         <Badge variant="outline" className="bg-amber-100 text-amber-900 border-amber-300 capitalize font-black text-xs">
                           🚩 {rep.reason || "Flagged"}
                         </Badge>
@@ -249,13 +294,19 @@ export default function ReviewsModeration() {
                           Reported by <strong className="text-foreground">{rep.reporter ? `${rep.reporter.first_name || ""} ${rep.reporter.last_name || ""} (@${rep.reporter.username || "user"})` : "Anonymous User"}</strong>
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                      <div className="flex items-center gap-1.5 self-end sm:self-auto flex-wrap">
                         <Button size="sm" variant="outline" onClick={() => dismissReport(rep.id)} className="h-8 text-xs">
-                          Keep Post (Dismiss)
+                          Keep (Dismiss)
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => deleteReportedPost(rep.post_id, rep.id)} className="h-8 text-xs">
-                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete Post
-                        </Button>
+                        {rep.is_reply_report ? (
+                          <Button size="sm" variant="destructive" onClick={() => deleteReportedComment(rep.comment_id, rep.id)} className="h-8 text-xs bg-rose-600 hover:bg-rose-700">
+                            <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete Reply
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="destructive" onClick={() => deleteReportedPost(rep.post_id, rep.id)} className="h-8 text-xs bg-rose-600 hover:bg-rose-700">
+                            <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete Post
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -265,8 +316,24 @@ export default function ReviewsModeration() {
                       </p>
                     )}
 
-                    {/* Post Content Preview */}
-                    {rep.post ? (
+                    {/* Content Preview */}
+                    {rep.is_reply_report ? (
+                      <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-3.5 space-y-2 shadow-2xs">
+                        <div className="flex items-center justify-between text-[11px] text-purple-900 font-bold flex-wrap gap-1">
+                          <span>💬 Reported Comment / Reply:</span>
+                          {rep.post && <span className="text-muted-foreground font-normal">On Post: &ldquo;{rep.post.title}&rdquo;</span>}
+                        </div>
+                        {rep.comment ? (
+                          <p className="text-xs text-foreground font-medium whitespace-pre-wrap bg-white/90 p-2.5 rounded-lg border border-purple-100">
+                            {rep.comment.content}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic bg-muted/60 p-2.5 rounded-lg">
+                            Original reply has already been removed.
+                          </p>
+                        )}
+                      </div>
+                    ) : rep.post ? (
                       <div className="rounded-xl border border-border bg-card p-3.5 space-y-1.5 shadow-2xs">
                         <p className="font-bold text-sm text-foreground">{rep.post.title}</p>
                         {rep.post.content && (

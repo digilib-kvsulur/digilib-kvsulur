@@ -9,7 +9,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert, HelpCircle, CheckCircle2, Calendar, Play, Share2 } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert, HelpCircle, CheckCircle2, Calendar, Play, Share2, AlertTriangle, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
@@ -21,7 +21,7 @@ import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadg
 import ReviewsModeration from "@/components/admin/ReviewsModeration";
 import CommunityTermsGate, { hasAcceptedCommunityTerms } from "./CommunityTermsGate";
 import { useBackHandler } from "@/hooks/useBackHandler";
-import { applyModerationWarning, isUserExemptFromModeration } from "@/lib/moderationService";
+import { applyModerationWarning, isUserExemptFromModeration, detectSpamPattern } from "@/lib/moderationService";
 
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
 
@@ -103,8 +103,19 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [taggedUsers, setTaggedUsers] = useState<{ id: string; name: string }[]>([]);
   const tagSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Report Post State
-  const [reportingPost, setReportingPost] = useState<Post | null>(null);
+  // Anti-Spam Tracking State & Modal
+  const recentPostTimestamps = useRef<number[]>([]);
+  const recentCommentTimestamps = useRef<number[]>([]);
+  const recentContents = useRef<string[]>([]);
+  const [spamModal, setSpamModal] = useState<{ open: boolean; title: string; message: string; isBlocked: boolean } | null>(null);
+
+  // Report Post & Reply State
+  const [reportingItem, setReportingItem] = useState<{ type: "post"; post: Post } | { type: "comment"; post: Post; comment: any } | null>(null);
+  const setReportingPost = (post: Post | null) => {
+    if (post) setReportingItem({ type: "post", post });
+    else setReportingItem(null);
+  };
+  const reportingPost = reportingItem?.type === "post" ? reportingItem.post : null;
   const [reportReason, setReportReason] = useState("inappropriate");
   const [reportDetails, setReportDetails] = useState("");
   const [submittingReport, setSubmittingReport] = useState(false);
@@ -131,13 +142,13 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     },
   });
 
-  // Back handler for Report Post Dialog
+  // Back handler for Report Dialog
   useBackHandler({
-    enabled: reportingPost !== null,
+    enabled: reportingItem !== null,
     priority: 80,
-    stateName: "community_report_post",
+    stateName: "community_report_content",
     onBack: () => {
-      setReportingPost(null);
+      setReportingItem(null);
       return true;
     },
   });
@@ -209,30 +220,106 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     }
   };
 
-  const handleReportPost = async () => {
-    if (!reportingPost) return;
-    setSubmittingReport(true);
-    try {
-      await (supabase as any).from("community_reports").insert({
-        post_id: reportingPost.id,
-        reporter_id: currentUserId,
-        reason: reportReason,
-        details: reportDetails.trim(),
+  const validateAntiSpam = async (text: string, type: "post" | "comment"): Promise<boolean> => {
+    if (isAdmin) return true;
+
+    const spamCheck = detectSpamPattern(text, {
+      recentTimestamps: type === "post" ? recentPostTimestamps.current : recentCommentTimestamps.current,
+      recentContents: recentContents.current,
+      velocityLimitMax: type === "post" ? 2 : 4,
+      velocityWindowMs: 30000,
+    });
+
+    if (!spamCheck.isSpam) {
+      const now = Date.now();
+      if (type === "post") {
+        recentPostTimestamps.current = [...recentPostTimestamps.current.slice(-10), now];
+      } else {
+        recentCommentTimestamps.current = [...recentCommentTimestamps.current.slice(-10), now];
+      }
+      recentContents.current = [...recentContents.current.slice(-10), text.trim()];
+      return true;
+    }
+
+    // Spam pattern detected - Two-Stage Policy:
+    // Stage 1: First offense -> Alert Dialog
+    // Stage 2: Continued spamming within 2 minutes of alert -> 1st Warning (24h Block)
+    const alertKey = `dlms_spam_alert_${currentUserId}`;
+    const lastAlertStr = localStorage.getItem(alertKey);
+    const lastAlertTime = lastAlertStr ? parseInt(lastAlertStr, 10) : 0;
+    const isWithinAlertWindow = Date.now() - lastAlertTime < 2 * 60 * 1000;
+
+    if (isWithinAlertWindow) {
+      // Stage 2: Apply block/warning
+      localStorage.removeItem(alertKey);
+      setSpamModal({
+        open: true,
+        title: "🚫 Account Suspended for Spamming",
+        message: `You continued to post rapid or repetitive content after receiving an anti-spam alert (${spamCheck.reason}). Your posting privileges have been suspended as per the DLMS 3-tier moderation policy (1st Warning: 24 Hours).`,
+        isBlocked: true,
+      });
+
+      await handleModerationStrike(`Repeated spamming and message flooding in community discussions after receiving anti-spam alert: ${spamCheck.reason}`);
+      return false;
+    } else {
+      // Stage 1: Display warning alert (no block yet)
+      localStorage.setItem(alertKey, String(Date.now()));
+      setSpamModal({
+        open: true,
+        title: "⚠️ Anti-Spam Notice: Please Slow Down",
+        message: `Our automated system detected rapid posting or repetitive content (${spamCheck.reason}). Please wait a moment before trying again.\n\n🚨 Warning: Continuing to post spam or flood messages will immediately trigger a 24-Hour DLMS Community Posting Block (1st Warning).`,
+        isBlocked: false,
       });
 
       toast({
-        title: "Post Reported 🚩",
-        description: "Thank you for helping keep our KV Sulur Digital Library community safe. Our moderators will review this post.",
+        title: "⚠️ Slow Down: Spam Detected",
+        description: "Please wait a moment before trying again. Continuing to spam will suspend your account.",
+        variant: "destructive",
       });
-      setReportingPost(null);
+      return false;
+    }
+  };
+
+  const handleReportSubmit = async () => {
+    if (!reportingItem) return;
+    setSubmittingReport(true);
+    const isComment = reportingItem.type === "comment";
+    try {
+      const payload: any = {
+        post_id: reportingItem.post.id,
+        reporter_id: currentUserId,
+        reason: reportReason,
+        details: reportDetails.trim() || null,
+      };
+
+      if (isComment && reportingItem.comment?.id) {
+        payload.comment_id = reportingItem.comment.id;
+      }
+
+      let { error } = await (supabase as any).from("community_reports").insert(payload);
+
+      if (error && isComment && error.message?.includes("comment_id")) {
+        delete payload.comment_id;
+        payload.details = `[Reported Comment ID: ${reportingItem.comment.id}] ${reportDetails.trim()}`;
+        const fallback = await (supabase as any).from("community_reports").insert(payload);
+        error = fallback.error;
+      }
+
+      if (error) throw error;
+
+      toast({
+        title: isComment ? "Reply Reported 🚩" : "Post Reported 🚩",
+        description: "Thank you for helping keep our KV Sulur Digital Library community safe. Our moderators will review this content.",
+      });
+      setReportingItem(null);
       setReportReason("inappropriate");
       setReportDetails("");
-    } catch {
+    } catch (err: any) {
       toast({
         title: "Report Submitted 🚩",
         description: "Your report has been logged for moderator review.",
       });
-      setReportingPost(null);
+      setReportingItem(null);
       setReportReason("inappropriate");
       setReportDetails("");
     } finally {
@@ -629,6 +716,10 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       return;
     }
 
+    // Anti-Spam Check (Admins are exempt)
+    const isClean = await validateAntiSpam(`${draft.title} ${draft.content} ${linkUrl}`, "post");
+    if (!isClean) return;
+
     const cleanOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
     if (postKind === "poll" && cleanOptions.length < 2) {
       toast({ title: "Polls need at least 2 options", variant: "destructive" });
@@ -928,6 +1019,10 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       await handleModerationStrike("Comment contains prohibited words or inappropriate language.");
       return;
     }
+
+    // Anti-Spam Check (Admins are exempt)
+    const isClean = await validateAntiSpam(commentDraft, "comment");
+    if (!isClean) return;
 
     const { data: { user } } = await supabase.auth.getUser();
     const uid = user?.id || currentUserId;
@@ -2236,11 +2331,23 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                               </button>
                             )}
                           </div>
-                          {(c.user_id === currentUserId || isAdmin) && (
-                            <button onClick={() => deleteComment(p.id, c.id)} className="text-muted-foreground hover:text-destructive p-1 rounded-md transition-colors" title="Delete comment">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            {c.user_id !== currentUserId && (
+                              <button
+                                type="button"
+                                onClick={() => setReportingItem({ type: "comment", post: p, comment: c })}
+                                className="text-muted-foreground hover:text-amber-600 p-1 rounded-md transition-colors"
+                                title="Report reply"
+                              >
+                                <Flag className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {(c.user_id === currentUserId || isAdmin) && (
+                              <button onClick={() => deleteComment(p.id, c.id)} className="text-muted-foreground hover:text-destructive p-1 rounded-md transition-colors" title="Delete comment">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))
                     )}
@@ -2395,19 +2502,34 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         </DialogContent>
       </Dialog>
 
-      {/* Report Post Dialog */}
-      <Dialog open={!!reportingPost} onOpenChange={(o) => !o && setReportingPost(null)}>
-
+      {/* Report Content (Post or Reply) Dialog */}
+      <Dialog open={!!reportingItem} onOpenChange={(o) => { if (!o) setReportingItem(null); }}>
         <DialogContent className="max-w-md rounded-2xl p-5 gap-4">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Flag className="h-4 w-4 text-amber-500" /> Report Post
+              <Flag className="h-4 w-4 text-amber-500" />
+              {reportingItem?.type === "comment" ? "Report Reply / Comment" : "Report Post"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-xs text-muted-foreground">
-              Reporting: <span className="font-semibold text-foreground">"{reportingPost?.title}"</span>
-            </p>
+            {reportingItem?.type === "comment" ? (
+              <div className="p-3 bg-muted/50 rounded-xl border border-border/80 space-y-1">
+                <p className="text-[11px] font-bold text-muted-foreground uppercase">
+                  Reporting Reply by {nameOf(reportingItem.comment?.author)}
+                </p>
+                <p className="text-xs text-foreground italic line-clamp-3">
+                  &ldquo;{reportingItem.comment?.content}&rdquo;
+                </p>
+                <p className="text-[10px] text-muted-foreground pt-1">
+                  On Post: <span className="font-semibold text-foreground">{reportingItem.post.title}</span>
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Reporting: <span className="font-semibold text-foreground">&ldquo;{reportingItem?.post.title}&rdquo;</span>
+              </p>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-xs font-semibold">Reason for Report</label>
               <select
@@ -2416,7 +2538,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 className="w-full h-10 rounded-xl border border-border bg-background px-3 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="inappropriate">⚠️ Inappropriate or Vulgar Content</option>
-                <option value="spam">🚫 Spam or Unwanted Promotion</option>
+                <option value="spam">🚫 Spam, Flooding or Unwanted Promotion</option>
                 <option value="harassment">🛑 Harassment or Bullying</option>
                 <option value="misinformation">❌ Misinformation / Incorrect Study Material</option>
                 <option value="other">❓ Other Reason</option>
@@ -2427,25 +2549,50 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               <Textarea
                 value={reportDetails}
                 onChange={(e) => setReportDetails(e.target.value)}
-                placeholder="Explain why this post violates community guidelines..."
+                placeholder="Explain why this content violates community guidelines..."
                 rows={3}
                 className="text-xs"
               />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button type="button" variant="outline" size="sm" onClick={() => setReportingPost(null)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setReportingItem(null)}>
               Cancel
             </Button>
             <Button
               type="button"
               size="sm"
-              onClick={handleReportPost}
+              onClick={handleReportSubmit}
               disabled={submittingReport}
               className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
             >
               {submittingReport ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Flag className="h-4 w-4 mr-1" />}
               Submit Report
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Anti-Spam Alert & Warning Dialog */}
+      <Dialog open={!!spamModal} onOpenChange={(o) => { if (!o) setSpamModal(null); }}>
+        <DialogContent className="max-w-md rounded-2xl p-6 text-center space-y-4">
+          <div className={`mx-auto h-14 w-14 rounded-2xl flex items-center justify-center ${spamModal?.isBlocked ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-600"}`}>
+            {spamModal?.isBlocked ? <ShieldAlert className="h-8 w-8" /> : <AlertTriangle className="h-8 w-8" />}
+          </div>
+          <DialogHeader className="space-y-1 text-center sm:text-center">
+            <DialogTitle className={`text-lg font-extrabold ${spamModal?.isBlocked ? "text-rose-700" : "text-amber-800"}`}>
+              {spamModal?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-xs sm:text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed bg-muted/40 p-4 rounded-xl border border-border text-left">
+            {spamModal?.message}
+          </div>
+          <div className="pt-2">
+            <Button
+              onClick={() => setSpamModal(null)}
+              className={`w-full rounded-xl font-bold ${spamModal?.isBlocked ? "bg-rose-600 hover:bg-rose-700 text-white" : "bg-amber-600 hover:bg-amber-700 text-white"}`}
+            >
+              I Understand
             </Button>
           </div>
         </DialogContent>
