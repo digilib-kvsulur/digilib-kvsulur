@@ -262,12 +262,99 @@ export default function ReviewsModeration() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <ShieldAlert className="h-6 w-6 text-indigo-600" /> Content & Moderation Hub
-        </h2>
-        <p className="text-sm text-muted-foreground">Moderate student reviews and reported community posts.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold flex items-center gap-2 truncate">
+            <ShieldAlert className="h-6 w-6 text-indigo-600 shrink-0" /> Content & Moderation Hub
+          </h2>
+          <p className="text-sm text-muted-foreground truncate">Moderate student reviews and reported community posts.</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="relative">
+            <Input
+              placeholder="Search user to warn..."
+              className="w-64 pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearchUser()}
+            />
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          </div>
+          <Button size="sm" onClick={handleSearchUser} disabled={isSearching}>
+            {isSearching ? "Searching..." : "Search"}
+          </Button>
+        </div>
       </div>
+
+      {searchUser && (
+        <Card className="border-indigo-200 bg-indigo-50/30 shadow-sm animate-in fade-in slide-in-from-top-2">
+          <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center border border-indigo-200 shrink-0">
+                <User className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-bold text-foreground truncate">{searchUser.first_name} {searchUser.last_name}</p>
+                  {searchUser.username && <span className="text-xs text-muted-foreground truncate">@{searchUser.username}</span>}
+                  <Badge variant="outline" className="text-[10px] py-0 shrink-0">Class {searchUser.student_class}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">Adm No: {searchUser.admission_number} • Warn Count: {searchUser.community_warn_count || 0}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSearchUser(null)}
+                className="text-xs"
+              >
+                Clear
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs border-amber-400 text-amber-900 bg-amber-50 hover:bg-amber-100 font-bold whitespace-nowrap"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 mr-1 text-amber-600" />
+                    Give Warning
+                    <ChevronDown className="h-3 w-3 ml-1 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72">
+                  <DropdownMenuItem
+                    onClick={() => handleApplyWarning(searchUser.id, `${searchUser.first_name} ${searchUser.last_name}`, 1, "Direct moderation action via search")}
+                    className="text-xs font-semibold text-amber-700 cursor-pointer"
+                  >
+                    <span className="font-bold mr-1.5">1️⃣</span> 1st Warning (24h Block)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleApplyWarning(searchUser.id, `${searchUser.first_name} ${searchUser.last_name}`, 2, "Direct moderation action via search")}
+                    className="text-xs font-semibold text-orange-700 cursor-pointer"
+                  >
+                    <span className="font-bold mr-1.5">2️⃣</span> 2nd Warning (48h Block)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleApplyWarning(searchUser.id, `${searchUser.first_name} ${searchUser.last_name}`, 3, "Direct moderation action via search")}
+                    className="text-xs font-semibold text-rose-700 cursor-pointer"
+                  >
+                    <span className="font-bold mr-1.5">3️⃣</span> 3rd Warning (Deactivate Account)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => handleResetWarnings(searchUser.id, `${searchUser.first_name} ${searchUser.last_name}`)}
+                    className="text-xs text-emerald-700 cursor-pointer font-medium"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5 mr-1.5 text-emerald-600" /> Reset Warnings
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="reports" className="space-y-4">
         <TabsList>
