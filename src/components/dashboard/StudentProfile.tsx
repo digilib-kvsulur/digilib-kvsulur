@@ -107,6 +107,8 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       const rawExt = file.name.split('.').pop() || 'jpg';
       const cleanExt = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
       const path = `${uid}/${Date.now()}.${cleanExt}`;
+      console.log("Uploading to path:", path);
+      console.log("Auth UID:", uid);
       
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
         contentType: compressedFile.type || "image/jpeg"
