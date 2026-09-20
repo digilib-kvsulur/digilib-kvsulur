@@ -21,7 +21,7 @@ const isBlockedMailbox = (email = "") => /@(kvschool\.in|kvsulur\.com|kvschennai
 
 async function sendResendEmail(opts: { to: string; subject: string; html: string }) {
   const apiKey = Deno.env.get("RESEND_API_KEY");
-  const from = Deno.env.get("LIBRARY_FROM_EMAIL") || "PM SHRI KV Sulur Library <dlms@kvsulur.in>";
+  const from = Deno.env.get("LIBRARY_FROM_EMAIL") || "Team DLMS <dlms@kvsulur.in>";
   if (!apiKey) {
     console.warn("RESEND_API_KEY not set — email skipped");
     return { skipped: true };
@@ -119,11 +119,11 @@ Deno.serve(async (req) => {
             <table width="100%" border="0" cellpadding="0" cellspacing="0">
               <tr>
                 <td width="56" style="vertical-align:middle;padding-right:16px;">
-                  <img src="https://dlms.kvsulur.in/logos/kv-square.png" alt="KV Sulur Logo" width="52" height="52" style="display:block;border-radius:50%;background:#ffffff;padding:2px;box-shadow:0 3px 10px rgba(0,0,0,0.25);border:2px solid #ffffff;object-fit:cover;" />
+                  <img src="https://dlms.kvsulur.in/apple-touch-icon.png" alt="Team DLMS" width="52" height="52" style="display:block;border-radius:50%;background:#ffffff;padding:2px;box-shadow:0 3px 10px rgba(0,0,0,0.25);border:2px solid #ffffff;object-fit:cover;" />
                 </td>
                 <td style="vertical-align:middle;">
                   <p style="margin:0;color:#bfdbfe;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">PM SHRI KENDRIYA VIDYALAYA AFS SULUR</p>
-                  <h1 style="margin:4px 0 0 0;color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-0.5px;line-height:1.2;">🎫 Helpdesk &amp; Support</h1>
+                  <h1 style="margin:4px 0 0 0;color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-0.5px;line-height:1.2;">Team DLMS · Helpdesk &amp; Support</h1>
                 </td>
               </tr>
             </table>
