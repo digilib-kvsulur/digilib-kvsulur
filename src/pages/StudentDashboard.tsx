@@ -75,9 +75,9 @@ type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "m
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
   { id: "portfolio", label: "My Portfolio", icon: FileText },
-  { id: "catalog", label: "Books Catalog", icon: BookOpen },
-  { id: "issued", label: "Book Issued", icon: BookCheck },
   { id: "books", label: "My Books", icon: BookMarked },
+  { id: "issued", label: "Book Issued", icon: BookCheck },
+  { id: "catalog", label: "Books Catalog", icon: BookOpen },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
   { id: "ncert", label: "NCERT Books", icon: BookOpen },
@@ -122,15 +122,11 @@ const StudentDashboard = () => {
 
   // Track tab history stack
   useEffect(() => {
-    if (activeTab === "books") {
-      navigate("/catalog");
-      return;
-    }
     setTabHistory((prev) => {
       if (prev[prev.length - 1] === activeTab) return prev;
       return [...prev, activeTab];
     });
-  }, [activeTab, navigate]);
+  }, [activeTab]);
 
   // Back handler 1: Close mobile drawer
   useBackHandler({
@@ -353,9 +349,9 @@ const StudentDashboard = () => {
     {
       title: "Library",
       items: [
-        { id: "catalog" as Tab, label: "Books Catalog", icon: BookOpen },
-        { id: "issued" as Tab, label: "Book Issued", icon: BookCheck },
         { id: "books" as Tab, label: "My Books", icon: BookMarked },
+        { id: "issued" as Tab, label: "Book Issued", icon: BookCheck },
+        { id: "catalog" as Tab, label: "Books Catalog", icon: BookOpen },
         { id: "locator" as Tab, label: "Library Map", icon: Compass },
         ...(periodicalsVisible ? [{ id: "periodicals" as Tab, label: "Periodicals", icon: Newspaper }] : []),
       ],
