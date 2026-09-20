@@ -113,7 +113,6 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
       const ext = file.name.split(".").pop();
       const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
-        upsert: true,
         contentType: "image/jpeg",
       });
       if (upErr) throw upErr;
