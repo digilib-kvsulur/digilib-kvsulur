@@ -9,7 +9,7 @@ import {
   BookOpen, LogOut, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, BookmarkCheck, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug, Palette
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -68,8 +68,9 @@ import Feedback from "./Feedback";
 import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
 import MobileBottomNav, { mobileNavSections } from "@/components/dashboard/MobileBottomNav";
 import { useBackHandler } from "@/hooks/useBackHandler";
+import UIReformChallengeView from "@/components/community/UIReformChallengeView";
 
-type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty";
+type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -237,6 +238,7 @@ const StudentDashboard = () => {
   usePushSubscription(user?.id);
 
   const [activeBounty, setActiveBounty] = useState<any>(null);
+  const [activeReformCampaign, setActiveReformCampaign] = useState<any>(null);
   const [activeLoan, setActiveLoan] = useState<any>(null);
 
   useEffect(() => {
@@ -246,6 +248,14 @@ const StudentDashboard = () => {
         .eq("is_active", true)
         .maybeSingle()
         .then(({ data }) => setActiveBounty(data));
+
+      supabase.from("ui_reform_campaigns" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .then(({ data }) => {
+          if (data && data.length > 0) setActiveReformCampaign(data[0]);
+        });
     }
   }, [user?.id]);
 
@@ -361,6 +371,7 @@ const StudentDashboard = () => {
         { id: "community" as Tab, label: "Community", icon: Users },
         { id: "network" as Tab, label: "Network", icon: Users },
         { id: "bounty" as Tab, label: "Bug Bounty", icon: Target },
+        { id: "ui-reform" as Tab, label: "UI Reform Challenge", icon: Palette },
         { id: "events" as Tab, label: "Events", icon: CalendarDays },
       ],
     },
@@ -416,53 +427,89 @@ const StudentDashboard = () => {
 
   const checkAuth = async () => {
     try {
-      // Prefer refreshSession to get up-to-date user_metadata; fall back to getSession if it fails
       let session: any = null;
       try {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        session = refreshed.session;
-      } catch (_) {}
-      if (!session) {
-        const { data: { session: cached } } = await supabase.auth.getSession();
-        session = cached;
-      }
-      if (!session) { navigate('/login'); return; }
-      const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-      if (error || !profile) { navigate('/login'); return; }
-      if (!profile.is_approved) {
-        toast({ title: "Account Pending", description: "Your account is pending admin approval.", variant: "destructive" });
-        navigate('/login'); return;
+        const { data } = await supabase.auth.getSession();
+        session = data?.session || null;
+      } catch (e) {
+        console.warn("getSession error:", e);
       }
 
-      // Read needs_profile_update from auth metadata (works even without DB migration)
-      const metaNeedsUpdate = session.user.user_metadata?.needs_profile_update === true;
-      // Fallback: also check the profile column if the migration has been run
+      // Check cached profile if available
+      let cachedProfile: any = null;
+      try {
+        const stored = localStorage.getItem("dlms_user_profile");
+        if (stored) cachedProfile = JSON.parse(stored);
+      } catch {}
+
+      const hasStoredToken = typeof window !== "undefined" && Object.keys(window.localStorage || {}).some(
+        (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+      );
+
+      if (!session && !hasStoredToken && !cachedProfile) {
+        navigate('/login');
+        return;
+      }
+
+      const userId = session?.user?.id || cachedProfile?.id;
+      let profile = cachedProfile;
+
+      if (userId) {
+        try {
+          const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+          if (!error && data) {
+            profile = data;
+            try {
+              localStorage.setItem("dlms_user_profile", JSON.stringify(data));
+            } catch {}
+          }
+        } catch (netErr) {
+          console.warn("Network error fetching profile, using cached profile:", netErr);
+        }
+      }
+
+      if (!profile) {
+        if (!hasStoredToken) navigate('/login');
+        return;
+      }
+
+      if (profile.is_approved === false) {
+        toast({ title: "Account Pending", description: "Your account is pending admin approval.", variant: "destructive" });
+        navigate('/login');
+        return;
+      }
+
+      // Read needs_profile_update from auth metadata or profile column
+      const metaNeedsUpdate = session?.user?.user_metadata?.needs_profile_update === true;
       const profileNeedsUpdate = (profile as any).needs_profile_update === true;
       const mergedUser = {
         ...profile,
         needs_profile_update: metaNeedsUpdate || profileNeedsUpdate,
         // Pre-fill from auth metadata if profile fields are empty
-        first_name: profile.first_name || session.user.user_metadata?.first_name || "",
-        last_name: profile.last_name || session.user.user_metadata?.last_name || "",
-        student_class: profile.student_class || session.user.user_metadata?.student_class || "",
+        first_name: profile.first_name || session?.user?.user_metadata?.first_name || "",
+        last_name: profile.last_name || session?.user?.user_metadata?.last_name || "",
+        student_class: profile.student_class || session?.user?.user_metadata?.student_class || "",
       };
 
-      if (profile.points !== null) {
+      if (profile.points !== null && profile.points !== undefined) {
         try {
           const { data: levelData } = await supabase.rpc('get_user_level', { user_points: profile.points });
           if (levelData && levelData.length > 0) setPreviousLevel(levelData[0].level_number);
         } catch (e) { console.error(e); }
       }
       setUser(mergedUser);
-      fetchActiveLoan(session.user.id);
-      if (mergedUser.student_class && profile.points !== null) {
+      if (userId) fetchActiveLoan(userId);
+      if (mergedUser.student_class && profile.points !== null && profile.points !== undefined) {
         try {
           const { data: rankData, error: rankError } = await supabase.rpc('get_user_class_rank', { user_class: mergedUser.student_class, user_points: profile.points || 0 });
           if (!rankError && rankData !== null) setClassRank(rankData);
         } catch (e) { console.error(e); }
       }
-    } catch (e) { navigate('/login'); }
-    finally { setLoading(false); }
+    } catch (e) {
+      console.warn("checkAuth unexpected error:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const checkLevelUp = async (newPoints: number) => {
@@ -1048,6 +1095,46 @@ const StudentDashboard = () => {
                 </Card>
               )}
 
+              {activeReformCampaign && (
+                <Card
+                  className="rounded-3xl border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-indigo-500/5 to-purple-500/10 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group"
+                  onClick={() => setActiveTab("ui-reform")}
+                >
+                  <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform">
+                        <Palette className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-500/20 px-2.5 py-0.5 rounded-full border border-purple-500/30">
+                            {activeReformCampaign.status === "active" ? "🎨 Live Redesign Event" : "⏳ Upcoming Event"}
+                          </span>
+                          <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <Sparkles className="h-3.5 w-3.5" /> +{activeReformCampaign.reward_points || 150} XP per Design
+                          </span>
+                        </div>
+                        <h4 className="text-base font-black text-foreground truncate">
+                          {activeReformCampaign.title || "UI Reform & Redesign Challenge"}
+                        </h4>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {activeReformCampaign.status === "scheduled"
+                            ? "Starts right after the 1-week Bug Bounty! Submit your UI ideas & wireframes."
+                            : "Propose layout reforms, wireframes & UX improvements for DLMS!"}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full sm:w-auto rounded-xl font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md gap-1.5 shrink-0"
+                    >
+                      <span>{activeReformCampaign.status === "scheduled" ? "Preview Challenge" : "Submit Design"}</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Pending Friend Requests Card */}
               {pendingFriendRequests.length > 0 && (
                 <Card className="rounded-3xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/70 via-indigo-50/30 to-purple-50/50 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-slate-900/40 shadow-sm p-4 sm:p-5">
@@ -1393,6 +1480,7 @@ const StudentDashboard = () => {
           {/* Feedback Tab */}
           {activeTab === "feedback" && <Feedback isEmbedded={true} />}
           {activeTab === "bounty" && <BugBountyManager />}
+          {activeTab === "ui-reform" && <UIReformChallengeView userId={user?.id} onOpenCatalog={() => navigate("/catalog")} />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && <StudentProfile user={user} onProfileUpdate={handleProfileUpdate} />}

@@ -137,9 +137,37 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate("/login"); return; }
-      const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+      let session: any = null;
+      try {
+        const { data } = await supabase.auth.getSession();
+        session = data?.session;
+      } catch (e) {
+        console.warn("TeacherDashboard session get error:", e);
+      }
+
+      let cachedProfile: any = null;
+      try {
+        const stored = localStorage.getItem("dlms_user_profile");
+        if (stored) cachedProfile = JSON.parse(stored);
+      } catch {}
+
+      if (!session && !cachedProfile) { navigate("/login"); return; }
+
+      const userId = session?.user?.id || cachedProfile?.id;
+      let profile = cachedProfile;
+
+      if (userId) {
+        try {
+          const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+          if (data) {
+            profile = data;
+            try { localStorage.setItem("dlms_user_profile", JSON.stringify(data)); } catch {}
+          }
+        } catch (e) {
+          console.warn("Could not refresh teacher profile, using cache:", e);
+        }
+      }
+
       if (!profile || (profile.role !== "teacher" && profile.role !== "admin")) {
         toast({ title: "Access denied", variant: "destructive" });
         navigate("/"); return;

@@ -22,7 +22,7 @@ if (self.location.hostname === LEGACY_HOST) {
 } else {
 
 // ─── Normal Service Worker for dlms.kvsulur.in ─────────────────────────────────
-const CACHE_NAME = 'kvsulur-dlms-v8';
+const CACHE_NAME = 'kvsulur-dlms-v9';
 const ASSETS = [
   '/favicon.png',
   '/manifest.json',
@@ -127,18 +127,25 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    data = { title: 'New Notification', body: event.data ? event.data.text() : '' };
+    data = { title: 'KV Sulur DLMS', body: event.data ? event.data.text() : '' };
   }
 
-  const title = data.title || 'KVS Digilib';
+  const title = data.title || 'PM SHRI KV Sulur DigiLib';
+  const targetUrl = (data.data && data.data.url) ? data.data.url : (data.url || '/');
+  
   const options = {
-    body: data.body || '',
+    body: data.body || 'You have a new update from KV Sulur DLMS.',
     icon: data.icon || '/pwa-192x192.png',
     badge: '/pwa-192x192.png',
     data: {
-      url: (data.data && data.data.url) ? data.data.url : '/',
+      url: targetUrl,
     },
-    vibrate: [200, 100, 200],
+    tag: data.tag || 'dlms-notification',
+    renotify: true,
+    vibrate: [200, 100, 200, 100, 200],
+    actions: [
+      { action: 'open', title: 'Open DigiLib' }
+    ]
   };
 
   event.waitUntil(

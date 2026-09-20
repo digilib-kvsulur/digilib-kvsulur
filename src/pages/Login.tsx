@@ -26,6 +26,32 @@ const Login = () => {
   const [pendingNotificationEmail, setPendingNotificationEmail] = useState<{ id: string; email?: string | null; role?: string } | null>(null);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) {
+        let cachedRole: string | null = null;
+        try {
+          const cached = localStorage.getItem("dlms_user_profile");
+          if (cached) cachedRole = JSON.parse(cached)?.role;
+        } catch {}
+
+        if (cachedRole) {
+          switch (cachedRole) {
+            case "admin": navigate("/admin-dashboard", { replace: true }); return;
+            case "teacher": navigate("/teacher-dashboard", { replace: true }); return;
+            case "student": navigate("/student-dashboard", { replace: true }); return;
+          }
+        }
+
+        supabase.from("profiles").select("role").eq("id", session.user.id).single().then(({ data }) => {
+          if (data?.role === "admin") navigate("/admin-dashboard", { replace: true });
+          else if (data?.role === "teacher") navigate("/teacher-dashboard", { replace: true });
+          else navigate("/student-dashboard", { replace: true });
+        });
+      }
+    }).catch(() => {});
+  }, [navigate]);
+
+  useEffect(() => {
     if (searchParams.get("forgot") === "true") {
       setShowForgotPassword(true);
       const idParam = searchParams.get("identifier");
@@ -89,6 +115,9 @@ const Login = () => {
         return;
       }
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+      if (profile) {
+        try { localStorage.setItem("dlms_user_profile", JSON.stringify(profile)); } catch {}
+      }
       const continueToDashboard = () => {
         switch (profile?.role) {
           case "admin": navigate("/admin-dashboard", { replace: true }); break;

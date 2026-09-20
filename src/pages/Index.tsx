@@ -51,24 +51,47 @@ const Index = () => {
   useEffect(() => {
     const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
 
+    // If cached profile exists and we are on native/pwa, prepare early redirect
+    try {
+      const cached = localStorage.getItem("dlms_user_profile");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.id && isNative) {
+          switch (parsed.role) {
+            case "admin": navigate("/admin-dashboard", { replace: true }); return;
+            case "teacher": navigate("/teacher-dashboard", { replace: true }); return;
+            case "student": navigate("/student-dashboard", { replace: true }); return;
+          }
+        }
+      }
+    } catch {}
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
       if (session?.user) {
         loadUserProfile(session.user.id);
       } else {
-        if (isNative) navigate("/login");
+        const hasStoredToken = typeof window !== "undefined" && Object.keys(window.localStorage || {}).some(
+          (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+        );
+        if (isNative && !hasStoredToken) navigate("/login");
         else setLoading(false);
       }
+    }).catch(() => {
+      setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
       if (session?.user) {
         loadUserProfile(session.user.id);
       } else {
         setProfile(null);
-        if (isNative) navigate("/login");
-        else setLoading(false);
+        if (event === "SIGNED_OUT" && isNative) {
+          navigate("/login");
+        } else {
+          setLoading(false);
+        }
       }
     });
 
@@ -152,6 +175,7 @@ const Index = () => {
       const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
       if (!error && data) {
         setProfile(data);
+        try { localStorage.setItem("dlms_user_profile", JSON.stringify(data)); } catch {}
         const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
         const doRedirect = () => {
           switch (data.role) {
@@ -388,7 +412,7 @@ const Index = () => {
             <a href="#about" className="hover:text-indigo-600 transition-colors px-2 py-1">Features</a>
             <a href="#events" className="hover:text-indigo-600 transition-colors px-2 py-1">Events</a>
             <button onClick={() => navigate("/download")} className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors px-2 py-1">
-              <Download className="h-3.5 w-3.5" /> Get the App
+              <Download className="h-3.5 w-3.5" /> Install App
             </button>
           </nav>
           <div className="flex items-center space-x-4">
@@ -437,7 +461,7 @@ const Index = () => {
                       Open Account <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                     <Button onClick={() => navigate("/download")} variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-9 py-3 sm:py-3.5 h-12 sm:h-14 border-slate-300 bg-white hover:bg-indigo-50/50 hover:text-indigo-600 hover:border-indigo-300 text-slate-800 rounded-xl font-bold shadow-xs transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
-                      <Download className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Download App
+                      <Download className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Install App (PWA)
                     </Button>
                   </>
                 ) : (

@@ -12,13 +12,18 @@ export const clearStoredAuthSession = () => {
   Object.keys(window.localStorage)
     .filter((key) => key.startsWith("sb-") && key.endsWith("-auth-token"))
     .forEach((key) => window.localStorage.removeItem(key));
+  window.localStorage.removeItem("dlms_user_profile");
 };
 
 export const recoverInvalidAuthSession = async () => {
-  const { error } = await supabase.auth.getSession();
-  if (error && isInvalidRefreshTokenError(error)) {
-    clearStoredAuthSession();
-    return true;
+  try {
+    const { error } = await supabase.auth.getSession();
+    if (error && isInvalidRefreshTokenError(error)) {
+      clearStoredAuthSession();
+      return true;
+    }
+  } catch {
+    // Network offline or fetch error — do NOT clear auth session!
   }
   return false;
 };

@@ -162,6 +162,21 @@ const DashboardRedirect = () => {
   useEffect(() => {
     let mounted = true;
     const search = location.search || "";
+
+    // Check cached profile first for instant routing and offline support
+    try {
+      const cached = localStorage.getItem("dlms_user_profile");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.role) {
+          if (parsed.role === "admin") setRedirectTo(`/admin-dashboard${search}`);
+          else if (parsed.role === "teacher") setRedirectTo(`/teacher-dashboard${search}`);
+          else setRedirectTo(`/student-dashboard${search}`);
+          return;
+        }
+      }
+    } catch {}
+
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         if (!mounted) return;
@@ -178,12 +193,18 @@ const DashboardRedirect = () => {
               if (mounted) setRedirectTo(`/student-dashboard${search}`);
             });
         } else {
-          setRedirectTo(`/login${search ? `?redirect=${encodeURIComponent(location.pathname + search)}` : ""}`);
+          const hasStoredToken = typeof window !== "undefined" && Object.keys(window.localStorage || {}).some(
+            (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+          );
+          if (!hasStoredToken) {
+            setRedirectTo(`/login${search ? `?redirect=${encodeURIComponent(location.pathname + search)}` : ""}`);
+          } else {
+            setRedirectTo(`/student-dashboard${search}`);
+          }
         }
       })
       .catch(() => {
-        // Session load failed — send to login
-        if (mounted) setRedirectTo("/login");
+        if (mounted) setRedirectTo(`/student-dashboard${search}`);
       });
     return () => { mounted = false; };
   }, [location.search, location.pathname]);

@@ -20,10 +20,75 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 /**
+ * Subscribes the current web browser client to push notifications and saves the token in Supabase.
+ * Call this function from an explicit user gesture (e.g. clicking "Enable Notifications").
+ */
+export async function subscribeWebPush(userId: string): Promise<boolean> {
+  const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (!VAPID_PUBLIC_KEY) {
+    console.warn("VAPID_PUBLIC_KEY is not configured.");
+    return false;
+  }
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.warn("Push messaging is not supported in this browser.");
+    return false;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return false;
+
+    const registration = await navigator.serviceWorker.ready;
+    const appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource;
+
+    let subscription: PushSubscription | null = null;
+    try {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appServerKey,
+      });
+    } catch (subErr) {
+      const existingSub = await registration.pushManager.getSubscription();
+      if (existingSub) {
+        console.warn('Push subscription key mismatch or invalid state, resubscribing...', subErr);
+        await existingSub.unsubscribe();
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: appServerKey,
+        });
+      } else {
+        throw subErr;
+      }
+    }
+
+    if (!subscription) return false;
+
+    const { error } = await supabase.from('push_subscriptions').upsert(
+      {
+        user_id: userId,
+        subscription_object: subscription.toJSON() as any,
+      },
+      { onConflict: 'user_id' }
+    );
+
+    if (error) {
+      console.warn('Failed to save push subscription to Supabase:', error.message);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('subscribeWebPush failed:', err);
+    return false;
+  }
+}
+
+/**
  * Hook that:
- * 1. Requests notification permission (web or native mobile).
- * 2. Registers push subscription (VAPID web push or Capacitor FCM token).
- * 3. Saves it to push_subscriptions table in Supabase.
+ * 1. Automatically handles Native Capacitor notifications on mobile APK.
+ * 2. If Notification permission is ALREADY granted in web browser/PWA, syncs the subscription silently.
+ * (Will NOT call requestPermission without user action on web to comply with Android Chrome policies).
  */
 export function usePushSubscription(userId: string | null | undefined) {
   const subscribed = useRef(false);
@@ -41,7 +106,6 @@ export function usePushSubscription(userId: string | null | undefined) {
           }
           if (permStatus.receive !== 'granted') return;
 
-          // Ensure notification channel exists on Android
           try {
             await PushNotifications.createChannel({
               id: 'default',
@@ -98,67 +162,40 @@ export function usePushSubscription(userId: string | null | undefined) {
 
     // --- CASE B: Web Browser (PWA/Website) ---
     const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-    if (!VAPID_PUBLIC_KEY) {
-      // VAPID key not configured yet; skip silently.
-      return;
-    }
+    if (!VAPID_PUBLIC_KEY) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
 
-    // Only attempt if the browser supports push
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-
-    const subscribe = async () => {
-      try {
-        // 1. Request permission
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') return;
-
-        // 2. Get the active service worker registration
-        const registration = await navigator.serviceWorker.ready;
-        const appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource;
-
-        // 3. Subscribe to push (safely handle existing subscriptions with old/different keys)
-        let subscription: PushSubscription | null = null;
+    // Only auto-subscribe if the user has ALREADY granted permission previously
+    if (Notification.permission === 'granted') {
+      const syncGrantedSubscription = async () => {
         try {
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: appServerKey,
-          });
-        } catch (subErr) {
-          // If a subscription with a different applicationServerKey already exists, unsubscribe first
-          const existingSub = await registration.pushManager.getSubscription();
-          if (existingSub) {
-            console.warn('Push subscription key mismatch or invalid state, unsubscribing and re-subscribing...', subErr);
-            await existingSub.unsubscribe();
+          const registration = await navigator.serviceWorker.ready;
+          const appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource;
+
+          let subscription = await registration.pushManager.getSubscription();
+          if (!subscription) {
             subscription = await registration.pushManager.subscribe({
               userVisibleOnly: true,
               applicationServerKey: appServerKey,
             });
-          } else {
-            throw subErr;
           }
+
+          if (subscription) {
+            await supabase.from('push_subscriptions').upsert(
+              {
+                user_id: userId,
+                subscription_object: subscription.toJSON() as any,
+              },
+              { onConflict: 'user_id' }
+            );
+            subscribed.current = true;
+          }
+        } catch (err) {
+          console.warn('Push subscription background sync failed:', err);
         }
+      };
 
-        if (!subscription) return;
-
-        // 4. Upsert subscription to Supabase
-        const { error } = await supabase.from('push_subscriptions').upsert(
-          {
-            user_id: userId,
-            subscription_object: subscription.toJSON() as any,
-          },
-          { onConflict: 'user_id' }
-        );
-
-        if (error) {
-          console.warn('Failed to save push subscription:', error.message);
-        } else {
-          subscribed.current = true;
-        }
-      } catch (err) {
-        console.warn('Push subscription failed:', err);
-      }
-    };
-
-    subscribe();
+      syncGrantedSubscription();
+    }
   }, [userId]);
 }

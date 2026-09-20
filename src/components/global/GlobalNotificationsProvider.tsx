@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
+import PWANotificationPrompt from "@/components/pwa/PWANotificationPrompt";
 
 interface GlobalNotification {
   id: string;
@@ -193,6 +194,7 @@ export const GlobalNotificationsProvider: React.FC<{ children: React.ReactNode }
         requestPermission,
       }}
     >
+      <PWANotificationPrompt userId={userId} />
       {children}
     </NotificationsContext.Provider>
   );

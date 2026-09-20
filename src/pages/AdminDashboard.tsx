@@ -10,7 +10,7 @@ import {
   Calendar, RefreshCw, Star, AlertTriangle, Barcode, HardDrive, Server,
   Gamepad2, AlertCircle, FileSpreadsheet, LifeBuoy, Library as LibraryIcon,
   ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon,
-  Newspaper, Users as UsersIcon, Crown, Sparkles, Zap, Mail
+  Newspaper, Users as UsersIcon, Crown, Sparkles, Zap, Mail, Palette
 } from "lucide-react";
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
@@ -58,10 +58,11 @@ import MetadataFetchDashboard from "@/components/admin/MetadataFetchDashboard";
 import ExpressCirculation from "@/components/admin/ExpressCirculation";
 import AcademicYearRollover from "@/components/admin/AcademicYearRollover";
 import BugBountyManager from "@/components/admin/BugBountyManager";
+import UIReformChallengeManager from "@/components/admin/UIReformChallengeManager";
 import EmailCampaignManager from "@/components/admin/EmailCampaignManager";
 import EventWinnersManager from "@/components/admin/EventWinnersManager";
 
-type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform";
 
 const navSections = [
   {
@@ -124,6 +125,7 @@ const navSections = [
       { id: "email" as Tab, label: "Email Centre", icon: Mail },
       { id: "community" as Tab, label: "Community", icon: MessageSquare },
       { id: "bug-bounty" as Tab, label: "Bug Bounty", icon: ShieldAlert },
+      { id: "ui-reform" as Tab, label: "UI Reform Challenge", icon: Palette },
     ],
   },
   {
@@ -210,11 +212,38 @@ const AdminDashboard = () => {
 
   const checkAuth = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-      if (!userId) { navigate('/login', { replace: true }); return; }
-      const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (error || !profile || profile.role !== 'admin') {
+      let session: any = null;
+      try {
+        const { data } = await supabase.auth.getSession();
+        session = data?.session;
+      } catch (e) {
+        console.warn("AdminDashboard getSession error:", e);
+      }
+
+      let cachedProfile: any = null;
+      try {
+        const stored = localStorage.getItem("dlms_user_profile");
+        if (stored) cachedProfile = JSON.parse(stored);
+      } catch {}
+
+      if (!session && !cachedProfile) { navigate('/login', { replace: true }); return; }
+
+      const userId = session?.user?.id || cachedProfile?.id;
+      let profile = cachedProfile;
+
+      if (userId) {
+        try {
+          const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+          if (!error && data) {
+            profile = data;
+            try { localStorage.setItem("dlms_user_profile", JSON.stringify(data)); } catch {}
+          }
+        } catch (e) {
+          console.warn("Could not refresh admin profile, using cache:", e);
+        }
+      }
+
+      if (!profile || profile.role !== 'admin') {
         toast({ title: "Access Denied", description: "You don't have permission.", variant: "destructive" });
         if (profile?.role === 'teacher') navigate('/teacher-dashboard', { replace: true });
         else if (profile?.role === 'student') navigate('/student-dashboard', { replace: true });
@@ -222,8 +251,11 @@ const AdminDashboard = () => {
         return;
       }
       setUser(profile);
-    } catch (e) { navigate('/login', { replace: true }); }
-    finally { setLoading(false); }
+    } catch (e) {
+      console.warn("Admin checkAuth error:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchStats = async () => {
@@ -526,6 +558,7 @@ const AdminDashboard = () => {
           {activeTab === "support" && <SupportTicketsManager />}
           {activeTab === "feedback" && <FeedbackManager />}
           {activeTab === "bug-bounty" && <BugBountyManager />}
+          {activeTab === "ui-reform" && <UIReformChallengeManager />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>

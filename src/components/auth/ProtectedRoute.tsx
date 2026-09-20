@@ -22,7 +22,14 @@ const LoadingScreen = () => (
 );
 
 const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: ProtectedRouteProps) => {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(() => {
+    try {
+      const cached = typeof window !== "undefined" ? localStorage.getItem("dlms_user_profile") : null;
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
 
@@ -30,30 +37,61 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
     let mounted = true;
 
     const checkAccess = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      let session: any = null;
+      try {
+        const { data } = await supabase.auth.getSession();
+        session = data?.session || null;
+      } catch (err) {
+        console.warn("Session check error:", err);
+      }
 
       if (!mounted) return;
-      if (!session) {
+
+      // Check if localStorage has stored token even if getSession was slow/offline
+      const hasStoredToken = typeof window !== "undefined" && Object.keys(window.localStorage || {}).some(
+        (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+      );
+
+      if (!session && !hasStoredToken) {
         setRedirectTo("/login");
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
+      const userId = session?.user?.id || profile?.id;
+      let userProfile = profile;
+
+      if (userId) {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .single();
+
+          if (!error && data) {
+            userProfile = data;
+            try {
+              localStorage.setItem("dlms_user_profile", JSON.stringify(data));
+            } catch {}
+          }
+        } catch (netErr) {
+          // Network offline / fetch timeout — keep using cached profile
+          console.warn("Network error during profile fetch, using cached profile:", netErr);
+        }
+      }
 
       if (!mounted) return;
-      if (error || !data) {
+
+      if (!userProfile) {
+        // No cached profile and could not fetch
         setRedirectTo("/login");
         setLoading(false);
         return;
       }
 
-      const roleAllowed = allowedRoles.includes(data.role as AllowedRole);
-      const approvalAllowed = !requireApproval || data.is_approved || data.role === "admin";
+      const roleAllowed = allowedRoles.includes(userProfile.role as AllowedRole);
+      const approvalAllowed = !requireApproval || userProfile.is_approved || userProfile.role === "admin";
 
       if (!approvalAllowed) {
         setRedirectTo("/login");
@@ -62,15 +100,15 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
       }
 
       if (!roleAllowed) {
-        if (data.role === "admin") setRedirectTo("/admin-dashboard");
-        else if (data.role === "teacher") setRedirectTo("/teacher-dashboard");
-        else if (data.role === "student") setRedirectTo("/student-dashboard");
+        if (userProfile.role === "admin") setRedirectTo("/admin-dashboard");
+        else if (userProfile.role === "teacher") setRedirectTo("/teacher-dashboard");
+        else if (userProfile.role === "student") setRedirectTo("/student-dashboard");
         else setRedirectTo("/login");
         setLoading(false);
         return;
       }
 
-      setProfile(data);
+      setProfile(userProfile);
       setLoading(false);
     };
 
