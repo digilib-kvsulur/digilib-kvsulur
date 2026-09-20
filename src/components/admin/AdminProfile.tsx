@@ -102,18 +102,22 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
   };
 
   const uploadAvatar = async (file: File) => {
-    if (!file || !user?.id) return;
+    if (!file) return;
     setUploading(true);
     try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const uid = authUser?.id || user?.id;
+      if (!uid) throw new Error("Please log in to update your avatar.");
+
       const compressedFile = await compressImage(file, 800, 800, 0.75);
       const ext = file.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
         upsert: true,
         contentType: "image/jpeg",
       });
       if (upErr) throw upErr;
-      const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", user.id);
+      const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", uid);
       if (dbErr) throw dbErr;
       await loadAvatar(path);
       toast({ title: "Profile picture updated" });
