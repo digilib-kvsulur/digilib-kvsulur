@@ -109,7 +109,6 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       const path = `${uid}/${Date.now()}.${cleanExt}`;
       
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
-        upsert: true,
         contentType: compressedFile.type || "image/jpeg"
       });
       if (upErr) throw upErr;
