@@ -297,7 +297,7 @@ export default function StudyTracker({ userId, studentClass }: { userId: string;
           <Timer className="h-6 w-6 text-primary" /> Study Tracker {queueCount > 0 && (<span className="ml-2 text-sm text-muted-foreground">· Queued: {queueCount}</span>)}
         </h2>
         <p className="text-sm text-muted-foreground">
-          Pomodoro timer, focus sessions, and XP for time spent studying ({ptsPerMin} XP / minute).
+          Pomodoro timer, focus sessions, and XP for time spent studying ({ptsPerMin} XP / minute, up to 100 XP per day).
         </p>
       </div>
 
