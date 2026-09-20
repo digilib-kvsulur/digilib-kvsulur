@@ -5,8 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star, Eye, EyeOff, Trash2, Flag, ShieldAlert, CheckCircle2, UserX, Eraser, AlertTriangle, User, ChevronDown, Ban, ShieldCheck } from "lucide-react";
+import { Star, Eye, EyeOff, Trash2, Flag, ShieldAlert, CheckCircle2, UserX, Eraser, AlertTriangle, User, ChevronDown, Ban, ShieldCheck, Search } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { applyModerationWarning, resetUserModeration, isUserExemptFromModeration } from "@/lib/moderationService";
 
 export default function ReviewsModeration() {
@@ -16,6 +17,32 @@ export default function ReviewsModeration() {
   const [reports, setReports] = useState<any[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
   const [moderatingId, setModeratingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchUser, setSearchUser] = useState<any | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearchUser = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, username, student_class, admission_number, avatar_url, role, community_blocked_until, community_warn_count, is_approved")
+        .or(`username.ilike.%${searchQuery}%,first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%,admission_number.eq.${searchQuery}`)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) {
+        toast({ title: "Not found", description: "No user found matching those details.", variant: "destructive" });
+      } else {
+        setSearchUser(data);
+      }
+    } catch (e: any) {
+      toast({ title: "Search failed", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const loadReviews = async () => {
     let q = supabase.from("book_reviews")
