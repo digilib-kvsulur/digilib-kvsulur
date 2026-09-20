@@ -32,7 +32,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "user_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const password = (new_password && String(new_password).trim().length >= 6)
+    if (new_password && String(new_password).trim().length < 8) {
+      return new Response(JSON.stringify({ error: "Custom password must be at least 8 characters" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const password = (new_password && String(new_password).trim().length >= 8)
       ? String(new_password).trim()
       : `Reset@${Math.random().toString(36).slice(2, 10)}`;
 

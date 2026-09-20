@@ -36,6 +36,7 @@ export default function SupportTicketsManager() {
   const [newPw, setNewPw] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
   const [sendingPwEmail, setSendingPwEmail] = useState(false);
+  const [customPassword, setCustomPassword] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -68,6 +69,7 @@ export default function SupportTicketsManager() {
     setActive(t);
     setResponse(t.admin_response || "");
     setNewPw(null);
+    setCustomPassword("");
     setShowPw(false);
     const { data } = await supabase.from("support_ticket_messages").select("*").eq("ticket_id", t.id).order("created_at", { ascending: true });
     setMessages(data || []);
@@ -129,7 +131,7 @@ export default function SupportTicketsManager() {
 
   // ─── Password Reset helpers ──────────────────────────────────────────────
   /** Look up the user account by admission number (or email) and reset password. */
-  const handleResetPassword = async () => {
+  const handleResetPassword = async (requestedPassword?: string) => {
     if (!active?.admission_number && !active?.email) {
       toast({ title: "No identifier", description: "Ticket has no admission number or email to look up.", variant: "destructive" });
       return;
@@ -160,12 +162,18 @@ export default function SupportTicketsManager() {
       }
 
       // Call admin-reset-password edge function
+      const chosenPassword = requestedPassword?.trim();
+      if (chosenPassword && chosenPassword.length < 8) {
+        toast({ title: "Password too short", description: "Use at least 8 characters for a custom password.", variant: "destructive" });
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("admin-reset-password", {
-        body: { user_id: profileId },
+        body: { user_id: profileId, ...(chosenPassword ? { new_password: chosenPassword } : {}) },
       });
       if (error || data?.error) throw new Error(error?.message || data?.error || "Reset failed");
 
       setNewPw(data.password as string);
+      setCustomPassword("");
       toast({ title: "Password reset!", description: "New temporary password generated." });
 
       // Auto-resolve the ticket
@@ -376,15 +384,30 @@ export default function SupportTicketsManager() {
                       )}
                     </div>
                   ) : (
-                    <Button
-                      size="sm"
-                      className="h-9 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-2 w-full sm:w-auto"
-                      disabled={pwResetting}
-                      onClick={handleResetPassword}
-                    >
-                      {pwResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                      1-Click Reset Password &amp; Resolve Ticket
-                    </Button>
+                    <div className="space-y-2.5">
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-medium text-amber-800 dark:text-amber-300">Set a custom temporary password (optional)</p>
+                        <Input
+                          type="password"
+                          value={customPassword}
+                          onChange={(event) => setCustomPassword(event.target.value)}
+                          minLength={8}
+                          placeholder="At least 8 characters"
+                          className="h-9 bg-card text-sm"
+                        />
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          className="h-9 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-2 flex-1 sm:flex-none"
+                          disabled={pwResetting}
+                          onClick={() => handleResetPassword(customPassword)}
+                        >
+                          {pwResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                          {customPassword.trim() ? "Set Custom Password & Resolve" : "Generate Password & Resolve"}
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}

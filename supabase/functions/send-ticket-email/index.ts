@@ -17,6 +17,8 @@ type Payload = {
   message?: string;
 };
 
+const isBlockedMailbox = (email = "") => /@(kvschool\.in|kvsulur\.com|kvschennairo\.in|kvsulur\.in|internal|dummy|example\.com)$/i.test(email.trim());
+
 async function sendResendEmail(opts: { to: string; subject: string; html: string }) {
   const apiKey = Deno.env.get("RESEND_API_KEY");
   const from = Deno.env.get("LIBRARY_FROM_EMAIL") || "PM SHRI KV Sulur Library <dlms@kvsulur.in>";
@@ -63,8 +65,8 @@ Deno.serve(async (req) => {
     }
 
     const to = (payload.to_email || ticket?.email || "").trim();
-    if (!to) {
-      return new Response(JSON.stringify({ ok: true, skipped: "no email" }), {
+    if (!to || isBlockedMailbox(to)) {
+      return new Response(JSON.stringify({ ok: true, skipped: !to ? "no email" : "placeholder mailbox" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

@@ -5,7 +5,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const placeholderEmail = (email = "") => /@(kvschool\.in|internal|dummy|example\.com)$/i.test(email);
+const placeholderEmail = (email = "") => /@(kvschool\.in|kvsulur\.com|kvschennairo\.in|kvsulur\.in|internal|dummy|example\.com)$/i.test(email.trim());
+const isEmail = (email = "") => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+const isGmail = (email = "") => /@gmail\.com$/i.test(email.trim());
+const preferredRecipient = (...candidates: Array<string | null | undefined>) => {
+  const emails = candidates.map((email) => (email || "").trim().toLowerCase()).filter((email) => isEmail(email) && !placeholderEmail(email));
+  return emails.find(isGmail) || emails[0] || "";
+};
+const resetRedirectUrl = () => Deno.env.get("PASSWORD_RESET_REDIRECT_URL") || "https://dlms.kvsulur.in/reset-password";
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character] || character));
 
 async function sendMail(to: string, link: string, name: string) {
@@ -34,7 +41,7 @@ Deno.serve(async (request) => {
   const accepted = () => new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
-    const { identifier, redirectTo } = await request.json();
+    const { identifier } = await request.json();
     const lookup = String(identifier || "").trim();
     if (!lookup || lookup.length > 255) return accepted();
 
@@ -49,19 +56,21 @@ Deno.serve(async (request) => {
     const profile = byEmail.data || byUsername.data || byAdmission.data;
     if (!profile) return accepted();
 
-    const recipient = (profile.notification_email || profile.email || "").trim().toLowerCase();
-    if (!recipient || placeholderEmail(recipient)) return accepted();
+    const { data: authUserData } = await admin.auth.admin.getUserById(profile.id);
+    const recipient = preferredRecipient(profile.notification_email, profile.email, authUserData.user?.email);
+    if (!recipient) return accepted();
 
     const { data: lastRequest } = await admin.from("password_reset_delivery_limits").select("last_requested_at").eq("user_id", profile.id).maybeSingle();
     if (lastRequest && Date.now() - new Date(lastRequest.last_requested_at).getTime() < 60_000) return accepted();
     await admin.from("password_reset_delivery_limits").upsert({ user_id: profile.id, last_requested_at: new Date().toISOString() });
 
-    const { data: authUserData } = await admin.auth.admin.getUserById(profile.id);
     if (!authUserData.user?.email) return accepted();
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: "recovery",
       email: authUserData.user.email,
-      options: { redirectTo: typeof redirectTo === "string" ? redirectTo : undefined },
+      // Use the configured canonical URL so recovery links cannot be broken by
+      // an unapproved preview, local, or malicious browser redirect.
+      options: { redirectTo: resetRedirectUrl() },
     });
     if (linkError || !linkData.properties?.action_link) throw linkError || new Error("Could not create recovery link");
 

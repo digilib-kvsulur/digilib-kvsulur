@@ -117,9 +117,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
       } else {
         const user = legacyData[0];
         const isDummy =
-          user.email?.includes("@kvschool.in") ||
-          user.email?.includes("@internal") ||
-          user.email?.includes("@dummy");
+          /@(kvschool\.in|kvsulur\.com|kvschennairo\.in|kvsulur\.in|internal|dummy|example\.com)$/i.test(user.email || "");
 
         // Try getting profile details
         const { data: prof } = await supabase
@@ -128,7 +126,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
           .eq("id", user.id)
           .maybeSingle();
 
-        const profileEmail = prof?.email && !prof.email.includes("@kvschool.in") ? prof.email : null;
+        const profileEmail = prof?.email && !/@(kvschool\.in|kvsulur\.com|kvschennairo\.in|kvsulur\.in|internal|dummy|example\.com)$/i.test(prof.email) ? prof.email : null;
         const targetEmail = profileEmail || (!isDummy ? user.email : null);
         let masked = undefined;
 
