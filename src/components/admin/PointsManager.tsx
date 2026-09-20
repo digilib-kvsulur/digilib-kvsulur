@@ -13,6 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { sendLevelUpEmail } from "@/lib/autoEmail";
+import BulkImportPoints from "@/components/admin/BulkImportPoints";
 import { cn } from "@/lib/utils";
 import {
   Award, Plus, CheckSquare, BookOpen, Settings2, CheckCircle, XCircle, Clock,
@@ -456,7 +457,7 @@ const PointsManager = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-foreground">Points Management</h2>
-        <p className="text-sm text-muted-foreground">Award points, approve reading entries, and configure point rules.</p>
+        <p className="text-sm text-muted-foreground">Award, import, adjust, and manage student points.</p>
       </div>
       <Tabs defaultValue="award">
         <TabsList className="mb-4 flex-wrap h-auto">
@@ -514,14 +515,17 @@ const PointsManager = () => {
           )}
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-primary" />
-                Award Points to Student
-              </CardTitle>
-              <CardDescription>
-                {users.length} approved student{users.length === 1 ? "" : "s"} loaded. Search by name, admission, or class.
-              </CardDescription>
+            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5 text-primary" />
+                  Award Points to Student
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  {users.length} approved student{users.length === 1 ? "" : "s"} loaded. Search by name, admission, or class.
+                </CardDescription>
+              </div>
+              <BulkImportPoints onImported={loadUsers} />
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
