@@ -195,8 +195,24 @@ export default function UIReformChallengeView({ userId }: UIReformChallengeViewP
             </h2>
             <p className="text-xs sm:text-sm text-purple-100/80 leading-relaxed">
               Have an idea to make the library app smoother, prettier, or faster? 
-              Propose your UI designs, earn up to <strong className="text-amber-300">+{campaign?.reward_points || 150} XP</strong>, and see your ideas built into the DLMS!
+              Propose your UI designs and see your ideas built into the DLMS!
             </p>
+
+            {/* Prize Structure */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {[
+                { emoji: "\u{1F947}", label: "1st Prize", pts: "10,000 XP", cls: "bg-amber-500/20 border-amber-400/40 text-amber-200" },
+                { emoji: "\u{1F948}", label: "2nd Prize", pts: "7,500 XP", cls: "bg-slate-400/20 border-slate-300/40 text-slate-200" },
+                { emoji: "\u{1F949}", label: "3rd Prize", pts: "5,000 XP", cls: "bg-orange-500/20 border-orange-400/40 text-orange-200" },
+                { emoji: "\u2705", label: "Good Submission", pts: "1,000 XP", cls: "bg-emerald-500/20 border-emerald-400/40 text-emerald-200" },
+              ].map(p => (
+                <div key={p.label} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-bold ${p.cls}`}>
+                  <span>{p.emoji}</span>
+                  <span>{p.label}:</span>
+                  <span className="font-black">{p.pts}</span>
+                </div>
+              ))}
+            </div>
 
             {isScheduled && (
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-200 text-xs font-semibold border border-amber-500/30 mt-2">

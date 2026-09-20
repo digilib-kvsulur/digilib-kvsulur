@@ -62,18 +62,18 @@ export default function UIReformChallengeManager() {
   const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
   const [adminFeedback, setAdminFeedback] = useState("");
   const [newStatus, setNewStatus] = useState<Submission["status"]>("reviewed");
-  const [awardPointsInput, setAwardPointsInput] = useState(150);
+  const [awardPointsInput, setAwardPointsInput] = useState(1000);
   const [bugBountyEndDate, setBugBountyEndDate] = useState<string | null>(null);
 
   // Form state for creating/scheduling campaign
   const [formTitle, setFormTitle] = useState("UI Reform & DLMS Redesign Challenge");
   const [formTheme, setFormTheme] = useState("Next-Gen Reading & Modern Student UX");
   const [formDescription, setFormDescription] = useState(
-    "Pitch your ideas, layouts, and interactive visual designs to improve KV Sulur DLMS. Earn reward XP and see your designs brought to life!"
+    "Pitch your ideas, layouts, and interactive visual designs to improve KV Sulur DLMS. Earn reward XP and see your designs brought to life!\n\n🥇 1st Prize: 10,000 XP  |  🥈 2nd Prize: 7,500 XP  |  🥉 3rd Prize: 5,000 XP\n✅ Good Submission Reward: 1,000 XP"
   );
   const [formStartsAt, setFormStartsAt] = useState("");
   const [formEndsAt, setFormEndsAt] = useState("");
-  const [formReward, setFormReward] = useState(150);
+  const [formReward, setFormReward] = useState(1000);
 
   const loadData = async () => {
     setLoading(true);
@@ -574,12 +574,31 @@ export default function UIReformChallengeManager() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Points Awarded (XP)</Label>
+                <Label className="text-xs font-bold">Points Awarded (XP) — Prize Presets</Label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { label: "🥇 1st Prize", pts: 10000, cls: "bg-amber-500 hover:bg-amber-600 text-white" },
+                    { label: "🥈 2nd Prize", pts: 7500,  cls: "bg-slate-400 hover:bg-slate-500 text-white" },
+                    { label: "🥉 3rd Prize", pts: 5000,  cls: "bg-orange-600 hover:bg-orange-700 text-white" },
+                    { label: "✅ Good Submission", pts: 1000, cls: "bg-emerald-600 hover:bg-emerald-700 text-white" },
+                  ].map(p => (
+                    <Button
+                      key={p.pts}
+                      size="sm"
+                      type="button"
+                      className={`h-8 text-xs font-bold gap-1 ${p.cls} ${awardPointsInput === p.pts ? "ring-2 ring-offset-1 ring-foreground/30" : ""}`}
+                      onClick={() => setAwardPointsInput(p.pts)}
+                    >
+                      {p.label} — {p.pts.toLocaleString()}
+                    </Button>
+                  ))}
+                </div>
                 <Input
                   type="number"
                   value={awardPointsInput}
                   onChange={(e) => setAwardPointsInput(parseInt(e.target.value, 10) || 0)}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs mt-1"
+                  placeholder="Or enter custom XP…"
                 />
               </div>
 

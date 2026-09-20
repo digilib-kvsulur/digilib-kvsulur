@@ -8,9 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LifeBuoy, Loader2, Search, Send, Trash2, Mail, GraduationCap, Hash } from "lucide-react";
+import {
+  LifeBuoy, Loader2, Search, Send, Trash2, Mail, GraduationCap, Hash,
+  KeyRound, RefreshCw, Copy, Eye, EyeOff, ShieldCheck
+} from "lucide-react";
 import { statusMeta, TICKET_CATEGORIES } from "@/components/support/SupportCenter";
 import { sendTicketEmail } from "@/lib/ticketEmail";
+
+/** LOGIN-ISSUE categories that get the password-reset quick-action banner */
+const LOGIN_CATEGORIES = ["login_issue", "account", "password"];
 
 export default function SupportTicketsManager() {
   const { toast } = useToast();
@@ -24,6 +30,12 @@ export default function SupportTicketsManager() {
   const [reply, setReply] = useState("");
   const [response, setResponse] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Password-reset state
+  const [pwResetting, setPwResetting] = useState(false);
+  const [newPw, setNewPw] = useState<string | null>(null);
+  const [showPw, setShowPw] = useState(false);
+  const [sendingPwEmail, setSendingPwEmail] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -55,6 +67,8 @@ export default function SupportTicketsManager() {
   const openTicket = async (t: any) => {
     setActive(t);
     setResponse(t.admin_response || "");
+    setNewPw(null);
+    setShowPw(false);
     const { data } = await supabase.from("support_ticket_messages").select("*").eq("ticket_id", t.id).order("created_at", { ascending: true });
     setMessages(data || []);
   };
@@ -113,6 +127,101 @@ export default function SupportTicketsManager() {
     load();
   };
 
+  // ─── Password Reset helpers ──────────────────────────────────────────────
+  /** Look up the user account by admission number (or email) and reset password. */
+  const handleResetPassword = async () => {
+    if (!active?.admission_number && !active?.email) {
+      toast({ title: "No identifier", description: "Ticket has no admission number or email to look up.", variant: "destructive" });
+      return;
+    }
+    setPwResetting(true);
+    try {
+      // Resolve profile → user_id
+      let profileId: string | null = null;
+      if (active.admission_number) {
+        const { data: p } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("admission_number", active.admission_number)
+          .maybeSingle();
+        profileId = p?.id ?? null;
+      }
+      if (!profileId && active.email) {
+        const { data: p } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("email", active.email)
+          .maybeSingle();
+        profileId = p?.id ?? null;
+      }
+      if (!profileId) {
+        toast({ title: "User not found", description: "No account matched this ticket's admission number or email.", variant: "destructive" });
+        return;
+      }
+
+      // Call admin-reset-password edge function
+      const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+        body: { user_id: profileId },
+      });
+      if (error || data?.error) throw new Error(error?.message || data?.error || "Reset failed");
+
+      setNewPw(data.password as string);
+      toast({ title: "Password reset!", description: "New temporary password generated." });
+
+      // Auto-resolve the ticket
+      await updateTicket({ status: "resolved", admin_response: "Password was reset by admin. Please login with the new temporary password provided to you." });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      toast({ title: "Reset failed", description: msg, variant: "destructive" });
+    } finally {
+      setPwResetting(false);
+    }
+  };
+
+  /** Send the newly generated password to the student's email via ticket email edge function. */
+  const handleEmailNewPassword = async () => {
+    if (!newPw || !active?.email) {
+      toast({ title: "No email or password", description: "Generate a password first and ensure the ticket has an email.", variant: "destructive" });
+      return;
+    }
+    setSendingPwEmail(true);
+    try {
+      await supabase.functions.invoke("send-ticket-email", {
+        body: {
+          type: "reply",
+          ticket_id: active.id,
+          ticket_number: active.ticket_number,
+          to_email: active.email,
+          full_name: active.full_name,
+          subject: active.subject,
+          status: "resolved",
+          message: `Your library account password has been reset by the admin.\n\nYour new temporary password is: ${newPw}\n\nPlease login at https://dlms.kvsulur.in and change this password immediately from your profile settings.`,
+        },
+      });
+      toast({ title: "Email sent!", description: `New password mailed to ${active.email}.` });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      toast({ title: "Email failed", description: msg, variant: "destructive" });
+    } finally {
+      setSendingPwEmail(false);
+    }
+  };
+
+  const copyPw = () => {
+    if (!newPw) return;
+    navigator.clipboard.writeText(newPw);
+    toast({ title: "Copied!", description: "Password copied to clipboard." });
+  };
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const isLoginIssue = active && (
+    LOGIN_CATEGORIES.some(c => (active.category || "").toLowerCase().includes(c)) ||
+    (active.subject || "").toLowerCase().includes("password") ||
+    (active.subject || "").toLowerCase().includes("login") ||
+    (active.description || "").toLowerCase().includes("password") ||
+    (active.description || "").toLowerCase().includes("login")
+  );
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -133,7 +242,7 @@ export default function SupportTicketsManager() {
 
       <Card className="border-border/50">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2"><LifeBuoy className="h-5 w-5 text-primary" /> Support & Tickets</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2"><LifeBuoy className="h-5 w-5 text-primary" /> Support &amp; Tickets</CardTitle>
           <CardDescription className="text-xs">Handle issues reported by students, teachers and website visitors</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -169,6 +278,9 @@ export default function SupportTicketsManager() {
             <div className="grid gap-3 md:grid-cols-2">
               {filtered.map(t => {
                 const meta = statusMeta[t.status] || statusMeta.open;
+                const looksLikeLogin = LOGIN_CATEGORIES.some(c => (t.category || "").toLowerCase().includes(c)) ||
+                  (t.subject || "").toLowerCase().includes("password") ||
+                  (t.subject || "").toLowerCase().includes("login");
                 return (
                   <button key={t.id} onClick={() => openTicket(t)}
                     className="text-left p-4 rounded-xl border border-border/50 bg-card hover:shadow-md hover:border-primary/30 transition-all">
@@ -179,7 +291,10 @@ export default function SupportTicketsManager() {
                         )}
                         <p className="font-semibold text-sm truncate">{t.subject}</p>
                       </div>
-                      <Badge variant="outline" className={`text-[10px] shrink-0 ${meta.className}`}>{meta.label}</Badge>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {looksLikeLogin && <KeyRound className="h-3.5 w-3.5 text-amber-500" title="Login issue" />}
+                        <Badge variant="outline" className={`text-[10px] ${meta.className}`}>{meta.label}</Badge>
+                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5">{t.description}</p>
                     <div className="flex flex-wrap gap-2 mt-2.5 text-[10px] text-muted-foreground">
@@ -213,6 +328,67 @@ export default function SupportTicketsManager() {
 
               <p className="text-sm whitespace-pre-wrap">{active.description}</p>
 
+              {/* ─── LOGIN / PASSWORD QUICK ACTIONS ─── */}
+              {isLoginIssue && (
+                <div className="rounded-2xl border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700/40 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <p className="text-xs font-bold text-amber-700 dark:text-amber-300">Login / Password Issue — Quick Actions</p>
+                  </div>
+
+                  {newPw ? (
+                    <div className="space-y-2.5">
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">New temporary password generated:</p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 font-mono bg-card border border-border rounded-lg px-3 py-2 text-sm font-bold tracking-wider">
+                          {showPw ? newPw : "•".repeat(newPw.length)}
+                        </code>
+                        <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => setShowPw(v => !v)}>
+                          {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button size="icon" variant="outline" className="h-9 w-9 shrink-0" onClick={copyPw}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          className="h-9 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 flex-1 sm:flex-none"
+                          disabled={sendingPwEmail || !active.email}
+                          onClick={handleEmailNewPassword}
+                        >
+                          {sendingPwEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                          Email Password to Student
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9 text-xs gap-1.5"
+                          disabled={pwResetting}
+                          onClick={handleResetPassword}
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          Re-generate
+                        </Button>
+                      </div>
+                      {!active.email && (
+                        <p className="text-[11px] text-muted-foreground">⚠ No email on this ticket — share the password manually.</p>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="h-9 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-2 w-full sm:w-auto"
+                      disabled={pwResetting}
+                      onClick={handleResetPassword}
+                    >
+                      {pwResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                      1-Click Reset Password &amp; Resolve Ticket
+                    </Button>
+                  )}
+                </div>
+              )}
+
               <div className="grid gap-2 sm:grid-cols-2">
                 <Select value={active.status} onValueChange={(v) => updateTicket({ status: v, resolved_at: v === "resolved" ? new Date().toISOString() : null })}>
                   <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
@@ -241,7 +417,9 @@ export default function SupportTicketsManager() {
                   </div>
                 ))}
                 <div className="flex gap-2">
-                  <Input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Reply in thread…" className="h-10" />
+                  <Input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Reply in thread…" className="h-10"
+                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendReply()}
+                  />
                   <Button onClick={sendReply} size="icon" className="h-10 w-10 shrink-0"><Send className="h-4 w-4" /></Button>
                 </div>
               </div>

@@ -65,8 +65,9 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
     items: [
       { id: "overview", label: "Overview", icon: Home },
       { id: "portfolio", label: "My Portfolio", icon: FileText },
-      { id: "books", label: "Books", icon: BookOpen },
+      { id: "books", label: "My Books", icon: BookCheck },
       { id: "issued", label: "Book Issued", icon: BookCheck },
+      { id: "catalog", label: "Books Catalog", icon: BookOpen },
       { id: "locator", label: "Library Map", icon: Compass },
     ],
   },
