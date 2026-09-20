@@ -17,7 +17,7 @@ const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => (
 
 async function sendMail(to: string, link: string, name: string) {
   const apiKey = Deno.env.get("RESEND_API_KEY");
-  const from = Deno.env.get("LIBRARY_FROM_EMAIL");
+  const from = Deno.env.get("LIBRARY_FROM_EMAIL") || "Team DLMS <dlms@kvsulur.in>";
   if (!apiKey || !from) throw new Error("Password-reset email is not configured");
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -27,7 +27,7 @@ async function sendMail(to: string, link: string, name: string) {
       from,
       to: [to],
       subject: "Reset your KV Sulur Library password",
-      html: `<p>Dear ${escapeHtml(name)},</p><p>We received a request to reset your KV Sulur Digital Library password.</p><p><a href="${link}">Reset my password</a></p><p>This link expires automatically. If you did not request it, you can safely ignore this email.</p><p>— PM SHRI KV AFS Sulur Library</p>`,
+      html: `<div style="font-family:Arial,sans-serif;color:#1e293b;max-width:560px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:16px"><div style="text-align:center;margin-bottom:20px"><img src="https://dlms.kvsulur.in/apple-touch-icon.png" alt="Team DLMS" width="72" height="72" style="display:inline-block;border-radius:14px" /><p style="margin:8px 0 0;font-weight:700;color:#1e3a8a">Team DLMS</p></div><p>Dear ${escapeHtml(name)},</p><p>We received a request to reset your KV Sulur Digital Library password.</p><p style="text-align:center;margin:24px 0"><a href="${link}" style="display:inline-block;background:#1d4ed8;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:700">Reset my password</a></p><p>This link expires automatically. If you did not request it, you can safely ignore this email.</p><p>— Team DLMS</p></div>`,
     }),
   });
   const body = await response.json();
