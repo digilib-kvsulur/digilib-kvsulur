@@ -40,6 +40,7 @@ const PointsManager = () => {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [openStudentPicker, setOpenStudentPicker] = useState(false);
   const [classFilter, setClassFilter] = useState("all");
+  const [singlePointsMode, setSinglePointsMode] = useState<"award" | "set">("award");
   const [pointsToAward, setPointsToAward] = useState("");
   const [reason, setReason] = useState("");
   const [customReason, setCustomReason] = useState("");
@@ -125,9 +126,9 @@ const PointsManager = () => {
       toast({ title: "Error", description: "Please select a student.", variant: "destructive" });
       return;
     }
-    const points = parseInt(pointsToAward);
-    if (!points || points <= 0) {
-      toast({ title: "Error", description: "Please enter a valid number of points.", variant: "destructive" });
+    const points = Number(pointsToAward);
+    if (!pointsToAward.trim() || !Number.isInteger(points) || points < 0 || (singlePointsMode === "award" && points === 0)) {
+      toast({ title: "Error", description: singlePointsMode === "set" ? "Please enter a whole-number total of zero or more." : "Please enter a valid number of points.", variant: "destructive" });
       return;
     }
     const actualReason = reason === "other" ? customReason.trim() : reason;
@@ -145,7 +146,7 @@ const PointsManager = () => {
         .single();
       if (fetchError) throw fetchError;
 
-      const newPoints = (currentUser.points || 0) + points;
+      const newPoints = singlePointsMode === "set" ? points : (currentUser.points || 0) + points;
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ points: newPoints })
@@ -156,17 +157,20 @@ const PointsManager = () => {
       if (adminUser) {
         const formattedReason = actualReason.replace(/_/g, " ").toUpperCase();
         await supabase.from("notifications").insert({
-          title: "Points Awarded!",
-          message: `You have been awarded ${points} points. Reason: ${formattedReason}`,
+          title: singlePointsMode === "set" ? "Points updated" : "Points Awarded!",
+          message: singlePointsMode === "set"
+            ? `Your points total was set to ${newPoints} points. Reason: ${formattedReason}`
+            : `You have been awarded ${points} points. Reason: ${formattedReason}`,
           type: "points",
           target_user_id: selectedUserId,
           sent_by: adminUser.id,
         });
       }
 
-      toast({ title: "Success", description: `Successfully awarded ${points} points!` });
-      sendLevelUpEmail(selectedUserId, `Awarded +${points} Points (${actualReason})`, newPoints);
+      toast({ title: "Success", description: singlePointsMode === "set" ? `Points total set to ${newPoints}.` : `Successfully awarded ${points} points!` });
+      if (singlePointsMode === "award") sendLevelUpEmail(selectedUserId, `Awarded +${points} Points (${actualReason})`, newPoints);
       setSelectedUserId("");
+      setSinglePointsMode("award");
       setPointsToAward("");
       setReason("");
       setCustomReason("");
@@ -461,7 +465,7 @@ const PointsManager = () => {
       </div>
       <Tabs defaultValue="award">
         <TabsList className="mb-4 flex-wrap h-auto">
-          <TabsTrigger value="award" className="gap-2"><Award className="h-4 w-4" /> Award Points</TabsTrigger>
+          <TabsTrigger value="award" className="gap-2"><Award className="h-4 w-4" /> Manage Points</TabsTrigger>
           <TabsTrigger value="readings" className="gap-2">
             <BookOpen className="h-4 w-4" /> Reading Approvals
             {queueReadings.length > 0 && (
@@ -519,7 +523,7 @@ const PointsManager = () => {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Award className="h-5 w-5 text-primary" />
-                  Award Points to Student
+                  Manage Individual Points
                 </CardTitle>
                 <CardDescription className="mt-1">
                   {users.length} approved student{users.length === 1 ? "" : "s"} loaded. Search by name, admission, or class.
@@ -528,7 +532,7 @@ const PointsManager = () => {
               <BulkImportPoints onImported={loadUsers} />
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Select Student</Label>
                   <div className="flex gap-2">
@@ -582,8 +586,19 @@ const PointsManager = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="points">Points to Award</Label>
-                  <Input id="points" type="number" value={pointsToAward} onChange={(e) => setPointsToAward(e.target.value)} placeholder="Enter points" min={1} />
+                  <Label>Action</Label>
+                  <Select value={singlePointsMode} onValueChange={(value) => setSinglePointsMode(value as "award" | "set")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="award">Award points</SelectItem>
+                      <SelectItem value="set">Set total points</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="points">{singlePointsMode === "set" ? "New total points" : "Points to award"}</Label>
+                  <Input id="points" type="number" value={pointsToAward} onChange={(e) => setPointsToAward(e.target.value)} placeholder={singlePointsMode === "set" ? "e.g. 250" : "Enter points"} min={singlePointsMode === "set" ? 0 : 1} />
                 </div>
 
                 <div className="space-y-2">
@@ -609,7 +624,7 @@ const PointsManager = () => {
               <div className="mt-4">
                 <Button onClick={handleAwardPoints} disabled={awarding} className="w-full md:w-auto">
                   <Plus className="h-4 w-4 mr-2" />
-                  {awarding ? "Awarding..." : "Award Points"}
+                  {awarding ? "Saving..." : singlePointsMode === "set" ? "Set Points Total" : "Award Points"}
                 </Button>
               </div>
             </CardContent>
