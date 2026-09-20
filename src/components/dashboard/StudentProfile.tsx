@@ -94,7 +94,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
     setUploading(true);
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      const uid = authUser?.id || user?.id;
+      const uid = authUser?.id;
       if (!uid) throw new Error("Please log in to update your avatar.");
 
       const options = {
