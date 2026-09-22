@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import {
   Palette, Sparkles, Calendar, Award, CheckCircle2, XCircle, Clock,
-  ExternalLink, Plus, Trophy, ChevronRight, Layers, AlertCircle, RefreshCw, Star
+  ExternalLink, Plus, Trophy, ChevronRight, Layers, AlertCircle, RefreshCw, Star,
+  Eye, EyeOff
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -64,6 +65,8 @@ export default function UIReformChallengeManager() {
   const [newStatus, setNewStatus] = useState<Submission["status"]>("reviewed");
   const [awardPointsInput, setAwardPointsInput] = useState(1000);
   const [bugBountyEndDate, setBugBountyEndDate] = useState<string | null>(null);
+  const [studentVisible, setStudentVisible] = useState(true);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
 
   // Form state for creating/scheduling campaign
   const [formTitle, setFormTitle] = useState("UI Reform & DLMS Redesign Challenge");
@@ -78,6 +81,16 @@ export default function UIReformChallengeManager() {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Check student visibility setting
+      const { data: visData } = await supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "ui_reform_visible_to_students")
+        .maybeSingle();
+      if (visData) {
+        setStudentVisible(visData.value !== "false" && visData.value !== false);
+      }
+
       // 1. Fetch latest or active UI Reform Campaign
       const { data: cData, error: cErr } = await supabase
         .from("ui_reform_campaigns" as any)
