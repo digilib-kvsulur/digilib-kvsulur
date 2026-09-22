@@ -188,14 +188,26 @@ export default function BugBountyManager() {
         setUserRole(profile?.role || null);
       }
 
-      // 1. Load active campaign (or latest campaign)
-      const { data: campaignData } = await supabase
+      // 1. Load active campaign — if none, fall back to the most recent (shows as archived)
+      const { data: activeCampaign } = await supabase
         .from("bug_bounty_campaigns")
         .select("*")
         .eq("is_active", true)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      let campaignData = activeCampaign;
+      if (!campaignData) {
+        // No active campaign — load the most recent one so it shows as archived
+        const { data: latestCampaign } = await supabase
+          .from("bug_bounty_campaigns")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        campaignData = latestCampaign ?? null;
+      }
 
       setCampaign(campaignData || null);
 
@@ -786,9 +798,13 @@ export default function BugBountyManager() {
                   </p>
                 </div>
               </div>
+            ) : campaign ? (
+              <Badge variant="outline" className="h-10 px-3 border-amber-500/30 text-amber-300 bg-amber-950/40 justify-center font-semibold">
+                Archived Campaign {campaign.ends_at ? `(${new Date(campaign.ends_at).toLocaleDateString()})` : ""}
+              </Badge>
             ) : (
               <Badge variant="outline" className="h-10 px-3 border-slate-700 text-slate-400 bg-slate-900/50 justify-center">
-                Campaign Inactive
+                No Active Campaign
               </Badge>
             )}
 

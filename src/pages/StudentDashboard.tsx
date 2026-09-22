@@ -241,7 +241,8 @@ const StudentDashboard = () => {
     if (user?.id) {
       supabase.from("bug_bounty_campaigns")
         .select("*")
-        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle()
         .then(({ data }) => setActiveBounty(data));
 
@@ -1065,18 +1066,24 @@ const StudentDashboard = () => {
                       </div>
                       <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
-                            Active Campaign
+                          <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                            activeBounty.is_active && new Date(activeBounty.ends_at) > new Date()
+                              ? "text-amber-700 dark:text-amber-300 bg-amber-500/20 border-amber-500/30"
+                              : "text-slate-600 dark:text-slate-300 bg-slate-500/20 border-slate-500/30"
+                          }`}>
+                            {activeBounty.is_active && new Date(activeBounty.ends_at) > new Date() ? "Active Campaign" : "Archived Campaign"}
                           </span>
                           <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                            <Sparkles className="h-3.5 w-3.5" /> +100 XP per Bug
+                            <Sparkles className="h-3.5 w-3.5" /> {activeBounty.is_active && new Date(activeBounty.ends_at) > new Date() ? "+100 XP per Bug" : "Event Archived"}
                           </span>
                         </div>
                         <h4 className="text-base font-black text-foreground truncate">
                           {activeBounty.title || "Library Bug Hunters Season"}
                         </h4>
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          Spot bugs in DLMS and earn 100 XP reward for each verified report!
+                          {activeBounty.is_active && new Date(activeBounty.ends_at) > new Date()
+                            ? "Spot bugs in DLMS and earn 100 XP reward for each verified report!"
+                            : "This campaign is archived. Tap to view submitted reports and achievements."}
                         </p>
                       </div>
                     </div>
@@ -1084,7 +1091,7 @@ const StudentDashboard = () => {
                       size="sm"
                       className="w-full sm:w-auto rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-1.5 shrink-0"
                     >
-                      <span>Report a Bug</span>
+                      <span>{activeBounty.is_active && new Date(activeBounty.ends_at) > new Date() ? "Report a Bug" : "View Archive"}</span>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </CardContent>
