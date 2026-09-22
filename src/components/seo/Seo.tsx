@@ -14,7 +14,7 @@ type PageDetails = {
 
 const publicPages: Record<string, PageDetails> = {
   "/": {
-    title: "PM SHRI KV Sulur Digital Library | Official DLMS Kendriya Vidyalaya AFS Sulur",
+    title: "PM SHRI KV Sulur Digital Library | Official DLMS Portal",
     description: DEFAULT_DESCRIPTION,
   },
   "/catalog": {
