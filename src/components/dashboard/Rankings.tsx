@@ -49,15 +49,17 @@ const Rankings = ({ user }: RankingsProps) => {
     try {
       const { data, error } = await supabase.rpc("get_class_league_v2", { p_period: period });
       if (error) throw error;
-      const sorted = (data || []).map((r: any) => ({
+      const raw = (data || []).map((r: any) => ({
         className: r.student_class,
         totalPoints: Number(r.total_points) || 0,
         studentCount: Number(r.student_count) || 0,
-        avgPoints: Math.round(Number(r.avg_points) || 0),
+        avgPoints: Number(r.avg_points) || 0,
       }));
+      // Sort primarily by average points descending, tie-break by total points descending
+      const sorted = raw.sort((a, b) => b.avgPoints - a.avgPoints || b.totalPoints - a.totalPoints);
       let rank = 1;
       setLeagueEntries(sorted.map((entry, idx) => {
-        if (idx > 0 && entry.totalPoints !== sorted[idx - 1].totalPoints) rank = idx + 1;
+        if (idx > 0 && entry.avgPoints !== sorted[idx - 1].avgPoints) rank = idx + 1;
         return { ...entry, rank };
       }));
     } catch (error) {
@@ -201,7 +203,7 @@ const Rankings = ({ user }: RankingsProps) => {
           <Card className="border-border/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Class Reading Leagues</CardTitle>
-              <CardDescription className="text-xs">Which class reads the most? Aggregated {period} points per class.</CardDescription>
+              <CardDescription className="text-xs">Which class reads the most? Ranked by average points per student ({period}) so every class has a fair shot.</CardDescription>
             </CardHeader>
             <CardContent>
               {leagueLoading ? (
@@ -228,12 +230,14 @@ const Rankings = ({ user }: RankingsProps) => {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {entry.studentCount} reader{entry.studentCount === 1 ? "" : "s"} · avg {entry.avgPoints.toLocaleString()} pts
+                          {entry.studentCount} reader{entry.studentCount === 1 ? "" : "s"} · {entry.totalPoints.toLocaleString()} total pts
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="text-sm font-extrabold text-primary">{entry.totalPoints.toLocaleString()}</span>
-                        <p className="text-[9px] text-muted-foreground">total pts</p>
+                        <span className="text-sm font-extrabold text-primary">
+                          {Number.isInteger(entry.avgPoints) ? entry.avgPoints.toLocaleString() : entry.avgPoints.toFixed(1)}
+                        </span>
+                        <p className="text-[9px] text-muted-foreground">avg pts/reader</p>
                       </div>
                     </div>
                   ))}
