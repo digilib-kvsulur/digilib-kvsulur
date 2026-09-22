@@ -567,7 +567,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
                 <p className="text-[10px] text-muted-foreground">KV Sulur Library Assistant · Online</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 rounded-full hover:bg-background/80 text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="icon" aria-label="Close chat" onClick={() => setIsOpen(false)} className="h-8 w-8 rounded-full hover:bg-background/80 text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -653,7 +653,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
                 placeholder="Ask or command Avenyx…"
                 className="bg-muted/40 text-xs h-9 rounded-full border-border/40 focus-visible:ring-primary/30 focus-visible:bg-background transition-colors placeholder:text-muted-foreground/60"
               />
-              <Button size="icon" onClick={() => sendMessage()} disabled={!input.trim() || loading}
+              <Button size="icon" aria-label="Send message" onClick={() => sendMessage()} disabled={!input.trim() || loading}
                 className="h-9 w-9 rounded-full shrink-0 bg-primary hover:bg-primary/90 disabled:opacity-35 shadow-sm transition-all hover:scale-105 active:scale-95">
                 <Send className="h-4 w-4" />
               </Button>
@@ -664,6 +664,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         /* ── FAB with presence ring ─────────────────────── */
         <div className="relative">
           <Button onClick={() => setIsOpen(true)}
+            aria-label="Open library assistant chat"
             className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-transform animate-in zoom-in border border-primary-foreground/20 p-0 flex items-center justify-center">
             <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
           </Button>

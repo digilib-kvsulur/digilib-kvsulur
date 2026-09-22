@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => ({
           pdf: ["jspdf", "jspdf-autotable", "html2canvas"],
           charts: ["recharts"],
           data: ["papaparse", "date-fns"],
+          lucide: ["lucide-react"],
         },
       },
     },

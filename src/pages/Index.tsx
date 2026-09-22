@@ -493,7 +493,7 @@ const Index = () => {
             <div className="lg:col-span-6 relative flex justify-center">
               <div className="relative w-full max-w-[520px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border border-slate-200 bg-white group p-1">
                 <div className="w-full h-full rounded-3xl overflow-hidden relative">
-                  <img src={heroImg} alt="Library hall" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+                  <img src={heroImg} alt="PM SHRI KV Sulur library hall" width="1040" height="780" fetchPriority="high" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-slate-950/10 to-transparent" />
                 </div>
               </div>
@@ -739,11 +739,11 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-center justify-between pt-8 text-xs text-slate-500">
-            <p>&copy; 2026 PM SHRI KENDRIYA VIDYALAYA AFS SULUR, DLMS. All rights reserved. DLMS Built by G V TANISH VETTRIVEL, Student & Team</p>
+          <div className="flex flex-col sm:flex-row items-center justify-between pt-8 text-xs text-slate-300">
+            <p>&copy; 2026 PM SHRI KENDRIYA VIDYALAYA AFS SULUR, DLMS. All rights reserved. DLMS Built by G V TANISH VETTRIVEL, Student &amp; Team</p>
             <div className="flex space-x-6 mt-4 sm:mt-0">
-              <a href="#" className="hover:text-slate-400 transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-slate-400 transition-colors">Terms of Service</a>
+              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
             </div>
           </div>
         </div>
