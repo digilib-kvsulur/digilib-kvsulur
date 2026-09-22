@@ -8,6 +8,11 @@ Allow: /feedback
 Allow: /book/
 Allow: /logos/
 Allow: /assets/
+Allow: /favicon.ico
+Allow: /favicon.png
+Allow: /apple-touch-icon.png
+Allow: /pwa-192x192.png
+Allow: /pwa-512x512.png
 
 # Disallow private dashboards and student session data
 Disallow: /admin-dashboard
