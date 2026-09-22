@@ -15,7 +15,7 @@ import {
   Trophy, CheckCircle2, XCircle, Clock, Plus,
   AlertCircle, Loader2, Search, User, Shield, ShieldAlert,
   Flame, Sparkles, Send, Download, ExternalLink, RefreshCw,
-  Bug, Eye, Laptop, Check, HelpCircle, Award, ChevronDown,
+  Bug, Eye, EyeOff, Laptop, Check, HelpCircle, Award, ChevronDown,
   ChevronUp, AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,6 +98,8 @@ export default function BugBountyManager() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [studentVisible, setStudentVisible] = useState(true);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
 
   // Search & Filters
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "verified" | "rejected" | "my_reports">("all");
@@ -186,6 +188,16 @@ export default function BugBountyManager() {
       if (user) {
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
         setUserRole(profile?.role || null);
+      }
+
+      // Check student visibility toggle
+      const { data: visData } = await supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "bug_bounty_visible_to_students")
+        .maybeSingle();
+      if (visData) {
+        setStudentVisible(visData.value !== "false" && visData.value !== false);
       }
 
       // 1. Load active campaign — if none, fall back to the most recent (shows as archived)
@@ -298,6 +310,31 @@ export default function BugBountyManager() {
       loadData();
     } catch (e: any) {
       toast({ title: "Error ending campaign", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const toggleStudentVisibility = async () => {
+    try {
+      setTogglingVisibility(true);
+      const next = !studentVisible;
+      const { error } = await supabase
+        .from("system_settings")
+        .upsert({
+          key: "bug_bounty_visible_to_students",
+          value: next ? "true" : "false",
+        });
+      if (error) throw error;
+      setStudentVisible(next);
+      toast({
+        title: next ? "Campaign Visible to Students" : "Campaign Hidden from Students",
+        description: next
+          ? "The Bug Bounty event is now visible to students on their dashboards."
+          : "The Bug Bounty event is now hidden from student dashboards.",
+      });
+    } catch (e: any) {
+      toast({ title: "Failed to update visibility", description: e.message, variant: "destructive" });
+    } finally {
+      setTogglingVisibility(false);
     }
   };
 
@@ -809,6 +846,23 @@ export default function BugBountyManager() {
             )}
 
             {/* Role Action Button */}
+            {userRole === 'admin' && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={togglingVisibility}
+                onClick={toggleStudentVisibility}
+                className={`rounded-xl font-bold h-10 sm:h-11 text-xs px-3.5 border transition-all ${
+                  studentVisible
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30"
+                    : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                }`}
+              >
+                {studentVisible ? <Eye className="h-4 w-4 mr-1.5 text-emerald-400" /> : <EyeOff className="h-4 w-4 mr-1.5 text-slate-400" />}
+                <span>{studentVisible ? "Students: Visible" : "Students: Hidden"}</span>
+              </Button>
+            )}
+
             {userRole === 'admin' ? (
               campaign && !timeLeft.isExpired ? (
                 <Button
