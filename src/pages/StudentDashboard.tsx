@@ -236,11 +236,31 @@ const StudentDashboard = () => {
   const [activeBounty, setActiveBounty] = useState<any>(null);
   const [activeReformCampaign, setActiveReformCampaign] = useState<any>(null);
   const [activeLoan, setActiveLoan] = useState<any>(null);
+  const [bountyVisible, setBountyVisible] = useState(true);
+  const [uiReformVisible, setUiReformVisible] = useState(true);
 
   useEffect(() => {
+    supabase
+      .from("system_settings")
+      .select("key, value")
+      .in("key", ["bug_bounty_visible_to_students", "ui_reform_visible_to_students"])
+      .then(({ data }) => {
+        if (data) {
+          data.forEach((row) => {
+            if (row.key === "bug_bounty_visible_to_students") {
+              setBountyVisible(row.value !== "false" && row.value !== false);
+            }
+            if (row.key === "ui_reform_visible_to_students") {
+              setUiReformVisible(row.value !== "false" && row.value !== false);
+            }
+          });
+        }
+      });
+
     if (user?.id) {
       supabase.from("bug_bounty_campaigns")
         .select("*")
+        .eq("is_active", true)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -367,8 +387,8 @@ const StudentDashboard = () => {
         { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
         { id: "community" as Tab, label: "Community", icon: Users },
         { id: "network" as Tab, label: "Network", icon: Users },
-        { id: "bounty" as Tab, label: "Bug Bounty", icon: Target },
-        { id: "ui-reform" as Tab, label: "UI Reform Challenge", icon: Palette },
+        ...(bountyVisible ? [{ id: "bounty" as Tab, label: "Bug Bounty", icon: Target }] : []),
+        ...(uiReformVisible ? [{ id: "ui-reform" as Tab, label: "UI Reform Challenge", icon: Palette }] : []),
         { id: "events" as Tab, label: "Events", icon: CalendarDays },
       ],
     },
@@ -380,7 +400,7 @@ const StudentDashboard = () => {
         { id: "profile" as Tab, label: "My Profile", icon: User },
       ],
     },
-  ], [periodicalsVisible, hasCertificates]);
+  ], [periodicalsVisible, hasCertificates, bountyVisible, uiReformVisible]);
 
   const navItems = useMemo(() => {
     return navSections.flatMap((s) => s.items);
@@ -1054,70 +1074,78 @@ const StudentDashboard = () => {
                 }}
               />
 
-              {activeBounty && (
+              {/* Bug Bounty Live Banner — ONLY shown when campaign is currently active & not ended */}
+              {Boolean(
+                bountyVisible &&
+                activeBounty &&
+                activeBounty.is_active &&
+                activeBounty.ends_at &&
+                new Date(activeBounty.ends_at).getTime() > Date.now()
+              ) && (
                 <Card
                   className="rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-primary/10 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group"
                   onClick={() => setActiveTab("bounty")}
                 >
-                  <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform">
-                        <Bug className="h-6 w-6 text-white" />
+                  <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform">
+                        <Bug className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                       </div>
                       <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                            activeBounty.is_active && new Date(activeBounty.ends_at) > new Date()
-                              ? "text-amber-700 dark:text-amber-300 bg-amber-500/20 border-amber-500/30"
-                              : "text-slate-600 dark:text-slate-300 bg-slate-500/20 border-slate-500/30"
-                          }`}>
-                            {activeBounty.is_active && new Date(activeBounty.ends_at) > new Date() ? "Active Campaign" : "Archived Campaign"}
+                          <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                            Active Campaign
                           </span>
-                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                            <Sparkles className="h-3.5 w-3.5" /> {activeBounty.is_active && new Date(activeBounty.ends_at) > new Date() ? "+100 XP per Bug" : "Event Archived"}
+                          <span className="text-[11px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <Sparkles className="h-3.5 w-3.5" /> +100 XP per Bug
                           </span>
                         </div>
-                        <h4 className="text-base font-black text-foreground truncate">
+                        <h4 className="text-sm sm:text-base font-black text-foreground truncate">
                           {activeBounty.title || "Library Bug Hunters Season"}
                         </h4>
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          {activeBounty.is_active && new Date(activeBounty.ends_at) > new Date()
-                            ? "Spot bugs in DLMS and earn 100 XP reward for each verified report!"
-                            : "This campaign is archived. Tap to view submitted reports and achievements."}
+                          Spot bugs in DLMS and earn 100 XP reward for each verified report!
                         </p>
                       </div>
                     </div>
                     <Button
                       size="sm"
-                      className="w-full sm:w-auto rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-1.5 shrink-0"
+                      className="w-full sm:w-auto rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-1.5 shrink-0 h-9 sm:h-10 text-xs sm:text-sm"
                     >
-                      <span>{activeBounty.is_active && new Date(activeBounty.ends_at) > new Date() ? "Report a Bug" : "View Archive"}</span>
+                      <span>Report a Bug</span>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </CardContent>
                 </Card>
               )}
 
-              {activeReformCampaign && (
+              {/* UI Reform Challenge Banner — ONLY shown when active or scheduled & not ended */}
+              {Boolean(
+                uiReformVisible &&
+                activeReformCampaign &&
+                activeReformCampaign.status !== "ended" &&
+                activeReformCampaign.ends_at &&
+                new Date(activeReformCampaign.ends_at).getTime() > Date.now()
+              ) && (
                 <Card
                   className="rounded-3xl border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-indigo-500/5 to-purple-500/10 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group"
                   onClick={() => setActiveTab("ui-reform")}
                 >
-                  <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform">
-                        <Palette className="h-6 w-6 text-white" />
+                  <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform">
+                        <Palette className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                       </div>
                       <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-500/20 px-2.5 py-0.5 rounded-full border border-purple-500/30">
+                          <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-500/20 px-2.5 py-0.5 rounded-full border border-purple-500/30">
                             {activeReformCampaign.status === "active" ? "🎨 Live Redesign Event" : "⏳ Upcoming Event"}
                           </span>
-                          <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                            <Sparkles className="h-3.5 w-3.5" /> +{activeReformCampaign.reward_points || 150} XP per Design
+                          <span className="text-[11px] sm:text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <Sparkles className="h-3.5 w-3.5" /> +{activeReformCampaign.reward_points || 1000} XP per Idea
                           </span>
                         </div>
-                        <h4 className="text-base font-black text-foreground truncate">
+                        <h4 className="text-sm sm:text-base font-black text-foreground truncate">
                           {activeReformCampaign.title || "UI Reform & Redesign Challenge"}
                         </h4>
                         <p className="text-xs text-muted-foreground line-clamp-1">
@@ -1129,7 +1157,7 @@ const StudentDashboard = () => {
                     </div>
                     <Button
                       size="sm"
-                      className="w-full sm:w-auto rounded-xl font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md gap-1.5 shrink-0"
+                      className="w-full sm:w-auto rounded-xl font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md gap-1.5 shrink-0 h-9 sm:h-10 text-xs sm:text-sm"
                     >
                       <span>{activeReformCampaign.status === "scheduled" ? "Preview Challenge" : "Submit Design"}</span>
                       <ChevronRight className="h-4 w-4" />
