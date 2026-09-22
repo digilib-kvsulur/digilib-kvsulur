@@ -150,6 +150,31 @@ export default function UIReformChallengeManager() {
     setShowCreateModal(true);
   };
 
+  const toggleStudentVisibility = async () => {
+    try {
+      setTogglingVisibility(true);
+      const next = !studentVisible;
+      const { error } = await supabase
+        .from("system_settings")
+        .upsert({
+          key: "ui_reform_visible_to_students",
+          value: next ? "true" : "false",
+        });
+      if (error) throw error;
+      setStudentVisible(next);
+      toast({
+        title: next ? "Challenge Visible to Students" : "Challenge Hidden from Students",
+        description: next
+          ? "The UI Reform Challenge is now visible to students on their dashboards."
+          : "The UI Reform Challenge is now hidden from student dashboards.",
+      });
+    } catch (e: any) {
+      toast({ title: "Failed to update visibility", description: e.message, variant: "destructive" });
+    } finally {
+      setTogglingVisibility(false);
+    }
+  };
+
   const handleSaveCampaign = async () => {
     if (!formStartsAt || !formEndsAt) {
       toast({ title: "Missing Dates", description: "Please specify start and end dates.", variant: "destructive" });
@@ -260,6 +285,19 @@ export default function UIReformChallengeManager() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2.5 z-10 w-full md:w-auto">
+          <Button
+            variant="outline"
+            disabled={togglingVisibility}
+            onClick={toggleStudentVisibility}
+            className={`font-bold rounded-2xl text-xs sm:text-sm h-11 border transition-all ${
+              studentVisible
+                ? "bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30"
+                : "bg-white/10 text-slate-300 border-white/20 hover:bg-white/20"
+            }`}
+          >
+            {studentVisible ? <Eye className="h-4 w-4 mr-1.5 text-emerald-300" /> : <EyeOff className="h-4 w-4 mr-1.5 text-slate-400" />}
+            <span>{studentVisible ? "Students: Visible" : "Students: Hidden"}</span>
+          </Button>
           <Button
             onClick={handleScheduleAfterBugBounty}
             className="bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-2xl shadow-lg gap-2 text-xs sm:text-sm h-11"
