@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     // Keep source maps out of the public production bundle.
     sourcemap: false,
+    modulePreload: false,
     rollupOptions: {
       output: {
         manualChunks: {
