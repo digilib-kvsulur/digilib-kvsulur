@@ -11,6 +11,7 @@ interface Puzzle {
 }
 
 const PUZZLES: Puzzle[] = [
+  // PUZZLE 1 – original
   {
     rows: ["READS", "E...H", "A...E", "D...L", "SHELF"],
     clues: [
@@ -20,6 +21,7 @@ const PUZZLES: Puzzle[] = [
       { label: "4 Down", text: "A row of stored books (5)" },
     ],
   },
+  // PUZZLE 2 – original
   {
     rows: ["NOVEL", "O...E", "T...A", "E...F", "STORY"],
     clues: [
@@ -29,6 +31,7 @@ const PUZZLES: Puzzle[] = [
       { label: "4 Down", text: "Covered in leaves; also lush (5)" },
     ],
   },
+  // PUZZLE 3 – original
   {
     rows: ["PAGES", "O...T", "E...U", "T...D", "STUDY"],
     clues: [
@@ -36,6 +39,96 @@ const PUZZLES: Puzzle[] = [
       { label: "5 Across", text: "What you do before an exam (5)" },
       { label: "1 Down", text: "Writers of verse (5)" },
       { label: "4 Down", text: "Quiet learning time (5)" },
+    ],
+  },
+  // PUZZLE 4 – library theme
+  {
+    rows: ["BOOKS", "O...S", "R...S", "R...A", "ESSAY"],
+    clues: [
+      { label: "1 Across", text: "Published volumes of knowledge (5)" },
+      { label: "5 Across", text: "A short piece of writing on a topic (5)" },
+      { label: "1 Down", text: "Borrow from library; verb (5)" },
+      { label: "4 Down", text: "Polished and smooth surface (5)" },
+    ],
+  },
+  // PUZZLE 5 – science theme
+  {
+    rows: ["ATOMS", "L...O", "G...U", "A...N", "EARTH"],
+    clues: [
+      { label: "1 Across", text: "Tiniest particles of elements (5)" },
+      { label: "5 Across", text: "Our home planet (5)" },
+      { label: "1 Down", text: "Green plant pigment (5)" },
+      { label: "4 Down", text: "Going around an orbit (5)" },
+    ],
+  },
+  // PUZZLE 6 – geography theme
+  {
+    rows: ["OCEAN", "R...S", "B...L", "I...A", "TIBET"],
+    clues: [
+      { label: "1 Across", text: "Vast body of salt water (5)" },
+      { label: "5 Across", text: "High plateau region in Asia (5)" },
+      { label: "1 Down", text: "Circular loop or track (5)" },
+      { label: "4 Down", text: "Highest point on a mountain (5)" },
+    ],
+  },
+  // PUZZLE 7 – literature
+  {
+    rows: ["FABLE", "A...I", "B...T", "L...H", "SATYR"],
+    clues: [
+      { label: "1 Across", text: "A short moral story with animals (5)" },
+      { label: "5 Across", text: "Half-man half-goat in Greek myth (5)" },
+      { label: "1 Down", text: "A short story; tale (5)" },
+      { label: "4 Down", text: "Distance from base to top (5)" },
+    ],
+  },
+  // PUZZLE 8 – vocabulary theme
+  {
+    rows: ["WORDS", "R...O", "I...O", "T...N", "ESSAY"],
+    clues: [
+      { label: "1 Across", text: "Units of language and meaning (5)" },
+      { label: "5 Across", text: "Written composition on a topic (5)" },
+      { label: "1 Down", text: "To create and design (5)" },
+      { label: "4 Down", text: "Written piece; authored work (5)" },
+    ],
+  },
+  // PUZZLE 9 – school theme
+  {
+    rows: ["CLASS", "H...T", "A...U", "L...D", "STUDY"],
+    clues: [
+      { label: "1 Across", text: "A group of students learning together (5)" },
+      { label: "5 Across", text: "Revise and learn for exams (5)" },
+      { label: "1 Down", text: "Piece of chalk or board (5)" },
+      { label: "4 Down", text: "Quiet time for thinking (5)" },
+    ],
+  },
+  // PUZZLE 10 – nature theme
+  {
+    rows: ["PLANT", "H...E", "O...A", "T...L", "SEEDS"],
+    clues: [
+      { label: "1 Across", text: "Green organism that makes food from sunlight (5)" },
+      { label: "5 Across", text: "Small beginnings of new plants (5)" },
+      { label: "1 Down", text: "Photos of nature or sky (5)" },
+      { label: "4 Down", text: "Where plants grow in (5)" },
+    ],
+  },
+  // PUZZLE 11 – history theme
+  {
+    rows: ["KINGS", "I...A", "N...V", "G...E", "SWORD"],
+    clues: [
+      { label: "1 Across", text: "Rulers of ancient kingdoms (5)" },
+      { label: "5 Across", text: "A long bladed weapon (5)" },
+      { label: "1 Down", text: "Prickly plant from a hot desert (5)" },
+      { label: "4 Down", text: "Digging device for soft earth (5)" },
+    ],
+  },
+  // PUZZLE 12 – reading theme
+  {
+    rows: ["GENRE", "L...D", "O...I", "B...T", "ESSAY"],
+    clues: [
+      { label: "1 Across", text: "Category or type of book (5)" },
+      { label: "5 Across", text: "Short academic piece of writing (5)" },
+      { label: "1 Down", text: "Happy or joyful sound (5)" },
+      { label: "4 Down", text: "A note at the end of a text (5)" },
     ],
   },
 ];

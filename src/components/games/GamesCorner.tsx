@@ -146,8 +146,9 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
     if (g.daily_play_limit > 0 && playsFor(g.key) >= g.daily_play_limit) {
       toast({
         title: "Daily limit reached",
-        description: `Come back tomorrow to play ${g.name} for XP again.`,
+        description: `You've played ${g.name} ${g.daily_play_limit} time${g.daily_play_limit !== 1 ? "s" : ""} today. Come back tomorrow to earn more XP!`,
       });
+      return; // ← block game from opening
     }
     setActive(g);
     await startNewSession(g.key);
@@ -276,8 +277,8 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
                       <span>{Math.max(g.daily_play_limit - used, 0)} plays left today</span>
                     )}
                   </div>
-                  <Button className="w-full" size="sm" variant={limitHit ? "outline" : "default"} onClick={() => openGame(g)}>
-                    <Play className="h-4 w-4 mr-1" /> {limitHit ? "Play for fun" : "Play now"}
+                  <Button className="w-full" size="sm" variant={limitHit ? "outline" : "default"} onClick={() => openGame(g)} disabled={limitHit}>
+                    <Play className="h-4 w-4 mr-1" /> {limitHit ? "Come back tomorrow!" : "Play now"}
                   </Button>
                 </CardContent>
               </Card>

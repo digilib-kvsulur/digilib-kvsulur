@@ -33,13 +33,14 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
 
   const submit = async () => {
     if (!userId) { toast({ title: "Please sign in", variant: "destructive" }); return; }
-    if (myRating < 1) { toast({ title: "Pick a rating", variant: "destructive" }); return; }
-    const payload = { book_id: book.id, user_id: userId, rating: myRating, review_text: myText.trim() || null };
+    if (myRating < 1) { toast({ title: "Please select a star rating", description: "Tap a star to choose your rating.", variant: "destructive" }); return; }
+    if (myText.trim().length < 20) { toast({ title: "Please write a review", description: "Share your thoughts in at least 20 characters to earn XP!", variant: "destructive" }); return; }
+    const payload = { book_id: book.id, user_id: userId, rating: myRating, review_text: myText.trim() };
     const { error } = myReviewId
       ? await supabase.from("book_reviews").update(payload).eq("id", myReviewId)
       : await supabase.from("book_reviews").insert(payload);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Review saved" }); load();
+    toast({ title: "Review saved! +15 XP earned 🎉" }); load();
   };
 
   const [showMap, setShowMap] = useState(false);
@@ -82,6 +83,7 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
         {userId && (
           <div className="rounded-lg border p-3 space-y-2">
             <p className="text-sm font-medium">{myReviewId ? "Update your review" : "Write a review"}</p>
+            <p className="text-xs text-muted-foreground">✍️ Write your thoughts in words to earn <span className="font-semibold text-amber-600">+15 XP</span>. Stars alone don't give points.</p>
             <div className="flex gap-1">
               {[1,2,3,4,5].map(n => (
                 <button key={n} onClick={() => setMyRating(n)}>
@@ -89,8 +91,11 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
                 </button>
               ))}
             </div>
-            <Textarea placeholder="Share your thoughts…" value={myText} onChange={e => setMyText(e.target.value)} rows={3} maxLength={500} />
-            <Button size="sm" onClick={submit}>{myReviewId ? "Update" : "Post"} review</Button>
+            <Textarea placeholder="What did you enjoy? What did you learn? Would you recommend it? (Min 20 characters)" value={myText} onChange={e => setMyText(e.target.value)} rows={3} maxLength={500} />
+            <p className={`text-[11px] font-medium ${myText.trim().length < 20 ? "text-rose-500" : "text-emerald-600"}`}>
+              {myText.trim().length < 20 ? `${20 - myText.trim().length} more characters needed to post` : "✓ Ready to post!"}
+            </p>
+            <Button size="sm" onClick={submit} disabled={myRating < 1 || myText.trim().length < 20}>{myReviewId ? "Update" : "Post"} review & earn XP</Button>
           </div>
         )}
 

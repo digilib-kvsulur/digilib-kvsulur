@@ -26,12 +26,52 @@ export default function ReturnedBookReviewPrompt({ userId }: { userId?: string }
 
   const submit = async () => {
     if (!issue || !userId) return;
+    if (review.trim().length < 20) {
+      toast({ title: "Please write more", description: `Write at least ${20 - review.trim().length} more characters to earn XP!`, variant: "destructive" });
+      return;
+    }
     setSaving(true);
-    const { error } = await supabase.from("book_reviews").insert({ book_id: issue.book_id, user_id: userId, rating, review_text: review.trim() || null });
+    const { error } = await supabase.from("book_reviews").insert({ book_id: issue.book_id, user_id: userId, rating, review_text: review.trim() });
     setSaving(false);
     if (error) { toast({ title: "Could not save review", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Thanks for your review!" }); setIssue(null);
+    toast({ title: "Thanks for your review! +15 XP earned 🎉" }); setIssue(null);
   };
 
-  return <Dialog open={!!issue} onOpenChange={open => !open && setIssue(null)}><DialogContent className="max-w-md"><DialogHeader><DialogTitle>How was the book?</DialogTitle><DialogDescription>You've returned <strong>{issue?.books?.title}</strong>. Share a quick review to help other students choose.</DialogDescription></DialogHeader><div className="flex gap-1">{[1, 2, 3, 4, 5].map(value => <Button key={value} type="button" variant="ghost" size="icon" onClick={() => setRating(value)}><Star className={`h-6 w-6 ${value <= rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`} /></Button>)}</div><Textarea value={review} onChange={event => setReview(event.target.value)} placeholder="What did you enjoy or learn? (optional)" /><DialogFooter><Button variant="outline" onClick={() => setIssue(null)}>Maybe later</Button><Button onClick={submit} disabled={saving}>{saving ? "Saving..." : "Submit review"}</Button></DialogFooter></DialogContent></Dialog>;
+  return (
+    <Dialog open={!!issue} onOpenChange={open => !open && setIssue(null)}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>How was the book?</DialogTitle>
+          <DialogDescription>
+            You've returned <strong>{issue?.books?.title}</strong>. Write a review in your own words to help other students and earn <span className="font-semibold text-amber-600">+15 XP</span>!
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map(value => (
+            <Button key={value} type="button" variant="ghost" size="icon" onClick={() => setRating(value)}>
+              <Star className={`h-6 w-6 ${value <= rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`} />
+            </Button>
+          ))}
+        </div>
+        <Textarea
+          value={review}
+          onChange={event => setReview(event.target.value)}
+          placeholder="What did you enjoy or learn from this book? Would you recommend it? Share your thoughts! (Min 20 characters)"
+          rows={4}
+          maxLength={500}
+        />
+        <p className={`text-[11px] font-medium ${review.trim().length < 20 ? "text-rose-500" : "text-emerald-600"}`}>
+          {review.trim().length < 20
+            ? `Write ${20 - review.trim().length} more characters to earn +15 XP`
+            : "✓ Ready to submit and earn XP!"}
+        </p>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIssue(null)}>Maybe later</Button>
+          <Button onClick={submit} disabled={saving || review.trim().length < 20}>
+            {saving ? "Saving..." : "Submit Review & Earn XP"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }

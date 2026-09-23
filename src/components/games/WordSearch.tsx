@@ -6,7 +6,11 @@ import { GameProps, shuffle, wordsFrom } from "./gameTypes";
 import { RotateCcw, Trophy } from "lucide-react";
 
 const SIZE = 10;
-const FALLBACK = ["NOVEL", "POEM", "SHELF", "AUTHOR", "INDEX", "STORY", "READ", "PAGE"];
+const FALLBACK = [
+  "NOVEL", "POEM", "SHELF", "AUTHOR", "INDEX", "STORY", "READ", "PAGE",
+  "FABLE", "GENRE", "ESSAY", "ATLAS", "TITLE", "QUOTE", "DRAFT", "THEME",
+  "RHYME", "VERSE", "PROSE", "SCENE", "IRONY", "MORAL", "BORROW", "SPINE",
+];
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 interface Placed { word: string; cells: number[] }

@@ -31,7 +31,22 @@ const FALLBACK = [
   "To read a book for the first time is to make a new acquaintance.",
   "Words have the power to create and the power to heal the deepest wounds.",
   "The journey of a thousand miles begins with a single confident step.",
-  "A great book should leave you with many experiences, and slightly exhausted at the end."
+  "A great book should leave you with many experiences, and slightly exhausted at the end.",
+  // new additions
+  "One book, one pen, one child and one teacher can change the world around us.",
+  "Not all those who wander are lost; some are simply browsing the library shelves.",
+  "The reading of all good books is like a conversation with the finest minds of past centuries.",
+  "A reader lives a thousand lives before he dies. The man who never reads lives only one.",
+  "It is what you read when you don't have to that determines what you will be when you can't help it.",
+  "You can never get a cup of tea large enough or a book long enough to suit me.",
+  "I declare after all there is no enjoyment like reading! How much sooner one tires of any thing than of a book.",
+  "Sleep is good, he said, and books are better than the greatest adventures.",
+  "The world belongs to those who read and seek to understand what they have read.",
+  "Show me a family of readers, and I will show you the people who move the world forward.",
+  "Reading gives us someplace to go when we have to stay where we are.",
+  "Think before you speak. Read before you think.",
+  "The greatest gift is a passion for reading. It is cheap, it consoles, it entertains and enlightens.",
+  "There is no substitute for books in the life of a child who can read.",
 ];
 
 // Helper to normalize characters like smart quotes and curly apostrophes

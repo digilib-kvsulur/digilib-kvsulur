@@ -6,7 +6,18 @@ import { Card } from "@/components/ui/card";
 import { GameProps, shuffle, wordsFrom } from "./gameTypes";
 import { RotateCcw, Trophy, Volume2, SkipForward } from "lucide-react";
 
-const FALLBACK = ["RHYTHM", "LIBRARY", "CATALOGUE", "LITERATURE", "PARAGRAPH"];
+const FALLBACK = [
+  // original
+  "RHYTHM", "LIBRARY", "CATALOGUE", "LITERATURE", "PARAGRAPH",
+  // new – tricky spellings
+  "OCCASION", "NECESSARY", "BEAUTIFUL", "SEPARATE", "DEFINITELY",
+  "EMBARRASS", "EXAGGERATE", "INDEPENDENCE", "ACQUAINTANCE", "PRIVILEGE",
+  "QUESTIONNAIRE", "CONSCIENTIOUS", "PRONUNCIATION", "IMMEDIATELY",
+  "APPRECIATE", "COLLABORATE", "COMMUNICATE", "COORDINATE", "DEMOCRACY",
+  "ENCYCLOPEDIA", "ENVIRONMENT", "GOVERNMENT", "KNOWLEDGE", "METAPHOR",
+  "MILLENNIUM", "OPPORTUNITY", "PHILOSOPHY", "PROFESSION", "RECOMMEND",
+  "SCHOLARSHIP", "SUBSCRIPTION", "VOCABULARY", "ACHIEVEMENT", "ABBREVIATION",
+];
 const ROUNDS = 5;
 
 export default function SpellBee({ content, onComplete, onExit }: GameProps) {

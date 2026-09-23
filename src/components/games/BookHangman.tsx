@@ -6,7 +6,14 @@ import { GameProps, shuffle, wordsFrom } from "./gameTypes";
 import { RotateCcw, Trophy } from "lucide-react";
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-const FALLBACK = ["LIBRARIAN", "BIOGRAPHY", "ANTHOLOGY", "MANUSCRIPT", "PUBLISHER"];
+const FALLBACK = [
+  "LIBRARIAN", "BIOGRAPHY", "ANTHOLOGY", "MANUSCRIPT", "PUBLISHER",
+  "ALLEGORY", "PROLOGUE", "EPILOGUE", "NARRATIVE", "CATALOGUE",
+  "STORYBOOK", "BOOKSHELF", "GEOGRAPHY", "CHEMISTRY", "DEMOCRACY",
+  "ECOSYSTEM", "ENCYCLOPEDIA", "MYTHOLOGY", "VOCABULARY", "PHILOSOPHY",
+  "DICTIONARY", "TELESCOPE", "MICROSCOPE", "CURIOSITY", "KNOWLEDGE",
+  "ADVENTURE", "DETECTIVE", "PROTAGONIST", "ANTAGONIST",
+];
 const MAX_WRONG = 6;
 
 export default function BookHangman({ books, content, onComplete, onExit }: GameProps) {

@@ -6,10 +6,32 @@ import { GameProps, shuffle } from "./gameTypes";
 import { RotateCcw, Trophy, MapPin } from "lucide-react";
 
 const FALLBACK = [
+  // original
   { place: "Hogwarts", answer: "Harry Potter" },
   { place: "Malgudi", answer: "R. K. Narayan" },
   { place: "Neverland", answer: "Peter Pan" },
   { place: "Wonderland", answer: "Alice in Wonderland" },
+  // Indian literature
+  { place: "Shahpur", answer: "Premchand" },
+  { place: "Hastinapur", answer: "Mahabharata" },
+  { place: "Lanka", answer: "Ramayana" },
+  { place: "Kishkindha", answer: "Ramayana" },
+  { place: "Swapnapur", answer: "Tagore" },
+  // World literature
+  { place: "Narnia", answer: "C.S. Lewis" },
+  { place: "Middle-earth", answer: "J.R.R. Tolkien" },
+  { place: "Yoknapatawpha", answer: "William Faulkner" },
+  { place: "Oceania", answer: "George Orwell" },
+  { place: "Treasure Island", answer: "Robert Louis Stevenson" },
+  { place: "Lilliput", answer: "Jonathan Swift" },
+  { place: "Sherwood Forest", answer: "Robin Hood" },
+  { place: "Baker Street", answer: "Sherlock Holmes" },
+  { place: "Yokohama", answer: "Kazuo Ishiguro" },
+  { place: "Transylvania", answer: "Dracula" },
+  { place: "Pemberley", answer: "Jane Austen" },
+  { place: "Verona", answer: "Romeo and Juliet" },
+  { place: "Elsinore Castle", answer: "Hamlet" },
+  { place: "Manderley", answer: "Rebecca" },
 ];
 
 export default function LiteraryPlaces({ books, content, onComplete, onExit }: GameProps) {

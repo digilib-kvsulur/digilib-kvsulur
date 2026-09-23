@@ -7,10 +7,28 @@ import { GameProps, shuffle, wordsFrom } from "./gameTypes";
 import { RotateCcw, Trophy } from "lucide-react";
 
 const FALLBACK = [
+  // original
   "BOOKS", "NOVEL", "PAGES", "STORY", "INDEX", "SHELF", "ATLAS", "PROSE",
   "POEMS", "WORDS", "GENRE", "TOPIC", "TITLE", "ESSAY", "PAPER", "WRITE",
   "LEARN", "STUDY", "SMART", "BRAIN", "THINK", "QUOTE", "DRAFT", "FOLIO",
-  "COVER", "PRINT", "QUIZZ", "FACTS", "GUIDE", "MEDAL", "HONOR", "BADGE"
+  "COVER", "PRINT", "QUIZZ", "FACTS", "GUIDE", "MEDAL", "HONOR", "BADGE",
+  // new – literature
+  "FABLE", "VERSE", "RHYME", "SCENE", "IRONY", "SIMILE", "PROSE",
+  "STANZA", "THEME", "TROPE", "SATIRE", "MORAL", "TRAIL", "QUEST",
+  // new – science / curriculum
+  "ACIDS", "ALGAE", "ATOMS", "BINDS", "CHORD", "CELLS", "COMET",
+  "DELTA", "EARTH", "FIELD", "FORCE", "GLOBE", "GRAPH", "HEART",
+  "JOULE", "LASER", "LIGHT", "LUNAR", "MAGMA", "NERVE", "OZONE",
+  "PLANT", "POWER", "RADAR", "ROOTS", "SOLAR", "SOLID", "SOUND",
+  "SPINE", "STEAM", "THORN", "TIDAL", "TUBES", "VIRAL", "WAVES",
+  "WINDS", "XENON", "YIELD",
+  // new – general knowledge
+  "BRAVE", "CIVIC", "CLOCK", "CROSS", "CRANE", "DEPOT", "DWARF",
+  "EPOCH", "FEAST", "FLEET", "FROST", "GLORY", "GRACE", "HASTY",
+  "HOIST", "IGLOO", "IVORY", "JEWEL", "JOUST", "KINGS", "KNACK",
+  "LEMON", "LILAC", "MANOR", "MAPLE", "MARSH", "MIDST", "MILLS",
+  "MONTH", "MOOSE", "MOUTH", "NAIVE", "NERVE", "NOBLE", "NOTCH",
+  "OCCUR", "OLIVE", "OTTER", "OUGHT", "OVALS", "OXIDE", "PACEY",
 ];
 
 export default function ReadingWordle({ books, content, onComplete, onExit }: GameProps) {
