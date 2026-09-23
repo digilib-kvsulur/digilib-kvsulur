@@ -158,7 +158,8 @@ const PointsHistoryPage = () => {
         reviewsRes,
         eventsRes,
         notifsRes,
-        streakRes
+        streakRes,
+        settingsRes
       ] = await Promise.all([
         // 3. Reading history
         supabase
@@ -227,7 +228,7 @@ const PointsHistoryPage = () => {
         // 10. Book Reviews
         supabase
           .from("book_reviews")
-          .select("id, rating, created_at, books(title)")
+          .select("id, rating, review_text, created_at, books(title)")
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(50),
@@ -254,6 +255,13 @@ const PointsHistoryPage = () => {
           .from("login_streaks")
           .select("current_streak, longest_streak, total_login_days, last_login_date")
           .eq("user_id", userId)
+          .maybeSingle(),
+
+        // 14. System settings for points
+        supabase
+          .from("system_settings")
+          .select("value")
+          .eq("key", "points_per_review")
           .maybeSingle(),
       ]);
 
@@ -369,14 +377,25 @@ const PointsHistoryPage = () => {
         });
       });
 
-      // Process Book Reviews (15 pts per review)
+      // Process Book Reviews (configured pts per written review)
+      let reviewPts = 15;
+      if (settingsRes?.data?.value != null) {
+        const val = settingsRes.data.value;
+        const num = typeof val === "number" ? val : Number(String(val).replace(/[^0-9]/g, ""));
+        if (!isNaN(num) && num > 0) reviewPts = num;
+      }
+
       reviewsRes.data?.forEach(rev => {
+        const hasWrittenReview = rev.review_text && rev.review_text.trim().length >= 20;
+        const pts = hasWrittenReview ? reviewPts : 0;
         const m = SOURCE_META.review;
         allEvents.push({
           id: `rev-${rev.id}`,
           source: "review",
-          points: 15,
-          description: `Book Review & Rating for "${(rev as any).books?.title || "Book"}"`,
+          points: pts,
+          description: hasWrittenReview
+            ? `Book Review & Rating for "${(rev as any).books?.title || "Book"}"`
+            : `Book Rating for "${(rev as any).books?.title || "Book"}" (Rating only — write review in words for +${reviewPts} XP)`,
           created_at: rev.created_at,
           icon: m.icon,
           color: m.color,
