@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Star, MapPin } from "lucide-react";
 import BookShelfLocator from "@/components/student/BookShelfLocator";
+import { fetchPointsPerReview } from "@/lib/librarySettings";
 
 export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
   book: any; userId: string | null; open: boolean; onOpenChange: (o: boolean) => void;
@@ -16,9 +17,11 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
   const [myRating, setMyRating] = useState(0);
   const [myText, setMyText] = useState("");
   const [myReviewId, setMyReviewId] = useState<string | null>(null);
+  const [reviewPoints, setReviewPoints] = useState(15);
 
   const load = async () => {
     if (!book?.id) return;
+    fetchPointsPerReview().then(setReviewPoints);
     const { data } = await supabase.from("book_reviews")
       .select("*, profiles:user_id(first_name,last_name)")
       .eq("book_id", book.id).eq("is_hidden", false).order("created_at", { ascending: false });
@@ -40,7 +43,7 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
       ? await supabase.from("book_reviews").update(payload).eq("id", myReviewId)
       : await supabase.from("book_reviews").insert(payload);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Review saved! +15 XP earned 🎉" }); load();
+    toast({ title: `Review saved! +${reviewPoints} XP earned 🎉` }); load();
   };
 
   const [showMap, setShowMap] = useState(false);
@@ -83,7 +86,7 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
         {userId && (
           <div className="rounded-lg border p-3 space-y-2">
             <p className="text-sm font-medium">{myReviewId ? "Update your review" : "Write a review"}</p>
-            <p className="text-xs text-muted-foreground">✍️ Write your thoughts in words to earn <span className="font-semibold text-amber-600">+15 XP</span>. Stars alone don't give points.</p>
+            <p className="text-xs text-muted-foreground">✍️ Write your thoughts in words to earn <span className="font-semibold text-amber-600">+{reviewPoints} XP</span>. Stars alone don't give points.</p>
             <div className="flex gap-1">
               {[1,2,3,4,5].map(n => (
                 <button key={n} onClick={() => setMyRating(n)}>
@@ -91,11 +94,11 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
                 </button>
               ))}
             </div>
-            <Textarea placeholder="What did you enjoy? What did you learn? Would you recommend it? (Min 20 characters)" value={myText} onChange={e => setMyText(e.target.value)} rows={3} maxLength={500} />
+            <Textarea placeholder={`What did you enjoy? What did you learn? Would you recommend it? (Write at least 20 characters to earn +${reviewPoints} XP)`} value={myText} onChange={e => setMyText(e.target.value)} rows={3} maxLength={500} />
             <p className={`text-[11px] font-medium ${myText.trim().length < 20 ? "text-rose-500" : "text-emerald-600"}`}>
-              {myText.trim().length < 20 ? `${20 - myText.trim().length} more characters needed to post` : "✓ Ready to post!"}
+              {myText.trim().length < 20 ? `Write ${20 - myText.trim().length} more characters to earn +${reviewPoints} XP` : "✓ Ready to post!"}
             </p>
-            <Button size="sm" onClick={submit} disabled={myRating < 1 || myText.trim().length < 20}>{myReviewId ? "Update" : "Post"} review & earn XP</Button>
+            <Button size="sm" onClick={submit} disabled={myRating < 1 || myText.trim().length < 20}>{myReviewId ? "Update" : "Post"} review & earn +{reviewPoints} XP</Button>
           </div>
         )}
 
