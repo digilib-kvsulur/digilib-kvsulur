@@ -307,7 +307,7 @@ export default function BookDetails() {
         : await supabase.from("book_reviews").insert(payload);
 
       if (error) throw error;
-      toast({ title: "Success", description: "Review posted successfully!" });
+      toast({ title: "Success", description: `Review posted successfully! +${reviewPoints} XP awarded.` });
       init();
     } catch (e: any) {
       toast({ title: "Failed to post review", description: e.message, variant: "destructive" });
