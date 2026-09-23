@@ -11,6 +11,7 @@ import {
   Languages, GraduationCap, ClipboardList, Info, HelpCircle, Loader2, Sparkles, Wand2, Layers, Globe
 } from "lucide-react";
 import { fetchBookByQuery, generateSmartBookDescription, FetchedBookDetails } from "@/lib/bookApi";
+import { fetchPointsPerReview } from "@/lib/librarySettings";
 import { BookFetchPicker } from "@/components/admin/BookFetchPicker";
 
 interface Review {
@@ -35,6 +36,7 @@ export default function BookDetails() {
   const [myRating, setMyRating] = useState(0);
   const [myText, setMyText] = useState("");
   const [myReviewId, setMyReviewId] = useState<string | null>(null);
+  const [reviewPoints, setReviewPoints] = useState<number>(15);
   const [loading, setLoading] = useState(true);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
@@ -54,6 +56,7 @@ export default function BookDetails() {
   const init = async () => {
     if (!id) return;
     setLoading(true);
+    fetchPointsPerReview().then((pts) => setReviewPoints(pts));
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const uid = session?.user?.id || null;
