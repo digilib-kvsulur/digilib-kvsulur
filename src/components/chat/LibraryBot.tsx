@@ -20,8 +20,20 @@ import {
   BookOpen,
   Clock,
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  Copy,
+  Check,
+  RotateCcw,
+  Search,
+  Calendar,
+  Gamepad2,
+  MapPin
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { InChatTicketWidget } from "./InChatTicketWidget";
 import { InChatProfileEditor } from "./InChatProfileEditor";
@@ -38,18 +50,20 @@ interface Message {
 type ActiveWidgetType = 'none' | 'ticket' | 'profile' | 'feedback' | 'badges' | 'certificates' | 'level';
 
 const DEFAULT_PROMPTS = [
+  "🔍 Search Book / Shelf",
+  "📚 My books & due dates",
+  "📅 Upcoming Events",
+  "🎮 Games Corner & XP",
+  "💰 Overdue fine amount",
   "🎫 Raise Support Ticket",
   "✏️ Quick Profile Edit",
   "💬 Give Feedback",
   "👑 Check Badges",
   "📜 My Certificates",
   "⚡ Level & XP Info",
-  "📚 My books & due dates",
-  "💰 Overdue fine amount",
   "🕐 Library timings",
-  "📖 Reading Wrap Capsule",
-  "About Developer",
-  "About KV Sulur",
+  "📖 Reading Wrap",
+  "👨‍💻 About Developer",
 ];
 
 export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }) => {
@@ -66,10 +80,126 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
   // Active Interactive Card Widget State
   const [activeWidget, setActiveWidget] = useState<ActiveWidgetType>('none');
 
+  // Text-to-speech, speech-to-text & copy state
+  const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch {}
+      }
+    };
+  }, []);
+
+  const toggleSpeechRecognition = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Voice input is not supported in this browser. Try Google Chrome or Microsoft Edge!");
+      return;
+    }
+
+    if (isListening) {
+      try { recognitionRef.current?.stop(); } catch {}
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-IN";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        toast.info("🎙️ Listening... speak now");
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results?.[0]?.[0]?.transcript;
+        if (transcript) {
+          setInput(transcript);
+          sendMessage(transcript);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onerror = (e: any) => {
+        console.warn("Speech recognition error:", e);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (e) {
+      console.warn("Speech start failed:", e);
+      setIsListening(false);
+    }
+  };
+
+  const toggleTextToSpeech = (index: number, text: string) => {
+    if (!("speechSynthesis" in window)) {
+      toast.error("Text-to-speech is not supported in this browser.");
+      return;
+    }
+
+    if (speakingIdx === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingIdx(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    // Clean markdown characters and bullets for clean pronunciation
+    const cleanText = text
+      .replace(/[*#_`~\[\]]/g, "")
+      .replace(/https?:\/\/\S+/g, "")
+      .replace(/•/g, " ")
+      .replace(/\n+/g, ". ");
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onend = () => setSpeakingIdx(null);
+    utterance.onerror = () => setSpeakingIdx(null);
+
+    setSpeakingIdx(index);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const copyToClipboard = (index: number, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIdx(index);
+    toast.success("Copied to clipboard!");
+    setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const resetConversation = () => {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    setSpeakingIdx(null);
+    setActiveWidget('none');
+    setMessages([
+      {
+        role: 'assistant',
+        content: `Hello! 👋 I am **${botName}** — your official AI assistant for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🔍 **Live Book & Shelf Finder** (search title, author, cupboard & shelf)\n• 📚 **My Borrowed Books & Due Dates**\n• 📅 **Upcoming Events & Competitions**\n• 🎮 **Games Corner & XP Info**\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Quick Profile Edits**\n• 💬 **Feedback & Star Ratings**\n• 👑 **Check Badges & Certificates**\n\nHow can I help you today? Tap any prompt below or speak into the mic!`
+      }
+    ]);
+    toast.success("Chat restarted!");
   };
 
   const loadUserProfile = async () => {
@@ -119,7 +249,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         setMessages([
           { 
             role: 'assistant', 
-            content: `Hello! 👋 I am **${activeName}** — your official AI assistant for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Edit Profile Details** (bio, phone, roll no, class)\n• 💬 **Submit Library Feedback & Ratings**\n• 👑 **Check Rotational & Earned Badges**\n• 📜 **View Issued Certificates**\n• ⚡ **Check XP, Level & Class Rank**\n• 📚 **Borrowing Rules, Timings & Fines**\n\nHow can I help you today? Tap any prompt below or type your question!` 
+            content: `Hello! 👋 I am **${activeName}** — your official AI assistant for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🔍 **Live Book & Shelf Finder** (search title, author, cupboard & shelf)\n• 📚 **My Borrowed Books & Due Dates**\n• 📅 **Upcoming Events & Competitions**\n• 🎮 **Games Corner & XP Info**\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Edit Profile Details** (bio, phone, roll no, class)\n• 💬 **Submit Library Feedback & Ratings**\n• 👑 **Check Rotational & Earned Badges**\n• 📜 **View Issued Certificates**\n• ⚡ **Check XP, Level & Class Rank**\n\nHow can I help you today? Tap any prompt below, type your question, or tap 🎙️ to speak!` 
           }
         ]);
       });
@@ -452,6 +582,11 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         return "📖 **Book Recommendations**\n\nHere are some great reads by level:\n\n**Class 6–8:** Ruskin Bond stories, Diary of a Wimpy Kid, Famous Five series\n**Class 9–10:** To Kill a Mockingbird, Wings of Fire (A.P.J. Abdul Kalam), Animal Farm\n**Class 11–12:** The Alchemist, Rich Dad Poor Dad, 1984 by George Orwell\n\nFor personalized recommendations, ask me: *'Suggest a science fiction book'* or *'Best book for Class 8'* — I'll use AI to help you!";
       }
 
+      // Games Corner & Daily Limit
+      if (t.includes("game") || t.includes("crossword") || t.includes("wordle") || t.includes("riddle") || t.includes("spell bee") || t.includes("word scramble") || t.includes("daily limit")) {
+        return "🎮 **Library Games Corner**\n\nSharpen your vocabulary, literature knowledge, and earn XP with 9 fun educational games:\n\n• 🔤 **Word Scramble** · Unscramble authors & literary terms\n• 🪢 **Book Hangman** · Guess famous book titles\n• 🟩 **Reading Wordle** · 5-letter library & literature word puzzles\n• 🐝 **Spell Bee** · Test challenging English spellings\n• 🔎 **Word Search** · Find hidden words in the grid\n• ⚡ **Speed Typing** · Type inspiring book quotes with WPM tracking\n• 🧩 **Riddle Rounds** · Solve witty library and science riddles\n• 📰 **Mini Crossword** · Daily 5x5 themed crosswords\n• 🗺️ **Literary Places** · Explore fictional & historic book realms\n\n⏱️ **Rules:**\n• You can play up to **5 games per day** to earn bonus XP.\n• Head to your **Student Dashboard → Games Corner** to play!";
+      }
+
       // Thank you / bye
       if (t === "thank you" || t === "thanks" || t === "thank u" || t === "thx" || t === "bye" || t === "goodbye" || t.includes("that's all") || t.includes("that is all")) {
         return "You're welcome! 😊 Feel free to ask me anything else. Happy reading! 📚";
@@ -461,7 +596,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     };
 
     // ─────────────────────────────────────────────────────────────
-    // Personalised live answers from the student's own records
+    // 1. Personalised live answers from the student's own records
     // ─────────────────────────────────────────────────────────────
     const personalAnswer = await checkPersonalAnswer(textToSend);
     if (personalAnswer) {
@@ -470,12 +605,122 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       return;
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // 2. Real-time Live Book & Shelf Catalog Search
+    // ─────────────────────────────────────────────────────────────
+    const checkLiveCatalogSearch = async (text: string): Promise<string | null> => {
+      const t = text.toLowerCase().trim();
+
+      const isSearchIntent =
+        /\b(do you have|is there|is .* available|search (?:for )?books?|find (?:a )?books?|books? (?:by|on|about|for)|where (?:is|are) (?:the )?books?|looking for|have you got|shelf of|location of)\b/i.test(t) ||
+        t.startsWith("find ") || t.startsWith("search ") || t.startsWith("where is ");
+
+      if (!isSearchIntent) return null;
+
+      let query = t
+        .replace(/\b(do you have|is there|is|available|search for books?|search books?|find a books?|find books?|books? by|books? on|books? about|books? for|where is the|where are the|where is|where are|looking for|have you got|please|can you find|in the library|shelf of|location of)\b/gi, "")
+        .replace(/[\?\"\'\!\.]/g, "")
+        .trim();
+
+      if (!query || query.length < 2) return null;
+
+      try {
+        const { data, error } = await supabase
+          .from("books")
+          .select("id, title, author, category, subject, class_level, cupboard_number, shelf_number, available_copies, total_copies")
+          .or(`title.ilike.%${query}%,author.ilike.%${query}%,subject.ilike.%${query}%,category.ilike.%${query}%`)
+          .limit(4);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          return `🔍 **Book Search: "${query}"**\n\nNo exact matches were found in our digital library for "${query}".\n\n💡 **Suggestions:**\n• Try searching by just author surname or a single keyword.\n• Explore the full **[Library Catalog](/catalog)**.\n• Need this book? Click **🎫 Raise Support Ticket** to recommend it for library purchase!`;
+        }
+
+        const lines = data.map((b) => {
+          const avail = (b.available_copies ?? 0) > 0
+            ? `🟢 **Available** (${b.available_copies} of ${b.total_copies ?? 1} copies)`
+            : `🔴 **Currently Issued** (0 of ${b.total_copies ?? 1} available)`;
+          const location = (b.cupboard_number || b.shelf_number)
+            ? `📍 **Shelf Location:** Cupboard **${b.cupboard_number || 'Main'}**, Shelf **${b.shelf_number || 'General'}**`
+            : `📍 **Location:** Main Circulation Stack`;
+          const meta = [b.category, b.class_level ? `Class ${b.class_level}` : ""].filter(Boolean).join(" · ");
+
+          return `• 📖 **[${b.title}](/catalog?search=${encodeURIComponent(b.title)})** by *${b.author || "Unknown"}*${meta ? ` (${meta})` : ""}\n  ${avail}\n  ${location}`;
+        });
+
+        return `📚 **Found ${data.length} match(es) for "${query}":**\n\n${lines.join("\n\n")}\n\n👉 *Tap the book title to open it in Catalog, or request it with your student barcode at the counter!*`;
+      } catch (err) {
+        console.warn("Live book search error:", err);
+        return null;
+      }
+    };
+
+    const catalogAnswer = await checkLiveCatalogSearch(textToSend);
+    if (catalogAnswer) {
+      setMessages([...newMessages, { role: 'assistant', content: catalogAnswer }]);
+      setLoading(false);
+      return;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 3. Real-time Live Upcoming Events & Competitions Search
+    // ─────────────────────────────────────────────────────────────
+    const checkLiveEventsSearch = async (text: string): Promise<string | null> => {
+      const t = text.toLowerCase().trim();
+      if (!/\b(events?|competitions?|contest|reading challenge|upcoming events?|library activities)\b/i.test(t)) {
+        return null;
+      }
+
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const { data, error } = await supabase
+          .from("library_events")
+          .select("id, title, description, event_date, location")
+          .eq("is_published", true)
+          .gte("event_date", today)
+          .order("event_date", { ascending: true })
+          .limit(4);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          return "📅 **Upcoming Library Events**\n\nThere are no upcoming scheduled events right now. Stay tuned for National Library Week, World Book Day, and Pustak Mela announcements!";
+        }
+
+        const list = data.map((ev) => {
+          const dateStr = new Date(ev.event_date).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric"
+          });
+          const loc = ev.location ? ` · 📍 ${ev.location}` : "";
+          return `• 🏆 **${ev.title}** (${dateStr}${loc})\n  ${ev.description || "Open to all students. Participate to earn XP and certificates!"}`;
+        }).join("\n\n");
+
+        return `🎉 **Upcoming Library Events & Competitions (${data.length}):**\n\n${list}\n\n✨ *Win library competitions to earn certificates and the 👑 Best Library User rotational badge!*`;
+      } catch (err) {
+        console.warn("Events search failed:", err);
+        return null;
+      }
+    };
+
+    const eventsAnswer = await checkLiveEventsSearch(textToSend);
+    if (eventsAnswer) {
+      setMessages([...newMessages, { role: 'assistant', content: eventsAnswer }]);
+      setLoading(false);
+      return;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 4. Predefined & admin-configured local answers
+    // ─────────────────────────────────────────────────────────────
     const localAnswer = checkPredefinedAnswer(textToSend);
     if (localAnswer) {
       setTimeout(() => {
         setMessages([...newMessages, { role: 'assistant', content: localAnswer }]);
         setLoading(false);
-      }, 300);
+      }, 250);
       return;
     }
 
@@ -509,6 +754,16 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     }
   };
 
+  const handleClose = () => {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    setSpeakingIdx(null);
+    if (isListening && recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+      setIsListening(false);
+    }
+    setIsOpen(false);
+  };
+
   const renderFormattedMessage = (content: string) => {
     if (!content) return null;
     const lines = content.split('\n');
@@ -516,11 +771,28 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('* ');
       const isNumbered = /^\d+\.\s/.test(line.trim());
       
-      const parseBold = (text: string) => {
-        const parts = text.split(/\*\*([^*]+)\*\*/g);
+      const parseInline = (text: string) => {
+        // Parse markdown links [text](url) and bold **text**
+        const parts = text.split(/(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*)/g);
         return parts.map((part, partIdx) => {
-          if (partIdx % 2 === 1) {
-            return <strong key={partIdx} className="font-extrabold text-foreground dark:text-white">{part}</strong>;
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={partIdx} className="font-extrabold text-foreground dark:text-white">{part.slice(2, -2)}</strong>;
+          }
+          const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+          if (linkMatch) {
+            const [, linkText, linkUrl] = linkMatch;
+            const isInternal = linkUrl.startsWith('/');
+            return (
+              <a
+                key={partIdx}
+                href={linkUrl}
+                target={isInternal ? "_self" : "_blank"}
+                rel="noopener noreferrer"
+                className="text-primary font-bold underline underline-offset-2 hover:opacity-80 transition-opacity inline-flex items-center gap-0.5"
+              >
+                {linkText}
+              </a>
+            );
           }
           return part;
         });
@@ -531,15 +803,15 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
           {isBullet ? (
             <span className="flex items-start gap-1">
               <span className="text-primary font-bold">•</span>
-              <span>{parseBold(line.trim().replace(/^[•\-\*]\s*/, ''))}</span>
+              <span>{parseInline(line.trim().replace(/^[•\-\*]\s*/, ''))}</span>
             </span>
           ) : isNumbered ? (
             <span className="flex items-start gap-1">
               <span className="font-bold text-primary">{line.trim().match(/^\d+\./)?.[0]}</span>
-              <span>{parseBold(line.trim().replace(/^\d+\.\s*/, ''))}</span>
+              <span>{parseInline(line.trim().replace(/^\d+\.\s*/, ''))}</span>
             </span>
           ) : (
-            parseBold(line)
+            parseInline(line)
           )}
         </div>
       );
@@ -564,12 +836,34 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
               </div>
               <div>
                 <h3 className="font-bold text-sm text-foreground leading-tight">{botName}</h3>
-                <p className="text-[10px] text-muted-foreground">KV Sulur Library Assistant · Online</p>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <span>KV Sulur Library AI</span>
+                  <span>·</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">Online</span>
+                </p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" aria-label="Close chat" onClick={() => setIsOpen(false)} className="h-8 w-8 rounded-full hover:bg-background/80 text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Restart chat"
+                onClick={resetConversation}
+                title="Restart conversation"
+                className="h-8 w-8 rounded-full hover:bg-background/80 text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Close chat"
+                onClick={handleClose}
+                className="h-8 w-8 rounded-full hover:bg-background/80 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* ── Messages & Widget Area ────────────────────── */}
@@ -589,6 +883,29 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
                   }`}>
                     {renderFormattedMessage(m.content)}
                   </div>
+                  {/* Actions on Assistant Messages: Listen & Copy */}
+                  {m.role === 'assistant' && (
+                    <div className="flex items-center gap-1.5 pl-1 text-muted-foreground">
+                      <button
+                        type="button"
+                        onClick={() => toggleTextToSpeech(i, m.content)}
+                        title={speakingIdx === i ? "Stop speaking" : "Listen to answer"}
+                        className={`p-1 rounded-md hover:bg-muted/80 transition-colors ${
+                          speakingIdx === i ? "text-primary animate-pulse font-bold" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {speakingIdx === i ? <VolumeX className="h-3 w-3 text-red-500" /> : <Volume2 className="h-3 w-3" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(i, m.content)}
+                        title="Copy response"
+                        className="p-1 rounded-md hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                      </button>
+                    </div>
+                  )}
                   {m.role === 'assistant' && i === messages.length - 1 && (m.content.includes("trouble") || m.content.includes("failed")) && (
                     <Button variant="outline" size="sm" onClick={() => {
                       const lastUserMsg = [...messages].reverse().find(msg => msg.role === 'user');
@@ -650,9 +967,25 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
             )}
             <div className="flex gap-1.5 items-center px-3 pb-3 pt-1.5">
               <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !loading && sendMessage()}
-                placeholder="Ask or command Avenyx…"
+                placeholder={isListening ? "Listening to your voice..." : `Ask or command ${botName}…`}
                 className="bg-muted/40 text-xs h-9 rounded-full border-border/40 focus-visible:ring-primary/30 focus-visible:bg-background transition-colors placeholder:text-muted-foreground/60"
               />
+              {/* Voice Speech-to-Text Button */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Voice input"
+                title={isListening ? "Listening... click to stop" : "Speak your question (Voice Search)"}
+                onClick={toggleSpeechRecognition}
+                className={`h-9 w-9 rounded-full shrink-0 transition-all ${
+                  isListening
+                    ? "bg-red-500/20 text-red-600 animate-pulse border border-red-500/50 scale-105"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
               <Button size="icon" aria-label="Send message" onClick={() => sendMessage()} disabled={!input.trim() || loading}
                 className="h-9 w-9 rounded-full shrink-0 bg-primary hover:bg-primary/90 disabled:opacity-35 shadow-sm transition-all hover:scale-105 active:scale-95">
                 <Send className="h-4 w-4" />

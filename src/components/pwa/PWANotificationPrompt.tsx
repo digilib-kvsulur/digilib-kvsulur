@@ -15,6 +15,12 @@ export default function PWANotificationPrompt({ userId }: PWANotificationPromptP
   const [subscribing, setSubscribing] = useState(false);
 
   useEffect(() => {
+    // Do not show enable notification banner before login
+    if (!userId) {
+      setShowPrompt(false);
+      return;
+    }
+
     // If running in native Android APK (Capacitor), Capacitor handles push separately
     if (Capacitor.isNativePlatform()) return;
 
@@ -41,7 +47,7 @@ export default function PWANotificationPrompt({ userId }: PWANotificationPromptP
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [userId]);
 
   const handleEnable = async () => {
     if (!userId) {
@@ -90,7 +96,7 @@ export default function PWANotificationPrompt({ userId }: PWANotificationPromptP
     setShowPrompt(false);
   };
 
-  if (!showPrompt) return null;
+  if (!showPrompt || !userId) return null;
 
   return (
     <div className="fixed top-16 right-4 left-4 sm:left-auto sm:max-w-md z-50 animate-in fade-in slide-in-from-top-4 duration-300">
