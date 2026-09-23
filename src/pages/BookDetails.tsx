@@ -522,7 +522,7 @@ export default function BookDetails() {
                     <Sparkles className="h-4 w-4 text-amber-500" /> {myReviewId ? "Update your Review" : "Write a Review"}
                   </CardTitle>
                   <p className="text-xs text-slate-500 mt-1">
-                    ✍️ Write your thoughts in words to earn <span className="font-bold text-amber-600">+15 XP</span>. Star ratings alone do not give points.
+                    ✍️ Write your thoughts in words to earn <span className="font-bold text-amber-600">+{reviewPoints} XP</span>. Star ratings alone do not give points.
                   </p>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-4">
@@ -536,7 +536,7 @@ export default function BookDetails() {
                   </div>
                   <div className="space-y-1">
                     <Textarea 
-                      placeholder="What did you enjoy? What did you learn? Would you recommend it? (Write at least 20 characters to earn XP!)" 
+                      placeholder={`What did you enjoy? What did you learn? Would you recommend it? (Write at least 20 characters to earn +${reviewPoints} XP!)`} 
                       value={myText} 
                       onChange={(e) => setMyText(e.target.value)} 
                       rows={4} 
@@ -546,7 +546,7 @@ export default function BookDetails() {
                     <div className="flex justify-between items-center">
                       <p className={`text-[11px] font-medium ${myText.trim().length < 20 ? "text-rose-500" : "text-emerald-600"}`}>
                         {myText.trim().length < 20
-                          ? `${20 - myText.trim().length} more characters needed`
+                          ? `Write ${20 - myText.trim().length} more characters to earn +${reviewPoints} XP`
                           : "✓ Review ready to post!"}
                       </p>
                       <span className="text-[11px] text-slate-400">{myText.length}/500</span>
@@ -558,7 +558,7 @@ export default function BookDetails() {
                     size="sm" 
                     className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 rounded-xl font-bold px-5 disabled:opacity-50"
                   >
-                    {submittingReview ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : (myReviewId ? "Update Review" : "Post Review & Earn XP")}
+                    {submittingReview ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : (myReviewId ? "Update Review" : `Post Review & Earn +${reviewPoints} XP`)}
                   </Button>
                 </CardContent>
               </Card>
