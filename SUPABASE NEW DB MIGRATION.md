@@ -150,7 +150,8 @@ GRANT EXECUTE ON FUNCTION public.get_profile_role(uuid) TO anon, authenticated, 
 -- ==============================================================================
 -- 3. FIX STORAGE RLS POLICIES FOR storage.objects
 -- ==============================================================================
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Note: storage.objects already has RLS enabled by supabase_admin by default.
+-- Do not run ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY (fails with 42501: must be owner of table objects).
 
 DROP POLICY IF EXISTS "Public can view gallery images" ON storage.objects;
 DROP POLICY IF EXISTS "Admins and teachers can upload gallery images" ON storage.objects;

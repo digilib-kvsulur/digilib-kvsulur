@@ -85,8 +85,6 @@ GRANT EXECUTE ON FUNCTION public.get_profile_role(uuid) TO anon, authenticated, 
 -- ==============================================================================
 -- 3. FIX STORAGE RLS POLICIES FOR storage.objects
 -- ==============================================================================
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Public can view gallery images" ON storage.objects;
 DROP POLICY IF EXISTS "Admins and teachers can upload gallery images" ON storage.objects;
 DROP POLICY IF EXISTS "Admins and teachers can update gallery images" ON storage.objects;
