@@ -977,14 +977,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", uid);
       } else {
         await supabase.from("post_likes").insert({ post_id: post.id, user_id: uid });
-        // notify post author safely (DB trigger also handles this)
-        if (post.user_id !== uid) {
-          try {
-            sendNotification(post.user_id, "❤️ Someone liked your post", `Your post "${post.title}" received a new like!`, "info");
-          } catch {
-            // non-admin notification insert handled by backend trigger
-          }
-        }
+        // Handled automatically by backend DB trigger tg_notify_post_like()
       }
     } catch (err) {
       console.warn("toggleLike error:", err);
@@ -1039,13 +1032,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
     setCommentDraft(""); await loadComments(postId);
     setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p));
-    // notify post author
-    const post = posts.find(p => p.id === postId);
-    if (post && post.user_id !== currentUserId) {
-      try {
-        sendNotification(post.user_id, "💬 New comment on your post", `Someone replied to "${post.title}"`, "info");
-      } catch {}
-    }
+    // Notification to post author is handled automatically by DB trigger tg_notify_post_comment()
   };
   const deleteComment = async (postId: string, id: string) => {
     await supabase.from("post_comments").delete().eq("id", id);
@@ -1157,7 +1144,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
       setFriendshipsMap((m) => ({ ...m, [userId]: data }));
       toast({ title: "Friend request sent!" });
-      sendNotification(userId, "👋 New Friend Request", "Someone from KV Sulur DLMS sent you a friend request!", "info");
+      // Notification to recipient is handled automatically by DB trigger tg_notify_friendship()
       loadFriendshipsMap();
     } catch (err: any) {
       toast({ title: "Failed to send request", description: err.message, variant: "destructive" });

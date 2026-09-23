@@ -40,7 +40,19 @@ export async function subscribeWebPush(userId: string): Promise<boolean> {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return false;
 
-    const registration = await navigator.serviceWorker.ready;
+    let registration: ServiceWorkerRegistration;
+    try {
+      registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<ServiceWorkerRegistration>((_, reject) =>
+          setTimeout(() => reject(new Error('SW ready timeout')), 2500)
+        ),
+      ]);
+    } catch {
+      registration = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+    }
+
     const appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource;
 
     let subscription: PushSubscription | null = null;
@@ -76,6 +88,20 @@ export async function subscribeWebPush(userId: string): Promise<boolean> {
     if (error) {
       console.warn('Failed to save push subscription to Supabase:', error.message);
       return false;
+    }
+
+    // Immediately trigger a confirmation system notification to verify device pipeline
+    try {
+      if (registration && "showNotification" in registration) {
+        await registration.showNotification("🔔 KV Sulur DLMS Alerts Active", {
+          body: "Push notifications are now enabled on this device.",
+          icon: "/pwa-192x192.png",
+          badge: "/pwa-192x192.png",
+          tag: "dlms-welcome",
+        });
+      }
+    } catch {
+      /* ignore confirmation notification error */
     }
 
     return true;

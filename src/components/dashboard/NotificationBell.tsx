@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Bell, CheckCheck, ExternalLink, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
 } from "@/components/ui/dialog";
@@ -20,45 +19,11 @@ interface Notification {
   target_user_id?: string | null;
 }
 
-const playNotificationChime = () => {
-  try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const now = ctx.currentTime;
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc1.type = "sine";
-    osc1.frequency.setValueAtTime(587.33, now); // D5
-    osc1.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
-
-    osc2.type = "sine";
-    osc2.frequency.setValueAtTime(880, now + 0.12);
-
-    gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc1.start(now);
-    osc1.stop(now + 0.12);
-    osc2.start(now + 0.12);
-    osc2.stop(now + 0.35);
-  } catch {
-    // Audio autoplay restrictions can be safely ignored
-  }
-};
-
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [open, setOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     loadNotifications();
@@ -92,12 +57,11 @@ const NotificationBell = () => {
         (payload) => {
           const newNotif = payload.new as Notification;
           if (!newNotif.target_user_id || newNotif.target_user_id === currentUserId) {
-            setNotifications((prev) => [newNotif, ...prev]);
-            playNotificationChime();
-            toast({
-              title: newNotif.title || "New Notification",
-              description: newNotif.message,
+            setNotifications((prev) => {
+              if (prev.some((n) => n.id === newNotif.id)) return prev;
+              return [newNotif, ...prev];
             });
+            // Toast & sound are handled globally by GlobalNotificationsProvider to avoid duplicates
           }
         }
       )
@@ -106,7 +70,7 @@ const NotificationBell = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUserId, toast]);
+  }, [currentUserId]);
 
   const markAsRead = async (id: string) => {
     await supabase.from("notifications").update({ is_read: true }).eq("id", id);

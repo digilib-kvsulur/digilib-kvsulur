@@ -64,9 +64,65 @@ export const playNotificationChime = () => {
   }
 };
 
+// Universal System/Push Notification (works across Android Chrome, PWAs, and Desktop)
+export const showSystemPushNotification = async (
+  title: string,
+  options: {
+    body?: string;
+    icon?: string;
+    badge?: string;
+    action_link?: string | null;
+    tag?: string;
+  } = {}
+) => {
+  if (!("Notification" in window) || Notification.permission !== "granted") {
+    return false;
+  }
+
+  const iconUrl = options.icon || "/pwa-192x192.png";
+  const badgeUrl = options.badge || "/pwa-192x192.png";
+  const notifOptions: NotificationOptions = {
+    body: options.body || "You have a new update from KV Sulur DLMS.",
+    icon: iconUrl,
+    badge: badgeUrl,
+    tag: options.tag || `notif-${Date.now()}`,
+    data: {
+      url: options.action_link || "/",
+    },
+    // Vibration pattern for mobile phones (supported on Android)
+    vibrate: [200, 100, 200, 100, 200] as any,
+  };
+
+  // 1. ServiceWorker showNotification — REQUIRED for Android Chrome & Installed PWAs
+  // calling `new Notification()` on Android throws TypeError: Illegal constructor!
+  if ("serviceWorker" in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && "showNotification" in reg) {
+        await reg.showNotification(title, notifOptions);
+        return true;
+      }
+    } catch (swErr) {
+      console.warn("ServiceWorker showNotification failed, trying fallback:", swErr);
+    }
+  }
+
+  // 2. Desktop Browser fallback (where new Notification() is supported in window context)
+  try {
+    new Notification(title, notifOptions);
+    return true;
+  } catch (desktopErr) {
+    console.warn("Desktop Notification constructor failed:", desktopErr);
+  }
+
+  return false;
+};
+
 export const GlobalNotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userId, setUserId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  // Deduplication cache: prevents duplicate toasts/alerts when multiple events fire in short succession
+  const seenNotifKeys = React.useRef<Map<string, number>>(new Map());
 
   // Auto-subscribe to Web Push and Native Capacitor Push
   usePushSubscription(userId);
@@ -116,26 +172,35 @@ export const GlobalNotificationsProvider: React.FC<{ children: React.ReactNode }
           schema: "public",
           table: "notifications",
         },
-        (payload) => {
+        async (payload) => {
           const newNotif = payload.new as GlobalNotification;
           // Check if notification is targeted to this user or global (null)
           if (!newNotif.target_user_id || newNotif.target_user_id === userId) {
+            // Deduplication: prevent showing the same notification multiple times
+            const dedupKey = newNotif.id || `${newNotif.title}__${newNotif.message}`;
+            const now = Date.now();
+            // Prune keys older than 30 seconds
+            for (const [k, t] of seenNotifKeys.current.entries()) {
+              if (now - t > 30000) seenNotifKeys.current.delete(k);
+            }
+            if (seenNotifKeys.current.has(dedupKey)) {
+              return; // Already processed this notification!
+            }
+            seenNotifKeys.current.set(dedupKey, now);
+
             setUnreadCount((prev) => prev + 1);
             playNotificationChime();
 
-            // Native browser notification if window is minimized or in background
-            if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
-              try {
-                new Notification(newNotif.title || "KV Sulur DLMS", {
-                  body: newNotif.message,
-                  icon: "/logos/kv-logo.png",
-                });
-              } catch {
-                /* ignore */
-              }
-            }
+            // Native PWA system notification (system tray, status bar & lockscreen)
+            await showSystemPushNotification(newNotif.title || "KV Sulur DLMS", {
+              body: newNotif.message,
+              icon: "/pwa-192x192.png",
+              badge: "/pwa-192x192.png",
+              action_link: newNotif.action_link,
+              tag: newNotif.id,
+            });
 
-            // In-app interactive toast
+            // Single In-app interactive toast
             toast(newNotif.title || "Library Notification", {
               description: newNotif.message,
               action: newNotif.action_link
@@ -168,18 +233,24 @@ export const GlobalNotificationsProvider: React.FC<{ children: React.ReactNode }
     }
   };
 
-  const triggerTestNotification = () => {
+  const triggerTestNotification = async () => {
     playNotificationChime();
-    if ("Notification" in window && Notification.permission === "granted") {
-      try {
-        new Notification("🔔 KV Sulur DLMS Notification Test", {
-          body: "Realtime push notification pipeline is active and working!",
-          icon: "/favicon.ico",
+    
+    // Request permission if not yet decided
+    if ("Notification" in window) {
+      if (Notification.permission === "default") {
+        await Notification.requestPermission();
+      }
+      if (Notification.permission === "granted") {
+        await showSystemPushNotification("🔔 KV Sulur DLMS Notification Test", {
+          body: "PWA push notification pipeline is active and working on your device!",
+          icon: "/pwa-192x192.png",
+          badge: "/pwa-192x192.png",
+          action_link: "/",
         });
-      } catch (err) {
-        console.warn("Desktop notification error:", err);
       }
     }
+
     toast.success("🔔 Test Notification Triggered!", {
       description: "Push notification sound & toast pipeline operational.",
     });

@@ -42,7 +42,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
-import { playNotificationChime } from "@/components/global/GlobalNotificationsProvider";
+import { playNotificationChime, showSystemPushNotification } from "@/components/global/GlobalNotificationsProvider";
 
 export const CommandPalette: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -100,12 +100,12 @@ export const CommandPalette: React.FC = () => {
     toast.success("🔔 Realtime Test Notification Triggered!", {
       description: "Audio chime and visual alert tested successfully.",
     });
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("PM SHRI KV Sulur DLMS", {
-        body: "Realtime push notification test successful!",
-        icon: "/logos/kv-logo.png",
-      });
-    }
+    await showSystemPushNotification("PM SHRI KV Sulur DLMS", {
+      body: "Realtime push notification test successful!",
+      icon: "/pwa-192x192.png",
+      badge: "/pwa-192x192.png",
+      tag: "test-notification",
+    });
   };
 
   return (
