@@ -324,3 +324,19 @@ export async function fetchLibraryBotVisible(): Promise<boolean> {
   return String(val) === "true";
 }
 
+export async function fetchPointsPerReview(): Promise<number> {
+  try {
+    const { data } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "points_per_review")
+      .maybeSingle();
+    if (data?.value != null) {
+      return parseNumberSetting(data.value, 15);
+    }
+  } catch (e) {
+    console.warn("Could not fetch points_per_review setting:", e);
+  }
+  return 15;
+}
+
