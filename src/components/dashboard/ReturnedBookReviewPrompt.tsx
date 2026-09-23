@@ -5,16 +5,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { fetchPointsPerReview } from "@/lib/librarySettings";
 
 export default function ReturnedBookReviewPrompt({ userId }: { userId?: string }) {
   const [issue, setIssue] = useState<any>(null);
   const [rating, setRating] = useState(5);
   const [review, setReview] = useState("");
   const [saving, setSaving] = useState(false);
+  const [reviewPoints, setReviewPoints] = useState(15);
   const { toast } = useToast();
 
   useEffect(() => {
     if (!userId) return;
+    fetchPointsPerReview().then(setReviewPoints);
     (async () => {
       const { data: returned } = await supabase.from("book_issues").select("id, book_id, return_date, books(title, author)").eq("user_id", userId).eq("status", "returned").order("return_date", { ascending: false }).limit(5);
       for (const candidate of returned || []) {
@@ -27,14 +30,14 @@ export default function ReturnedBookReviewPrompt({ userId }: { userId?: string }
   const submit = async () => {
     if (!issue || !userId) return;
     if (review.trim().length < 20) {
-      toast({ title: "Please write more", description: `Write at least ${20 - review.trim().length} more characters to earn XP!`, variant: "destructive" });
+      toast({ title: "Please write more", description: `Write at least ${20 - review.trim().length} more characters to earn +${reviewPoints} XP!`, variant: "destructive" });
       return;
     }
     setSaving(true);
     const { error } = await supabase.from("book_reviews").insert({ book_id: issue.book_id, user_id: userId, rating, review_text: review.trim() });
     setSaving(false);
     if (error) { toast({ title: "Could not save review", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Thanks for your review! +15 XP earned 🎉" }); setIssue(null);
+    toast({ title: `Thanks for your review! +${reviewPoints} XP earned 🎉` }); setIssue(null);
   };
 
   return (
@@ -43,7 +46,7 @@ export default function ReturnedBookReviewPrompt({ userId }: { userId?: string }
         <DialogHeader>
           <DialogTitle>How was the book?</DialogTitle>
           <DialogDescription>
-            You've returned <strong>{issue?.books?.title}</strong>. Write a review in your own words to help other students and earn <span className="font-semibold text-amber-600">+15 XP</span>!
+            You've returned <strong>{issue?.books?.title}</strong>. Write a review in your own words to help other students and earn <span className="font-semibold text-amber-600">+{reviewPoints} XP</span>!
           </DialogDescription>
         </DialogHeader>
         <div className="flex gap-1">
@@ -56,19 +59,19 @@ export default function ReturnedBookReviewPrompt({ userId }: { userId?: string }
         <Textarea
           value={review}
           onChange={event => setReview(event.target.value)}
-          placeholder="What did you enjoy or learn from this book? Would you recommend it? Share your thoughts! (Min 20 characters)"
+          placeholder={`What did you enjoy or learn from this book? Would you recommend it? Share your thoughts! (Write at least 20 characters to earn +${reviewPoints} XP)`}
           rows={4}
           maxLength={500}
         />
         <p className={`text-[11px] font-medium ${review.trim().length < 20 ? "text-rose-500" : "text-emerald-600"}`}>
           {review.trim().length < 20
-            ? `Write ${20 - review.trim().length} more characters to earn +15 XP`
+            ? `Write ${20 - review.trim().length} more characters to earn +${reviewPoints} XP`
             : "✓ Ready to submit and earn XP!"}
         </p>
         <DialogFooter>
           <Button variant="outline" onClick={() => setIssue(null)}>Maybe later</Button>
           <Button onClick={submit} disabled={saving || review.trim().length < 20}>
-            {saving ? "Saving..." : "Submit Review & Earn XP"}
+            {saving ? "Saving..." : `Submit Review & Earn +${reviewPoints} XP`}
           </Button>
         </DialogFooter>
       </DialogContent>
