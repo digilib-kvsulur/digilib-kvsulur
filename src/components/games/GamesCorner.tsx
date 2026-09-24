@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles,
+  Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles, Users,
 } from "lucide-react";
 import { GameDef, GameBook, GameContentItem } from "./gameTypes";
 import BookMatch from "./BookMatch";
@@ -30,9 +30,16 @@ import SpotDifference from "./SpotDifference";
 import RiddleRounds from "./RiddleRounds";
 import LiteraryPlaces from "./LiteraryPlaces";
 import ReactionTest from "./ReactionTest";
+import EmojiBookRiddle from "./EmojiBookRiddle";
+import QuoteGuesser from "./QuoteGuesser";
+import GenreDetective from "./GenreDetective";
+import SpineStacker from "./SpineStacker";
+import Book2048 from "./Book2048";
+import StorySequence from "./StorySequence";
+import CharacterPairUp from "./CharacterPairUp";
 
 const ICONS: Record<string, React.ElementType> = {
-  Layers, Grid3x3, Shuffle, PuzzleIcon: Puzzle, Puzzle, Spade, Grid2x2, Gamepad2, Zap, Sparkles, Trophy,
+  Layers, Grid3x3, Shuffle, PuzzleIcon: Puzzle, Puzzle, Spade, Grid2x2, Gamepad2, Zap, Sparkles, Trophy, Users,
 };
 
 const ACCENTS: Record<string, string> = {
@@ -53,7 +60,41 @@ const ACCENTS: Record<string, string> = {
   "riddle-rounds": "from-indigo-500 to-blue-600",
   "literary-places": "from-lime-500 to-green-600",
   "reaction-test": "from-red-500 to-orange-600",
+  "emoji-book-riddle": "from-amber-500 to-pink-500",
+  "quote-guesser": "from-indigo-500 to-sky-500",
+  "genre-detective": "from-teal-500 to-cyan-600",
+  "spine-stacker": "from-orange-500 to-amber-600",
+  "book-2048": "from-emerald-500 to-teal-600",
+  "story-sequence": "from-purple-500 to-indigo-600",
+  "character-clash": "from-rose-500 to-red-600",
 };
+
+const FALLBACK_GAMES: GameDef[] = [
+  { id: "book-match", key: "book-match", name: "Book Match", description: "Flip cards and match book titles with their authors.", icon_name: "Layers", category: "memory", is_enabled: true, points_per_win: 10, max_points_per_day: 40, daily_play_limit: 5, sort_order: 1 },
+  { id: "library-bingo", key: "library-bingo", name: "Library Bingo", description: "Complete a row of library reading tasks to win.", icon_name: "Grid3x3", category: "bingo", is_enabled: true, points_per_win: 15, max_points_per_day: 30, daily_play_limit: 3, sort_order: 2 },
+  { id: "word-scramble", key: "word-scramble", name: "Word Scramble", description: "Unscramble book titles and literary words against the clock.", icon_name: "Shuffle", category: "word", is_enabled: true, points_per_win: 8, max_points_per_day: 40, daily_play_limit: 6, sort_order: 3 },
+  { id: "sliding-puzzle", key: "sliding-puzzle", name: "Jigsaw Slider", description: "Slide the tiles to rebuild a book cover.", icon_name: "PuzzleIcon", category: "puzzle", is_enabled: true, points_per_win: 12, max_points_per_day: 36, daily_play_limit: 4, sort_order: 4 },
+  { id: "book-cards", key: "book-cards", name: "Book Card Duel", description: "Guess which book is more popular in the library.", icon_name: "Spade", category: "cards", is_enabled: true, points_per_win: 10, max_points_per_day: 40, daily_play_limit: 5, sort_order: 5 },
+  { id: "crossword", key: "crossword", name: "Mini Crossword", description: "Solve a crossword built from library and book clues.", icon_name: "Grid2x2", category: "word", is_enabled: true, points_per_win: 20, max_points_per_day: 40, daily_play_limit: 2, sort_order: 6 },
+  { id: "reading-wordle", key: "reading-wordle", name: "Reading Wordle", description: "Guess the 5-letter book-related word in 6 tries.", icon_name: "Sparkles", category: "word", is_enabled: true, points_per_win: 10, max_points_per_day: 40, daily_play_limit: 5, sort_order: 7 },
+  { id: "book-hangman", key: "book-hangman", name: "Book Hangman", description: "Guess the letters to solve the secret book title or literary word.", icon_name: "Gamepad2", category: "word", is_enabled: true, points_per_win: 8, max_points_per_day: 40, daily_play_limit: 5, sort_order: 8 },
+  { id: "spell-bee", key: "spell-bee", name: "Spell Bee", description: "Listen to or read a hint and spell the library term correctly.", icon_name: "Trophy", category: "word", is_enabled: true, points_per_win: 10, max_points_per_day: 30, daily_play_limit: 3, sort_order: 9 },
+  { id: "word-chain", key: "word-chain", name: "Word Chain", description: "Build a chain of words where each starts with the last letter of the previous.", icon_name: "Shuffle", category: "word", is_enabled: true, points_per_win: 10, max_points_per_day: 40, daily_play_limit: 5, sort_order: 10 },
+  { id: "word-search", key: "word-search", name: "Word Search", description: "Find hidden library and literary words in the puzzle grid.", icon_name: "Grid3x3", category: "word", is_enabled: true, points_per_win: 12, max_points_per_day: 36, daily_play_limit: 4, sort_order: 11 },
+  { id: "speed-typing", key: "speed-typing", name: "Speed Typing", description: "Test your words-per-minute rate by typing literary quotes.", icon_name: "Zap", category: "speed", is_enabled: true, points_per_win: 10, max_points_per_day: 40, daily_play_limit: 5, sort_order: 12 },
+  { id: "quick-draw", key: "quick-draw", name: "Quick Draw", description: "Draw and sketch the given book themed prompt before time runs out.", icon_name: "Sparkles", category: "creative", is_enabled: true, points_per_win: 15, max_points_per_day: 30, daily_play_limit: 3, sort_order: 13 },
+  { id: "spot-difference", key: "spot-difference", name: "Spot the Difference", description: "Compare book cover images or patterns and find the odd one.", icon_name: "Layers", category: "puzzle", is_enabled: true, points_per_win: 8, max_points_per_day: 40, daily_play_limit: 5, sort_order: 14 },
+  { id: "riddle-rounds", key: "riddle-rounds", name: "Riddle Rounds", description: "Solve clever riddles about popular library books and authors.", icon_name: "Gamepad2", category: "puzzle", is_enabled: true, points_per_win: 12, max_points_per_day: 36, daily_play_limit: 4, sort_order: 15 },
+  { id: "literary-places", key: "literary-places", name: "Literary Places", description: "Trivia challenge: Guess the book setting, country or location.", icon_name: "Layers", category: "trivia", is_enabled: true, points_per_win: 15, max_points_per_day: 30, daily_play_limit: 3, sort_order: 16 },
+  { id: "reaction-test", key: "reaction-test", name: "Reaction Test", description: "Click as fast as you can when the screen changes color.", icon_name: "Zap", category: "reflex", is_enabled: true, points_per_win: 8, max_points_per_day: 40, daily_play_limit: 5, sort_order: 17 },
+  { id: "emoji-book-riddle", key: "emoji-book-riddle", name: "Emoji Book Riddle", description: "Decode famous book titles and literary classics from playful emoji sequences.", icon_name: "Sparkles", category: "puzzle", is_enabled: true, points_per_win: 12, max_points_per_day: 36, daily_play_limit: 4, sort_order: 18 },
+  { id: "quote-guesser", key: "quote-guesser", name: "Quote Detective", description: "Identify which famous book or legendary author spoke memorable quotes.", icon_name: "Trophy", category: "trivia", is_enabled: true, points_per_win: 15, max_points_per_day: 45, daily_play_limit: 4, sort_order: 19 },
+  { id: "genre-detective", key: "genre-detective", name: "Genre Sorting Rush", description: "Rapidly categorize incoming library books into the right shelves and genres.", icon_name: "Layers", category: "speed", is_enabled: true, points_per_win: 12, max_points_per_day: 36, daily_play_limit: 5, sort_order: 20 },
+  { id: "spine-stacker", key: "spine-stacker", name: "Book Shelf Stacker", description: "Precision timing arcade game to stack books into a towering library pile.", icon_name: "Gamepad2", category: "reflex", is_enabled: true, points_per_win: 15, max_points_per_day: 45, daily_play_limit: 5, sort_order: 21 },
+  { id: "book-2048", key: "book-2048", name: "Reader's 2048", description: "Merge matching literary steps: Letter → Word → Page → Chapter → Masterpiece!", icon_name: "Grid2x2", category: "puzzle", is_enabled: true, points_per_win: 20, max_points_per_day: 40, daily_play_limit: 3, sort_order: 22 },
+  { id: "story-sequence", key: "story-sequence", name: "Story Chrono", description: "Rearrange scrambled plot milestones of beloved tales into the correct chronological order.", icon_name: "Shuffle", category: "puzzle", is_enabled: true, points_per_win: 15, max_points_per_day: 30, daily_play_limit: 3, sort_order: 23 },
+  { id: "character-clash", key: "character-clash", name: "Character Pair-Up", description: "Connect legendary literary characters with their partners, sidekicks, and rivals.", icon_name: "Users", category: "memory", is_enabled: true, points_per_win: 10, max_points_per_day: 40, daily_play_limit: 5, sort_order: 24 }
+];
 
 export default function GamesCorner({ userId, onPointsEarned }: { userId: string; onPointsEarned?: () => void }) {
   const { toast } = useToast();
@@ -94,11 +135,21 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
         supabase.from("books").select("id, title, author, cover_url, category").limit(120),
         supabase.from("game_content").select("*").eq("is_active", true).limit(2000),
       ]);
-      setGames((g || []) as GameDef[]);
+      const fetched = (g || []) as GameDef[];
+      const existingKeys = new Set(fetched.map((x) => x.key));
+      const combined = [...fetched];
+      for (const dg of FALLBACK_GAMES) {
+        if (!existingKeys.has(dg.key)) {
+          combined.push(dg);
+        }
+      }
+      combined.sort((a, b) => a.sort_order - b.sort_order);
+      setGames(combined);
       setBooks((b || []) as GameBook[]);
       setContent((c || []) as unknown as GameContentItem[]);
     } catch (e) {
       console.error(e);
+      setGames(FALLBACK_GAMES);
     } finally {
       setLoading(false);
     }
@@ -210,6 +261,13 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       case "riddle-rounds": return <RiddleRounds {...props} />;
       case "literary-places": return <LiteraryPlaces {...props} />;
       case "reaction-test": return <ReactionTest {...props} />;
+      case "emoji-book-riddle": return <EmojiBookRiddle {...props} />;
+      case "quote-guesser": return <QuoteGuesser {...props} />;
+      case "genre-detective": return <GenreDetective {...props} />;
+      case "spine-stacker": return <SpineStacker {...props} />;
+      case "book-2048": return <Book2048 {...props} />;
+      case "story-sequence": return <StorySequence {...props} />;
+      case "character-clash": return <CharacterPairUp {...props} />;
       default: return <p className="text-sm text-muted-foreground">This game is coming soon.</p>;
     }
   };
