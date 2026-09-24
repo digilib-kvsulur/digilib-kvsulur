@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -322,12 +323,7 @@ export default function BookDetails() {
     : null;
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
-        <p className="text-sm text-slate-600 font-semibold">Loading book details...</p>
-      </div>
-    );
+    return <LibraryLoader fullScreen message="Fetching book details..." />;
   }
 
   if (!book) return null;
