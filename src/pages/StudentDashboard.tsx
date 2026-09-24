@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -755,19 +756,9 @@ const StudentDashboard = () => {
     }
   }, [user?.id]);
 
-  if (loading) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4" /><p className="text-muted-foreground">Loading your dashboard...</p></div>
-    </div>
-  );
+  if (loading) return <LibraryLoader fullScreen message="Loading your library dashboard..." />;
   if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4" />
-        <p className="text-muted-foreground font-medium mb-3">Connecting to library services...</p>
-        <Button size="sm" variant="outline" onClick={() => navigate('/login')}>Return to Login</Button>
-      </div>
-    );
+    return <LibraryLoader fullScreen message="Connecting to library services..." />;
   }
   if (selectedQuiz) return <StudentQuiz quiz={selectedQuiz} onComplete={handleQuizComplete} onBack={() => setSelectedQuiz(null)} />;
 
