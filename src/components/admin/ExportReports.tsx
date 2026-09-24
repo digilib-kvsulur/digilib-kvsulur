@@ -5,6 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
   Download, 
   FileSpreadsheet, 
   FileDown, 
@@ -23,7 +30,9 @@ import {
   RefreshCw,
   FolderArchive,
   BookCheck,
-  Sparkles
+  Sparkles,
+  GraduationCap,
+  Filter
 } from "lucide-react";
 import { 
   ResponsiveContainer, 
@@ -50,6 +59,8 @@ const CHART_COLORS = [
   "#8b5cf6", "#14b8a6", "#f97316", "#6366f1", "#84cc16"
 ];
 
+const STANDARD_CLASSES = ["all", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+
 export default function ExportReports() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all-reports");
@@ -57,6 +68,7 @@ export default function ExportReports() {
   const [booksData, setBooksData] = useState<any[]>([]);
   const [issuesData, setIssuesData] = useState<any[]>([]);
   const [profilesData, setProfilesData] = useState<Record<string, any>>({});
+  const [selectedStudentClass, setSelectedStudentClass] = useState("all");
   const { toast } = useToast();
 
   const convertToCSV = (headers: string[], rows: any[]) => {
@@ -599,7 +611,112 @@ export default function ExportReports() {
         }
       }
 
-      // 3. ACCESSION REGISTRY ANALYTICS REPORT
+      // 3. STUDENT DATA REGISTRY (Full / Class-wise)
+      else if (type === "student_data") {
+        toast({ title: "Compiling Student Directory", description: "Fetching student members and circulation stats..." });
+        
+        // 1. Fetch student profiles with pagination
+        const PAGE_SIZE = 1000;
+        let allStudents: any[] = [];
+        let from = 0;
+        while (true) {
+          let query = supabase
+            .from("profiles")
+            .select("*")
+            .eq("role", "student")
+            .order("first_name", { ascending: true })
+            .range(from, from + PAGE_SIZE - 1);
+            
+          if (selectedStudentClass !== "all") {
+            query = query.eq("student_class", selectedStudentClass);
+          }
+          
+          const { data, error } = await query;
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          allStudents = [...allStudents, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+
+        // 2. Fetch active issue count per student
+        const { data: activeIssues } = await supabase
+          .from("book_issues")
+          .select("user_id")
+          .eq("status", "issued");
+        const activeIssuesCountMap: Record<string, number> = {};
+        (activeIssues || []).forEach(ai => {
+          if (ai.user_id) {
+            activeIssuesCountMap[ai.user_id] = (activeIssuesCountMap[ai.user_id] || 0) + 1;
+          }
+        });
+
+        // 3. Fetch completed reading count per student
+        const { data: readingHistory } = await supabase
+          .from("reading_history")
+          .select("user_id");
+        const historyCountMap: Record<string, number> = {};
+        (readingHistory || []).forEach(rh => {
+          if (rh.user_id) {
+            historyCountMap[rh.user_id] = (historyCountMap[rh.user_id] || 0) + 1;
+          }
+        });
+
+        const headers = [
+          "Admission No.", 
+          "Student Name", 
+          "Class", 
+          "Roll No.",
+          "Library Barcode", 
+          "Email", 
+          "Phone", 
+          "Points", 
+          "Active Loans", 
+          "Books Read", 
+          "Status", 
+          "Registered Date"
+        ];
+
+        const rows = allStudents.map(s => {
+          const fullName = `${s.first_name || ""} ${s.last_name || ""}`.trim() || "Student";
+          return [
+            s.admission_number || "—",
+            fullName,
+            s.student_class ? `Class ${s.student_class}` : "—",
+            s.roll_number || "—",
+            s.library_card_barcode || `STU-${s.admission_number || s.id.substring(0, 6)}`,
+            s.email || "—",
+            s.phone || "—",
+            s.points ?? 0,
+            activeIssuesCountMap[s.id] || 0,
+            historyCountMap[s.id] || 0,
+            s.is_approved ? "Approved" : "Pending",
+            s.created_at ? s.created_at.substring(0, 10) : "—"
+          ];
+        });
+
+        // Natural sort by Class then Student Name
+        rows.sort((a, b) => {
+          const classComp = String(a[2]).localeCompare(String(b[2]), undefined, { numeric: true });
+          if (classComp !== 0) return classComp;
+          return String(a[1]).localeCompare(String(b[1]));
+        });
+
+        const reportTitle = selectedStudentClass === "all"
+          ? "Official Student Library Membership Registry"
+          : `Class ${selectedStudentClass} Student Library Registry`;
+        const fileName = selectedStudentClass === "all"
+          ? "student_data_registry"
+          : `student_data_class_${selectedStudentClass.replace(/\s+/g, "_")}`;
+
+        if (format === "csv") {
+          triggerDownload(convertToCSV(headers, rows), fileName);
+        } else {
+          generatePDF(reportTitle, headers, rows, fileName, "landscape");
+        }
+      }
+
+      // 4. ACCESSION REGISTRY ANALYTICS REPORT
       else if (type === "accession_analytics") {
         await loadAnalyticsData();
         const stats = accessionAnalytics;
@@ -627,7 +744,7 @@ export default function ExportReports() {
         }
       }
 
-      // 4. ISSUE REGISTRY ANALYTICS REPORT
+      // 5. ISSUE REGISTRY ANALYTICS REPORT
       else if (type === "issues_analytics") {
         await loadAnalyticsData();
         const stats = issueAnalytics;
@@ -657,7 +774,7 @@ export default function ExportReports() {
         }
       }
 
-      // 5. EXISTING CATEGORY REPORTS
+      // 6. EXISTING CATEGORY REPORTS
       else if (type === "users") {
         const { data, error } = await supabase.from("profiles").select("*").order("first_name");
         if (error) throw error;
@@ -812,11 +929,12 @@ export default function ExportReports() {
   };
 
   const standardReports = [
-    { type: "users", title: "Users Profile Report", desc: "All registered student and staff profiles", icon: Users, color: "bg-blue-500/10 text-blue-600" },
+    { type: "student_data", title: "Student Data Registry", desc: "All enrolled students with admission numbers & class levels", icon: GraduationCap, color: "bg-purple-500/10 text-purple-600" },
+    { type: "users", title: "All Users / Staff Report", desc: "All registered student and staff profiles", icon: Users, color: "bg-blue-500/10 text-blue-600" },
     { type: "issued", title: "Active Loans Registry", desc: "Currently borrowed books outstanding", icon: BookOpen, color: "bg-emerald-500/10 text-emerald-600" },
     { type: "overdue", title: "Overdue Loans Report", desc: "Issued books past their return due date", icon: AlertTriangle, color: "bg-rose-500/10 text-rose-600" },
     { type: "history", title: "Reading History Records", desc: "Logs of completed book returns & reviews", icon: FileSpreadsheet, color: "bg-amber-500/10 text-amber-600" },
-    { type: "quizzes", title: "Quiz Results Logs", desc: "Scores and XP awarded for test completions", icon: Brain, color: "bg-purple-500/10 text-purple-600" },
+    { type: "quizzes", title: "Quiz Results Logs", desc: "Scores and XP awarded for test completions", icon: Brain, color: "bg-indigo-500/10 text-indigo-600" },
     { type: "leaderboard", title: "Leaderboard Standings", desc: "School-wide student points and reading rankings", icon: Trophy, color: "bg-yellow-500/10 text-yellow-600" },
   ];
 
@@ -830,7 +948,7 @@ export default function ExportReports() {
             Official Library Registries & Reports
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Download master accession ledgers, complete issue transaction logs, and statistical analytics reports.
+            Download master accession ledgers, complete issue transaction logs, student enrollment registries, and statistical analytics reports.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -878,94 +996,159 @@ export default function ExportReports() {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Full Book Accession Registry Card */}
-              <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/50 via-white to-white shadow-sm relative overflow-hidden">
+              <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/50 via-white to-white shadow-sm relative overflow-hidden flex flex-col justify-between">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-100 rounded-bl-full -z-0 opacity-40 pointer-events-none" />
                 <CardHeader className="pb-3 relative z-10">
                   <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-                      <Library className="h-6 w-6" />
+                    <div className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                      <Library className="h-5 w-5" />
                     </div>
-                    <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs">
-                      Master Registry
+                    <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px]">
+                      Book Stock
                     </Badge>
                   </div>
-                  <CardTitle className="text-lg font-bold text-slate-900 mt-3">
-                    Full Book Accession Registry
+                  <CardTitle className="text-base font-bold text-slate-900 mt-2.5">
+                    Full Accession Registry
                   </CardTitle>
                   <CardDescription className="text-xs leading-relaxed text-slate-600">
-                    Complete physical inventory register with itemized accession numbers, locations (cupboard & shelf), bibliographic metadata, copies count, and current copy status.
+                    Master physical inventory with itemized accession numbers, locations (cupboard & shelf), categories, and copy status.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 relative z-10 pt-0">
-                  <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                    <BookCheck className="h-4 w-4 text-indigo-600 shrink-0" />
-                    <span>Includes individual copy barcodes, languages, subjects, and issue counts.</span>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <BookCheck className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                    <span className="truncate">Individual copy barcodes, subjects & circulation.</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <Button 
                       variant="outline"
-                      className="border-indigo-200 hover:bg-indigo-50 text-indigo-700"
+                      size="sm"
+                      className="border-indigo-200 hover:bg-indigo-50 text-indigo-700 text-xs"
                       disabled={!!downloading} 
                       onClick={() => handleExport("full_accession", "csv")}
                     >
-                      <FileSpreadsheet className="h-4 w-4 mr-2 text-indigo-600" /> 
-                      {downloading === "full_accession_csv" ? "Exporting..." : "Download CSV"}
+                      <FileSpreadsheet className="h-3.5 w-3.5 mr-1 text-indigo-600" /> 
+                      {downloading === "full_accession_csv" ? "..." : "CSV"}
                     </Button>
                     <Button 
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                      size="sm"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm text-xs"
                       disabled={!!downloading} 
                       onClick={() => handleExport("full_accession", "pdf")}
                     >
-                      <FileDown className="h-4 w-4 mr-2" /> 
-                      {downloading === "full_accession_pdf" ? "Generating..." : "Download PDF"}
+                      <FileDown className="h-3.5 w-3.5 mr-1" /> 
+                      {downloading === "full_accession_pdf" ? "..." : "PDF"}
                     </Button>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Full Book Issue Registry Card */}
-              <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-white to-white shadow-sm relative overflow-hidden">
+              <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-white to-white shadow-sm relative overflow-hidden flex flex-col justify-between">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100 rounded-bl-full -z-0 opacity-40 pointer-events-none" />
                 <CardHeader className="pb-3 relative z-10">
                   <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
-                      <BookOpen className="h-6 w-6" />
+                    <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                      <BookOpen className="h-5 w-5" />
                     </div>
-                    <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs">
-                      Full Circulation Ledger
+                    <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px]">
+                      Circulation
                     </Badge>
                   </div>
-                  <CardTitle className="text-lg font-bold text-slate-900 mt-3">
-                    Full Book Issue Registry
+                  <CardTitle className="text-base font-bold text-slate-900 mt-2.5">
+                    Full Issue Registry
                   </CardTitle>
                   <CardDescription className="text-xs leading-relaxed text-slate-600">
-                    Complete historical circulation ledger recording every issue transaction: active loans, completed returns, overdue books, and lost items with borrower member details.
+                    Complete circulation history recording all active loans, completed returns, overdue books, and member borrow details.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 relative z-10 pt-0">
-                  <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                    <Clock className="h-4 w-4 text-emerald-600 shrink-0" />
-                    <span>Includes borrower admission no., class, role, issue/due/return dates & renewals.</span>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <Clock className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">Borrower admission no., class, dates & renewals.</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <Button 
                       variant="outline"
-                      className="border-emerald-200 hover:bg-emerald-50 text-emerald-700"
+                      size="sm"
+                      className="border-emerald-200 hover:bg-emerald-50 text-emerald-700 text-xs"
                       disabled={!!downloading} 
                       onClick={() => handleExport("full_issues", "csv")}
                     >
-                      <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-600" /> 
-                      {downloading === "full_issues_csv" ? "Exporting..." : "Download CSV"}
+                      <FileSpreadsheet className="h-3.5 w-3.5 mr-1 text-emerald-600" /> 
+                      {downloading === "full_issues_csv" ? "..." : "CSV"}
                     </Button>
                     <Button 
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs"
                       disabled={!!downloading} 
                       onClick={() => handleExport("full_issues", "pdf")}
                     >
-                      <FileDown className="h-4 w-4 mr-2" /> 
-                      {downloading === "full_issues_pdf" ? "Generating..." : "Download PDF"}
+                      <FileDown className="h-3.5 w-3.5 mr-1" /> 
+                      {downloading === "full_issues_pdf" ? "..." : "PDF"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Full Student Data Registry Card */}
+              <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 via-white to-white shadow-sm relative overflow-hidden flex flex-col justify-between">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-purple-100 rounded-bl-full -z-0 opacity-40 pointer-events-none" />
+                <CardHeader className="pb-3 relative z-10">
+                  <div className="flex items-start justify-between">
+                    <div className="w-11 h-11 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-sm">
+                      <GraduationCap className="h-5 w-5" />
+                    </div>
+                    <Badge className="bg-purple-600 hover:bg-purple-700 text-white text-[11px]">
+                      Student Members
+                    </Badge>
+                  </div>
+                  <CardTitle className="text-base font-bold text-slate-900 mt-2.5">
+                    Student Data Registry
+                  </CardTitle>
+                  <CardDescription className="text-xs leading-relaxed text-slate-600">
+                    Complete student membership records with admission numbers, roll numbers, barcodes, reading points, and active loans.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 relative z-10 pt-0">
+                  {/* Class Filter Dropdown */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-medium text-slate-600 shrink-0">Filter Class:</span>
+                    <Select value={selectedStudentClass} onValueChange={setSelectedStudentClass}>
+                      <SelectTrigger className="h-7 text-xs bg-white border-purple-200">
+                        <SelectValue placeholder="All Classes" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STANDARD_CLASSES.map(cls => (
+                          <SelectItem key={cls} value={cls} className="text-xs">
+                            {cls === "all" ? "All Classes (Full School)" : `Class ${cls}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-200 hover:bg-purple-50 text-purple-700 text-xs"
+                      disabled={!!downloading} 
+                      onClick={() => handleExport("student_data", "csv")}
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5 mr-1 text-purple-600" /> 
+                      {downloading === "student_data_csv" ? "..." : "CSV"}
+                    </Button>
+                    <Button 
+                      size="sm"
+                      className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm text-xs"
+                      disabled={!!downloading} 
+                      onClick={() => handleExport("student_data", "pdf")}
+                    >
+                      <FileDown className="h-3.5 w-3.5 mr-1" /> 
+                      {downloading === "student_data_pdf" ? "..." : "PDF"}
                     </Button>
                   </div>
                 </CardContent>
