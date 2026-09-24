@@ -171,3 +171,46 @@
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
+
+/* Static Library Loader Keyframes (prevents animation resets on prop/text changes) */
+@keyframes bookPageFlip {
+  0% {
+    transform: rotateY(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: rotateY(-90deg) scaleX(0.85);
+    opacity: 0.9;
+  }
+  100% {
+    transform: rotateY(-180deg);
+    opacity: 0;
+  }
+}
+
+.book-flip-1 {
+  animation: bookPageFlip 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite !important;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+.book-flip-2 {
+  animation: bookPageFlip 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 0.6s !important;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+@keyframes libraryProgress {
+  0% {
+    left: -35%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.library-progress-slide {
+  animation: libraryProgress 1.6s ease-in-out infinite !important;
+  will-change: left;
+}
+
