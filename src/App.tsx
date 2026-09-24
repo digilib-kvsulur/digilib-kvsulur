@@ -17,8 +17,21 @@ import { GlobalNotificationsProvider } from "@/components/global/GlobalNotificat
 import { CommandPalette } from "@/components/global/CommandPalette";
 import DomainMigrationBanner from "@/components/global/DomainMigrationBanner";
 import MigrationInstallGuide from "@/components/global/MigrationInstallGuide";
+import { LibraryLoader } from "@/components/global/LibraryLoader";
 
-const queryClient = new QueryClient();
+// Lean Cache Memory Configuration: 5-minute data freshness, 30-minute memory retention,
+// preventing unnecessary repeated queries to Supabase when switching tabs or navigating.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+    },
+  },
+});
 const Login = lazy(() => import("./pages/Login"));
 const Index = lazy(() => import("./pages/Index"));
 const Register = lazy(() => import("./pages/Register"));
@@ -47,20 +60,13 @@ const MAINTENANCE_UNTIL = new Date("2026-09-19T10:45:00Z");
 const PageLoader = () => {
   const [show, setShow] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => setShow(true), 200);
+    const timer = setTimeout(() => setShow(true), 150);
     return () => clearTimeout(timer);
   }, []);
 
   if (!show) return null;
 
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center animate-in fade-in duration-300">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-        <p className="text-muted-foreground text-sm font-medium animate-pulse">Loading...</p>
-      </div>
-    </div>
-  );
+  return <LibraryLoader fullScreen={true} />;
 };
 
 import { SplashScreen } from "@/components/global/SplashScreen";
