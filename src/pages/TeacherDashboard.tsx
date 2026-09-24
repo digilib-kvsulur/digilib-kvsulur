@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -394,7 +395,7 @@ const TeacherDashboard = () => {
     fetchClassDetails(selectedClass);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-10 w-10 border-b-2 border-primary rounded-full" /></div>;
+  if (loading) return <LibraryLoader fullScreen message="Loading teacher dashboard..." />;
 
   const totalPoints = students.reduce((s, x) => s + (x.points || 0), 0);
   const avgPoints = students.length ? Math.round(totalPoints / students.length) : 0;
