@@ -283,7 +283,10 @@ const AdminDashboard = () => {
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
   const handleProfileUpdate = () => checkAuth();
 
-  if (loading) return <LibraryLoader fullScreen message="Loading admin dashboard..." />;
+  if (loading) {
+    loadingManager.update("Loading admin dashboard...");
+    return null;
+  }
 
   const statCards = [
     { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-primary", bg: "bg-primary/10" },
