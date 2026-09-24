@@ -528,6 +528,7 @@ const StudentDashboard = () => {
       console.warn("checkAuth unexpected error:", e);
     } finally {
       setLoading(false);
+      loadingManager.hide();
     }
   };
 
@@ -757,9 +758,13 @@ const StudentDashboard = () => {
     }
   }, [user?.id]);
 
-  if (loading) return <LibraryLoader fullScreen message="Loading your library dashboard..." />;
+  if (loading) {
+    loadingManager.update("Loading your library dashboard...");
+    return null;
+  }
   if (!user) {
-    return <LibraryLoader fullScreen message="Connecting to library services..." />;
+    loadingManager.update("Connecting to library services...");
+    return null;
   }
   if (selectedQuiz) return <StudentQuiz quiz={selectedQuiz} onComplete={handleQuizComplete} onBack={() => setSelectedQuiz(null)} />;
 
