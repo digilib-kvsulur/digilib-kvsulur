@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { LibraryLoader } from "@/components/global/LibraryLoader";
 
 type Profile = Tables<"profiles">;
 type AllowedRole = "admin" | "teacher" | "student";
@@ -11,15 +12,6 @@ interface ProtectedRouteProps {
   allowedRoles: readonly AllowedRole[];
   requireApproval?: boolean;
 }
-
-const LoadingScreen = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4" />
-      <p className="text-muted-foreground">Checking access...</p>
-    </div>
-  </div>
-);
 
 const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: ProtectedRouteProps) => {
   const [profile, setProfile] = useState<Profile | null>(() => {
@@ -31,12 +23,14 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
     }
   });
   const [loading, setLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState("Verifying your library session...");
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     const checkAccess = async () => {
+      setStatusMessage("Verifying your library session...");
       let session: any = null;
       try {
         const { data } = await supabase.auth.getSession();
@@ -58,6 +52,7 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
         return;
       }
 
+      setStatusMessage("Fetching your library profile...");
       const userId = session?.user?.id || profile?.id;
       let userProfile = profile;
 
@@ -84,12 +79,12 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
       if (!mounted) return;
 
       if (!userProfile) {
-        // No cached profile and could not fetch
         setRedirectTo("/login");
         setLoading(false);
         return;
       }
 
+      setStatusMessage("Checking access permissions...");
       const roleAllowed = allowedRoles.includes(userProfile.role as AllowedRole);
       const approvalAllowed = !requireApproval || userProfile.is_approved || userProfile.role === "admin";
 
@@ -108,6 +103,7 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
         return;
       }
 
+      setStatusMessage("Opening your dashboard...");
       setProfile(userProfile);
       setLoading(false);
     };
@@ -119,7 +115,7 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
     };
   }, [allowedRoles, requireApproval]);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <LibraryLoader fullScreen message={statusMessage} />;
   if (redirectTo) return <Navigate to={redirectTo} replace />;
   if (!profile) return <Navigate to="/login" replace />;
 
