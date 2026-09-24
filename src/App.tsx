@@ -219,6 +219,40 @@ const DashboardRedirect = () => {
   return <Navigate to={redirectTo} replace />;
 };
 
+const RootRoute = () => {
+  // If running in PWA standalone or Native app, check if logged in for instant direct dashboard routing
+  const isPWAOrNative = typeof window !== "undefined" && (
+    window.matchMedia?.("(display-mode: standalone)")?.matches ||
+    (navigator as any)?.standalone === true ||
+    navigator.userAgent.toLowerCase().includes("electron") ||
+    !!(window as any).Capacitor?.isNativePlatform?.() ||
+    document.referrer.includes("android-app://")
+  );
+
+  if (isPWAOrNative && typeof window !== "undefined") {
+    try {
+      const hasStoredToken = Object.keys(window.localStorage || {}).some(
+        (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+      );
+      const cached = localStorage.getItem("dlms_user_profile");
+
+      if (hasStoredToken || cached) {
+        let target = "/student-dashboard";
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.role === "admin") target = "/admin-dashboard";
+          else if (parsed?.role === "teacher") target = "/teacher-dashboard";
+          else if (parsed?.role === "student") target = "/student-dashboard";
+        }
+        // Direct synchronous redirect - 0ms delay, no Index mount, no flashing home page!
+        return <Navigate to={target} replace />;
+      }
+    } catch {}
+  }
+
+  return <Index />;
+};
+
 import { backNavigation } from "@/lib/backNavigation";
 
 const App = () => {
@@ -276,7 +310,7 @@ const App = () => {
             <MigrationInstallGuide />
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<RootRoute />} />
                 <Route path="/dashboard" element={<DashboardRedirect />} />
                 <Route path="/community" element={<DashboardRedirect />} />
                 <Route path="/reels" element={<DashboardRedirect />} />
