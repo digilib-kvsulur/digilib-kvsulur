@@ -50,14 +50,19 @@ const Index = () => {
   const [bookOfTheWeek, setBookOfTheWeek] = useState<any[]>([]);
 
   useEffect(() => {
-    const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
+    const isPWAOrNative = 
+      navigator.userAgent.toLowerCase().includes('electron') ||
+      !!(window as any).Capacitor?.isNativePlatform?.() ||
+      window.matchMedia?.('(display-mode: standalone)')?.matches ||
+      (window.navigator as any)?.standalone === true ||
+      document.referrer.includes('android-app://');
 
     // If cached profile exists and we are on native/pwa, prepare early redirect
     try {
       const cached = localStorage.getItem("dlms_user_profile");
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed?.id && isNative) {
+        if (parsed?.id && isPWAOrNative) {
           switch (parsed.role) {
             case "admin": navigate("/admin-dashboard", { replace: true }); return;
             case "teacher": navigate("/teacher-dashboard", { replace: true }); return;
@@ -75,7 +80,7 @@ const Index = () => {
         const hasStoredToken = typeof window !== "undefined" && Object.keys(window.localStorage || {}).some(
           (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
         );
-        if (isNative && !hasStoredToken) navigate("/login");
+        if (isPWAOrNative && !hasStoredToken) navigate("/login");
         else setLoading(false);
       }
     }).catch(() => {
@@ -88,7 +93,7 @@ const Index = () => {
         loadUserProfile(session.user.id);
       } else {
         setProfile(null);
-        if (event === "SIGNED_OUT" && isNative) {
+        if (event === "SIGNED_OUT" && isPWAOrNative) {
           navigate("/login");
         } else {
           setLoading(false);
@@ -177,7 +182,13 @@ const Index = () => {
       if (!error && data) {
         setProfile(data);
         try { localStorage.setItem("dlms_user_profile", JSON.stringify(data)); } catch {}
-        const isNative = navigator.userAgent.toLowerCase().includes('electron') || (window as any).Capacitor?.isNativePlatform?.();
+        const isPWAOrNative = 
+          navigator.userAgent.toLowerCase().includes('electron') ||
+          !!(window as any).Capacitor?.isNativePlatform?.() ||
+          window.matchMedia?.('(display-mode: standalone)')?.matches ||
+          (window.navigator as any)?.standalone === true ||
+          document.referrer.includes('android-app://');
+
         const doRedirect = () => {
           switch (data.role) {
             case "admin": navigate("/admin-dashboard", { replace: true }); break;
@@ -186,11 +197,8 @@ const Index = () => {
             default: navigate("/student-dashboard", { replace: true }); break;
           }
         };
-        if (isNative) {
-          doRedirect();
-        } else {
-          setTimeout(doRedirect, 500);
-        }
+        // Instant redirect with zero delay
+        doRedirect();
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
