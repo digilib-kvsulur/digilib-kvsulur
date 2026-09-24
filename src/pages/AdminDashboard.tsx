@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -280,11 +281,7 @@ const AdminDashboard = () => {
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
   const handleProfileUpdate = () => checkAuth();
 
-  if (loading) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4" /><p className="text-muted-foreground">Loading dashboard...</p></div>
-    </div>
-  );
+  if (loading) return <LibraryLoader fullScreen message="Loading admin dashboard..." />;
 
   const statCards = [
     { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-primary", bg: "bg-primary/10" },
