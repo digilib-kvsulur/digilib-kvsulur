@@ -241,38 +241,98 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   </head>
 
   <body>
-    <!-- Prerendered semantic HTML content for search engine indexers and fast first paint before React hydration -->
+    <!-- SEO semantic content: hidden visually but readable by crawlers. React will replace #root. -->
     <div id="root">
-      <header style="padding: 1.5rem; text-align: center; font-family: sans-serif; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-        <h1 style="font-size: 1.5rem; color: #1e1b4b; margin-bottom: 0.5rem; font-weight: 800;">
-          PM SHRI KV Sulur Digital Library
-        </h1>
-        <p style="color: #4f46e5; font-size: 0.875rem; font-weight: 600; margin: 0;">
-          Digital Library Management System (DLMS) — Kendriya Vidyalaya Air Force Station Sulur, Coimbatore
-        </p>
-      </header>
-      <main style="max-width: 900px; margin: 2rem auto; padding: 0 1rem; font-family: sans-serif; color: #334155; line-height: 1.6;">
-        <section>
-          <h2 style="font-size: 1.25rem; color: #0f172a; font-weight: 700;">A Digital Library Built for PM SHRI Kendriya Vidyalaya Learners</h2>
-          <p>
-            Welcome to the official digital library of PM SHRI Kendriya Vidyalaya AFS Sulur. Explore thousands of physical and digital books, textbooks, CBSE and NCERT reference materials, track your reading streaks, take comprehension quizzes, and climb the school leaderboard.
-          </p>
-        </section>
-        <nav aria-label="Library Navigation" style="margin-top: 1.5rem;">
-          <h3 style="font-size: 1rem; color: #0f172a; font-weight: 600;">Explore Library Portals</h3>
-          <ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem;">
-            <li><a href="/catalog" style="color: #4f46e5; text-decoration: underline; font-weight: 600;">Browse Book Catalogue</a></li>
-            <li><a href="/download" style="color: #4f46e5; text-decoration: underline; font-weight: 600;">Download Android &amp; Windows App</a></li>
-            <li><a href="/support" style="color: #4f46e5; text-decoration: underline; font-weight: 600;">Library Help &amp; Support</a></li>
-            <li><a href="/feedback" style="color: #4f46e5; text-decoration: underline; font-weight: 600;">Share Feedback</a></li>
-            <li><a href="/login" style="color: #4f46e5; text-decoration: underline; font-weight: 600;">Student &amp; Staff Login</a></li>
-          </ul>
-        </nav>
-        <footer style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: #64748b;">
-          <p>Address: PM SHRI Kendriya Vidyalaya AFS Sulur, Air Force Station Sulur, Coimbatore, Tamil Nadu - 641401</p>
-        </footer>
-      </main>
+      <!-- Pre-React library loader: shown for ~300-500ms until React hydrates and mounts its own loader -->
+      <div id="pre-react-loader" style="
+        position: fixed; inset: 0; z-index: 9999;
+        background: var(--background, #fff);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        font-family: system-ui, -apple-system, sans-serif;
+      ">
+        <!-- Ambient glows -->
+        <div style="position:absolute;top:-3rem;left:-3rem;width:14rem;height:14rem;background:rgba(99,102,241,0.12);border-radius:50%;filter:blur(3rem);animation:pulse 2s ease-in-out infinite;pointer-events:none;"></div>
+        <div style="position:absolute;bottom:-2rem;right:-2rem;width:12rem;height:12rem;background:rgba(99,102,241,0.10);border-radius:50%;filter:blur(3rem);animation:pulse 2s ease-in-out 1s infinite;pointer-events:none;"></div>
+
+        <!-- Open book SVG -->
+        <div style="position:relative;width:7rem;height:5.5rem;margin-bottom:1.5rem;">
+          <!-- Shadow -->
+          <div style="position:absolute;bottom:-0.5rem;left:50%;transform:translateX(-50%);width:5.5rem;height:0.75rem;background:rgba(0,0,0,0.10);border-radius:50%;filter:blur(6px);animation:pulse 2s ease-in-out infinite;"></div>
+          <!-- Left cover -->
+          <div style="position:absolute;left:0;width:3rem;height:4rem;background:linear-gradient(135deg,#4338ca,#312e81);border-radius:0.375rem 0 0 0.375rem;box-shadow:0 4px 16px rgba(67,56,202,0.3);"></div>
+          <!-- Right cover -->
+          <div style="position:absolute;right:0;width:3rem;height:4rem;background:linear-gradient(225deg,#4338ca,#312e81);border-radius:0 0.375rem 0.375rem 0;box-shadow:0 4px 16px rgba(67,56,202,0.3);"></div>
+          <!-- Left page -->
+          <div style="position:absolute;left:0.125rem;width:2.75rem;height:3.5rem;top:0.25rem;background:linear-gradient(90deg,#f8fafc,#f1f5f9);border-radius:0.25rem 0 0 0.25rem;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:0.5rem;">
+            <div style="height:3px;background:rgba(148,163,184,0.5);border-radius:2px;"></div>
+            <div style="height:3px;width:75%;background:rgba(148,163,184,0.5);border-radius:2px;"></div>
+            <div style="height:3px;width:90%;background:rgba(148,163,184,0.5);border-radius:2px;"></div>
+          </div>
+          <!-- Right page (animated flip) -->
+          <div class="book-page-flip" style="position:absolute;right:0.125rem;width:2.75rem;height:3.5rem;top:0.25rem;background:linear-gradient(270deg,#f8fafc,#f1f5f9);border-radius:0 0.25rem 0.25rem 0;transform-origin:left center;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:0.5rem;">
+            <div style="height:3px;background:rgba(99,102,241,0.4);border-radius:2px;"></div>
+            <div style="height:3px;width:80%;background:rgba(99,102,241,0.4);border-radius:2px;"></div>
+            <div style="height:3px;width:65%;background:rgba(99,102,241,0.4);border-radius:2px;"></div>
+          </div>
+          <!-- Spine bookmark -->
+          <div style="position:absolute;left:50%;transform:translateX(-50%);top:-0.25rem;width:0.375rem;height:4.5rem;background:linear-gradient(180deg,#f59e0b,#d97706);border-radius:0 0 0.25rem 0.25rem;z-index:10;"></div>
+        </div>
+
+        <!-- Crest badge -->
+        <div style="display:flex;align-items:center;gap:0.4rem;padding:0.25rem 0.75rem;border-radius:9999px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);margin-bottom:0.75rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.08em;color:#4f46e5;text-transform:uppercase;">PM SHRI KV SULUR DLMS</span>
+        </div>
+
+        <!-- Status text -->
+        <p style="font-size:1rem;font-weight:600;color:#0f172a;margin:0 0 0.25rem;text-align:center;padding:0 1rem;">Opening the digital library stacks...</p>
+        <p style="font-size:0.75rem;color:#64748b;margin:0 0 1.5rem;text-align:center;padding:0 1rem;max-width:20rem;">Empowering students through the universe of books &amp; knowledge</p>
+
+        <!-- Progress shimmer bar -->
+        <div style="width:12rem;height:0.375rem;background:rgba(99,102,241,0.12);border-radius:9999px;overflow:hidden;position:relative;">
+          <div class="progress-slide" style="position:absolute;inset-block:0;width:33%;background:linear-gradient(90deg,#6366f1,#818cf8,#f59e0b);border-radius:9999px;"></div>
+        </div>
+      </div>
+
+      <!-- Hidden SEO content: crawlable but not visible to users -->
+      <div style="display:none;" aria-hidden="true">
+        <header><h1>PM SHRI KV Sulur Digital Library</h1><p>Digital Library Management System (DLMS) — Kendriya Vidyalaya Air Force Station Sulur, Coimbatore</p></header>
+        <main>
+          <section><h2>A Digital Library Built for PM SHRI Kendriya Vidyalaya Learners</h2><p>Welcome to the official digital library of PM SHRI Kendriya Vidyalaya AFS Sulur. Explore thousands of physical and digital books, textbooks, CBSE and NCERT reference materials, track your reading streaks, take comprehension quizzes, and climb the school leaderboard.</p></section>
+          <nav aria-label="Library Navigation"><h3>Explore Library Portals</h3><ul><li><a href="/catalog">Browse Book Catalogue</a></li><li><a href="/download">Download Android &amp; Windows App</a></li><li><a href="/support">Library Help &amp; Support</a></li><li><a href="/feedback">Share Feedback</a></li><li><a href="/login">Student &amp; Staff Login</a></li></ul></nav>
+          <footer><p>Address: PM SHRI Kendriya Vidyalaya AFS Sulur, Air Force Station Sulur, Coimbatore, Tamil Nadu - 641401</p></footer>
+        </main>
+      </div>
     </div>
+
+    <style>
+      @keyframes pulse {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.05); }
+      }
+      @keyframes bookFlip {
+        0% { transform: rotateY(0deg); opacity: 1; }
+        50% { transform: rotateY(-90deg) scaleX(0.8); opacity: 0.85; }
+        100% { transform: rotateY(-180deg); opacity: 0; }
+      }
+      .book-page-flip {
+        animation: bookFlip 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+        transform-style: preserve-3d;
+      }
+      @keyframes progressSlide {
+        0% { left: -35%; }
+        100% { left: 100%; }
+      }
+      .progress-slide {
+        animation: progressSlide 1.6s ease-in-out infinite;
+      }
+      /* Remove pre-react loader once React has mounted */
+      #root:not(:empty) > #pre-react-loader {
+        display: none !important;
+      }
+    </style>
+
     <script type="module" src="/src/main.tsx"></script>
     <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KB35RF48"
@@ -280,3 +340,4 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
   </body>
 </html>
+
