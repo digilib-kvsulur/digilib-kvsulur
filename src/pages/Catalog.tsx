@@ -95,6 +95,23 @@ const Catalog = () => {
 
   const loadFilterOptions = async () => {
     try {
+      const cached = sessionStorage.getItem("kvsulur_catalog_filter_cache");
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && Array.isArray(parsed.categories)) {
+            setGenres(parsed.categories || []);
+            setSubjects(parsed.subjects || []);
+            setClassLevels(parsed.class_levels || []);
+            setLanguages(parsed.languages || []);
+            setAuthors(parsed.authors || []);
+            return;
+          }
+        } catch {
+          // parse error, re-fetch
+        }
+      }
+
       const { data: raw, error } = await supabase.rpc("get_distinct_book_filters");
       if (error) throw error;
       const data: any = raw;
@@ -104,6 +121,7 @@ const Catalog = () => {
         setClassLevels(data.class_levels || []);
         setLanguages(data.languages || []);
         setAuthors(data.authors || []);
+        sessionStorage.setItem("kvsulur_catalog_filter_cache", JSON.stringify(data));
       }
     } catch (e) {
       console.error("Failed to load filter options:", e);
@@ -137,7 +155,7 @@ const Catalog = () => {
       } else {
         let query = supabase
           .from("books")
-          .select("id,title,author,category,subject,class_level,language,cover_url,total_copies,available_copies,first_added_at,created_at,accession_number,issue_count,shelf_number,cupboard_number", { count: "exact" })
+          .select("id,title,author,category,subject,class_level,language,cover_url,total_copies,available_copies,first_added_at,created_at,accession_number,issue_count,shelf_number,cupboard_number", { count: "estimated" })
           .gt("total_copies", 0);
 
         if (selectedGenre !== "all") query = query.eq("category", selectedGenre);
