@@ -17,7 +17,7 @@ import { GlobalNotificationsProvider } from "@/components/global/GlobalNotificat
 import { CommandPalette } from "@/components/global/CommandPalette";
 import DomainMigrationBanner from "@/components/global/DomainMigrationBanner";
 import MigrationInstallGuide from "@/components/global/MigrationInstallGuide";
-import { LibraryLoader } from "@/components/global/LibraryLoader";
+import { LibraryLoader, GlobalLibraryLoaderOverlay } from "@/components/global/LibraryLoader";
 
 // Lean Cache Memory Configuration: 5-minute data freshness, 30-minute memory retention,
 // preventing unnecessary repeated queries to Supabase when switching tabs or navigating.
@@ -266,6 +266,7 @@ const App = () => {
         <Sonner position="top-right" richColors closeButton />
         <Analytics />
         <AppRouter>
+          <GlobalLibraryLoaderOverlay />
           <GlobalNotificationsProvider>
             <CommandPalette />
             <Seo />
