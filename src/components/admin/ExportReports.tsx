@@ -31,8 +31,7 @@ import {
   FolderArchive,
   BookCheck,
   Sparkles,
-  GraduationCap,
-  Filter
+  GraduationCap
 } from "lucide-react";
 import { 
   ResponsiveContainer, 
@@ -52,14 +51,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 const CHART_COLORS = [
   "#4f46e5", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", 
   "#8b5cf6", "#14b8a6", "#f97316", "#6366f1", "#84cc16"
 ];
-
-const STANDARD_CLASSES = ["all", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 
 export default function ExportReports() {
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -69,7 +66,36 @@ export default function ExportReports() {
   const [issuesData, setIssuesData] = useState<any[]>([]);
   const [profilesData, setProfilesData] = useState<Record<string, any>>({});
   const [selectedStudentClass, setSelectedStudentClass] = useState("all");
+  const [availableClasses, setAvailableClasses] = useState<string[]>([]);
   const { toast } = useToast();
+
+  // Load distinct student classes from DB on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("student_class")
+          .eq("role", "student")
+          .not("student_class", "is", null);
+        if (!error && data) {
+          const raw = Array.from(
+            new Set(data.map((s: any) => (s.student_class || "").trim().toUpperCase()).filter(Boolean))
+          );
+          // Natural sort: Grade 1..12 then sections A..E
+          raw.sort((a, b) => {
+            const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+            const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+            if (numA !== numB) return numA - numB;
+            return a.localeCompare(b);
+          });
+          setAvailableClasses(raw);
+        }
+      } catch (err) {
+        console.warn("Failed to load distinct student classes:", err);
+      }
+    })();
+  }, []);
 
   const convertToCSV = (headers: string[], rows: any[]) => {
     const csvContent = [
@@ -123,8 +149,8 @@ export default function ExportReports() {
     doc.setTextColor(15, 27, 61);
     doc.text(title, 14, 36);
 
-    // Render Table
-    (doc as any).autoTable({
+    // Render Table using direct autoTable function call
+    autoTable(doc, {
       startY: 41,
       head: [headers],
       body: rows,
@@ -611,27 +637,21 @@ export default function ExportReports() {
         }
       }
 
-      // 3. STUDENT DATA REGISTRY (Full / Class-wise)
+      // 3. STUDENT DATA REGISTRY (Full School or Class-wise)
       else if (type === "student_data") {
-        toast({ title: "Compiling Student Directory", description: "Fetching student members and circulation stats..." });
+        toast({ title: "Compiling Student Directory", description: "Fetching student members and circulation records..." });
         
         // 1. Fetch student profiles with pagination
         const PAGE_SIZE = 1000;
         let allStudents: any[] = [];
         let from = 0;
         while (true) {
-          let query = supabase
+          const { data, error } = await supabase
             .from("profiles")
             .select("*")
             .eq("role", "student")
-            .order("first_name", { ascending: true })
             .range(from, from + PAGE_SIZE - 1);
             
-          if (selectedStudentClass !== "all") {
-            query = query.eq("student_class", selectedStudentClass);
-          }
-          
-          const { data, error } = await query;
           if (error) throw error;
           if (!data || data.length === 0) break;
           allStudents = [...allStudents, ...data];
@@ -639,7 +659,25 @@ export default function ExportReports() {
           from += PAGE_SIZE;
         }
 
-        // 2. Fetch active issue count per student
+        // Apply class filter cleanly in memory to avoid syntax/casing mismatch
+        let filteredStudents = allStudents;
+        if (selectedStudentClass !== "all") {
+          if (selectedStudentClass.startsWith("grade_")) {
+            const gradeNum = selectedStudentClass.replace("grade_", "");
+            filteredStudents = allStudents.filter(s => {
+              const sc = (s.student_class || "").trim();
+              const num = sc.replace(/\D/g, "");
+              return num === gradeNum;
+            });
+          } else {
+            const target = selectedStudentClass.trim().toUpperCase();
+            filteredStudents = allStudents.filter(
+              s => (s.student_class || "").trim().toUpperCase() === target
+            );
+          }
+        }
+
+        // 2. Fetch active loans count per student
         const { data: activeIssues } = await supabase
           .from("book_issues")
           .select("user_id")
@@ -662,57 +700,110 @@ export default function ExportReports() {
           }
         });
 
-        const headers = [
-          "Admission No.", 
-          "Student Name", 
-          "Class", 
-          "Roll No.",
-          "Library Barcode", 
-          "Email", 
-          "Phone", 
-          "Points", 
-          "Active Loans", 
-          "Books Read", 
-          "Status", 
-          "Registered Date"
-        ];
-
-        const rows = allStudents.map(s => {
+        // Build records
+        const rows = filteredStudents.map(s => {
           const fullName = `${s.first_name || ""} ${s.last_name || ""}`.trim() || "Student";
+          const rawAdm = (s.admission_number || "").trim();
+          const admNum = rawAdm || "—";
+          const roll = (s.roll_number || "").trim() || "—";
+          const cls = (s.student_class || "").trim() || "—";
+          // Barcode is purely numeric admission number in KV Sulur standard
+          const barcode = (s.library_card_barcode || "").trim() || rawAdm || "—";
+          const email = (s.email || "").trim() || "—";
+          const phone = (s.phone || "").trim() || "—";
+          const points = Number(s.points) || 0;
+          const activeLoans = activeIssuesCountMap[s.id] || 0;
+          const booksRead = historyCountMap[s.id] || 0;
+          const status = s.is_approved ? "Approved" : "Pending";
+          const regDate = s.created_at ? s.created_at.substring(0, 10) : "—";
+
           return [
-            s.admission_number || "—",
+            admNum,
+            roll,
             fullName,
-            s.student_class ? `Class ${s.student_class}` : "—",
-            s.roll_number || "—",
-            s.library_card_barcode || `STU-${s.admission_number || s.id.substring(0, 6)}`,
-            s.email || "—",
-            s.phone || "—",
-            s.points ?? 0,
-            activeIssuesCountMap[s.id] || 0,
-            historyCountMap[s.id] || 0,
-            s.is_approved ? "Approved" : "Pending",
-            s.created_at ? s.created_at.substring(0, 10) : "—"
+            cls,
+            barcode,
+            email,
+            phone,
+            points,
+            activeLoans,
+            booksRead,
+            status,
+            regDate
           ];
         });
 
-        // Natural sort by Class then Student Name
+        // Natural sort by Grade -> Section -> Numeric Admission Number
         rows.sort((a, b) => {
-          const classComp = String(a[2]).localeCompare(String(b[2]), undefined, { numeric: true });
-          if (classComp !== 0) return classComp;
-          return String(a[1]).localeCompare(String(b[1]));
+          const gradeA = parseInt(String(a[3]).replace(/\D/g, ""), 10) || 0;
+          const gradeB = parseInt(String(b[3]).replace(/\D/g, ""), 10) || 0;
+          if (gradeA !== gradeB) return gradeA - gradeB;
+
+          const secComp = String(a[3]).localeCompare(String(b[3]));
+          if (secComp !== 0) return secComp;
+
+          const numA = parseInt(String(a[0]).replace(/\D/g, ""), 10);
+          const numB = parseInt(String(b[0]).replace(/\D/g, ""), 10);
+          if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numA - numB;
+
+          return String(a[2]).localeCompare(String(b[2]));
         });
 
-        const reportTitle = selectedStudentClass === "all"
-          ? "Official Student Library Membership Registry"
-          : `Class ${selectedStudentClass} Student Library Registry`;
-        const fileName = selectedStudentClass === "all"
-          ? "student_data_registry"
-          : `student_data_class_${selectedStudentClass.replace(/\s+/g, "_")}`;
+        let reportTitle = "Official Student Library Membership Registry";
+        let fileName = "student_data_registry_all";
+
+        if (selectedStudentClass.startsWith("grade_")) {
+          const g = selectedStudentClass.replace("grade_", "");
+          reportTitle = `Official Student Library Registry - Class ${g} (All Sections)`;
+          fileName = `student_data_class_${g}_all_sections`;
+        } else if (selectedStudentClass !== "all") {
+          reportTitle = `Official Student Library Registry - Class ${selectedStudentClass}`;
+          fileName = `student_data_class_${selectedStudentClass.replace(/\s+/g, "_")}`;
+        }
 
         if (format === "csv") {
-          triggerDownload(convertToCSV(headers, rows), fileName);
+          const csvHeaders = [
+            "Admission No.", 
+            "Roll No.", 
+            "Student Name", 
+            "Class", 
+            "Library Barcode", 
+            "Email", 
+            "Phone", 
+            "Reading Points", 
+            "Active Books Issued", 
+            "Total Books Read", 
+            "Approval Status", 
+            "Registration Date"
+          ];
+          triggerDownload(convertToCSV(csvHeaders, rows), fileName);
         } else {
-          generatePDF(reportTitle, headers, rows, fileName, "landscape");
+          // Printable PDF with 10 focused columns in Landscape
+          const pdfHeaders = [
+            "Adm No.", 
+            "Roll No.", 
+            "Student Name", 
+            "Class", 
+            "Barcode", 
+            "Email", 
+            "Points", 
+            "Active Loans", 
+            "Books Read", 
+            "Status"
+          ];
+          const pdfRows = rows.map(r => [
+            r[0], // Adm No
+            r[1], // Roll No
+            r[2], // Name
+            r[3], // Class
+            r[4], // Barcode
+            r[5], // Email
+            r[7], // Points
+            r[8], // Active Loans
+            r[9], // Books Read
+            r[10] // Status
+          ]);
+          generatePDF(reportTitle, pdfHeaders, pdfRows, fileName, "landscape");
         }
       }
 
@@ -1113,17 +1204,29 @@ export default function ExportReports() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 relative z-10 pt-0">
-                  {/* Class Filter Dropdown */}
+                  {/* Dynamic Class Filter Dropdown */}
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-medium text-slate-600 shrink-0">Filter Class:</span>
                     <Select value={selectedStudentClass} onValueChange={setSelectedStudentClass}>
                       <SelectTrigger className="h-7 text-xs bg-white border-purple-200">
                         <SelectValue placeholder="All Classes" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {STANDARD_CLASSES.map(cls => (
+                      <SelectContent className="max-h-60">
+                        <SelectItem value="all" className="text-xs font-semibold">
+                          All Classes (Full School)
+                        </SelectItem>
+                        {/* Whole Grade Groups (e.g. All Class 6, All Class 7...) */}
+                        {Array.from(new Set(availableClasses.map(c => parseInt(c.replace(/\D/g, ""), 10)).filter(Boolean)))
+                          .sort((a, b) => a - b)
+                          .map(grade => (
+                            <SelectItem key={`grade_${grade}`} value={`grade_${grade}`} className="text-xs font-medium text-purple-700">
+                              All Class {grade} (Sections A-E)
+                            </SelectItem>
+                          ))}
+                        {/* Specific Sections */}
+                        {availableClasses.map(cls => (
                           <SelectItem key={cls} value={cls} className="text-xs">
-                            {cls === "all" ? "All Classes (Full School)" : `Class ${cls}`}
+                            Class {cls}
                           </SelectItem>
                         ))}
                       </SelectContent>
