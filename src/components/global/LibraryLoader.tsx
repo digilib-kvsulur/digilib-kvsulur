@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { BookOpen, Sparkles, Bookmark } from "lucide-react";
+import { useGlobalLoader } from "@/lib/loadingManager";
 
 interface LibraryLoaderProps {
   message?: string;
@@ -16,25 +17,14 @@ const DEFAULT_MESSAGES = [
   "Dusting off rare editions...",
 ];
 
-export const LibraryLoader: React.FC<LibraryLoaderProps> = ({
-  message,
-  subMessage,
-  fullScreen = true,
-}) => {
-  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-
-  useEffect(() => {
-    if (message) return;
-    const interval = setInterval(() => {
-      setCurrentMessageIndex((prev) => (prev + 1) % DEFAULT_MESSAGES.length);
-    }, 2400);
-    return () => clearInterval(interval);
-  }, [message]);
-
-  const activeMessage = message || DEFAULT_MESSAGES[currentMessageIndex];
-
-  const content = (
-    <div className="relative flex flex-col items-center justify-center p-6 text-center select-none max-w-sm sm:max-w-md mx-auto">
+/**
+ * Memoized Visual Artwork (Book 3D Flip + Shimmer Progress Bar).
+ * Taking 0 props ensures React NEVER re-renders or resets the CSS animations
+ * when the status message or subMessage text changes!
+ */
+const LibraryLoaderArtwork = React.memo(() => {
+  return (
+    <>
       {/* Ambient background glow */}
       <div className="absolute -top-12 -left-12 w-48 h-48 bg-primary/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
       <div className="absolute -bottom-10 -right-10 w-44 h-44 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none animate-pulse [animation-delay:1s]" />
@@ -66,7 +56,7 @@ export const LibraryLoader: React.FC<LibraryLoaderProps> = ({
             <div className="h-1 w-2/3 bg-slate-300/70 dark:bg-slate-600 rounded-full" />
           </div>
 
-          {/* Animated Flipping Pages (3 pages in sequence) */}
+          {/* Animated Flipping Pages (Keyframes defined in index.css) */}
           <div className="absolute right-0.5 w-11 h-14 origin-left rounded-r-sm bg-gradient-to-l from-amber-50 via-white to-amber-100 dark:from-slate-700 dark:to-slate-800 border-r border-indigo-200/40 shadow-md book-flip-1 flex flex-col justify-around py-2 px-1.5">
             <div className="h-1 w-full bg-indigo-300/60 dark:bg-indigo-500/40 rounded-full" />
             <div className="h-1 w-3/4 bg-indigo-300/60 dark:bg-indigo-500/40 rounded-full" />
@@ -89,80 +79,127 @@ export const LibraryLoader: React.FC<LibraryLoaderProps> = ({
       </div>
 
       {/* School Library Crest & Title */}
-      <div className="flex items-center gap-1.5 px-3 py-1 mb-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold tracking-wider uppercase">
+      <div className="flex items-center gap-1.5 px-3 py-1 mb-3 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold tracking-wider uppercase">
         <Bookmark className="w-3.5 h-3.5" />
         <span>PM SHRI KV SULUR DLMS</span>
       </div>
+    </>
+  );
+});
 
-      {/* Dynamic Status / Quote */}
-      <h3 className="text-base sm:text-lg font-semibold text-foreground tracking-tight min-h-[1.75rem] transition-all duration-300 ease-in-out">
-        {activeMessage}
-      </h3>
+LibraryLoaderArtwork.displayName = "LibraryLoaderArtwork";
 
-      {/* Subtitle / Microcopy */}
-      <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
-        {subMessage || "Empowering students through the universe of books & knowledge"}
-      </p>
+/**
+ * Memoized Progress Bar Track.
+ * Running independently in CSS without resetting when text changes.
+ */
+const LibraryLoaderProgressBar = React.memo(() => {
+  return (
+    <div className="w-48 sm:w-56 h-1.5 bg-muted rounded-full mt-5 overflow-hidden relative">
+      <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-primary via-indigo-500 to-amber-400 rounded-full library-progress-slide" />
+    </div>
+  );
+});
 
-      {/* Modern Library Bookmark Shimmer Progress Bar */}
-      <div className="w-48 sm:w-56 h-1.5 bg-muted rounded-full mt-5 overflow-hidden relative">
-        <div className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-primary via-indigo-500 to-amber-400 rounded-full library-progress-slide" />
+LibraryLoaderProgressBar.displayName = "LibraryLoaderProgressBar";
+
+export const LibraryLoader: React.FC<LibraryLoaderProps> = ({
+  message,
+  subMessage,
+  fullScreen = true,
+}) => {
+  const [internalMessageIndex, setInternalMessageIndex] = useState(0);
+
+  useEffect(() => {
+    if (message) return;
+    const interval = setInterval(() => {
+      setInternalMessageIndex((prev) => (prev + 1) % DEFAULT_MESSAGES.length);
+    }, 2400);
+    return () => clearInterval(interval);
+  }, [message]);
+
+  const activeMessage = message || DEFAULT_MESSAGES[internalMessageIndex];
+  const activeSubMessage = subMessage || "Empowering students through the universe of books & knowledge";
+
+  const content = (
+    <div className="relative flex flex-col items-center justify-center p-6 text-center select-none max-w-sm sm:max-w-md mx-auto">
+      {/* 1. Memoized visuals - Never re-renders on text changes */}
+      <LibraryLoaderArtwork />
+
+      {/* 2. Isolated Text Container - Only this portion morphs when message updates */}
+      <div className="min-h-[3.25rem] flex flex-col items-center justify-center transition-all duration-200">
+        <h3
+          key={activeMessage}
+          className="text-base sm:text-lg font-semibold text-foreground tracking-tight animate-in fade-in duration-300"
+        >
+          {activeMessage}
+        </h3>
+        <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
+          {activeSubMessage}
+        </p>
       </div>
 
-      {/* Scoped CSS for the flipping pages and bookmark slider */}
-      <style>{`
-        @keyframes bookPageFlip {
-          0% {
-            transform: rotateY(0deg);
-            opacity: 1;
-          }
-          50% {
-            transform: rotateY(-90deg) scaleX(0.85);
-            opacity: 0.9;
-          }
-          100% {
-            transform: rotateY(-180deg);
-            opacity: 0;
-          }
-        }
-
-        .book-flip-1 {
-          animation: bookPageFlip 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-          transform-style: preserve-3d;
-        }
-
-        .book-flip-2 {
-          animation: bookPageFlip 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 0.6s;
-          transform-style: preserve-3d;
-        }
-
-        @keyframes libraryProgress {
-          0% {
-            left: -35%;
-          }
-          100% {
-            left: 100%;
-          }
-        }
-
-        .library-progress-slide {
-          animation: libraryProgress 1.6s ease-in-out infinite;
-        }
-      `}</style>
+      {/* 3. Memoized progress bar - Never resets on text changes */}
+      <LibraryLoaderProgressBar />
     </div>
   );
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-300">
+      <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex items-center justify-center">
         {content}
       </div>
     );
   }
 
   return (
-    <div className="w-full py-16 flex items-center justify-center animate-in fade-in duration-300">
+    <div className="w-full py-16 flex items-center justify-center">
       {content}
+    </div>
+  );
+};
+
+/**
+ * Global Persistent Overlay mounted once at root of App.tsx.
+ * Stays mounted permanently in the DOM; when status messages update,
+ * only the text changes, preserving uninterrupted animations and progress bar.
+ */
+export const GlobalLibraryLoaderOverlay: React.FC = () => {
+  const { isLoading, message, subMessage } = useGlobalLoader();
+  const [renderDom, setRenderDom] = useState(isLoading);
+
+  useEffect(() => {
+    if (isLoading) {
+      setRenderDom(true);
+    } else {
+      const timer = setTimeout(() => setRenderDom(false), 320);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
+  if (!renderDom) return null;
+
+  return (
+    <div
+      className={`fixed inset-0 z-[99999] bg-background/95 backdrop-blur-md flex items-center justify-center transition-opacity duration-300 ease-out ${
+        isLoading ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      }`}
+    >
+      <div className="relative flex flex-col items-center justify-center p-6 text-center select-none max-w-sm sm:max-w-md mx-auto">
+        <LibraryLoaderArtwork />
+        <div className="min-h-[3.25rem] flex flex-col items-center justify-center transition-all duration-200">
+          <h3
+            key={message}
+            className="text-base sm:text-lg font-semibold text-foreground tracking-tight animate-in fade-in duration-300"
+          >
+            {message}
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
+            {subMessage || "Empowering students through the universe of books & knowledge"}
+          </p>
+        </div>
+        <LibraryLoaderProgressBar />
+      </div>
     </div>
   );
 };
