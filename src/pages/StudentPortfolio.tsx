@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -167,11 +168,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
   const barcode = user?.library_card_barcode || defaultStudentBarcode(user?.admission_number);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 bg-slate-50 min-h-screen">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
-      </div>
-    );
+    return <LibraryLoader fullScreen message="Building your reading portfolio..." />;
   }
 
   const shareLink = `${window.location.origin}/portfolio/${user?.username || user?.id}`;
