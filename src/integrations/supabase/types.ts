@@ -2529,6 +2529,7 @@ export type Database = {
           category: string
           created_at: string
           email: string | null
+          description: string | null
           feedback_text: string | null
           full_name: string | null
           id: string
@@ -2546,6 +2547,7 @@ export type Database = {
           category?: string
           created_at?: string
           email?: string | null
+          description?: string | null
           feedback_text?: string | null
           full_name?: string | null
           id?: string
@@ -2562,6 +2564,7 @@ export type Database = {
           area?: string | null
           category?: string
           created_at?: string
+          description?: string | null
           email?: string | null
           feedback_text?: string | null
           full_name?: string | null
