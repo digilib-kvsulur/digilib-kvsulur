@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { LibraryLoader } from "@/components/global/LibraryLoader";
+import { loadingManager } from "@/lib/loadingManager";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -194,6 +195,7 @@ const TeacherDashboard = () => {
       setAllBooks(books || []);
       
       setLoading(false);
+      loadingManager.hide();
       
       // Directly load class data since selectedClass useEffect may not fire if value doesn't change
       if (initialClass) {
@@ -395,7 +397,10 @@ const TeacherDashboard = () => {
     fetchClassDetails(selectedClass);
   };
 
-  if (loading) return <LibraryLoader fullScreen message="Loading teacher dashboard..." />;
+  if (loading) {
+    loadingManager.update("Loading teacher dashboard...");
+    return null;
+  }
 
   const totalPoints = students.reduce((s, x) => s + (x.points || 0), 0);
   const avgPoints = students.length ? Math.round(totalPoints / students.length) : 0;
