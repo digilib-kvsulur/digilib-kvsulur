@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { LibraryLoader } from "@/components/global/LibraryLoader";
+import { loadingManager } from "@/lib/loadingManager";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
