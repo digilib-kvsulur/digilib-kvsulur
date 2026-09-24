@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { LibraryLoader } from "@/components/global/LibraryLoader";
+import { loadingManager } from "@/lib/loadingManager";
 
 type Profile = Tables<"profiles">;
 type AllowedRole = "admin" | "teacher" | "student";
@@ -23,14 +23,13 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
     }
   });
   const [loading, setLoading] = useState(true);
-  const [statusMessage, setStatusMessage] = useState("Verifying your library session...");
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     const checkAccess = async () => {
-      setStatusMessage("Verifying your library session...");
+      loadingManager.show("Verifying your library session...");
       let session: any = null;
       try {
         const { data } = await supabase.auth.getSession();
@@ -47,12 +46,13 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
       );
 
       if (!session && !hasStoredToken) {
+        loadingManager.hide();
         setRedirectTo("/login");
         setLoading(false);
         return;
       }
 
-      setStatusMessage("Fetching your library profile...");
+      loadingManager.update("Fetching your library profile...");
       const userId = session?.user?.id || profile?.id;
       let userProfile = profile;
 
@@ -71,7 +71,6 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
             } catch {}
           }
         } catch (netErr) {
-          // Network offline / fetch timeout — keep using cached profile
           console.warn("Network error during profile fetch, using cached profile:", netErr);
         }
       }
@@ -79,22 +78,25 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
       if (!mounted) return;
 
       if (!userProfile) {
+        loadingManager.hide();
         setRedirectTo("/login");
         setLoading(false);
         return;
       }
 
-      setStatusMessage("Checking access permissions...");
+      loadingManager.update("Checking access permissions...");
       const roleAllowed = allowedRoles.includes(userProfile.role as AllowedRole);
       const approvalAllowed = !requireApproval || userProfile.is_approved || userProfile.role === "admin";
 
       if (!approvalAllowed) {
+        loadingManager.hide();
         setRedirectTo("/login");
         setLoading(false);
         return;
       }
 
       if (!roleAllowed) {
+        loadingManager.hide();
         if (userProfile.role === "admin") setRedirectTo("/admin-dashboard");
         else if (userProfile.role === "teacher") setRedirectTo("/teacher-dashboard");
         else if (userProfile.role === "student") setRedirectTo("/student-dashboard");
@@ -103,9 +105,14 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
         return;
       }
 
-      setStatusMessage("Opening your dashboard...");
+      loadingManager.update("Loading your dashboard...");
       setProfile(userProfile);
       setLoading(false);
+
+      // Graceful fallback to hide loader if child dashboard doesn't manage it
+      setTimeout(() => {
+        if (mounted) loadingManager.hide();
+      }, 800);
     };
 
     checkAccess();
@@ -115,7 +122,7 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
     };
   }, [allowedRoles, requireApproval]);
 
-  if (loading) return <LibraryLoader fullScreen message={statusMessage} />;
+  if (loading) return null;
   if (redirectTo) return <Navigate to={redirectTo} replace />;
   if (!profile) return <Navigate to="/login" replace />;
 
