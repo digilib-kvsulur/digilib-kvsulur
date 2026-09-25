@@ -1,7 +1,25 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Home, Search } from "lucide-react";
+import { extractSESRedirectUrl } from "@/lib/trackingUrlExtractor";
 
 const NotFound = () => {
+  useEffect(() => {
+    const targetUrl = extractSESRedirectUrl(window.location.href);
+    if (targetUrl) {
+      window.location.replace(targetUrl);
+    }
+  }, []);
+
+  const immediateTarget = typeof window !== "undefined" ? extractSESRedirectUrl(window.location.href) : null;
+  if (immediateTarget) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
+        <p className="text-sm font-semibold text-slate-600">Redirecting to verified security link…</p>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-slate-50 px-6 animate-in fade-in duration-300">
       <div className="max-w-lg text-center">

@@ -41,6 +41,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const BookDetails = lazy(() => import("./pages/BookDetails"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const EmailTrackingRedirect = lazy(() => import("./pages/EmailTrackingRedirect"));
 const Support = lazy(() => import("./pages/Support"));
 const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
 const PointsHistory = lazy(() => import("./pages/PointsHistory"));
@@ -363,6 +364,10 @@ const App = () => {
                 />
                 <Route path="/book/:id" element={<BookDetails />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/CL0/*" element={<EmailTrackingRedirect />} />
+                <Route path="/CL1/*" element={<EmailTrackingRedirect />} />
+                <Route path="/cl0/*" element={<EmailTrackingRedirect />} />
+                <Route path="/cl1/*" element={<EmailTrackingRedirect />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
