@@ -150,7 +150,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [tabHistory, setTabHistory] = useState<Tab[]>(["overview"]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, booksIssued: 0, activeQuizzes: 0, dbSize: 0, storageSize: 0 });
+  const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, totalBooksIssued: 0, activeQuizzes: 0, dbSize: 0, storageSize: 0 });
 
   usePushSubscription(user?.id);
 
@@ -263,16 +263,34 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [users, books, issued, quizzes, dbSizeReq, storageSizeReq] = await Promise.all([
-        supabase.rpc('get_active_users_count'), supabase.rpc('get_total_books_count'),
-        supabase.rpc('get_books_issued_count'), supabase.rpc('get_active_quizzes_count'),
+      const [users, books, totalIssuesReq, quizzes, dbSizeReq, storageSizeReq] = await Promise.all([
+        supabase.rpc('get_active_users_count'),
+        supabase.rpc('get_total_books_count'),
+        supabase.from('book_issues').select('*', { count: 'exact', head: true }),
+        supabase.rpc('get_active_quizzes_count'),
         supabase.rpc('get_database_size'),
         supabase.rpc('get_storage_size'),
       ]);
+
+      let totalIssued = totalIssuesReq.count ?? 0;
+      if (totalIssued === 0) {
+        try {
+          const { data: borrowCounts } = await supabase.rpc('get_book_borrow_counts');
+          if (borrowCounts && Array.isArray(borrowCounts) && borrowCounts.length > 0) {
+            totalIssued = borrowCounts.reduce((acc: number, row: any) => acc + (Number(row.borrow_count) || 0), 0);
+          } else {
+            const { data: currIssued } = await supabase.rpc('get_books_issued_count');
+            if (currIssued) totalIssued = currIssued;
+          }
+        } catch {
+          // fallback gracefully
+        }
+      }
+
       setStats({ 
         totalUsers: users.data || 0, 
         totalBooks: books.data || 0, 
-        booksIssued: issued.data || 0, 
+        totalBooksIssued: totalIssued, 
         activeQuizzes: quizzes.data || 0,
         dbSize: dbSizeReq.data || 0,
         storageSize: storageSizeReq.data || 0,
@@ -291,7 +309,7 @@ const AdminDashboard = () => {
   const statCards = [
     { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-primary", bg: "bg-primary/10" },
     { label: "Total Books", value: stats.totalBooks, icon: BookOpen, color: "text-success", bg: "bg-success/10" },
-    { label: "Books Issued", value: stats.booksIssued, icon: BookCheck, color: "text-warning", bg: "bg-warning/10" },
+    { label: "Total Books Issued", value: stats.totalBooksIssued, icon: BookCheck, color: "text-warning", bg: "bg-warning/10" },
     { label: "Active Quizzes", value: stats.activeQuizzes, icon: Brain, color: "text-accent", bg: "bg-accent/10" },
   ];
 

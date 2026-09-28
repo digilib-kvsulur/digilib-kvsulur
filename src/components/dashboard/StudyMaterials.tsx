@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExternalLink, BookOpen, Search, FileText, Download, Loader2, ChevronRight, GraduationCap, Timer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatGoogleDriveUrl, isGoogleDriveFolder } from "@/lib/utils";
 
 interface Material {
   id: string;
@@ -358,30 +359,7 @@ const SUBJECT_COLORS: Record<string, string> = {
   General: "bg-slate-100 text-slate-700",
 };
 
-const formatGoogleDriveUrl = (url: string) => {
-  if (!url) return "";
-  if (!url.includes("drive.google.com")) return url;
-  try {
-    let fileId = "";
-    if (url.includes("/file/d/")) {
-      const parts = url.split("/file/d/");
-      if (parts[1]) {
-        fileId = parts[1].split("/")[0].split("?")[0];
-      }
-    } else if (url.includes("open?id=")) {
-      const parts = url.split("open?id=");
-      if (parts[1]) {
-        fileId = parts[1].split("&")[0];
-      }
-    }
-    if (fileId) {
-      return `https://drive.google.com/file/d/${fileId}/preview`;
-    }
-  } catch (e) {
-    console.error("Error formatting Google Drive URL:", e);
-  }
-  return url;
-};
+// formatGoogleDriveUrl is imported from @/lib/utils
 
 const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
   const { toast } = useToast();

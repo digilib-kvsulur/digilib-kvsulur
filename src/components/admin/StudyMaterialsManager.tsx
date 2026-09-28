@@ -13,6 +13,7 @@ import { FileText, Upload, Trash2, Download, BookOpen, Loader2, Plus, Graduation
 import BulkImportMaterials from "./BulkImportMaterials";
 import BulkImportCbse from "./BulkImportCbse";
 import NcertCbseReview from "./NcertCbseReview";
+import { formatGoogleDriveUrl, isGoogleDriveUrl, isGoogleDriveFolder } from "@/lib/utils";
 
 interface Material {
   id: string;
@@ -172,6 +173,19 @@ const StudyMaterialsManager = () => {
   const [fetchingNcert, setFetchingNcert] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [viewMaterial, setViewMaterial] = useState<{title: string, url: string} | null>(null);
+
+  const handleOpenMaterial = (title: string, rawUrl: string) => {
+    if (!rawUrl) return;
+    if (
+      rawUrl.includes("ncert.nic.in") ||
+      rawUrl.includes("cbseacademic.nic.in") ||
+      isGoogleDriveFolder(rawUrl)
+    ) {
+      window.open(rawUrl, "_blank", "noopener,noreferrer");
+    } else {
+      setViewMaterial({ title, url: rawUrl });
+    }
+  };
 
   useEffect(() => {
     loadMaterials();
@@ -437,7 +451,7 @@ const StudyMaterialsManager = () => {
     }
     setAddingNcert(true);
     try {
-      let finalUrl = ncertForm.file_url.trim();
+      let finalUrl = formatGoogleDriveUrl(ncertForm.file_url.trim());
 
       if (ncertFile) {
         const { data: { user } } = await supabase.auth.getUser();
@@ -497,7 +511,7 @@ const StudyMaterialsManager = () => {
       const { error } = await supabase.from("ncert_books").update({
         chapter_title: editNcertForm.chapter_title,
         book_name: editNcertForm.book_name,
-        file_url: editNcertForm.file_url,
+        file_url: formatGoogleDriveUrl(editNcertForm.file_url?.trim() || ""),
         chapter_number: editNcertForm.chapter_number,
       }).eq("id", id);
       if (error) throw error;
@@ -517,7 +531,7 @@ const StudyMaterialsManager = () => {
     }
     setAddingCbse(true);
     try {
-      let finalUrl = cbseForm.file_url.trim();
+      let finalUrl = formatGoogleDriveUrl(cbseForm.file_url.trim());
       if (cbseFile) {
         const { data: { user } } = await supabase.auth.getUser();
         const ext = cbseFile.name.split(".").pop();
@@ -660,11 +674,11 @@ const StudyMaterialsManager = () => {
                           {m.description && ` · ${m.description}`}
                         </p>
                       </div>
-                      <Button size="sm" variant="outline" className="h-8" onClick={() => {
-                        if (m.file_url.includes("ncert.nic.in") || m.file_url.includes("cbseacademic.nic.in")) window.open(m.file_url, "_blank");
-                        else setViewMaterial({ title: m.title, url: m.file_url });
-                      }}>
+                      <Button size="sm" variant="outline" className="h-8" title="Preview Material" onClick={() => handleOpenMaterial(m.title, m.file_url)}>
                         <BookOpen className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:text-foreground" title="Open directly in new tab" onClick={() => window.open(m.file_url, "_blank", "noopener,noreferrer")}>
+                        <ExternalLink className="h-4 w-4" />
                       </Button>
                       <Button onClick={() => handleDeleteMaterial(m)} variant="ghost" size="sm" className="text-destructive h-8">
                         <Trash2 className="h-4 w-4" />
@@ -850,11 +864,11 @@ const StudyMaterialsManager = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline" className="h-8" onClick={() => {
-                              if (c.file_url.includes("ncert.nic.in") || c.file_url.includes("cbseacademic.nic.in")) window.open(c.file_url, "_blank");
-                              else setViewMaterial({ title: c.chapter_title, url: c.file_url });
-                            }}>
+                            <Button size="sm" variant="outline" className="h-8" title="Preview Chapter" onClick={() => handleOpenMaterial(c.chapter_title, c.file_url)}>
                               <BookOpen className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:text-foreground" title="Open directly in new tab" onClick={() => window.open(c.file_url, "_blank", "noopener,noreferrer")}>
+                              <ExternalLink className="h-4 w-4" />
                             </Button>
                             <Button onClick={() => { setEditingNcertId(c.id); setEditNcertForm(c); }} variant="outline" size="sm" className="h-8">
                               <Edit2 className="h-4 w-4" />
@@ -972,11 +986,11 @@ const StudyMaterialsManager = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="h-8" onClick={() => {
-                          if (entry.file_url.includes("ncert.nic.in") || entry.file_url.includes("cbseacademic.nic.in")) window.open(entry.file_url, "_blank");
-                          else setViewMaterial({ title: entry.chapter_title, url: entry.file_url });
-                        }}>
+                        <Button size="sm" variant="outline" className="h-8" title="Preview Entry" onClick={() => handleOpenMaterial(entry.chapter_title, entry.file_url)}>
                           <BookOpen className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:text-foreground" title="Open directly in new tab" onClick={() => window.open(entry.file_url, "_blank", "noopener,noreferrer")}>
+                          <ExternalLink className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="sm" className="h-8" onClick={() => {
                           setEditingCbseId(entry.id);
@@ -1009,24 +1023,58 @@ const StudyMaterialsManager = () => {
                 <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span className="leading-snug text-left">{viewMaterial?.title}</span>
               </DialogTitle>
-              {viewMaterial?.url?.toLowerCase().includes('.pdf') && (
-                <Button asChild variant="outline" size="sm" className="h-8 shrink-0">
-                  <a href={viewMaterial.url} download target="_blank" rel="noopener noreferrer">
-                    <Download className="h-3.5 w-3.5 sm:mr-2" />
-                    <span className="hidden sm:inline">Download</span>
-                  </a>
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {viewMaterial?.url?.toLowerCase().includes('.pdf') && (
+                  <Button asChild variant="outline" size="sm" className="h-8 shrink-0">
+                    <a href={viewMaterial.url} download target="_blank" rel="noopener noreferrer">
+                      <Download className="h-3.5 w-3.5 sm:mr-2" />
+                      <span className="hidden sm:inline">Download</span>
+                    </a>
+                  </Button>
+                )}
+                {viewMaterial?.url && (
+                  <Button asChild size="sm" className="h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold shrink-0">
+                    <a href={viewMaterial.url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5 sm:mr-1.5" />
+                      <span>{isGoogleDriveUrl(viewMaterial.url) ? "Open in Drive" : "Open Directly"}</span>
+                    </a>
+                  </Button>
+                )}
+              </div>
             </div>
+            {isGoogleDriveUrl(viewMaterial?.url || "") && (
+              <p className="text-[11px] text-amber-700 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 p-2 rounded-lg mt-2 text-left font-medium leading-normal">
+                ⚠️ If the Google Drive preview below is blank or asks for permissions, click the <strong>Open in Drive</strong> button above to view it directly in Google Drive.
+              </p>
+            )}
           </DialogHeader>
           <div className="flex-1 bg-muted/10 w-full h-full relative">
             {viewMaterial && (
-              <iframe
-                src={viewMaterial.url}
-                className="w-full h-full border-0 absolute inset-0"
-                title={viewMaterial.title}
-                allow="autoplay"
-              />
+              isGoogleDriveFolder(viewMaterial.url) ? (
+                <div className="flex flex-col items-center justify-center h-full p-6 text-center space-y-4">
+                  <div className="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+                    <ExternalLink className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-foreground">Google Drive Folder</h3>
+                    <p className="text-muted-foreground text-sm max-w-md">
+                      Google Drive folders cannot be embedded in a preview frame. Click below to open and browse the folder directly in Google Drive.
+                    </p>
+                  </div>
+                  <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
+                    <a href={viewMaterial.url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-2" /> Open Folder in Google Drive
+                    </a>
+                  </Button>
+                </div>
+              ) : (
+                <iframe
+                  src={formatGoogleDriveUrl(viewMaterial.url)}
+                  className="w-full h-full border-0 absolute inset-0"
+                  title={viewMaterial.title}
+                  allow="autoplay; encrypted-media; fullscreen"
+                />
+              )
             )}
           </div>
         </DialogContent>
