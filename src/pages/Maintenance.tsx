@@ -114,18 +114,18 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
       >
         Dear Students,
         <br /><br />
-        Due to the <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          unexpectedly overwhelming response
-        </span> from our students, we are taking additional time to upgrade our database infrastructure — ensuring a{" "}
+        The site <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+          is under going scheduled maintenance
+        </span> , we are taking additional time to upgrade our database infrastructure — ensuring a{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          lifetime of uninterrupted DLMS experience
+          better DLMS experience.
         </span>{" "}for everyone.
         <br /><br />
         All your data (Including XPs & Ranking) is preserved in a safe and secure manner.
         <br /><br />
         We are working tirelessly to get the site back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
-          19th Sep 2026, 4:15 PM IST
+          29th Sep 2026, 9:10 PM IST
         </span>. Your patience and cooperation mean the world to us.
         <br /><br />
         Thank you for being part of this journey. 🙏
