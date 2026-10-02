@@ -29,8 +29,8 @@ export default function ReturnedBookReviewPrompt({ userId }: { userId?: string }
 
   const submit = async () => {
     if (!issue || !userId) return;
-    if (review.trim().length < 20) {
-      toast({ title: "Please write more", description: `Write at least ${20 - review.trim().length} more characters to earn +${reviewPoints} XP!`, variant: "destructive" });
+    if (review.trim().length < 400) {
+      toast({ title: "Please write more", description: `Write at least ${400 - review.trim().length} more characters to earn +${reviewPoints} XP!`, variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -59,18 +59,18 @@ export default function ReturnedBookReviewPrompt({ userId }: { userId?: string }
         <Textarea
           value={review}
           onChange={event => setReview(event.target.value)}
-          placeholder={`What did you enjoy or learn from this book? Would you recommend it? Share your thoughts! (Write at least 20 characters to earn +${reviewPoints} XP)`}
+          placeholder={`What did you enjoy or learn from this book? Would you recommend it? Share your thoughts! (Write at least 400 characters to earn +${reviewPoints} XP)`}
           rows={4}
-          maxLength={500}
+          maxLength={3000}
         />
-        <p className={`text-[11px] font-medium ${review.trim().length < 20 ? "text-rose-500" : "text-emerald-600"}`}>
-          {review.trim().length < 20
-            ? `Write ${20 - review.trim().length} more characters to earn +${reviewPoints} XP`
+        <p className={`text-[11px] font-medium ${review.trim().length < 400 ? "text-rose-500" : "text-emerald-600"}`}>
+          {review.trim().length < 400
+            ? `Write ${400 - review.trim().length} more characters to earn +${reviewPoints} XP`
             : "✓ Ready to submit and earn XP!"}
         </p>
         <DialogFooter>
           <Button variant="outline" onClick={() => setIssue(null)}>Maybe later</Button>
-          <Button onClick={submit} disabled={saving || review.trim().length < 20}>
+          <Button onClick={submit} disabled={saving || review.trim().length < 400}>
             {saving ? "Saving..." : `Submit Review & Earn +${reviewPoints} XP`}
           </Button>
         </DialogFooter>

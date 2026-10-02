@@ -107,7 +107,7 @@ const PointsHistoryPage = () => {
     try {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, student_class, admission_number, points, role, whatsapp_reward_claimed, whatsapp_joined_at, pwa_installed_at, created_at")
+        .select("id, first_name, last_name, student_class, admission_number, points, role, pwa_installed_at, created_at")
         .eq("id", userId)
         .single();
 
@@ -236,9 +236,9 @@ const PointsHistoryPage = () => {
         // 11. Event Submissions
         supabase
           .from("event_submissions")
-          .select("id, submitted_at, status, library_events(title)")
+          .select("id, created_at, library_events(title)")
           .eq("user_id", userId)
-          .order("submitted_at", { ascending: false })
+          .order("created_at", { ascending: false })
           .limit(50),
 
         // 12. Admin Bonus Notifications
@@ -411,7 +411,7 @@ const PointsHistoryPage = () => {
           source: "event",
           points: 50,
           description: `Event Submission: ${(ev as any).library_events?.title || "Library Event"}`,
-          created_at: ev.submitted_at,
+          created_at: (ev as any).created_at,
           icon: m.icon,
           color: m.color,
           bg: m.bg,
