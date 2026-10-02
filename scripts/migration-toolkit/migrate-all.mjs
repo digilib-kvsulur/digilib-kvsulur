@@ -317,8 +317,16 @@ async function main() {
   const newServiceKey = (await ask('Enter NEW Project service_role Key: ')).trim();
   const newAnonKey = (await ask('Enter NEW Project anon Key (for .env): ')).trim();
 
-  const psqlPath = 'C:\\Program Files\\PostgreSQL\\18\\bin\\psql.exe';
-  const pgDumpPath = 'C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe';
+  const findBin = (name) => {
+    const userProfile = process.env.USERPROFILE || '';
+    const scoopPath = path.join(userProfile, 'scoop', 'apps', 'postgresql', 'current', 'bin', `${name}.exe`);
+    if (fs.existsSync(scoopPath)) return scoopPath;
+    const stdPath = `C:\\Program Files\\PostgreSQL\\18\\bin\\${name}.exe`;
+    if (fs.existsSync(stdPath)) return stdPath;
+    return name;
+  };
+  const psqlPath = findBin('psql');
+  const pgDumpPath = findBin('pg_dump');
 
   const schemaFile = path.resolve('schema.sql');
   const dataFile = path.resolve('data.sql');

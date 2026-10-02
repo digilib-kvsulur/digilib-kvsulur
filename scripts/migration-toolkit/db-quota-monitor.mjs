@@ -5,12 +5,30 @@
  */
 
 import { execSync } from 'child_process';
-import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 
-dotenv.config();
+// Read .env natively
+if (fs.existsSync('.env')) {
+  const envContent = fs.readFileSync('.env', 'utf8');
+  for (const line of envContent.split('\n')) {
+    const match = line.match(/^([^=]+)=(.*)$/);
+    if (match) {
+      process.env[match[1].trim()] = match[2].trim().replace(/^["']|["']$/g, '');
+    }
+  }
+}
 
-const projectRef = process.env.VITE_SUPABASE_PROJECT_ID || 'oebshkijofsusugrslii';
-const psqlPath = 'C:\\Program Files\\PostgreSQL\\18\\bin\\psql.exe';
+const projectRef = process.env.VITE_SUPABASE_PROJECT_ID || 'auqeumvurobhrewgttun';
+const findPsql = () => {
+  const userProfile = process.env.USERPROFILE || '';
+  const scoopPath = path.join(userProfile, 'scoop', 'apps', 'postgresql', 'current', 'bin', 'psql.exe');
+  if (fs.existsSync(scoopPath)) return scoopPath;
+  const stdPath = 'C:\\Program Files\\PostgreSQL\\18\\bin\\psql.exe';
+  if (fs.existsSync(stdPath)) return stdPath;
+  return 'psql';
+};
+const psqlPath = findPsql();
 const dbPassword = 'Pmshri@nep20';
 
 function formatMB(bytes) {
@@ -24,10 +42,33 @@ async function checkDatabaseSize() {
 
   try {
     const sizeQuery = "SELECT pg_size_pretty(pg_database_size(current_database())), pg_database_size(current_database());";
-    const rawSize = execSync(
-      `"${psqlPath}" -h db.${projectRef}.supabase.co -U postgres -d postgres -t -A -F "|" -c "${sizeQuery}"`,
-      { env: { ...process.env, PGPASSWORD: dbPassword }, encoding: 'utf8' }
-    ).trim();
+
+    function runPsql(query, extraArgs = '') {
+      try {
+        return execSync(
+          `"${psqlPath}" -h db.${projectRef}.supabase.co -U postgres -d postgres ${extraArgs} -c "${query}"`,
+          { env: { ...process.env, PGPASSWORD: dbPassword }, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }
+        );
+      } catch (e) {
+        // Fallback to pooler
+        const poolerHosts = [
+          'aws-0-ap-southeast-1.pooler.supabase.com',
+          'aws-0-ap-northeast-2.pooler.supabase.com',
+          'aws-0-ap-south-1.pooler.supabase.com'
+        ];
+        for (const host of poolerHosts) {
+          try {
+            return execSync(
+              `"${psqlPath}" -h ${host} -p 5432 -U postgres.${projectRef} -d postgres ${extraArgs} -c "${query}"`,
+              { env: { ...process.env, PGPASSWORD: dbPassword }, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
+            );
+          } catch (inner) {}
+        }
+        throw e;
+      }
+    }
+
+    const rawSize = runPsql(sizeQuery, '-t -A -F "|"').trim();
 
     const [dbSizeStr, dbBytesStr] = rawSize.split('|');
     const dbMB = parseFloat(formatMB(parseInt(dbBytesStr, 10)));
@@ -53,10 +94,7 @@ async function checkDatabaseSize() {
       ORDER BY pg_total_relation_size(relid) DESC
       LIMIT 8;
     `;
-    const tableOutput = execSync(
-      `"${psqlPath}" -h db.${projectRef}.supabase.co -U postgres -d postgres -c "${tableQuery}"`,
-      { env: { ...process.env, PGPASSWORD: dbPassword }, encoding: 'utf8' }
-    );
+    const tableOutput = runPsql(tableQuery);
     console.log(tableOutput);
 
   } catch (err) {
