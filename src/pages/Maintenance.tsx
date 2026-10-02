@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+koimport { useState, useEffect } from "react";
 import { Wrench, BookOpen, Clock, Mail, X, Sparkles, Bell } from "lucide-react";
 
 // 29 Sep 2026, 9:30 PM IST = 29 Sep 2026, 16:60 UTC
@@ -114,11 +114,11 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
       >
         Dear Students,
         <br /><br />
-        The site <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+        Developers <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
           
         </span> {" "}
         <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          better 
+          Out of Station
         </span>{" "}
         <br /><br />
         We are extremely sorry, the chief Developer is out of station, hence we are facing issues with correcting the frontend.
