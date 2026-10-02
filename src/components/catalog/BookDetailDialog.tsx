@@ -37,7 +37,7 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
   const submit = async () => {
     if (!userId) { toast({ title: "Please sign in", variant: "destructive" }); return; }
     if (myRating < 1) { toast({ title: "Please select a star rating", description: "Tap a star to choose your rating.", variant: "destructive" }); return; }
-    if (myText.trim().length < 20) { toast({ title: "Please write a review", description: "Share your thoughts in at least 20 characters to earn XP!", variant: "destructive" }); return; }
+    if (myText.trim().length < 400) { toast({ title: "Please write a review", description: "Share your thoughts in at least 400 characters to earn XP!", variant: "destructive" }); return; }
     const payload = { book_id: book.id, user_id: userId, rating: myRating, review_text: myText.trim() };
     const { error } = myReviewId
       ? await supabase.from("book_reviews").update(payload).eq("id", myReviewId)
@@ -94,11 +94,11 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
                 </button>
               ))}
             </div>
-            <Textarea placeholder={`What did you enjoy? What did you learn? Would you recommend it? (Write at least 20 characters to earn +${reviewPoints} XP)`} value={myText} onChange={e => setMyText(e.target.value)} rows={3} maxLength={500} />
-            <p className={`text-[11px] font-medium ${myText.trim().length < 20 ? "text-rose-500" : "text-emerald-600"}`}>
-              {myText.trim().length < 20 ? `Write ${20 - myText.trim().length} more characters to earn +${reviewPoints} XP` : "✓ Ready to post!"}
+            <Textarea placeholder={`What did you enjoy? What did you learn? Would you recommend it? (Write at least 400 characters to earn +${reviewPoints} XP)`} value={myText} onChange={e => setMyText(e.target.value)} rows={3} maxLength={3000} />
+            <p className={`text-[11px] font-medium ${myText.trim().length < 400 ? "text-rose-500" : "text-emerald-600"}`}>
+              {myText.trim().length < 400 ? `Write ${400 - myText.trim().length} more characters to earn +${reviewPoints} XP` : "✓ Ready to post!"}
             </p>
-            <Button size="sm" onClick={submit} disabled={myRating < 1 || myText.trim().length < 20}>{myReviewId ? "Update" : "Post"} review & earn +{reviewPoints} XP</Button>
+            <Button size="sm" onClick={submit} disabled={myRating < 1 || myText.trim().length < 400}>{myReviewId ? "Update" : "Post"} review & earn +{reviewPoints} XP</Button>
           </div>
         )}
 
