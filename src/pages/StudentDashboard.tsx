@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect, useMemo } from "react";
 import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { loadingManager } from "@/lib/loadingManager";

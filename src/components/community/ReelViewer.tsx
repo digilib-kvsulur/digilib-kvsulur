@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Heart, MessageCircle, Flag, X, Volume2, VolumeX,

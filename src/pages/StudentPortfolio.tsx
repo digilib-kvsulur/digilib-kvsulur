@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from "react";
 import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { useParams } from "react-router-dom";

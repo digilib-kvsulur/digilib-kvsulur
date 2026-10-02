@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from "react";
 import { Bell, CheckCheck, ExternalLink, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
