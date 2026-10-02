@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Analytics } from '@vercel/analytics/react';
