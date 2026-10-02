@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.tg_validate_book_review() FROM public, anon, authenticated;
