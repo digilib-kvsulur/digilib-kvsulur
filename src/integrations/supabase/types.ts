@@ -721,6 +721,74 @@ export type Database = {
         }
         Relationships: []
       }
+      bug_bounty_campaigns: {
+        Row: {
+          admin_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          is_active: boolean
+          starts_at: string
+          student_id: string | null
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          ends_at: string
+          id?: string
+          is_active?: boolean
+          starts_at?: string
+          student_id?: string | null
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          ends_at?: string
+          id?: string
+          is_active?: boolean
+          starts_at?: string
+          student_id?: string | null
+        }
+        Relationships: []
+      }
+      bug_reports: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          description: string
+          id: string
+          reporter_id: string
+          rewarded_at: string | null
+          status: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          reporter_id: string
+          rewarded_at?: string | null
+          status?: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          reporter_id?: string
+          rewarded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bug_reports_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "bug_bounty_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cbse_curriculum: {
         Row: {
           category: string
@@ -1018,6 +1086,33 @@ export type Database = {
         }
         Relationships: []
       }
+      email_campaigns: {
+        Row: {
+          created_at: string
+          id: string
+          preset: string
+          recipient_count: number
+          sent_by: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preset: string
+          recipient_count?: number
+          sent_by?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preset?: string
+          recipient_count?: number
+          sent_by?: string | null
+          subject?: string
+        }
+        Relationships: []
+      }
       event_registrations: {
         Row: {
           created_at: string
@@ -1090,6 +1185,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      event_winners: {
+        Row: {
+          acknowledged_user_ids: string[]
+          certificate_id: string | null
+          collection_date: string | null
+          collection_venue: string | null
+          created_at: string
+          event_id: string
+          id: string
+          is_published: boolean
+          librarian_note: string | null
+          position: number | null
+          position_title: string | null
+          position_title_hindi: string | null
+          published_at: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledged_user_ids?: string[]
+          certificate_id?: string | null
+          collection_date?: string | null
+          collection_venue?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          is_published?: boolean
+          librarian_note?: string | null
+          position?: number | null
+          position_title?: string | null
+          position_title_hindi?: string | null
+          published_at?: string | null
+          user_id: string
+        }
+        Update: {
+          acknowledged_user_ids?: string[]
+          certificate_id?: string | null
+          collection_date?: string | null
+          collection_venue?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          is_published?: boolean
+          librarian_note?: string | null
+          position?: number | null
+          position_title?: string | null
+          position_title_hindi?: string | null
+          published_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       fine_settings: {
         Row: {
@@ -1350,33 +1496,60 @@ export type Database = {
       }
       issued_certificates: {
         Row: {
+          bilingual_data: Json | null
+          certificate_no: string | null
+          common_text: string | null
           description: string | null
+          during_text: string | null
+          event_hindi: string | null
           event_id: string | null
+          event_name: string | null
           id: string
           issued_at: string
           issued_by: string | null
+          name_hindi: string | null
           template_url: string | null
           title: string
+          title_hindi: string | null
+          unlock_at: string | null
           user_id: string
         }
         Insert: {
+          bilingual_data?: Json | null
+          certificate_no?: string | null
+          common_text?: string | null
           description?: string | null
+          during_text?: string | null
+          event_hindi?: string | null
           event_id?: string | null
+          event_name?: string | null
           id?: string
           issued_at?: string
           issued_by?: string | null
+          name_hindi?: string | null
           template_url?: string | null
           title: string
+          title_hindi?: string | null
+          unlock_at?: string | null
           user_id: string
         }
         Update: {
+          bilingual_data?: Json | null
+          certificate_no?: string | null
+          common_text?: string | null
           description?: string | null
+          during_text?: string | null
+          event_hindi?: string | null
           event_id?: string | null
+          event_name?: string | null
           id?: string
           issued_at?: string
           issued_by?: string | null
+          name_hindi?: string | null
           template_url?: string | null
           title?: string
+          title_hindi?: string | null
+          unlock_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1443,6 +1616,7 @@ export type Database = {
           is_published: boolean
           location: string | null
           max_submission_days: number
+          redirect_url: string | null
           registration_deadline: string | null
           schedule_files: string | null
           submission_deadline: string | null
@@ -1464,6 +1638,7 @@ export type Database = {
           is_published?: boolean
           location?: string | null
           max_submission_days?: number
+          redirect_url?: string | null
           registration_deadline?: string | null
           schedule_files?: string | null
           submission_deadline?: string | null
@@ -1485,6 +1660,7 @@ export type Database = {
           is_published?: boolean
           location?: string | null
           max_submission_days?: number
+          redirect_url?: string | null
           registration_deadline?: string | null
           schedule_files?: string | null
           submission_deadline?: string | null
@@ -1964,8 +2140,12 @@ export type Database = {
       }
       posts: {
         Row: {
+          accepted_comment_id: string | null
           content: string
           created_at: string
+          doubt_class: string | null
+          doubt_status: string | null
+          doubt_subject: string | null
           id: string
           is_pinned: boolean
           media_type: string | null
@@ -1973,13 +2153,18 @@ export type Database = {
           pinned_at: string | null
           poll_ends_at: string | null
           post_type: string
+          scheduled_for: string | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          accepted_comment_id?: string | null
           content: string
           created_at?: string
+          doubt_class?: string | null
+          doubt_status?: string | null
+          doubt_subject?: string | null
           id?: string
           is_pinned?: boolean
           media_type?: string | null
@@ -1987,13 +2172,18 @@ export type Database = {
           pinned_at?: string | null
           poll_ends_at?: string | null
           post_type?: string
+          scheduled_for?: string | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          accepted_comment_id?: string | null
           content?: string
           created_at?: string
+          doubt_class?: string | null
+          doubt_status?: string | null
+          doubt_subject?: string | null
           id?: string
           is_pinned?: boolean
           media_type?: string | null
@@ -2001,6 +2191,7 @@ export type Database = {
           pinned_at?: string | null
           poll_ends_at?: string | null
           post_type?: string
+          scheduled_for?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -2020,11 +2211,15 @@ export type Database = {
           currently_reading: Json | null
           email: string | null
           first_name: string | null
+          hindi_name: string | null
           id: string
           is_approved: boolean
           last_name: string | null
           library_card_barcode: string | null
+          monthly_points: number
           needs_profile_update: boolean
+          notification_email: string | null
+          notification_email_confirmed_at: string | null
           phone: string | null
           points: number
           pwa_installed_at: string | null
@@ -2034,6 +2229,8 @@ export type Database = {
           student_class: string | null
           updated_at: string
           username: string | null
+          whatsapp_joined_at: string | null
+          whatsapp_reward_claimed: boolean
         }
         Insert: {
           admission_number?: string | null
@@ -2047,11 +2244,15 @@ export type Database = {
           currently_reading?: Json | null
           email?: string | null
           first_name?: string | null
+          hindi_name?: string | null
           id: string
           is_approved?: boolean
           last_name?: string | null
           library_card_barcode?: string | null
+          monthly_points?: number
           needs_profile_update?: boolean
+          notification_email?: string | null
+          notification_email_confirmed_at?: string | null
           phone?: string | null
           points?: number
           pwa_installed_at?: string | null
@@ -2061,6 +2262,8 @@ export type Database = {
           student_class?: string | null
           updated_at?: string
           username?: string | null
+          whatsapp_joined_at?: string | null
+          whatsapp_reward_claimed?: boolean
         }
         Update: {
           admission_number?: string | null
@@ -2074,11 +2277,15 @@ export type Database = {
           currently_reading?: Json | null
           email?: string | null
           first_name?: string | null
+          hindi_name?: string | null
           id?: string
           is_approved?: boolean
           last_name?: string | null
           library_card_barcode?: string | null
+          monthly_points?: number
           needs_profile_update?: boolean
+          notification_email?: string | null
+          notification_email_confirmed_at?: string | null
           phone?: string | null
           points?: number
           pwa_installed_at?: string | null
@@ -2088,6 +2295,8 @@ export type Database = {
           student_class?: string | null
           updated_at?: string
           username?: string | null
+          whatsapp_joined_at?: string | null
+          whatsapp_reward_claimed?: boolean
         }
         Relationships: []
       }
@@ -2161,7 +2370,9 @@ export type Database = {
           id: string
           quiz_id: string
           room_code: string | null
+          scheduled_start_at: string | null
           status: string
+          time_per_question: number
           updated_at: string
         }
         Insert: {
@@ -2171,7 +2382,9 @@ export type Database = {
           id?: string
           quiz_id: string
           room_code?: string | null
+          scheduled_start_at?: string | null
           status?: string
+          time_per_question?: number
           updated_at?: string
         }
         Update: {
@@ -2181,7 +2394,9 @@ export type Database = {
           id?: string
           quiz_id?: string
           room_code?: string | null
+          scheduled_start_at?: string | null
           status?: string
+          time_per_question?: number
           updated_at?: string
         }
         Relationships: [
@@ -2522,6 +2737,7 @@ export type Database = {
           area: string | null
           category: string
           created_at: string
+          description: string | null
           email: string | null
           feedback_text: string | null
           full_name: string | null
@@ -2539,6 +2755,7 @@ export type Database = {
           area?: string | null
           category?: string
           created_at?: string
+          description?: string | null
           email?: string | null
           feedback_text?: string | null
           full_name?: string | null
@@ -2556,6 +2773,7 @@ export type Database = {
           area?: string | null
           category?: string
           created_at?: string
+          description?: string | null
           email?: string | null
           feedback_text?: string | null
           full_name?: string | null
@@ -2616,6 +2834,10 @@ export type Database = {
           already_claimed: boolean
           points_awarded: number
         }[]
+      }
+      bulk_delete_book_requests: {
+        Args: { p_request_ids: string[] }
+        Returns: number
       }
       check_and_award_badges: { Args: { p_user_id: string }; Returns: number }
       claim_streak_points: { Args: never; Returns: number }
@@ -2833,6 +3055,7 @@ export type Database = {
           username: string
         }[]
       }
+      get_total_book_copies: { Args: never; Returns: number }
       get_total_books_count: { Args: never; Returns: number }
       get_user_activity_stats: {
         Args: { _user_id: string }
@@ -2868,6 +3091,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_book_available_copies: {
+        Args: { p_book_id: string }
+        Returns: undefined
       }
       is_staff_or_admin: { Args: { _uid: string }; Returns: boolean }
       issue_book_to_user: {
@@ -2997,6 +3224,17 @@ export type Database = {
           server_time: string
           session_id: string
         }[]
+      }
+      submit_book_request: {
+        Args: {
+          p_admin_notes?: string
+          p_book_id?: string
+          p_requested_author?: string
+          p_requested_description?: string
+          p_requested_isbn?: string
+          p_requested_title?: string
+        }
+        Returns: Json
       }
       submit_public_support_ticket: {
         Args: {
