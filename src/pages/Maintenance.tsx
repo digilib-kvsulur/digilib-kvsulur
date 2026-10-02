@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Wrench, BookOpen, Clock, Mail, X, Sparkles, Bell } from "lucide-react";
 
 // 29 Sep 2026, 9:30 PM IST = 29 Sep 2026, 16:60 UTC
-const MAINTENANCE_END = new Date("2026-09-29T16:60:00Z");
+const MAINTENANCE_END = new Date("2026-10-02T09:30:00Z");
 
 function getTimeLeft() {
   const diff = MAINTENANCE_END.getTime() - Date.now();
@@ -115,17 +115,17 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         Dear Students,
         <br /><br />
         The site <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          is under going scheduled maintenance
-        </span> , we are taking additional time to upgrade our database infrastructure — ensuring a{" "}
+          
+        </span> {" "}
         <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          better DLMS experience.
-        </span>{" "}for everyone.
+          better 
+        </span>{" "}
         <br /><br />
-        All your data (Including XPs & Ranking) is preserved in a safe and secure manner.
+        We are extremely sorry, the chief Developer is out of station, hence we are facing issues with correcting the frontend.
         <br /><br />
-        We are working tirelessly to get the site back online by{" "}
+        Our team is working tirelessly to get the site back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
-          29th Sep 2026, 9:30 PM IST
+          2nd October, 3 PM IST
         </span>. Your patience and cooperation mean the world to us.
         <br /><br />
         Thank you for being part of this journey. 🙏
