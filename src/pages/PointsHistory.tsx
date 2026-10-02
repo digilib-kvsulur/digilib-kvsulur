@@ -236,9 +236,9 @@ const PointsHistoryPage = () => {
         // 11. Event Submissions
         supabase
           .from("event_submissions")
-          .select("id, submitted_at, status, library_events(title)")
+          .select("id, created_at, library_events(title)")
           .eq("user_id", userId)
-          .order("submitted_at", { ascending: false })
+          .order("created_at", { ascending: false })
           .limit(50),
 
         // 12. Admin Bonus Notifications

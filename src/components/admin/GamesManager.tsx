@@ -91,14 +91,12 @@ export default function GamesManager() {
   const load = useCallback(async () => {
     const [{ data }, { data: plays }] = await Promise.all([
       supabase.from("games").select("*").order("sort_order"),
-      supabase.from("game_plays").select("game_key, points_earned").limit(5000),
+      supabase.rpc("get_game_analytics"),
     ]);
     setGames((data || []) as GameRow[]);
     const agg: Record<string, { plays: number; xp: number }> = {};
-    (plays || []).forEach((p: any) => {
-      agg[p.game_key] = agg[p.game_key] || { plays: 0, xp: 0 };
-      agg[p.game_key].plays += 1;
-      agg[p.game_key].xp += p.points_earned || 0;
+    ((plays as any[]) || []).forEach((p: any) => {
+      agg[p.game_key] = { plays: Number(p.plays) || 0, xp: Number(p.xp_awarded) || 0 };
     });
     setStats(agg);
     setLoading(false);
