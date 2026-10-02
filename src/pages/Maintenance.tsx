@@ -140,10 +140,10 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         }}
       >
         <p className="text-xs sm:text-sm font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          — G V Tanish Vettrivel
+          — Team DLMS
         </p>
         <p className="text-[10px] sm:text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
-          Developer, DLMS · PM SHRI KV AFS Sulur
+          PM SHRI KV AFS Sulur
         </p>
       </div>
 
