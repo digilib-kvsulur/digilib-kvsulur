@@ -1219,13 +1219,41 @@ const SuperAdminPage = () => {
           resolvedEmail = sessionData.session.user.email?.toLowerCase().trim();
         }
 
-        // Fallback: check tenant session using singleton client
+        // Fallback 1: check tenant session using singleton client
         if (!resolvedUid && !resolvedEmail) {
           const { data: ts } = await supabase.auth.getSession();
           if (ts?.session?.user) {
             resolvedUid = ts.session.user.id;
             resolvedEmail = ts.session.user.email?.toLowerCase().trim();
           }
+        }
+
+        // Fallback 2: check localStorage directly
+        if (!resolvedUid && !resolvedEmail && typeof window !== "undefined") {
+          try {
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.includes("-auth-token")) {
+                const raw = localStorage.getItem(key);
+                if (raw) {
+                  const parsed = JSON.parse(raw);
+                  const u = parsed?.user || parsed?.currentSession?.user;
+                  if (u) {
+                    resolvedUid = resolvedUid || u.id;
+                    resolvedEmail = resolvedEmail || u.email?.toLowerCase().trim();
+                  }
+                }
+              }
+            }
+            if (!resolvedEmail) {
+              const rawProfile = localStorage.getItem("dlms_user_profile");
+              if (rawProfile) {
+                const p = JSON.parse(rawProfile);
+                if (p?.email) resolvedEmail = p.email.toLowerCase().trim();
+                if (p?.id) resolvedUid = resolvedUid || p.id;
+              }
+            }
+          } catch {}
         }
 
         if (!resolvedUid && !resolvedEmail) {
