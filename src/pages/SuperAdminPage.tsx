@@ -529,7 +529,7 @@ function DbControlTab() {
     if (!connection || !migrationSql.trim()) return;
     setMigrationLoading(true);
     try {
-      const client = createClient(connection.supabase_url, connection.supabase_anon_key);
+      const client = createScopedClient(connection.supabase_url, connection.supabase_anon_key);
       const { error } = await (client as any).rpc("exec_sql", { sql: migrationSql });
       if (error) throw error;
       toast({ title: "Migration Applied", description: "SQL executed successfully." });
@@ -545,7 +545,7 @@ function DbControlTab() {
     if (!selectedSchool || wipeConfirmWord !== "DELETE") return;
     try {
       const client = connection
-        ? createClient(connection.supabase_url, connection.supabase_anon_key)
+        ? createScopedClient(connection.supabase_url, connection.supabase_anon_key)
         : null;
       // Call a wipe edge function if it exists
       if (client && connection) {
@@ -868,7 +868,7 @@ function AnalyticsTab() {
             return;
           }
           try {
-            const client = createClient(conn.supabase_url, conn.supabase_anon_key);
+            const client = createScopedClient(conn.supabase_url, conn.supabase_anon_key);
             const [books, students, issues] = await Promise.all([
               client.from("books").select("*", { count: "exact", head: true }),
               client.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student"),
