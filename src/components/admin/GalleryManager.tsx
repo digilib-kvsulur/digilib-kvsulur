@@ -5,10 +5,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Trash2, Plus, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import imageCompression from 'browser-image-compression';
+
+const cleanImageUrl = (url: string) => {
+  if (!url) return "";
+  const currentUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  if (currentUrl && url.includes(".supabase.co") && !url.includes(currentUrl.replace("https://", ""))) {
+    return url.replace(/https:\/\/[a-z0-9]+\.supabase\.co/, currentUrl);
+  }
+  return url;
+};
 
 export default function GalleryManager() {
   const { toast } = useToast();
