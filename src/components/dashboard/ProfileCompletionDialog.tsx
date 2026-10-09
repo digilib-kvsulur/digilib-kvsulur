@@ -55,14 +55,26 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
 
     setLoading(true);
     try {
-      // 1) Update auth password. The dummy auth email stays in auth.users — we do NOT change
-      //    it here because that would send a verification email and lock the user out.
-      //    find_user_by_identifier now JOINs auth.users directly, so login always works
-      //    regardless of what email is stored in profiles.
-      const { error: passwordError } = await supabase.auth.updateUser({
-        password: password
+      // 0) Ensure an active auth session exists before attempting updateUser
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData?.session || null;
+      }
+
+      if (!session) {
+        throw new Error("Your login session has expired. Please sign in again to complete your profile setup.");
+      }
+
+      const activeUserId = user?.id || session.user.id;
+
+      // 1) Update auth password & metadata atomically in one call.
+      //    The dummy auth email stays in auth.users — we do NOT change it here to avoid lockout.
+      const { error: authError } = await supabase.auth.updateUser({
+        password: password,
+        data: { needs_profile_update: false }
       });
-      if (passwordError) throw passwordError;
+      if (authError) throw authError;
 
       // 2) Update public profiles table with real student email and profile info
       const { error: profileError } = await supabase
@@ -80,7 +92,7 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
           needs_profile_update: false,
           updated_at: new Date().toISOString()
         })
-        .eq("id", user.id);
+        .eq("id", activeUserId);
 
       if (profileError) {
         if (profileError.message?.toLowerCase().includes("unique") || profileError.message?.toLowerCase().includes("username")) {
@@ -89,18 +101,13 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
         throw profileError;
       }
 
-      // 3) Clear the needs_profile_update flag in auth metadata
-      await supabase.auth.updateUser({
-        data: { needs_profile_update: false }
-      });
-
-      // 4) Force the local session to refresh so checkAuth() reads the new metadata.
+      // 3) Force the local session to refresh so checkAuth() reads the new metadata
       await supabase.auth.refreshSession();
 
       // Trigger welcome & email verification auto-emails
-      sendFirstLoginEmail(user.id, `${firstName.trim()} ${lastName.trim()}`);
+      sendFirstLoginEmail(activeUserId, `${firstName.trim()} ${lastName.trim()}`);
       if (email.trim()) {
-        sendEmailVerifiedEmail(user.id, email.trim().toLowerCase());
+        sendEmailVerifiedEmail(activeUserId, email.trim().toLowerCase());
       }
 
       toast({

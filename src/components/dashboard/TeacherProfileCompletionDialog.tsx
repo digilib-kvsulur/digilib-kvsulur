@@ -53,11 +53,27 @@ export default function TeacherProfileCompletionDialog({ open, user, onComplete 
 
     setLoading(true);
     try {
-      const { error: passwordError } = await supabase.auth.updateUser({
-        password: password
-      });
-      if (passwordError) throw passwordError;
+      // 0) Ensure an active auth session exists before attempting updateUser
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData?.session || null;
+      }
 
+      if (!session) {
+        throw new Error("Your login session has expired. Please sign in again to complete your profile setup.");
+      }
+
+      const activeUserId = user?.id || session.user.id;
+
+      // 1) Update auth password and metadata atomically in one call
+      const { error: authError } = await supabase.auth.updateUser({
+        password: password,
+        data: { needs_profile_update: false }
+      });
+      if (authError) throw authError;
+
+      // 2) Update public profiles table
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -71,7 +87,7 @@ export default function TeacherProfileCompletionDialog({ open, user, onComplete 
           needs_profile_update: false,
           updated_at: new Date().toISOString()
         })
-        .eq("id", user.id);
+        .eq("id", activeUserId);
 
       if (profileError) {
         if (profileError.message?.toLowerCase().includes("unique") || profileError.message?.toLowerCase().includes("username")) {
@@ -80,16 +96,13 @@ export default function TeacherProfileCompletionDialog({ open, user, onComplete 
         throw profileError;
       }
 
-      await supabase.auth.updateUser({
-        data: { needs_profile_update: false }
-      });
-
+      // 3) Force the local session to refresh so checkAuth() reads the new metadata
       await supabase.auth.refreshSession();
 
       // Trigger welcome & email verification auto-emails
-      sendFirstLoginEmail(user.id, `${firstName.trim()} ${lastName.trim()}`);
+      sendFirstLoginEmail(activeUserId, `${firstName.trim()} ${lastName.trim()}`);
       if (email.trim()) {
-        sendEmailVerifiedEmail(user.id, email.trim().toLowerCase());
+        sendEmailVerifiedEmail(activeUserId, email.trim().toLowerCase());
       }
 
       toast({

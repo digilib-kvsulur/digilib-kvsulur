@@ -15,6 +15,7 @@ import {
   LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug, Palette
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { clearStoredAuthSession } from "@/lib/authCleanup";
 import { useToast } from "@/hooks/use-toast";
 import { useLoginStreak } from "@/hooks/useLoginStreak";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
@@ -409,7 +410,18 @@ const StudentDashboard = () => {
     return navSections.flatMap((s) => s.items);
   }, [navSections]);
 
-  useEffect(() => { checkAuth(); }, []);
+  useEffect(() => {
+    checkAuth();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === "SIGNED_OUT") {
+        clearStoredAuthSession();
+        navigate('/login', { replace: true });
+      }
+    });
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Handle URL query parameters (e.g. ?room=UXE6P0 or ?tab=quizzes) for league links
   useEffect(() => {
@@ -455,6 +467,17 @@ const StudentDashboard = () => {
         console.warn("getSession error:", e);
       }
 
+      if (!session) {
+        try {
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          session = refreshData?.session || null;
+        } catch (refreshErr) {
+          console.warn("refreshSession error:", refreshErr);
+        }
+      }
+
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
       // Check cached profile if available
       let cachedProfile: any = null;
       try {
@@ -462,12 +485,14 @@ const StudentDashboard = () => {
         if (stored) cachedProfile = JSON.parse(stored);
       } catch {}
 
-      const hasStoredToken = typeof window !== "undefined" && Object.keys(window.localStorage || {}).some(
-        (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
-      );
+      if (!session && !isOffline) {
+        clearStoredAuthSession();
+        navigate('/login', { replace: true });
+        return;
+      }
 
-      if (!session && !hasStoredToken && !cachedProfile) {
-        navigate('/login');
+      if (!session && isOffline && !cachedProfile) {
+        navigate('/login', { replace: true });
         return;
       }
 

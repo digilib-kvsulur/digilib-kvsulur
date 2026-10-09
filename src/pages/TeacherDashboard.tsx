@@ -3,6 +3,7 @@ import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { loadingManager } from "@/lib/loadingManager";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { clearStoredAuthSession } from "@/lib/authCleanup";
 import { useToast } from "@/hooks/use-toast";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -138,6 +139,13 @@ const TeacherDashboard = () => {
   usePushSubscription(teacher?.id);
 
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        clearStoredAuthSession();
+        navigate("/login", { replace: true });
+      }
+    });
+
     (async () => {
       let session: any = null;
       try {
@@ -147,13 +155,33 @@ const TeacherDashboard = () => {
         console.warn("TeacherDashboard session get error:", e);
       }
 
+      if (!session) {
+        try {
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          session = refreshData?.session || null;
+        } catch (refreshErr) {
+          console.warn("Teacher refresh error:", refreshErr);
+        }
+      }
+
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
       let cachedProfile: any = null;
       try {
         const stored = localStorage.getItem("dlms_user_profile");
         if (stored) cachedProfile = JSON.parse(stored);
       } catch {}
 
-      if (!session && !cachedProfile) { navigate("/login"); return; }
+      if (!session && !isOffline) {
+        clearStoredAuthSession();
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      if (!session && isOffline && !cachedProfile) {
+        navigate("/login", { replace: true });
+        return;
+      }
 
       const userId = session?.user?.id || cachedProfile?.id;
       let profile = cachedProfile;
@@ -218,6 +246,10 @@ const TeacherDashboard = () => {
         setClassChallenges(ch || []);
       }
     })();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchTeacherProfile = async () => {

@@ -4,40 +4,8 @@ import type { SchoolMeta } from '@/context/TenantContext';
 
 // ─── Module-level singleton ───────────────────────────────────────────────────
 
-export let _tenantClient: SupabaseClient<Database> | null = null;
-
-// Default fallback client using standard env vars (ensures zero crash before async init resolves)
 const DEFAULT_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const DEFAULT_SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-
-let _defaultClient: SupabaseClient<Database> | null = null;
-function getDefaultClient(): SupabaseClient<Database> {
-  if (!_defaultClient && DEFAULT_SUPABASE_URL && DEFAULT_SUPABASE_KEY) {
-    _defaultClient = createClient<Database>(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY, {
-      auth: buildAuthOptions(),
-    });
-  }
-  return _defaultClient!;
-}
-
-/**
- * Returns the active per-school Supabase client.
- * Falls back to the default client instead of throwing if called before async tenant init finishes.
- */
-export function getSupabase(): SupabaseClient<Database> {
-  if (_tenantClient) {
-    return _tenantClient;
-  }
-  const fallback = getDefaultClient();
-  if (fallback) {
-    return fallback;
-  }
-  throw new Error(
-    "[DLMS] Tenant client not initialised and no default Supabase credentials found."
-  );
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const DEV_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
 
@@ -60,11 +28,62 @@ function buildAuthOptions() {
   } as const;
 }
 
-function cacheSchool(hostname: string, school: SchoolMeta): void {
+let _defaultClient: SupabaseClient<Database> | null = null;
+
+export function getDefaultClient(): SupabaseClient<Database> {
+  if (!_defaultClient && DEFAULT_SUPABASE_URL && DEFAULT_SUPABASE_KEY) {
+    _defaultClient = createClient<Database>(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY, {
+      auth: buildAuthOptions(),
+    });
+  }
+  return _defaultClient!;
+}
+
+// Initialise eagerly so any module importing getSupabase() gets an active client immediately
+export let _tenantClient: SupabaseClient<Database> | null = getDefaultClient();
+
+export function setTenantClient(client: SupabaseClient<Database> | null) {
+  _tenantClient = client;
+}
+
+/**
+ * Returns the active per-school Supabase client.
+ * Falls back to the default client instead of throwing if called before async tenant init finishes.
+ */
+export function getSupabase(): SupabaseClient<Database> {
+  if (_tenantClient) {
+    return _tenantClient;
+  }
+  const fallback = getDefaultClient();
+  if (fallback) {
+    _tenantClient = fallback;
+    return fallback;
+  }
+  throw new Error(
+    "[DLMS] Tenant client not initialised and no default Supabase credentials found."
+  );
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+export interface CachedTenantData {
+  school: SchoolMeta;
+  connection?: {
+    supabase_url: string;
+    anon_key: string;
+  };
+  cachedAt: number;
+}
+
+function cacheSchool(
+  hostname: string,
+  school: SchoolMeta,
+  connection?: { supabase_url: string; anon_key: string }
+): void {
   try {
     localStorage.setItem(
       `dlms_tenant_${hostname}`,
-      JSON.stringify({ school, cachedAt: Date.now() })
+      JSON.stringify({ school, connection, cachedAt: Date.now() })
     );
   } catch {
     // Storage might be full or unavailable — silently ignore
@@ -91,17 +110,8 @@ function makeDevSchool(): SchoolMeta {
 
 /**
  * Resolves the correct Supabase credentials for the given hostname.
- *
- * - **Dev hostnames** (`localhost`, `127.0.0.1`, `0.0.0.0`): uses
- *   `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY` directly and
- *   returns a mock school so the app works without a registry.
- * - **Production hostnames**: queries the central registry Supabase project
- *   (`VITE_REGISTRY_URL` + `VITE_REGISTRY_ANON_KEY`) to look up the school's
- *   own credentials, then creates a scoped client for that school.
- *
- * Returns `null` when the hostname is not registered (caller should redirect
- * to `/setup`) or the school object when status is `'suspended'` (caller
- * should redirect to `/suspended`).
+ * Reuses the default singleton client whenever connecting to the default school
+ * to avoid session destruction and GoTrue token collisions.
  */
 export async function initTenantClient(
   hostname: string
@@ -109,13 +119,7 @@ export async function initTenantClient(
 
   // ── Development shortcut ───────────────────────────────────────────────────
   if (DEV_HOSTNAMES.has(hostname)) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-
-    const client = createClient<Database>(supabaseUrl, supabaseKey, {
-      auth: buildAuthOptions(),
-    });
-
+    const client = getDefaultClient();
     _tenantClient = client;
     const school = makeDevSchool();
     return { client, school };
@@ -127,14 +131,10 @@ export async function initTenantClient(
 
   if (!registryUrl || !registryKey) {
     // If registry is not configured yet, fallback to default Supabase env variables
-    const fallbackUrl = import.meta.env.VITE_SUPABASE_URL as string;
-    const fallbackKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-    if (fallbackUrl && fallbackKey) {
-      const client = createClient<Database>(fallbackUrl, fallbackKey, {
-        auth: buildAuthOptions(),
-      });
-      _tenantClient = client;
-      return { client, school: makeDevSchool() };
+    const fallback = getDefaultClient();
+    if (fallback) {
+      _tenantClient = fallback;
+      return { client: fallback, school: makeDevSchool() };
     }
     _tenantClient = null;
     return null;
@@ -181,8 +181,16 @@ export async function initTenantClient(
     status: data.status as string,
   };
 
-  // Cache the school info regardless of status (so /suspended can display info)
-  cacheSchool(hostname, school);
+  const connection = Array.isArray(data.school_connections)
+    ? data.school_connections[0]
+    : (data.school_connections as any);
+
+  // Cache school info and connection
+  cacheSchool(
+    hostname,
+    school,
+    connection ? { supabase_url: connection.supabase_url, anon_key: connection.anon_key } : undefined
+  );
 
   if (school.status === "suspended") {
     // Don't create a client for suspended schools
@@ -191,13 +199,16 @@ export async function initTenantClient(
   }
 
   // ── Build per-school client ────────────────────────────────────────────────
-  const connection = Array.isArray(data.school_connections)
-    ? data.school_connections[0]
-    : (data.school_connections as any);
-
   if (!connection?.supabase_url || !connection?.anon_key) {
     _tenantClient = null;
     return null;
+  }
+
+  // If the school uses the same credentials as default, reuse defaultClient to preserve session
+  if (connection.supabase_url === DEFAULT_SUPABASE_URL && connection.anon_key === DEFAULT_SUPABASE_KEY) {
+    const client = getDefaultClient();
+    _tenantClient = client;
+    return { client, school };
   }
 
   const client = createClient<Database>(

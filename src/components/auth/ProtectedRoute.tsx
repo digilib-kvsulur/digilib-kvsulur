@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { loadingManager } from "@/lib/loadingManager";
+import { clearStoredAuthSession } from "@/lib/authCleanup";
 
 type Profile = Tables<"profiles">;
 type AllowedRole = "admin" | "teacher" | "student";
@@ -38,14 +39,30 @@ const ProtectedRoute = ({ children, allowedRoles, requireApproval = true }: Prot
         console.warn("Session check error:", err);
       }
 
+      if (!session) {
+        try {
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          session = refreshData?.session || null;
+        } catch (refreshErr) {
+          console.warn("Session refresh error:", refreshErr);
+        }
+      }
+
       if (!mounted) return;
 
-      // Check if localStorage has stored token even if getSession was slow/offline
-      const hasStoredToken = typeof window !== "undefined" && Object.keys(window.localStorage || {}).some(
-        (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
-      );
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
-      if (!session && !hasStoredToken) {
+      // If online and no active auth session exists, user must log in
+      if (!session && !isOffline) {
+        clearStoredAuthSession();
+        loadingManager.hide();
+        setRedirectTo("/login");
+        setLoading(false);
+        return;
+      }
+
+      // If offline and no cached profile either, redirect to login
+      if (!session && isOffline && !profile) {
         loadingManager.hide();
         setRedirectTo("/login");
         setLoading(false);

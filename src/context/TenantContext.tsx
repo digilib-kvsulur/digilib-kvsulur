@@ -5,7 +5,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { initTenantClient, type SchoolMeta } from "@/integrations/supabase/tenantClient";
+import {
+  initTenantClient,
+  getDefaultClient,
+  setTenantClient,
+  type SchoolMeta,
+  type CachedTenantData,
+} from "@/integrations/supabase/tenantClient";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,13 +41,13 @@ export function useTenant(): TenantContextValue {
 
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-function getCachedSchool(hostname: string): SchoolMeta | null {
+function getCachedSchool(hostname: string): CachedTenantData | null {
   try {
     const raw = localStorage.getItem(`dlms_tenant_${hostname}`);
     if (!raw) return null;
-    const parsed: { school: SchoolMeta; cachedAt: number } = JSON.parse(raw);
+    const parsed: CachedTenantData = JSON.parse(raw);
     if (Date.now() - parsed.cachedAt > CACHE_TTL_MS) return null;
-    return parsed.school ?? null;
+    return parsed.school ? parsed : null;
   } catch {
     return null;
   }
@@ -63,15 +69,18 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     const hostname = window.location.hostname;
 
     async function bootstrap() {
-      // 1. Try localStorage cache first (skip TTL check for dev hostnames)
+      // 1. Try localStorage cache first for instant render
       if (!DEV_HOSTNAMES.has(hostname)) {
         const cached = getCachedSchool(hostname);
-        if (cached) {
+        if (cached?.school) {
           if (!cancelled) {
-            setSchool(cached);
+            setSchool(cached.school);
             setLoading(false);
           }
-          return;
+          // Ensure client is pointing to the default client if no custom URL
+          if (!cached.connection?.supabase_url) {
+            setTenantClient(getDefaultClient());
+          }
         }
       }
 
@@ -88,7 +97,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
         setSchool(result.school);
       } catch (err: unknown) {
-        if (!cancelled) {
+        if (!cancelled && !school) {
           setError(err instanceof Error ? err.message : "Failed to load school info");
           setSchool(null);
         }

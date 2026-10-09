@@ -18,6 +18,7 @@ import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import { supabase } from "@/integrations/supabase/client";
+import { clearStoredAuthSession } from "@/lib/authCleanup";
 import { useToast } from "@/hooks/use-toast";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 
@@ -210,7 +211,19 @@ const AdminDashboard = () => {
     setMobileNavOpen(false);
   }, [activeTab, location.pathname, location.search]);
 
-  useEffect(() => { checkAuth(); fetchStats(); }, []);
+  useEffect(() => {
+    checkAuth();
+    fetchStats();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        clearStoredAuthSession();
+        navigate('/login', { replace: true });
+      }
+    });
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const checkAuth = async () => {
     try {
@@ -222,13 +235,33 @@ const AdminDashboard = () => {
         console.warn("AdminDashboard getSession error:", e);
       }
 
+      if (!session) {
+        try {
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          session = refreshData?.session || null;
+        } catch (refreshErr) {
+          console.warn("Admin refresh error:", refreshErr);
+        }
+      }
+
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
       let cachedProfile: any = null;
       try {
         const stored = localStorage.getItem("dlms_user_profile");
         if (stored) cachedProfile = JSON.parse(stored);
       } catch {}
 
-      if (!session && !cachedProfile) { navigate('/login', { replace: true }); return; }
+      if (!session && !isOffline) {
+        clearStoredAuthSession();
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      if (!session && isOffline && !cachedProfile) {
+        navigate('/login', { replace: true });
+        return;
+      }
 
       const userId = session?.user?.id || cachedProfile?.id;
       let profile = cachedProfile;
