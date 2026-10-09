@@ -178,6 +178,8 @@ function SchoolsTab() {
     name: "", kv_code: "", slug: "", hostname: "",
     city: "", state: "", region: "",
     contact_email: "", contact_name: "",
+    supabase_url: "", supabase_anon_key: "",
+    admin_name: "", admin_email: "", admin_password: "",
   });
 
   const fetchSchools = useCallback(async () => {
@@ -192,13 +194,85 @@ function SchoolsTab() {
 
   const handleAdd = async () => {
     setSubmitting(true);
-    const { error } = await registry.from("schools").insert({ ...form, status: "pending" });
-    setSubmitting(false);
-    if (error) { toast({ title: "Failed to add school", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "School added", description: `${form.name} added with status Pending.` });
-    setAddOpen(false);
-    setForm({ name: "", kv_code: "", slug: "", hostname: "", city: "", state: "", region: "", contact_email: "", contact_name: "" });
-    fetchSchools();
+    try {
+      const schoolData = {
+        name: form.name.trim(),
+        kv_code: form.kv_code.trim(),
+        slug: (form.slug || form.name.toLowerCase().replace(/[^a-z0-9]/g, "-")).trim(),
+        hostname: form.hostname.trim(),
+        city: form.city.trim() || null,
+        state: form.state.trim() || null,
+        region: form.region.trim() || null,
+        contact_email: form.contact_email.trim() || null,
+        contact_name: form.contact_name.trim() || null,
+        status: "active" as const,
+        activated_at: new Date().toISOString(),
+      };
+
+      const { data: newSchool, error } = await registry
+        .from("schools")
+        .insert(schoolData)
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      // Also create school connection if credentials provided
+      if (newSchool?.id && form.supabase_url && form.supabase_anon_key) {
+        const projectRef = form.supabase_url.replace("https://", "").split(".")[0] || "custom";
+        await registry.from("school_connections").insert({
+          school_id: newSchool.id,
+          supabase_url: form.supabase_url.trim(),
+          supabase_anon_key: form.supabase_anon_key.trim(),
+          anon_key: form.supabase_anon_key.trim(),
+          project_ref: projectRef,
+        });
+
+        // If admin account details provided, create admin in the target school's database
+        if (form.admin_email && form.admin_password) {
+          try {
+            const schoolClient = createClient(form.supabase_url.trim(), form.supabase_anon_key.trim(), {
+              auth: { persistSession: false },
+            });
+            const { data: authUser } = await schoolClient.auth.signUp({
+              email: form.admin_email.trim(),
+              password: form.admin_password,
+              options: {
+                data: {
+                  first_name: form.admin_name || "Admin",
+                  role: "admin",
+                },
+              },
+            });
+            if (authUser?.user?.id) {
+              await schoolClient.from("profiles").upsert({
+                id: authUser.user.id,
+                email: form.admin_email.trim(),
+                first_name: form.admin_name || "Admin",
+                role: "admin",
+              });
+            }
+          } catch (accErr: any) {
+            console.warn("Could not create school admin account directly:", accErr.message);
+          }
+        }
+      }
+
+      toast({ title: "School Provisioned & Active", description: `${form.name} is now ready for use!` });
+      setAddOpen(false);
+      setForm({
+        name: "", kv_code: "", slug: "", hostname: "",
+        city: "", state: "", region: "",
+        contact_email: "", contact_name: "",
+        supabase_url: "", supabase_anon_key: "",
+        admin_name: "", admin_email: "", admin_password: "",
+      });
+      fetchSchools();
+    } catch (err: any) {
+      toast({ title: "Failed to add school", description: err.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleActivate = async (school: School) => {
@@ -322,22 +396,53 @@ function SchoolsTab() {
             <DialogTitle>Add New School</DialogTitle>
             <DialogDescription>Register a new KV school on the platform. Status will be set to Pending.</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
-            {field("name", "School Name", "e.g. KV Sulur")}
-            {field("kv_code", "KV Code", "e.g. KVS-1234")}
-            {field("slug", "Slug", "e.g. kv-sulur")}
-            {field("hostname", "Hostname", "e.g. kvsulur.digilib.in")}
-            {field("city", "City")}
-            {field("state", "State")}
-            {field("region", "Region", "e.g. Chennai Region")}
-            {field("contact_email", "Contact Email")}
-            {field("contact_name", "Contact Name")}
+          <div className="space-y-4 py-2">
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-2">1. School Information</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {field("name", "School Name *", "e.g. KV Sulur")}
+                {field("kv_code", "KV Code *", "e.g. KVS-1234")}
+                {field("slug", "Slug", "e.g. kv-sulur")}
+                {field("hostname", "Domain / Hostname *", "e.g. dlms.kvsulur.in")}
+                {field("city", "City")}
+                {field("state", "State")}
+                {field("region", "Region", "e.g. Southern Region")}
+                {field("contact_email", "Contact Email")}
+              </div>
+            </div>
+
+            <div className="border-t pt-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-2">2. Supabase DB Connection (Optional)</h4>
+              <p className="text-xs text-muted-foreground mb-2">Leave blank to use the shared platform database, or provide dedicated credentials.</p>
+              <div className="grid grid-cols-1 gap-2.5">
+                {field("supabase_url", "Supabase Project URL", "https://xyz.supabase.co")}
+                {field("supabase_anon_key", "Supabase Anon / Public Key", "eyJhbGciOiJIUz...")}
+              </div>
+            </div>
+
+            <div className="border-t pt-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-2">3. Initial School Admin Account (Optional)</h4>
+              <div className="grid grid-cols-3 gap-2.5">
+                {field("admin_name", "Admin Name", "e.g. Librarian")}
+                {field("admin_email", "Admin Email", "admin@school.kvs.ac.in")}
+                <div className="space-y-1.5">
+                  <Label htmlFor="admin_password">Password</Label>
+                  <Input
+                    id="admin_password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={form.admin_password}
+                    onChange={(e) => setForm((f) => ({ ...f, admin_password: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={handleAdd} disabled={submitting || !form.name || !form.kv_code}>
+            <Button onClick={handleAdd} disabled={submitting || !form.name || !form.kv_code || !form.hostname}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Add School
+              Create & Provision School
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -459,7 +564,13 @@ function DbControlTab() {
   }, [registry]);
 
   useEffect(() => {
-    if (!selectedId) { setConnection(null); setSchoolStats(null); return; }
+    if (!selectedId) {
+      setConnection(null);
+      setSchoolStats(null);
+      setConnUrl("");
+      setConnKey("");
+      return;
+    }
     (async () => {
       const { data } = await registry
         .from("school_connections")
@@ -467,9 +578,48 @@ function DbControlTab() {
         .eq("school_id", selectedId)
         .maybeSingle();
       setConnection(data as SchoolConnection | null);
-      if (data) fetchSchoolStats(data as SchoolConnection);
+      if (data) {
+        setConnUrl(data.supabase_url || "");
+        setConnKey(data.supabase_anon_key || (data as any).anon_key || "");
+        fetchSchoolStats(data as SchoolConnection);
+      } else {
+        setConnUrl("");
+        setConnKey("");
+      }
     })();
   }, [selectedId, registry]);
+
+  const handleSaveConnection = async () => {
+    if (!selectedId || !connUrl || !connKey) {
+      toast({ title: "Validation Error", description: "Project URL and Anon Key are required.", variant: "destructive" });
+      return;
+    }
+    setConnSaving(true);
+    try {
+      const projectRef = connUrl.replace("https://", "").split(".")[0] || "custom";
+      const { error } = await registry
+        .from("school_connections")
+        .upsert(
+          {
+            school_id: selectedId,
+            supabase_url: connUrl.trim(),
+            supabase_anon_key: connKey.trim(),
+            anon_key: connKey.trim(),
+            project_ref: projectRef,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "school_id" }
+        );
+
+      if (error) throw error;
+      toast({ title: "Database Credentials Saved", description: "Connection details updated for this school." });
+      setConnection({ school_id: selectedId, supabase_url: connUrl.trim(), supabase_anon_key: connKey.trim() });
+    } catch (err: any) {
+      toast({ title: "Failed to save connection", description: err.message, variant: "destructive" });
+    } finally {
+      setConnSaving(false);
+    }
+  };
 
   const fetchSchoolStats = async (conn: SchoolConnection) => {
     setStatsLoading(true);
@@ -629,6 +779,51 @@ function DbControlTab() {
 
           {/* Action Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* Supabase Connection Config Card */}
+            <Card className="border-border/50 md:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Database className="h-4 w-4 text-primary" /> Supabase Database Credentials
+                </CardTitle>
+                <CardDescription>
+                  Configure or update the isolated Supabase project credentials powering this school's DLMS instance.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="conn_url">Supabase Project URL</Label>
+                    <Input
+                      id="conn_url"
+                      placeholder="https://xyzcompany.supabase.co"
+                      value={connUrl}
+                      onChange={(e) => setConnUrl(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="conn_key">Supabase Public / Anon Key</Label>
+                    <Input
+                      id="conn_key"
+                      placeholder="eyJhbGciOiJIUzI1NiIsIn..."
+                      value={connKey}
+                      onChange={(e) => setConnKey(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveConnection}
+                    disabled={connSaving || !connUrl || !connKey}
+                    className="gap-2"
+                  >
+                    {connSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Save DB Credentials
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Health Check */}
             <Card className="border-border/50">
