@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,12 @@ const AddUserDialog = ({ onCreated }: { onCreated?: () => void }) => {
       const { data, error } = await supabase.functions.invoke("admin-create-user", { body: form });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
+
+      // Safety sync to ensure user row exists in profiles immediately
+      try {
+        await supabase.rpc("sync_missing_auth_profiles");
+      } catch (_) {}
+
       toast({ title: "User created", description: `${form.first_name} has been added and approved.` });
       setOpen(false);
       setForm({ email: "", password: "", first_name: "", last_name: "", role: "student", student_class: "", roll_number: "", admission_number: "", phone: "", username: "" });
@@ -48,7 +54,12 @@ const AddUserDialog = ({ onCreated }: { onCreated?: () => void }) => {
         <Button size="sm" className="gradient-primary border-0"><UserPlus className="h-4 w-4 mr-2" />Add User</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Add New User</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Add New User</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Create and approve a new user account with immediate access.
+          </DialogDescription>
+        </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><Label>First Name *</Label><Input value={form.first_name} onChange={(e) => upd("first_name", e.target.value)} /></div>
