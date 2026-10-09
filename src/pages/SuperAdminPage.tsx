@@ -1204,14 +1204,18 @@ const SuperAdminPage = () => {
           return;
         }
 
-        // Check session from the registry client's auth
-        // The super admin logs into the registry project directly
-        const { data: sessionData } = await registry.auth.getSession();
-        const uid = sessionData?.session?.user?.id;
+        let resolvedUid: string | undefined = undefined;
+        let resolvedEmail: string | undefined = undefined;
 
-        // Fallback: check tenant session if registry has no session
-        let resolvedUid = uid;
-        if (!resolvedUid) {
+        // Check session from registry client
+        const { data: sessionData } = await registry.auth.getSession();
+        if (sessionData?.session?.user) {
+          resolvedUid = sessionData.session.user.id;
+          resolvedEmail = sessionData.session.user.email?.toLowerCase().trim();
+        }
+
+        // Fallback: check tenant session
+        if (!resolvedUid && !resolvedEmail) {
           const tenantUrl = import.meta.env.VITE_SUPABASE_URL as string;
           const tenantKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
           if (tenantUrl && tenantKey) {
@@ -1219,19 +1223,54 @@ const SuperAdminPage = () => {
               auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
             });
             const { data: ts } = await tenantClient.auth.getSession();
-            resolvedUid = ts?.session?.user?.id;
+            if (ts?.session?.user) {
+              resolvedUid = ts.session.user.id;
+              resolvedEmail = ts.session.user.email?.toLowerCase().trim();
+            }
           }
         }
 
-        if (!resolvedUid) { setAuthStatus("denied"); return; }
+        if (!resolvedUid && !resolvedEmail) {
+          setAuthStatus("denied");
+          return;
+        }
 
-        const { data, error } = await registry
-          .from("super_admins")
-          .select("auth_uid")
-          .eq("auth_uid", resolvedUid)
-          .maybeSingle();
+        // 1. Try matching by auth_uid first
+        let matched = false;
+        if (resolvedUid) {
+          const { data: uidData } = await registry
+            .from("super_admins")
+            .select("id, is_active")
+            .eq("auth_uid", resolvedUid)
+            .eq("is_active", true)
+            .maybeSingle();
 
-        setAuthStatus(!error && data ? "authorized" : "denied");
+          if (uidData) {
+            matched = true;
+          }
+        }
+
+        // 2. If not matched by uid, check by email
+        if (!matched && resolvedEmail) {
+          const { data: emailData } = await registry
+            .from("super_admins")
+            .select("id, auth_uid, is_active")
+            .ilike("email", resolvedEmail)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (emailData) {
+            matched = true;
+            if (!emailData.auth_uid && resolvedUid) {
+              await registry
+                .from("super_admins")
+                .update({ auth_uid: resolvedUid })
+                .eq("id", emailData.id);
+            }
+          }
+        }
+
+        setAuthStatus(matched ? "authorized" : "denied");
       } catch {
         setAuthStatus("denied");
       }
