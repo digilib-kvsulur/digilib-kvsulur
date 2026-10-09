@@ -4,8 +4,8 @@ import { Shield, ArrowLeft, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const REGISTRY_URL = import.meta.env.VITE_REGISTRY_URL as string;
-const REGISTRY_ANON_KEY = import.meta.env.VITE_REGISTRY_ANON_KEY as string;
+const REGISTRY_URL = (import.meta.env.VITE_REGISTRY_URL || import.meta.env.VITE_SUPABASE_URL) as string;
+const REGISTRY_ANON_KEY = (import.meta.env.VITE_REGISTRY_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) as string;
 
 // Singleton registry client — shared across renders but isolated from tenant client
 let _registryClient: ReturnType<typeof createClient> | null = null;
