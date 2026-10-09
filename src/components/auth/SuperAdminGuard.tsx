@@ -57,27 +57,54 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
           auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
         });
 
-        const { data: sessionData } = await tenantClient.auth.getSession();
-        const uid = sessionData?.session?.user?.id;
+        const user = sessionData?.session?.user;
+        const uid = user?.id;
+        const userEmail = user?.email?.toLowerCase().trim();
 
-        if (!uid) {
+        if (!uid && !userEmail) {
           if (mounted) setStatus("denied");
           return;
         }
 
-        const { data, error } = await registry
-          .from("super_admins")
-          .select("auth_uid")
-          .eq("auth_uid", uid)
-          .maybeSingle();
+        // 1. Try matching by auth_uid first
+        let matched = false;
+        if (uid) {
+          const { data: uidData } = await registry
+            .from("super_admins")
+            .select("id, is_active")
+            .eq("auth_uid", uid)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (uidData) {
+            matched = true;
+          }
+        }
+
+        // 2. If not matched by uid, check by email (handles cases where auth_uid is NULL or newly logged in)
+        if (!matched && userEmail) {
+          const { data: emailData } = await registry
+            .from("super_admins")
+            .select("id, auth_uid, is_active")
+            .ilike("email", userEmail)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (emailData) {
+            matched = true;
+            // Auto-link auth_uid if it was null
+            if (!emailData.auth_uid && uid) {
+              await registry
+                .from("super_admins")
+                .update({ auth_uid: uid })
+                .eq("id", emailData.id);
+            }
+          }
+        }
 
         if (!mounted) return;
 
-        if (error || !data) {
-          setStatus("denied");
-        } else {
-          setStatus("authorized");
-        }
+        setStatus(matched ? "authorized" : "denied");
       } catch (err) {
         console.error("SuperAdminGuard check failed:", err);
         if (mounted) setStatus("denied");
