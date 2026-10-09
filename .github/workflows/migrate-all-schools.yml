@@ -1,0 +1,82 @@
+name: Apply Migrations to All KV Schools
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+    inputs:
+      target_slug:
+        description: 'School slug to target (leave blank for ALL active schools)'
+        required: false
+        default: ''
+
+jobs:
+  migrate-all-schools:
+    name: Migrate School DBs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase@latest
+
+      - name: Fetch active school list from Registry
+        id: fetch-schools
+        run: |
+          RESPONSE=$(curl -sf \
+            "${{ secrets.VITE_REGISTRY_URL }}/rest/v1/school_connections?select=project_ref,schools!inner(slug,status,name)&schools.status=eq.active" \
+            -H "apikey: ${{ secrets.VITE_REGISTRY_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.VITE_REGISTRY_ANON_KEY }}")
+          echo "schools_json=$RESPONSE" >> "$GITHUB_OUTPUT"
+          echo "Fetched schools from registry:"
+          echo "$RESPONSE" | jq '.'
+
+      - name: Run migrations for each school
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TARGET_SLUG: ${{ github.event.inputs.target_slug }}
+          SCHOOLS_JSON: ${{ steps.fetch-schools.outputs.schools_json }}
+        run: |
+          PASS=0
+          FAIL=0
+          echo "$SCHOOLS_JSON" | jq -r '.[] | "\(.project_ref) \(.schools.slug) \(.schools.name)"' | \
+          while IFS=' ' read -r project_ref slug name; do
+            if [ -n "$TARGET_SLUG" ] && [ "$slug" != "$TARGET_SLUG" ]; then
+              echo "⏭️  Skipping $slug ($name) — not the target"
+              continue
+            fi
+            echo "──────────────────────────────────────"
+            echo "📦 Applying migrations → $name ($slug)"
+            echo "   Project ref: $project_ref"
+            if supabase db push \
+              --project-ref "$project_ref" \
+              --linked 2>&1; then
+              echo "✅ $slug — migrations applied successfully"
+              PASS=$((PASS+1))
+            else
+              echo "❌ $slug — migration FAILED"
+              FAIL=$((FAIL+1))
+            fi
+          done
+          echo "══════════════════════════════════════"
+          echo "Results: ✅ $PASS succeeded  ❌ $FAIL failed"
+          [ "$FAIL" -eq 0 ] || exit 1
+
+      - name: Update migration_ver in Registry
+        if: success()
+        env:
+          REGISTRY_URL: ${{ secrets.VITE_REGISTRY_URL }}
+          REGISTRY_SERVICE_KEY: ${{ secrets.REGISTRY_SERVICE_ROLE_KEY }}
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          # Update migration_ver for all successfully migrated schools
+          curl -sf -X PATCH \
+            "$REGISTRY_URL/rest/v1/school_connections?select=migration_ver" \
+            -H "apikey: $REGISTRY_SERVICE_KEY" \
+            -H "Authorization: Bearer $REGISTRY_SERVICE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"migration_ver\": \"${GIT_SHA:0:8}\"}"
+          echo "✅ Registry migration_ver updated to ${GIT_SHA:0:8}"

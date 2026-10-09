@@ -339,9 +339,24 @@ async function main() {
     });
 
     log('Step 2: Dumping Data & Auth from OLD Project...', '📥');
-    runCmd(`"${pgDumpPath}" --data-only --no-owner --no-acl --schema=public --schema=auth --schema=storage -h db.${oldProject}.supabase.co -U postgres -d postgres -f "${dataFile}"`, {
-      PGPASSWORD: dbPassword,
-    });
+    // If data.sql already exists from an earlier run and user wants to use it, offer quick option
+    let proceedWithDump = true;
+    if (fs.existsSync(dataFile) && fs.statSync(dataFile).size > 1000000) {
+      const sizeMB = (fs.statSync(dataFile).size / (1024 * 1024)).toFixed(1);
+      const reuse = (await ask(`  Found existing data.sql (${sizeMB} MB). Use existing file without re-downloading? (Y/n): `)).trim().toLowerCase();
+      if (reuse === 'y' || reuse === 'yes' || reuse === '') {
+        console.log('  ⚡ Using existing data.sql. Skipping dump download!');
+        proceedWithDump = false;
+      }
+    }
+
+    if (proceedWithDump) {
+      console.log('  ⏳ Starting data dump (excluding transient logs: game_plays, notifications, book_reviews to speed up transfer)...');
+      // Exclude high-churn non-essential ephemeral tables to prevent 15+ minute freeze
+      runCmd(`"${pgDumpPath}" --data-only --no-owner --no-acl --schema=public --schema=auth --schema=storage --exclude-table-data=public.game_plays --exclude-table-data=public.game_sessions --exclude-table-data=auth.audit_log_entries -h db.${oldProject}.supabase.co -U postgres -d postgres -v -f "${dataFile}"`, {
+        PGPASSWORD: dbPassword,
+      });
+    }
 
     log('Step 3: Restoring Schema to NEW Project...', '📤');
     try {

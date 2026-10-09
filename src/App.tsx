@@ -51,6 +51,13 @@ const StudentPortfolio = lazy(() => import("./pages/StudentPortfolio"));
 const Feedback = lazy(() => import("./pages/Feedback"));
 const Download = lazy(() => import("./pages/Download"));
 const Maintenance = lazy(() => import("./pages/Maintenance"));
+const SuperAdminPage = lazy(() => import("./pages/SuperAdminPage"));
+const OnboardingWizard = lazy(() => import("./pages/OnboardingWizard"));
+const SuspendedPage = lazy(() => import("./pages/SuspendedPage"));
+
+import { TenantProvider } from "@/context/TenantContext";
+import SuperAdminGuard from "@/components/auth/SuperAdminGuard";
+import SetupRedirectGuard from "@/components/auth/SetupRedirectGuard";
 
 const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
@@ -297,85 +304,111 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <DeveloperMessagePopup />
-        <Sonner position="top-right" richColors closeButton />
-        <Analytics />
-        <AppRouter>
-          <GlobalLibraryLoaderOverlay />
-          <GlobalNotificationsProvider>
-            <CommandPalette />
-            <Seo />
-            <UpdateBanner />
-            <PWAInstallBanner />
-            <DomainMigrationBanner />
-            <MigrationInstallGuide />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<RootRoute />} />
-                <Route path="/dashboard" element={<DashboardRedirect />} />
-                <Route path="/community" element={<DashboardRedirect />} />
-                <Route path="/reels" element={<DashboardRedirect />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/catalog" element={<Catalog />} />
-                <Route path="/support" element={<Support />} />
-                <Route path="/feedback" element={<Feedback />} />
-                <Route path="/download" element={<Download />} />
-                <Route
-                  path="/student-dashboard"
-                  element={(
-                    <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                      <StudentDashboard />
-                    </ProtectedRoute>
-                  )}
-                />
-                <Route
-                  path="/admin-dashboard"
-                  element={(
-                    <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  )}
-                />
-                <Route
-                  path="/points-history"
-                  element={(
-                    <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                      <PointsHistory />
-                    </ProtectedRoute>
-                  )}
-                />
-                <Route
-                  path="/student-portfolio"
-                  element={(
-                    <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                      <StudentPortfolio embedded={false} />
-                    </ProtectedRoute>
-                  )}
-                />
-                <Route path="/portfolio/:username" element={<StudentPortfolio embedded={false} />} />
-                <Route
-                  path="/teacher-dashboard"
-                  element={(
-                    <ProtectedRoute allowedRoles={TEACHER_ROLES}>
-                      <TeacherDashboard />
-                    </ProtectedRoute>
-                  )}
-                />
-                <Route path="/book/:id" element={<BookDetails />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/CL0/*" element={<EmailTrackingRedirect />} />
-                <Route path="/CL1/*" element={<EmailTrackingRedirect />} />
-                <Route path="/cl0/*" element={<EmailTrackingRedirect />} />
-                <Route path="/cl1/*" element={<EmailTrackingRedirect />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </GlobalNotificationsProvider>
-        </AppRouter>
-      </TooltipProvider>
+      <TenantProvider>
+        <TooltipProvider>
+          <DeveloperMessagePopup />
+          <Sonner position="top-right" richColors closeButton />
+          <Analytics />
+          <AppRouter>
+            <GlobalLibraryLoaderOverlay />
+            <GlobalNotificationsProvider>
+              <CommandPalette />
+              <Seo />
+              <UpdateBanner />
+              <PWAInstallBanner />
+              <DomainMigrationBanner />
+              <MigrationInstallGuide />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Standalone Multi-Tenant Routes */}
+                  <Route
+                    path="/super-admin"
+                    element={(
+                      <SuperAdminGuard>
+                        <SuperAdminPage />
+                      </SuperAdminGuard>
+                    )}
+                  />
+                  <Route path="/setup" element={<OnboardingWizard />} />
+                  <Route path="/onboard" element={<OnboardingWizard />} />
+                  <Route path="/suspended" element={<SuspendedPage />} />
+
+                  {/* Normal DLMS routes wrapped with SetupRedirectGuard */}
+                  <Route path="/" element={<SetupRedirectGuard><RootRoute /></SetupRedirectGuard>} />
+                  <Route path="/dashboard" element={<SetupRedirectGuard><DashboardRedirect /></SetupRedirectGuard>} />
+                  <Route path="/community" element={<SetupRedirectGuard><DashboardRedirect /></SetupRedirectGuard>} />
+                  <Route path="/reels" element={<SetupRedirectGuard><DashboardRedirect /></SetupRedirectGuard>} />
+                  <Route path="/login" element={<SetupRedirectGuard><Login /></SetupRedirectGuard>} />
+                  <Route path="/register" element={<SetupRedirectGuard><Register /></SetupRedirectGuard>} />
+                  <Route path="/catalog" element={<SetupRedirectGuard><Catalog /></SetupRedirectGuard>} />
+                  <Route path="/support" element={<SetupRedirectGuard><Support /></SetupRedirectGuard>} />
+                  <Route path="/feedback" element={<SetupRedirectGuard><Feedback /></SetupRedirectGuard>} />
+                  <Route path="/download" element={<SetupRedirectGuard><Download /></SetupRedirectGuard>} />
+                  <Route
+                    path="/student-dashboard"
+                    element={(
+                      <SetupRedirectGuard>
+                        <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                          <StudentDashboard />
+                        </ProtectedRoute>
+                      </SetupRedirectGuard>
+                    )}
+                  />
+                  <Route
+                    path="/admin-dashboard"
+                    element={(
+                      <SetupRedirectGuard>
+                        <ProtectedRoute allowedRoles={ADMIN_ROLES} requireApproval={false}>
+                          <AdminDashboard />
+                        </ProtectedRoute>
+                      </SetupRedirectGuard>
+                    )}
+                  />
+                  <Route
+                    path="/points-history"
+                    element={(
+                      <SetupRedirectGuard>
+                        <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                          <PointsHistory />
+                        </ProtectedRoute>
+                      </SetupRedirectGuard>
+                    )}
+                  />
+                  <Route
+                    path="/student-portfolio"
+                    element={(
+                      <SetupRedirectGuard>
+                        <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                          <StudentPortfolio embedded={false} />
+                        </ProtectedRoute>
+                      </SetupRedirectGuard>
+                    )}
+                  />
+                  <Route path="/portfolio/:username" element={<SetupRedirectGuard><StudentPortfolio embedded={false} /></SetupRedirectGuard>} />
+                  <Route
+                    path="/teacher-dashboard"
+                    element={(
+                      <SetupRedirectGuard>
+                        <ProtectedRoute allowedRoles={TEACHER_ROLES}>
+                          <TeacherDashboard />
+                        </ProtectedRoute>
+                      </SetupRedirectGuard>
+                    )}
+                  />
+                  <Route path="/book/:id" element={<SetupRedirectGuard><BookDetails /></SetupRedirectGuard>} />
+                  <Route path="/reset-password" element={<SetupRedirectGuard><ResetPassword /></SetupRedirectGuard>} />
+                  <Route path="/CL0/*" element={<EmailTrackingRedirect />} />
+                  <Route path="/CL1/*" element={<EmailTrackingRedirect />} />
+                  <Route path="/cl0/*" element={<EmailTrackingRedirect />} />
+                  <Route path="/cl1/*" element={<EmailTrackingRedirect />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </GlobalNotificationsProvider>
+          </AppRouter>
+        </TooltipProvider>
+      </TenantProvider>
     </QueryClientProvider>
   );
 };
