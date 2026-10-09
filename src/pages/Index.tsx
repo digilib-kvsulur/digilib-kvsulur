@@ -34,6 +34,7 @@ interface Statistics {
 }
 
 const Index = () => {
+  const { settings } = useSchoolSettings();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +50,16 @@ const Index = () => {
   const navigate = useNavigate();
   const galleryRef = useRef<HTMLDivElement>(null);
   const [bookOfTheWeek, setBookOfTheWeek] = useState<any[]>([]);
+
+  // Apply custom title and dynamic primary color if configured
+  useEffect(() => {
+    if (settings.school_name) {
+      document.title = `${settings.school_name} — Digital Library`;
+    }
+    if (settings.school_primary_color) {
+      document.documentElement.style.setProperty("--primary", settings.school_primary_color);
+    }
+  }, [settings]);
 
   useEffect(() => {
     const isPWAOrNative = 
@@ -373,13 +384,44 @@ const Index = () => {
         <div className="absolute top-[20%] right-[-5%] w-[40%] h-[40%] rounded-full bg-blue-200/30 blur-[140px]" />
       </div>
 
+      {/* Top Announcement Bar if enabled */}
+      {settings.home_announcement_enabled && settings.home_announcement_text && (
+        <div
+          className={`relative z-50 px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2 border-b ${
+            settings.home_announcement_type === "warning"
+              ? "bg-amber-500 text-slate-950 border-amber-600"
+              : settings.home_announcement_type === "success"
+              ? "bg-emerald-600 text-white border-emerald-700"
+              : "bg-indigo-600 text-white border-indigo-700"
+          }`}
+        >
+          <Megaphone className="h-4 w-4 shrink-0 animate-bounce" />
+          <span>{settings.home_announcement_text}</span>
+        </div>
+      )}
+
       {/* Top Banner strip with generous padding */}
       <div className="relative hidden border-b border-indigo-100 bg-indigo-50/80 text-xs backdrop-blur-sm z-50 sm:block">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-3 flex items-center justify-between">
           <div className="flex items-center gap-6 text-slate-600">
-            <span className="flex items-center gap-2 font-medium"><MapPin className="h-4 w-4 text-indigo-600" /> PM SHRI KV AFS Sulur, Coimbatore</span>
+            <span className="flex items-center gap-2 font-medium">
+              <MapPin className="h-4 w-4 text-indigo-600" />
+              {settings.school_location || "PM SHRI KV AFS Sulur, Coimbatore"}
+            </span>
             <span className="h-3.5 w-px bg-slate-300 hidden md:block" />
-            <span className="flex items-center gap-2 hidden md:flex font-medium"><Mail className="h-4 w-4 text-indigo-600" /> dlms@kvsulur.in</span>
+            <span className="flex items-center gap-2 hidden md:flex font-medium">
+              <Mail className="h-4 w-4 text-indigo-600" />
+              {settings.school_contact_email || "dlms@kvsulur.in"}
+            </span>
+            {settings.school_contact_phone && (
+              <>
+                <span className="h-3.5 w-px bg-slate-300 hidden lg:block" />
+                <span className="flex items-center gap-2 hidden lg:flex font-medium">
+                  <Phone className="h-4 w-4 text-indigo-600" />
+                  {settings.school_contact_phone}
+                </span>
+              </>
+            )}
           </div>
           <span className="flex items-center gap-2 text-indigo-900 font-bold px-3 py-1 bg-white/60 rounded-full border border-indigo-100 shadow-sm">
             <Sparkles className="h-3.5 w-3.5 text-amber-500" /> PM SHRI National Excellence School
@@ -398,15 +440,27 @@ const Index = () => {
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
                 <Sparkles className="h-5 w-5 text-amber-500 absolute hidden" />
               </div>
-              {/* KV Logo Slot */}
-              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs z-10" title="KV Logo">
-                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain relative z-10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
+              {/* KV or Custom School Logo Slot */}
+              <div className="relative w-10 h-10 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center overflow-hidden shadow-xs z-10" title="School Logo">
+                <img
+                  src={settings.school_logo_url || "/logos/kv.png"}
+                  alt="KV Logo"
+                  className="w-full h-full object-contain relative z-10"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = "none";
+                    (e.target as HTMLElement).nextElementSibling?.classList.remove("hidden");
+                  }}
+                />
                 <BookOpen className="h-5 w-5 text-indigo-600 absolute hidden" />
               </div>
             </div>
             <div>
-              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-tight">PM SHRI KV SULUR</h1>
-              <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">Digital Library System</p>
+              <h1 className="text-sm font-black tracking-tight text-slate-900 leading-tight">
+                {settings.school_name || "PM SHRI KV SULUR"}
+              </h1>
+              <p className="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">
+                {settings.school_tagline || "Digital Library System"}
+              </p>
             </div>
           </div>
           <nav className="hidden md:flex items-center space-x-9 text-sm font-semibold text-slate-700">
@@ -448,20 +502,38 @@ const Index = () => {
             {/* Left Column */}
             <div className="lg:col-span-6 space-y-4 sm:space-y-6 lg:space-y-7 text-center lg:text-left">
               <div className="inline-flex items-center gap-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-full px-4 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider mx-auto lg:mx-0 shadow-xs">
-                <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-indigo-600 text-indigo-600" /> PM SHRI KV AFS SULUR, DLMS
+                <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-indigo-600 text-indigo-600" />
+                {settings.school_name || "PM SHRI KV SULUR"} DLMS
               </div>
               <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.15] max-w-xl">
-                A Library That Grows With <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Every Reader.</span>
+                {settings.home_hero_title ? (
+                  <span>{settings.home_hero_title}</span>
+                ) : (
+                  <>
+                    A Library That Grows With{" "}
+                    <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      Every Reader.
+                    </span>
+                  </>
+                )}
               </h2>
               <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed mx-auto lg:mx-0 font-normal">
-                Welcome to the digital portal of <span className="font-semibold text-slate-900">PM SHRI KENDRIYA VIDYALAYA, AIR FORCE STATION SULUR - DLMS</span>. Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
+                {settings.home_hero_subtitle || (
+                  <>
+                    Welcome to the digital portal of{" "}
+                    <span className="font-semibold text-slate-900">
+                      {settings.school_name || "PM SHRI KENDRIYA VIDYALAYA"} DLMS
+                    </span>
+                    . Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
+                  </>
+                )}
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start pt-1 sm:pt-3">
                 {!user ? (
                   <>
-                    <Button onClick={() => navigate("/login")} size="lg" className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-base px-6 sm:px-9 py-3 sm:py-3.5 h-12 sm:h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
-                      Open Account <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+                    <Button onClick={() => navigate(settings.home_cta_link || "/login")} size="lg" className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-base px-6 sm:px-9 py-3 sm:py-3.5 h-12 sm:h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
+                      {settings.home_cta_text || "Open Account"} <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                     <Button onClick={() => navigate("/download")} variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-9 py-3 sm:py-3.5 h-12 sm:h-14 border-slate-300 bg-white hover:bg-indigo-50/50 hover:text-indigo-600 hover:border-indigo-300 text-slate-800 rounded-xl font-bold shadow-xs transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
                       <Download className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Install App (PWA)
@@ -474,29 +546,38 @@ const Index = () => {
                 )}
               </div>
 
-              {/* Stats Band with generous internal padding */}
-              <div className="grid grid-cols-3 gap-2 sm:gap-6 pt-6 sm:pt-9 border-t border-slate-200/80 max-w-md mx-auto lg:mx-0">
-                {[
-                  { v: statistics.totalBooks || statistics.availableCopies, l: "Total Book Copies", shortL: "Total Copies" },
-                  { v: statistics.booksIssued, l: "Total Issues Done", shortL: "Issues Done" },
-                  { v: statistics.activeUsers, l: "Total Users", shortL: "Total Users" },
-                ].map((s, i) => (
-                  <div key={i} className="text-center lg:text-left px-1 sm:px-2">
-                    <p className="text-2xl sm:text-3xl font-black text-slate-900">{s.v.toLocaleString()}+</p>
-                    <p className="text-[9px] sm:text-[10px] text-indigo-600 font-bold uppercase tracking-wider sm:tracking-widest mt-1 sm:mt-2">
-                      <span className="hidden sm:inline">{s.l}</span>
-                      <span className="sm:hidden">{s.shortL}</span>
-                    </p>
-                  </div>
-                ))}
-              </div>
+              {/* Stats Band with toggle check */}
+              {settings.home_show_stats && (
+                <div className="grid grid-cols-3 gap-2 sm:gap-6 pt-6 sm:pt-9 border-t border-slate-200/80 max-w-md mx-auto lg:mx-0">
+                  {[
+                    { v: statistics.totalBooks || statistics.availableCopies, l: "Total Book Copies", shortL: "Total Copies" },
+                    { v: statistics.booksIssued, l: "Total Issues Done", shortL: "Issues Done" },
+                    { v: statistics.activeUsers, l: "Total Users", shortL: "Total Users" },
+                  ].map((s, i) => (
+                    <div key={i} className="text-center lg:text-left px-1 sm:px-2">
+                      <p className="text-2xl sm:text-3xl font-black text-slate-900">{s.v.toLocaleString()}+</p>
+                      <p className="text-[9px] sm:text-[10px] text-indigo-600 font-bold uppercase tracking-wider sm:tracking-widest mt-1 sm:mt-2">
+                        <span className="hidden sm:inline">{s.l}</span>
+                        <span className="sm:hidden">{s.shortL}</span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right Column (Visual) */}
             <div className="lg:col-span-6 relative flex justify-center">
               <div className="relative w-full max-w-[520px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border border-slate-200 bg-white group p-1">
                 <div className="w-full h-full rounded-3xl overflow-hidden relative">
-                  <img src={heroImg} alt="PM SHRI KV Sulur library hall" width="1040" height="780" fetchPriority="high" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+                  <img
+                    src={settings.school_banner_url || heroImg}
+                    alt={`${settings.school_name || "KV"} library hall`}
+                    width="1040"
+                    height="780"
+                    fetchPriority="high"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-slate-950/10 to-transparent" />
                 </div>
               </div>
@@ -515,7 +596,7 @@ const Index = () => {
       </section>
 
       {/* Book of the Week Banner */}
-      {bookOfTheWeek.length > 0 && (
+      {settings.home_show_botw && bookOfTheWeek.length > 0 && (
         <section className="py-12 bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100">
            <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
              <div className="flex flex-col md:flex-row items-center justify-between gap-8">
@@ -543,7 +624,7 @@ const Index = () => {
       )}
 
       {/* Trending Books Showcase with generous padding */}
-      {trendingBooks.length > 0 && (
+      {settings.home_show_trending && trendingBooks.length > 0 && (
         <section className="py-24 relative">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="mb-12 flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:justify-between sm:text-left">
@@ -612,7 +693,7 @@ const Index = () => {
       </section>
 
       {/* Events Activity with extra padding */}
-      {dbEvents.length > 0 && (
+      {settings.home_show_events && dbEvents.length > 0 && (
         <section id="events" className="py-24">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
@@ -656,7 +737,7 @@ const Index = () => {
       )}
 
       {/* Gallery Section */}
-      {galleryImages.length > 0 && (
+      {settings.home_show_gallery && galleryImages.length > 0 && (
         <section className="py-24 bg-slate-50 border-t border-slate-200 overflow-hidden">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
@@ -706,13 +787,24 @@ const Index = () => {
               <div className="flex items-center gap-3">
                 <div className="flex items-center -space-x-2 shrink-0">
                   <div className="relative w-8 h-8 rounded-full bg-indigo-500/30 flex items-center justify-center overflow-hidden">
-                    <img src="/logos/pm-shri.png" alt="" className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display='none'; }} />
+                    <img
+                      src={settings.school_logo_url || "/logos/pm-shri.png"}
+                      alt=""
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
                     <BookOpen className="h-4 w-4 text-indigo-300 absolute hidden" />
                   </div>
                 </div>
-                <h3 className="text-base font-extrabold text-white">PM SHRI KV AFS Sulur Digital Library</h3>
+                <h3 className="text-base font-extrabold text-white">
+                  {settings.school_name || "PM SHRI KV SULUR"} Digital Library
+                </h3>
               </div>
-              <p className="text-xs leading-relaxed text-slate-400 pr-4">Empowering student development, comprehension capabilities, and literature-focused gamified progress for PM SHRI Kendriya Vidyalaya learners.</p>
+              <p className="text-xs leading-relaxed text-slate-400 pr-4">
+                Empowering student development, comprehension capabilities, and literature-focused gamified progress for {settings.school_name || "Kendriya Vidyalaya"} learners.
+              </p>
             </div>
             
             <div className="space-y-4">
@@ -729,9 +821,10 @@ const Index = () => {
             <div className="space-y-4">
               <h4 className="text-sm font-bold text-white uppercase tracking-wider">Official Contact</h4>
               <p className="text-xs leading-relaxed text-slate-400">
-                PM SHRI KENDRIYA VIDYALAYA AFS SULUR<br />
-                Air Force Station Sulur, Coimbatore - 641401<br />
-                Phone: +91 422 2682215
+                {settings.school_name || "PM SHRI KENDRIYA VIDYALAYA"}<br />
+                {settings.school_location || "Coimbatore"}<br />
+                {settings.school_contact_phone && <>Phone: {settings.school_contact_phone}<br /></>}
+                Email: {settings.school_contact_email || "dlms@kvsulur.in"}
               </p>
               <button
                 onClick={() => navigate("/support")}
