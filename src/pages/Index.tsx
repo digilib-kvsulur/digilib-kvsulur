@@ -5,11 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   BookOpen, BarChart3, Trophy, Target, Zap, ArrowRight, LayoutDashboard,
-  Award, Clock, Sparkles, MapPin, Mail, ChevronRight, Star, Loader2, Crown, Download
+  Award, Clock, Sparkles, MapPin, Mail, ChevronRight, Star, Loader2, Crown, Download, Megaphone, Phone
 } from "lucide-react";
 import { LifeBuoy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import heroImg from "@/assets/landing-hero.jpg";
 import event1Img from "@/assets/landing-event-1.jpg";
 import event2Img from "@/assets/landing-event-2.jpg";
