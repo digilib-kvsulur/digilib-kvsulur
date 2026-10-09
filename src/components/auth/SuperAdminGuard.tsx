@@ -51,16 +51,69 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
           return;
         }
 
-        // Get the currently authenticated user from the TENANT supabase (same session)
-        const { createClient: tenantCreate } = await import("@supabase/supabase-js");
-        const tenantClient = tenantCreate(tenantUrl, tenantKey, {
-          auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
-        });
+        // Resolve currently logged-in user from all possible sources
+        let uid: string | undefined = undefined;
+        let userEmail: string | undefined = undefined;
 
-        const { data: sessionData } = await tenantClient.auth.getSession();
-        const user = sessionData?.session?.user;
-        const uid = user?.id;
-        const userEmail = user?.email?.toLowerCase().trim();
+        // 1. Try registry client session
+        try {
+          const { data: regSession } = await registry.auth.getSession();
+          if (regSession?.session?.user) {
+            uid = regSession.session.user.id;
+            userEmail = regSession.session.user.email?.toLowerCase().trim();
+          }
+        } catch {}
+
+        // 2. Try tenant client session
+        if (!uid && !userEmail) {
+          try {
+            const { createClient: tenantCreate } = await import("@supabase/supabase-js");
+            const tenantClient = tenantCreate(tenantUrl, tenantKey, {
+              auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
+            });
+            const { data: tenantSession } = await tenantClient.auth.getSession();
+            if (tenantSession?.session?.user) {
+              uid = tenantSession.session.user.id;
+              userEmail = tenantSession.session.user.email?.toLowerCase().trim();
+            }
+          } catch {}
+        }
+
+        // 3. Fallback: inspect localStorage directly for Supabase auth tokens
+        if (!uid && !userEmail && typeof window !== "undefined") {
+          try {
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.includes("-auth-token")) {
+                const raw = localStorage.getItem(key);
+                if (raw) {
+                  const parsed = JSON.parse(raw);
+                  const u = parsed?.user || parsed?.currentSession?.user;
+                  if (u) {
+                    uid = uid || u.id;
+                    userEmail = userEmail || u.email?.toLowerCase().trim();
+                  }
+                }
+              }
+            }
+          } catch {}
+        }
+
+        // 4. Fallback: dlms_user_profile cached in localStorage
+        if (!userEmail && typeof window !== "undefined") {
+          try {
+            const rawProfile = localStorage.getItem("dlms_user_profile");
+            if (rawProfile) {
+              const p = JSON.parse(rawProfile);
+              if (p?.email) {
+                userEmail = p.email.toLowerCase().trim();
+              }
+              if (p?.id) {
+                uid = uid || p.id;
+              }
+            }
+          } catch {}
+        }
 
         if (!uid && !userEmail) {
           if (mounted) setStatus("denied");
