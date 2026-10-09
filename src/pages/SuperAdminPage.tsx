@@ -1287,12 +1287,17 @@ const SuperAdminPage = () => {
 
           if (emailData) {
             matched = true;
-            if (!emailData.auth_uid && resolvedUid) {
-              await registry
-                .from("super_admins")
-                .update({ auth_uid: resolvedUid })
-                .eq("id", emailData.id);
-            }
+        // 3. Fallback: Check if user has admin role in profiles table of current db
+        if (!matched && (resolvedUid || resolvedEmail)) {
+          let profileQuery = supabase.from("profiles").select("role");
+          if (resolvedUid) {
+            profileQuery = profileQuery.eq("id", resolvedUid);
+          } else if (resolvedEmail) {
+            profileQuery = profileQuery.ilike("email", resolvedEmail);
+          }
+          const { data: profileData } = await profileQuery.maybeSingle();
+          if (profileData?.role === "admin") {
+            matched = true;
           }
         }
 
@@ -1328,9 +1333,14 @@ const SuperAdminPage = () => {
             <p className="text-muted-foreground text-sm">
               You don't have Super Admin privileges. This area is restricted to platform administrators only.
             </p>
-            <Button variant="outline" onClick={() => window.history.back()}>
-              ← Go Back
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button variant="default" onClick={() => (window.location.href = "/login")}>
+                Login with Admin Account
+              </Button>
+              <Button variant="outline" onClick={() => window.history.back()}>
+                ← Go Back
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
