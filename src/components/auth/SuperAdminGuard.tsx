@@ -57,6 +57,7 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
           auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
         });
 
+        const { data: sessionData } = await tenantClient.auth.getSession();
         const user = sessionData?.session?.user;
         const uid = user?.id;
         const userEmail = user?.email?.toLowerCase().trim();
