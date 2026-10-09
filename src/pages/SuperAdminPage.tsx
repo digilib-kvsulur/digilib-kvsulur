@@ -435,6 +435,11 @@ function DbControlTab() {
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
 
+  // Connection config state
+  const [connUrl, setConnUrl] = useState("");
+  const [connKey, setConnKey] = useState("");
+  const [connSaving, setConnSaving] = useState(false);
+
   // Migration
   const [migrationSql, setMigrationSql] = useState("");
   const [migrationOpen, setMigrationOpen] = useState(false);
