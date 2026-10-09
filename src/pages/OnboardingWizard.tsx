@@ -33,7 +33,11 @@ import { Progress } from "@/components/ui/progress";
 const registryUrl = import.meta.env.VITE_REGISTRY_URL as string;
 const registryKey = import.meta.env.VITE_REGISTRY_ANON_KEY as string;
 const registrySupabase =
-  registryUrl && registryKey ? createClient(registryUrl, registryKey) : null;
+  registryUrl && registryKey
+    ? createClient(registryUrl, registryKey, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      })
+    : null;
 
 // ─── Step metadata ─────────────────────────────────────────────────────────────
 const STEPS = [
