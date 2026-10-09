@@ -6,18 +6,35 @@ import type { SchoolMeta } from '@/context/TenantContext';
 
 export let _tenantClient: SupabaseClient<Database> | null = null;
 
+// Default fallback client using standard env vars (ensures zero crash before async init resolves)
+const DEFAULT_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const DEFAULT_SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+let _defaultClient: SupabaseClient<Database> | null = null;
+function getDefaultClient(): SupabaseClient<Database> {
+  if (!_defaultClient && DEFAULT_SUPABASE_URL && DEFAULT_SUPABASE_KEY) {
+    _defaultClient = createClient<Database>(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY, {
+      auth: buildAuthOptions(),
+    });
+  }
+  return _defaultClient!;
+}
+
 /**
  * Returns the active per-school Supabase client.
- * Throws if called before `initTenantClient()` has resolved successfully.
+ * Falls back to the default client instead of throwing if called before async tenant init finishes.
  */
 export function getSupabase(): SupabaseClient<Database> {
-  if (!_tenantClient) {
-    throw new Error(
-      "[DLMS] Tenant client not initialised. " +
-      "Ensure TenantProvider has completed loading before accessing the client."
-    );
+  if (_tenantClient) {
+    return _tenantClient;
   }
-  return _tenantClient;
+  const fallback = getDefaultClient();
+  if (fallback) {
+    return fallback;
+  }
+  throw new Error(
+    "[DLMS] Tenant client not initialised and no default Supabase credentials found."
+  );
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

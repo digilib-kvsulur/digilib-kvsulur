@@ -11,6 +11,9 @@ const REGISTRY_ANON_KEY = import.meta.env.VITE_REGISTRY_ANON_KEY as string;
 let _registryClient: ReturnType<typeof createClient> | null = null;
 function getRegistryClient() {
   if (!_registryClient) {
+    if (!REGISTRY_URL || !REGISTRY_ANON_KEY) {
+      return null;
+    }
     _registryClient = createClient(REGISTRY_URL, REGISTRY_ANON_KEY, {
       auth: {
         storage: localStorage,
@@ -35,12 +38,21 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
     const check = async () => {
       try {
         const registry = getRegistryClient();
+        if (!registry) {
+          // If registry project is not configured yet, deny access gracefully
+          if (mounted) setStatus("denied");
+          return;
+        }
 
-        // Get the currently authenticated user from the TENANT supabase (same session)
-        // We re-use their UID to look up super_admins in the registry
-        const { createClient: tenantCreate } = await import("@supabase/supabase-js");
         const tenantUrl = import.meta.env.VITE_SUPABASE_URL as string;
         const tenantKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+        if (!tenantUrl || !tenantKey) {
+          if (mounted) setStatus("denied");
+          return;
+        }
+
+        // Get the currently authenticated user from the TENANT supabase (same session)
+        const { createClient: tenantCreate } = await import("@supabase/supabase-js");
         const tenantClient = tenantCreate(tenantUrl, tenantKey, {
           auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
         });

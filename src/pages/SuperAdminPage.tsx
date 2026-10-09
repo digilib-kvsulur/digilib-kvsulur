@@ -61,12 +61,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
 // ─── Registry client ───────────────────────────────────────────────────────────
-const REGISTRY_URL = import.meta.env.VITE_REGISTRY_URL as string;
-const REGISTRY_ANON_KEY = import.meta.env.VITE_REGISTRY_ANON_KEY as string;
+const REGISTRY_URL = (import.meta.env.VITE_REGISTRY_URL || import.meta.env.VITE_SUPABASE_URL) as string;
+const REGISTRY_ANON_KEY = (import.meta.env.VITE_REGISTRY_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) as string;
 
 let _registryClient: ReturnType<typeof createClient> | null = null;
 function getRegistryClient() {
-  if (!_registryClient) {
+  if (!_registryClient && REGISTRY_URL && REGISTRY_ANON_KEY) {
     _registryClient = createClient(REGISTRY_URL, REGISTRY_ANON_KEY, {
       auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
     });
@@ -1199,6 +1199,11 @@ const SuperAdminPage = () => {
   useEffect(() => {
     (async () => {
       try {
+        if (!registry) {
+          setAuthStatus("denied");
+          return;
+        }
+
         // Check session from the registry client's auth
         // The super admin logs into the registry project directly
         const { data: sessionData } = await registry.auth.getSession();
@@ -1209,11 +1214,13 @@ const SuperAdminPage = () => {
         if (!resolvedUid) {
           const tenantUrl = import.meta.env.VITE_SUPABASE_URL as string;
           const tenantKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-          const tenantClient = createClient(tenantUrl, tenantKey, {
-            auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
-          });
-          const { data: ts } = await tenantClient.auth.getSession();
-          resolvedUid = ts?.session?.user?.id;
+          if (tenantUrl && tenantKey) {
+            const tenantClient = createClient(tenantUrl, tenantKey, {
+              auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
+            });
+            const { data: ts } = await tenantClient.auth.getSession();
+            resolvedUid = ts?.session?.user?.id;
+          }
         }
 
         if (!resolvedUid) { setAuthStatus("denied"); return; }
