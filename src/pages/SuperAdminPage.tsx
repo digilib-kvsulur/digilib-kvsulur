@@ -1287,6 +1287,15 @@ const SuperAdminPage = () => {
 
           if (emailData) {
             matched = true;
+            if (!emailData.auth_uid && resolvedUid) {
+              await registry
+                .from("super_admins")
+                .update({ auth_uid: resolvedUid })
+                .eq("id", emailData.id);
+            }
+          }
+        }
+
         // 3. Fallback: Check if user has admin role in profiles table of current db
         if (!matched && (resolvedUid || resolvedEmail)) {
           let profileQuery = supabase.from("profiles").select("role");
