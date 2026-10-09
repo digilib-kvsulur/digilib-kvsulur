@@ -59,17 +59,22 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 // ─── Registry client ───────────────────────────────────────────────────────────
 const REGISTRY_URL = (import.meta.env.VITE_REGISTRY_URL || import.meta.env.VITE_SUPABASE_URL) as string;
 const REGISTRY_ANON_KEY = (import.meta.env.VITE_REGISTRY_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) as string;
 
+function createScopedClient(url: string, key: string) {
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+}
+
 let _registryClient: ReturnType<typeof createClient> | null = null;
 function getRegistryClient() {
   if (!_registryClient && REGISTRY_URL && REGISTRY_ANON_KEY) {
-    _registryClient = createClient(REGISTRY_URL, REGISTRY_ANON_KEY, {
-      auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
-    });
+    _registryClient = createScopedClient(REGISTRY_URL, REGISTRY_ANON_KEY);
   }
   return _registryClient;
 }
