@@ -41,13 +41,44 @@ Deno.serve(async (req) => {
     });
     if (createErr) throw createErr;
 
-    await admin.from("profiles").update({
-      role: role || "student",
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanFirstName = first_name.trim();
+    const cleanLastName = (last_name || "").trim();
+    const cleanRole = role || "student";
+    const cleanAdmissionNo = (admission_number || "").trim() || null;
+    const cleanRollNo = (roll_number || "").trim() || null;
+    const cleanClass = (student_class || "").trim() || null;
+    const cleanPhone = (phone || "").trim() || null;
+    let cleanUsername = (username || "").trim().toLowerCase() || cleanAdmissionNo || cleanEmail.split("@")[0];
+
+    const profileData: Record<string, any> = {
+      id: created.user.id,
+      email: cleanEmail,
+      role: cleanRole,
       is_approved: true,
       approved_by: caller.id,
       approved_at: new Date().toISOString(),
-      first_name, last_name, student_class, roll_number, admission_number, phone, username,
-    }).eq("id", created.user.id);
+      first_name: cleanFirstName,
+      last_name: cleanLastName,
+      student_class: cleanClass,
+      roll_number: cleanRollNo,
+      admission_number: cleanAdmissionNo,
+      phone: cleanPhone,
+      username: cleanUsername,
+      needs_profile_update: false,
+      updated_at: new Date().toISOString(),
+    };
+
+    let { error: profileErr } = await admin.from("profiles").upsert(profileData, { onConflict: "id" });
+
+    // Handle potential username collision by appending unique suffix
+    if (profileErr && (profileErr.message?.toLowerCase().includes("username") || profileErr.message?.toLowerCase().includes("unique"))) {
+      profileData.username = `${cleanUsername}_${created.user.id.slice(0, 4)}`;
+      const { error: retryErr } = await admin.from("profiles").upsert(profileData, { onConflict: "id" });
+      if (retryErr) throw retryErr;
+    } else if (profileErr) {
+      throw profileErr;
+    }
 
     return new Response(JSON.stringify({ success: true, user_id: created.user.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
