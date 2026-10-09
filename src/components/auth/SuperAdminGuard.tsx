@@ -1,28 +1,28 @@
 import { ReactNode, useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { Shield, ArrowLeft, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
-const REGISTRY_URL = (import.meta.env.VITE_REGISTRY_URL || import.meta.env.VITE_SUPABASE_URL) as string;
-const REGISTRY_ANON_KEY = (import.meta.env.VITE_REGISTRY_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) as string;
+// ─── Registry client (only used if VITE_REGISTRY_URL is configured) ──────────
+let _registryClient: ReturnType<typeof import("@supabase/supabase-js").createClient> | null = null;
 
-// Singleton registry client — shared across renders but isolated from tenant client
-let _registryClient: ReturnType<typeof createClient> | null = null;
-function getRegistryClient() {
-  if (!_registryClient) {
-    if (!REGISTRY_URL || !REGISTRY_ANON_KEY) {
-      return null;
+async function getRegistryOrLocalClient() {
+  const registryUrl = import.meta.env.VITE_REGISTRY_URL as string | undefined;
+  const registryKey = import.meta.env.VITE_REGISTRY_ANON_KEY as string | undefined;
+
+  if (registryUrl && registryKey) {
+    if (!_registryClient) {
+      const { createClient } = await import("@supabase/supabase-js");
+      _registryClient = createClient(registryUrl, registryKey, {
+        auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
+      });
     }
-    _registryClient = createClient(REGISTRY_URL, REGISTRY_ANON_KEY, {
-      auth: {
-        storage: localStorage,
-        persistSession: true,
-        autoRefreshToken: true,
-      },
-    });
+    return _registryClient;
   }
-  return _registryClient;
+
+  // Fallback: use the school's own Supabase project (requires super_admins table migration)
+  return supabase;
 }
 
 interface SuperAdminGuardProps {
@@ -37,49 +37,14 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
 
     const check = async () => {
       try {
-        const registry = getRegistryClient();
-        if (!registry) {
-          // If registry project is not configured yet, deny access gracefully
-          if (mounted) setStatus("denied");
-          return;
-        }
+        // 1. Get the current session user
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData?.session?.user;
 
-        const tenantUrl = import.meta.env.VITE_SUPABASE_URL as string;
-        const tenantKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-        if (!tenantUrl || !tenantKey) {
-          if (mounted) setStatus("denied");
-          return;
-        }
+        let uid = user?.id;
+        let userEmail = user?.email?.toLowerCase().trim();
 
-        // Resolve currently logged-in user from all possible sources
-        let uid: string | undefined = undefined;
-        let userEmail: string | undefined = undefined;
-
-        // 1. Try registry client session
-        try {
-          const { data: regSession } = await registry.auth.getSession();
-          if (regSession?.session?.user) {
-            uid = regSession.session.user.id;
-            userEmail = regSession.session.user.email?.toLowerCase().trim();
-          }
-        } catch {}
-
-        // 2. Try tenant client session
-        if (!uid && !userEmail) {
-          try {
-            const { createClient: tenantCreate } = await import("@supabase/supabase-js");
-            const tenantClient = tenantCreate(tenantUrl, tenantKey, {
-              auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
-            });
-            const { data: tenantSession } = await tenantClient.auth.getSession();
-            if (tenantSession?.session?.user) {
-              uid = tenantSession.session.user.id;
-              userEmail = tenantSession.session.user.email?.toLowerCase().trim();
-            }
-          } catch {}
-        }
-
-        // 3. Fallback: inspect localStorage directly for Supabase auth tokens
+        // Fallback: check localStorage for auth tokens if session is empty
         if (!uid && !userEmail && typeof window !== "undefined") {
           try {
             for (let i = 0; i < localStorage.length; i++) {
@@ -96,23 +61,17 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
                 }
               }
             }
-          } catch {}
-        }
+          } catch { /* ignore */ }
 
-        // 4. Fallback: dlms_user_profile cached in localStorage
-        if (!userEmail && typeof window !== "undefined") {
+          // Also check dlms_user_profile cache
           try {
             const rawProfile = localStorage.getItem("dlms_user_profile");
             if (rawProfile) {
               const p = JSON.parse(rawProfile);
-              if (p?.email) {
-                userEmail = p.email.toLowerCase().trim();
-              }
-              if (p?.id) {
-                uid = uid || p.id;
-              }
+              if (p?.email) userEmail = userEmail || p.email.toLowerCase().trim();
+              if (p?.id) uid = uid || p.id;
             }
-          } catch {}
+          } catch { /* ignore */ }
         }
 
         if (!uid && !userEmail) {
@@ -120,24 +79,25 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
           return;
         }
 
-        // 1. Try matching by auth_uid first
+        // 2. Get the appropriate client (registry or local school DB)
+        const client = await getRegistryOrLocalClient();
+
+        // 3. Try matching by auth_uid first
         let matched = false;
         if (uid) {
-          const { data: uidData } = await registry
+          const { data: uidData } = await (client as any)
             .from("super_admins")
             .select("id, is_active")
             .eq("auth_uid", uid)
             .eq("is_active", true)
             .maybeSingle();
 
-          if (uidData) {
-            matched = true;
-          }
+          if (uidData) matched = true;
         }
 
-        // 2. If not matched by uid, check by email (handles cases where auth_uid is NULL or newly logged in)
+        // 4. Fallback: match by email (handles NULL auth_uid rows)
         if (!matched && userEmail) {
-          const { data: emailData } = await registry
+          const { data: emailData } = await (client as any)
             .from("super_admins")
             .select("id, auth_uid, is_active")
             .ilike("email", userEmail)
@@ -146,9 +106,9 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
 
           if (emailData) {
             matched = true;
-            // Auto-link auth_uid if it was null
+            // Auto-link auth_uid to avoid future email lookups
             if (!emailData.auth_uid && uid) {
-              await registry
+              await (client as any)
                 .from("super_admins")
                 .update({ auth_uid: uid })
                 .eq("id", emailData.id);
@@ -157,7 +117,6 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
         }
 
         if (!mounted) return;
-
         setStatus(matched ? "authorized" : "denied");
       } catch (err) {
         console.error("SuperAdminGuard check failed:", err);
@@ -195,14 +154,20 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
               You don't have Super Admin privileges. This area is restricted to platform
               administrators only.
             </p>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => window.history.back()}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Go Back
-            </Button>
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="gap-2 w-full"
+                onClick={() => window.history.back()}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Go Back
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Make sure you are logged in with a super admin account and your email is
+                registered in the <code className="bg-muted px-1 rounded">super_admins</code> table.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -212,5 +177,4 @@ const SuperAdminGuard = ({ children }: SuperAdminGuardProps) => {
   return <>{children}</>;
 };
 
-export { getRegistryClient };
 export default SuperAdminGuard;
