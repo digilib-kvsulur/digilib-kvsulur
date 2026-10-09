@@ -64,8 +64,10 @@ import BugBountyManager from "@/components/admin/BugBountyManager";
 import UIReformChallengeManager from "@/components/admin/UIReformChallengeManager";
 import EmailCampaignManager from "@/components/admin/EmailCampaignManager";
 import EventWinnersManager from "@/components/admin/EventWinnersManager";
+import SchoolBrandingSettings from "@/components/admin/SchoolBrandingSettings";
+import HomePageEditor from "@/components/admin/HomePageEditor";
 
-type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform" | "branding" | "home-editor";
 
 const navSections = [
   {
@@ -134,6 +136,8 @@ const navSections = [
   {
     title: "Settings",
     items: [
+      { id: "branding" as Tab, label: "School Branding", icon: Palette },
+      { id: "home-editor" as Tab, label: "Home Page Editor", icon: Sparkles },
       { id: "settings" as Tab, label: "Library Settings", icon: Settings },
       { id: "profile" as Tab, label: "My Profile", icon: User },
     ],
@@ -587,6 +591,8 @@ const AdminDashboard = () => {
           {activeTab === "clubs" && <BookClubManager />}
           {activeTab === "certificates" && <CertificateManager />}
           {activeTab === "settings" && <LibrarySettings />}
+          {activeTab === "branding" && <SchoolBrandingSettings />}
+          {activeTab === "home-editor" && <HomePageEditor />}
           {activeTab === "shelf-data" && <BookShelfData />}
           {activeTab === "cover-data" && <BookCoverData />}
           {activeTab === "renewals" && <RenewalRequests />}
