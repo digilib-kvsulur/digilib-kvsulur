@@ -140,7 +140,9 @@ export async function initTenantClient(
     return null;
   }
 
-  const registry = createClient(registryUrl, registryKey);
+  const registry = createClient(registryUrl, registryKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
 
   const { data, error } = await registry
     .from("schools")
