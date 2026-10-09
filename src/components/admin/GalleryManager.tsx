@@ -163,7 +163,12 @@ export default function GalleryManager() {
             <Button><Plus className="h-4 w-4 mr-2" />Add Image</Button>
           </DialogTrigger>
           <DialogContent className="max-w-md rounded-2xl">
-            <DialogHeader><DialogTitle>Add Gallery Image</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Add Gallery Image</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Upload or link images to appear on the digital library gallery carousel.
+              </DialogDescription>
+            </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="border p-4 rounded-xl space-y-3 bg-slate-50">
                 <Label className="font-bold text-slate-700">Choose Image Source</Label>
@@ -224,7 +229,14 @@ export default function GalleryManager() {
         {images.map((img) => (
           <Card key={img.id} className="overflow-hidden flex flex-col">
             <div className="relative h-40 bg-slate-100 flex items-center justify-center border-b group">
-              <img src={img.image_url} alt={img.caption || "Gallery image"} className="w-full h-full object-cover" />
+              <img
+                src={cleanImageUrl(img.image_url)}
+                alt={img.caption || "Gallery image"}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                 <Button size="icon" variant="destructive" onClick={() => remove(img.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
