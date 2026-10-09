@@ -469,7 +469,7 @@ function DbControlTab() {
   const fetchSchoolStats = async (conn: SchoolConnection) => {
     setStatsLoading(true);
     try {
-      const client = createClient(conn.supabase_url, conn.supabase_anon_key);
+      const client = createScopedClient(conn.supabase_url, conn.supabase_anon_key);
       const [books, students, issues] = await Promise.all([
         client.from("books").select("*", { count: "exact", head: true }),
         client.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student"),
