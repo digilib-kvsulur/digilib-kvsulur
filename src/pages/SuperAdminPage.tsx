@@ -1219,19 +1219,12 @@ const SuperAdminPage = () => {
           resolvedEmail = sessionData.session.user.email?.toLowerCase().trim();
         }
 
-        // Fallback: check tenant session
+        // Fallback: check tenant session using singleton client
         if (!resolvedUid && !resolvedEmail) {
-          const tenantUrl = import.meta.env.VITE_SUPABASE_URL as string;
-          const tenantKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-          if (tenantUrl && tenantKey) {
-            const tenantClient = createClient(tenantUrl, tenantKey, {
-              auth: { storage: localStorage, persistSession: true, autoRefreshToken: true },
-            });
-            const { data: ts } = await tenantClient.auth.getSession();
-            if (ts?.session?.user) {
-              resolvedUid = ts.session.user.id;
-              resolvedEmail = ts.session.user.email?.toLowerCase().trim();
-            }
+          const { data: ts } = await supabase.auth.getSession();
+          if (ts?.session?.user) {
+            resolvedUid = ts.session.user.id;
+            resolvedEmail = ts.session.user.email?.toLowerCase().trim();
           }
         }
 
