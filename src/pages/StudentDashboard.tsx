@@ -237,6 +237,7 @@ const StudentDashboard = () => {
 
   const streakData = useLoginStreak(user?.id);
   usePushSubscription(user?.id);
+  const { settings } = useSchoolSettings();
 
   const [activeBounty, setActiveBounty] = useState<any>(null);
   const [activeReformCampaign, setActiveReformCampaign] = useState<any>(null);
@@ -828,8 +829,6 @@ const StudentDashboard = () => {
     if (s < 60) return 'Just now'; if (s < 3600) return `${Math.floor(s/60)}m ago`;
     if (s < 86400) return `${Math.floor(s/3600)}h ago`; return `${Math.floor(s/86400)}d ago`;
   };
-
-  const { settings } = useSchoolSettings();
 
   return (
     <div className="h-dvh overflow-hidden bg-background flex">
