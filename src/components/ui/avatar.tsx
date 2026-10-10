@@ -21,10 +21,15 @@ Avatar.displayName = AvatarPrimitive.Root.displayName
 const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
+>(({ className, onError, ...props }, ref) => (
   <AvatarPrimitive.Image
     ref={ref}
     className={cn("aspect-square h-full w-full", className)}
+    onError={(e) => {
+      // Hide broken image immediately so browser's broken image icon never shows
+      (e.currentTarget as HTMLElement).style.display = "none";
+      onError?.(e);
+    }}
     {...props}
   />
 ))
