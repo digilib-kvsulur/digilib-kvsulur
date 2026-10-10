@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Flame, Sparkles, Sun, Trophy } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, Flame, Sparkles, Sun, Trophy, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { fetchLeaderboard, fetchStudentOverview, submitVacationActivity } from "./api";
 import { vacationErrorMessage } from "./errors";
 import { POSTER_ACTIVITIES } from "./constants";
+import VacationCountdownTimer from "./VacationCountdownTimer";
+import VacationEventPreviewCards from "./VacationEventPreviewCards";
 import type { VacationLeaderboardRow, VacationStudentOverview } from "./types";
 
 export default function VacationStudentPage() {
@@ -20,6 +22,7 @@ export default function VacationStudentPage() {
   const [content, setContent] = useState("");
   const [link, setLink] = useState("");
   const [saving, setSaving] = useState(false);
+  const submissionRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
     try {
@@ -143,6 +146,12 @@ export default function VacationStudentPage() {
           {statusCopy && <p className="text-sm text-muted-foreground">{statusCopy}</p>}
           {campaign?.status === "active" && activity && (
             <div className="space-y-4">
+              {/* Live Deadline Countdown Timer */}
+              <VacationCountdownTimer
+                targetTime={activity.closes_at}
+                label="Today's Challenge Deadline"
+              />
+
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-xl font-black text-foreground">{activity.title}</h3>
@@ -198,7 +207,11 @@ export default function VacationStudentPage() {
               )}
 
               {canSubmit && (
-                <div className="space-y-3 pt-2">
+                <div ref={submissionRef} className="space-y-3 pt-2 rounded-2xl border border-amber-500/30 p-4 bg-amber-500/5">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-amber-500" />
+                    <span className="text-sm font-black text-foreground">Submit Your Entry</span>
+                  </div>
                   <div className="space-y-1">
                     <Label className="font-bold">Your work / Summary</Label>
                     <Textarea
@@ -230,51 +243,29 @@ export default function VacationStudentPage() {
         </CardContent>
       </Card>
 
-      {/* 10-Events Roadmap */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-amber-500" />
-            10-Day Events Roadmap
-          </CardTitle>
-          <CardDescription>
-            All 10 challenges from the DLMS event series. Complete each day to build your streak!
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
-            {POSTER_ACTIVITIES.map((item) => {
-              const isToday = activity?.title.toLowerCase().includes(item.title.toLowerCase()) || item.title.toLowerCase().includes(activity?.title.toLowerCase() || "");
-              const isDone = completedTitles.has(item.title.toLowerCase());
-              return (
-                <div
-                  key={item.order}
-                  className={`rounded-xl border p-2.5 text-xs transition-all ${
-                    isToday
-                      ? "border-amber-500 bg-amber-500/10 shadow-sm ring-1 ring-amber-500"
-                      : isDone
-                      ? "border-emerald-500/40 bg-emerald-500/5"
-                      : "border-border/60 bg-muted/20 opacity-80"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="font-black text-[10px] text-muted-foreground uppercase">Day {item.order}</span>
-                    {isDone ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                    ) : isToday ? (
-                      <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-500/20 px-1.5 py-0.2 rounded">Today</span>
-                    ) : null}
-                  </div>
-                  <p className="font-bold line-clamp-1">{item.title}</p>
-                  {item.tagline && (
-                    <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{item.tagline}</p>
-                  )}
-                </div>
-              );
-            })}
+      {/* Interactive 10-Events Showcase & Preview Cards */}
+      <VacationEventPreviewCards
+        currentActivityTitle={activity?.title}
+        completedTitles={completedTitles}
+        onSelectToday={() => submissionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+      />
+
+      {/* Streak Multiplier & Motivator Banner */}
+      <div className="rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-yellow-500/10 p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs animate-pulse">
+            <Flame className="h-5 w-5" />
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <p className="text-xs sm:text-sm font-black uppercase tracking-wider text-orange-700 dark:text-orange-300">
+              Daily Streak Multiplier
+            </p>
+            <p className="text-xs text-muted-foreground font-medium">
+              You have a <strong className="text-foreground">{overview?.progress?.current_streak || 0}-day streak</strong>! Complete today to unlock milestone bonus points at 3, 5, 7, and 10 days.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
