@@ -212,7 +212,7 @@ export default function VacationStudentPage({
               )}
 
               <div className="rounded-xl border p-4 bg-card/60 text-sm whitespace-pre-wrap leading-relaxed">
-                {activity.instructions}
+                {cleanInstructions || activity.instructions}
               </div>
 
               {submission && (
@@ -238,27 +238,105 @@ export default function VacationStudentPage({
 
               {canSubmit && (
                 <div ref={submissionRef} className="space-y-3 pt-2 rounded-2xl border border-amber-500/30 p-4 bg-amber-500/5">
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-amber-500" />
-                    <span className="text-sm font-black text-foreground">Submit Your Entry</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-amber-500" />
+                      <span className="text-sm font-black text-foreground">
+                        {submissionType === "quiz"
+                          ? "Record Quiz Championship Entry"
+                          : submissionType === "project_link"
+                          ? "Submit Project Link"
+                          : submissionType === "media_upload"
+                          ? "Submit Photo / Video Proof"
+                          : submissionType === "text_response"
+                          ? "Submit Written Solution"
+                          : "Submit Your Entry"}
+                      </span>
+                    </div>
+                    <Badge variant="outline" className="text-[11px] font-bold bg-background text-amber-700 dark:text-amber-300 border-amber-500/30">
+                      Format: {submissionType.replace("_", " ")}
+                    </Badge>
                   </div>
+
+                  {/* Dedicated Quiz Championship quick CTA if event is a quiz */}
+                  {submissionType === "quiz" && (
+                    <div className="rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-primary/10 p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                          <span className="text-xs font-black uppercase text-amber-800 dark:text-amber-200">
+                            Daily Live Quiz Championship
+                          </span>
+                        </div>
+                        <Badge className="bg-amber-600 text-white text-[10px]">Live on DLMS</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Participate in today&apos;s scheduled quiz championship or complete the designated quiz on the Quizzes tab!
+                      </p>
+                      {onNavigateToQuizzes && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={onNavigateToQuizzes}
+                          className="font-bold bg-amber-600 hover:bg-amber-700 text-white text-xs gap-1.5 h-8"
+                        >
+                          <Trophy className="h-3.5 w-3.5" />
+                          Go to Quizzes Tab →
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Tailored Input Fields */}
                   <div className="space-y-1">
-                    <Label className="font-bold">Your work / Summary</Label>
+                    <Label className="font-bold">
+                      {submissionType === "quiz"
+                        ? "Quiz Score & Reflection"
+                        : submissionType === "project_link"
+                        ? "Project Summary / Description (optional)"
+                        : submissionType === "media_upload"
+                        ? "Description of Model / Prototype / Innovation"
+                        : submissionType === "text_response"
+                        ? "Your Answers / Solution / Review"
+                        : "Your work / Summary"}
+                    </Label>
                     <Textarea
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      placeholder="Write a short summary of what you did, created, or learned..."
-                      rows={4}
+                      placeholder={
+                        submissionType === "quiz"
+                          ? "Enter your score (e.g. 10/10) and 2 key learnings or takeaways..."
+                          : submissionType === "project_link"
+                          ? "Brief description of what you researched or built..."
+                          : submissionType === "media_upload"
+                          ? "Describe the materials used, how it works, and what you created..."
+                          : submissionType === "text_response"
+                          ? "Write down your step-by-step solution, decoded cipher, or book review here..."
+                          : "Write a short summary of what you did, created, or learned..."
+                      }
+                      rows={submissionType === "text_response" ? 6 : 4}
                     />
                   </div>
+
                   <div className="space-y-1">
-                    <Label className="font-bold">Photo, Video, or Drive Link (optional)</Label>
+                    <Label className="font-bold flex items-center gap-1.5">
+                      <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                      {submissionType === "project_link"
+                        ? "Project / Google Drive / Slides Link (required)"
+                        : submissionType === "media_upload"
+                        ? "Photo, Video, or Drive Proof Link (required)"
+                        : "Link (optional, e.g. Drive, GitHub, Video)"}
+                    </Label>
                     <Input
                       value={link}
                       onChange={(e) => setLink(e.target.value)}
-                      placeholder="https://drive.google.com/..."
+                      placeholder="https://drive.google.com/... or https://..."
                     />
+                    <p className="text-[11px] text-muted-foreground">
+                      Tip: If sharing a Google Drive link, ensure &quot;Anyone with the link can view&quot; is enabled.
+                    </p>
                   </div>
+
                   <Button
                     onClick={handleSubmit}
                     disabled={saving}
@@ -272,6 +350,27 @@ export default function VacationStudentPage({
           )}
         </CardContent>
       </Card>
+
+      {/* Daily Live Quiz Championship Integration */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base sm:text-lg font-black flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-amber-500" />
+            Vacation Live Quiz Championship
+          </h3>
+          <Badge variant="outline" className="text-xs font-bold text-amber-600 border-amber-500/40">
+            New Quiz Everyday 🔥
+          </Badge>
+        </div>
+        <UpcomingQuizLeagueCard
+          userId={userId}
+          userClass={userClass}
+          onJoinLeague={(session) => {
+            if (onJoinQuizLeague) onJoinQuizLeague(session);
+            else if (onNavigateToQuizzes) onNavigateToQuizzes();
+          }}
+        />
+      </div>
 
       {/* Interactive 10-Events Showcase & Preview Cards */}
       <VacationEventPreviewCards

@@ -1566,7 +1566,19 @@ const StudentDashboard = () => {
           {activeTab === "feedback" && <Feedback isEmbedded={true} />}
           {activeTab === "bounty" && <BugBountyManager />}
           {activeTab === "ui-reform" && <UIReformChallengeView userId={user?.id} onOpenCatalog={() => navigate("/catalog")} />}
-          {activeTab === "vacation" && <VacationStudentPage />}
+          {activeTab === "vacation" && (
+            <VacationStudentPage
+              userId={user?.id}
+              userClass={user?.student_class}
+              onJoinQuizLeague={(session) => {
+                setActiveLeagueSession(session);
+                if (session.status === "active") {
+                  setInLeagueRunner(true);
+                }
+              }}
+              onNavigateToQuizzes={() => setActiveTab("quizzes")}
+            />
+          )}
 
           {/* Profile Tab */}
           {activeTab === "profile" && <StudentProfile user={user} onProfileUpdate={handleProfileUpdate} />}

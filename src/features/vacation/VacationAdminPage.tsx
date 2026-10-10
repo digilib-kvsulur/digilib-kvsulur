@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, Download, Plus, Sparkles, Sun, Trash2 } from "lucide-react";
+import { Calendar, Download, Plus, Sparkles, Sun, Trash2, Trophy } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   deleteActivity,
   fetchActivities,
@@ -29,7 +30,7 @@ import {
 } from "./api";
 import { vacationRowsToCsv } from "./csv";
 import { vacationErrorMessage } from "./errors";
-import { POSTER_ACTIVITIES } from "./constants";
+import { POSTER_ACTIVITIES, formatActivityInstructions, parseActivityMeta, type VacationSubmissionType } from "./constants";
 import type {
   VacationActivity,
   VacationCampaign,
@@ -71,6 +72,9 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   const [dayFilter, setDayFilter] = useState<string>("all");
   const [studentFilter, setStudentFilter] = useState("");
   const [activityEditor, setActivityEditor] = useState<Partial<VacationActivity> | null>(null);
+  const [editorSubmissionType, setEditorSubmissionType] = useState<VacationSubmissionType>("mixed");
+  const [editorQuizId, setEditorQuizId] = useState<string>("");
+  const [availableQuizzes, setAvailableQuizzes] = useState<{ id: string; title: string; subject: string }[]>([]);
   const [rejectFor, setRejectFor] = useState<VacationSubmission | null>(null);
   const [rejectNote, setRejectNote] = useState("");
   const [approveFor, setApproveFor] = useState<VacationSubmission | null>(null);
@@ -168,9 +172,29 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
     }
   };
 
+  useEffect(() => {
+    supabase
+      .from("quizzes")
+      .select("id, title, subject")
+      .order("title")
+      .then(({ data }) => {
+        if (data) setAvailableQuizzes(data as any);
+      })
+      .catch(() => {});
+  }, []);
+
+  const openActivityEditor = (act: Partial<VacationActivity>) => {
+    const meta = parseActivityMeta(act.instructions);
+    setEditorSubmissionType(meta.submissionType);
+    setEditorQuizId(meta.quizId || "");
+    setActivityEditor(act);
+  };
+
   const saveActivity = async () => {
     if (!campaign || !activityEditor?.title) return;
     try {
+      const raw = activityEditor.instructions || "";
+      const tagged = formatActivityInstructions(raw, editorSubmissionType, editorQuizId);
       await upsertActivity({
         ...activityEditor,
         campaign_id: campaign.id,
@@ -178,7 +202,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
         reward_points: activityEditor.reward_points === null || activityEditor.reward_points === undefined || Number.isNaN(Number(activityEditor.reward_points))
           ? null
           : Number(activityEditor.reward_points),
-        instructions: activityEditor.instructions || "",
+        instructions: tagged,
         activity_date: activityEditor.activity_date || null,
         opens_at: activityEditor.opens_at || null,
         closes_at: activityEditor.closes_at || null,
@@ -219,37 +243,52 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
     toast({ title: "Poster campaign prefilled!", description: "Click 'Save campaign' or 'Create campaign' to apply." });
   };
 
-  const autoScheduleActivities = async () => {
-    if (!campaign || !campaign.start_date) {
-      toast({ title: "Campaign start date is required", variant: "destructive" });
+  const autoDetermineDates = async () => {
+    if (!campaign || !campaign.start_date || !campaign.end_date) {
+      toast({
+        title: "Start and End dates required",
+        description: "Please specify both Start Date and End Date in Campaign Details first.",
+        variant: "destructive",
+      });
       return;
     }
     try {
-      const startDate = new Date(campaign.start_date);
       let currentActivities = activities;
       if (currentActivities.length === 0) {
         await seedPosterDrafts(campaign.id);
         currentActivities = await fetchActivities(campaign.id);
       }
+      const startDate = new Date(campaign.start_date);
+      const endDate = new Date(campaign.end_date);
+      const totalDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)) + 1);
+
       const sorted = [...currentActivities].sort((a, b) => a.sort_order - b.sort_order);
       for (let i = 0; i < sorted.length; i++) {
         const d = new Date(startDate);
-        d.setDate(d.getDate() + i);
+        const dayOffset = Math.min(i, totalDays - 1);
+        d.setDate(startDate.getDate() + dayOffset);
         const dateStr = d.toISOString().split("T")[0];
         await upsertActivity({
           ...sorted[i],
           campaign_id: campaign.id,
           activity_date: dateStr,
+          opens_at: `${dateStr}T06:00:00`,
+          closes_at: `${dateStr}T23:59:59`,
           is_active: true,
           reward_points: sorted[i].reward_points ?? campaign.default_points ?? 10,
         });
       }
-      toast({ title: "10 Days Scheduled & Activated!", description: "All activities are dated and active." });
+      toast({
+        title: "Event dates calculated & assigned!",
+        description: `Auto-scheduled ${sorted.length} events from ${campaign.start_date} to ${campaign.end_date}.`,
+      });
       await loadDetails(campaign.id);
     } catch (error) {
-      toast({ title: "Could not auto-schedule", description: vacationErrorMessage(error), variant: "destructive" });
+      toast({ title: "Could not auto-determine dates", description: vacationErrorMessage(error), variant: "destructive" });
     }
   };
+
+  const autoScheduleActivities = autoDetermineDates;
 
   const defaultApprovePoints = (row: VacationSubmission) => {
     const act = activities.find((a) => a.id === row.activity_id);
@@ -366,11 +405,13 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
         )}
 
         {canConfigure && (
-          <TabsContent value="activities" className="space-y-3">
+          <TabsContent value="activities" className="space-y-4">
             {!campaign && <p className="text-sm text-muted-foreground">Create a campaign first.</p>}
+            
+            {/* Action Toolbar */}
             <div className="flex flex-wrap items-center gap-2">
               {campaign && (
-                <Button onClick={() => setActivityEditor({ title: "", instructions: "", is_active: false, sort_order: activities.length + 1 })}>
+                <Button onClick={() => openActivityEditor({ title: "", instructions: "", is_active: false, sort_order: activities.length + 1 })}>
                   <Plus className="h-4 w-4 mr-1" /> New activity
                 </Button>
               )}
@@ -388,42 +429,143 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                   Add poster draft ideas
                 </Button>
               )}
-              {campaign && activities.length > 0 && (
+              {campaign && (
                 <Button
                   variant="outline"
-                  onClick={autoScheduleActivities}
+                  onClick={autoDetermineDates}
                   className="gap-1.5 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 font-semibold"
                 >
                   <Calendar className="h-4 w-4 text-amber-500" />
-                  Auto-schedule 10 Days
+                  Auto-Schedule Dates ({campaign.start_date || "Start"} → {campaign.end_date || "End"})
                 </Button>
               )}
             </div>
-            {activities.map((act) => (
-              <Card key={act.id}>
-                <CardContent className="p-4 flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold">{act.title}</p>
-                      <Badge variant={act.is_active ? "default" : "secondary"}>{act.is_active ? "active" : "draft"}</Badge>
+
+            {/* Daily Live Quiz Championship Helper Card */}
+            {campaign && (
+              <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-primary/10">
+                <CardContent className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0">
+                      <Trophy className="h-4 w-4" />
                     </div>
-                    <p className="text-xs text-muted-foreground">{act.activity_date || "No date"} · {act.reward_points ?? "default points"}</p>
-                    <p className="text-sm line-clamp-2 mt-1">{act.instructions || "No instructions yet"}</p>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-200">
+                        Host Daily Live Quiz Championship
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {availableQuizzes.length} quizzes available in DLMS. Attach a quiz to any day or launch live multiplayer leagues!
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setActivityEditor(act)}>Edit</Button>
-                    <Button size="sm" variant="ghost" onClick={async () => {
-                      try {
-                        await deleteActivity(act.id);
-                        await loadDetails(campaign.id);
-                      } catch (error) {
-                        toast({ title: "Could not delete", description: vacationErrorMessage(error), variant: "destructive" });
-                      }
-                    }}><Trash2 className="h-4 w-4" /></Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs font-bold border-amber-500/40"
+                      onClick={() => {
+                        openActivityEditor({
+                          title: "Daily Live Quiz Championship",
+                          instructions: "Join today's live multiplayer quiz championship lobby on DLMS Quizzes to test your skills and earn streak multiplier bonuses!",
+                          sort_order: activities.length + 1,
+                          is_active: true,
+                          activity_date: new Date().toISOString().split("T")[0],
+                        });
+                        setEditorSubmissionType("quiz");
+                      }}
+                    >
+                      + Add Quiz Event
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )}
+
+            {/* Activity List with Inline Date & Type Editing */}
+            <div className="space-y-3">
+              {activities.map((act) => {
+                const meta = parseActivityMeta(act.instructions);
+                return (
+                  <Card key={act.id}>
+                    <CardContent className="p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-foreground truncate">{act.title}</p>
+                          <Badge variant={act.is_active ? "default" : "secondary"}>
+                            {act.is_active ? "active" : "draft"}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] font-bold border-primary/30 text-primary">
+                            {meta.submissionType === "quiz"
+                              ? "🏆 Quiz Championship"
+                              : meta.submissionType === "project_link"
+                              ? "🔗 Project Link"
+                              : meta.submissionType === "media_upload"
+                              ? "📸 Media Proof"
+                              : meta.submissionType === "text_response"
+                              ? "✍️ Written Solution"
+                              : "⚡ Mixed"}
+                          </Badge>
+                        </div>
+
+                        {/* Inline Date Editing */}
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-foreground">Date:</span>
+                            <Input
+                              type="date"
+                              className="h-7 w-36 text-xs bg-background"
+                              value={act.activity_date || ""}
+                              min={campaign?.start_date}
+                              max={campaign?.end_date}
+                              onChange={async (e) => {
+                                const newDate = e.target.value || null;
+                                try {
+                                  await upsertActivity({
+                                    ...act,
+                                    campaign_id: campaign!.id,
+                                    activity_date: newDate,
+                                  });
+                                  toast({ title: "Event date updated", description: `${act.title} set to ${newDate || "no date"}` });
+                                  await loadDetails(campaign!.id);
+                                } catch (err) {
+                                  toast({ title: "Could not update date", description: vacationErrorMessage(err), variant: "destructive" });
+                                }
+                              }}
+                            />
+                          </div>
+                          <span>·</span>
+                          <span>{act.reward_points ?? "default"} points</span>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                          {meta.cleanInstructions || act.instructions || "No instructions yet"}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button size="sm" variant="outline" onClick={() => openActivityEditor(act)}>
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            try {
+                              await deleteActivity(act.id);
+                              await loadDetails(campaign!.id);
+                            } catch (error) {
+                              toast({ title: "Could not delete", description: vacationErrorMessage(error), variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </TabsContent>
         )}
 
@@ -559,15 +701,17 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                   <Select onValueChange={(val) => {
                     const template = POSTER_ACTIVITIES.find((p) => p.title === val);
                     if (template) {
+                      setEditorSubmissionType(template.submissionType);
+                      setEditorQuizId("");
                       setActivityEditor({
                         ...activityEditor,
                         title: template.title,
-                        instructions: template.instructions,
+                        instructions: template.instructions.replace(/\[TYPE:[^\]]+\]\n?/g, ""),
                         sort_order: template.order,
                       });
                     }
                   }}>
-                    <SelectTrigger className="h-7 text-xs w-48"><SelectValue placeholder="Load poster template..." /></SelectTrigger>
+                    <SelectTrigger className="h-7 text-xs w-52"><SelectValue placeholder="Load event template..." /></SelectTrigger>
                     <SelectContent>
                       {POSTER_ACTIVITIES.map((p) => (
                         <SelectItem key={p.order} value={p.title}>{p.order}. {p.title}</SelectItem>
@@ -577,17 +721,114 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                 </div>
                 <Input value={activityEditor.title || ""} onChange={(e) => setActivityEditor({ ...activityEditor, title: e.target.value })} />
               </div>
-              <div className="space-y-1"><Label>Date</Label><Input type="date" min={campaign?.start_date} max={campaign?.end_date} value={activityEditor.activity_date || ""} onChange={(e) => setActivityEditor({ ...activityEditor, activity_date: e.target.value })} /></div>
-              <div className="space-y-1"><Label>Instructions</Label><Textarea value={activityEditor.instructions || ""} onChange={(e) => setActivityEditor({ ...activityEditor, instructions: e.target.value })} /></div>
-              <div className="space-y-1"><Label>Reward points (blank = campaign default)</Label><Input type="number" value={activityEditor.reward_points ?? ""} onChange={(e) => setActivityEditor({ ...activityEditor, reward_points: e.target.value === "" ? null : Number(e.target.value) })} /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1"><Label>Opens at (optional)</Label><Input type="datetime-local" value={activityEditor.opens_at?.slice(0, 16) || ""} onChange={(e) => setActivityEditor({ ...activityEditor, opens_at: e.target.value ? new Date(e.target.value).toISOString() : null })} /></div>
-                <div className="space-y-1"><Label>Closes at (optional)</Label><Input type="datetime-local" value={activityEditor.closes_at?.slice(0, 16) || ""} onChange={(e) => setActivityEditor({ ...activityEditor, closes_at: e.target.value ? new Date(e.target.value).toISOString() : null })} /></div>
+
+              {/* Submission / Completion Type */}
+              <div className="space-y-1">
+                <Label>Submission / Completion Type</Label>
+                <Select
+                  value={editorSubmissionType}
+                  onValueChange={(val: VacationSubmissionType) => setEditorSubmissionType(val)}
+                >
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mixed">⚡ Mixed (Summary + Optional Link)</SelectItem>
+                    <SelectItem value="quiz">🏆 Daily Live Quiz Championship</SelectItem>
+                    <SelectItem value="project_link">🔗 Project / Drive / Presentation Link</SelectItem>
+                    <SelectItem value="text_response">✍️ Written Solution / Code / Answers</SelectItem>
+                    <SelectItem value="media_upload">📸 Photo / Video / Media Proof</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex items-center gap-2"><Switch checked={Boolean(activityEditor.is_active)} onCheckedChange={(v) => setActivityEditor({ ...activityEditor, is_active: v })} /><Label>Active</Label></div>
+
+              {/* Quiz Linker if Quiz type is selected */}
+              {editorSubmissionType === "quiz" && (
+                <div className="space-y-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+                  <Label className="text-xs font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1.5">
+                    <Trophy className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                    Attach DLMS Quiz (optional)
+                  </Label>
+                  <Select value={editorQuizId} onValueChange={setEditorQuizId}>
+                    <SelectTrigger className="h-8 text-xs bg-background">
+                      <SelectValue placeholder="Choose quiz from DLMS..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">-- None (Open Live Championship / Manual Score) --</SelectItem>
+                      {availableQuizzes.map((q) => (
+                        <SelectItem key={q.id} value={q.id}>{q.title} ({q.subject})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Students will be directed to this quiz and can submit their score or reflections.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label>Date</Label>
+                  {campaign?.start_date && campaign?.end_date && (
+                    <span className="text-[11px] text-muted-foreground">
+                      Campaign: {campaign.start_date} to {campaign.end_date}
+                    </span>
+                  )}
+                </div>
+                <Input
+                  type="date"
+                  min={campaign?.start_date}
+                  max={campaign?.end_date}
+                  value={activityEditor.activity_date || ""}
+                  onChange={(e) => setActivityEditor({ ...activityEditor, activity_date: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label>Instructions</Label>
+                <Textarea
+                  value={activityEditor.instructions?.replace(/\[TYPE:[^\]]+\]\n?/g, "") || ""}
+                  onChange={(e) => setActivityEditor({ ...activityEditor, instructions: e.target.value })}
+                  rows={4}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label>Reward points (blank = campaign default: {campaign?.default_points ?? 10})</Label>
+                <Input
+                  type="number"
+                  value={activityEditor.reward_points ?? ""}
+                  onChange={(e) => setActivityEditor({ ...activityEditor, reward_points: e.target.value === "" ? null : Number(e.target.value) })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label>Opens at (optional)</Label>
+                  <Input
+                    type="datetime-local"
+                    value={activityEditor.opens_at?.slice(0, 16) || ""}
+                    onChange={(e) => setActivityEditor({ ...activityEditor, opens_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Closes at (optional)</Label>
+                  <Input
+                    type="datetime-local"
+                    value={activityEditor.closes_at?.slice(0, 16) || ""}
+                    onChange={(e) => setActivityEditor({ ...activityEditor, closes_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={Boolean(activityEditor.is_active)}
+                  onCheckedChange={(v) => setActivityEditor({ ...activityEditor, is_active: v })}
+                />
+                <Label>Active (Visible to Students)</Label>
+              </div>
             </div>
           )}
-          <DialogFooter><Button onClick={saveActivity}>Save</Button></DialogFooter>
+          <DialogFooter><Button onClick={saveActivity}>Save Activity</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
