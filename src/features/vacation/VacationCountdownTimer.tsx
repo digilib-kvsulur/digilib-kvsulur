@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Clock, Flame, Zap } from "lucide-react";
+import { Calendar, Clock, Flame, Zap } from "lucide-react";
 
 interface VacationCountdownTimerProps {
   targetTime?: string | Date | null;
@@ -8,11 +8,13 @@ interface VacationCountdownTimerProps {
 }
 
 interface TimeLeft {
+  days: number;
   hours: number;
   minutes: number;
   seconds: number;
   totalMs: number;
   isExpired: boolean;
+  isMoreThan48h: boolean;
 }
 
 function calculateTimeLeft(target?: string | Date | null): TimeLeft {
@@ -20,7 +22,14 @@ function calculateTimeLeft(target?: string | Date | null): TimeLeft {
   let targetMs: number;
 
   if (target) {
-    targetMs = new Date(target).getTime();
+    if (typeof target === "string" && /^\d{4}-\d{2}-\d{2}$/.test(target.trim())) {
+      // Local end of date
+      const parts = target.trim().split("-").map(Number);
+      const d = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+      targetMs = d.getTime();
+    } else {
+      targetMs = new Date(target).getTime();
+    }
   } else {
     // Default: end of today in local time
     const endOfDay = new Date();
@@ -30,14 +39,16 @@ function calculateTimeLeft(target?: string | Date | null): TimeLeft {
 
   const diff = targetMs - now;
   if (diff <= 0) {
-    return { hours: 0, minutes: 0, seconds: 0, totalMs: 0, isExpired: true };
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, totalMs: 0, isExpired: true, isMoreThan48h: false };
   }
 
+  const isMoreThan48h = diff > 48 * 60 * 60 * 1000;
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-  return { hours, minutes, seconds, totalMs: diff, isExpired: false };
+  return { days, hours, minutes, seconds, totalMs: diff, isExpired: false, isMoreThan48h };
 }
 
 export default function VacationCountdownTimer({
@@ -59,14 +70,51 @@ export default function VacationCountdownTimer({
     return (
       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-semibold">
         <Clock className="h-3.5 w-3.5" />
-        <span>Today&apos;s Window Closed</span>
+        <span>Window Closed</span>
       </div>
     );
   }
 
   const pad = (n: number) => String(n).padStart(2, "0");
-  const isUrgent = timeLeft.hours < 2;
+  const isUrgent = !timeLeft.isMoreThan48h && timeLeft.hours < 2;
 
+  // When more than 48 hours remain, show day count
+  if (timeLeft.isMoreThan48h) {
+    if (compact) {
+      return (
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300">
+          <Calendar className="h-3.5 w-3.5" />
+          <span>{timeLeft.days} {timeLeft.days === 1 ? "Day" : "Days"} Left</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-background p-3 sm:p-4 shadow-sm backdrop-blur-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 bg-amber-600">
+              <Calendar className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <span>{label}</span>
+              </p>
+              <p className="text-[11px] text-muted-foreground">Live countdown timer starts 48 hours before the deadline</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 sm:self-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-800 dark:text-amber-200 font-black text-sm sm:text-base">
+              <Calendar className="h-4 w-4" />
+              <span>{timeLeft.days} {timeLeft.days === 1 ? "Day" : "Days"} Left</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Under 48 hours: Live ticking timer
   if (compact) {
     return (
       <div
