@@ -16,7 +16,7 @@ export default function BookReservations({ userId, compact = false }: Props) {
     const { data } = await supabase.from("book_reservations").select("*").eq("user_id", userId).order("created_at", { ascending: false });
     const list = data || [];
     const ids = Array.from(new Set(list.map((r: any) => r.book_id)));
-    let books: Record<string, any> = {};
+    const books: Record<string, any> = {};
     if (ids.length) {
       const { data: b } = await supabase.from("books").select("id, title, author").in("id", ids);
       (b || []).forEach((x) => { books[x.id] = x; });

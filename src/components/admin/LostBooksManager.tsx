@@ -16,7 +16,7 @@ export default function LostBooksManager() {
     const { data } = await supabase.from("lost_book_reports").select("*").order("reported_at", { ascending: false });
     const list = data || [];
     const ids = Array.from(new Set(list.map((r: any) => r.user_id)));
-    let map: Record<string, any> = {};
+    const map: Record<string, any> = {};
     if (ids.length) {
       const { data: p } = await supabase.from("profiles").select("id, first_name, last_name, student_class").in("id", ids);
       (p || []).forEach((x) => { map[x.id] = x; });

@@ -19,7 +19,7 @@ export default function RenewalRequests() {
       return;
     }
     const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id).filter(Boolean)));
-    let profileMap: Record<string, any> = {};
+    const profileMap: Record<string, any> = {};
     if (userIds.length) {
       const { data: profs } = await supabase.from("profiles")
         .select("id, first_name, last_name, student_class, admission_number, role").in("id", userIds);

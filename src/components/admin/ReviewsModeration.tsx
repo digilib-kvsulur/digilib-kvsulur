@@ -56,7 +56,7 @@ export default function ReviewsModeration() {
       return;
     }
     const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id).filter(Boolean)));
-    let profileMap: Record<string, any> = {};
+    const profileMap: Record<string, any> = {};
     if (userIds.length) {
       const { data: profs } = await supabase.from("profiles")
         .select("id, first_name, last_name").in("id", userIds);
@@ -79,14 +79,14 @@ export default function ReviewsModeration() {
       }
 
       const postIds = Array.from(new Set((data || []).map((r: any) => r.post_id).filter(Boolean))) as string[];
-      let postMap: Record<string, any> = {};
+      const postMap: Record<string, any> = {};
       if (postIds.length) {
         const { data: postsData } = await supabase.from("posts").select("*").in("id", postIds);
         (postsData || []).forEach((p: any) => { postMap[p.id] = p; });
       }
 
       const commentIds = Array.from(new Set((data || []).map((r: any) => r.comment_id).filter(Boolean))) as string[];
-      let commentMap: Record<string, any> = {};
+      const commentMap: Record<string, any> = {};
       if (commentIds.length) {
         const { data: commentsData } = await supabase.from("post_comments").select("*").in("id", commentIds);
         (commentsData || []).forEach((c: any) => { commentMap[c.id] = c; });
@@ -103,7 +103,7 @@ export default function ReviewsModeration() {
         return null;
       }).filter(Boolean))) as string[];
 
-      let authorMap: Record<string, any> = {};
+      const authorMap: Record<string, any> = {};
       if (authorIds.length) {
         const { data: authorsData } = await supabase
           .from("profiles")
@@ -113,7 +113,7 @@ export default function ReviewsModeration() {
       }
 
       const reporterIds = Array.from(new Set((data || []).map((r: any) => r.reporter_id).filter(Boolean))) as string[];
-      let reporterMap: Record<string, any> = {};
+      const reporterMap: Record<string, any> = {};
       if (reporterIds.length) {
         const { data: profs } = await supabase.from("profiles").select("id, first_name, last_name, username").in("id", reporterIds);
         (profs || []).forEach((p: any) => { reporterMap[p.id] = p; });

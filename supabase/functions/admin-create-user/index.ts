@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     const cleanRollNo = (roll_number || "").trim() || null;
     const cleanClass = (student_class || "").trim() || null;
     const cleanPhone = (phone || "").trim() || null;
-    let cleanUsername = (username || "").trim().toLowerCase() || cleanAdmissionNo || cleanEmail.split("@")[0];
+    const cleanUsername = (username || "").trim().toLowerCase() || cleanAdmissionNo || cleanEmail.split("@")[0];
 
     const profileData: Record<string, any> = {
       id: created.user.id,
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     };
 
-    let { error: profileErr } = await admin.from("profiles").upsert(profileData, { onConflict: "id" });
+    const { error: profileErr } = await admin.from("profiles").upsert(profileData, { onConflict: "id" });
 
     // Handle potential username collision by appending unique suffix
     if (profileErr && (profileErr.message?.toLowerCase().includes("username") || profileErr.message?.toLowerCase().includes("unique"))) {

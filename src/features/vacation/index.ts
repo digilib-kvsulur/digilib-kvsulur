@@ -4,3 +4,4 @@ export { default as VacationPromoStrip } from "./VacationPromoStrip";
 export { default as VacationOverviewBanner } from "./VacationOverviewBanner";
 export { useActiveVacationCampaign } from "./api";
 export * from "./types";
+export * from "./constants";

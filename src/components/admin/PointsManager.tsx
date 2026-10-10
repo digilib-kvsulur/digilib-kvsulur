@@ -255,7 +255,7 @@ const PointsManager = () => {
 
   const enrichReadings = async (data: any[]) => {
     const userIds = Array.from(new Set(data.map((r) => r.user_id)));
-    let profileMap: Record<string, any> = {};
+    const profileMap: Record<string, any> = {};
     if (userIds.length) {
       const { data: profs } = await supabase
         .from("profiles")

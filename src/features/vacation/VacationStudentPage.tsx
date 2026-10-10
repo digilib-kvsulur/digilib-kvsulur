@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Flame, Sun, Trophy } from "lucide-react";
+import { CheckCircle2, Flame, Sparkles, Sun, Trophy } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { fetchLeaderboard, fetchStudentOverview, submitVacationActivity } from "./api";
 import { vacationErrorMessage } from "./errors";
+import { POSTER_ACTIVITIES } from "./constants";
 import type { VacationLeaderboardRow, VacationStudentOverview } from "./types";
 
 export default function VacationStudentPage() {
@@ -44,6 +45,25 @@ export default function VacationStudentPage() {
   const canResubmit = submission?.status === "rejected" && activity?.window_open !== false;
   const canSubmit = campaign?.status === "active" && activity && (!submission || canResubmit) && activity.window_open !== false;
 
+  const completedTitles = useMemo(() => {
+    return new Set(
+      (overview?.history || [])
+        .filter((h) => h.status === "approved")
+        .map((h) => h.title.toLowerCase())
+    );
+  }, [overview]);
+
+  const activePosterTemplate = useMemo(() => {
+    if (!activity) return null;
+    return (
+      POSTER_ACTIVITIES.find(
+        (p) =>
+          activity.title.toLowerCase().includes(p.title.toLowerCase()) ||
+          p.title.toLowerCase().includes(activity.title.toLowerCase())
+      ) || null
+    );
+  }, [activity]);
+
   const statusCopy = useMemo(() => {
     if (!campaign) return "There is no active vacation campaign right now.";
     if (campaign.status === "paused") return "This campaign is paused. Check back soon.";
@@ -71,56 +91,188 @@ export default function VacationStudentPage() {
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sun className="h-5 w-5 text-amber-500" />
-            {campaign?.title || "Vacation Campaign"}
+      {/* Poster-styled Hero Header */}
+      <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-primary/10 overflow-hidden shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+              Play • Learn • Grow
+            </span>
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <Sparkles className="h-3.5 w-3.5" /> 10 Days • 10 Challenges
+            </span>
+          </div>
+          <CardTitle className="text-xl sm:text-2xl font-black flex items-center gap-2 mt-1">
+            <Sun className="h-6 w-6 text-amber-500" />
+            {campaign?.title || "DLMS – New Games & Competitions"}
           </CardTitle>
-          <CardDescription>
-            {campaign ? `${campaign.start_date} to ${campaign.end_date}` : "Play, learn, and grow over the break."}
+          <CardDescription className="text-xs sm:text-sm text-foreground/80 font-medium">
+            Fun activities that build skills, spark creativity and give real-world knowledge! More than just games... It&apos;s a learning experience!
           </CardDescription>
+          <div className="flex flex-wrap gap-2 pt-2 text-[11px] font-semibold text-muted-foreground">
+            <span className="bg-background/80 px-2 py-0.5 rounded-md border">Different Games</span>
+            <span>✦</span>
+            <span className="bg-background/80 px-2 py-0.5 rounded-md border">Real Skills</span>
+            <span>✦</span>
+            <span className="bg-background/80 px-2 py-0.5 rounded-md border">A Smarter You</span>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Today's Challenge Section */}
+      <Card className="border-border/80 shadow-sm">
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sun className="h-5 w-5 text-amber-500" />
+                Today&apos;s Challenge
+              </CardTitle>
+              <CardDescription>
+                {campaign ? `${campaign.start_date} to ${campaign.end_date}` : "Play, learn, and grow over the break."}
+              </CardDescription>
+            </div>
+            {activity && (
+              <Badge className="bg-amber-600 text-white font-bold text-xs px-3 py-1">
+                +{activity.reward_points} Points
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {statusCopy && <p className="text-sm text-muted-foreground">{statusCopy}</p>}
           {campaign?.status === "active" && activity && (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-lg font-bold">{activity.title}</h3>
-                <Badge>+{activity.reward_points} pts</Badge>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-xl font-black text-foreground">{activity.title}</h3>
+                  {activePosterTemplate?.tagline && (
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/25">
+                      {activePosterTemplate.tagline}
+                    </span>
+                  )}
+                </div>
+                {activePosterTemplate?.subtitle && (
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {activePosterTemplate.subtitle}
+                  </p>
+                )}
               </div>
-              <p className="text-sm whitespace-pre-wrap">{activity.instructions}</p>
+
+              {activePosterTemplate?.learningOutcomes && activePosterTemplate.learningOutcomes.length > 0 && (
+                <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-1.5">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">What you learn:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activePosterTemplate.learningOutcomes.map((skill, idx) => (
+                      <span key={idx} className="text-xs font-medium bg-background px-2 py-0.5 rounded-full border border-border/80">
+                        ✓ {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-xl border p-4 bg-card/60 text-sm whitespace-pre-wrap leading-relaxed">
+                {activity.instructions}
+              </div>
+
               {submission && (
-                <div className="rounded-xl border p-3 text-sm space-y-1">
+                <div className="rounded-xl border p-3.5 text-sm space-y-1.5 bg-muted/40">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">Status:</span>
+                    <span className="font-bold">Your Submission:</span>
                     <Badge variant={submission.status === "approved" ? "default" : submission.status === "rejected" ? "destructive" : "secondary"}>
                       {submission.status}
                     </Badge>
-                    {submission.status === "approved" && <span>+{submission.points_awarded} points</span>}
+                    {submission.status === "approved" && (
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        +{submission.points_awarded} points awarded!
+                      </span>
+                    )}
                   </div>
                   {submission.status === "rejected" && submission.review_note && (
-                    <p className="text-muted-foreground">Staff note: {submission.review_note}</p>
+                    <p className="text-destructive font-medium text-xs">
+                      Teacher note: {submission.review_note}
+                    </p>
                   )}
                 </div>
               )}
+
               {canSubmit && (
-                <div className="space-y-3">
+                <div className="space-y-3 pt-2">
                   <div className="space-y-1">
-                    <Label>Your work</Label>
-                    <Textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Write what you did today" />
+                    <Label className="font-bold">Your work / Summary</Label>
+                    <Textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="Write a short summary of what you did, created, or learned..."
+                      rows={4}
+                    />
                   </div>
                   <div className="space-y-1">
-                    <Label>Link (optional)</Label>
-                    <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://" />
+                    <Label className="font-bold">Photo, Video, or Drive Link (optional)</Label>
+                    <Input
+                      value={link}
+                      onChange={(e) => setLink(e.target.value)}
+                      placeholder="https://drive.google.com/..."
+                    />
                   </div>
-                  <Button onClick={handleSubmit} disabled={saving}>
-                    {submission?.status === "rejected" ? "Resubmit" : "Submit"}
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={saving}
+                    className="w-full sm:w-auto font-bold bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    {submission?.status === "rejected" ? "Resubmit Activity" : "Submit Activity for Review"}
                   </Button>
                 </div>
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* 10-Events Roadmap */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-amber-500" />
+            10-Day Events Roadmap
+          </CardTitle>
+          <CardDescription>
+            All 10 challenges from the DLMS event series. Complete each day to build your streak!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+            {POSTER_ACTIVITIES.map((item) => {
+              const isToday = activity?.title.toLowerCase().includes(item.title.toLowerCase()) || item.title.toLowerCase().includes(activity?.title.toLowerCase() || "");
+              const isDone = completedTitles.has(item.title.toLowerCase());
+              return (
+                <div
+                  key={item.order}
+                  className={`rounded-xl border p-2.5 text-xs transition-all ${
+                    isToday
+                      ? "border-amber-500 bg-amber-500/10 shadow-sm ring-1 ring-amber-500"
+                      : isDone
+                      ? "border-emerald-500/40 bg-emerald-500/5"
+                      : "border-border/60 bg-muted/20 opacity-80"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="font-black text-[10px] text-muted-foreground uppercase">Day {item.order}</span>
+                    {isDone ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : isToday ? (
+                      <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-500/20 px-1.5 py-0.2 rounded">Today</span>
+                    ) : null}
+                  </div>
+                  <p className="font-bold line-clamp-1">{item.title}</p>
+                  {item.tagline && (
+                    <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{item.tagline}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 

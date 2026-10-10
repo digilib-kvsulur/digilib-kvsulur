@@ -57,7 +57,7 @@ export default function EventsManager() {
       return;
     }
     const userIds = Array.from(new Set((data || []).map((s: any) => s.user_id).filter(Boolean)));
-    let profileMap: Record<string, any> = {};
+    const profileMap: Record<string, any> = {};
     if (userIds.length) {
       const { data: profs } = await supabase
         .from("profiles")

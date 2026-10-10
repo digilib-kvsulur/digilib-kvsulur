@@ -17,8 +17,8 @@ export default function ReservationManager() {
     const list = data || [];
     const bookIds = Array.from(new Set(list.map((r: any) => r.book_id)));
     const userIds = Array.from(new Set(list.map((r: any) => r.user_id)));
-    let books: Record<string, any> = {};
-    let profiles: Record<string, any> = {};
+    const books: Record<string, any> = {};
+    const profiles: Record<string, any> = {};
     if (bookIds.length) {
       const { data: b } = await supabase.from("books").select("id, title, author, available_copies").in("id", bookIds);
       (b || []).forEach((x) => { books[x.id] = x; });

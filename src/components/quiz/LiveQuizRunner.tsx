@@ -302,7 +302,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
         setParticipants((prev) => {
           const exists = prev.some((p) => p.user_id === updatedPlayer.user_id);
-          let nextList = exists
+          const nextList = exists
             ? prev.map((p) => (p.user_id === updatedPlayer.user_id ? { ...p, ...updatedPlayer } : p))
             : [...prev, updatedPlayer];
           return nextList

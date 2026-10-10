@@ -49,7 +49,7 @@ export default function InventoryAuditManager() {
       if (error) throw error;
 
       const verifierIds = Array.from(new Set((auditLogs || []).map((r: any) => r.verified_by).filter(Boolean)));
-      let profileMap: Record<string, any> = {};
+      const profileMap: Record<string, any> = {};
       if (verifierIds.length) {
         const { data: profs } = await supabase.from("profiles")
           .select("id, first_name, last_name").in("id", verifierIds);

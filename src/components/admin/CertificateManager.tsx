@@ -179,7 +179,7 @@ export default function CertificateManager() {
       setEvents(evts || []);
       const list = (certs as any[]) || [];
       const userIds = Array.from(new Set(list.map((c) => c.user_id)));
-      let profileMap: Record<string, any> = {};
+      const profileMap: Record<string, any> = {};
       if (userIds.length) {
         // Chunk userIds to avoid URL length limit or PostgREST row limits
         const CHUNK_SIZE = 400;

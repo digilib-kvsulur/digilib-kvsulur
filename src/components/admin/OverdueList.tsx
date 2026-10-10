@@ -59,8 +59,8 @@ export default function OverdueList() {
       const userIds = Array.from(new Set(overdue.map((r: any) => r.user_id).filter(Boolean)));
       const bookIds = Array.from(new Set(overdue.map((r: any) => r.book_id).filter(Boolean)));
 
-      let profileMap: Record<string, any> = {};
-      let bookMap: Record<string, any> = {};
+      const profileMap: Record<string, any> = {};
+      const bookMap: Record<string, any> = {};
 
       if (userIds.length) {
         const { data: profs } = await supabase

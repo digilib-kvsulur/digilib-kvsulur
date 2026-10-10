@@ -62,7 +62,7 @@ export async function getEventWinners(eventId: string, eventTitle?: string): Pro
     if (!error && data) {
       // Fetch user details for profile info
       const userIds = Array.from(new Set(data.map((w: any) => w.user_id)));
-      let profileMap: Record<string, any> = {};
+      const profileMap: Record<string, any> = {};
 
       if (userIds.length > 0) {
         const { data: profs } = await supabase
@@ -406,7 +406,7 @@ export async function getStudentEventWinnersInfo(userId: string): Promise<{
       .eq("user_id", userId)
       .eq("is_published", true);
 
-    let candidates: any[] = tableData || [];
+    const candidates: any[] = tableData || [];
 
     if (!candidates || candidates.length === 0) {
       // Search system_settings keys matching event_winners_
@@ -417,7 +417,7 @@ export async function getStudentEventWinnersInfo(userId: string): Promise<{
 
       if (sysSettings) {
         sysSettings.forEach((item) => {
-          let list: any[] = typeof item.value === "string" ? JSON.parse(item.value) : item.value;
+          const list: any[] = typeof item.value === "string" ? JSON.parse(item.value) : item.value;
           if (Array.isArray(list)) {
             list.forEach((w) => {
               if (w.userId === userId && w.isPublished) {

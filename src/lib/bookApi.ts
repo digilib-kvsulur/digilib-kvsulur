@@ -507,7 +507,7 @@ export async function fetchBookByIsbn(isbn: string): Promise<FetchedBookDetails 
         const info = data[`ISBN:${cleanIsbn}`];
         if (!info) return null;
         const subjects = (info.subjects || []).map((s: any) => s.name);
-        let description = typeof info.notes === "string" ? info.notes : "";
+        const description = typeof info.notes === "string" ? info.notes : "";
         if ((!description || description.length < 40) && info.identifiers?.openlibrary?.[0]) {
           // skip
         }
@@ -528,7 +528,7 @@ export async function fetchBookByIsbn(isbn: string): Promise<FetchedBookDetails 
     })(),
   ]);
 
-  let details = mergeDetails(google, ol);
+  const details = mergeDetails(google, ol);
   if (details && !details.cover_url) {
     details.cover_url = await fetchInternetArchiveCover(details.title || cleanIsbn, details.author);
   }

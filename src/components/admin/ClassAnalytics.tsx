@@ -426,7 +426,7 @@ function BorrowHeatmap() {
         .select("user_id, issue_date")
         .gte("issue_date", new Date(new Date().getFullYear(), 0, 1).toISOString());
       const userIds = Array.from(new Set((issues || []).map((i) => i.user_id)));
-      let classMap: Record<string, string> = {};
+      const classMap: Record<string, string> = {};
       if (userIds.length) {
         const { data: profs } = await supabase.from("profiles").select("id, student_class").in("id", userIds);
         (profs || []).forEach((p) => { classMap[p.id] = p.student_class || "Unknown"; });

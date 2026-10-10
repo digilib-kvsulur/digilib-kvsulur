@@ -422,25 +422,25 @@ begin
   select p_campaign, t.title, t.descr, t.ord, false
   from (values
     (1,  'STEAM Challenge',
-         'Teams solve a real-world problem (e.g. build a bridge, design a water filter) with limited materials, then present the solution and the science behind it.'),
+         E'Tagline: Build • Solve • Innovate\n\nChallenge:\nTeams get a real-world problem (e.g. build a bridge, design a water filter, or create a simple machine) using limited materials. They must present their solution and explain the science behind it.\n\nWhat students learn:\n• Creative thinking\n• Problem solving\n• Science & technology concepts\n• Teamwork & communication\n\nSubmission: Write a summary of your model/solution and attach photos or a video drive link.'),
     (2,  'Digital Quest',
-         'An online treasure hunt: solve clues, answer questions and complete tasks using QR codes, Google Forms and online resources.'),
+         E'Tagline: Scan • Solve • Move Forward\n\nChallenge:\nTeams solve clues, answer questions and complete tasks using QR codes, Google Forms and online resources. The clues are based on different subjects like science, history, general knowledge and current affairs.\n\nWhat students learn:\n• Research & information skills\n• Digital literacy\n• General knowledge\n• Team coordination\n\nSubmission: Submit your completion code, clue answers, or proof screenshot link.'),
     (3,  'Eco-Innovation Challenge',
-         'Create a useful product from waste materials or design a solution to an environmental problem, then present the idea and its impact.'),
+         E'Tagline: Reduce • Reuse • Reimagine\n\nChallenge:\nStudents create useful products from waste materials or design solutions for environmental problems (e.g., water saving, clean energy, plastic reduction). They present their idea and its impact.\n\nWhat students learn:\n• Environmental awareness\n• Innovation & creativity\n• Hands-on skills\n• Presentation skills\n\nSubmission: Describe your eco-innovation, materials used, and share a photo or link to your prototype.'),
     (4,  'Cyber Safety & Digital Literacy Quiz',
-         'A quiz with real-life scenarios on online safety, digital footprints, cyber bullying, fake news and responsible internet use.'),
+         E'Tagline: Think • Click • Stay Safe\n\nChallenge:\nA fun quiz with real-life scenarios about online safety, digital footprints, cyber bullying, fake news and responsible internet use. Includes short videos, MCQs and group challenges.\n\nWhat students learn:\n• Online safety rules\n• Critical thinking\n• Media literacy\n• Responsible digital behaviour\n\nSubmission: Submit your quiz score, reflections on digital footprint, and your key takeaways.'),
     (5,  'Functional English & Communication Show',
-         'Role plays, debates, storytelling, news reading or a "shark tank" style product pitch, focused on real-life communication and confidence.'),
+         E'Tagline: Speak • Express • Inspire\n\nChallenge:\nStudents take part in fun activities like role plays, debates, storytelling, news reading, or "shark tank" style presentations (product pitch). Focus on real-life communication and confidence.\n\nWhat students learn:\n• Communication skills\n• Creativity & imagination\n• Confidence\n• Public speaking\n\nSubmission: Provide your speech/script write-up, role-play topic, or link to your recorded presentation.'),
     (6,  'History Detective',
-         'Solve clues, match timelines, identify historical figures and complete map puzzles about India and the world.'),
+         E'Tagline: Discover • Decide • Defend\n\nChallenge:\nTeams solve clues, match timelines, identify historical figures, and complete challenges about India and the world. Includes map puzzles, "guess the leader", and "what happened next?" rounds.\n\nWhat students learn:\n• History & geography\n• Critical thinking\n• Decision making\n• Teamwork\n\nSubmission: Write down your investigative conclusions, identified historical figures, and timeline matches.'),
     (7,  'Math Marathon',
-         'Logic puzzles, mental maths, budgeting games and pattern challenges rooted in real-life problem solving.'),
+         E'Tagline: Think • Calculate • Win\n\nChallenge:\nFun rounds with logic puzzles, mental maths, budgeting games, pattern challenges and real-life problem solving (e.g., planning a trip within a budget).\n\nWhat students learn:\n• Logical reasoning\n• Quick calculation\n• Financial awareness\n• Confidence with numbers\n\nSubmission: Provide your calculations, budget breakdown, and puzzle solutions.'),
     (8,  'Creative Arts & Innovation Expo',
-         'Create digital art, short films, posters or DIY projects from simple materials on a theme such as "A Better Planet".'),
+         E'Tagline: Imagine • Create • Make a Difference\n\nChallenge:\nStudents create digital art, short films, posters, or DIY projects using simple materials. The theme could be "Future of Education", "My Dream India" or "A Better Planet".\n\nWhat students learn:\n• Creativity & design thinking\n• Digital skills\n• Self-expression\n• Awareness of real-world issues\n\nSubmission: Explain your artwork concept and provide an image upload link or digital file link.'),
     (9,  'Mystery Code Breakers',
-         'Crack riddles, decode secret messages, solve pattern puzzles and follow clues to unlock a final mystery.'),
+         E'Tagline: Crack • Decode • Unlock\n\nChallenge:\nStudents crack riddles, decode secret messages, solve pattern puzzles, and follow clues to unlock a final mystery as a team.\n\nWhat students learn:\n• Logical thinking\n• Pattern recognition\n• Problem-solving\n• Teamwork\n\nSubmission: Submit the decoded secret message along with the logic/ciphers used to solve it.'),
     (10, 'Future Makers Pitch',
-         'Invent a simple solution to a real-life problem, build a mini model or draw a prototype, then pitch it in 60 seconds.')
+         E'Tagline: Small Ideas • Big Impact\n\nChallenge:\nStudents invent a simple solution to a real-life problem, build a mini model or draw a prototype, then pitch their idea in 60 seconds to a friendly judging panel.\n\nWhat students learn:\n• Innovation\n• Design thinking\n• Confidence\n• Persuasive speaking\n\nSubmission: Share your 60-second pitch script, prototype photo/video link, and problem-solution summary.')
   ) as t(ord, title, descr);
   return 10;
 end;

@@ -59,7 +59,7 @@ export default function FineManager() {
     setStudents(studs || []);
     const list = data || [];
     const ids = Array.from(new Set(list.map((r: any) => r.user_id)));
-    let map: Record<string, any> = {};
+    const map: Record<string, any> = {};
     if (ids.length) {
       const { data: profs } = await supabase
         .from("profiles")

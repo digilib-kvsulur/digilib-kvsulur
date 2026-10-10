@@ -617,7 +617,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
 
       if (!isSearchIntent) return null;
 
-      let query = t
+      const query = t
         .replace(/\b(do you have|is there|is|available|search for books?|search books?|find a books?|find books?|books? by|books? on|books? about|books? for|where is the|where are the|where is|where are|looking for|have you got|please|can you find|in the library|shelf of|location of)\b/gi, "")
         .replace(/[\?\"\'\!\.]/g, "")
         .trim();

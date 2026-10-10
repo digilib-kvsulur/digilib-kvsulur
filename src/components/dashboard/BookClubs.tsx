@@ -39,7 +39,7 @@ export default function BookClubs({ userId }: Props) {
     const { data } = await supabase.from("book_club_messages").select("*").eq("club_id", club.id).order("created_at", { ascending: true }).limit(100);
     const list = data || [];
     const ids = Array.from(new Set(list.map((m: any) => m.user_id)));
-    let map: Record<string, any> = {};
+    const map: Record<string, any> = {};
     if (ids.length) {
       const { data: p } = await supabase.from("profiles").select("id, first_name, last_name").in("id", ids);
       (p || []).forEach((x) => { map[x.id] = x; });

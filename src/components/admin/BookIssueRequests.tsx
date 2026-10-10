@@ -139,7 +139,7 @@ const BookIssueRequests = () => {
     }
     const list = data || [];
     const ids = Array.from(new Set(list.map((r: any) => r.user_id)));
-    let map: Record<string, any> = {};
+    const map: Record<string, any> = {};
     if (ids.length) {
       const { data: p } = await supabase.from("profiles").select("id, first_name, last_name, student_class").in("id", ids);
       (p || []).forEach((x) => { map[x.id] = x; });
@@ -170,7 +170,7 @@ const BookIssueRequests = () => {
   /** Apply search + status + class filters and sort to a list of BookRequest */
   const filterAndSortRequests = (list: BookRequest[]): BookRequest[] => {
     const q = searchQuery.toLowerCase().trim();
-    let result = list.filter(r => {
+    const result = list.filter(r => {
       if (q) {
         const studentName = `${r.profile?.first_name ?? ""} ${r.profile?.last_name ?? ""}`.toLowerCase();
         const bookTitle = (r.book?.title ?? r.requested_title ?? "").toLowerCase();
@@ -192,7 +192,7 @@ const BookIssueRequests = () => {
   /** Apply search + class filters and sort to suggestions */
   const filterAndSortSuggestions = (list: BookSuggestion[]): BookSuggestion[] => {
     const q = searchQuery.toLowerCase().trim();
-    let result = list.filter(r => {
+    const result = list.filter(r => {
       if (q) {
         const studentName = `${r.profile?.first_name ?? ""} ${r.profile?.last_name ?? ""}`.toLowerCase();
         const title = (r.title ?? "").toLowerCase();

@@ -533,7 +533,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
     setPosts(postsData.map((p: any) => {
       let subject = p.doubt_subject;
-      let status = p.doubt_status || "unsolved";
+      const status = p.doubt_status || "unsolved";
       if (!subject && p.title && p.title.startsWith("[Doubt")) {
         const match = p.title.match(/\[Doubt\s*-\s*([^\]]+)\]/i);
         if (match) subject = match[1].trim();
