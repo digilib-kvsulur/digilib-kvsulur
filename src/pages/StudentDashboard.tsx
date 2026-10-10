@@ -12,7 +12,7 @@ import {
   BookOpen, LogOut, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, BookmarkCheck, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug, Palette
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug, Palette, Sun
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { clearStoredAuthSession } from "@/lib/authCleanup";
@@ -74,8 +74,9 @@ import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
 import MobileBottomNav, { mobileNavSections } from "@/components/dashboard/MobileBottomNav";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import UIReformChallengeView from "@/components/community/UIReformChallengeView";
+import { VacationOverviewBanner, VacationPromoStrip, VacationStudentPage, useActiveVacationCampaign } from "@/features/vacation";
 
-type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform";
+type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -393,6 +394,7 @@ const StudentDashboard = () => {
         { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
         { id: "community" as Tab, label: "Community", icon: Users },
         { id: "network" as Tab, label: "Network", icon: Users },
+        { id: "vacation" as Tab, label: "Vacation Campaign", icon: Sun },
         ...(bountyVisible ? [{ id: "bounty" as Tab, label: "Bug Bounty", icon: Target }] : []),
         ...(uiReformVisible ? [{ id: "ui-reform" as Tab, label: "UI Reform Challenge", icon: Palette }] : []),
         { id: "events" as Tab, label: "Events", icon: CalendarDays },
@@ -981,6 +983,9 @@ const StudentDashboard = () => {
       <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 pb-40 lg:pb-8 lg:ml-64 lg:pt-1">
         <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-5 lg:p-6 lg:pt-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
+          {activeTab !== "vacation" && (
+            <VacationPromoStrip onOpen={() => setActiveTab("vacation")} />
+          )}
 
           {/* Overview Tab */}
           {activeTab === "overview" && (
@@ -1122,6 +1127,8 @@ const StudentDashboard = () => {
                   }
                 }}
               />
+
+              <VacationOverviewBanner onOpen={() => setActiveTab("vacation")} />
 
               {/* Bug Bounty Live Banner — ONLY shown when campaign is currently active & not ended */}
               {Boolean(
@@ -1558,6 +1565,7 @@ const StudentDashboard = () => {
           {activeTab === "feedback" && <Feedback isEmbedded={true} />}
           {activeTab === "bounty" && <BugBountyManager />}
           {activeTab === "ui-reform" && <UIReformChallengeView userId={user?.id} onOpenCatalog={() => navigate("/catalog")} />}
+          {activeTab === "vacation" && <VacationStudentPage />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && <StudentProfile user={user} onProfileUpdate={handleProfileUpdate} />}
@@ -1596,6 +1604,7 @@ const StudentDashboard = () => {
         onTabChange={(tab) => setActiveTab(tab as Tab)}
         onOpenMenu={() => setMobileNavOpen(true)}
         onCatalog={() => navigate("/catalog")}
+        showVacationCenter={Boolean(vacationCampaign?.status === "active")}
       />
     </div>
   );
