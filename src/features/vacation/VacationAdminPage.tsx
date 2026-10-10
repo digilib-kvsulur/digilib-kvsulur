@@ -30,7 +30,7 @@ import {
 } from "./api";
 import { vacationRowsToCsv } from "./csv";
 import { vacationErrorMessage } from "./errors";
-import { POSTER_ACTIVITIES, formatActivityInstructions, parseActivityMeta, type VacationSubmissionType } from "./constants";
+import { POSTER_ACTIVITIES, formatActivityInstructions, parseActivityMeta } from "./constants";
 import type {
   VacationActivity,
   VacationCampaign,
@@ -39,6 +39,7 @@ import type {
   VacationParticipationStats,
   VacationStreakMilestone,
   VacationSubmission,
+  VacationSubmissionType,
 } from "./types";
 
 interface VacationAdminPageProps {
@@ -173,14 +174,18 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   };
 
   useEffect(() => {
-    supabase
-      .from("quizzes")
-      .select("id, title, subject")
-      .order("title")
-      .then(({ data }) => {
+    async function loadQuizzes() {
+      try {
+        const { data } = await supabase
+          .from("quizzes")
+          .select("id, title, subject")
+          .order("title");
         if (data) setAvailableQuizzes(data as any);
-      })
-      .catch(() => {});
+      } catch {
+        // Quizzes table fallback
+      }
+    }
+    loadQuizzes();
   }, []);
 
   const openActivityEditor = (act: Partial<VacationActivity>) => {

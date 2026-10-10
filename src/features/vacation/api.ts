@@ -104,9 +104,10 @@ export async function fetchActivities(campaignId: string) {
 }
 
 export async function upsertActivity(payload: Partial<VacationActivity> & { campaign_id: string; title: string }) {
-  const query = payload.id
-    ? supabase.from("vacation_activities").update(payload).eq("id", payload.id)
-    : supabase.from("vacation_activities").insert(payload);
+  const { submission_type, quiz_id, ...cleanPayload } = payload;
+  const query = cleanPayload.id
+    ? supabase.from("vacation_activities").update(cleanPayload).eq("id", cleanPayload.id)
+    : supabase.from("vacation_activities").insert(cleanPayload);
   const { data, error } = await query.select("*").single();
   if (error) throw error;
   return data as VacationActivity;

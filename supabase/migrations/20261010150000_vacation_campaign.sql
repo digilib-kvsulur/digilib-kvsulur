@@ -440,9 +440,19 @@ begin
     (9,  'Mystery Code Breakers',
          E'Tagline: Crack • Decode • Unlock\n\nChallenge:\nStudents crack riddles, decode secret messages, solve pattern puzzles, and follow clues to unlock a final mystery as a team.\n\nWhat students learn:\n• Logical thinking\n• Pattern recognition\n• Problem-solving\n• Teamwork\n\nSubmission: Submit the decoded secret message along with the logic/ciphers used to solve it.'),
     (10, 'Future Makers Pitch',
-         E'Tagline: Small Ideas • Big Impact\n\nChallenge:\nStudents invent a simple solution to a real-life problem, build a mini model or draw a prototype, then pitch their idea in 60 seconds to a friendly judging panel.\n\nWhat students learn:\n• Innovation\n• Design thinking\n• Confidence\n• Persuasive speaking\n\nSubmission: Share your 60-second pitch script, prototype photo/video link, and problem-solution summary.')
+         E'Tagline: Small Ideas • Big Impact\n\nChallenge:\nStudents invent a simple solution to a real-life problem, build a mini model or draw a prototype, then pitch their idea in 60 seconds to a friendly judging panel.\n\nWhat students learn:\n• Innovation\n• Design thinking\n• Confidence\n• Persuasive speaking\n\nSubmission: Share your 60-second pitch script, prototype photo/video link, and problem-solution summary.'),
+    (11, 'Reading Sprint & Book Review Challenge',
+         E'Tagline: Read • Reflect • Review\n\nChallenge:\nRead any book or article from the digital library, summarize its core message, and write an honest review or propose an alternative ending.\n\nWhat students learn:\n• Reading comprehension\n• Critical evaluation\n• Creative writing\n• Vocabulary building\n\nSubmission: Submit your book title, author, and your 150-word review with your favorite quote.'),
+    (12, 'Typing Speed & Keyboard Championship',
+         E'Tagline: Speed • Precision • Flow\n\nChallenge:\nComplete a 3-minute typing test online (e.g. typing.com or monkeytype) or in the library portal. Target at least 30+ WPM with 95%+ accuracy.\n\nWhat students learn:\n• Touch typing proficiency\n• Digital fluency\n• Focus & endurance\n\nSubmission: Submit your final WPM, accuracy percentage, and a screenshot or verification link.'),
+    (13, 'Science Wonder Lab & Kitchen Experiments',
+         E'Tagline: Observe • Hypothesize • Discover\n\nChallenge:\nConduct a safe hands-on science experiment using everyday items at home. Record what you observed and the scientific law explaining it.\n\nWhat students learn:\n• Scientific method\n• Hypothesis testing\n• Curiosity & observation\n\nSubmission: Write your hypothesis and conclusions, and attach a photo or short video link demonstrating your experiment.'),
+    (14, 'Daily Live Quiz Championship: GK & Trivia',
+         E'Tagline: Quick Buzzer • Big Brain • High Rank\n\nChallenge:\nJoin the live multiplayer quiz championship lobby. Score in the top tier to win bonus vacation streak multipliers!\n\nWhat students learn:\n• General knowledge\n• Speed thinking\n• Sportsmanship\n\nSubmission: Join the live lobby through DLMS Quizzes or submit your quiz completion confirmation.'),
+    (15, 'Grand Finale Showcase: Project Exhibition',
+         E'Tagline: Small Ideas • Big Impact • Lifelong Learning\n\nChallenge:\nAssemble your vacation highlights—favorite projects, top quiz scores, books finished—into a single presentation or portfolio link.\n\nWhat students learn:\n• Portfolio curation\n• Self-reflection\n• Presentation design\n\nSubmission: Provide a link to your Google Slides, Canva, video, or drive folder presenting your vacation learning journey.')
   ) as t(ord, title, descr);
-  return 10;
+  return 15;
 end;
 $$;
 
