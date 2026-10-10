@@ -287,9 +287,10 @@ export default function SuperAdminOneClickGuide() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="starter" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-md mb-3">
+            <TabsList className="grid w-full grid-cols-4 max-w-lg mb-3">
               <TabsTrigger value="starter">Starter Schema (Fast)</TabsTrigger>
               <TabsTrigger value="full">Full 67-Table Schema</TabsTrigger>
+              <TabsTrigger value="functions">Edge Functions (13)</TabsTrigger>
               <TabsTrigger value="dns">Domain & CNAME</TabsTrigger>
             </TabsList>
 
@@ -313,7 +314,7 @@ export default function SuperAdminOneClickGuide() {
                   <Database className="w-4 h-4 text-primary" /> Complete Multi-Feature Production Schema (550 KB)
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Includes all <strong>67 tables</strong>, stored procedures (RPCs), and RLS policies powering the full DLMS suite: Quizzes, Multiplayer Leagues, Badges & Streaks, NCERT & CBSE Curriculum, Bug Bounty, Study Materials, Certificates, Clubs, and Games Corner.
+                  Includes all <strong>67 tables</strong> and all <strong>207 PostgreSQL functions & triggers</strong> (login streaks, leaderboard ranks, points calculation, fines, automated badge triggers, and RLS policies).
                 </p>
                 <div className="flex flex-wrap items-center gap-3 pt-2">
                   <a
@@ -326,6 +327,41 @@ export default function SuperAdminOneClickGuide() {
                   <span className="text-xs text-muted-foreground">
                     Upload or paste into Supabase SQL Editor and click Run.
                   </span>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="functions" className="space-y-4">
+              <div className="border rounded-xl p-4 space-y-3 bg-muted/20">
+                <h4 className="font-semibold text-sm flex items-center gap-2 text-foreground">
+                  <Terminal className="w-4 h-4 text-primary" /> Database Functions vs. Supabase Edge Functions
+                </h4>
+                <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+                  <div className="p-3 bg-background rounded-lg border">
+                    <p className="font-semibold text-foreground mb-1">✅ 1. SQL Database Functions (207 functions included):</p>
+                    <p>
+                      Already 100% packaged inside <code>complete_tenant_schema.sql</code>! All triggers, points multipliers, streak claims, rank calculations, and profile creators run automatically inside PostgreSQL as soon as you execute the schema.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-background rounded-lg border">
+                    <p className="font-semibold text-foreground mb-1">⚡ 2. Supabase Edge Functions (13 functions for optional server tasks):</p>
+                    <p className="mb-2">
+                      Used for privileged server operations (AI quiz generation, AI library bot, bulk user provisioning, and web push notifications):
+                    </p>
+                    <ul className="list-disc list-inside space-y-0.5 font-mono text-[11px] text-foreground">
+                      <li>admin-bulk-create-users · admin-create-user · admin-delete-user</li>
+                      <li>admin-reset-password · send-password-reset · send-ticket-email</li>
+                      <li>generate-quiz (AI Quiz Maker) · library-bot (AI Assistant)</li>
+                      <li>push-notification · send-email-campaign · admin-bulk-adjust-points</li>
+                    </ul>
+                    <div className="mt-3 pt-2 border-t">
+                      <p className="text-muted-foreground mb-1 font-sans">To deploy all 13 Edge Functions to the new school in one command:</p>
+                      <pre className="bg-slate-900 text-slate-100 p-2.5 rounded font-mono text-xs overflow-x-auto">
+npx supabase functions deploy --project-ref &lt;school-project-ref&gt;
+                      </pre>
+                    </div>
+                  </div>
                 </div>
               </div>
             </TabsContent>
