@@ -159,6 +159,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, totalBooksIssued: 0, activeQuizzes: 0, dbSize: 0, storageSize: 0 });
 
   usePushSubscription(user?.id);
+  const { settings } = useSchoolSettings();
 
   // Track tab history
   useEffect(() => {
@@ -343,8 +344,6 @@ const AdminDashboard = () => {
     loadingManager.update("Loading admin dashboard...");
     return null;
   }
-
-  const { settings } = useSchoolSettings();
 
   const statCards = [
     { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-primary", bg: "bg-primary/10" },
