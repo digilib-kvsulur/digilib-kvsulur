@@ -74,7 +74,22 @@ export default function LibraryCard({ user }: { user: any }) {
           {/* Avatar on Left (Larger, border) */}
           <div className="w-[24%] aspect-[4/5] rounded-lg bg-slate-100 border-2 border-slate-200 shadow-sm overflow-hidden flex items-center justify-center shrink-0 relative self-center">
             {user?.avatar_url ? (
-              <img src={getAvatarUrl(user.avatar_url)} alt="Profile" className="w-full h-full object-cover" crossOrigin="anonymous" />
+              <img
+                src={getAvatarUrl(user.avatar_url)}
+                alt="Profile"
+                className="w-full h-full object-cover"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = "none";
+                  const parent = e.currentTarget.parentElement;
+                  if (parent && !parent.querySelector(".card-user-fallback")) {
+                    const iconWrapper = document.createElement("div");
+                    iconWrapper.className = "card-user-fallback flex items-center justify-center w-full h-full text-slate-400";
+                    iconWrapper.innerHTML = `<svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+                    parent.appendChild(iconWrapper);
+                  }
+                }}
+              />
             ) : (
               <User className="h-8 w-8 text-slate-400" />
             )}
