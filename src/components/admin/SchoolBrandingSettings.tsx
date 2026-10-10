@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import { Loader2, Upload, Palette, Building, Sparkles, Check, Globe, Phone, Mail
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { applyThemePrimaryColor } from "@/lib/utils";
 
 const COLOR_PRESETS = [
   { name: "Indigo (Default)", color: "#4f46e5" },
@@ -32,10 +33,10 @@ export default function SchoolBrandingSettings() {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync state once fetched
-  useState(() => {
+  // Sync state once settings are loaded from DB
+  useEffect(() => {
     setForm(settings);
-  });
+  }, [settings]);
 
   const handleChange = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -106,9 +107,9 @@ export default function SchoolBrandingSettings() {
         title: "Branding Saved",
         description: "School branding and identity settings updated successfully.",
       });
-      // Optionally inject color immediately
+      // Dynamically inject valid HSL color channels
       if (form.school_primary_color) {
-        document.documentElement.style.setProperty("--primary", form.school_primary_color);
+        applyThemePrimaryColor(form.school_primary_color);
       }
     } else {
       toast({

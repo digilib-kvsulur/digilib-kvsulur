@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { applyThemePrimaryColor } from "@/lib/utils";
 
 export interface SchoolBrandingSettings {
   school_name: string;
@@ -118,6 +119,13 @@ export function useSchoolSettings() {
     fetchSettings();
   }, [fetchSettings]);
 
+  // Dynamically apply brand primary color globally whenever loaded
+  useEffect(() => {
+    if (settings.school_primary_color) {
+      applyThemePrimaryColor(settings.school_primary_color);
+    }
+  }, [settings.school_primary_color]);
+
   const updateSettings = async (newSettings: Partial<SchoolBrandingSettings>) => {
     setSaving(true);
     try {
@@ -129,6 +137,10 @@ export function useSchoolSettings() {
 
       const { error } = await supabase.from("system_settings").upsert(rows, { onConflict: "key" });
       if (error) throw error;
+
+      if (newSettings.school_primary_color) {
+        applyThemePrimaryColor(newSettings.school_primary_color);
+      }
 
       setSettings((prev) => ({ ...prev, ...newSettings }));
       return { success: true };

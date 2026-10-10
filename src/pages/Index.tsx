@@ -17,6 +17,7 @@ import event2Img from "@/assets/landing-event-2.jpg";
 import libraryEventImg from "@/assets/library-event.jpg";
 import EventDetailModal from "@/components/dashboard/EventDetailModal";
 import { LibraryBot } from "@/components/chat/LibraryBot";
+import { applyThemePrimaryColor } from "@/lib/utils";
 
 interface Book {
   id: string;
@@ -57,7 +58,7 @@ const Index = () => {
       document.title = `${settings.school_name} — Digital Library`;
     }
     if (settings.school_primary_color) {
-      document.documentElement.style.setProperty("--primary", settings.school_primary_color);
+      applyThemePrimaryColor(settings.school_primary_color);
     }
   }, [settings]);
 

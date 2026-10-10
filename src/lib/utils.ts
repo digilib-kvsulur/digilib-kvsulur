@@ -71,3 +71,96 @@ export const formatGoogleDriveUrl = (url: string | null | undefined): string => 
 
   return trimmed;
 };
+
+/**
+ * Converts a hex color string (e.g. "#4f46e5" or "4f46e5") to space-separated HSL channels
+ * suitable for Tailwind / shadcn CSS variables: "H S% L%" (without the "hsl()" wrapper).
+ */
+export function hexToHslChannels(hex: string): string | null {
+  if (!hex) return null;
+  let cleanHex = hex.trim().replace(/^#/, "");
+  if (cleanHex.length === 3) {
+    cleanHex = cleanHex
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  }
+  if (cleanHex.length !== 6) return null;
+
+  const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
+  const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
+  const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
+
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
+    }
+    h = h / 6;
+  }
+
+  const hDeg = Math.round(h * 360);
+  const sPct = Math.round(s * 100);
+  const lPct = Math.round(l * 100);
+
+  return `${hDeg} ${sPct}% ${lPct}%`;
+}
+
+/**
+ * Dynamically applies the primary theme color across the document root,
+ * safely updating --primary, --ring, --sidebar-primary, and primary gradients.
+ */
+export function applyThemePrimaryColor(colorHexOrHsl: string) {
+  if (!colorHexOrHsl) return;
+  const root = document.documentElement;
+  const hslChannels = colorHexOrHsl.startsWith("#")
+    ? hexToHslChannels(colorHexOrHsl)
+    : colorHexOrHsl.includes("%")
+    ? colorHexOrHsl
+    : hexToHslChannels(`#${colorHexOrHsl}`);
+
+  if (!hslChannels) return;
+
+  root.style.setProperty("--primary", hslChannels);
+  root.style.setProperty("--ring", hslChannels);
+  root.style.setProperty("--sidebar-primary", hslChannels);
+  root.style.setProperty("--sidebar-ring", hslChannels);
+
+  // Parse lightness to ensure contrasting foreground
+  const parts = hslChannels.split(" ");
+  if (parts.length === 3) {
+    const lValue = parseInt(parts[2].replace("%", ""), 10);
+    // If lightness is > 65%, use dark foreground, otherwise crisp white/light
+    if (lValue > 65) {
+      root.style.setProperty("--primary-foreground", "222 47% 11%");
+      root.style.setProperty("--sidebar-primary-foreground", "222 47% 11%");
+    } else {
+      root.style.setProperty("--primary-foreground", "210 40% 98%");
+      root.style.setProperty("--sidebar-primary-foreground", "0 0% 98%");
+    }
+  }
+
+  // Update dynamic gradient-primary
+  root.style.setProperty(
+    "--gradient-primary",
+    `linear-gradient(135deg, hsl(${hslChannels}), hsl(var(--accent)))`
+  );
+}
+
