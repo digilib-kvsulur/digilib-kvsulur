@@ -19,6 +19,8 @@ export const VACATION_ERROR_MESSAGES: Record<string, string> = {
   cannot_move_activity_with_submissions: "This activity already has submissions, so its date cannot change.",
   not_authenticated: "Sign in again to continue.",
   submission_not_found: "That submission could not be found.",
+  "schema cache": "The vacation tables have not been created in Supabase yet. Run migration 20261010150000_vacation_campaign.sql in your Supabase SQL Editor.",
+  vacation_campaigns: "The vacation tables have not been created in Supabase yet. Run migration 20261010150000_vacation_campaign.sql in your Supabase SQL Editor.",
 };
 
 export interface PosterActivityTemplate {

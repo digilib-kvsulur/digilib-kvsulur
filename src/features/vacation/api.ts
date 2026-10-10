@@ -17,13 +17,22 @@ export function useActiveVacationCampaign() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("vacation_campaigns")
-      .select("*")
-      .eq("status", "active")
-      .maybeSingle();
-    setCampaign((data as VacationCampaign) || null);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from("vacation_campaigns")
+        .select("*")
+        .eq("status", "active")
+        .maybeSingle();
+      if (error) {
+        setCampaign(null);
+      } else {
+        setCampaign((data as VacationCampaign) || null);
+      }
+    } catch {
+      setCampaign(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
