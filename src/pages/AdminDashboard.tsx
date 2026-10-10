@@ -66,6 +66,7 @@ import EmailCampaignManager from "@/components/admin/EmailCampaignManager";
 import EventWinnersManager from "@/components/admin/EventWinnersManager";
 import SchoolBrandingSettings from "@/components/admin/SchoolBrandingSettings";
 import HomePageEditor from "@/components/admin/HomePageEditor";
+import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 
 type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform" | "branding" | "home-editor";
 
@@ -343,6 +344,8 @@ const AdminDashboard = () => {
     return null;
   }
 
+  const { settings } = useSchoolSettings();
+
   const statCards = [
     { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-primary", bg: "bg-primary/10" },
     { label: "Total Books", value: stats.totalBooks, icon: BookOpen, color: "text-success", bg: "bg-success/10" },
@@ -360,13 +363,13 @@ const AdminDashboard = () => {
               <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-10" title="PM SHRI Logo">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain p-1" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-20" title="KV Logo">
-                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain p-1" />
+              <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-20" title="School Logo">
+                <img src={settings.school_logo_url || "/logos/kv.png"} alt="School Logo" className="w-full h-full object-contain p-1" />
               </div>
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm font-bold text-foreground truncate">PM SHRI KV SULUR</h1>
-              <p className="text-xs text-muted-foreground">DLMS - Admin</p>
+              <h1 className="text-sm font-bold text-foreground truncate">{settings.school_name || "PM SHRI KV SULUR"}</h1>
+              <p className="text-xs text-muted-foreground">{settings.school_tagline || "DLMS - Admin"}</p>
             </div>
           </div>
         </div>

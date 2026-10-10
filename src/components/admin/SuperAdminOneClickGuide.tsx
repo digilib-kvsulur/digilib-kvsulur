@@ -18,6 +18,7 @@ import {
   BookOpen,
   ArrowRight,
   Code2,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -263,26 +264,39 @@ export default function SuperAdminOneClickGuide() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <CardTitle className="text-base flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-primary" /> Automated Starter SQL & DNS Guide
+                <Terminal className="w-4 h-4 text-primary" /> School DB Schema & Setup Options
               </CardTitle>
               <CardDescription>
-                Copy the complete schema setup script or verify domain routing.
+                Choose between Instant Starter Schema (&lt; 2s setup) or Full Production Schema (all 67 tables & features).
               </CardDescription>
             </div>
-            <Button size="sm" onClick={handleCopySql} className="gap-2 shrink-0">
-              {copied ? <CheckCircle className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-              {copied ? "Copied SQL!" : "Copy SQL Script"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <a
+                href="/complete_tenant_schema.sql"
+                download="dlms_complete_tenant_schema.sql"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-border bg-background hover:bg-muted text-foreground transition-colors shadow-xs"
+              >
+                <Download className="w-3.5 h-3.5" /> Download Full Schema (.sql)
+              </a>
+              <Button size="sm" onClick={handleCopySql} className="gap-2 shrink-0">
+                {copied ? <CheckCircle className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                {copied ? "Copied SQL!" : "Copy Starter SQL"}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="sql" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-xs mb-3">
-              <TabsTrigger value="sql">Starter SQL</TabsTrigger>
+          <Tabs defaultValue="starter" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 max-w-md mb-3">
+              <TabsTrigger value="starter">Starter Schema (Fast)</TabsTrigger>
+              <TabsTrigger value="full">Full 67-Table Schema</TabsTrigger>
               <TabsTrigger value="dns">Domain & CNAME</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="sql">
+            <TabsContent value="starter" className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Provisions essential core tables (`system_settings`, `profiles`, `books`, `book_issues`, `events`, auth triggers, and sample books). Ready for immediate login in seconds.
+              </p>
               <div className="relative">
                 <Textarea
                   readOnly
@@ -290,6 +304,29 @@ export default function SuperAdminOneClickGuide() {
                   rows={14}
                   className="font-mono text-xs bg-muted/40 text-foreground resize-none leading-relaxed"
                 />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="full" className="space-y-3">
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
+                <h4 className="font-semibold text-sm flex items-center gap-2 text-foreground">
+                  <Database className="w-4 h-4 text-primary" /> Complete Multi-Feature Production Schema (550 KB)
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Includes all <strong>67 tables</strong>, stored procedures (RPCs), and RLS policies powering the full DLMS suite: Quizzes, Multiplayer Leagues, Badges & Streaks, NCERT & CBSE Curriculum, Bug Bounty, Study Materials, Certificates, Clubs, and Games Corner.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <a
+                    href="/complete_tenant_schema.sql"
+                    download="dlms_complete_tenant_schema.sql"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
+                  >
+                    <Download className="w-4 h-4" /> Download dlms_complete_tenant_schema.sql
+                  </a>
+                  <span className="text-xs text-muted-foreground">
+                    Upload or paste into Supabase SQL Editor and click Run.
+                  </span>
+                </div>
               </div>
             </TabsContent>
 

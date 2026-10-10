@@ -19,6 +19,7 @@ import { clearStoredAuthSession } from "@/lib/authCleanup";
 import { useToast } from "@/hooks/use-toast";
 import { useLoginStreak } from "@/hooks/useLoginStreak";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
+import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { Progress } from "@/components/ui/progress";
 
 import LevelProgress from "@/components/dashboard/LevelProgress";
@@ -828,6 +829,8 @@ const StudentDashboard = () => {
     if (s < 86400) return `${Math.floor(s/3600)}h ago`; return `${Math.floor(s/86400)}d ago`;
   };
 
+  const { settings } = useSchoolSettings();
+
   return (
     <div className="h-dvh overflow-hidden bg-background flex">
       <ReturnedBookReviewPrompt userId={user?.id} />
@@ -840,13 +843,13 @@ const StudentDashboard = () => {
               <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-10" title="PM SHRI Logo">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain p-1" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-20" title="KV Logo">
-                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain p-1" />
+              <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-20" title="School Logo">
+                <img src={settings.school_logo_url || "/logos/kv.png"} alt="School Logo" className="w-full h-full object-contain p-1" />
               </div>
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm font-bold text-foreground truncate">PM SHRI KV SULUR</h1>
-              <p className="text-xs text-muted-foreground">DLMS Student Portal</p>
+              <h1 className="text-sm font-bold text-foreground truncate">{settings.school_name || "PM SHRI KV SULUR"}</h1>
+              <p className="text-xs text-muted-foreground">{settings.school_tagline || "DLMS Student Portal"}</p>
             </div>
           </div>
         </div>

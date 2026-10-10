@@ -23,6 +23,7 @@ import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import Community from "@/components/community/Community";
+import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import MyRequests from "@/components/dashboard/MyRequests";
 import SupportCenter from "@/components/support/SupportCenter";
 import { LifeBuoy } from "lucide-react";
@@ -437,6 +438,8 @@ const TeacherDashboard = () => {
   const totalPoints = students.reduce((s, x) => s + (x.points || 0), 0);
   const avgPoints = students.length ? Math.round(totalPoints / students.length) : 0;
   const activeIssues = issues.filter(i => i.status === "issued");
+  const { settings } = useSchoolSettings();
+
   const overdueIssues = activeIssues.filter(i => i.due_date && new Date(i.due_date) < new Date());
 
   return (
@@ -449,13 +452,13 @@ const TeacherDashboard = () => {
               <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-10" title="PM SHRI Logo">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain p-1" />
               </div>
-              <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-20" title="KV Logo">
-                <img src="/logos/kv.png" alt="KV" className="w-full h-full object-contain p-1" />
+              <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-20" title="School Logo">
+                <img src={settings.school_logo_url || "/logos/kv.png"} alt="School Logo" className="w-full h-full object-contain p-1" />
               </div>
             </div>
             <div>
-              <h1 className="text-base font-bold text-[#0f1b3d]">DLMS Teacher Panel</h1>
-              <p className="text-xs text-muted-foreground">Welcome, {teacher?.first_name} {teacher?.last_name} of PM SHRI KV SULUR</p>
+              <h1 className="text-base font-bold text-[#0f1b3d]">{settings.school_name || "DLMS Teacher Panel"}</h1>
+              <p className="text-xs text-muted-foreground">Welcome, {teacher?.first_name} {teacher?.last_name} {settings.school_tagline ? `· ${settings.school_tagline}` : ""}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

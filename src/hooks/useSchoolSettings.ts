@@ -53,12 +53,49 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolBrandingSettings = {
   home_announcement_type: "info",
 };
 
+const CACHE_KEY = "dlms_cached_school_settings";
+const CACHE_TIME_KEY = "dlms_cached_school_settings_time";
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache freshness
+
+function getCachedSettings(): SchoolBrandingSettings | null {
+  try {
+    if (typeof window === "undefined") return null;
+    const raw = localStorage.getItem(CACHE_KEY);
+    const time = localStorage.getItem(CACHE_TIME_KEY);
+    if (!raw || !time) return null;
+    const age = Date.now() - parseInt(time, 10);
+    if (age > CACHE_TTL_MS) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function setCachedSettings(settings: SchoolBrandingSettings) {
+  try {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(CACHE_KEY, JSON.stringify(settings));
+    localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+  } catch {}
+}
+
 export function useSchoolSettings() {
-  const [settings, setSettings] = useState<SchoolBrandingSettings>(DEFAULT_SCHOOL_SETTINGS);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<SchoolBrandingSettings>(() => {
+    return getCachedSettings() || DEFAULT_SCHOOL_SETTINGS;
+  });
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const fetchSettings = useCallback(async () => {
+  const fetchSettings = useCallback(async (force = false) => {
+    // If we already have fresh cached settings and not forcing a refresh, skip network call
+    if (!force) {
+      const cached = getCachedSettings();
+      if (cached) {
+        setSettings(cached);
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -82,31 +119,41 @@ export function useSchoolSettings() {
           settingsMap[row.key] = val;
         });
 
-        setSettings((prev) => ({
-          ...prev,
-          school_name: settingsMap.school_name || prev.school_name,
-          school_tagline: settingsMap.school_tagline || prev.school_tagline,
-          school_logo_url: settingsMap.school_logo_url || prev.school_logo_url,
-          school_banner_url: settingsMap.school_banner_url || prev.school_banner_url,
-          school_favicon_url: settingsMap.school_favicon_url || prev.school_favicon_url,
-          school_primary_color: settingsMap.school_primary_color || prev.school_primary_color,
-          school_contact_email: settingsMap.school_contact_email || prev.school_contact_email,
-          school_contact_phone: settingsMap.school_contact_phone || prev.school_contact_phone,
-          school_location: settingsMap.school_location || prev.school_location,
-          school_website: settingsMap.school_website || prev.school_website,
-          home_hero_title: settingsMap.home_hero_title || prev.home_hero_title,
-          home_hero_subtitle: settingsMap.home_hero_subtitle || prev.home_hero_subtitle,
-          home_cta_text: settingsMap.home_cta_text || prev.home_cta_text,
-          home_cta_link: settingsMap.home_cta_link || prev.home_cta_link,
-          home_show_stats: settingsMap.home_show_stats !== undefined ? Boolean(settingsMap.home_show_stats === true || settingsMap.home_show_stats === "true") : prev.home_show_stats,
-          home_show_events: settingsMap.home_show_events !== undefined ? Boolean(settingsMap.home_show_events === true || settingsMap.home_show_events === "true") : prev.home_show_events,
-          home_show_gallery: settingsMap.home_show_gallery !== undefined ? Boolean(settingsMap.home_show_gallery === true || settingsMap.home_show_gallery === "true") : prev.home_show_gallery,
-          home_show_botw: settingsMap.home_show_botw !== undefined ? Boolean(settingsMap.home_show_botw === true || settingsMap.home_show_botw === "true") : prev.home_show_botw,
-          home_show_trending: settingsMap.home_show_trending !== undefined ? Boolean(settingsMap.home_show_trending === true || settingsMap.home_show_trending === "true") : prev.home_show_trending,
-          home_announcement_enabled: settingsMap.home_announcement_enabled !== undefined ? Boolean(settingsMap.home_announcement_enabled === true || settingsMap.home_announcement_enabled === "true") : prev.home_announcement_enabled,
-          home_announcement_text: settingsMap.home_announcement_text || prev.home_announcement_text,
-          home_announcement_type: settingsMap.home_announcement_type || prev.home_announcement_type,
-        }));
+        // Sync with existing dev_message/global news if home_announcement not specifically set
+        const devMsgEnabled = settingsMap.dev_message_enabled === true || settingsMap.dev_message_enabled === "true";
+        const devMsgText = settingsMap.dev_message_body || settingsMap.dev_message_title || "";
+
+        setSettings((prev) => {
+          const updated: SchoolBrandingSettings = {
+            ...prev,
+            school_name: settingsMap.school_name || prev.school_name,
+            school_tagline: settingsMap.school_tagline || prev.school_tagline,
+            school_logo_url: settingsMap.school_logo_url || prev.school_logo_url,
+            school_banner_url: settingsMap.school_banner_url || prev.school_banner_url,
+            school_favicon_url: settingsMap.school_favicon_url || prev.school_favicon_url,
+            school_primary_color: settingsMap.school_primary_color || prev.school_primary_color,
+            school_contact_email: settingsMap.school_contact_email || prev.school_contact_email,
+            school_contact_phone: settingsMap.school_contact_phone || prev.school_contact_phone,
+            school_location: settingsMap.school_location || prev.school_location,
+            school_website: settingsMap.school_website || prev.school_website,
+            home_hero_title: settingsMap.home_hero_title || prev.home_hero_title,
+            home_hero_subtitle: settingsMap.home_hero_subtitle || prev.home_hero_subtitle,
+            home_cta_text: settingsMap.home_cta_text || prev.home_cta_text,
+            home_cta_link: settingsMap.home_cta_link || prev.home_cta_link,
+            home_show_stats: settingsMap.home_show_stats !== undefined ? Boolean(settingsMap.home_show_stats === true || settingsMap.home_show_stats === "true") : prev.home_show_stats,
+            home_show_events: settingsMap.home_show_events !== undefined ? Boolean(settingsMap.home_show_events === true || settingsMap.home_show_events === "true") : prev.home_show_events,
+            home_show_gallery: settingsMap.home_show_gallery !== undefined ? Boolean(settingsMap.home_show_gallery === true || settingsMap.home_show_gallery === "true") : prev.home_show_gallery,
+            home_show_botw: settingsMap.home_show_botw !== undefined ? Boolean(settingsMap.home_show_botw === true || settingsMap.home_show_botw === "true") : prev.home_show_botw,
+            home_show_trending: settingsMap.home_show_trending !== undefined ? Boolean(settingsMap.home_show_trending === true || settingsMap.home_show_trending === "true") : prev.home_show_trending,
+            home_announcement_enabled: settingsMap.home_announcement_enabled !== undefined 
+              ? Boolean(settingsMap.home_announcement_enabled === true || settingsMap.home_announcement_enabled === "true") 
+              : devMsgEnabled,
+            home_announcement_text: settingsMap.home_announcement_text || devMsgText || prev.home_announcement_text,
+            home_announcement_type: settingsMap.home_announcement_type || prev.home_announcement_type,
+          };
+          setCachedSettings(updated);
+          return updated;
+        });
       }
     } catch (err) {
       console.error("Error loading school settings:", err);
@@ -135,6 +182,22 @@ export function useSchoolSettings() {
         updated_at: new Date().toISOString(),
       }));
 
+      // Also mirror announcement into dev_message for backwards compatibility
+      if (newSettings.home_announcement_enabled !== undefined) {
+        rows.push({
+          key: "dev_message_enabled",
+          value: String(newSettings.home_announcement_enabled),
+          updated_at: new Date().toISOString(),
+        });
+      }
+      if (newSettings.home_announcement_text !== undefined) {
+        rows.push({
+          key: "dev_message_body",
+          value: newSettings.home_announcement_text,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
       const { error } = await supabase.from("system_settings").upsert(rows, { onConflict: "key" });
       if (error) throw error;
 
@@ -142,7 +205,11 @@ export function useSchoolSettings() {
         applyThemePrimaryColor(newSettings.school_primary_color);
       }
 
-      setSettings((prev) => ({ ...prev, ...newSettings }));
+      setSettings((prev) => {
+        const merged = { ...prev, ...newSettings };
+        setCachedSettings(merged);
+        return merged;
+      });
       return { success: true };
     } catch (err: any) {
       console.error("Failed to update school settings:", err);
@@ -157,6 +224,6 @@ export function useSchoolSettings() {
     loading,
     saving,
     updateSettings,
-    refreshSettings: fetchSettings,
+    refreshSettings: () => fetchSettings(true),
   };
 }
