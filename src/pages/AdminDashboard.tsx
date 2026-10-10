@@ -12,7 +12,7 @@ import {
   Calendar, RefreshCw, Star, AlertTriangle, Barcode, HardDrive, Server,
   Gamepad2, AlertCircle, FileSpreadsheet, LifeBuoy, Library as LibraryIcon,
   ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon,
-  Newspaper, Users as UsersIcon, Crown, Sparkles, Zap, Mail, Palette
+  Newspaper, Users as UsersIcon, Crown, Sparkles, Zap, Mail, Palette, Sun
 } from "lucide-react";
 import Community from "@/components/community/Community";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
@@ -66,9 +66,10 @@ import EmailCampaignManager from "@/components/admin/EmailCampaignManager";
 import EventWinnersManager from "@/components/admin/EventWinnersManager";
 import SchoolBrandingSettings from "@/components/admin/SchoolBrandingSettings";
 import HomePageEditor from "@/components/admin/HomePageEditor";
+import { VacationAdminPage } from "@/features/vacation";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 
-type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform" | "branding" | "home-editor";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor";
 
 const navSections = [
   {

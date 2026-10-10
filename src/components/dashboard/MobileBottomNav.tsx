@@ -1,7 +1,7 @@
 import {
-  Home, BookOpen, Search, FileText, Menu, Target, Brain, User, Trophy,
+  Home, BookOpen, FileText, Menu, Brain, User, Trophy,
   BookCheck, Compass, Timer, Award, Medal, CalendarDays, Users,
-  StickyNote, LifeBuoy, MessageSquare, Gamepad2, GraduationCap, Sparkles, Palette
+  StickyNote, LifeBuoy, MessageSquare, Gamepad2, GraduationCap, Sparkles, Palette, Sun
 } from "lucide-react";
 
 type Tab = string;
@@ -11,6 +11,7 @@ interface MobileBottomNavProps {
   onTabChange: (tab: Tab) => void;
   onOpenMenu: () => void;
   onCatalog: () => void;
+  showVacationCenter?: boolean;
 }
 
 const primaryTabs: { id: Tab; label: string; icon: React.ElementType }[] = [
@@ -21,14 +22,38 @@ const primaryTabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "community", label: "Community", icon: Users },
 ];
 
-export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, onCatalog }: MobileBottomNavProps) {
-  const isPrimaryActive = primaryTabs.some((t) => t.id === activeTab);
+const vacationPrimaryTabs: { id: Tab; label: string; icon: React.ElementType; center?: boolean }[] = [
+  { id: "overview", label: "Home", icon: Home },
+  { id: "issued", label: "Books", icon: BookOpen },
+  { id: "vacation", label: "Vacation", icon: Sun, center: true },
+  { id: "quizzes", label: "Quizzes", icon: Brain },
+  { id: "community", label: "Community", icon: Users },
+];
+
+export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, showVacationCenter }: MobileBottomNavProps) {
+  const tabs = showVacationCenter ? vacationPrimaryTabs : primaryTabs;
+  const isPrimaryActive = tabs.some((t) => t.id === activeTab);
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border pb-[env(safe-area-inset-bottom)]">
       <div className="grid grid-cols-6 h-16">
-        {primaryTabs.map((item) => {
+        {tabs.map((item) => {
           const active = activeTab === item.id;
+          if (item.center) {
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onTabChange(item.id)}
+                className="flex flex-col items-center justify-center -mt-4"
+              >
+                <span className={`h-12 w-12 rounded-full shadow-lg flex items-center justify-center ${active ? "bg-amber-600 text-white" : "bg-amber-500 text-white"}`}>
+                  <item.icon className="h-6 w-6" />
+                </span>
+                <span className={`text-[10px] font-semibold mt-0.5 ${active ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"}`}>Vacation</span>
+              </button>
+            );
+          }
           return (
             <button
               key={item.id}
@@ -90,6 +115,7 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
       { id: "events", label: "Events", icon: CalendarDays },
       { id: "periodicals", label: "Periodicals", icon: BookOpen },
       { id: "community", label: "Community", icon: Users },
+      { id: "vacation", label: "Vacation Campaign", icon: Sun },
       { id: "bounty", label: "Bug Bounty", icon: Trophy },
       { id: "ui-reform", label: "UI Reform", icon: Palette },
       { id: "games", label: "Games Corner", icon: Gamepad2 },
