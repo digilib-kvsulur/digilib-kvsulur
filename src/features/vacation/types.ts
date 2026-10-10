@@ -23,6 +23,13 @@ export interface VacationStreakMilestone {
   bonus_points: number;
 }
 
+export type VacationSubmissionType =
+  | "mixed"
+  | "quiz"
+  | "project_link"
+  | "text_response"
+  | "media_upload";
+
 export interface VacationActivity {
   id: string;
   campaign_id: string;
@@ -35,6 +42,8 @@ export interface VacationActivity {
   is_active: boolean;
   sort_order: number;
   created_at: string;
+  submission_type?: VacationSubmissionType;
+  quiz_id?: string | null;
 }
 
 export interface VacationSubmission {
