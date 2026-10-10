@@ -138,6 +138,7 @@ const TeacherDashboard = () => {
   const [recForm, setRecForm] = useState({ bookId: "", notes: "" });
 
   usePushSubscription(teacher?.id);
+  const { settings } = useSchoolSettings();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -438,7 +439,6 @@ const TeacherDashboard = () => {
   const totalPoints = students.reduce((s, x) => s + (x.points || 0), 0);
   const avgPoints = students.length ? Math.round(totalPoints / students.length) : 0;
   const activeIssues = issues.filter(i => i.status === "issued");
-  const { settings } = useSchoolSettings();
 
   const overdueIssues = activeIssues.filter(i => i.due_date && new Date(i.due_date) < new Date());
 
