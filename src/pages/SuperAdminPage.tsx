@@ -28,7 +28,9 @@ import {
   Calendar,
   Archive,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
+import SuperAdminOneClickGuide from "@/components/admin/SuperAdminOneClickGuide";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -251,6 +253,30 @@ function SchoolsTab() {
                 first_name: form.admin_name || "Admin",
                 role: "admin",
               });
+            }
+
+            // Seed initial school branding and settings into the target school's system_settings table
+            try {
+              const initialSettings = [
+                { key: "school_name", value: form.name.trim() },
+                { key: "school_tagline", value: "Digital Library System" },
+                { key: "school_location", value: [form.city, form.state].filter(Boolean).join(", ") || form.name.trim() },
+                { key: "school_contact_email", value: form.contact_email.trim() || form.admin_email.trim() },
+                { key: "school_primary_color", value: "#4f46e5" },
+                { key: "home_hero_title", value: `Welcome to ${form.name.trim()} Digital Library` },
+                { key: "home_hero_subtitle", value: "Borrow books, participate in reading quizzes, follow library events, and level up your reading XP!" },
+                { key: "home_cta_text", value: "Open Account" },
+                { key: "home_cta_link", value: "/login" },
+                { key: "home_show_stats", value: "true" },
+                { key: "home_show_events", value: "true" },
+                { key: "home_show_gallery", value: "true" },
+                { key: "home_show_botw", value: "true" },
+                { key: "home_show_trending", value: "true" },
+                { key: "home_announcement_enabled", value: "false" },
+              ];
+              await schoolClient.from("system_settings").upsert(initialSettings, { onConflict: "key" });
+            } catch (seedErr: any) {
+              console.warn("Could not seed system settings directly:", seedErr.message);
             }
           } catch (accErr: any) {
             console.warn("Could not create school admin account directly:", accErr.message);
@@ -1579,11 +1605,16 @@ const SuperAdminPage = () => {
       {/* Body */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <Tabs defaultValue="schools" className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full max-w-lg">
+          <TabsList className="grid grid-cols-5 w-full max-w-xl">
             <TabsTrigger value="schools" className="gap-1.5 text-xs sm:text-sm">
               <School className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Schools</span>
               <span className="sm:hidden">🏫</span>
+            </TabsTrigger>
+            <TabsTrigger value="guide" className="gap-1.5 text-xs sm:text-sm">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span className="hidden sm:inline">One-Click Guide</span>
+              <span className="sm:hidden">⚡</span>
             </TabsTrigger>
             <TabsTrigger value="db" className="gap-1.5 text-xs sm:text-sm">
               <Database className="h-3.5 w-3.5" />
@@ -1604,6 +1635,10 @@ const SuperAdminPage = () => {
 
           <TabsContent value="schools" className="mt-0">
             <SchoolsTab />
+          </TabsContent>
+
+          <TabsContent value="guide" className="mt-0">
+            <SuperAdminOneClickGuide />
           </TabsContent>
 
           <TabsContent value="db" className="mt-0">

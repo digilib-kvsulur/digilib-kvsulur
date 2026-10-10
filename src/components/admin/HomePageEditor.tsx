@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,10 +17,10 @@ export default function HomePageEditor() {
 
   const [form, setForm] = useState(settings);
 
-  // Sync state once loaded
-  useState(() => {
+  // Sync state once loaded from DB
+  useEffect(() => {
     setForm(settings);
-  });
+  }, [settings]);
 
   const handleChange = (key: string, value: any) => {
     setForm((prev) => ({ ...prev, [key]: value }));
