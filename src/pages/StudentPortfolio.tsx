@@ -217,7 +217,22 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
               <div className="flex items-center gap-5">
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white/20 bg-white/10 overflow-hidden shrink-0 flex items-center justify-center shadow-lg relative">
                   {user?.avatar_url ? (
-                    <img src={getAvatarUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    <img
+                      src={getAvatarUrl(user.avatar_url)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = "none";
+                        const parent = e.currentTarget.parentElement;
+                        if (parent && !parent.querySelector(".avatar-fallback-text")) {
+                          const span = document.createElement("span");
+                          span.className = "text-3xl font-black text-white avatar-fallback-text";
+                          span.textContent = user?.first_name?.[0] || "U";
+                          parent.appendChild(span);
+                        }
+                      }}
+                    />
                   ) : (
                     <span className="text-3xl font-black text-white">{user?.first_name?.[0]}</span>
                   )}
