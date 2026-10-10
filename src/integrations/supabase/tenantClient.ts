@@ -1,6 +1,17 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
-import type { SchoolMeta } from '@/context/TenantContext';
+
+export interface SchoolMeta {
+  id: string;
+  name: string;
+  slug: string;
+  hostname: string;
+  logoUrl: string | null;
+  city: string | null;
+  state: string | null;
+  region: string | null;
+  status: string;
+}
 
 // ─── Module-level singleton ───────────────────────────────────────────────────
 

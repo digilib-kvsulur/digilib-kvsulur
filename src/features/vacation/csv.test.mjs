@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { csvCell, vacationRowsToCsv } from "./csv.ts";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ts = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "csv.ts"), "utf8");
+const js = ts
+  .replace(/import type[^\n]+\n/, "")
+  .replace(/: VacationExportRow\[\]/g, "")
+  .replace(/: unknown/g, "")
+  .replace(/export /g, "");
+const { csvCell, vacationRowsToCsv } = new Function(`${js}; return { csvCell, vacationRowsToCsv };`)();
 
 test("csvCell escapes quotes, commas, newlines and formula prefixes", () => {
   assert.equal(csvCell(null), "");

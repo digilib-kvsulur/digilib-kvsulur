@@ -14,7 +14,7 @@ interface MobileBottomNavProps {
   showVacationCenter?: boolean;
 }
 
-const primaryTabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+const primaryTabs: { id: Tab; label: string; icon: React.ElementType; center?: boolean }[] = [
   { id: "overview", label: "Home", icon: Home },
   { id: "issued", label: "Books", icon: BookOpen },
   { id: "quizzes", label: "Quizzes", icon: Brain },

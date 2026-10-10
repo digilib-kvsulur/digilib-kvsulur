@@ -67,14 +67,14 @@ import { supabase } from "@/integrations/supabase/client";
 const REGISTRY_URL = (import.meta.env.VITE_REGISTRY_URL || import.meta.env.VITE_SUPABASE_URL) as string;
 const REGISTRY_ANON_KEY = (import.meta.env.VITE_REGISTRY_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) as string;
 
-function createScopedClient(url: string, key: string) {
-  return createClient(url, key, {
+function createScopedClient(url: string, key: string): any {
+  return createClient<any>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 }
 
-let _registryClient: ReturnType<typeof createClient> | null = null;
-function getRegistryClient() {
+let _registryClient: any = null;
+function getRegistryClient(): any {
   if (!_registryClient && REGISTRY_URL && REGISTRY_ANON_KEY) {
     _registryClient = createScopedClient(REGISTRY_URL, REGISTRY_ANON_KEY);
   }
@@ -144,7 +144,7 @@ function fmtDate(d: string | null | undefined) {
 }
 
 async function logAudit(
-  registry: ReturnType<typeof createClient>,
+  registry: any,
   action: string,
   target_id: string,
   meta: Record<string, unknown> = {}

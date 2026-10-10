@@ -136,7 +136,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
 
         try {
           await supabase.from("notifications").insert({
-            user_id: uid,
+            target_user_id: uid,
             title: `+${pointsAwarded} XP Earned! 📸`,
             message: `You earned ${pointsAwarded} points for uploading your profile picture!`,
             type: "points",

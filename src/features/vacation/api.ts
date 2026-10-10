@@ -148,7 +148,7 @@ export async function reviewSubmission(id: string, decision: "approve" | "reject
 export async function fetchStudentOverview() {
   const { data, error } = await supabase.rpc("vacation_student_overview");
   if (error) throw error;
-  return (data || { campaign: null }) as VacationStudentOverview;
+  return ((data || { campaign: null }) as unknown) as VacationStudentOverview;
 }
 
 export async function submitVacationActivity(activityId: string, content?: string, link?: string) {
@@ -173,7 +173,7 @@ export async function fetchLeaderboard(campaignId: string, limit = 25) {
 export async function fetchParticipationStats(campaignId: string) {
   const { data, error } = await supabase.rpc("vacation_participation_stats", { p_campaign: campaignId });
   if (error) throw error;
-  return data as VacationParticipationStats;
+  return (data as unknown) as VacationParticipationStats;
 }
 
 export async function fetchExportRows(campaignId: string) {

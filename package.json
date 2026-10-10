@@ -9,6 +9,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "typecheck": "tsc -b --pretty false",
+    "test": "node --test src/features/vacation/csv.test.mjs",
     "preview": "vite preview",
     "migrate:project": "node scripts/migration-toolkit/migrate-all.mjs",
     "db:health": "node scripts/migration-toolkit/db-quota-monitor.mjs",
