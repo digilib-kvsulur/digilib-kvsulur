@@ -249,8 +249,11 @@ export default function VacationEventPreviewCards({
                   {item.description}
                 </p>
 
-                {/* Skills tags */}
-                <div className="flex flex-wrap gap-1 pt-1">
+                {/* Submission Type & Skills tags */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] font-black bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full">
+                    {getSubmissionTypeLabel(item.submissionType)}
+                  </span>
                   {item.learningOutcomes.slice(0, 2).map((skill, idx) => (
                     <span
                       key={idx}
@@ -299,8 +302,11 @@ export default function VacationEventPreviewCards({
               <DialogHeader>
                 <div className="flex items-center gap-2 mb-1">
                   <Badge variant="outline" className="font-mono text-xs">
-                    Day {selectedEvent.order} of 10
+                    Day {selectedEvent.order} of {POSTER_ACTIVITIES.length}
                   </Badge>
+                  <span className="text-xs font-black bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full">
+                    {getSubmissionTypeLabel(selectedEvent.submissionType)}
+                  </span>
                   {selectedEvent.tagline && (
                     <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/25">
                       {selectedEvent.tagline}
@@ -323,6 +329,16 @@ export default function VacationEventPreviewCards({
                   </p>
                   <p className="text-sm leading-relaxed text-foreground/90">
                     {selectedEvent.description}
+                  </p>
+                </div>
+
+                {/* Submission Requirement */}
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-1">
+                  <p className="text-xs font-black uppercase tracking-wider text-primary">
+                    Submission Format:
+                  </p>
+                  <p className="text-xs text-foreground/90 font-medium">
+                    {selectedEvent.submissionPrompt}
                   </p>
                 </div>
 
@@ -349,7 +365,7 @@ export default function VacationEventPreviewCards({
                   <p className="font-black text-muted-foreground uppercase tracking-wider">
                     Full Instructions & Guide:
                   </p>
-                  <div>{selectedEvent.instructions}</div>
+                  <div>{selectedEvent.instructions.replace(/\[TYPE:[^\]]+\]\n?/g, "")}</div>
                 </div>
 
                 {/* Footer action */}
