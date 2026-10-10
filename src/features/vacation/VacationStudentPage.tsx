@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Flame, Sparkles, Sun, Trophy, Zap } from "lucide-react";
+import { CheckCircle2, ExternalLink, Flame, HelpCircle, Link as LinkIcon, Radio, Sparkles, Sun, Trophy, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { fetchLeaderboard, fetchStudentOverview, submitVacationActivity } from "./api";
 import { vacationErrorMessage } from "./errors";
-import { POSTER_ACTIVITIES } from "./constants";
+import { POSTER_ACTIVITIES, inferActivitySubmissionType, parseActivityMeta } from "./constants";
 import VacationCountdownTimer from "./VacationCountdownTimer";
 import VacationEventPreviewCards from "./VacationEventPreviewCards";
-import type { VacationLeaderboardRow, VacationStudentOverview } from "./types";
+import { UpcomingQuizLeagueCard } from "@/components/quiz/UpcomingQuizLeagueCard";
+import type { VacationLeaderboardRow, VacationStudentOverview, VacationSubmissionType } from "./types";
 
-export default function VacationStudentPage() {
+interface VacationStudentPageProps {
+  userId?: string;
+  userClass?: string;
+  onJoinQuizLeague?: (session: any) => void;
+  onNavigateToQuizzes?: () => void;
+}
+
+export default function VacationStudentPage({
+  userId,
+  userClass,
+  onJoinQuizLeague,
+  onNavigateToQuizzes,
+}: VacationStudentPageProps = {}) {
   const { toast } = useToast();
   const [overview, setOverview] = useState<VacationStudentOverview | null>(null);
   const [board, setBoard] = useState<VacationLeaderboardRow[]>([]);
@@ -47,6 +60,16 @@ export default function VacationStudentPage() {
   const submission = overview?.submission;
   const canResubmit = submission?.status === "rejected" && activity?.window_open !== false;
   const canSubmit = campaign?.status === "active" && activity && (!submission || canResubmit) && activity.window_open !== false;
+
+  const { submissionType, cleanInstructions } = useMemo(() => {
+    if (!activity) return { submissionType: "mixed" as VacationSubmissionType, cleanInstructions: "" };
+    const meta = parseActivityMeta(activity.instructions);
+    if (meta.submissionType !== "mixed") {
+      return meta;
+    }
+    const inferred = inferActivitySubmissionType(activity.title, activity.instructions);
+    return { ...meta, submissionType: inferred };
+  }, [activity]);
 
   const completedTitles = useMemo(() => {
     return new Set(
