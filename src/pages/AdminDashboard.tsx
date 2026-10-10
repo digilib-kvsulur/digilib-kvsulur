@@ -133,6 +133,7 @@ const navSections = [
       { id: "community" as Tab, label: "Community", icon: MessageSquare },
       { id: "bug-bounty" as Tab, label: "Bug Bounty", icon: ShieldAlert },
       { id: "ui-reform" as Tab, label: "UI Reform Challenge", icon: Palette },
+      { id: "vacation" as Tab, label: "Vacation Campaign", icon: Sun },
     ],
   },
   {
@@ -631,6 +632,7 @@ const AdminDashboard = () => {
           {activeTab === "feedback" && <FeedbackManager />}
           {activeTab === "bug-bounty" && <BugBountyManager />}
           {activeTab === "ui-reform" && <UIReformChallengeManager />}
+          {activeTab === "vacation" && <VacationAdminPage />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
       </main>
