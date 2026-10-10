@@ -9,6 +9,7 @@ const js = ts
   .replace(/import type[^\n]+\n/, "")
   .replace(/: VacationExportRow\[\]/g, "")
   .replace(/: unknown/g, "")
+  .replace(/: string/g, "")
   .replace(/export /g, "");
 const { csvCell, vacationRowsToCsv } = new Function(`${js}; return { csvCell, vacationRowsToCsv };`)();
 
