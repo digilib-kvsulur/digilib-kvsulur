@@ -103,6 +103,36 @@ const EVENT_THEMES: Record<
     badgeBg: "bg-violet-500/20 text-violet-700 dark:text-violet-300 border-violet-500/30",
     borderColor: "hover:border-violet-500/50",
   },
+  11: {
+    icon: BookOpen,
+    gradient: "from-emerald-600/20 via-teal-500/10 to-blue-500/10",
+    badgeBg: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+    borderColor: "hover:border-emerald-500/50",
+  },
+  12: {
+    icon: Cpu,
+    gradient: "from-blue-600/20 via-sky-500/10 to-cyan-500/10",
+    badgeBg: "bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30",
+    borderColor: "hover:border-blue-500/50",
+  },
+  13: {
+    icon: Sparkles,
+    gradient: "from-purple-600/20 via-fuchsia-500/10 to-pink-500/10",
+    badgeBg: "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30",
+    borderColor: "hover:border-purple-500/50",
+  },
+  14: {
+    icon: Trophy,
+    gradient: "from-amber-600/20 via-orange-500/10 to-red-500/10",
+    badgeBg: "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30",
+    borderColor: "hover:border-amber-500/50",
+  },
+  15: {
+    icon: Award,
+    gradient: "from-yellow-600/20 via-amber-500/10 to-orange-500/10",
+    badgeBg: "bg-yellow-500/20 text-yellow-800 dark:text-yellow-200 border-yellow-500/30",
+    borderColor: "hover:border-yellow-500/50",
+  },
 };
 
 export default function VacationEventPreviewCards({
@@ -112,22 +142,37 @@ export default function VacationEventPreviewCards({
 }: VacationEventPreviewCardsProps) {
   const [selectedEvent, setSelectedEvent] = useState<PosterActivityTemplate | null>(null);
 
+  const getSubmissionTypeLabel = (type?: string) => {
+    switch (type) {
+      case "quiz":
+        return "🏆 Live Quiz Championship";
+      case "project_link":
+        return "🔗 Project / Drive Link";
+      case "media_upload":
+        return "📸 Photo / Media Proof";
+      case "text_response":
+        return "✍️ Written Solution";
+      default:
+        return "⚡ Summary & Link";
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h3 className="text-base sm:text-lg font-black flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-amber-500" />
-            10 Games & Competitions Showcase
+            {POSTER_ACTIVITIES.length} Vacation Games & Competitions
           </h3>
           <p className="text-xs text-muted-foreground">
-            Explore all 10 exciting challenges, required skills, and real-world themes
+            Explore exciting challenges, live quizzes, real-world skills, and submission types
           </p>
         </div>
         <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
           <span className="flex items-center gap-1">
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-            {completedTitles.size} / 10 Completed
+            {completedTitles.size} / {POSTER_ACTIVITIES.length} Completed
           </span>
         </div>
       </div>
