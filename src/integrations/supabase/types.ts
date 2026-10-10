@@ -2806,6 +2806,278 @@ export type Database = {
         }
         Relationships: []
       }
+      vacation_activities: {
+        Row: {
+          activity_date: string | null
+          campaign_id: string
+          closes_at: string | null
+          created_at: string
+          id: string
+          instructions: string | null
+          is_active: boolean
+          opens_at: string | null
+          reward_points: number | null
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          activity_date?: string | null
+          campaign_id: string
+          closes_at?: string | null
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          opens_at?: string | null
+          reward_points?: number | null
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          activity_date?: string | null
+          campaign_id?: string
+          closes_at?: string | null
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          opens_at?: string | null
+          reward_points?: number | null
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_activities_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_campaigns: {
+        Row: {
+          banner_enabled: boolean
+          banner_link: string | null
+          banner_text: string | null
+          created_at: string
+          default_points: number
+          end_date: string
+          id: string
+          max_award_points: number
+          start_date: string
+          status: string
+          timezone: string
+          title: string
+        }
+        Insert: {
+          banner_enabled?: boolean
+          banner_link?: string | null
+          banner_text?: string | null
+          created_at?: string
+          default_points?: number
+          end_date: string
+          id?: string
+          max_award_points?: number
+          start_date: string
+          status?: string
+          timezone?: string
+          title: string
+        }
+        Update: {
+          banner_enabled?: boolean
+          banner_link?: string | null
+          banner_text?: string | null
+          created_at?: string
+          default_points?: number
+          end_date?: string
+          id?: string
+          max_award_points?: number
+          start_date?: string
+          status?: string
+          timezone?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      vacation_point_events: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          milestone_days: number | null
+          points: number
+          student_id: string
+          submission_id: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          milestone_days?: number | null
+          points: number
+          student_id: string
+          submission_id?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          milestone_days?: number | null
+          points?: number
+          student_id?: string
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_point_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_streak_milestones: {
+        Row: {
+          bonus_points: number
+          campaign_id: string
+          days: number
+          id: string
+        }
+        Insert: {
+          bonus_points: number
+          campaign_id: string
+          days: number
+          id?: string
+        }
+        Update: {
+          bonus_points?: number
+          campaign_id?: string
+          days?: number
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_streak_milestones_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_student_progress: {
+        Row: {
+          approved_count: number
+          campaign_id: string
+          current_streak: number
+          last_approved_date: string | null
+          longest_streak: number
+          student_id: string
+          total_points: number
+          updated_at: string
+        }
+        Insert: {
+          approved_count?: number
+          campaign_id: string
+          current_streak?: number
+          last_approved_date?: string | null
+          longest_streak?: number
+          student_id: string
+          total_points?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_count?: number
+          campaign_id?: string
+          current_streak?: number
+          last_approved_date?: string | null
+          longest_streak?: number
+          student_id?: string
+          total_points?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_student_progress_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_submissions: {
+        Row: {
+          activity_id: string
+          attempts: number
+          campaign_id: string
+          content: string | null
+          id: string
+          link: string | null
+          points_awarded: number | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          student_id: string
+          submitted_at: string
+        }
+        Insert: {
+          activity_id: string
+          attempts?: number
+          campaign_id: string
+          content?: string | null
+          id?: string
+          link?: string | null
+          points_awarded?: number | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id: string
+          submitted_at?: string
+        }
+        Update: {
+          activity_id?: string
+          attempts?: number
+          campaign_id?: string
+          content?: string | null
+          id?: string
+          link?: string | null
+          points_awarded?: number | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_submissions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_submissions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -3255,6 +3527,49 @@ export type Database = {
       }
       sync_missing_auth_profiles: { Args: never; Returns: number }
       sync_overdue_fines: { Args: never; Returns: number }
+      vacation_export_rows: {
+        Args: { p_campaign: string }
+        Returns: {
+          activity_date: string
+          activity_title: string
+          points_awarded: number
+          reviewed_at: string
+          status: string
+          student_name: string
+          submitted_at: string
+        }[]
+      }
+      vacation_is_admin: { Args: never; Returns: boolean }
+      vacation_is_staff: { Args: never; Returns: boolean }
+      vacation_leaderboard: {
+        Args: { p_campaign: string; p_limit?: number }
+        Returns: {
+          approved_count: number
+          display_name: string
+          is_me: boolean
+          longest_streak: number
+          rank: number
+          student_id: string
+          total_points: number
+        }[]
+      }
+      vacation_my_role: { Args: never; Returns: string }
+      vacation_participation_stats: { Args: { p_campaign: string }; Returns: Json }
+      vacation_review_submission: {
+        Args: {
+          p_decision: string
+          p_note?: string
+          p_points?: number
+          p_submission: string
+        }
+        Returns: Json
+      }
+      vacation_seed_poster_drafts: { Args: { p_campaign: string }; Returns: number }
+      vacation_student_overview: { Args: never; Returns: Json }
+      vacation_submit_activity: {
+        Args: { p_activity: string; p_content?: string; p_link?: string }
+        Returns: Database["public"]["Tables"]["vacation_submissions"]["Row"]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

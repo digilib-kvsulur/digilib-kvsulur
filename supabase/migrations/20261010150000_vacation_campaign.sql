@@ -1,48 +1,8 @@
--- Vacation Campaign: tables, RLS, grants, transactional RPCs
--- Tenant school_id is integer (KV Sulur = 1787). Override later via
--- system_settings.vacation_school_id (superadmin UI deferred).
--- profiles has no school_id; display name is first_name + last_name.
--- Notifications go through public.notify_user.
+-- Vacation Campaign: tables, RLS, grants, transactional RPCs.
+-- Tenant DBs have no profiles.school_id. One active campaign per tenant.
+-- Display name is first_name + last_name. Notifications use public.notify_user.
 
 begin;
-
-create or replace function public.vacation_tenant_school_id()
-returns integer
-language plpgsql
-stable
-security definer
-set search_path = public
-as $$
-declare v int;
-begin
-  begin
-    select case
-      when jsonb_typeof(s.value) = 'number' then (s.value)::int
-      else nullif(btrim(trim(both '"' from s.value::text)), '')::int
-    end
-    into v
-    from public.system_settings s
-    where s.key = 'vacation_school_id';
-  exception when others then
-    v := null;
-  end;
-  return coalesce(v, 1787);
-end;
-$$;
-
-insert into public.system_settings (key, value)
-values ('vacation_school_id', '1787'::jsonb)
-on conflict (key) do nothing;
-
-create or replace function public.vacation_my_school()
-returns integer
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select public.vacation_tenant_school_id();
-$$;
 
 create or replace function public.vacation_my_role()
 returns text
@@ -54,7 +14,7 @@ as $$
   select role from public.profiles where id = auth.uid();
 $$;
 
-create or replace function public.vacation_is_staff(p_school integer)
+create or replace function public.vacation_is_staff()
 returns boolean
 language sql
 stable
@@ -65,10 +25,10 @@ as $$
     select 1 from public.profiles
     where id = auth.uid()
       and role in ('admin', 'teacher')
-  ) and p_school = public.vacation_tenant_school_id();
+  );
 $$;
 
-create or replace function public.vacation_is_admin(p_school integer)
+create or replace function public.vacation_is_admin()
 returns boolean
 language sql
 stable
@@ -78,7 +38,7 @@ as $$
   select exists (
     select 1 from public.profiles
     where id = auth.uid() and role = 'admin'
-  ) and p_school = public.vacation_tenant_school_id();
+  );
 $$;
 
 create or replace function public.vacation_profile_display_name(p_first text, p_last text)
@@ -91,7 +51,6 @@ $$;
 
 create table public.vacation_campaigns (
   id               uuid primary key default gen_random_uuid(),
-  school_id        integer not null default public.vacation_tenant_school_id(),
   title            text not null check (char_length(title) between 1 and 120),
   status           text not null default 'draft'
                    check (status in ('draft', 'active', 'paused', 'ended')),
@@ -104,28 +63,23 @@ create table public.vacation_campaigns (
   banner_text      text check (banner_text is null or char_length(banner_text) <= 300),
   banner_link      text check (banner_link is null or banner_link ~* '^(https?://|/)'),
   created_at       timestamptz not null default now(),
-  check (end_date >= start_date),
-  unique (id, school_id)
+  check (end_date >= start_date)
 );
 
-create unique index vacation_one_active_per_school
-  on public.vacation_campaigns (school_id) where status = 'active';
+create unique index vacation_one_active_campaign
+  on public.vacation_campaigns ((true)) where status = 'active';
 
 create table public.vacation_streak_milestones (
   id           uuid primary key default gen_random_uuid(),
-  campaign_id  uuid not null,
-  school_id    integer not null default public.vacation_tenant_school_id(),
+  campaign_id  uuid not null references public.vacation_campaigns(id) on delete cascade,
   days         int  not null check (days > 0),
   bonus_points int not null check (bonus_points > 0),
-  unique (campaign_id, days),
-  foreign key (campaign_id, school_id)
-    references public.vacation_campaigns (id, school_id) on delete cascade
+  unique (campaign_id, days)
 );
 
 create table public.vacation_activities (
   id            uuid primary key default gen_random_uuid(),
-  campaign_id   uuid not null,
-  school_id     integer not null default public.vacation_tenant_school_id(),
+  campaign_id   uuid not null references public.vacation_campaigns(id) on delete cascade,
   title         text not null check (char_length(title) between 1 and 160),
   instructions  text,
   reward_points int check (reward_points is null or reward_points >= 0),
@@ -135,10 +89,7 @@ create table public.vacation_activities (
   is_active     boolean not null default false,
   sort_order    int not null default 0,
   created_at    timestamptz not null default now(),
-  check (opens_at is null or closes_at is null or closes_at > opens_at),
-  unique (id, school_id),
-  foreign key (campaign_id, school_id)
-    references public.vacation_campaigns (id, school_id) on delete cascade
+  check (opens_at is null or closes_at is null or closes_at > opens_at)
 );
 
 create unique index vacation_one_activity_per_day
@@ -146,9 +97,8 @@ create unique index vacation_one_activity_per_day
 
 create table public.vacation_submissions (
   id             uuid primary key default gen_random_uuid(),
-  campaign_id    uuid not null,
-  activity_id    uuid not null,
-  school_id      integer not null default public.vacation_tenant_school_id(),
+  campaign_id    uuid not null references public.vacation_campaigns(id) on delete restrict,
+  activity_id    uuid not null references public.vacation_activities(id) on delete restrict,
   student_id     uuid not null references public.profiles(id) on delete cascade,
   content        text check (content is null or char_length(content) <= 5000),
   link           text check (link is null or (char_length(link) <= 2000 and link ~* '^https?://')),
@@ -161,11 +111,7 @@ create table public.vacation_submissions (
   review_note    text check (review_note is null or char_length(review_note) <= 1000),
   points_awarded int check (points_awarded is null or points_awarded >= 0),
   check (status <> 'approved' or points_awarded is not null),
-  unique (activity_id, student_id),
-  foreign key (activity_id, school_id)
-    references public.vacation_activities (id, school_id) on delete restrict,
-  foreign key (campaign_id, school_id)
-    references public.vacation_campaigns (id, school_id) on delete restrict
+  unique (activity_id, student_id)
 );
 
 create index vacation_sub_queue_idx on public.vacation_submissions (campaign_id, status, submitted_at);
@@ -173,8 +119,7 @@ create index vacation_sub_student_idx on public.vacation_submissions (student_id
 
 create table public.vacation_point_events (
   id             uuid primary key default gen_random_uuid(),
-  campaign_id    uuid not null,
-  school_id      integer not null default public.vacation_tenant_school_id(),
+  campaign_id    uuid not null references public.vacation_campaigns(id) on delete restrict,
   student_id     uuid not null references public.profiles(id) on delete cascade,
   kind           text not null check (kind in ('activity', 'streak_bonus')),
   points         int  not null check (points >= 0),
@@ -183,9 +128,7 @@ create table public.vacation_point_events (
   created_by     uuid,
   created_at     timestamptz not null default now(),
   check ((kind = 'activity' and submission_id is not null and milestone_days is null)
-      or (kind = 'streak_bonus' and submission_id is null and milestone_days is not null)),
-  foreign key (campaign_id, school_id)
-    references public.vacation_campaigns (id, school_id) on delete restrict
+      or (kind = 'streak_bonus' and submission_id is null and milestone_days is not null))
 );
 
 create unique index vacation_one_award_per_submission
@@ -194,18 +137,15 @@ create unique index vacation_one_bonus_per_milestone
   on public.vacation_point_events (campaign_id, student_id, milestone_days) where kind = 'streak_bonus';
 
 create table public.vacation_student_progress (
-  campaign_id        uuid not null,
+  campaign_id        uuid not null references public.vacation_campaigns(id) on delete restrict,
   student_id         uuid not null references public.profiles(id) on delete cascade,
-  school_id          integer not null default public.vacation_tenant_school_id(),
   total_points       int  not null default 0,
   approved_count     int  not null default 0,
   current_streak     int  not null default 0,
   longest_streak     int  not null default 0,
   last_approved_date date,
   updated_at         timestamptz not null default now(),
-  primary key (campaign_id, student_id),
-  foreign key (campaign_id, school_id)
-    references public.vacation_campaigns (id, school_id) on delete restrict
+  primary key (campaign_id, student_id)
 );
 
 create index vacation_progress_rank_idx
@@ -255,7 +195,7 @@ end;
 $$;
 
 create or replace function public.vacation_refresh_progress(
-  p_campaign uuid, p_student uuid, p_school integer, p_anchor date)
+  p_campaign uuid, p_student uuid, p_anchor date)
 returns int
 language plpgsql
 security definer
@@ -279,9 +219,9 @@ begin
   from runs;
 
   insert into public.vacation_student_progress as sp
-    (campaign_id, student_id, school_id, total_points, approved_count,
+    (campaign_id, student_id, total_points, approved_count,
      current_streak, longest_streak, last_approved_date, updated_at)
-  values (p_campaign, p_student, p_school,
+  values (p_campaign, p_student,
     (select coalesce(sum(points), 0) from public.vacation_point_events
        where campaign_id = p_campaign and student_id = p_student),
     (select count(*) from public.vacation_submissions
@@ -305,7 +245,6 @@ set search_path = public
 as $$
 declare
   v_uid uuid := auth.uid();
-  v_school integer;
   v_role text;
   v_act public.vacation_activities%rowtype;
   v_camp public.vacation_campaigns%rowtype;
@@ -314,14 +253,13 @@ declare
   v_close timestamptz;
 begin
   if v_uid is null then raise exception 'not_authenticated' using errcode = '28000'; end if;
-  v_school := public.vacation_tenant_school_id();
   select role into v_role from public.profiles where id = v_uid;
   if v_role is distinct from 'student' then
     raise exception 'students_only' using errcode = '42501';
   end if;
 
   select * into v_act from public.vacation_activities where id = p_activity;
-  if not found or v_act.school_id <> v_school or not v_act.is_active then
+  if not found or not v_act.is_active then
     raise exception 'activity_not_available' using errcode = 'P0002';
   end if;
   select * into v_camp from public.vacation_campaigns where id = v_act.campaign_id;
@@ -351,8 +289,8 @@ begin
 
   if not found then
     insert into public.vacation_submissions
-      (campaign_id, activity_id, school_id, student_id, content, link)
-    values (v_camp.id, p_activity, v_school, v_uid, p_content, p_link)
+      (campaign_id, activity_id, student_id, content, link)
+    values (v_camp.id, p_activity, v_uid, p_content, p_link)
     returning * into v_sub;
   elsif v_sub.status = 'rejected' then
     update public.vacation_submissions
@@ -387,7 +325,7 @@ begin
 
   select * into v_sub from public.vacation_submissions where id = p_submission for update;
   if not found then raise exception 'submission_not_found' using errcode = 'P0002'; end if;
-  if not public.vacation_is_staff(v_sub.school_id) then
+  if not public.vacation_is_staff() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   if v_sub.status <> 'pending' then
@@ -417,8 +355,8 @@ begin
     end if;
 
     insert into public.vacation_point_events
-      (campaign_id, school_id, student_id, kind, points, submission_id, created_by)
-    values (v_sub.campaign_id, v_sub.school_id, v_sub.student_id, 'activity', v_pts, v_sub.id, v_uid)
+      (campaign_id, student_id, kind, points, submission_id, created_by)
+    values (v_sub.campaign_id, v_sub.student_id, 'activity', v_pts, v_sub.id, v_uid)
     on conflict (submission_id) where kind = 'activity' do nothing
     returning id into v_ins;
     if v_ins is null then raise exception 'already_awarded' using errcode = 'P0001'; end if;
@@ -431,14 +369,14 @@ begin
      where id = v_sub.student_id;
 
     v_run := public.vacation_refresh_progress(
-      v_sub.campaign_id, v_sub.student_id, v_sub.school_id, v_act.activity_date);
+      v_sub.campaign_id, v_sub.student_id, v_act.activity_date);
 
     for m in select * from public.vacation_streak_milestones
               where campaign_id = v_sub.campaign_id and days <= v_run order by days loop
       v_ins := null;
       insert into public.vacation_point_events
-        (campaign_id, school_id, student_id, kind, points, milestone_days, created_by)
-      values (v_sub.campaign_id, v_sub.school_id, v_sub.student_id,
+        (campaign_id, student_id, kind, points, milestone_days, created_by)
+      values (v_sub.campaign_id, v_sub.student_id,
               'streak_bonus', m.bonus_points, m.days, v_uid)
       on conflict (campaign_id, student_id, milestone_days) where kind = 'streak_bonus' do nothing
       returning id into v_ins;
@@ -449,7 +387,7 @@ begin
       update public.profiles set points = coalesce(points, 0) + v_bonus
        where id = v_sub.student_id;
       perform public.vacation_refresh_progress(
-        v_sub.campaign_id, v_sub.student_id, v_sub.school_id, v_act.activity_date);
+        v_sub.campaign_id, v_sub.student_id, v_act.activity_date);
     end if;
 
     perform public.vacation_notify(v_sub.student_id,
@@ -472,7 +410,7 @@ as $$
 declare c public.vacation_campaigns%rowtype;
 begin
   select * into c from public.vacation_campaigns where id = p_campaign;
-  if not found or not public.vacation_is_admin(c.school_id) then
+  if not found or not public.vacation_is_admin() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   if exists (select 1 from public.vacation_activities where campaign_id = p_campaign) then
@@ -480,8 +418,8 @@ begin
   end if;
 
   insert into public.vacation_activities
-    (campaign_id, school_id, title, instructions, sort_order, is_active)
-  select p_campaign, c.school_id, t.title, t.descr, t.ord, false
+    (campaign_id, title, instructions, sort_order, is_active)
+  select p_campaign, t.title, t.descr, t.ord, false
   from (values
     (1,  'STEAM Challenge',
          'Teams solve a real-world problem (e.g. build a bridge, design a water filter) with limited materials, then present the solution and the science behind it.'),
@@ -516,14 +454,13 @@ security definer
 set search_path = public
 as $$
 declare
-  v_school integer := public.vacation_my_school();
   v_camp public.vacation_campaigns%rowtype;
   v_prog public.vacation_student_progress%rowtype;
   v_today date; v_streak int; v_act public.vacation_activities%rowtype;
   v_open timestamptz; v_close timestamptz;
 begin
   select * into v_camp from public.vacation_campaigns
-   where school_id = v_school and status in ('active', 'paused', 'ended')
+   where status in ('active', 'paused', 'ended')
    order by case status when 'active' then 0 when 'paused' then 1 else 2 end, created_at desc
    limit 1;
   if not found then return jsonb_build_object('campaign', null); end if;
@@ -589,7 +526,6 @@ as $$
     from public.vacation_student_progress sp
     join public.profiles p on p.id = sp.student_id
     where sp.campaign_id = p_campaign
-      and sp.school_id = public.vacation_my_school()
   )
   select rnk, sid, nm, tp, ac, ls, (sid = auth.uid())
   from ranked
@@ -607,7 +543,7 @@ as $$
 declare c public.vacation_campaigns%rowtype;
 begin
   select * into c from public.vacation_campaigns where id = p_campaign;
-  if not found or not public.vacation_is_staff(c.school_id) then
+  if not found or not public.vacation_is_staff() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   return jsonb_build_object(
@@ -643,7 +579,7 @@ as $$
 declare c public.vacation_campaigns%rowtype;
 begin
   select * into c from public.vacation_campaigns where id = p_campaign;
-  if not found or not public.vacation_is_staff(c.school_id) then
+  if not found or not public.vacation_is_staff() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   return query
@@ -667,34 +603,32 @@ alter table public.vacation_point_events       enable row level security;
 alter table public.vacation_student_progress   enable row level security;
 
 create policy vc_select on public.vacation_campaigns for select to authenticated
-  using (school_id = public.vacation_my_school()
-         and (status = 'active' or public.vacation_is_staff(school_id)));
+  using (status = 'active' or public.vacation_is_staff());
 create policy vc_insert on public.vacation_campaigns for insert to authenticated
-  with check (public.vacation_is_admin(school_id));
+  with check (public.vacation_is_admin());
 create policy vc_update on public.vacation_campaigns for update to authenticated
-  using (public.vacation_is_admin(school_id)) with check (public.vacation_is_admin(school_id));
+  using (public.vacation_is_admin()) with check (public.vacation_is_admin());
 create policy vc_delete on public.vacation_campaigns for delete to authenticated
-  using (public.vacation_is_admin(school_id));
+  using (public.vacation_is_admin());
 
 create policy vm_select on public.vacation_streak_milestones for select to authenticated
-  using (school_id = public.vacation_my_school());
+  using (true);
 create policy vm_write on public.vacation_streak_milestones for all to authenticated
-  using (public.vacation_is_admin(school_id)) with check (public.vacation_is_admin(school_id));
+  using (public.vacation_is_admin()) with check (public.vacation_is_admin());
 
 create policy va_select on public.vacation_activities for select to authenticated
-  using (school_id = public.vacation_my_school()
-         and (public.vacation_is_staff(school_id)
-              or (is_active and exists (select 1 from public.vacation_campaigns c
-                                        where c.id = campaign_id and c.status = 'active'))));
+  using (public.vacation_is_staff()
+         or (is_active and exists (select 1 from public.vacation_campaigns c
+                                   where c.id = campaign_id and c.status = 'active')));
 create policy va_write on public.vacation_activities for all to authenticated
-  using (public.vacation_is_admin(school_id)) with check (public.vacation_is_admin(school_id));
+  using (public.vacation_is_admin()) with check (public.vacation_is_admin());
 
 create policy vs_select on public.vacation_submissions for select to authenticated
-  using (student_id = auth.uid() or public.vacation_is_staff(school_id));
+  using (student_id = auth.uid() or public.vacation_is_staff());
 create policy vpe_select on public.vacation_point_events for select to authenticated
-  using (student_id = auth.uid() or public.vacation_is_staff(school_id));
+  using (student_id = auth.uid() or public.vacation_is_staff());
 create policy vsp_select on public.vacation_student_progress for select to authenticated
-  using (student_id = auth.uid() or public.vacation_is_staff(school_id));
+  using (student_id = auth.uid() or public.vacation_is_staff());
 
 revoke all on public.vacation_campaigns, public.vacation_streak_milestones,
               public.vacation_activities, public.vacation_submissions,
@@ -713,9 +647,8 @@ grant all on
   to service_role;
 
 revoke execute on function
-  public.vacation_tenant_school_id(),
-  public.vacation_my_school(), public.vacation_my_role(),
-  public.vacation_is_staff(integer), public.vacation_is_admin(integer),
+  public.vacation_my_role(),
+  public.vacation_is_staff(), public.vacation_is_admin(),
   public.vacation_profile_display_name(text, text),
   public.vacation_submit_activity(uuid, text, text),
   public.vacation_review_submission(uuid, text, int, text),
@@ -725,14 +658,13 @@ revoke execute on function
   public.vacation_participation_stats(uuid),
   public.vacation_export_rows(uuid),
   public.vacation_notify(uuid, text, text),
-  public.vacation_refresh_progress(uuid, uuid, integer, date),
+  public.vacation_refresh_progress(uuid, uuid, date),
   public.vacation_activity_guard()
   from public, anon, authenticated;
 
 grant execute on function
-  public.vacation_tenant_school_id(),
-  public.vacation_my_school(), public.vacation_my_role(),
-  public.vacation_is_staff(integer), public.vacation_is_admin(integer),
+  public.vacation_my_role(),
+  public.vacation_is_staff(), public.vacation_is_admin(),
   public.vacation_submit_activity(uuid, text, text),
   public.vacation_review_submission(uuid, text, int, text),
   public.vacation_seed_poster_drafts(uuid),
@@ -743,9 +675,8 @@ grant execute on function
   to authenticated;
 
 grant execute on function
-  public.vacation_tenant_school_id(),
-  public.vacation_my_school(), public.vacation_my_role(),
-  public.vacation_is_staff(integer), public.vacation_is_admin(integer),
+  public.vacation_my_role(),
+  public.vacation_is_staff(), public.vacation_is_admin(),
   public.vacation_submit_activity(uuid, text, text),
   public.vacation_review_submission(uuid, text, int, text),
   public.vacation_seed_poster_drafts(uuid),
@@ -754,7 +685,7 @@ grant execute on function
   public.vacation_participation_stats(uuid),
   public.vacation_export_rows(uuid),
   public.vacation_notify(uuid, text, text),
-  public.vacation_refresh_progress(uuid, uuid, integer, date),
+  public.vacation_refresh_progress(uuid, uuid, date),
   public.vacation_activity_guard()
   to service_role;
 

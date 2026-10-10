@@ -3,7 +3,6 @@ export type VacationSubmissionStatus = "pending" | "approved" | "rejected";
 
 export interface VacationCampaign {
   id: string;
-  school_id: number;
   title: string;
   status: VacationCampaignStatus;
   start_date: string;
@@ -20,7 +19,6 @@ export interface VacationCampaign {
 export interface VacationStreakMilestone {
   id: string;
   campaign_id: string;
-  school_id: number;
   days: number;
   bonus_points: number;
 }
@@ -28,7 +26,6 @@ export interface VacationStreakMilestone {
 export interface VacationActivity {
   id: string;
   campaign_id: string;
-  school_id: number;
   title: string;
   instructions: string | null;
   reward_points: number | null;
@@ -44,7 +41,6 @@ export interface VacationSubmission {
   id: string;
   campaign_id: string;
   activity_id: string;
-  school_id: number;
   student_id: string;
   content: string | null;
   link: string | null;

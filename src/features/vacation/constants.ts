@@ -1,4 +1,3 @@
-export const VACATION_SCHOOL_ID_DEFAULT = 1787;
 export const VACATION_BANNER_DISMISS_KEY = "vacation_banner_dismissed";
 export const VACATION_ERROR_MESSAGES: Record<string, string> = {
   outside_submission_window: "Submissions are closed for this activity right now.",

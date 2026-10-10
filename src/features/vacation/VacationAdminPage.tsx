@@ -26,7 +26,6 @@ import {
   seedPosterDrafts,
   upsertActivity,
   upsertVacationCampaign,
-  useVacationSchoolId,
 } from "./api";
 import { vacationRowsToCsv } from "./csv";
 import { vacationErrorMessage } from "./errors";
@@ -38,7 +37,6 @@ import type {
   VacationParticipationStats,
   VacationStreakMilestone,
   VacationSubmission,
-  VacationSubmissionStatus,
 } from "./types";
 
 interface VacationAdminPageProps {
@@ -60,7 +58,6 @@ const emptyCampaign = {
 
 export default function VacationAdminPage({ canConfigure = true }: VacationAdminPageProps) {
   const { toast } = useToast();
-  const schoolId = useVacationSchoolId();
   const [campaigns, setCampaigns] = useState<VacationCampaign[]>([]);
   const [campaignId, setCampaignId] = useState<string>("");
   const [form, setForm] = useState(emptyCampaign);
@@ -142,11 +139,9 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   }, [queue, statusFilter, dayFilter, studentFilter, activities]);
 
   const saveCampaign = async () => {
-    if (!schoolId) return;
     try {
       const saved = await upsertVacationCampaign({
         ...(campaign || {}),
-        school_id: schoolId,
         title: form.title,
         start_date: form.start_date,
         end_date: form.end_date,
@@ -160,7 +155,6 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
       });
       await replaceMilestones(
         saved.id,
-        schoolId,
         milestones
           .map((m) => ({ days: Number(m.days), bonus_points: Number(m.bonus_points) }))
           .filter((m) => m.days > 0 && m.bonus_points > 0)
@@ -174,12 +168,11 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   };
 
   const saveActivity = async () => {
-    if (!campaign || !schoolId || !activityEditor?.title) return;
+    if (!campaign || !activityEditor?.title) return;
     try {
       await upsertActivity({
         ...activityEditor,
         campaign_id: campaign.id,
-        school_id: schoolId,
         title: activityEditor.title,
         reward_points: activityEditor.reward_points === null || activityEditor.reward_points === undefined || Number.isNaN(Number(activityEditor.reward_points))
           ? null
@@ -233,7 +226,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
             <Card>
               <CardHeader>
                 <CardTitle>Campaign settings</CardTitle>
-                <CardDescription>One active campaign per school. School ID {schoolId ?? "…"} (KV Sulur default 1787).</CardDescription>
+                <CardDescription>One active campaign at a time. Staff can review; only admins can edit settings.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-1 md:col-span-2"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
