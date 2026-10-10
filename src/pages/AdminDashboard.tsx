@@ -363,7 +363,17 @@ const AdminDashboard = () => {
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="w-full h-full object-contain p-1" />
               </div>
               <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm z-20" title="School Logo">
-                <img src={settings.school_logo_url || "/logos/kv.png"} alt="School Logo" className="w-full h-full object-contain p-1" />
+                <img
+                  src={settings.school_logo_url || "/logos/kv.png"}
+                  alt="School Logo"
+                  className="w-full h-full object-contain p-1"
+                  onError={(e) => {
+                    const img = e.currentTarget as HTMLImageElement;
+                    if (img.src !== window.location.origin + "/logos/kv.png" && !img.src.endsWith("/logos/kv.png")) {
+                      img.src = "/logos/kv.png";
+                    }
+                  }}
+                />
               </div>
             </div>
             <div className="min-w-0">
