@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import * as Icons from "lucide-react";
 import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 import ProfilePasswordResetCard from "./ProfilePasswordResetCard";
+import { fetchPointsPerAvatarUpload } from "@/lib/librarySettings";
+import { sendLevelUpEmail } from "@/lib/autoEmail";
 
 interface StudentProfileProps {
   user: any;
@@ -115,10 +117,53 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       });
       if (upErr) throw upErr;
 
-      const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", uid);
-      if (dbErr) throw dbErr;
+      // Award points if configured and student uploaded avatar
+      const isFirstAvatar = !user?.avatar_url;
+      const avatarPoints = await fetchPointsPerAvatarUpload();
+
+      let pointsAwarded = 0;
+      let newTotalPoints = (user?.points || 0);
+
+      if (isFirstAvatar && avatarPoints > 0 && user?.role === "student") {
+        pointsAwarded = avatarPoints;
+        newTotalPoints += pointsAwarded;
+
+        const { error: dbErr } = await supabase.from("profiles").update({
+          avatar_url: path,
+          points: newTotalPoints,
+        }).eq("id", uid);
+        if (dbErr) throw dbErr;
+
+        try {
+          await supabase.from("notifications").insert({
+            user_id: uid,
+            title: `+${pointsAwarded} XP Earned! 📸`,
+            message: `You earned ${pointsAwarded} points for uploading your profile picture!`,
+            type: "points",
+          });
+        } catch (notifErr) {
+          console.warn("Could not insert avatar points notification:", notifErr);
+        }
+
+        try {
+          sendLevelUpEmail(uid, `+${pointsAwarded} XP for Profile Picture Upload!`, newTotalPoints);
+        } catch (mailErr) {
+          console.warn("Could not send email for avatar points:", mailErr);
+        }
+      } else {
+        const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", uid);
+        if (dbErr) throw dbErr;
+      }
+
       await loadAvatar(path);
-      toast({ title: "Profile picture updated successfully!" });
+      if (pointsAwarded > 0) {
+        toast({
+          title: `Profile picture updated! (+${pointsAwarded} XP)`,
+          description: `You earned ${pointsAwarded} points for setting up your profile photo!`
+        });
+      } else {
+        toast({ title: "Profile picture updated successfully!" });
+      }
       onProfileUpdate?.();
     } catch (e: any) {
       toast({ title: "Upload failed", description: e.message, variant: "destructive" });
@@ -132,11 +177,37 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       toast({ title: "Validation Error", description: "First name is required", variant: "destructive" });
       return;
     }
+
+    const newEmail = formData.email.trim().toLowerCase();
+    if (!newEmail || !newEmail.includes("@")) {
+      toast({ title: "Validation Error", description: "Please enter a valid email address", variant: "destructive" });
+      return;
+    }
+
     try {
       setLoading(true);
+
+      const oldEmail = (user.email || "").trim().toLowerCase();
+      let emailNotice = "";
+
+      // 1. If email changed, sync with Supabase Auth
+      if (newEmail !== oldEmail) {
+        const { error: authError } = await supabase.auth.updateUser({
+          email: newEmail,
+        });
+
+        if (authError) {
+          throw new Error(`Failed to update auth login email: ${authError.message}`);
+        }
+        emailNotice = " (Confirmation link sent to your new email)";
+      }
+
+      // 2. Update profiles table
       const { error } = await supabase.from('profiles').update({
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
+        email: newEmail,
+        notification_email: newEmail,
         phone: formData.phone.trim(),
         student_class: formData.student_class.trim(),
         roll_number: formData.roll_number.trim(),
@@ -145,8 +216,30 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
         bio: formData.bio.trim(),
         updated_at: new Date().toISOString()
       }).eq('id', user.id);
+
       if (error) throw error;
-      toast({ title: "Profile updated" });
+
+      // Update cached local profile session if present
+      try {
+        const cached = localStorage.getItem("dlms_user_profile");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          localStorage.setItem("dlms_user_profile", JSON.stringify({
+            ...parsed,
+            first_name: formData.first_name.trim(),
+            last_name: formData.last_name.trim(),
+            email: newEmail,
+            notification_email: newEmail,
+            phone: formData.phone.trim(),
+            username: formData.username.trim(),
+          }));
+        }
+      } catch {}
+
+      toast({
+        title: "Profile updated successfully!",
+        description: `Your profile details have been saved.${emailNotice}`,
+      });
       setIsEditing(false);
       onProfileUpdate?.();
     } catch (error: any) {
@@ -353,7 +446,17 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Address</Label>
-              <Input value={formData.email} disabled className="rounded-lg mt-1 bg-muted/40 border-border/40 text-muted-foreground" />
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={e => setFormData(f => ({ ...f, email: e.target.value }))}
+                disabled={!isEditing}
+                className={`rounded-lg mt-1 border-border/60 ${!isEditing ? "bg-muted/40 border-border/40 text-muted-foreground" : ""}`}
+                placeholder="e.g. student@gmail.com"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {isEditing ? "Updates your sign-in email & notifications." : "Used for account sign-in & notifications."}
+              </p>
             </div>
             <div>
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Unique Username</Label>

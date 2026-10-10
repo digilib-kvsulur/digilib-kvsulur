@@ -133,21 +133,69 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
       toast({ title: "Validation Error", description: "First name is required", variant: "destructive" });
       return;
     }
+
+    const newEmail = formData.email.trim().toLowerCase();
+    if (!newEmail || !newEmail.includes("@")) {
+      toast({ title: "Validation Error", description: "Please enter a valid email address", variant: "destructive" });
+      return;
+    }
+
     try {
       setLoading(true);
+
+      const oldEmail = (user.email || "").trim().toLowerCase();
+      let emailNotice = "";
+
+      // 1. If email changed, synchronize with Supabase Auth
+      if (newEmail !== oldEmail) {
+        const { error: authError } = await supabase.auth.updateUser({
+          email: newEmail,
+        });
+
+        if (authError) {
+          throw new Error(`Failed to update auth login email: ${authError.message}`);
+        }
+        emailNotice = " (Confirmation link sent to your new email)";
+      }
+
+      // 2. Update profiles and notification_email
       const { error } = await supabase
         .from("profiles")
         .update({
           first_name: formData.first_name.trim(),
           last_name: formData.last_name.trim(),
+          email: newEmail,
+          notification_email: newEmail,
           phone: formData.phone.trim(),
           username: formData.username.trim(),
           bio: formData.bio.trim(),
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
+
       if (error) throw error;
-      toast({ title: "Profile updated" });
+
+      // Update cached local profile session if present
+      try {
+        const cached = localStorage.getItem("dlms_user_profile");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          localStorage.setItem("dlms_user_profile", JSON.stringify({
+            ...parsed,
+            first_name: formData.first_name.trim(),
+            last_name: formData.last_name.trim(),
+            email: newEmail,
+            notification_email: newEmail,
+            phone: formData.phone.trim(),
+            username: formData.username.trim(),
+          }));
+        }
+      } catch {}
+
+      toast({
+        title: "Profile updated successfully!",
+        description: `Your profile details have been saved.${emailNotice}`,
+      });
       setIsEditing(false);
       onProfileUpdate?.();
     } catch (error: any) {
@@ -269,9 +317,19 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
           </div>
 
           <div>
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" value={formData.email} disabled className="bg-muted/40" />
-            <p className="text-xs text-muted-foreground mt-1">Email cannot be changed here</p>
+            <Label htmlFor="email">Email Address</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+              disabled={!isEditing}
+              className={!isEditing ? "bg-muted/40" : ""}
+              placeholder="e.g. librarian@school.in"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {isEditing ? "Changing your email updates your login and notification contact." : "Used for account login and notifications."}
+            </p>
           </div>
 
           <div>

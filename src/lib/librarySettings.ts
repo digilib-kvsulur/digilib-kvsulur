@@ -340,3 +340,19 @@ export async function fetchPointsPerReview(): Promise<number> {
   return 15;
 }
 
+export async function fetchPointsPerAvatarUpload(): Promise<number> {
+  try {
+    const { data } = await supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "points_per_avatar_upload")
+      .maybeSingle();
+    if (data?.value != null) {
+      return parseNumberSetting(data.value, 50);
+    }
+  } catch (e) {
+    console.warn("Could not fetch points_per_avatar_upload setting:", e);
+  }
+  return 50;
+}
+
