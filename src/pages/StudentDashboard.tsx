@@ -984,7 +984,7 @@ const StudentDashboard = () => {
       <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 pb-40 lg:pb-8 lg:ml-64 lg:pt-1">
         <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-5 lg:p-6 lg:pt-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
-          {activeTab !== "vacation" && (
+          {activeTab !== "vacation" && activeTab !== "overview" && (
             <VacationPromoStrip onOpen={() => setActiveTab("vacation")} />
           )}
 

@@ -24,9 +24,8 @@ const primaryTabs: { id: Tab; label: string; icon: React.ElementType; center?: b
 
 const vacationPrimaryTabs: { id: Tab; label: string; icon: React.ElementType; center?: boolean }[] = [
   { id: "overview", label: "Home", icon: Home },
-  { id: "issued", label: "Books", icon: BookOpen },
-  { id: "vacation", label: "Vacation", icon: Sun, center: true },
   { id: "quizzes", label: "Quizzes", icon: Brain },
+  { id: "vacation", label: "Vacation", icon: Sun, center: true },
   { id: "community", label: "Community", icon: Users },
 ];
 
@@ -36,7 +35,7 @@ export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, sh
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-6 h-16">
+      <div className={`grid ${showVacationCenter ? "grid-cols-5" : "grid-cols-6"} h-16`}>
         {tabs.map((item) => {
           const active = activeTab === item.id;
           if (item.center) {
