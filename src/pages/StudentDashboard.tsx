@@ -998,7 +998,21 @@ const StudentDashboard = () => {
                       <div className="flex items-center gap-3 sm:gap-4">
                         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20 overflow-hidden">
                           {user?.avatar_url ? (
-                            <img src={getAvatarUrl(user.avatar_url)} alt="Profile" className="w-full h-full object-cover" />
+                            <img
+                              src={getAvatarUrl(user.avatar_url)}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = "none";
+                                const parent = e.currentTarget.parentElement;
+                                if (parent && !parent.querySelector(".avatar-fallback-text")) {
+                                  const span = document.createElement("span");
+                                  span.className = "text-xl sm:text-2xl font-black text-white avatar-fallback-text";
+                                  span.textContent = user?.first_name?.[0] || "U";
+                                  parent.appendChild(span);
+                                }
+                              }}
+                            />
                           ) : (
                             <span className="text-xl sm:text-2xl font-black text-white">{user?.first_name?.[0]}</span>
                           )}
