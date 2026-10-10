@@ -118,7 +118,7 @@ export default function VacationCountdownTimer({
         <div className="flex items-center gap-1.5 sm:self-center">
           <div className="flex flex-col items-center">
             <span
-              className={`min-w-9 text-center font-mono text-base sm:text-lg font-black px-2 py-0.5 rounded-lg border shadow-xs ${
+              className={`min-w-9 text-center font-mono text-base sm:text-lg font-black px-2 py-0.5 rounded-lg border shadow-sm ${
                 isUrgent
                   ? "bg-red-500/20 border-red-500/40 text-red-700 dark:text-red-300"
                   : "bg-background border-border text-foreground"
@@ -131,7 +131,7 @@ export default function VacationCountdownTimer({
           <span className="text-base font-black text-muted-foreground -mt-3.5">:</span>
           <div className="flex flex-col items-center">
             <span
-              className={`min-w-9 text-center font-mono text-base sm:text-lg font-black px-2 py-0.5 rounded-lg border shadow-xs ${
+              className={`min-w-9 text-center font-mono text-base sm:text-lg font-black px-2 py-0.5 rounded-lg border shadow-sm ${
                 isUrgent
                   ? "bg-red-500/20 border-red-500/40 text-red-700 dark:text-red-300"
                   : "bg-background border-border text-foreground"
@@ -144,7 +144,7 @@ export default function VacationCountdownTimer({
           <span className="text-base font-black text-muted-foreground -mt-3.5">:</span>
           <div className="flex flex-col items-center">
             <span
-              className={`min-w-9 text-center font-mono text-base sm:text-lg font-black px-2 py-0.5 rounded-lg border shadow-xs ${
+              className={`min-w-9 text-center font-mono text-base sm:text-lg font-black px-2 py-0.5 rounded-lg border shadow-sm ${
                 isUrgent
                   ? "bg-red-500/20 border-red-500/40 text-red-700 dark:text-red-300 animate-pulse"
                   : "bg-amber-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300"

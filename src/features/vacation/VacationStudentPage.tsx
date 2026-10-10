@@ -146,11 +146,18 @@ export default function VacationStudentPage() {
           {statusCopy && <p className="text-sm text-muted-foreground">{statusCopy}</p>}
           {campaign?.status === "active" && activity && (
             <div className="space-y-4">
-              {/* Live Deadline Countdown Timer */}
-              <VacationCountdownTimer
-                targetTime={activity.closes_at}
-                label="Today's Challenge Deadline"
-              />
+              {/* Live Deadline Countdown Timer — only when an explicit close time is set */}
+              {activity.closes_at ? (
+                <VacationCountdownTimer
+                  targetTime={activity.closes_at}
+                  label="Today's Challenge Deadline"
+                />
+              ) : (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Submission Window Open
+                </div>
+              )}
 
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -251,9 +258,9 @@ export default function VacationStudentPage() {
       />
 
       {/* Streak Multiplier & Motivator Banner */}
-      <div className="rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-yellow-500/10 p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-xs">
+      <div className="rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-yellow-500/10 p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs animate-pulse">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
             <Flame className="h-5 w-5" />
           </div>
           <div>
