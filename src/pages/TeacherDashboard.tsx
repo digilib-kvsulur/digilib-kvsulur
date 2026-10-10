@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/utils";
-import { BookOpen, LogOut, Users, Trophy, GraduationCap, TrendingUp, Calendar, Target, Plus, Trash2, ListChecks, Star, BookMarked, Brain, FileText, User, AlertTriangle } from "lucide-react";
+import { BookOpen, LogOut, Users, Trophy, GraduationCap, TrendingUp, Calendar, Target, Plus, Trash2, ListChecks, Star, BookMarked, Brain, FileText, User, AlertTriangle, Sun } from "lucide-react";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import StudentProfile from "@/components/dashboard/StudentProfile";
@@ -29,10 +29,11 @@ import SupportCenter from "@/components/support/SupportCenter";
 import { LifeBuoy } from "lucide-react";
 import NetworkTab from "@/components/dashboard/NetworkTab";
 import TeacherProfileCompletionDialog from "@/components/dashboard/TeacherProfileCompletionDialog";
+import { VacationAdminPage } from "@/features/vacation";
 
 import { useBackHandler } from "@/hooks/useBackHandler";
 
-type TeacherTab = "progress" | "badges" | "reading-lists" | "recommendations" | "materials" | "community" | "network" | "book-requests" | "profile";
+type TeacherTab = "progress" | "badges" | "reading-lists" | "recommendations" | "materials" | "community" | "network" | "book-requests" | "profile" | "vacation";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -547,6 +548,7 @@ const TeacherDashboard = () => {
             <TabsTrigger value="badges" className="flex items-center gap-2"><Target className="h-4 w-4" /> Badges</TabsTrigger>
             <TabsTrigger value="reading-lists" className="flex items-center gap-2"><ListChecks className="h-4 w-4" /> Reading Lists</TabsTrigger>
             <TabsTrigger value="recommendations" className="flex items-center gap-2"><Star className="h-4 w-4" /> Recommendations</TabsTrigger>
+            <TabsTrigger value="vacation" className="flex items-center gap-2"><Sun className="h-4 w-4" /> Vacation</TabsTrigger>
             <TabsTrigger value="community" className="flex items-center gap-2"><Users className="h-4 w-4" /> Community</TabsTrigger>
             <TabsTrigger value="network" className="flex items-center gap-2"><Star className="h-4 w-4" /> Network</TabsTrigger>
             <TabsTrigger value="book-requests" className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> Requests</TabsTrigger>
@@ -770,6 +772,10 @@ const TeacherDashboard = () => {
             {teacher && (
               <StudentProfile user={teacher} onProfileUpdate={fetchTeacherProfile} />
             )}
+          </TabsContent>
+
+          <TabsContent value="vacation">
+            <VacationAdminPage canConfigure={false} />
           </TabsContent>
 
           <TabsContent value="community">

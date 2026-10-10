@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { VACATION_SCHOOL_ID_DEFAULT } from "./constants";
+
+const db = supabase as any;
 import type {
   VacationActivity,
   VacationCampaign,
@@ -11,10 +14,12 @@ import type {
   VacationSubmission,
 } from "./types";
 
+// Tenant DBs have no profiles.school_id. KV Sulur is 1787; superadmin can later
+// override via system_settings.vacation_school_id (UI deferred).
 export function useVacationSchoolId() {
-  const [schoolId, setSchoolId] = useState<number | null>(null);
+  const [schoolId, setSchoolId] = useState<number>(VACATION_SCHOOL_ID_DEFAULT);
   useEffect(() => {
-    supabase.rpc("vacation_my_school").then(({ data }) => {
+    db.rpc("vacation_my_school").then(({ data }) => {
       if (typeof data === "number") setSchoolId(data);
     });
   }, []);
@@ -27,7 +32,7 @@ export function useActiveVacationCampaign() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await db
       .from("vacation_campaigns")
       .select("*")
       .eq("status", "active")
@@ -44,7 +49,7 @@ export function useActiveVacationCampaign() {
 }
 
 export async function fetchVacationCampaigns() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("vacation_campaigns")
     .select("*")
     .order("created_at", { ascending: false });
@@ -55,7 +60,7 @@ export async function fetchVacationCampaigns() {
 export async function upsertVacationCampaign(
   payload: Partial<VacationCampaign> & { school_id: number; title: string; start_date: string; end_date: string }
 ) {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("vacation_campaigns")
     .upsert(payload)
     .select("*")
@@ -65,7 +70,7 @@ export async function upsertVacationCampaign(
 }
 
 export async function fetchMilestones(campaignId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("vacation_streak_milestones")
     .select("*")
     .eq("campaign_id", campaignId)
@@ -79,13 +84,13 @@ export async function replaceMilestones(
   schoolId: number,
   rows: { days: number; bonus_points: number }[]
 ) {
-  const { error: delError } = await supabase
+  const { error: delError } = await db
     .from("vacation_streak_milestones")
     .delete()
     .eq("campaign_id", campaignId);
   if (delError) throw delError;
   if (!rows.length) return;
-  const { error } = await supabase.from("vacation_streak_milestones").insert(
+  const { error } = await db.from("vacation_streak_milestones").insert(
     rows.map((row) => ({
       campaign_id: campaignId,
       school_id: schoolId,
@@ -97,7 +102,7 @@ export async function replaceMilestones(
 }
 
 export async function fetchActivities(campaignId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("vacation_activities")
     .select("*")
     .eq("campaign_id", campaignId)
@@ -108,26 +113,26 @@ export async function fetchActivities(campaignId: string) {
 
 export async function upsertActivity(payload: Partial<VacationActivity> & { campaign_id: string; school_id: number; title: string }) {
   const query = payload.id
-    ? supabase.from("vacation_activities").update(payload).eq("id", payload.id)
-    : supabase.from("vacation_activities").insert(payload);
+    ? db.from("vacation_activities").update(payload).eq("id", payload.id)
+    : db.from("vacation_activities").insert(payload);
   const { data, error } = await query.select("*").single();
   if (error) throw error;
   return data as VacationActivity;
 }
 
 export async function deleteActivity(id: string) {
-  const { error } = await supabase.from("vacation_activities").delete().eq("id", id);
+  const { error } = await db.from("vacation_activities").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function seedPosterDrafts(campaignId: string) {
-  const { data, error } = await supabase.rpc("vacation_seed_poster_drafts", { p_campaign: campaignId });
+  const { data, error } = await db.rpc("vacation_seed_poster_drafts", { p_campaign: campaignId });
   if (error) throw error;
   return data as number;
 }
 
 export async function fetchReviewQueue(campaignId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("vacation_submissions")
     .select("*")
     .eq("campaign_id", campaignId)
@@ -136,7 +141,7 @@ export async function fetchReviewQueue(campaignId: string) {
   const rows = (data || []) as VacationSubmission[];
   const ids = [...new Set(rows.map((row) => row.student_id))];
   if (!ids.length) return rows;
-  const { data: profiles } = await supabase.rpc("get_public_profiles", { _ids: ids });
+  const { data: profiles } = await db.rpc("get_public_profiles", { _ids: ids });
   const names = new Map(
     ((profiles as { id: string; first_name?: string; last_name?: string; username?: string }[]) || []).map((p) => [
       p.id,
@@ -147,7 +152,7 @@ export async function fetchReviewQueue(campaignId: string) {
 }
 
 export async function reviewSubmission(id: string, decision: "approve" | "reject", points?: number, note?: string) {
-  const { data, error } = await supabase.rpc("vacation_review_submission", {
+  const { data, error } = await db.rpc("vacation_review_submission", {
     p_submission: id,
     p_decision: decision,
     p_points: points ?? null,
@@ -158,13 +163,13 @@ export async function reviewSubmission(id: string, decision: "approve" | "reject
 }
 
 export async function fetchStudentOverview() {
-  const { data, error } = await supabase.rpc("vacation_student_overview");
+  const { data, error } = await db.rpc("vacation_student_overview");
   if (error) throw error;
   return (data || { campaign: null }) as VacationStudentOverview;
 }
 
 export async function submitVacationActivity(activityId: string, content?: string, link?: string) {
-  const { data, error } = await supabase.rpc("vacation_submit_activity", {
+  const { data, error } = await db.rpc("vacation_submit_activity", {
     p_activity: activityId,
     p_content: content || null,
     p_link: link || null,
@@ -174,7 +179,7 @@ export async function submitVacationActivity(activityId: string, content?: strin
 }
 
 export async function fetchLeaderboard(campaignId: string, limit = 25) {
-  const { data, error } = await supabase.rpc("vacation_leaderboard", {
+  const { data, error } = await db.rpc("vacation_leaderboard", {
     p_campaign: campaignId,
     p_limit: limit,
   });
@@ -183,13 +188,13 @@ export async function fetchLeaderboard(campaignId: string, limit = 25) {
 }
 
 export async function fetchParticipationStats(campaignId: string) {
-  const { data, error } = await supabase.rpc("vacation_participation_stats", { p_campaign: campaignId });
+  const { data, error } = await db.rpc("vacation_participation_stats", { p_campaign: campaignId });
   if (error) throw error;
   return data as VacationParticipationStats;
 }
 
 export async function fetchExportRows(campaignId: string) {
-  const { data, error } = await supabase.rpc("vacation_export_rows", { p_campaign: campaignId });
+  const { data, error } = await db.rpc("vacation_export_rows", { p_campaign: campaignId });
   if (error) throw error;
   return (data || []) as VacationExportRow[];
 }

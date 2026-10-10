@@ -245,6 +245,7 @@ const StudentDashboard = () => {
   const [activeLoan, setActiveLoan] = useState<any>(null);
   const [bountyVisible, setBountyVisible] = useState(true);
   const [uiReformVisible, setUiReformVisible] = useState(true);
+  const { campaign: vacationCampaign } = useActiveVacationCampaign();
 
   useEffect(() => {
     supabase
