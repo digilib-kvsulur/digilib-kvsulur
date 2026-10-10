@@ -3,6 +3,7 @@ import { Calendar, Clock, Flame, Zap } from "lucide-react";
 
 interface VacationCountdownTimerProps {
   targetTime?: string | Date | null;
+  mode?: "start" | "end";
   label?: string;
   compact?: boolean;
 }
@@ -17,24 +18,25 @@ interface TimeLeft {
   isMoreThan48h: boolean;
 }
 
-function calculateTimeLeft(target?: string | Date | null): TimeLeft {
+function calculateTimeLeft(target?: string | Date | null, mode: "start" | "end" = "end"): TimeLeft | null {
+  if (!target) return null;
+
   const now = new Date().getTime();
   let targetMs: number;
 
-  if (target) {
-    if (typeof target === "string" && /^\d{4}-\d{2}-\d{2}$/.test(target.trim())) {
-      // Local end of date
-      const parts = target.trim().split("-").map(Number);
-      const d = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+  if (typeof target === "string" && /^\d{4}-\d{2}-\d{2}$/.test(target.trim())) {
+    const parts = target.trim().split("-").map(Number);
+    if (mode === "start") {
+      // Start of day: 00:00:00.000
+      const d = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
       targetMs = d.getTime();
     } else {
-      targetMs = new Date(target).getTime();
+      // End of day: 23:59:59.999
+      const d = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+      targetMs = d.getTime();
     }
   } else {
-    // Default: end of today in local time
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-    targetMs = endOfDay.getTime();
+    targetMs = new Date(target).getTime();
   }
 
   const diff = targetMs - now;
@@ -53,20 +55,31 @@ function calculateTimeLeft(target?: string | Date | null): TimeLeft {
 
 export default function VacationCountdownTimer({
   targetTime,
-  label = "Today's Window Closes In",
+  mode = "end",
+  label,
   compact = false,
 }: VacationCountdownTimerProps) {
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => calculateTimeLeft(targetTime));
+  const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(() => calculateTimeLeft(targetTime, mode));
 
   useEffect(() => {
-    setTimeLeft(calculateTimeLeft(targetTime));
+    setTimeLeft(calculateTimeLeft(targetTime, mode));
     const interval = setInterval(() => {
-      setTimeLeft(calculateTimeLeft(targetTime));
+      setTimeLeft(calculateTimeLeft(targetTime, mode));
     }, 1000);
     return () => clearInterval(interval);
-  }, [targetTime]);
+  }, [targetTime, mode]);
+
+  if (!timeLeft) return null;
 
   if (timeLeft.isExpired) {
+    if (mode === "start") {
+      return (
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+          <Zap className="h-3.5 w-3.5" />
+          <span>Live Now 🔥</span>
+        </div>
+      );
+    }
     return (
       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-semibold">
         <Clock className="h-3.5 w-3.5" />
@@ -76,15 +89,20 @@ export default function VacationCountdownTimer({
   }
 
   const pad = (n: number) => String(n).padStart(2, "0");
-  const isUrgent = !timeLeft.isMoreThan48h && timeLeft.hours < 2;
+  const isUrgent = mode === "end" && !timeLeft.isMoreThan48h && timeLeft.hours < 2;
+  const effectiveLabel = label || (mode === "start" ? "Starts In" : "Window Closes In");
 
   // When more than 48 hours remain, show day count
   if (timeLeft.isMoreThan48h) {
+    const daysText = mode === "start"
+      ? `Starts in ${timeLeft.days} ${timeLeft.days === 1 ? "Day" : "Days"}`
+      : `${timeLeft.days} ${timeLeft.days === 1 ? "Day" : "Days"} Left`;
+
     if (compact) {
       return (
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300">
           <Calendar className="h-3.5 w-3.5" />
-          <span>{timeLeft.days} {timeLeft.days === 1 ? "Day" : "Days"} Left</span>
+          <span>{daysText}</span>
         </div>
       );
     }
@@ -98,15 +116,15 @@ export default function VacationCountdownTimer({
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <span>{label}</span>
+                <span>{effectiveLabel}</span>
               </p>
-              <p className="text-[11px] text-muted-foreground">Live countdown timer starts 48 hours before the deadline</p>
+              <p className="text-[11px] text-muted-foreground">Live countdown timer starts 48 hours before the event</p>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:self-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-800 dark:text-amber-200 font-black text-sm sm:text-base">
               <Calendar className="h-4 w-4" />
-              <span>{timeLeft.days} {timeLeft.days === 1 ? "Day" : "Days"} Left</span>
+              <span>{daysText}</span>
             </div>
           </div>
         </div>
@@ -126,6 +144,7 @@ export default function VacationCountdownTimer({
       >
         {isUrgent ? <Flame className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
         <span>
+          {mode === "start" ? "Starts: " : ""}
           {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
         </span>
       </div>

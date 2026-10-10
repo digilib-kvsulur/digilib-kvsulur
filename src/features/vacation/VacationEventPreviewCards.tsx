@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import {
   Award,
   BookOpen,
@@ -32,6 +33,7 @@ interface VacationEventPreviewCardsProps {
   currentActivityTitle?: string;
   completedTitles?: Set<string>;
   onSelectToday?: () => void;
+  onSelectActivity?: (title: string) => void;
 }
 
 const EVENT_THEMES: Record<
@@ -139,6 +141,7 @@ export default function VacationEventPreviewCards({
   currentActivityTitle = "",
   completedTitles = new Set(),
   onSelectToday,
+  onSelectActivity,
 }: VacationEventPreviewCardsProps) {
   const [selectedEvent, setSelectedEvent] = useState<PosterActivityTemplate | null>(null);
 
@@ -274,19 +277,26 @@ export default function VacationEventPreviewCards({
                   <span className="flex items-center gap-1 text-[11px]">
                     <Eye className="h-3.5 w-3.5" /> Preview Challenge
                   </span>
-                  {isToday && onSelectToday && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs font-black text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 p-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
+                  <Button
+                    size="sm"
+                    variant={isToday ? "default" : "outline"}
+                    className={cn(
+                      "h-7 text-xs font-bold px-2 py-0.5",
+                      isToday
+                        ? "bg-amber-600 hover:bg-amber-700 text-white"
+                        : "text-primary border-primary/20 hover:bg-primary/10"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onSelectActivity) {
+                        onSelectActivity(item.title);
+                      } else if (onSelectToday) {
                         onSelectToday();
-                      }}
-                    >
-                      Submit Now →
-                    </Button>
-                  )}
+                      }
+                    }}
+                  >
+                    {isCompleted ? "View Submission" : isToday ? "Submit Today →" : "Submit Challenge →"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -369,15 +379,27 @@ export default function VacationEventPreviewCards({
                 </div>
 
                 {/* Footer action */}
-                <div className="flex justify-end pt-2">
+                <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedEvent(null)}
+                    className="font-semibold text-xs"
+                  >
+                    Close
+                  </Button>
                   <Button
                     onClick={() => {
+                      const title = selectedEvent.title;
                       setSelectedEvent(null);
-                      if (onSelectToday) onSelectToday();
+                      if (onSelectActivity) {
+                        onSelectActivity(title);
+                      } else if (onSelectToday) {
+                        onSelectToday();
+                      }
                     }}
-                    className="font-bold bg-amber-600 hover:bg-amber-700 text-white w-full sm:w-auto"
+                    className="font-bold bg-amber-600 hover:bg-amber-700 text-white w-full sm:w-auto text-xs"
                   >
-                    Got It! Let&apos;s Play
+                    Submit for this Challenge →
                   </Button>
                 </div>
               </div>

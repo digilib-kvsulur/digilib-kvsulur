@@ -44,12 +44,25 @@ export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, sh
                 key={item.id}
                 type="button"
                 onClick={() => onTabChange(item.id)}
-                className="flex flex-col items-center justify-center -mt-4"
+                className="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-all active:scale-95 rounded-xl mx-0.5 group"
               >
-                <span className={`h-12 w-12 rounded-full shadow-lg flex items-center justify-center ${active ? "bg-amber-600 text-white" : "bg-amber-500 text-white"}`}>
-                  <item.icon className="h-6 w-6" />
+                <div className="h-5 w-5" aria-hidden="true" />
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
+                  <span
+                    className={`h-12 w-12 rounded-full shadow-lg flex items-center justify-center border-4 border-card transition-transform group-active:scale-90 ${
+                      active ? "bg-amber-600 text-white" : "bg-amber-500 text-white group-hover:bg-amber-600"
+                    }`}
+                  >
+                    <item.icon className="h-6 w-6" />
+                  </span>
+                </div>
+                <span
+                  className={`truncate max-w-[56px] transition-colors ${
+                    active ? "text-amber-700 dark:text-amber-300 font-bold" : "text-muted-foreground"
+                  }`}
+                >
+                  {item.label}
                 </span>
-                <span className={`text-[10px] font-semibold mt-0.5 ${active ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"}`}>Vacation</span>
               </button>
             );
           }

@@ -49,7 +49,7 @@ as $$
   select nullif(btrim(concat_ws(' ', nullif(btrim(p_first), ''), nullif(btrim(p_last), ''))), '');
 $$;
 
-create table public.vacation_campaigns (
+create table if not exists public.vacation_campaigns (
   id               uuid primary key default gen_random_uuid(),
   title            text not null check (char_length(title) between 1 and 120),
   status           text not null default 'draft'
@@ -66,10 +66,10 @@ create table public.vacation_campaigns (
   check (end_date >= start_date)
 );
 
-create unique index vacation_one_active_campaign
+create unique index if not exists vacation_one_active_campaign
   on public.vacation_campaigns ((true)) where status = 'active';
 
-create table public.vacation_streak_milestones (
+create table if not exists public.vacation_streak_milestones (
   id           uuid primary key default gen_random_uuid(),
   campaign_id  uuid not null references public.vacation_campaigns(id) on delete cascade,
   days         int  not null check (days > 0),
@@ -77,7 +77,7 @@ create table public.vacation_streak_milestones (
   unique (campaign_id, days)
 );
 
-create table public.vacation_activities (
+create table if not exists public.vacation_activities (
   id            uuid primary key default gen_random_uuid(),
   campaign_id   uuid not null references public.vacation_campaigns(id) on delete cascade,
   title         text not null check (char_length(title) between 1 and 160),
@@ -92,10 +92,12 @@ create table public.vacation_activities (
   check (opens_at is null or closes_at is null or closes_at > opens_at)
 );
 
-create unique index vacation_one_activity_per_day
+-- Allow multiple competitions/challenges per day (e.g. 15-30m live championship + day-long activity)
+drop index if exists public.vacation_one_activity_per_day;
+create index if not exists vacation_activities_date_idx
   on public.vacation_activities (campaign_id, activity_date) where activity_date is not null;
 
-create table public.vacation_submissions (
+create table if not exists public.vacation_submissions (
   id             uuid primary key default gen_random_uuid(),
   campaign_id    uuid not null references public.vacation_campaigns(id) on delete restrict,
   activity_id    uuid not null references public.vacation_activities(id) on delete restrict,
@@ -114,10 +116,10 @@ create table public.vacation_submissions (
   unique (activity_id, student_id)
 );
 
-create index vacation_sub_queue_idx on public.vacation_submissions (campaign_id, status, submitted_at);
-create index vacation_sub_student_idx on public.vacation_submissions (student_id, campaign_id);
+create index if not exists vacation_sub_queue_idx on public.vacation_submissions (campaign_id, status, submitted_at);
+create index if not exists vacation_sub_student_idx on public.vacation_submissions (student_id, campaign_id);
 
-create table public.vacation_point_events (
+create table if not exists public.vacation_point_events (
   id             uuid primary key default gen_random_uuid(),
   campaign_id    uuid not null references public.vacation_campaigns(id) on delete restrict,
   student_id     uuid not null references public.profiles(id) on delete cascade,
@@ -131,12 +133,12 @@ create table public.vacation_point_events (
       or (kind = 'streak_bonus' and submission_id is null and milestone_days is not null))
 );
 
-create unique index vacation_one_award_per_submission
+create unique index if not exists vacation_one_award_per_submission
   on public.vacation_point_events (submission_id) where kind = 'activity';
-create unique index vacation_one_bonus_per_milestone
+create unique index if not exists vacation_one_bonus_per_milestone
   on public.vacation_point_events (campaign_id, student_id, milestone_days) where kind = 'streak_bonus';
 
-create table public.vacation_student_progress (
+create table if not exists public.vacation_student_progress (
   campaign_id        uuid not null references public.vacation_campaigns(id) on delete restrict,
   student_id         uuid not null references public.profiles(id) on delete cascade,
   total_points       int  not null default 0,
@@ -148,7 +150,7 @@ create table public.vacation_student_progress (
   primary key (campaign_id, student_id)
 );
 
-create index vacation_progress_rank_idx
+create index if not exists vacation_progress_rank_idx
   on public.vacation_student_progress (campaign_id, total_points desc);
 
 create or replace function public.vacation_activity_guard()
@@ -179,6 +181,7 @@ begin
 end;
 $$;
 
+drop trigger if exists vacation_activity_guard_trg on public.vacation_activities;
 create trigger vacation_activity_guard_trg
   before insert or update on public.vacation_activities
   for each row execute function public.vacation_activity_guard();
@@ -468,6 +471,8 @@ declare
   v_prog public.vacation_student_progress%rowtype;
   v_today date; v_streak int; v_act public.vacation_activities%rowtype;
   v_open timestamptz; v_close timestamptz;
+  v_today_acts jsonb;
+  v_all_acts jsonb;
 begin
   select * into v_camp from public.vacation_campaigns
    where status in ('active', 'paused', 'ended')
@@ -481,13 +486,61 @@ begin
   v_streak := case when v_prog.last_approved_date >= v_today - 1
                    then v_prog.current_streak else 0 end;
 
+  -- Primary activity of today (or earliest active activity if today has none)
   select * into v_act from public.vacation_activities
-   where campaign_id = v_camp.id and activity_date = v_today and is_active;
+   where campaign_id = v_camp.id and activity_date = v_today and is_active
+   order by sort_order, created_at limit 1;
+
+  if v_act.id is null then
+    -- Fallback to the next active activity or first active activity in campaign
+    select * into v_act from public.vacation_activities
+     where campaign_id = v_camp.id and is_active
+     order by case when activity_date >= v_today then 0 else 1 end,
+              coalesce(activity_date, '9999-12-31'::date), sort_order, created_at limit 1;
+  end if;
 
   if v_act.id is not null then
     v_open  := coalesce(v_act.opens_at, v_act.activity_date::timestamp at time zone v_camp.timezone);
     v_close := coalesce(v_act.closes_at, (v_act.activity_date + 1)::timestamp at time zone v_camp.timezone);
   end if;
+
+  -- All today's competitions (supporting 2-3 competitions per day: live championship + day-long activity)
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', a.id,
+    'title', a.title,
+    'instructions', a.instructions,
+    'reward_points', coalesce(a.reward_points, v_camp.default_points),
+    'activity_date', a.activity_date,
+    'opens_at', coalesce(a.opens_at, a.activity_date::timestamp at time zone v_camp.timezone),
+    'closes_at', coalesce(a.closes_at, (a.activity_date + 1)::timestamp at time zone v_camp.timezone),
+    'window_open', (now() >= coalesce(a.opens_at, a.activity_date::timestamp at time zone v_camp.timezone)
+                and now() < coalesce(a.closes_at, (a.activity_date + 1)::timestamp at time zone v_camp.timezone)),
+    'submission', (select to_jsonb(s) from public.vacation_submissions s
+                   where s.activity_id = a.id and s.student_id = auth.uid())
+  ) order by a.opens_at nulls last, a.sort_order, a.created_at), '[]'::jsonb)
+  into v_today_acts
+  from public.vacation_activities a
+  where a.campaign_id = v_camp.id and a.activity_date = v_today and a.is_active;
+
+  -- All active competitions in campaign (available for exploration / submission)
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', a.id,
+    'title', a.title,
+    'instructions', a.instructions,
+    'reward_points', coalesce(a.reward_points, v_camp.default_points),
+    'activity_date', a.activity_date,
+    'opens_at', coalesce(a.opens_at, a.activity_date::timestamp at time zone v_camp.timezone),
+    'closes_at', coalesce(a.closes_at, (a.activity_date + 1)::timestamp at time zone v_camp.timezone),
+    'is_active', a.is_active,
+    'sort_order', a.sort_order,
+    'window_open', (now() >= coalesce(a.opens_at, a.activity_date::timestamp at time zone v_camp.timezone)
+                and now() < coalesce(a.closes_at, (a.activity_date + 1)::timestamp at time zone v_camp.timezone)),
+    'submission', (select to_jsonb(s) from public.vacation_submissions s
+                   where s.activity_id = a.id and s.student_id = auth.uid())
+  ) order by coalesce(a.activity_date, '9999-12-31'::date), a.opens_at nulls last, a.sort_order), '[]'::jsonb)
+  into v_all_acts
+  from public.vacation_activities a
+  where a.campaign_id = v_camp.id and a.is_active;
 
   return jsonb_build_object(
     'campaign', jsonb_build_object('id', v_camp.id, 'title', v_camp.title,
@@ -496,13 +549,19 @@ begin
       'banner_enabled', v_camp.banner_enabled, 'banner_text', v_camp.banner_text,
       'banner_link', v_camp.banner_link),
     'today', v_today,
+    'is_upcoming', (v_today < v_camp.start_date),
+    'starts_in_days', case when v_camp.start_date > v_today then (v_camp.start_date - v_today)::int else 0 end,
+    'is_ended', (v_today > v_camp.end_date),
     'activity', case when v_act.id is null then null else jsonb_build_object(
       'id', v_act.id, 'title', v_act.title, 'instructions', v_act.instructions,
       'reward_points', coalesce(v_act.reward_points, v_camp.default_points),
+      'activity_date', v_act.activity_date,
       'opens_at', v_open, 'closes_at', v_close,
       'window_open', (now() >= v_open and now() < v_close)) end,
     'submission', (select to_jsonb(s) from public.vacation_submissions s
                    where s.activity_id = v_act.id and s.student_id = auth.uid()),
+    'today_activities', v_today_acts,
+    'all_activities', v_all_acts,
     'progress', jsonb_build_object(
       'total_points', coalesce(v_prog.total_points, 0),
       'approved_count', coalesce(v_prog.approved_count, 0),
@@ -612,6 +671,10 @@ alter table public.vacation_submissions        enable row level security;
 alter table public.vacation_point_events       enable row level security;
 alter table public.vacation_student_progress   enable row level security;
 
+drop policy if exists vc_select on public.vacation_campaigns;
+drop policy if exists vc_insert on public.vacation_campaigns;
+drop policy if exists vc_update on public.vacation_campaigns;
+drop policy if exists vc_delete on public.vacation_campaigns;
 create policy vc_select on public.vacation_campaigns for select to authenticated
   using (status = 'active' or public.vacation_is_staff());
 create policy vc_insert on public.vacation_campaigns for insert to authenticated
@@ -621,11 +684,15 @@ create policy vc_update on public.vacation_campaigns for update to authenticated
 create policy vc_delete on public.vacation_campaigns for delete to authenticated
   using (public.vacation_is_admin());
 
+drop policy if exists vm_select on public.vacation_streak_milestones;
+drop policy if exists vm_write on public.vacation_streak_milestones;
 create policy vm_select on public.vacation_streak_milestones for select to authenticated
   using (true);
 create policy vm_write on public.vacation_streak_milestones for all to authenticated
   using (public.vacation_is_admin()) with check (public.vacation_is_admin());
 
+drop policy if exists va_select on public.vacation_activities;
+drop policy if exists va_write on public.vacation_activities;
 create policy va_select on public.vacation_activities for select to authenticated
   using (public.vacation_is_staff()
          or (is_active and exists (select 1 from public.vacation_campaigns c
@@ -633,10 +700,15 @@ create policy va_select on public.vacation_activities for select to authenticate
 create policy va_write on public.vacation_activities for all to authenticated
   using (public.vacation_is_admin()) with check (public.vacation_is_admin());
 
+drop policy if exists vs_select on public.vacation_submissions;
 create policy vs_select on public.vacation_submissions for select to authenticated
   using (student_id = auth.uid() or public.vacation_is_staff());
+
+drop policy if exists vpe_select on public.vacation_point_events;
 create policy vpe_select on public.vacation_point_events for select to authenticated
   using (student_id = auth.uid() or public.vacation_is_staff());
+
+drop policy if exists vsp_select on public.vacation_student_progress;
 create policy vsp_select on public.vacation_student_progress for select to authenticated
   using (student_id = auth.uid() or public.vacation_is_staff());
 

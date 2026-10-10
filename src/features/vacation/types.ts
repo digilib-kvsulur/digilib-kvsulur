@@ -75,15 +75,43 @@ export interface VacationStudentOverview {
     banner_link: string | null;
   } | null;
   today?: string;
+  is_upcoming?: boolean;
+  starts_in_days?: number;
+  is_ended?: boolean;
   activity?: {
     id: string;
     title: string;
     instructions: string | null;
     reward_points: number;
+    activity_date?: string | null;
     opens_at?: string;
     closes_at?: string;
     window_open?: boolean;
   } | null;
+  today_activities?: {
+    id: string;
+    title: string;
+    instructions: string | null;
+    reward_points: number;
+    activity_date?: string | null;
+    opens_at?: string;
+    closes_at?: string;
+    window_open?: boolean;
+    submission?: VacationSubmission | null;
+  }[];
+  all_activities?: {
+    id: string;
+    title: string;
+    instructions: string | null;
+    reward_points: number;
+    activity_date?: string | null;
+    opens_at?: string;
+    closes_at?: string;
+    is_active?: boolean;
+    sort_order?: number;
+    window_open?: boolean;
+    submission?: VacationSubmission | null;
+  }[];
   submission?: VacationSubmission | null;
   progress?: {
     total_points: number;
