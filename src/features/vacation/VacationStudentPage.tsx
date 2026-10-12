@@ -1,17 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Brain,
   Calendar,
   CalendarDays,
+  Camera,
   CheckCircle2,
+  ChevronRight,
   Clock,
   ExternalLink,
+  Eye,
   Flame,
   HelpCircle,
   Link as LinkIcon,
+  Loader2,
+  Play,
   Radio,
   Sparkles,
   Sun,
+  Target,
   Trophy,
+  UploadCloud,
   Zap,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,9 +30,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { fetchActivities, fetchLeaderboard, fetchStudentOverview, submitVacationActivity } from "./api";
 import { vacationErrorMessage } from "./errors";
-import { POSTER_ACTIVITIES, inferActivitySubmissionType, parseActivityMeta } from "./constants";
+import {
+  POSTER_ACTIVITIES,
+  TEN_DAYS_PROGRAM,
+  inferActivitySubmissionType,
+  parseActivityMeta,
+} from "./constants";
 import VacationCountdownTimer from "./VacationCountdownTimer";
 import VacationEventPreviewCards from "./VacationEventPreviewCards";
 import { UpcomingQuizLeagueCard } from "@/components/quiz/UpcomingQuizLeagueCard";
@@ -53,10 +67,14 @@ export default function VacationStudentPage({
   const [overview, setOverview] = useState<VacationStudentOverview | null>(null);
   const [campaignActivities, setCampaignActivities] = useState<VacationActivity[]>([]);
   const [board, setBoard] = useState<VacationLeaderboardRow[]>([]);
+  const [selectedDayNumber, setSelectedDayNumber] = useState<number>(1);
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
   const [content, setContent] = useState("");
   const [link, setLink] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const submissionRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
@@ -72,11 +90,21 @@ export default function VacationStudentPage({
         setBoard(lb);
         setCampaignActivities(acts);
 
-        // If an activity is returned by overview, select it first
+        // Determine current day number based on campaign start_date and today
+        const todayStr = data.today || new Date().toISOString().split("T")[0];
+        const startStr = data.campaign.start_date;
+        if (startStr) {
+          const startMs = new Date(startStr).getTime();
+          const todayMs = new Date(todayStr).getTime();
+          const diffDays = Math.floor((todayMs - startMs) / (1000 * 3600 * 24)) + 1;
+          const clampedDay = Math.min(10, Math.max(1, diffDays));
+          setSelectedDayNumber(clampedDay);
+        }
+
+        // Default to active activity if returned by overview
         if (data.activity?.id) {
           setSelectedActivityId(data.activity.id);
         } else if (acts.length > 0) {
-          // Otherwise default to the first active activity
           const first = acts.find((a) => a.is_active) || acts[0];
           setSelectedActivityId(first.id);
         }
@@ -124,55 +152,93 @@ export default function VacationStudentPage({
     return Boolean(campaign?.end_date && campaign.end_date < todayStr);
   }, [overview, campaign, todayStr]);
 
-  // All activities scheduled for today (e.g. 2-3 competitions per day)
-  const todayActivities = useMemo(() => {
-    if (overview?.today_activities && overview.today_activities.length > 0) {
-      return overview.today_activities;
+  // Map 10-day program schedule with dates & activities
+  const tenDaysRoadmap = useMemo(() => {
+    if (!campaign?.start_date) {
+      return TEN_DAYS_PROGRAM.map((p) => ({
+        ...p,
+        dateStr: "",
+        mainActivity: null as VacationActivity | null,
+        quizActivity: null as VacationActivity | null,
+        isCompleted: false,
+        isQuizCompleted: false,
+      }));
     }
-    return campaignActivities.filter((a) => a.activity_date === todayStr && a.is_active);
-  }, [overview, campaignActivities, todayStr]);
+    const startDate = new Date(campaign.start_date);
+    const approvedActivityIds = new Set((overview?.history || []).filter((h) => h.status === "approved").map((h) => h.activity_id));
+    const submittedActivityIds = new Set((overview?.history || []).map((h) => h.activity_id));
 
-  // Pool of competitions student can interact with
-  const availableCompetitions = useMemo(() => {
-    if (todayActivities.length > 0) {
-      return todayActivities;
-    }
-    if (campaignActivities.length > 0) {
-      return campaignActivities.filter((a) => a.is_active);
-    }
-    if (overview?.activity) {
-      return [overview.activity];
-    }
-    return [];
-  }, [todayActivities, campaignActivities, overview]);
+    return TEN_DAYS_PROGRAM.map((p) => {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + p.dateOffset);
+      const dateStr = d.toISOString().split("T")[0];
 
-  // Selected competition details
+      // Find activities matching this date or title
+      const dayActs = campaignActivities.filter((a) => a.activity_date === dateStr || a.sort_order === p.day * 2 - 1 || a.sort_order === p.day * 2);
+      const mainAct =
+        dayActs.find((a) => !a.title.toLowerCase().includes("quiz") && !a.title.toLowerCase().includes("championship")) ||
+        campaignActivities.find((a) => a.title.toLowerCase().includes(p.event.title.toLowerCase())) ||
+        null;
+
+      const quizAct =
+        dayActs.find((a) => a.title.toLowerCase().includes("quiz") || a.title.toLowerCase().includes("championship")) ||
+        campaignActivities.find((a) => a.title.toLowerCase().includes(`day ${p.day}`) && a.title.toLowerCase().includes("quiz")) ||
+        null;
+
+      return {
+        ...p,
+        dateStr,
+        mainActivity: mainAct,
+        quizActivity: quizAct,
+        isMainApproved: mainAct ? approvedActivityIds.has(mainAct.id) : false,
+        isMainSubmitted: mainAct ? submittedActivityIds.has(mainAct.id) : false,
+        isQuizApproved: quizAct ? approvedActivityIds.has(quizAct.id) : false,
+        isQuizSubmitted: quizAct ? submittedActivityIds.has(quizAct.id) : false,
+        isToday: dateStr === todayStr,
+      };
+    });
+  }, [campaign, campaignActivities, overview, todayStr]);
+
+  // Selected day's program details
+  const selectedDayData = useMemo(() => {
+    return tenDaysRoadmap.find((d) => d.day === selectedDayNumber) || tenDaysRoadmap[0];
+  }, [tenDaysRoadmap, selectedDayNumber]);
+
+  // All activities for the selected day or today
+  const selectedDayCompetitions = useMemo(() => {
+    const list: VacationActivity[] = [];
+    if (selectedDayData?.mainActivity) list.push(selectedDayData.mainActivity);
+    if (selectedDayData?.quizActivity) list.push(selectedDayData.quizActivity);
+
+    // If day has none explicitly mapped, fallback to active campaign activities
+    if (list.length === 0) {
+      if (campaignActivities.length > 0) {
+        return campaignActivities.filter((a) => a.is_active);
+      }
+      if (overview?.activity) {
+        return [overview.activity as VacationActivity];
+      }
+    }
+    return list;
+  }, [selectedDayData, campaignActivities, overview]);
+
+  // Selected active competition
   const activeCompetition = useMemo(() => {
     if (selectedActivityId) {
       const match =
-        availableCompetitions.find((a) => a.id === selectedActivityId) ||
+        selectedDayCompetitions.find((a) => a.id === selectedActivityId) ||
         campaignActivities.find((a) => a.id === selectedActivityId);
       if (match) return match;
     }
-    if (overview?.activity) {
-      return overview.activity;
-    }
-    return availableCompetitions[0] || null;
-  }, [selectedActivityId, availableCompetitions, campaignActivities, overview]);
+    return selectedDayCompetitions[0] || (overview?.activity as VacationActivity) || null;
+  }, [selectedActivityId, selectedDayCompetitions, campaignActivities, overview]);
 
   // Determine submission status for current active competition
   const currentSubmission = useMemo<VacationSubmission | null>(() => {
     if (!activeCompetition) return null;
-    // Check if overview.submission is for this competition
     if (overview?.activity?.id === activeCompetition.id && overview.submission) {
       return overview.submission;
     }
-    // Check submission from today_activities payload
-    const todayMatch = todayActivities.find((t) => t.id === activeCompetition.id);
-    if (todayMatch && "submission" in todayMatch && todayMatch.submission) {
-      return todayMatch.submission as VacationSubmission;
-    }
-    // Check from history
     const hist = overview?.history?.find((h) => h.activity_id === activeCompetition.id);
     if (hist) {
       return {
@@ -192,9 +258,9 @@ export default function VacationStudentPage({
       };
     }
     return null;
-  }, [activeCompetition, overview, todayActivities, campaign, userId]);
+  }, [activeCompetition, overview, campaign, userId]);
 
-  // Determine whether window is open for current competition
+  // Window open check
   const isWindowOpen = useMemo(() => {
     if (!activeCompetition) return false;
     if ("window_open" in activeCompetition && activeCompetition.window_open != null) {
@@ -229,44 +295,15 @@ export default function VacationStudentPage({
     return { ...meta, submissionType: inferred };
   }, [activeCompetition]);
 
-  // Detect whether this is a 15-30m live championship vs a day-long activity
-  const competitionKind = useMemo(() => {
-    if (!activeCompetition) return { label: "Challenge", isLive: false, durationLabel: "Day-Long" };
+  const isLiveQuizEvent = useMemo(() => {
+    if (!activeCompetition) return false;
     const titleLower = activeCompetition.title.toLowerCase();
-    const isQuizOrChamp =
+    return (
       submissionType === "quiz" ||
+      titleLower.includes("quiz") ||
       titleLower.includes("championship") ||
-      titleLower.includes("quiz league") ||
-      titleLower.includes("live");
-
-    let durationMins: number | null = null;
-    if (activeCompetition.opens_at && activeCompetition.closes_at) {
-      durationMins = Math.round(
-        (new Date(activeCompetition.closes_at).getTime() - new Date(activeCompetition.opens_at).getTime()) / 60000
-      );
-    }
-
-    if (durationMins && durationMins <= 60) {
-      return {
-        label: "Live Championship",
-        isLive: true,
-        durationLabel: `${durationMins} Mins Live Window`,
-      };
-    }
-
-    if (isQuizOrChamp) {
-      return {
-        label: "Live Quiz Championship",
-        isLive: true,
-        durationLabel: "15–30 Mins Live",
-      };
-    }
-
-    return {
-      label: "Day-Long Challenge",
-      isLive: false,
-      durationLabel: "Day-Long Creative Activity",
-    };
+      titleLower.includes("trivia")
+    );
   }, [activeCompetition, submissionType]);
 
   const completedTitles = useMemo(() => {
@@ -288,14 +325,64 @@ export default function VacationStudentPage({
     );
   }, [activeCompetition]);
 
+  // Direct File Upload handler (uploads to Supabase storage)
+  const handleDirectFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 15MB. You can also share a Google Drive or YouTube link.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error("Please sign in to upload your files.");
+
+      const safeName = file.name.replace(/[^a-z0-9._-]/gi, "_");
+      const path = `vacation/${user.id}/${activeCompetition?.id || "entry"}/${Date.now()}-${safeName}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("event-submissions")
+        .upload(path, file, { contentType: file.type, upsert: true });
+
+      if (upErr) throw upErr;
+
+      const { data: pub } = supabase.storage.from("event-submissions").getPublicUrl(path);
+      setUploadedFileUrl(pub.publicUrl);
+      setLink(pub.publicUrl);
+      toast({
+        title: "File uploaded! 🎉",
+        description: "Photo / file proof attached to your submission.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Upload note",
+        description: err.message?.includes("bucket")
+          ? "Please paste your Google Drive or photo share link directly in the link box below."
+          : (err.message || "Could not upload file. You can paste a link below."),
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async () => {
     if (!activeCompetition) return;
     setSaving(true);
     try {
       await submitVacationActivity(activeCompetition.id, content, link);
-      toast({ title: "Submitted", description: "Staff will review your activity." });
+      toast({ title: "Submitted! 🚀", description: "Teachers will review your activity and award points." });
       setContent("");
       setLink("");
+      setUploadedFileUrl("");
       await load();
     } catch (error) {
       toast({
@@ -317,6 +404,9 @@ export default function VacationStudentPage({
     );
     if (act) {
       setSelectedActivityId(act.id);
+      // also sync day number if activity has date
+      const matchedDay = tenDaysRoadmap.find((d) => d.dateStr === act.activity_date);
+      if (matchedDay) setSelectedDayNumber(matchedDay.day);
     }
     setTimeout(() => {
       submissionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -335,6 +425,9 @@ export default function VacationStudentPage({
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
               <Sparkles className="h-3.5 w-3.5" /> 10 Days • 10 Challenges
             </span>
+            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+              <Trophy className="h-3.5 w-3.5" /> + Daily Quiz Championships
+            </span>
             {isUpcoming && (
               <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/25 flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" /> Starts in {startsInDays} Days ({campaign?.start_date})
@@ -346,14 +439,14 @@ export default function VacationStudentPage({
             <span>{campaign?.title || "DLMS – Vacation Games & Competitions"}</span>
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm text-foreground/80 font-medium leading-relaxed">
-            Fun activities that build skills, spark creativity and give real-world knowledge! More than just games... It&apos;s a learning experience!
+            10 Days of creative, hands-on challenges plus exciting daily live quiz championships! Build real-world skills, test your speed, and level up!
           </CardDescription>
           <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-2 text-[10px] sm:text-[11px] font-semibold text-muted-foreground">
-            <span className="bg-background/80 px-2 py-0.5 rounded-md border">2–3 Daily Competitions</span>
+            <span className="bg-background/80 px-2 py-0.5 rounded-md border">🎨 10 Creative Challenges</span>
             <span>✦</span>
-            <span className="bg-background/80 px-2 py-0.5 rounded-md border">Live Quiz Championship</span>
+            <span className="bg-background/80 px-2 py-0.5 rounded-md border">🏆 10 Daily Quiz Championships</span>
             <span>✦</span>
-            <span className="bg-background/80 px-2 py-0.5 rounded-md border">Day-Long Challenges</span>
+            <span className="bg-background/80 px-2 py-0.5 rounded-md border">🔥 Daily Streak Multipliers</span>
           </div>
         </CardHeader>
       </Card>
@@ -371,7 +464,7 @@ export default function VacationStudentPage({
                   Campaign Begins in {startsInDays} {startsInDays === 1 ? "Day" : "Days"} ({campaign.start_date})
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  Gear up for 10 exciting days! Check out today&apos;s preview challenges below, read the guides, and start assembling your project ideas.
+                  Explore the 10-day roadmap below! Preview each day&apos;s creative challenge and daily quiz championship to prepare your ideas early.
                 </p>
               </div>
             </div>
@@ -386,28 +479,124 @@ export default function VacationStudentPage({
         </div>
       )}
 
-      {/* Main Competitions Card (Today or Selected Day) */}
+      {/* Interactive 10-Day Vacation Roadmap Timeline */}
+      <Card className="border-border/80 shadow-sm overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 pb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 font-black">
+                <Target className="h-5 w-5 text-amber-500" />
+                10-Day Vacation Roadmap
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Click any day to view its Creative Challenge & Daily Live Quiz Championship
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {overview?.progress?.approved_count || 0} Events Approved
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-orange-600">
+                <Flame className="h-3.5 w-3.5" />
+                {overview?.progress?.current_streak || 0}-Day Streak
+              </span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-5 pt-2">
+          {/* Horizontal scrollable roadmap track */}
+          <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex items-center gap-2.5 min-w-[760px]">
+              {tenDaysRoadmap.map((item) => {
+                const isSelected = item.day === selectedDayNumber;
+                return (
+                  <button
+                    key={item.day}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDayNumber(item.day);
+                      if (item.mainActivity) setSelectedActivityId(item.mainActivity.id);
+                    }}
+                    className={`flex-1 p-2.5 rounded-2xl border transition-all text-left flex flex-col justify-between gap-1.5 min-w-[70px] ${
+                      isSelected
+                        ? "border-amber-500 bg-amber-500/15 shadow-sm ring-2 ring-amber-500/50"
+                        : item.isToday
+                        ? "border-amber-500/60 bg-amber-500/5 hover:bg-amber-500/10"
+                        : "border-border/70 bg-card hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[11px] font-black text-foreground">
+                        Day {item.day}
+                      </span>
+                      {item.isToday && (
+                        <span className="text-[9px] font-black uppercase bg-amber-500 text-white px-1.5 py-0.2 rounded-full">
+                          Today
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] font-bold text-foreground/90 truncate leading-tight">
+                      {item.event.title.split(" ")[0]}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[10px]">
+                      {/* Challenge status dot */}
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          item.isMainApproved
+                            ? "bg-emerald-500"
+                            : item.isMainSubmitted
+                            ? "bg-amber-500"
+                            : "bg-muted-foreground/30"
+                        }`}
+                        title="Challenge Status"
+                      />
+                      {/* Quiz status dot */}
+                      <span
+                        className={`text-[9px] font-bold ${
+                          item.isQuizApproved
+                            ? "text-emerald-600"
+                            : item.isQuizSubmitted
+                            ? "text-amber-600"
+                            : "text-muted-foreground/50"
+                        }`}
+                        title="Daily Quiz Championship"
+                      >
+                        🏆
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Main Dual-Track Competitions Card for Selected Day */}
       <Card className="border-border/80 shadow-sm" ref={submissionRef}>
         <CardHeader className="p-4 sm:p-6 pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-black">
                   <Sun className="h-5 w-5 text-amber-500 shrink-0" />
-                  {isUpcoming
-                    ? "Featured Challenges & Competitions Preview"
-                    : todayActivities.length > 0
-                    ? "Today's Competitions & Challenges"
-                    : "Active Vacation Challenges"}
+                  Day {selectedDayNumber}: {selectedDayData?.event.title}
                 </CardTitle>
                 <Badge variant="outline" className="text-[11px] font-bold text-amber-700 dark:text-amber-300 border-amber-500/30">
-                  {isUpcoming
-                    ? `Begins ${campaign?.start_date}`
-                    : `Date: ${todayStr}`}
+                  {selectedDayData?.dateStr ? `Date: ${selectedDayData.dateStr}` : `Day ${selectedDayNumber} of 10`}
                 </Badge>
+                {selectedDayData?.isToday && (
+                  <Badge className="bg-amber-600 text-white text-[10px] font-black animate-pulse">
+                    Today&apos;s Active Round
+                  </Badge>
+                )}
               </div>
               <CardDescription className="text-xs sm:text-sm mt-0.5">
-                {campaign ? `${campaign.start_date} to ${campaign.end_date}` : "Play, learn, and grow over the break."}
+                Every day features 2 tracks: 1 Creative Challenge + 1 Live Quiz Championship!
               </CardDescription>
             </div>
 
@@ -418,33 +607,31 @@ export default function VacationStudentPage({
             )}
           </div>
 
-          {/* Multiple Competitions per Day Selector (e.g. 2-3 competitions per day) */}
-          {availableCompetitions.length > 1 && (
+          {/* Dual-Track Selector (Track 1: Main Event • Track 2: Daily Quiz Championship) */}
+          {selectedDayCompetitions.length > 1 && (
             <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                  <Zap className="h-3.5 w-3.5 text-amber-500" />
-                  Select Competition ({availableCompetitions.length} available today):
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                {availableCompetitions.map((item, idx) => {
+              <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                Day {selectedDayNumber} Events ({selectedDayCompetitions.length} Available):
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {selectedDayCompetitions.map((item) => {
                   const isSelected = item.id === activeCompetition?.id;
                   const itemTitle = item.title.toLowerCase();
-                  const isItemLive =
+                  const isItemQuiz =
                     itemTitle.includes("quiz") ||
                     itemTitle.includes("championship") ||
-                    itemTitle.includes("live");
+                    itemTitle.includes("trivia");
                   const isItemApproved = completedTitles.has(item.title.toLowerCase());
 
                   return (
                     <button
-                      key={item.id || idx}
+                      key={item.id}
                       type="button"
                       onClick={() => setSelectedActivityId(item.id)}
-                      className={`text-left p-3 rounded-xl border transition-all text-xs flex flex-col justify-between gap-2 ${
+                      className={`text-left p-3.5 rounded-2xl border transition-all flex flex-col justify-between gap-2 ${
                         isSelected
-                          ? "border-amber-500 bg-amber-500/15 shadow-sm ring-1 ring-amber-500/40"
+                          ? "border-amber-500 bg-amber-500/15 shadow-sm ring-2 ring-amber-500/40"
                           : "border-border/70 hover:border-amber-500/40 bg-card hover:bg-muted/40"
                       }`}
                     >
@@ -452,28 +639,30 @@ export default function VacationStudentPage({
                         <div className="flex items-center justify-between gap-1">
                           <span
                             className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                              isItemLive
+                              isItemQuiz
                                 ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30"
                                 : "bg-primary/10 text-primary border-primary/20"
                             }`}
                           >
-                            {isItemLive ? "⚡ Live Championship" : "🎨 Day-Long Activity"}
+                            {isItemQuiz ? "🏆 Track 2: Daily Quiz Championship" : "🎨 Track 1: Day Challenge"}
                           </span>
-                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                             +{item.reward_points || 10} pts
                           </span>
                         </div>
-                        <p className="font-bold text-foreground line-clamp-2">{item.title}</p>
+                        <p className="font-bold text-sm text-foreground leading-snug line-clamp-2">{item.title}</p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1 text-[10px] text-muted-foreground border-t border-border/40">
-                        <span>{isItemLive ? "15–30 Mins" : "All Day"}</span>
+                      <div className="flex items-center justify-between pt-1.5 text-xs text-muted-foreground border-t border-border/40">
+                        <span>{isItemQuiz ? "15–30 Mins Live Window" : "Day-Long Submission"}</span>
                         {isItemApproved ? (
                           <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                            <CheckCircle2 className="h-3 w-3" /> Done
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Approved
                           </span>
                         ) : (
-                          <span className="font-semibold text-primary">View & Submit →</span>
+                          <span className="font-bold text-primary flex items-center gap-0.5">
+                            {isItemQuiz ? "Play & Submit →" : "Submit Entry →"}
+                          </span>
                         )}
                       </div>
                     </button>
@@ -485,11 +674,10 @@ export default function VacationStudentPage({
         </CardHeader>
 
         <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
-          {/* Active Competition Detail */}
           {activeCompetition ? (
             <div className="space-y-4">
               {/* Timing & Deadline Countdown Timer */}
-              {competitionKind.isLive ? (
+              {isLiveQuizEvent ? (
                 <div className="rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-background p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div className="flex items-center gap-2">
                     <span className="relative flex h-3 w-3">
@@ -498,10 +686,10 @@ export default function VacationStudentPage({
                     </span>
                     <div>
                       <p className="text-xs font-black uppercase text-amber-700 dark:text-amber-300">
-                        {competitionKind.label}
+                        Daily Live Quiz Championship • Day {selectedDayNumber}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
-                        {competitionKind.durationLabel}
+                        Participate live on DLMS or complete today&apos;s feature quiz to claim your streak multiplier!
                       </p>
                     </div>
                   </div>
@@ -518,7 +706,7 @@ export default function VacationStudentPage({
                 <VacationCountdownTimer
                   mode="end"
                   targetTime={activeCompetition.closes_at}
-                  label="Today's Challenge Deadline"
+                  label="Day Challenge Submission Deadline"
                 />
               ) : (
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
@@ -534,7 +722,7 @@ export default function VacationStudentPage({
                     {activeCompetition.title}
                   </h3>
                   <Badge variant="outline" className="text-[10px] font-bold uppercase bg-primary/10 text-primary border-primary/20">
-                    {competitionKind.label}
+                    {isLiveQuizEvent ? "Live Quiz Championship" : "Creative Challenge"}
                   </Badge>
                   {activePosterTemplate?.tagline && (
                     <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/25">
@@ -609,7 +797,7 @@ export default function VacationStudentPage({
                     Submissions Open on {campaign?.start_date}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    This challenge is scheduled for the vacation campaign. You can prepare your solution, project files, or practice for the live quiz right now!
+                    This challenge is scheduled for the vacation campaign. You can prepare your solution, shoot your video/photos, or practice for the live quiz right now!
                   </p>
                 </div>
               ) : canSubmit ? (
@@ -618,12 +806,12 @@ export default function VacationStudentPage({
                     <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-amber-500 shrink-0" />
                       <span className="text-xs sm:text-sm font-black text-foreground">
-                        {submissionType === "quiz"
+                        {isLiveQuizEvent
                           ? "Record Quiz Championship Entry"
                           : submissionType === "project_link"
                           ? "Submit Project Link"
                           : submissionType === "media_upload"
-                          ? "Submit Photo / Video Proof"
+                          ? "Submit Photo Proof / Media"
                           : submissionType === "text_response"
                           ? "Submit Written Solution"
                           : "Submit Your Entry"}
@@ -635,19 +823,19 @@ export default function VacationStudentPage({
                   </div>
 
                   {/* Dedicated Quiz Championship quick CTA if event is a quiz */}
-                  {submissionType === "quiz" && (
+                  {isLiveQuizEvent && (
                     <div className="rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-primary/10 p-3 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <Trophy className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                           <span className="text-xs font-black uppercase text-amber-800 dark:text-amber-200">
-                            Daily Live Quiz Championship
+                            Daily Live Quiz Championship • Day {selectedDayNumber}
                           </span>
                         </div>
                         <Badge className="bg-amber-600 text-white text-[10px]">Live on DLMS</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Participate in today&apos;s live quiz championship or complete the designated quiz on the Quizzes tab!
+                        Participate in today&apos;s scheduled quiz championship or complete today&apos;s feature quiz in the Quizzes tab!
                       </p>
                       {onNavigateToQuizzes && (
                         <Button
@@ -657,19 +845,19 @@ export default function VacationStudentPage({
                           className="font-bold bg-amber-600 hover:bg-amber-700 text-white text-xs gap-1.5 h-8"
                         >
                           <Trophy className="h-3.5 w-3.5" />
-                          Go to Quizzes Tab →
+                          Play Quiz Championship Now →
                         </Button>
                       )}
                     </div>
                   )}
 
-                  {/* Tailored Input Fields */}
+                  {/* Written Answers / Summary */}
                   <div className="space-y-1">
                     <Label className="font-bold text-xs sm:text-sm">
-                      {submissionType === "quiz"
-                        ? "Quiz Score & Reflection"
+                      {isLiveQuizEvent
+                        ? "Quiz Score & Reflections"
                         : submissionType === "project_link"
-                        ? "Project Summary / Description (optional)"
+                        ? "Project Summary / Description"
                         : submissionType === "media_upload"
                         ? "Description of Model / Prototype / Innovation"
                         : submissionType === "text_response"
@@ -680,8 +868,8 @@ export default function VacationStudentPage({
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
                       placeholder={
-                        submissionType === "quiz"
-                          ? "Enter your score (e.g. 10/10) and 2 key learnings or takeaways..."
+                        isLiveQuizEvent
+                          ? "Enter your score (e.g. 10/10) and 2 key learnings from today's quiz championship..."
                           : submissionType === "project_link"
                           ? "Brief description of what you researched or built..."
                           : submissionType === "media_upload"
@@ -695,14 +883,69 @@ export default function VacationStudentPage({
                     />
                   </div>
 
+                  {/* Direct Photo / File Upload Box */}
+                  <div className="space-y-1.5 p-3 rounded-xl border border-dashed border-amber-500/40 bg-background/60">
+                    <div className="flex items-center justify-between">
+                      <Label className="font-bold text-xs flex items-center gap-1.5 text-foreground">
+                        <UploadCloud className="h-4 w-4 text-amber-500" />
+                        <span>Direct File / Photo Proof Upload:</span>
+                      </Label>
+                      {uploadedFileUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] text-destructive hover:bg-destructive/10 px-2"
+                          onClick={() => {
+                            setUploadedFileUrl("");
+                            setLink("");
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+
+                    {uploadingFile ? (
+                      <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                        <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                        <span>Uploading file to secure library storage...</span>
+                      </div>
+                    ) : uploadedFileUrl ? (
+                      <div className="flex items-center gap-2.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-800 dark:text-emerald-200">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <span className="font-semibold truncate flex-1">File attached & uploaded successfully!</span>
+                        <a
+                          href={uploadedFileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] underline font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-0.5 shrink-0"
+                        >
+                          <Eye className="h-3 w-3" /> Preview
+                        </a>
+                      </div>
+                    ) : (
+                      <label className="block cursor-pointer">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*,application/pdf,video/*"
+                          className="hidden"
+                          onChange={handleDirectFileUpload}
+                        />
+                        <div className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted/70 transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground">
+                          <Camera className="h-4 w-4 text-amber-500" />
+                          <span>Choose Photo or Document from Device (Camera / Gallery / Files)</span>
+                        </div>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* External Link Input (Google Drive, YouTube, GitHub, Slides) */}
                   <div className="space-y-1">
                     <Label className="font-bold text-xs sm:text-sm flex items-center gap-1.5">
                       <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                      {submissionType === "project_link"
-                        ? "Project / Google Drive / Slides Link (required)"
-                        : submissionType === "media_upload"
-                        ? "Photo, Video, or Drive Proof Link (required)"
-                        : "Link (optional, e.g. Drive, GitHub, Video)"}
+                      <span>External Project Link (or auto-filled from upload above):</span>
                     </Label>
                     <Input
                       value={link}
@@ -711,16 +954,25 @@ export default function VacationStudentPage({
                       className="w-full text-xs sm:text-sm"
                     />
                     <p className="text-[11px] text-muted-foreground">
-                      Tip: If sharing a Google Drive link, ensure &quot;Anyone with the link can view&quot; is enabled.
+                      Tip: Upload directly using the button above, or share a Google Drive / YouTube / Canva link.
                     </p>
                   </div>
 
                   <Button
                     onClick={handleSubmit}
-                    disabled={saving}
-                    className="w-full sm:w-auto font-bold bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm"
+                    disabled={saving || uploadingFile}
+                    className="w-full sm:w-auto font-bold bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm shadow-sm"
                   >
-                    {currentSubmission?.status === "rejected" ? "Resubmit Activity" : "Submit Activity for Review"}
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                        Submitting...
+                      </>
+                    ) : currentSubmission?.status === "rejected" ? (
+                      "Resubmit Activity"
+                    ) : (
+                      "Submit Activity for Review →"
+                    )}
                   </Button>
                 </div>
               ) : currentSubmission?.status === "pending" ? (
@@ -741,15 +993,15 @@ export default function VacationStudentPage({
         </CardContent>
       </Card>
 
-      {/* Daily Live Quiz Championship Integration */}
+      {/* Daily Live Quiz Championship Integration Card */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-base sm:text-lg font-black flex items-center gap-2">
             <Trophy className="h-5 w-5 text-amber-500" />
-            Vacation Live Quiz Championship
+            Vacation Live Quiz Championship Hub
           </h3>
           <Badge variant="outline" className="text-xs font-bold text-amber-600 border-amber-500/40">
-            New Quiz Everyday 🔥
+            Daily Live Tournaments 🔥
           </Badge>
         </div>
         <UpcomingQuizLeagueCard
@@ -762,7 +1014,7 @@ export default function VacationStudentPage({
         />
       </div>
 
-      {/* Interactive 10–15 Event Showcase & Preview Cards */}
+      {/* Interactive 10-Events Showcase & Preview Cards */}
       <VacationEventPreviewCards
         currentActivityTitle={activeCompetition?.title}
         completedTitles={completedTitles}
@@ -781,7 +1033,7 @@ export default function VacationStudentPage({
               Daily Streak Multiplier
             </p>
             <p className="text-xs text-muted-foreground font-medium">
-              You have a <strong className="text-foreground">{overview?.progress?.current_streak || 0}-day streak</strong>! Complete daily challenges to unlock milestone bonus points.
+              You have a <strong className="text-foreground">{overview?.progress?.current_streak || 0}-day streak</strong>! Complete daily challenges and quiz championships to unlock milestone bonuses at 3, 5, 7, and 10 days.
             </p>
           </div>
         </div>

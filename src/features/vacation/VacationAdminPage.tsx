@@ -30,7 +30,7 @@ import {
 } from "./api";
 import { vacationRowsToCsv } from "./csv";
 import { vacationErrorMessage } from "./errors";
-import { POSTER_ACTIVITIES, formatActivityInstructions, parseActivityMeta } from "./constants";
+import { POSTER_ACTIVITIES, TEN_DAYS_PROGRAM, formatActivityInstructions, parseActivityMeta } from "./constants";
 import type {
   VacationActivity,
   VacationCampaign,
@@ -248,6 +248,117 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
     toast({ title: "Poster campaign prefilled!", description: "Click 'Save campaign' or 'Create campaign' to apply." });
   };
 
+  const setupTenDaysCompleteProgram = async () => {
+    let targetCampaign = campaign;
+    if (!targetCampaign) {
+      const today = new Date();
+      const startStr = today.toISOString().split("T")[0];
+      const end = new Date(today);
+      end.setDate(end.getDate() + 9);
+      const endStr = end.toISOString().split("T")[0];
+      try {
+        const created = await upsertVacationCampaign({
+          title: "DLMS – Vacation Games & Competitions",
+          start_date: startStr,
+          end_date: endStr,
+          timezone: "Asia/Kolkata",
+          default_points: 10,
+          max_award_points: 100,
+          status: "active",
+          banner_enabled: true,
+          banner_text: "DLMS 10 Days • 10 Challenges + Daily Live Quiz Championships! Play, Learn & Win points.",
+          banner_link: "",
+        });
+        targetCampaign = created;
+        setCampaignId(created.id);
+      } catch (err) {
+        toast({ title: "Could not create campaign", description: vacationErrorMessage(err), variant: "destructive" });
+        return;
+      }
+    }
+
+    try {
+      const startDate = targetCampaign.start_date ? new Date(targetCampaign.start_date) : new Date();
+      const startStr = startDate.toISOString().split("T")[0];
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 9);
+      const endStr = endDate.toISOString().split("T")[0];
+
+      // 1. Ensure campaign has 10 days span & active status
+      await upsertVacationCampaign({
+        id: targetCampaign.id,
+        title: targetCampaign.title || "DLMS – Vacation Games & Competitions",
+        start_date: startStr,
+        end_date: endStr,
+        timezone: targetCampaign.timezone || "Asia/Kolkata",
+        default_points: targetCampaign.default_points || 10,
+        max_award_points: targetCampaign.max_award_points || 100,
+        status: "active",
+        banner_enabled: true,
+        banner_text: "DLMS 10 Days • 10 Challenges + Daily Live Quiz Championships! Play, Learn & Win points.",
+        banner_link: "",
+      });
+
+      // 2. Setup milestones (3, 5, 7, 10 days)
+      await replaceMilestones(targetCampaign.id, [
+        { days: 3, bonus_points: 15 },
+        { days: 5, bonus_points: 30 },
+        { days: 7, bonus_points: 50 },
+        { days: 10, bonus_points: 100 },
+      ]);
+
+      // 3. Upsert 10 Main Events + 10 Daily Quiz Championships
+      let createdCount = 0;
+      for (const item of TEN_DAYS_PROGRAM) {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + item.dateOffset);
+        const dateStr = d.toISOString().split("T")[0];
+
+        // Track 1: Main Event
+        await upsertActivity({
+          campaign_id: targetCampaign.id,
+          title: item.event.title,
+          instructions: item.event.instructions,
+          sort_order: item.day * 2 - 1,
+          activity_date: dateStr,
+          opens_at: `${dateStr}T06:00:00`,
+          closes_at: `${dateStr}T23:59:59`,
+          reward_points: targetCampaign.default_points || 10,
+          is_active: true,
+        });
+
+        // Track 2: Daily Live Quiz Championship
+        await upsertActivity({
+          campaign_id: targetCampaign.id,
+          title: item.quizChampionship.title,
+          instructions: item.quizChampionship.instructions,
+          sort_order: item.day * 2,
+          activity_date: dateStr,
+          opens_at: `${dateStr}T06:00:00`,
+          closes_at: `${dateStr}T23:59:59`,
+          reward_points: item.quizChampionship.rewardPoints,
+          is_active: true,
+        });
+
+        createdCount += 2;
+      }
+
+      toast({
+        title: "10-Day Vacation Program Ready! 🎉",
+        description: `Configured 10 Events + 10 Daily Quiz Championships (${createdCount} total) from ${startStr} to ${endStr}.`,
+      });
+
+      await loadCampaigns();
+      await loadDetails(targetCampaign.id);
+    } catch (error) {
+      toast({
+        title: "Could not setup 10-day program",
+        description: vacationErrorMessage(error),
+        variant: "destructive",
+      });
+    }
+  };
+
   const autoDetermineDates = async () => {
     if (!campaign || !campaign.start_date || !campaign.end_date) {
       toast({
@@ -333,16 +444,27 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                   <CardTitle>Campaign settings</CardTitle>
                   <CardDescription>One active campaign at a time. Staff can review; only admins can edit settings.</CardDescription>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={prefillPosterCampaign}
-                  className="gap-1.5 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 shrink-0 font-semibold"
-                >
-                  <Sparkles className="h-4 w-4 text-amber-500" />
-                  Prefill 10-Day Poster Campaign
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={setupTenDaysCompleteProgram}
+                    className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-sm"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    1-Click Setup: 10 Days (10 Events + 10 Quiz Championships)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={prefillPosterCampaign}
+                    className="gap-1.5 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 shrink-0 font-semibold"
+                  >
+                    <Sparkles className="h-4 w-4 text-amber-500" />
+                    Prefill Form
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-1 md:col-span-2"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
@@ -416,7 +538,16 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
             {/* Action Toolbar */}
             <div className="flex flex-wrap items-center gap-2">
               {campaign && (
-                <Button onClick={() => openActivityEditor({ title: "", instructions: "", is_active: false, sort_order: activities.length + 1 })}>
+                <Button
+                  onClick={setupTenDaysCompleteProgram}
+                  className="gap-1.5 font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  1-Click Setup: 10 Days (10 Events + 10 Quiz Championships)
+                </Button>
+              )}
+              {campaign && (
+                <Button variant="outline" onClick={() => openActivityEditor({ title: "", instructions: "", is_active: false, sort_order: activities.length + 1 })}>
                   <Plus className="h-4 w-4 mr-1" /> New activity
                 </Button>
               )}
@@ -611,7 +742,22 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                     <Badge variant={row.status === "approved" ? "default" : row.status === "rejected" ? "destructive" : "secondary"}>{row.status}</Badge>
                   </div>
                   {row.content && <p className="text-sm whitespace-pre-wrap">{row.content}</p>}
-                  {row.link && <a className="text-sm text-primary underline" href={row.link} target="_blank" rel="noreferrer">{row.link}</a>}
+                  {row.link && (
+                    <div className="space-y-1.5 pt-1">
+                      <a className="text-xs text-primary underline flex items-center gap-1 font-semibold break-all" href={row.link} target="_blank" rel="noreferrer">
+                        🔗 {row.link}
+                      </a>
+                      {/\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(row.link) && (
+                        <div className="mt-1">
+                          <img
+                            src={row.link}
+                            alt="Student photo proof"
+                            className="max-h-48 max-w-xs object-contain rounded-xl border bg-black/5 shadow-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {row.status === "pending" && (
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => { setApproveFor(row); setApprovePoints(defaultApprovePoints(row)); }}>Approve</Button>
