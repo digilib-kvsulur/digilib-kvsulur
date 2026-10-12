@@ -160,8 +160,11 @@ export default function VacationStudentPage({
         dateStr: "",
         mainActivity: null as VacationActivity | null,
         quizActivity: null as VacationActivity | null,
-        isCompleted: false,
-        isQuizCompleted: false,
+        isMainApproved: false,
+        isMainSubmitted: false,
+        isQuizApproved: false,
+        isQuizSubmitted: false,
+        isToday: false,
       }));
     }
     const startDate = new Date(campaign.start_date);

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Wrench, BookOpen, Clock, Mail, X, Sparkles, Bell } from "lucide-react";
 
-// 12 Oct 2026, 8:00 PM IST = 12 Oct 2026, 14:30 UTC
-const MAINTENANCE_END = new Date("2026-10-12T14:30:00Z");
+// 12 Oct 2026, 7:45 PM IST = 12 Oct 2026, 14:15 UTC
+const MAINTENANCE_END = new Date("2026-10-12T14:15:00Z");
 
 function getTimeLeft() {
   const diff = MAINTENANCE_END.getTime() - Date.now();
@@ -125,7 +125,7 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         <br /><br />
         Our team is working tirelessly to get the site back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
-          today, 8:00 PM IST
+          today, 7:45 PM IST
         </span>. Your patience and cooperation mean the world to us.
         <br /><br />
         Thank you for being part of this journey. 🙏
@@ -239,7 +239,7 @@ export default function Maintenance() {
           >
           We're performing scheduled maintenance on DLMS. We'll be back online by:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-              today, 8:00 PM IST
+              today, 7:45 PM IST
             </span>
             .
           </p>

@@ -63,8 +63,8 @@ const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
 const TEACHER_ROLES = ["teacher", "admin"] as const;
 
-// Maintenance window: until 12 Oct 2026, 8:00 PM IST (14:30 UTC)
-const MAINTENANCE_UNTIL = new Date("2026-10-12T14:30:00Z");
+// Maintenance window: until 12 Oct 2026, 7:45 PM IST (14:15 UTC)
+const MAINTENANCE_UNTIL = new Date("2026-10-12T14:15:00Z");
 
 const PageLoader = () => {
   const [show, setShow] = useState(false);
