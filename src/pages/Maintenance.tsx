@@ -112,23 +112,18 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         className="text-sm sm:text-base leading-relaxed"
         style={{ color: "hsl(var(--muted-foreground))" }}
       >
-        Dear Students,
+        Dear Students & Teachers,
         <br /><br />
-        Developers <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          
-        </span> {" "}
-        <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          Out of Station
-        </span>{" "}
+        We are currently undergoing <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+          routine scheduled maintenance
+        </span> for a few minutes to apply essential updates and improvements to the system.
         <br /><br />
-        We are extremely sorry, the chief Developer is out of station, hence we are facing issues with correcting the frontend.
-        <br /><br />
-        Our team is working tirelessly to get the site back online by{" "}
+        The site will be back online smoothly by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
           today, 7:45 PM IST
-        </span>. Your patience and cooperation mean the world to us.
+        </span>.
         <br /><br />
-        Thank you for being part of this journey. 🙏
+        Thank you for your patience and cooperation. 🙏
       </p>
 
       {/* Signature */}
@@ -140,10 +135,10 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         }}
       >
         <p className="text-xs sm:text-sm font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          — Team DLMS
+          — G V Tanish Vettrivel
         </p>
         <p className="text-[10px] sm:text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
-          PM SHRI KV AFS Sulur
+          Developer · PM SHRI KV AFS Sulur
         </p>
       </div>
 
