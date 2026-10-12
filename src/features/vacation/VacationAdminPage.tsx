@@ -898,12 +898,15 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                     <Trophy className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                     Attach DLMS Quiz (optional)
                   </Label>
-                  <Select value={editorQuizId} onValueChange={setEditorQuizId}>
+                  <Select
+                    value={editorQuizId || "__none__"}
+                    onValueChange={(v) => setEditorQuizId(v === "__none__" ? "" : v)}
+                  >
                     <SelectTrigger className="h-8 text-xs bg-background">
                       <SelectValue placeholder="Choose quiz from DLMS..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">-- None (Open Live Championship / Manual Score) --</SelectItem>
+                      <SelectItem value="__none__">-- None (Open Live Championship / Manual Score) --</SelectItem>
                       {availableQuizzes.map((q) => (
                         <SelectItem key={q.id} value={q.id}>{q.title} ({q.subject})</SelectItem>
                       ))}
