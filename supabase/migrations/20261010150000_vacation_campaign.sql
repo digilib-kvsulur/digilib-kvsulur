@@ -58,7 +58,7 @@ create table if not exists public.vacation_campaigns (
   end_date         date not null,
   timezone         text not null default 'Asia/Kolkata',
   default_points   int  not null default 10 check (default_points >= 0),
-  max_award_points int  not null default 100 check (max_award_points >= 0),
+  max_award_points int  not null default 1000 check (max_award_points >= 0),
   banner_enabled   boolean not null default false,
   banner_text      text check (banner_text is null or char_length(banner_text) <= 300),
   banner_link      text check (banner_link is null or banner_link ~* '^(https?://|/)'),
