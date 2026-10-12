@@ -51,8 +51,8 @@ const emptyCampaign = {
   start_date: "",
   end_date: "",
   timezone: "Asia/Kolkata",
-  default_points: 10,
-  max_award_points: 100,
+  default_points: 500,
+  max_award_points: 1000,
   status: "draft" as VacationCampaignStatus,
   banner_enabled: false,
   banner_text: "",
@@ -232,18 +232,18 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
       start_date: startStr,
       end_date: endStr,
       timezone: "Asia/Kolkata",
-      default_points: 10,
-      max_award_points: 100,
+      default_points: 500,
+      max_award_points: 1000,
       status: "active",
       banner_enabled: true,
       banner_text: "DLMS New Games & Competitions: Play • Learn • Grow! 10 fun challenges for real-world skills.",
       banner_link: "",
     });
     setMilestones([
-      { days: "3", bonus_points: "15" },
-      { days: "5", bonus_points: "30" },
-      { days: "7", bonus_points: "50" },
-      { days: "10", bonus_points: "100" },
+      { days: "3", bonus_points: "100" },
+      { days: "5", bonus_points: "250" },
+      { days: "7", bonus_points: "500" },
+      { days: "10", bonus_points: "1000" },
     ]);
     toast({ title: "Poster campaign prefilled!", description: "Click 'Save campaign' or 'Create campaign' to apply." });
   };
@@ -262,8 +262,8 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
           start_date: startStr,
           end_date: endStr,
           timezone: "Asia/Kolkata",
-          default_points: 10,
-          max_award_points: 100,
+          default_points: 500,
+          max_award_points: 1000,
           status: "active",
           banner_enabled: true,
           banner_text: "DLMS 10 Days • 10 Challenges + Daily Live Quiz Championships! Play, Learn & Win points.",
@@ -291,20 +291,20 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
         start_date: startStr,
         end_date: endStr,
         timezone: targetCampaign.timezone || "Asia/Kolkata",
-        default_points: targetCampaign.default_points || 10,
-        max_award_points: targetCampaign.max_award_points || 100,
+        default_points: 500,
+        max_award_points: 1000,
         status: "active",
         banner_enabled: true,
         banner_text: "DLMS 10 Days • 10 Challenges + Daily Live Quiz Championships! Play, Learn & Win points.",
         banner_link: "",
       });
 
-      // 2. Setup milestones (3, 5, 7, 10 days)
+      // 2. Setup milestones (100 for 3 days, 250 for 5 days, 500 for 7 days, 1000 for 10 days)
       await replaceMilestones(targetCampaign.id, [
-        { days: 3, bonus_points: 15 },
-        { days: 5, bonus_points: 30 },
-        { days: 7, bonus_points: 50 },
-        { days: 10, bonus_points: 100 },
+        { days: 3, bonus_points: 100 },
+        { days: 5, bonus_points: 250 },
+        { days: 7, bonus_points: 500 },
+        { days: 10, bonus_points: 1000 },
       ]);
 
       // 3. Upsert 10 Main Events + 10 Daily Quiz Championships
@@ -314,7 +314,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
         d.setDate(startDate.getDate() + item.dateOffset);
         const dateStr = d.toISOString().split("T")[0];
 
-        // Track 1: Main Event
+        // Track 1: Main Event (500 points for creative challenge)
         await upsertActivity({
           campaign_id: targetCampaign.id,
           title: item.event.title,
@@ -323,11 +323,11 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
           activity_date: dateStr,
           opens_at: `${dateStr}T06:00:00`,
           closes_at: `${dateStr}T23:59:59`,
-          reward_points: targetCampaign.default_points || 10,
+          reward_points: 500,
           is_active: true,
         });
 
-        // Track 2: Daily Live Quiz Championship
+        // Track 2: Daily Live Quiz Championship (250 points, Day 10 Grand Finale 500 points)
         await upsertActivity({
           campaign_id: targetCampaign.id,
           title: item.quizChampionship.title,
@@ -391,7 +391,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
           opens_at: `${dateStr}T06:00:00`,
           closes_at: `${dateStr}T23:59:59`,
           is_active: true,
-          reward_points: sorted[i].reward_points ?? campaign.default_points ?? 10,
+          reward_points: sorted[i].reward_points ?? campaign.default_points ?? 500,
         });
       }
       toast({
@@ -408,7 +408,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
 
   const defaultApprovePoints = (row: VacationSubmission) => {
     const act = activities.find((a) => a.id === row.activity_id);
-    return String(act?.reward_points ?? campaign?.default_points ?? 10);
+    return String(act?.reward_points ?? campaign?.default_points ?? 500);
   };
 
   return (

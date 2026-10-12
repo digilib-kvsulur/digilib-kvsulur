@@ -268,7 +268,7 @@ export const TEN_DAYS_PROGRAM: DayProgram[] = [
       description: "Fast-paced live trivia on scientific discoveries, modern technology, and famous inventors. Test your speed and accuracy!",
       instructions: `[TYPE:quiz]\n**Tagline:** Explore • Discover • Score\n\n**Championship Brief:**\nParticipate in today's Day 1 Live Quiz Championship covering fundamental science, robotics, space exploration, and tech breakthroughs.\n\n**What you learn:**\n• Scientific curiosity & fact recall\n• Rapid decision making\n• Competition under time pressure\n\n**Submission:** Complete today's quiz in the Quizzes tab or live championship room, and record your score!`,
       subject: "Science & Tech",
-      rewardPoints: 15,
+      rewardPoints: 250,
     },
   },
   {
@@ -282,7 +282,7 @@ export const TEN_DAYS_PROGRAM: DayProgram[] = [
       description: "Battle live in questions spanning web literacy, search skills, AI basics, and digital puzzles.",
       instructions: `[TYPE:quiz]\n**Tagline:** Scan • Process • Prevail\n\n**Championship Brief:**\nTest your digital navigation skills, internet facts, and computing concepts in this rapid 15-minute quiz battle.\n\n**What you learn:**\n• Digital fluency\n• Search efficiency\n• Critical digital analysis\n\n**Submission:** Complete the live quiz and submit your score to claim your multiplier points.`,
       subject: "Computer Science & IT",
-      rewardPoints: 15,
+      rewardPoints: 250,
     },
   },
   {
@@ -296,7 +296,7 @@ export const TEN_DAYS_PROGRAM: DayProgram[] = [
       description: "Trivia on ecosystems, biodiversity, renewable energy, climate heroes, and conservation champions.",
       instructions: `[TYPE:quiz]\n**Tagline:** Green Brain • Clean Earth\n\n**Championship Brief:**\nShowcase your environmental knowledge! Answer questions on wildlife, green energy, oceans, and eco-conservation.\n\n**What you learn:**\n• Environmental literacy\n• Sustainable practices awareness\n• Global ecology concepts\n\n**Submission:** Participate in the live quiz or submit your score reflection.`,
       subject: "Environmental Science",
-      rewardPoints: 15,
+      rewardPoints: 250,
     },
   },
   {
@@ -310,7 +310,7 @@ export const TEN_DAYS_PROGRAM: DayProgram[] = [
       description: "Spot phishing scams, decode digital privacy rules, identify fake news, and become a certified cyber guardian.",
       instructions: `[TYPE:quiz]\n**Tagline:** Think • Click • Stay Safe\n\n**Championship Brief:**\nA scenario-based live quiz on phishing detection, password hygiene, media literacy, and safe digital behavior.\n\n**What you learn:**\n• Scam & phishing awareness\n• Data privacy principles\n• Media fact-checking\n\n**Submission:** Record your cyber safety championship score and your #1 safety takeaway.`,
       subject: "Cyber Safety",
-      rewardPoints: 15,
+      rewardPoints: 250,
     },
   },
   {
@@ -324,7 +324,7 @@ export const TEN_DAYS_PROGRAM: DayProgram[] = [
       description: "Challenge your vocabulary, idioms, word roots, tongue twisters, and grammatical precision against time.",
       instructions: `[TYPE:quiz]\n**Tagline:** Vocabulary • Idioms • Eloquence\n\n**Championship Brief:**\nSprint through 15 high-energy language challenges: vocabulary matches, idioms in action, and smart communication traps.\n\n**What you learn:**\n• Vocabulary expansion\n• Idiomatic expressions\n• Language speed & fluency\n\n**Submission:** Take the English championship quiz and submit your score.`,
       subject: "English & Communication",
-      rewardPoints: 15,
+      rewardPoints: 250,
     },
   },
   {
@@ -338,7 +338,7 @@ export const TEN_DAYS_PROGRAM: DayProgram[] = [
       description: "Historical timelines, monumental architecture, freedom fighters, world landmarks, and timeless civilizations.",
       instructions: `[TYPE:quiz]\n**Tagline:** Uncover • Identify • Triumph\n\n**Championship Brief:**\nJourney through centuries of history, map puzzles, and historical trivia in today's high-octane quiz championship.\n\n**What you learn:**\n• Indian and world history\n• Geography & map literacy\n• Historical context and legacy\n\n**Submission:** Join the history battle lobby and submit your results.`,
       subject: "History & Heritage",
-      rewardPoints: 15,
+      rewardPoints: 250,
     },
   },
   {
@@ -352,7 +352,7 @@ export const TEN_DAYS_PROGRAM: DayProgram[] = [
       description: "Lightning-fast arithmetic, pattern recognition, mental estimation tricks, and logical brain benders.",
       instructions: `[TYPE:quiz]\n**Tagline:** Calculate • Accelerate • Conquer\n\n**Championship Brief:**\nPut your calculator away! Race against the buzzer with mental calculation hacks, sequence patterns, and logic traps.\n\n**What you learn:**\n• Rapid mental arithmetic\n• Number agility and patterns\n• Focus under time constraints\n\n**Submission:** Complete the Math Marathon Quiz Championship and record your score.`,
       subject: "Mathematics & Logic",
-      rewardPoints: 15,
+      rewardPoints: 250,
     },
   },
   {
@@ -366,7 +366,7 @@ export const TEN_DAYS_PROGRAM: DayProgram[] = [
       description: "Famous paintings, world architecture, musical breakthroughs, classical traditions, and design marvels.",
       instructions: `[TYPE:quiz]\n**Tagline:** Visuals • Masterpieces • Ingenuity\n\n**Championship Brief:**\nIdentify famous masterpieces, artistic styles, world culture trivia, and creative design innovations.\n\n**What you learn:**\n• Cultural awareness\n• Art history appreciation\n• Creative design thinking\n\n**Submission:** Record your quiz score and submit for Day 8 bonus points.`,
       subject: "Arts & World Culture",
-      rewardPoints: 15,
+      rewardPoints: 250,
     },
   },
   {
@@ -380,7 +380,7 @@ export const TEN_DAYS_PROGRAM: DayProgram[] = [
       description: "Caesar ciphers, lateral thinking riddles, logical deductions, and deductive detective conundrums.",
       instructions: `[TYPE:quiz]\n**Tagline:** Crack • Deduce • Unlock\n\n**Championship Brief:**\nCan you crack the code before time expires? Decode ciphers, unravel tricky riddles, and test your deduction power.\n\n**What you learn:**\n• Cryptography & cipher logic\n• Deductive reasoning\n• Lateral thinking skills\n\n**Submission:** Submit your code-breaker quiz performance confirmation.`,
       subject: "Logic & Cryptography",
-      rewardPoints: 15,
+      rewardPoints: 250,
     },
   },
   {
@@ -394,7 +394,7 @@ export const TEN_DAYS_PROGRAM: DayProgram[] = [
       description: "The grand capstone quiz combining best questions from Science, History, Math, Tech, Nature, and Arts!",
       instructions: `[TYPE:quiz]\n**Tagline:** The Final Showdown • Ultimate Champion\n\n**Championship Brief:**\nThe ultimate test of the 10-day vacation! All subjects, highest multiplier bonus, and crowning the Vacation Grand Mastermind.\n\n**What you learn:**\n• Comprehensive knowledge retention\n• Endurance and peak performance\n• Celebration of multi-disciplinary learning\n\n**Submission:** Complete the Grand Finale Championship to unlock the Day 10 Mastermind badge!`,
       subject: "All-Round Mastermind",
-      rewardPoints: 25,
+      rewardPoints: 500,
     },
   },
 ];
