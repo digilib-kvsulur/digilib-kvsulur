@@ -838,13 +838,22 @@ const QuizManager = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             onClick={() => handleOpenScheduleModal()}
             className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold shadow-md shadow-indigo-600/20"
           >
             <Calendar className="h-4 w-4 mr-2" />
             Schedule Live League
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => setActiveTab("bulk-import")}
+            className="border-indigo-500/30 hover:bg-indigo-500/10 font-bold"
+          >
+            <Upload className="h-4 w-4 mr-2 text-indigo-600 dark:text-indigo-400" />
+            Bulk Import Quizzes
           </Button>
 
           <Button onClick={handleCreateQuiz} className="bg-blue-600 hover:bg-blue-700 font-bold">
@@ -854,7 +863,7 @@ const QuizManager = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="leagues" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="bg-muted/60 p-1">
           <TabsTrigger value="leagues" className="flex items-center gap-2 font-bold">
             <Flame className="h-4 w-4 text-amber-500" />
@@ -874,7 +883,7 @@ const QuizManager = () => {
             Student Results
           </TabsTrigger>
           <TabsTrigger value="bulk-import" className="flex items-center gap-2 font-bold">
-            <Upload className="h-4 w-4" />
+            <Upload className="h-4 w-4 text-indigo-500" />
             Bulk Import
           </TabsTrigger>
         </TabsList>
@@ -1073,7 +1082,28 @@ const QuizManager = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="quizzes">
+        <TabsContent value="quizzes" className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border/60">
+            <div>
+              <h3 className="text-base font-bold text-foreground">Available Quizzes</h3>
+              <p className="text-xs text-muted-foreground">Showing {quizzes.length} total quizzes</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveTab("bulk-import")}
+                className="font-bold border-indigo-500/30 hover:bg-indigo-500/10"
+              >
+                <Upload className="h-3.5 w-3.5 mr-1.5 text-indigo-600 dark:text-indigo-400" />
+                Bulk Import
+              </Button>
+              <Button size="sm" onClick={handleCreateQuiz} className="bg-blue-600 hover:bg-blue-700 font-bold">
+                <Plus className="h-3.5 w-3.5 mr-1.5" /> Create Quiz
+              </Button>
+            </div>
+          </div>
+
           <div className="grid gap-6">
             {quizzes.map((quiz) => (
               <Card key={quiz.id}>
@@ -1161,13 +1191,22 @@ const QuizManager = () => {
 
             {quizzes.length === 0 && (
               <Card>
-                <CardContent className="text-center py-12">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No quizzes created yet</h3>
-                  <p className="text-gray-600 mb-4">Create your first quiz to get started with interactive learning.</p>
-                  <Button onClick={handleCreateQuiz} className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Quiz
-                  </Button>
+                <CardContent className="text-center py-12 space-y-3">
+                  <div className="h-12 w-12 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center mx-auto mb-2">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-foreground">No quizzes created yet</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">Create a quiz manually or use bulk import to add multiple quizzes from a CSV/JSON file.</p>
+                  <div className="flex flex-wrap justify-center gap-2 pt-2">
+                    <Button onClick={() => setActiveTab("bulk-import")} variant="outline" className="font-bold">
+                      <Upload className="h-4 w-4 mr-2 text-indigo-600" />
+                      Bulk Import Quizzes
+                    </Button>
+                    <Button onClick={handleCreateQuiz} className="bg-blue-600 hover:bg-blue-700 font-bold">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Quiz
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1260,7 +1299,13 @@ const QuizManager = () => {
         <TabsContent value="bulk-import">
           <Card>
             <CardContent className="pt-6">
-              <BulkImportQuiz onDone={loadQuizzes} />
+              <BulkImportQuiz
+                onDone={loadQuizzes}
+                onNavigateToQuizzes={() => {
+                  loadQuizzes();
+                  setActiveTab("quizzes");
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
