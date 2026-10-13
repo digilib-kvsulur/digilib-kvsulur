@@ -13535,6 +13535,20 @@ commit;
 
 
 -- >>> FILE: 20261013120000_admin_lifetime_points_reset.sql
+DROP TRIGGER IF EXISTS trg_profile_points_badge ON public.profiles;
+CREATE TRIGGER trg_profile_points_badge
+  AFTER UPDATE OF points ON public.profiles
+  FOR EACH ROW
+  WHEN (NEW.points > OLD.points)
+  EXECUTE FUNCTION public.tg_check_profile_badges();
+
+DROP TRIGGER IF EXISTS notify_level_up ON public.profiles;
+CREATE TRIGGER notify_level_up
+  AFTER UPDATE OF points ON public.profiles
+  FOR EACH ROW
+  WHEN (NEW.points > OLD.points)
+  EXECUTE FUNCTION public.tg_notify_level_up();
+
 CREATE TABLE IF NOT EXISTS public.points_reset_audit (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   admin_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -13585,6 +13599,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
+SET statement_timeout = '60s'
 AS $$
 DECLARE
   v_admin_id uuid := auth.uid();
@@ -13595,6 +13610,8 @@ DECLARE
   v_audit_id uuid;
   v_top_students jsonb;
 BEGIN
+  PERFORM set_config('statement_timeout', '60000', true);
+
   IF v_admin_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
@@ -13639,7 +13656,7 @@ BEGIN
     SELECT count(*), coalesce(sum(points), 0)
     INTO v_students_affected, v_total_points_cleared
     FROM public.profiles
-    WHERE role = 'student';
+    WHERE role = 'student' AND (points > 0 OR monthly_points > 0);
 
     SELECT jsonb_agg(sub) INTO v_top_students
     FROM (
@@ -13654,7 +13671,7 @@ BEGIN
     SELECT count(*), coalesce(sum(points), 0)
     INTO v_students_affected, v_total_points_cleared
     FROM public.profiles
-    WHERE role = 'student' AND student_class = p_target_class;
+    WHERE role = 'student' AND student_class = p_target_class AND (points > 0 OR monthly_points > 0);
 
     SELECT jsonb_agg(sub) INTO v_top_students
     FROM (
@@ -13669,7 +13686,7 @@ BEGIN
     SELECT count(*), coalesce(sum(points), 0)
     INTO v_students_affected, v_total_points_cleared
     FROM public.profiles
-    WHERE role = 'student' AND id = ANY(p_student_ids);
+    WHERE role = 'student' AND id = ANY(p_student_ids) AND (points > 0 OR monthly_points > 0);
 
     SELECT jsonb_agg(sub) INTO v_top_students
     FROM (
@@ -13684,17 +13701,17 @@ BEGIN
   IF p_scope = 'all_students' THEN
     UPDATE public.profiles
     SET points = 0, monthly_points = 0, updated_at = now()
-    WHERE role = 'student';
+    WHERE role = 'student' AND (points > 0 OR monthly_points > 0);
 
   ELSIF p_scope = 'class' THEN
     UPDATE public.profiles
     SET points = 0, monthly_points = 0, updated_at = now()
-    WHERE role = 'student' AND student_class = p_target_class;
+    WHERE role = 'student' AND student_class = p_target_class AND (points > 0 OR monthly_points > 0);
 
   ELSE
     UPDATE public.profiles
     SET points = 0, monthly_points = 0, updated_at = now()
-    WHERE role = 'student' AND id = ANY(p_student_ids);
+    WHERE role = 'student' AND id = ANY(p_student_ids) AND (points > 0 OR monthly_points > 0);
   END IF;
 
   IF p_notify_students AND v_students_affected > 0 THEN
@@ -13707,7 +13724,7 @@ BEGIN
         id,
         v_admin_id
       FROM public.profiles
-      WHERE role = 'student';
+      WHERE role = 'student' AND (points > 0 OR monthly_points > 0);
 
     ELSIF p_scope = 'class' THEN
       INSERT INTO public.notifications (title, message, type, target_user_id, sent_by)
@@ -13718,7 +13735,7 @@ BEGIN
         id,
         v_admin_id
       FROM public.profiles
-      WHERE role = 'student' AND student_class = p_target_class;
+      WHERE role = 'student' AND student_class = p_target_class AND (points > 0 OR monthly_points > 0);
 
     ELSE
       INSERT INTO public.notifications (title, message, type, target_user_id, sent_by)

@@ -6,8 +6,33 @@
 -- 3. Requires a minimum 5-character reason for audit trail
 -- 4. Automatically zeroes profiles.points and profiles.monthly_points
 -- 5. Immutably logs the operation in public.points_reset_audit
--- 6. Optionally notifies affected students
+-- 6. Optimizes triggers so level-up and badge checks DO NOT run during points resets (avoids statement timeout)
 
+-- ====================================================================
+-- 1. CRITICAL PERFORMANCE FIX: PREVENT TRIGGER RUNAWAY ON BULK POINT RESETS
+-- ====================================================================
+-- Previously, trg_profile_points_badge and notify_level_up fired on ANY update to points.
+-- When 500+ student points were reset, check_and_award_badges ran 8+ subqueries PER STUDENT,
+-- totaling thousands of heavy relational queries in a single statement, causing statement timeout.
+-- These triggers must ONLY fire when points increase (positive delta), never on resets or reductions!
+
+DROP TRIGGER IF EXISTS trg_profile_points_badge ON public.profiles;
+CREATE TRIGGER trg_profile_points_badge
+  AFTER UPDATE OF points ON public.profiles
+  FOR EACH ROW
+  WHEN (NEW.points > OLD.points)
+  EXECUTE FUNCTION public.tg_check_profile_badges();
+
+DROP TRIGGER IF EXISTS notify_level_up ON public.profiles;
+CREATE TRIGGER notify_level_up
+  AFTER UPDATE OF points ON public.profiles
+  FOR EACH ROW
+  WHEN (NEW.points > OLD.points)
+  EXECUTE FUNCTION public.tg_notify_level_up();
+
+-- ====================================================================
+-- 2. AUDIT TABLE FOR RESET OPERATIONS
+-- ====================================================================
 CREATE TABLE IF NOT EXISTS public.points_reset_audit (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   admin_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -46,7 +71,9 @@ CREATE POLICY "points_reset_audit_admin_select"
     )
   );
 
--- RPC: Admin Reset Lifetime Points
+-- ====================================================================
+-- 3. ATOMIC RPC: ADMIN RESET LIFETIME POINTS (HIGH SECURITY + OPTIMIZED)
+-- ====================================================================
 CREATE OR REPLACE FUNCTION public.admin_reset_lifetime_points(
   p_scope text,
   p_target_class text DEFAULT NULL,
@@ -59,6 +86,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
+SET statement_timeout = '60s'
 AS $$
 DECLARE
   v_admin_id uuid := auth.uid();
@@ -69,6 +97,9 @@ DECLARE
   v_audit_id uuid;
   v_top_students jsonb;
 BEGIN
+  -- 0. Set transaction-local statement timeout to 60s to prevent prematurely aborting
+  PERFORM set_config('statement_timeout', '60000', true);
+
   -- 1. Authentication check
   IF v_admin_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
@@ -81,7 +112,6 @@ BEGIN
   WHERE id = v_admin_id AND role = 'admin';
 
   IF v_admin_email IS NULL THEN
-    -- Check if super_admin
     IF EXISTS (SELECT 1 FROM public.super_admins WHERE auth_uid = v_admin_id AND is_active = true) THEN
       SELECT email, coalesce(trim(first_name || ' ' || last_name), email)
       INTO v_admin_email, v_admin_name
@@ -120,7 +150,7 @@ BEGIN
     SELECT count(*), coalesce(sum(points), 0)
     INTO v_students_affected, v_total_points_cleared
     FROM public.profiles
-    WHERE role = 'student';
+    WHERE role = 'student' AND (points > 0 OR monthly_points > 0);
 
     SELECT jsonb_agg(sub) INTO v_top_students
     FROM (
@@ -135,7 +165,7 @@ BEGIN
     SELECT count(*), coalesce(sum(points), 0)
     INTO v_students_affected, v_total_points_cleared
     FROM public.profiles
-    WHERE role = 'student' AND student_class = p_target_class;
+    WHERE role = 'student' AND student_class = p_target_class AND (points > 0 OR monthly_points > 0);
 
     SELECT jsonb_agg(sub) INTO v_top_students
     FROM (
@@ -150,7 +180,7 @@ BEGIN
     SELECT count(*), coalesce(sum(points), 0)
     INTO v_students_affected, v_total_points_cleared
     FROM public.profiles
-    WHERE role = 'student' AND id = ANY(p_student_ids);
+    WHERE role = 'student' AND id = ANY(p_student_ids) AND (points > 0 OR monthly_points > 0);
 
     SELECT jsonb_agg(sub) INTO v_top_students
     FROM (
@@ -162,24 +192,24 @@ BEGIN
     ) sub;
   END IF;
 
-  -- 7. Execute reset
+  -- 7. Execute reset ONLY on rows that actually have points > 0 to minimize locks & I/O
   IF p_scope = 'all_students' THEN
     UPDATE public.profiles
     SET points = 0, monthly_points = 0, updated_at = now()
-    WHERE role = 'student';
+    WHERE role = 'student' AND (points > 0 OR monthly_points > 0);
 
   ELSIF p_scope = 'class' THEN
     UPDATE public.profiles
     SET points = 0, monthly_points = 0, updated_at = now()
-    WHERE role = 'student' AND student_class = p_target_class;
+    WHERE role = 'student' AND student_class = p_target_class AND (points > 0 OR monthly_points > 0);
 
   ELSE -- 'selected'
     UPDATE public.profiles
     SET points = 0, monthly_points = 0, updated_at = now()
-    WHERE role = 'student' AND id = ANY(p_student_ids);
+    WHERE role = 'student' AND id = ANY(p_student_ids) AND (points > 0 OR monthly_points > 0);
   END IF;
 
-  -- 8. Optionally notify affected students
+  -- 8. Optionally notify affected students (only students who actually had points cleared)
   IF p_notify_students AND v_students_affected > 0 THEN
     IF p_scope = 'all_students' THEN
       INSERT INTO public.notifications (title, message, type, target_user_id, sent_by)
@@ -190,7 +220,7 @@ BEGIN
         id,
         v_admin_id
       FROM public.profiles
-      WHERE role = 'student';
+      WHERE role = 'student' AND (points > 0 OR monthly_points > 0);
 
     ELSIF p_scope = 'class' THEN
       INSERT INTO public.notifications (title, message, type, target_user_id, sent_by)
@@ -201,7 +231,7 @@ BEGIN
         id,
         v_admin_id
       FROM public.profiles
-      WHERE role = 'student' AND student_class = p_target_class;
+      WHERE role = 'student' AND student_class = p_target_class AND (points > 0 OR monthly_points > 0);
 
     ELSE -- 'selected'
       INSERT INTO public.notifications (title, message, type, target_user_id, sent_by)
@@ -261,7 +291,9 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_reset_lifetime_points(text, text, uuid[], text, text, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_reset_lifetime_points(text, text, uuid[], text, text, boolean) TO authenticated;
 
--- RPC: Get Points Reset Audit Logs
+-- ====================================================================
+-- 4. RPC: GET POINTS RESET AUDIT LOGS
+-- ====================================================================
 CREATE OR REPLACE FUNCTION public.get_points_reset_audit(p_limit integer DEFAULT 50)
 RETURNS TABLE (
   id uuid,
