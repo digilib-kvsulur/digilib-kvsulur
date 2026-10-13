@@ -715,14 +715,6 @@ export default function VacationStudentPage({
                   </Button>
                 </div>
               </div>
-                    variant="outline"
-                    className="w-full border-sky-500/40 text-foreground hover:bg-sky-500/10 font-bold text-xs gap-1.5 h-9"
-                  >
-                    <UploadCloud className="h-3.5 w-3.5 text-sky-600" />
-                    {currentSubmission ? "View / Edit Project Entry" : "📝 Submit Project Write-up / Photo"}
-                  </Button>
-                </div>
-              </div>
 
               {/* Status Banner */}
               {currentSubmission && (
@@ -900,7 +892,7 @@ export default function VacationStudentPage({
         dayTitle={selectedDayData.event.title}
         campaignId={campaign?.id}
         activityId={activeCompetition.id}
-        studentName={overview?.progress?.display_name || undefined}
+        studentName={board.find((b) => b.is_me)?.display_name || undefined}
         onClose={() => setGameModalOpen(false)}
         onComplete={handleGameComplete}
       />
@@ -918,6 +910,30 @@ export default function VacationStudentPage({
           </DialogHeader>
 
           <div className="space-y-3 pt-2">
+            {/* Team Members Input (For Team or Individual Mode) */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5 text-amber-500" />
+                  Team Members (Optional for solo, required for teams):
+                </Label>
+                {selectedDayData.event.recommendedTeamSize && (
+                  <span className="text-[10px] text-muted-foreground font-semibold">
+                    Rec. size: {selectedDayData.event.recommendedTeamSize}
+                  </span>
+                )}
+              </div>
+              <Input
+                value={teamMembers}
+                onChange={(e) => setTeamMembers(e.target.value)}
+                placeholder="e.g. Aarav Sharma (8A, Roll 12), Priya Nair (8A, Roll 24)"
+                className="text-xs"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                All team members credited will receive points and badges!
+              </p>
+            </div>
+
             <div className="space-y-1">
               <Label className="text-xs font-bold">Project Summary / Solution Description:</Label>
               <Textarea
@@ -996,6 +1012,91 @@ export default function VacationStudentPage({
                 className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
               >
                 {saving ? "Submitting..." : "Submit for Teacher Review →"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= TEAM FORMATION & PROGRAM GUIDE MODAL ================= */}
+      <Dialog open={regModalOpen} onOpenChange={setRegModalOpen}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto p-5 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg font-black flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-500" />
+              DLMS Autumn Break Master Program Guide
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              PM SHRI Kendriya Vidyalaya AFS Sulur • 10 Days • 10 Events • Real Skills
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2 text-xs">
+            {/* Timeline Breakdown */}
+            <div className="p-3 rounded-xl border bg-muted/40 space-y-2">
+              <p className="font-bold uppercase tracking-wider text-muted-foreground text-[10px]">
+                Official Program Schedule:
+              </p>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-card border font-semibold">
+                  <span className="text-amber-700 dark:text-amber-300">📅 14 October 2026</span>
+                  <span>Registration &amp; Team Formation</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-card border font-semibold">
+                  <span className="text-primary">🏆 15–24 October 2026</span>
+                  <span>10 Daily Competitions + Live Quizzes (8 AM–6 PM)</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-card border font-semibold">
+                  <span className="text-emerald-600 dark:text-emerald-400">🎉 25 October 2026</span>
+                  <span>Results, Grand Leaderboard &amp; Celebration</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Team Guidelines */}
+            <div className="p-3 rounded-xl border bg-card space-y-2">
+              <p className="font-bold uppercase tracking-wider text-muted-foreground text-[10px] flex items-center gap-1">
+                <Users className="h-3.5 w-3.5 text-amber-500" /> Team Formation Rules:
+              </p>
+              <ul className="space-y-1.5 text-muted-foreground list-disc pl-4 leading-relaxed">
+                <li><strong className="text-foreground">Individual or Team:</strong> You can participate individually in all events, or form teams of 2 to 4 members.</li>
+                <li><strong className="text-foreground">Collaborative Events:</strong> Teams are especially encouraged for Day 1 (Bridge Engineering), Day 3 (Eco-Innovator), and Day 10 (Future-Ready India Pitch).</li>
+                <li><strong className="text-foreground">Team Credit:</strong> Simply list your teammates' Names, Classes, and Admission Numbers when submitting. All teammates receive credit upon approval.</li>
+                <li><strong className="text-foreground">Cross-Class Teams:</strong> Allowed between Class 6 to 12!</li>
+              </ul>
+            </div>
+
+            {/* Point Standards & XP Conversion */}
+            <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-2">
+              <p className="font-black text-amber-800 dark:text-amber-200 uppercase tracking-wider text-[10px]">
+                DLMS Point Standards (1 Point = 5 XP):
+              </p>
+              <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                <div className="p-2 rounded-lg bg-card/80 border">
+                  <p className="font-bold text-foreground">Main Event</p>
+                  <p className="text-amber-700 dark:text-amber-300 font-black">100 Pts = 500 XP</p>
+                </div>
+                <div className="p-2 rounded-lg bg-card/80 border">
+                  <p className="font-bold text-foreground">Daily Live Quiz</p>
+                  <p className="text-amber-700 dark:text-amber-300 font-black">50 Pts = 250 XP</p>
+                </div>
+                <div className="p-2 rounded-lg bg-card/80 border">
+                  <p className="font-bold text-foreground">Day 10 Quiz Finale</p>
+                  <p className="text-amber-700 dark:text-amber-300 font-black">100 Pts = 500 XP</p>
+                </div>
+                <div className="p-2 rounded-lg bg-card/80 border">
+                  <p className="font-bold text-foreground">10-Day Streak</p>
+                  <p className="text-amber-700 dark:text-amber-300 font-black">+200 Pts = 1,000 XP</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <Button
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+                onClick={() => setRegModalOpen(false)}
+              >
+                Got It! Ready to Compete 🚀
               </Button>
             </div>
           </div>
