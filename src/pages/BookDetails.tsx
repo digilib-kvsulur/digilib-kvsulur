@@ -143,6 +143,7 @@ export default function BookDetails() {
           setMyText("");
           setMyReviewId(null);
         }
+        setHasReviewedToday(((todayCountRes as any)?.count ?? 0) >= 1);
       }
 
       setRelatedBooks(relsRes.data || []);
