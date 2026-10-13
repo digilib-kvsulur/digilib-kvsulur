@@ -577,7 +577,7 @@ export const LifetimePointsReset: React.FC<LifetimePointsResetProps> = ({
             <CardDescription className="mt-1">
               Immutable historical records of previous lifetime points resets.
             </CardDescription>
-          </CardHeader>
+          </div>
           <Button
             variant="outline"
             size="sm"

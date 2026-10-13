@@ -14,10 +14,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { sendLevelUpEmail } from "@/lib/autoEmail";
 import BulkImportPoints from "@/components/admin/BulkImportPoints";
+import LifetimePointsReset from "@/components/admin/LifetimePointsReset";
 import { cn } from "@/lib/utils";
 import {
   Award, Plus, CheckSquare, BookOpen, Settings2, CheckCircle, XCircle, Clock,
   CheckCheck, X, ChevronsUpDown, Check, AlertTriangle, History, Eraser, Zap,
+  RotateCcw,
 } from "lucide-react";
 
 interface User {
@@ -34,6 +36,7 @@ const PAGE_SIZE = 1000;
 
 const PointsManager = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("award");
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [awarding, setAwarding] = useState(false);
@@ -465,7 +468,7 @@ const PointsManager = () => {
         <h2 className="text-2xl font-bold text-foreground">Points Management</h2>
         <p className="text-sm text-muted-foreground">Award, import, adjust, and manage student points.</p>
       </div>
-      <Tabs defaultValue="award">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4 flex-wrap h-auto">
           <TabsTrigger value="award" className="gap-2"><Award className="h-4 w-4" /> Manage Points</TabsTrigger>
           <TabsTrigger value="readings" className="gap-2">
@@ -475,6 +478,12 @@ const PointsManager = () => {
             )}
           </TabsTrigger>
           <TabsTrigger value="rules" className="gap-2"><Settings2 className="h-4 w-4" /> Points Rules</TabsTrigger>
+          <TabsTrigger
+            value="lifetime-reset"
+            className="gap-2 text-red-600 dark:text-red-400 data-[state=active]:text-red-600 dark:data-[state=active]:text-red-400 font-semibold"
+          >
+            <RotateCcw className="h-4 w-4" /> Lifetime Reset
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="award" className="space-y-6">
@@ -510,8 +519,16 @@ const PointsManager = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 flex-wrap">
                   <Button variant="outline" size="sm" onClick={() => setSelectedUserIds(new Set())}>Clear Selection</Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setActiveTab("lifetime-reset")}
+                    className="gap-1.5 font-semibold bg-red-600 hover:bg-red-500"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Reset Selected ({selectedUserIds.size})
+                  </Button>
                   <Button size="sm" disabled={bulkAwarding} onClick={handleBulkAwardPoints}>
                     {bulkAwarding ? "Awarding..." : `Award to ${selectedUserIds.size} Students`}
                   </Button>
@@ -679,15 +696,29 @@ const PointsManager = () => {
                               </span>
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => navigate(`/points-history?userId=${user.id}`)}
-                                className="h-7 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
-                                title="View Points History"
-                              >
-                                <Zap className="h-3.5 w-3.5" /> History
-                              </Button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/points-history?userId=${user.id}`)}
+                                  className="h-7 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                                  title="View Points History"
+                                >
+                                  <Zap className="h-3.5 w-3.5" /> History
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedUserIds(new Set([user.id]));
+                                    setActiveTab("lifetime-reset");
+                                  }}
+                                  className="h-7 text-xs gap-1 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10"
+                                  title="Reset student points"
+                                >
+                                  <RotateCcw className="h-3 w-3" /> Reset
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -827,6 +858,18 @@ const PointsManager = () => {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="lifetime-reset" className="space-y-6">
+          <LifetimePointsReset
+            allUsers={users}
+            classOptions={classOptions}
+            selectedUserIds={selectedUserIds}
+            onResetComplete={() => {
+              loadUsers();
+              setSelectedUserIds(new Set());
+            }}
+          />
         </TabsContent>
       </Tabs>
     </div>
