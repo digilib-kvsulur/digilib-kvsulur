@@ -809,55 +809,102 @@ export default function VacationStudentPage({
                 </div>
               ) : null}
 
-              {/* ACTION HUB: 2 Ways to Complete (Interactive Game/Lab OR Hands-On Project Upload) */}
+              {/* ACTION HUB: Mode A (Fun Practice Simulator) & Mode B (Official Hands-On Submission) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* Option 1: Interactive Lab / Game */}
-                <div className="p-4 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent space-y-3 flex flex-col justify-between">
+                {/* Option 1: Practice Simulator / Lab (JUST FOR FUN - 0 POINTS) */}
+                <div className="p-4 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent space-y-3 flex flex-col justify-between shadow-2xs">
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
-                        <Gamepad2 className="h-4 w-4" /> Mode A: Interactive Lab / Game
+                        <Gamepad2 className="h-4 w-4" /> Mode A: Practice Simulator
                       </span>
-                      <Badge className="bg-amber-600 text-white text-[10px]">Instant 500 XP</Badge>
+                      <Badge variant="secondary" className="text-[10px] font-bold text-muted-foreground">
+                        Practice Only • 0 Pts
+                      </Badge>
                     </div>
                     <h5 className="text-sm font-black text-foreground">Play In-App Simulation Challenge</h5>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Run the multi-stage interactive lab, structural physics testing, digital treasure clues, or canvas tools built right into DLMS!
+                      Practice and explore interactive lab models in-browser! Note: Simulator runs are for fun and skill learning. Official competition points (100 Pts / 500 XP) are awarded exclusively through Mode B hands-on project submissions on the scheduled date.
                     </p>
                   </div>
 
                   <Button
                     onClick={() => setGameModalOpen(true)}
-                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-md h-9"
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-xs h-9 transition-colors"
                   >
-                    <Play className="h-3.5 w-3.5" />
-                    {isCompleted ? "Replay Game / Simulation" : "🎮 Launch Day Game & Complete (500 XP)"}
+                    <Play className="h-3.5 w-3.5 text-white" />
+                    <span>🎮 Launch Practice Simulator (Fun Mode)</span>
                   </Button>
                 </div>
 
-                {/* Option 2: Hands-on Project / Write-up Submission */}
-                <div className="p-4 rounded-2xl border border-sky-500/40 bg-gradient-to-br from-sky-500/10 via-indigo-500/5 to-transparent space-y-3 flex flex-col justify-between">
+                {/* Option 2: Hands-on Project / Write-up Submission (OFFICIAL 100 PTS) */}
+                <div className="p-4 rounded-2xl border border-sky-500/40 bg-gradient-to-br from-sky-500/10 via-indigo-500/5 to-transparent space-y-3 flex flex-col justify-between shadow-2xs">
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase tracking-wider text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
                         <Camera className="h-4 w-4" /> Mode B: Hands-On Project Showcase
                       </span>
-                      <Badge variant="outline" className="text-[10px] font-bold">Photo / Write-Up</Badge>
+                      <Badge className="bg-sky-600 text-white text-[10px] font-bold">
+                        Official • 100 Pts (500 XP)
+                      </Badge>
                     </div>
-                    <h5 className="text-sm font-black text-foreground">Submit Physical Model or Research</h5>
+                    <h5 className="text-sm font-black text-foreground">Submit Physical Model, Write-up, or Media</h5>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Did you build a real bridge, shoot a video, write a speech, or create artwork at home? Share your writeup or photo proof!
+                      Build your model, conduct the experiment, create artwork, or prepare your write-up. Submit photos, PDFs, or links for teacher review and 100-point rubric grading.
                     </p>
                   </div>
 
-                  <Button
-                    onClick={() => setSubmitDialogOpen(true)}
-                    variant="outline"
-                    className="w-full border-sky-500/40 text-foreground hover:bg-sky-500/10 font-bold text-xs gap-1.5 h-9"
-                  >
-                    <UploadCloud className="h-3.5 w-3.5 text-sky-600" />
-                    {currentSubmission ? "View / Edit Project Entry" : "📝 Submit Project Write-up / Photo"}
-                  </Button>
+                  {canSubmitToday ? (
+                    <Button
+                      onClick={() => setSubmitDialogOpen(true)}
+                      className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs gap-1.5 h-9 shadow-xs transition-colors"
+                    >
+                      <UploadCloud className="h-3.5 w-3.5 text-white" />
+                      <span>{currentSubmission ? "View / Edit Project Entry" : "📝 Submit Hands-On Project (100 Pts)"}</span>
+                    </Button>
+                  ) : isUpcomingDay ? (
+                    <div className="space-y-1">
+                      <Button
+                        disabled
+                        className="w-full bg-muted text-muted-foreground font-semibold text-xs gap-1.5 h-9 cursor-not-allowed opacity-80"
+                      >
+                        <Lock className="h-3.5 w-3.5" />
+                        <span>Submissions Open on {selectedDayData.dateStr || `Day ${selectedDayNumber}`}</span>
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        🔒 Submissions accepted only on {selectedDayData.dateStr} (8:00 AM – 6:00 PM).
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Button
+                        disabled={!currentSubmission}
+                        onClick={() => currentSubmission && setSubmitDialogOpen(true)}
+                        className={`w-full text-xs gap-1.5 h-9 ${
+                          currentSubmission
+                            ? "bg-sky-600 hover:bg-sky-700 text-white font-bold"
+                            : "bg-muted text-muted-foreground font-semibold cursor-not-allowed opacity-80"
+                        }`}
+                      >
+                        {currentSubmission ? (
+                          <>
+                            <UploadCloud className="h-3.5 w-3.5 text-white" />
+                            <span>View Submitted Project Entry</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>Submission Window Closed ({selectedDayData.dateStr})</span>
+                          </>
+                        )}
+                      </Button>
+                      {!currentSubmission && (
+                        <p className="text-[10px] text-muted-foreground text-center">
+                          The deadline for this activity date has passed.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
