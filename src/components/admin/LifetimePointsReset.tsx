@@ -144,9 +144,9 @@ export const LifetimePointsReset: React.FC<LifetimePointsResetProps> = ({
           .select("*")
           .order("created_at", { ascending: false })
           .limit(50);
-        if (fallbackData) setAuditLogs(fallbackData as PointsResetAuditRow[]);
+        if (fallbackData) setAuditLogs(fallbackData as unknown as PointsResetAuditRow[]);
       } else if (data) {
-        setAuditLogs(data as PointsResetAuditRow[]);
+        setAuditLogs(data as unknown as PointsResetAuditRow[]);
       }
     } catch (err) {
       console.error("Failed to load points reset audit logs:", err);
