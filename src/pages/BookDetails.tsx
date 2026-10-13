@@ -47,6 +47,7 @@ export default function BookDetails() {
   const [generatingAi, setGeneratingAi] = useState(false);
   const [autofetching, setAutofetching] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [hasReviewedToday, setHasReviewedToday] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -83,7 +84,7 @@ export default function BookDetails() {
         triggerAutofetch(bookData);
       }
 
-      // Parallel: wishlist/reservation + reviews + related
+      // Parallel: wishlist/reservation + reviews + related + today's review count
       const userQueries = uid
         ? Promise.all([
             supabase.from("book_wishlist").select("id").eq("user_id", uid).eq("book_id", id).maybeSingle(),
@@ -99,6 +100,12 @@ export default function BookDetails() {
         .eq("is_hidden", false)
         .order("created_at", { ascending: false });
 
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayReviewCountQ = uid
+        ? supabase.from("book_reviews").select("id", { count: "exact", head: true }).eq("user_id", uid).gte("created_at", todayStart.toISOString())
+        : Promise.resolve({ count: 0 });
+
       const relatedQ = bookData.category
         ? supabase
             .from("books")
@@ -108,7 +115,7 @@ export default function BookDetails() {
             .limit(4)
         : Promise.resolve({ data: [] as any[] });
 
-      const [userResults, revsRes, relsRes] = await Promise.all([userQueries, reviewsQ, relatedQ]);
+      const [userResults, revsRes, todayCountRes, relsRes] = await Promise.all([userQueries, reviewsQ, todayReviewCountQ, relatedQ]);
 
       if (uid && Array.isArray(userResults)) {
         const [wl, rs, rq] = userResults as any[];
