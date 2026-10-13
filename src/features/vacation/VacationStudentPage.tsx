@@ -25,6 +25,13 @@ import {
   Award,
   Clock,
   Compass,
+  Search,
+  UserCheck,
+  UserPlus,
+  UserX,
+  Check,
+  X,
+  Copy,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,12 +57,21 @@ import {
 import VacationCountdownTimer from "./VacationCountdownTimer";
 import VacationGameArenaModal from "./games/VacationGameArenaModal";
 import { UpcomingQuizLeagueCard } from "@/components/quiz/UpcomingQuizLeagueCard";
+import {
+  createVacationTeam,
+  fetchMyVacationTeams,
+  formatTeamRoster,
+  respondVacationTeamInvite,
+  searchVacationPeers,
+} from "./teamsApi";
 import type {
   VacationActivity,
   VacationLeaderboardRow,
+  VacationPeerProfile,
   VacationStudentOverview,
   VacationSubmission,
   VacationSubmissionType,
+  VacationTeam,
 } from "./types";
 
 interface VacationStudentPageProps {
