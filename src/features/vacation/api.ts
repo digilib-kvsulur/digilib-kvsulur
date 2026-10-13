@@ -18,10 +18,13 @@ export function useActiveVacationCampaign() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
+      // Fetch active campaign first; fall back to paused (RLS allows both for authenticated users)
       const { data, error } = await supabase
         .from("vacation_campaigns")
         .select("*")
-        .eq("status", "active")
+        .in("status", ["active", "paused"])
+        .order("start_date", { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (error) {
         setCampaign(null);

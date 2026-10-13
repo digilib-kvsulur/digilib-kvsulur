@@ -1617,7 +1617,7 @@ const StudentDashboard = () => {
         onTabChange={(tab) => setActiveTab(tab as Tab)}
         onOpenMenu={() => setMobileNavOpen(true)}
         onCatalog={() => navigate("/catalog")}
-        showVacationCenter={Boolean(vacationCampaign?.status === "active")}
+        showVacationCenter={Boolean(vacationCampaign && ["active", "paused"].includes(vacationCampaign.status))}
       />
     </div>
   );

@@ -676,7 +676,7 @@ drop policy if exists vc_insert on public.vacation_campaigns;
 drop policy if exists vc_update on public.vacation_campaigns;
 drop policy if exists vc_delete on public.vacation_campaigns;
 create policy vc_select on public.vacation_campaigns for select to authenticated
-  using (status = 'active' or public.vacation_is_staff());
+  using (status in ('active', 'paused') or public.vacation_is_staff());
 create policy vc_insert on public.vacation_campaigns for insert to authenticated
   with check (public.vacation_is_admin());
 create policy vc_update on public.vacation_campaigns for update to authenticated
