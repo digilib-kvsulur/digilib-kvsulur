@@ -443,16 +443,18 @@ export default function VacationStudentPage({
   const isQuizChampionshipUnlocked = Boolean(!isDayToday || isPast7PmToday || isPastDay);
 
   // Problem statement unlocked rule:
-  // "once its selected. allot the problem statement at 8am randomly for the day or after the team selection (whichever is highest)."
+  // "alot the problem statement only after 8am (if its passed 8am, then after team formation) dont tell before 8am"
+  // Strictly locked before 8:00 AM on challenge days and on upcoming days.
   const isProblemUnlocked = Boolean(
-    dayParticipationMode && (!isDayToday || isPast8AmToday || isPastDay)
+    dayParticipationMode && ((isDayToday && isPast8AmToday) || isPastDay)
   );
 
   const dayProblemSet =
     AUTUMN_BREAK_PROBLEM_STATEMENTS[selectedDayNumber] || AUTUMN_BREAK_PROBLEM_STATEMENTS[1];
 
   const allottedProblemInfo = useMemo(() => {
-    if (!dayParticipationMode) return null;
+    // Strictly do not reveal or compute before 8:00 AM or before mode/team selection
+    if (!dayParticipationMode || !isProblemUnlocked) return null;
 
     const seed =
       dayParticipationMode.mode === "team" && dayParticipationMode.teamId
@@ -479,7 +481,7 @@ export default function VacationStudentPage({
       seed,
       allotmentTimeString,
     };
-  }, [dayParticipationMode, selectedDayNumber, dayProblemSet, userId]);
+  }, [dayParticipationMode, isProblemUnlocked, selectedDayNumber, dayProblemSet, userId]);
 
   const handleConfirmParticipationMode = (
     mode: "team" | "individual",
@@ -1272,14 +1274,27 @@ export default function VacationStudentPage({
 
                   {/* Allotment Timing Check: If today and before 8:00 AM, show countdown card */}
                   {!isProblemUnlocked ? (
-                    <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-center space-y-2">
-                      <Clock className="h-7 w-7 text-amber-600 mx-auto" />
-                      <h4 className="text-sm font-black text-amber-950 dark:text-amber-100">
-                        Problem Statement Unlocks at 8:00 AM
-                      </h4>
-                      <p className="text-xs text-amber-800 dark:text-amber-200 max-w-md mx-auto leading-relaxed">
-                        Your {dayParticipationMode.mode === "team" ? `team "${dayParticipationMode.teamName}"` : "solo participation"} is confirmed! At 8:00 AM, your randomly assigned problem statement will be revealed here.
-                      </p>
+                    <div className="p-6 rounded-2xl border-2 border-dashed border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent text-center space-y-3 shadow-xs">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center mx-auto border border-amber-500/30 shadow-xs">
+                        <Lock className="h-6 w-6 text-amber-600" />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-100 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30 inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>Release Time: 8:00 AM {isDayToday ? "Today" : (selectedDayData.dateStr || `Day ${selectedDayNumber}`)}</span>
+                        </span>
+                        <h4 className="text-base font-black text-amber-950 dark:text-amber-100 mt-1">
+                          Problem Statement Allotted at 8:00 AM
+                        </h4>
+                        <p className="text-xs text-amber-800 dark:text-amber-200 max-w-md mx-auto leading-relaxed">
+                          Your {dayParticipationMode.mode === "team" ? `team "${dayParticipationMode.teamName}"` : "individual (solo) participation"} is confirmed!
+                          Per official competition rules, problem statements are never disclosed before 8:00 AM. At <strong>8:00 AM sharp</strong>, your randomly allotted problem statement will be revealed here.
+                        </p>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-card border border-amber-500/20 max-w-sm mx-auto text-[11px] text-muted-foreground flex items-center justify-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>You can adjust your team or switch modes anytime until 10:00 AM.</span>
+                      </div>
                     </div>
                   ) : (
                     /* The Unlocked Allotted Problem Statement Card */
@@ -1959,38 +1974,52 @@ export default function VacationStudentPage({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 pt-2">
-            {dayProblemSet.problems.map((prob) => {
-              const isMyAllotted = allottedProblemInfo?.problem.id === prob.id;
-              return (
-                <div
-                  key={prob.id}
-                  className={`p-4 rounded-xl border transition-all ${
-                    isMyAllotted
-                      ? "border-amber-500 bg-amber-500/10 shadow-xs ring-2 ring-amber-500/30"
-                      : "border-border/70 bg-card hover:bg-muted/30"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
-                    <h5 className="font-black text-sm text-foreground flex items-center gap-2">
-                      <span>{prob.title}</span>
-                    </h5>
-                    {isMyAllotted && (
-                      <span className="text-[10px] font-black bg-amber-600 text-white px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
-                        ⭐ Your Allotted Problem
-                      </span>
-                    )}
+          {!isProblemUnlocked ? (
+            <div className="py-8 px-4 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 flex items-center justify-center mx-auto border border-amber-500/30">
+                <Lock className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-black text-sm text-foreground">Problem Statements Strictly Embargoed</h4>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                  Per competition regulations, problem statements are not disclosed before 8:00 AM on the challenge day. Your assigned brief will be randomly allotted and revealed after 8:00 AM once team formation is completed.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 pt-2">
+              {dayProblemSet.problems.map((prob) => {
+                const isMyAllotted = allottedProblemInfo?.problem.id === prob.id;
+                return (
+                  <div
+                    key={prob.id}
+                    className={`p-4 rounded-xl border transition-all ${
+                      isMyAllotted
+                        ? "border-amber-500 bg-amber-500/10 shadow-xs ring-2 ring-amber-500/30"
+                        : "border-border/70 bg-card hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                      <h5 className="font-black text-sm text-foreground flex items-center gap-2">
+                        <span>{prob.title}</span>
+                      </h5>
+                      {isMyAllotted && (
+                        <span className="text-[10px] font-black bg-amber-600 text-white px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                          ⭐ Your Allotted Problem
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-foreground/90 leading-relaxed mb-2.5 whitespace-pre-wrap font-normal">
+                      {prob.description}
+                    </p>
+                    <div className="p-2.5 rounded-lg bg-muted/60 text-[11px] text-muted-foreground border">
+                      <strong className="text-foreground">Required Deliverable:</strong> {prob.deliverable}
+                    </div>
                   </div>
-                  <p className="text-xs text-foreground/90 leading-relaxed mb-2.5 whitespace-pre-wrap font-normal">
-                    {prob.description}
-                  </p>
-                  <div className="p-2.5 rounded-lg bg-muted/60 text-[11px] text-muted-foreground border">
-                    <strong className="text-foreground">Required Deliverable:</strong> {prob.deliverable}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
