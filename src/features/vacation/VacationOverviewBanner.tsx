@@ -19,25 +19,25 @@ export default function VacationOverviewBanner({ onOpen }: VacationOverviewBanne
 
   return (
     <Card
-      className="rounded-2xl sm:rounded-3xl border border-white/20 bg-gradient-to-br from-amber-500 via-orange-600 to-rose-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group relative"
+      className="rounded-2xl sm:rounded-3xl border border-amber-500/35 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group relative"
       onClick={onOpen}
     >
       {/* Decorative ambient glowing background orbs */}
-      <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/15 blur-2xl pointer-events-none group-hover:scale-110 transition-transform duration-500" />
-      <div className="absolute -left-10 -bottom-10 w-44 h-44 rounded-full bg-rose-900/30 blur-2xl pointer-events-none" />
+      <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-amber-500/10 blur-3xl pointer-events-none group-hover:scale-110 transition-transform duration-500" />
+      <div className="absolute -left-10 -bottom-10 w-44 h-44 rounded-full bg-indigo-500/15 blur-2xl pointer-events-none" />
 
       <CardContent className="p-4 sm:p-6 flex flex-col justify-between gap-4 relative z-10">
         {/* Top Header Row: Festival Label & Status Badge */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-100 bg-black/25 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1.5 shadow-xs">
-              <Sun className="h-3.5 w-3.5 text-amber-300 animate-spin-slow" />
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 bg-amber-400/15 backdrop-blur-md px-2.5 py-1 rounded-full border border-amber-400/30 flex items-center gap-1.5 shadow-xs">
+              <Sun className="h-3.5 w-3.5 text-amber-400 animate-spin-slow" />
               <span>Autumn Break &apos;26</span>
-              <span className="text-white/60">•</span>
+              <span className="text-white/40">•</span>
               <span className="text-amber-200">10 Days</span>
             </span>
 
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-white bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1 shadow-xs">
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-white bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 flex items-center gap-1 shadow-xs">
               <Zap className="h-3 w-3 text-amber-300 fill-amber-300" />
               <span>1 Pt = 5 XP</span>
             </span>
@@ -120,10 +120,10 @@ export default function VacationOverviewBanner({ onOpen }: VacationOverviewBanne
 
           <Button
             size="sm"
-            className="rounded-xl font-black bg-white text-orange-950 hover:bg-amber-100 hover:text-orange-900 active:scale-95 shadow-lg gap-1.5 h-10 px-5 text-xs sm:text-sm shrink-0 border-0 transition-all self-end sm:self-auto w-full sm:w-auto"
+            className="rounded-xl font-black bg-amber-400 hover:bg-amber-300 text-slate-950 active:scale-95 shadow-lg gap-1.5 h-10 px-5 text-xs sm:text-sm shrink-0 border-0 transition-all self-end sm:self-auto w-full sm:w-auto"
           >
             <span>{isUpcoming ? "Preview Events & Form Teams" : isEnded ? "View Festival Highlights" : "Enter Arena & Play Today"}</span>
-            <ChevronRight className="h-4 w-4 text-orange-950 group-hover:translate-x-1 transition-transform" />
+            <ChevronRight className="h-4 w-4 text-slate-950 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
       </CardContent>

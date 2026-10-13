@@ -33,6 +33,10 @@ import {
   X,
   Copy,
   Lock,
+  Dice5,
+  Shuffle,
+  AlertCircle,
+  Info,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +59,13 @@ import {
   parseActivityMeta,
   pointsToXp,
 } from "./constants";
+import {
+  AUTUMN_BREAK_PROBLEM_STATEMENTS,
+  getDeterministicProblemIndex,
+  getStoredParticipationMode,
+  saveStoredParticipationMode,
+  type VacationProblemStatement,
+} from "./problemStatements";
 import VacationCountdownTimer from "./VacationCountdownTimer";
 import VacationGameArenaModal from "./games/VacationGameArenaModal";
 import { UpcomingQuizLeagueCard } from "@/components/quiz/UpcomingQuizLeagueCard";
@@ -121,6 +132,21 @@ export default function VacationStudentPage({
   const [myTeams, setMyTeams] = useState<VacationTeam[]>([]);
   const [incomingInvites, setIncomingInvites] = useState<VacationTeam[]>([]);
   const [showRubric, setShowRubric] = useState(false);
+
+  // Selected participation mode for current day ("team" | "individual" | null)
+  const [dayParticipationMode, setDayParticipationMode] = useState<{
+    day: number;
+    mode: "team" | "individual";
+    teamId?: string | null;
+    teamName?: string | null;
+    selectedAt: string;
+  } | null>(null);
+
+  // Selected team ID for team participation choice
+  const [selectedTeamForDayId, setSelectedTeamForDayId] = useState<string>("");
+
+  // Modal to browse all 5 problem statements for today
+  const [allProblemsModalOpen, setAllProblemsModalOpen] = useState(false);
 
   // Local game completion tracking cache
   const [localCompletedDays, setLocalCompletedDays] = useState<Record<number, boolean>>({});
@@ -319,6 +345,134 @@ export default function VacationStudentPage({
 
   const isCompleted = currentSubmission?.status === "approved";
 
+  // Sync stored participation mode when day, user, or teams change
+  useEffect(() => {
+    const participantId = userId || "student";
+    const stored = getStoredParticipationMode(participantId, selectedDayNumber);
+    if (stored && stored.mode) {
+      setDayParticipationMode({
+        day: selectedDayNumber,
+        mode: stored.mode,
+        teamId: stored.teamId,
+        teamName: stored.teamName,
+        selectedAt: stored.selectedAt,
+      });
+      if (stored.teamId) setSelectedTeamForDayId(stored.teamId);
+    } else {
+      // Check if user has an accepted team matching today's event
+      const eventTeam = myTeams.find(
+        (t) =>
+          t.event_title.toLowerCase().includes(selectedDayData.event.title.toLowerCase()) ||
+          (activeCompetition && t.activity_id === activeCompetition.id)
+      );
+      if (eventTeam) {
+        setDayParticipationMode({
+          day: selectedDayNumber,
+          mode: "team",
+          teamId: eventTeam.id,
+          teamName: eventTeam.name,
+          selectedAt: eventTeam.created_at || new Date().toISOString(),
+        });
+        setSelectedTeamForDayId(eventTeam.id);
+      } else {
+        setDayParticipationMode(null);
+      }
+    }
+  }, [userId, selectedDayNumber, myTeams, selectedDayData, activeCompetition]);
+
+  // Timing checks for compulsory team formation & 8:00 AM problem release
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinutes = now.getMinutes();
+
+  // Team formation is compulsory before 10:00 AM of each day
+  const isTeamFormationClosedToday =
+    isDayToday && (currentHour > 10 || (currentHour === 10 && currentMinutes > 0));
+
+  // Problem statement released at 8:00 AM daily
+  const isPast8AmToday = isDayToday && currentHour >= 8;
+  const isBefore8AmToday = isDayToday && currentHour < 8;
+
+  // Problem statement unlocked rule:
+  // "once its selected. allot the problem statement at 8am randomly for the day or after the team selection (whichever is highest)."
+  const isProblemUnlocked = Boolean(
+    dayParticipationMode && (!isDayToday || isPast8AmToday || isPastDay)
+  );
+
+  const dayProblemSet =
+    AUTUMN_BREAK_PROBLEM_STATEMENTS[selectedDayNumber] || AUTUMN_BREAK_PROBLEM_STATEMENTS[1];
+
+  const allottedProblemInfo = useMemo(() => {
+    if (!dayParticipationMode) return null;
+
+    const seed =
+      dayParticipationMode.mode === "team" && dayParticipationMode.teamId
+        ? dayParticipationMode.teamId
+        : (userId || "solo-participant");
+
+    const problemIndex = getDeterministicProblemIndex(seed, selectedDayNumber);
+    const problem = dayProblemSet.problems[problemIndex] || dayProblemSet.problems[0];
+
+    // Determine allotment timestamp ("at 8am or after team selection, whichever is highest")
+    let allotmentTimeString = "8:00 AM";
+    if (dayParticipationMode.selectedAt) {
+      const selDate = new Date(dayParticipationMode.selectedAt);
+      const selHour = selDate.getHours();
+      const selMin = selDate.getMinutes();
+      if (selHour > 8 || (selHour === 8 && selMin > 0)) {
+        allotmentTimeString = `${String(selHour).padStart(2, "0")}:${String(selMin).padStart(2, "0")}`;
+      }
+    }
+
+    return {
+      problem,
+      problemIndex: problemIndex + 1, // 1 to 5
+      seed,
+      allotmentTimeString,
+    };
+  }, [dayParticipationMode, selectedDayNumber, dayProblemSet, userId]);
+
+  const handleConfirmParticipationMode = (
+    mode: "team" | "individual",
+    teamId?: string | null,
+    teamName?: string | null
+  ) => {
+    if (mode === "team" && isTeamFormationClosedToday) {
+      toast({
+        title: "Team Formation Closed",
+        description: "Team formation for today's challenge closed at 10:00 AM. Please participate individually.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const effectiveId = userId || "student";
+    saveStoredParticipationMode(effectiveId, selectedDayNumber, mode, teamId, teamName);
+
+    setDayParticipationMode({
+      day: selectedDayNumber,
+      mode,
+      teamId: teamId || null,
+      teamName: teamName || null,
+      selectedAt: new Date().toISOString(),
+    });
+
+    if (mode === "team" && teamId) {
+      setSelectedTeamForDayId(teamId);
+      const foundTeam = myTeams.find((t) => t.id === teamId);
+      if (foundTeam) {
+        handleUseTeamInSubmission(foundTeam);
+      }
+    }
+
+    toast({
+      title: mode === "team" ? "Team Participation Confirmed! 👥" : "Individual Participation Confirmed! 👤",
+      description: isPast8AmToday
+        ? "Your challenge problem statement has been allotted!"
+        : "Your problem statement will unlock at 8:00 AM.",
+    });
+  };
+
   // File upload handler
   const handleDirectFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -388,9 +542,17 @@ export default function VacationStudentPage({
         if (found) actId = found.id;
       }
 
-      const finalContent = teamMembers.trim()
-        ? `[TEAM ENTRY] Members: ${teamMembers.trim()}\n\n${content}`
-        : content;
+      const problemTag = allottedProblemInfo?.problem
+        ? `[ALLOTTED: ${allottedProblemInfo.problem.title}]`
+        : "";
+      const teamTag = teamMembers.trim()
+        ? `[TEAM ENTRY] Members: ${teamMembers.trim()}`
+        : (dayParticipationMode?.mode === "team" && dayParticipationMode.teamName)
+        ? `[TEAM ENTRY] Team: ${dayParticipationMode.teamName}`
+        : `[SOLO ENTRY]`;
+
+      const headerTags = [problemTag, teamTag].filter(Boolean).join("\n");
+      const finalContent = headerTags ? `${headerTags}\n\n${content}` : content;
 
       await submitVacationActivity(actId, finalContent, link);
       toast({ title: "Submitted! 🚀", description: "Teachers will review your project and award points." });
@@ -562,69 +724,73 @@ export default function VacationStudentPage({
 
   return (
     <div className="space-y-4 max-w-5xl mx-auto pb-12">
-      {/* Hero Festival Header — gradient card with frosted stats */}
-      <div className="rounded-2xl overflow-hidden relative shadow-md border border-white/20">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-orange-600 to-rose-600 pointer-events-none" />
-        {/* Ambient orbs */}
-        <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-        <div className="absolute -left-12 -bottom-12 w-44 h-44 rounded-full bg-rose-900/30 blur-2xl pointer-events-none" />
+      {/* Harmonious Festival Header (Deep Slate-Indigo with Warm Amber Accents) */}
+      <div className="rounded-2xl sm:rounded-3xl overflow-hidden relative shadow-md border border-amber-500/30 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white">
+        {/* Ambient glowing gold/indigo accents */}
+        <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute -left-12 -bottom-12 w-44 h-44 rounded-full bg-indigo-500/15 blur-2xl pointer-events-none" />
 
         <div className="relative z-10 p-4 sm:p-5 space-y-3">
-          {/* Top row: label + campaign status */}
+          {/* Top row: Festival badge + completed counter */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <span className="text-[10px] font-black uppercase tracking-wider text-amber-100 bg-black/25 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1.5">
-              <Sun className="h-3 w-3 text-amber-300" />
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 bg-amber-400/15 border border-amber-400/30 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-xs">
+              <Sun className="h-3.5 w-3.5 text-amber-400 animate-spin-slow" />
               <span>Autumn Break &apos;26 · 10 Days · 1 Pt = 5 XP</span>
             </span>
-            <span className="text-[11px] font-black text-emerald-950 bg-emerald-400 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-              <Sparkles className="h-3 w-3" />
-              <span>{completedCount}/10 Done</span>
+            <span className="text-[11px] font-black text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-xs">
+              <Sparkles className="h-3 w-3 fill-current" />
+              <span>{completedCount}/10 Completed</span>
             </span>
           </div>
 
           {/* Campaign title */}
-          <h2 className="text-lg sm:text-2xl font-black text-white leading-tight drop-shadow-sm tracking-tight">
-            {campaign?.title || "DLMS Vacation Festival"}
-          </h2>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight">
+              {campaign?.title || "DLMS Vacation Festival"}
+            </h2>
+            <p className="text-xs text-slate-300 font-medium mt-0.5">
+              10 Days • Daily Problem Statements • Teams (2–4) or Solo • Live Quizzes
+            </p>
+          </div>
 
           {/* Frosted stats row */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap pt-0.5">
             {/* Points pill */}
-            <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-xs">
+            <div className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 px-3 py-1.5 rounded-xl text-white shadow-xs transition-colors">
               <Zap className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
-              <span className="text-sm font-black text-white">{overview?.progress?.total_points || 0} Pts</span>
-              <span className="text-[10px] text-white/70 font-bold">({pointsToXp(overview?.progress?.total_points || 0)} XP)</span>
+              <span className="text-xs sm:text-sm font-black">{overview?.progress?.total_points || 0} Pts</span>
+              <span className="text-[10px] text-white/70 font-semibold">({pointsToXp(overview?.progress?.total_points || 0)} XP)</span>
             </div>
             {/* Streak pill */}
-            <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-xs">
-              <Flame className="h-3.5 w-3.5 text-rose-400 fill-rose-400" />
-              <span className="text-sm font-black text-white">{overview?.progress?.current_streak || 0}</span>
-              <span className="text-[10px] text-white/70 font-bold">Day Streak</span>
+            <div className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 px-3 py-1.5 rounded-xl text-white shadow-xs transition-colors">
+              <Flame className="h-3.5 w-3.5 text-orange-400 fill-orange-400" />
+              <span className="text-xs sm:text-sm font-black">{overview?.progress?.current_streak || 0}</span>
+              <span className="text-[10px] text-white/70 font-semibold">Day Streak</span>
             </div>
             {/* Completed pill */}
-            <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-xs">
+            <div className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 px-3 py-1.5 rounded-xl text-white shadow-xs transition-colors">
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="text-[10px] text-white/70 font-bold">{completedCount} Completed</span>
+              <span className="text-xs sm:text-sm font-black">{completedCount}</span>
+              <span className="text-[10px] text-white/70 font-semibold">Labs Done</span>
             </div>
           </div>
 
-          {/* Team Formation ribbon — frosted glass style */}
+          {/* Team Formation ribbon */}
           <button
             type="button"
             onClick={() => {
               if (incomingInvites.length > 0) setRegModalTab("my-teams");
               setRegModalOpen(true);
             }}
-            className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-black/25 backdrop-blur-md border border-white/20 text-left hover:bg-black/35 transition-colors active:scale-[0.99]"
+            className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-left hover:bg-white/15 transition-all active:scale-[0.99]"
           >
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-amber-400 text-amber-950 flex items-center justify-center shrink-0 shadow-xs">
+              <div className="w-7 h-7 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-xs font-black">
                 <Users className="h-3.5 w-3.5" />
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] sm:text-xs font-bold text-white leading-snug">
-                  <span className="text-amber-300">14 Oct:</span> Team Formation Open — 2–4 members or solo
+                  <span className="text-amber-300 font-black">14 Oct:</span> Team Formation Open — 2–4 members or solo
                 </p>
                 {incomingInvites.length > 0 && (
                   <p className="text-[10px] text-amber-200 font-semibold">
@@ -633,11 +799,11 @@ export default function VacationStudentPage({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1 bg-white text-orange-950 font-black text-[11px] px-2.5 py-1 rounded-lg shrink-0 shadow-xs">
+            <div className="flex items-center gap-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[11px] px-3 py-1 rounded-lg shrink-0 shadow-xs transition-colors">
               <span>Team Hub</span>
               <ChevronRight className="h-3 w-3" />
               {incomingInvites.length > 0 && (
-                <span className="w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center ml-0.5 shadow-xs">
+                <span className="w-4 h-4 rounded-full bg-red-600 text-white text-[9px] flex items-center justify-center ml-0.5 shadow-xs">
                   {incomingInvites.length}
                 </span>
               )}
@@ -671,48 +837,103 @@ export default function VacationStudentPage({
 
         {/* ================= TAB 1: MAIN CHALLENGES & LABS ================= */}
         <TabsContent value="arena" className="space-y-3.5 m-0">
-          {/* Sleek Stage Track (Zero outer card container clutter) */}
-          <div className="space-y-1.5">
+          {/* BIG, ENGAGING 10-DAY SELECTION TRACK */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
-              <span className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-                <Compass className="h-3.5 w-3.5 text-amber-500" /> Stage Track (Days 1 to 10)
+              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Compass className="h-4 w-4 text-amber-500" />
+                <span>10-Day Festival Track</span>
               </span>
-              <span className="text-[11px] font-black text-amber-700 dark:text-amber-300">
-                Day {selectedDayNumber}: {selectedDayData.event.title.split(" ")[0]}
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/25">
+                Selected: Day {selectedDayNumber} ({selectedDayData.event.title.split(" ")[0]})
               </span>
             </div>
 
-            <div className="overflow-x-auto pb-1 -mx-1 px-1">
-              <div className="flex items-center gap-1.5 min-w-max">
+            {/* Big, Touchable Carousel Cards */}
+            <div className="overflow-x-auto pb-2 -mx-1 px-1">
+              <div className="flex items-stretch gap-2.5 min-w-max py-0.5">
                 {tenDaysRoadmap.map((item) => {
                   const isSelected = item.day === selectedDayNumber;
                   const isDone = item.isMainApproved || Boolean(localCompletedDays[item.day]);
+                  const formattedDate = item.dateStr
+                    ? new Date(item.dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                    : `Day ${item.day}`;
 
                   return (
                     <button
                       key={item.day}
                       type="button"
                       onClick={() => setSelectedDayNumber(item.day)}
-                      className={`px-3 py-1.5 rounded-xl border transition-all text-xs flex items-center gap-1.5 shrink-0 ${
+                      className={`relative flex flex-col justify-between p-3 rounded-2xl border text-left transition-all duration-200 shrink-0 w-[130px] sm:w-[145px] h-[94px] sm:h-[102px] cursor-pointer active:scale-95 ${
                         isSelected
-                          ? "border-amber-500 bg-amber-500 text-white font-bold shadow-xs"
+                          ? "bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400/60 scale-[1.02]"
                           : item.isToday
-                          ? "border-amber-500/50 bg-amber-500/10 text-foreground font-semibold hover:bg-amber-500/20"
-                          : "border-border/60 bg-card text-muted-foreground hover:bg-muted/50"
+                          ? "bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/50 hover:bg-amber-500/20 text-foreground ring-1 ring-amber-500/30"
+                          : "bg-card hover:bg-muted/70 border-border/80 text-foreground shadow-2xs"
                       }`}
                     >
-                      <span className={isSelected ? "text-white" : "font-bold text-foreground"}>
-                        D{item.day}
-                      </span>
-                      <span className="truncate max-w-[80px]">
-                        {item.event.title.split(" ")[0]}
-                      </span>
-                      {isDone && (
-                        <CheckCircle2 className={`h-3 w-3 ${isSelected ? "text-white" : "text-emerald-500"}`} />
-                      )}
-                      {item.isToday && !isSelected && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-                      )}
+                      {/* Top row: Day badge + Status badge */}
+                      <div className="flex items-center justify-between gap-1 w-full">
+                        <span
+                          className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                            isSelected
+                              ? "bg-black/25 text-white"
+                              : item.isToday
+                              ? "bg-amber-500 text-white"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          Day {item.day}
+                        </span>
+
+                        {isDone ? (
+                          <span
+                            className={`text-[10px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${
+                              isSelected ? "bg-white/20 text-white" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                            }`}
+                          >
+                            <CheckCircle2 className="h-3 w-3" />
+                          </span>
+                        ) : item.isToday ? (
+                          <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                          </span>
+                        ) : (
+                          <span className={`text-[10px] font-bold ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
+                            {formattedDate}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Middle: Title & Badge icon */}
+                      <div className="my-auto py-1">
+                        <p
+                          className={`text-xs sm:text-sm font-black line-clamp-1 leading-tight flex items-center gap-1 ${
+                            isSelected ? "text-white" : "text-foreground"
+                          }`}
+                        >
+                          <span className="text-base">{item.event.badgeIcon || "🎯"}</span>
+                          <span className="truncate">{item.event.title.split(" ")[0]}</span>
+                        </p>
+                        <p
+                          className={`text-[10px] font-medium truncate mt-0.5 ${
+                            isSelected ? "text-white/80" : "text-muted-foreground"
+                          }`}
+                        >
+                          {item.event.tagline || item.event.subtitle}
+                        </p>
+                      </div>
+
+                      {/* Bottom row: Points pill or Live tag */}
+                      <div className="flex items-center justify-between w-full text-[10px] pt-1 border-t border-current/10">
+                        <span className={`font-mono font-bold ${isSelected ? "text-white/90" : "text-amber-700 dark:text-amber-400"}`}>
+                          100 Pts
+                        </span>
+                        <span className={`text-[9px] font-semibold ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
+                          {item.isToday ? "🔥 Live Today" : formattedDate}
+                        </span>
+                      </div>
                     </button>
                   );
                 })}
@@ -720,45 +941,45 @@ export default function VacationStudentPage({
             </div>
           </div>
 
-          {/* Active Day Challenge Showcase Card */}
-          <Card className="overflow-hidden shadow-sm border-0">
-            {/* Vivid gradient header matching the day theme */}
-            <div className="relative bg-gradient-to-br from-amber-600 via-orange-600 to-rose-700 p-4 sm:p-5 overflow-hidden">
-              {/* Ambient orb */}
-              <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+          {/* Active Day Challenge Showcase Card (Harmonious Theme) */}
+          <Card className="overflow-hidden shadow-sm border border-border/80 bg-card">
+            {/* Refined, elegant Day Header */}
+            <div className="relative bg-gradient-to-r from-amber-500/15 via-orange-500/8 to-transparent p-4 sm:p-5 border-b border-amber-500/20">
               <div className="relative z-10 space-y-2.5">
                 {/* Top badge row */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-black text-amber-950 bg-amber-300 px-2.5 py-0.5 rounded-full shadow-xs">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className="bg-amber-600 hover:bg-amber-600 text-white font-black text-xs px-2.5 py-0.5 shadow-2xs">
                     Day {selectedDayNumber} of 10
-                  </span>
-                  <span className="text-[10px] font-bold text-white/90 bg-black/25 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-white/20">
+                  </Badge>
+                  <span className="text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30">
                     {selectedDayData.event.tagline}
                   </span>
                   {selectedDayData.isToday && (
-                    <span className="text-[10px] font-black text-emerald-950 bg-emerald-400 px-2.5 py-0.5 rounded-full animate-pulse shadow-xs">
+                    <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-200 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1 animate-pulse">
                       ✓ Today&apos;s Live Challenge
                     </span>
                   )}
                 </div>
 
-                {/* Title */}
-                <h3 className="text-lg sm:text-2xl font-black text-white leading-tight drop-shadow-sm">
-                  {selectedDayData.event.title}
-                </h3>
-                <p className="text-xs sm:text-sm text-white/80 font-medium">
-                  {selectedDayData.event.subtitle}
-                </p>
+                {/* Title & Subtitle */}
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tight leading-tight">
+                    {selectedDayData.event.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-0.5">
+                    {selectedDayData.event.subtitle}
+                  </p>
+                </div>
 
-                {/* Points + Done row */}
+                {/* Points + Completion row */}
                 <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                  <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl text-white font-black text-xs shadow-xs">
-                    <Zap className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
+                  <div className="flex items-center gap-1.5 bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-xl text-amber-900 dark:text-amber-100 font-black text-xs">
+                    <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 fill-amber-500/30" />
                     <span>100 Competition Pts (500 XP)</span>
                   </div>
                   {isCompleted && (
-                    <div className="flex items-center gap-1.5 bg-emerald-400 text-emerald-950 px-3 py-1.5 rounded-xl text-xs font-black shadow-xs">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200 px-3 py-1 rounded-xl text-xs font-black">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                       <span>Completed!</span>
                     </div>
                   )}
@@ -767,33 +988,264 @@ export default function VacationStudentPage({
             </div>
 
             <CardContent className="p-3.5 sm:p-5 space-y-4">
-              {/* Challenge Briefing & Problem Statement */}
-              <div className="rounded-xl border border-border/60 bg-muted/30 overflow-hidden shadow-xs">
-                <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2 bg-card">
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
-                    <FileText className="h-3.5 w-3.5 text-amber-600" />
-                  </div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
-                    Real-World Mission Briefing:
-                  </h4>
-                </div>
-                <div className="p-4 space-y-3">
-                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-                    {selectedDayData.event.description}
-                  </p>
-                  {/* Skills Developed */}
-                  {selectedDayData.event.learningOutcomes && (
-                    <div className="pt-2 border-t border-border/50 flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wide">Skills Developed:</span>
-                      {selectedDayData.event.learningOutcomes.map((skill, idx) => (
-                        <span key={idx} className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-0.5">
-                          ✓ {skill}
+              {/* PARTICIPATION SELECTION GATE & ALLOTTED PROBLEM STATEMENT */}
+              {!dayParticipationMode ? (
+                /* Step 1: Compulsory Participation Mode Selection Gate */
+                <div className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent p-4 sm:p-5 space-y-3.5 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                      <AlertCircle className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-100 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
+                          Compulsory Step
                         </span>
-                      ))}
+                        <h4 className="text-sm sm:text-base font-black text-foreground">
+                          Choose Participation Mode to Unlock Challenge
+                        </h4>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Team formation is compulsory before <strong>10:00 AM</strong> of each day. Individual participation can be chosen at any time. Once your mode is confirmed, your challenge problem statement is randomly allotted (at 8:00 AM or upon selection, whichever is highest).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Two Choice Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {/* Option A: Team Participation */}
+                    <div
+                      className={`p-3.5 rounded-xl border flex flex-col justify-between gap-3 transition-all ${
+                        isTeamFormationClosedToday
+                          ? "bg-muted/40 border-border/80 opacity-75"
+                          : "bg-card border-amber-500/35 hover:border-amber-500/60 shadow-xs"
+                      }`}
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                            <Users className="h-4 w-4 text-amber-500" />
+                            <span>Team Mode (2–4 Members)</span>
+                          </span>
+                          <span
+                            className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                              isTeamFormationClosedToday
+                                ? "bg-red-500/15 text-red-700 dark:text-red-400"
+                                : "bg-amber-500/20 text-amber-900 dark:text-amber-100 border border-amber-500/30"
+                            }`}
+                          >
+                            {isTeamFormationClosedToday ? "Closed (Past 10 AM)" : "Before 10:00 AM"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          {isTeamFormationClosedToday
+                            ? "Team registration closed at 10:00 AM for today's challenge. Please select Individual participation below."
+                            : "Collaborate with peers. All team members receive the identical allotted problem statement and share points."}
+                        </p>
+
+                        {!isTeamFormationClosedToday && myTeams.length > 0 && (
+                          <div className="pt-1.5 space-y-1">
+                            <Label className="text-[10px] font-bold text-muted-foreground">Select Your Team:</Label>
+                            <select
+                              className="w-full text-xs p-1.5 rounded-lg border bg-background font-medium"
+                              value={selectedTeamForDayId || myTeams[0].id}
+                              onChange={(e) => setSelectedTeamForDayId(e.target.value)}
+                            >
+                              {myTeams.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.name} ({t.members.filter((m) => m.status === "accepted").length} members)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-1">
+                        {isTeamFormationClosedToday ? (
+                          <Button disabled size="sm" className="w-full text-xs font-bold bg-muted text-muted-foreground h-9 cursor-not-allowed">
+                            <Lock className="h-3 w-3 mr-1" /> Team Formation Closed
+                          </Button>
+                        ) : myTeams.length > 0 ? (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const tId = selectedTeamForDayId || myTeams[0].id;
+                              const teamObj = myTeams.find((t) => t.id === tId) || myTeams[0];
+                              handleConfirmParticipationMode("team", teamObj.id, teamObj.name);
+                            }}
+                            className="w-full text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white h-9 shadow-xs"
+                          >
+                            <Check className="h-3.5 w-3.5 mr-1" /> Confirm Team Participation
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setRegModalTab("team-form");
+                              setRegModalOpen(true);
+                            }}
+                            className="w-full text-xs font-bold border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 hover:text-amber-950 dark:hover:text-white h-9"
+                          >
+                            <UserPlus className="h-3.5 w-3.5 mr-1" /> Form Team in Team Hub
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Option B: Individual Participation */}
+                    <div className="p-3.5 rounded-xl border bg-card border-sky-500/35 hover:border-sky-500/60 flex flex-col justify-between gap-3 shadow-xs">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                            <Zap className="h-4 w-4 text-sky-500" />
+                            <span>Individual Mode (Solo)</span>
+                          </span>
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-800 dark:text-sky-200 border border-sky-500/25">
+                            Open Anytime
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Compete independently under your own profile. You can select individual participation at any time and receive your own allotted problem.
+                        </p>
+                      </div>
+
+                      <div className="pt-1">
+                        <Button
+                          size="sm"
+                          onClick={() => handleConfirmParticipationMode("individual")}
+                          className="w-full text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white h-9 shadow-xs"
+                        >
+                          <Check className="h-3.5 w-3.5 mr-1" /> Confirm Individual Participation
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Step 2: Confirmed Mode Ribbon + Allotted Problem Statement */
+                <div className="space-y-3">
+                  {/* Confirmed Participation Status Ribbon */}
+                  <div className="flex items-center justify-between gap-2 p-2.5 px-3.5 rounded-xl bg-card border border-border/80 text-xs shadow-2xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      <p className="text-xs text-foreground truncate">
+                        <span className="text-muted-foreground">Mode:</span>{" "}
+                        <strong className="text-amber-700 dark:text-amber-300 font-black">
+                          {dayParticipationMode.mode === "team"
+                            ? `Team "${dayParticipationMode.teamName}"`
+                            : "Solo (Individual)"}
+                        </strong>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isDayToday && !isTeamFormationClosedToday && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDayParticipationMode(null)}
+                          className="h-6 text-[11px] font-bold text-muted-foreground hover:text-foreground px-2"
+                        >
+                          Switch Mode
+                        </Button>
+                      )}
+                      {isTeamFormationClosedToday && (
+                        <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
+                          <Lock className="h-3 w-3" /> Team locked (past 10 AM)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Allotment Timing Check: If today and before 8:00 AM, show countdown card */}
+                  {!isProblemUnlocked ? (
+                    <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-center space-y-2">
+                      <Clock className="h-7 w-7 text-amber-600 mx-auto" />
+                      <h4 className="text-sm font-black text-amber-950 dark:text-amber-100">
+                        Problem Statement Unlocks at 8:00 AM
+                      </h4>
+                      <p className="text-xs text-amber-800 dark:text-amber-200 max-w-md mx-auto leading-relaxed">
+                        Your {dayParticipationMode.mode === "team" ? `team "${dayParticipationMode.teamName}"` : "solo participation"} is confirmed! At 8:00 AM, your randomly assigned problem statement will be revealed here.
+                      </p>
+                    </div>
+                  ) : (
+                    /* The Unlocked Allotted Problem Statement Card */
+                    <div className="rounded-2xl border border-amber-500/40 bg-card overflow-hidden shadow-xs space-y-0">
+                      {/* Allotment Card Header */}
+                      <div className="px-4 py-3 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent border-b border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-950 dark:text-amber-100 bg-amber-500/25 px-2.5 py-0.5 rounded-full border border-amber-500/35 flex items-center gap-1 shadow-2xs">
+                            <Dice5 className="h-3.5 w-3.5 text-amber-600" />
+                            <span>Allotted Problem {allottedProblemInfo?.problemIndex} of 5</span>
+                          </span>
+                          <span className="text-[10px] font-bold text-muted-foreground">
+                            • Allotted at {allottedProblemInfo?.allotmentTimeString}
+                          </span>
+                          <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            ✓ Assigned to {dayParticipationMode.mode === "team" ? `Team ${dayParticipationMode.teamName}` : "You (Solo)"}
+                          </span>
+                        </div>
+
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setAllProblemsModalOpen(true)}
+                          className="h-7 text-xs font-bold border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 hover:text-amber-950 dark:hover:text-white shrink-0 self-start sm:self-auto"
+                        >
+                          Browse All 5 Problems →
+                        </Button>
+                      </div>
+
+                      {/* Problem Statement Body */}
+                      <div className="p-4 sm:p-5 space-y-3.5">
+                        <div className="space-y-1.5">
+                          <h4 className="text-base sm:text-lg font-black text-foreground">
+                            {allottedProblemInfo?.problem.title}
+                          </h4>
+                          <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap font-normal">
+                            {allottedProblemInfo?.problem.description}
+                          </p>
+                        </div>
+
+                        {/* Deliverable Callout Box */}
+                        <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs space-y-1">
+                          <p className="font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-sky-600" />
+                            <span>Required Deliverables:</span>
+                          </p>
+                          <p className="text-[11px] text-sky-800 dark:text-sky-300 leading-relaxed">
+                            {allottedProblemInfo?.problem.deliverable}
+                          </p>
+                        </div>
+
+                        {dayParticipationMode.mode === "team" && (
+                          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                            <Users className="h-4 w-4 text-amber-600 shrink-0" />
+                            <span>
+                              All members of team <strong>&ldquo;{dayParticipationMode.teamName}&rdquo;</strong> share this identical allotted problem statement.
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Skills Developed */}
+                        {selectedDayData.event.learningOutcomes && (
+                          <div className="pt-2 border-t flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wide">Skills:</span>
+                            {selectedDayData.event.learningOutcomes.map((skill, idx) => (
+                              <span key={idx} className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-0.5">
+                                ✓ {skill}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
+              )}
 
               {/* Official 100-Point Rubric (Collapsible) */}
               {selectedDayData.event.rubric?.length ? (
@@ -1149,9 +1601,30 @@ export default function VacationStudentPage({
               Submit Day {selectedDayNumber}: {selectedDayData.event.title}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Share your project write-up, photo of your model, or external link for teacher review.
+              {allottedProblemInfo ? (
+                <span className="block font-semibold text-amber-700 dark:text-amber-300">
+                  Allotted Brief: {allottedProblemInfo.problem.title} ({dayParticipationMode?.mode === "team" ? `Team "${dayParticipationMode.teamName}"` : "Solo Entry"})
+                </span>
+              ) : (
+                "Share your project write-up, photo of your model, or external link for teacher review."
+              )}
             </DialogDescription>
           </DialogHeader>
+
+          {allottedProblemInfo && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
+              <p className="font-bold text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
+                <Dice5 className="h-3.5 w-3.5 text-amber-600" />
+                <span>Your Assigned Problem: {allottedProblemInfo.problem.title}</span>
+              </p>
+              <p className="text-[11px] text-amber-800 dark:text-amber-200 line-clamp-2">
+                {allottedProblemInfo.problem.description}
+              </p>
+              <p className="text-[10px] text-muted-foreground font-semibold pt-0.5">
+                📦 Deliverable: {allottedProblemInfo.problem.deliverable}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-3 pt-2">
             {/* Team Members Input (For Team or Individual Mode) */}
@@ -1284,6 +1757,54 @@ export default function VacationStudentPage({
                 {saving ? "Submitting..." : "Submit for Teacher Review →"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= ALL 5 PROBLEM STATEMENTS BROWSER MODAL ================= */}
+      <Dialog open={allProblemsModalOpen} onOpenChange={setAllProblemsModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg font-black flex items-center gap-2">
+              <Dice5 className="h-5 w-5 text-amber-500" />
+              Day {selectedDayNumber}: {selectedDayData.event.title} — All 5 Problem Statements
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              PM SHRI Kendriya Vidyalaya AFS Sulur Autumn Break Festival • Each team or student is randomly allotted one problem statement at 8:00 AM.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-2">
+            {dayProblemSet.problems.map((prob) => {
+              const isMyAllotted = allottedProblemInfo?.problem.id === prob.id;
+              return (
+                <div
+                  key={prob.id}
+                  className={`p-4 rounded-xl border transition-all ${
+                    isMyAllotted
+                      ? "border-amber-500 bg-amber-500/10 shadow-xs ring-2 ring-amber-500/30"
+                      : "border-border/70 bg-card hover:bg-muted/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                    <h5 className="font-black text-sm text-foreground flex items-center gap-2">
+                      <span>{prob.title}</span>
+                    </h5>
+                    {isMyAllotted && (
+                      <span className="text-[10px] font-black bg-amber-600 text-white px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                        ⭐ Your Allotted Problem
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-foreground/90 leading-relaxed mb-2.5 whitespace-pre-wrap font-normal">
+                    {prob.description}
+                  </p>
+                  <div className="p-2.5 rounded-lg bg-muted/60 text-[11px] text-muted-foreground border">
+                    <strong className="text-foreground">Required Deliverable:</strong> {prob.deliverable}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
