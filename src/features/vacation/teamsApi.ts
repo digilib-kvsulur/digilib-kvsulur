@@ -22,6 +22,34 @@ function saveStoredTeams(teams: VacationTeam[]) {
 }
 
 /**
+ * Helper to fetch friend user IDs for a user from friendships table (status = 'accepted')
+ */
+export async function fetchUserFriendIds(userId: string): Promise<Set<string>> {
+  const friendIds = new Set<string>();
+  if (!userId) return friendIds;
+  try {
+    const { data, error } = await supabase
+      .from("friendships")
+      .select("requester_id, addressee_id")
+      .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
+      .eq("status", "accepted");
+
+    if (!error && data) {
+      data.forEach((row: any) => {
+        if (row.requester_id === userId) {
+          friendIds.add(row.addressee_id);
+        } else if (row.addressee_id === userId) {
+          friendIds.add(row.requester_id);
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Error fetching friend IDs:", err);
+  }
+  return friendIds;
+}
+
+/**
  * Search students by Admission Number or Name
  */
 export async function searchVacationPeers(
@@ -33,6 +61,7 @@ export async function searchVacationPeers(
 
   const results: VacationPeerProfile[] = [];
   const seenIds = new Set<string>();
+  const friendIds = excludeId ? await fetchUserFriendIds(excludeId) : new Set<string>();
 
   // 1. Direct query on profiles table (matching admission_number or first_name or last_name)
   try {
@@ -65,6 +94,7 @@ export async function searchVacationPeers(
             admission_number: p.admission_number || null,
             avatar_url: p.avatar_url || null,
             role: p.role,
+            is_friend: friendIds.has(p.id),
           });
         }
       });
@@ -93,6 +123,7 @@ export async function searchVacationPeers(
               admission_number: p.admission_number || null,
               avatar_url: null,
               role: p.role,
+              is_friend: friendIds.has(p.id),
             });
           }
         });
@@ -201,6 +232,9 @@ export async function createVacationTeam(params: {
 }): Promise<VacationTeam> {
   const leaderName = `${params.leader.first_name} ${params.leader.last_name}`.trim() || "Team Leader";
 
+  // Fetch leader's friends so friends are auto-accepted!
+  const leaderFriendIds = await fetchUserFriendIds(params.leader.id);
+
   // 1. Try persisting to Supabase vacation_teams & vacation_team_members
   let dbTeamId: string | null = null;
   try {
@@ -227,12 +261,15 @@ export async function createVacationTeam(params: {
           role: "leader",
           status: "accepted",
         },
-        ...params.invitedMembers.map((m) => ({
-          team_id: dbTeamId,
-          user_id: m.id,
-          role: "member",
-          status: "pending",
-        })),
+        ...params.invitedMembers.map((m) => {
+          const isFriend = leaderFriendIds.has(m.id);
+          return {
+            team_id: dbTeamId,
+            user_id: m.id,
+            role: "member",
+            status: isFriend ? "accepted" : "pending",
+          };
+        }),
       ];
 
       await (supabase as any).from("vacation_team_members").insert(memberRows);
@@ -257,18 +294,22 @@ export async function createVacationTeam(params: {
     responded_at: new Date().toISOString(),
   };
 
-  const invitees: VacationTeamMember[] = params.invitedMembers.map((m, idx) => ({
-    id: `mem-${Date.now()}-${idx}`,
-    team_id: teamId,
-    user_id: m.id,
-    name: `${m.first_name} ${m.last_name}`.trim() || "Teammate",
-    student_class: m.student_class || undefined,
-    admission_number: m.admission_number || undefined,
-    avatar_url: m.avatar_url || undefined,
-    role: "member",
-    status: "pending",
-    invited_at: new Date().toISOString(),
-  }));
+  const invitees: VacationTeamMember[] = params.invitedMembers.map((m, idx) => {
+    const isFriend = leaderFriendIds.has(m.id);
+    return {
+      id: `mem-${Date.now()}-${idx}`,
+      team_id: teamId,
+      user_id: m.id,
+      name: `${m.first_name} ${m.last_name}`.trim() || "Teammate",
+      student_class: m.student_class || undefined,
+      admission_number: m.admission_number || undefined,
+      avatar_url: m.avatar_url || undefined,
+      role: "member",
+      status: isFriend ? "accepted" : "pending",
+      invited_at: new Date().toISOString(),
+      responded_at: isFriend ? new Date().toISOString() : undefined,
+    };
+  });
 
   const newTeam: VacationTeam = {
     id: teamId,
@@ -285,12 +326,15 @@ export async function createVacationTeam(params: {
   // Send DB notifications to invited members
   for (const inv of invitees) {
     try {
+      const isAutoJoined = inv.status === "accepted";
       await supabase.from("notifications").insert({
         target_user_id: inv.user_id,
         sent_by: params.leader.id,
-        title: "Vacation Team Invite 🤝",
-        message: `${leaderName} invited you to join team "${newTeam.name}" for ${newTeam.event_title}. Open the Vacation Festival to accept!`,
-        type: "info",
+        title: isAutoJoined ? "Joined Vacation Team! 🤝" : "Vacation Team Invite 🤝",
+        message: isAutoJoined
+          ? `${leaderName} added you to team "${newTeam.name}" for ${newTeam.event_title}! Since you are friends, you were auto-joined. You can participate together or decline/change your team before 10:00 AM.`
+          : `${leaderName} invited you to join team "${newTeam.name}" for ${newTeam.event_title}. Open the Vacation Festival to accept or decline!`,
+        type: isAutoJoined ? "success" : "info",
       });
     } catch {}
   }
@@ -305,12 +349,15 @@ export async function createVacationTeam(params: {
 
 /**
  * Fetch all teams for current user (both their teams and incoming invitations)
+ * Auto-accepts pending invites if the inviter/leader is an accepted friend in friendships!
  */
 export async function fetchMyVacationTeams(userId?: string): Promise<{
   myTeams: VacationTeam[];
   incomingInvites: VacationTeam[];
 }> {
   if (!userId) return { myTeams: [], incomingInvites: [] };
+
+  const userFriendIds = await fetchUserFriendIds(userId);
 
   // Sync from DB first
   const allTeams = await fetchAllVacationTeamsFromDb();
@@ -328,7 +375,26 @@ export async function fetchMyVacationTeams(userId?: string): Promise<{
       if (memberEntry.status === "accepted") {
         myTeams.push(team);
       } else if (memberEntry.status === "pending") {
-        incomingInvites.push(team);
+        // If leader is a friend, auto-accept immediately!
+        if (userFriendIds.has(team.leader_id)) {
+          try {
+            await (supabase as any)
+              .from("vacation_team_members")
+              .update({
+                status: "accepted",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("team_id", team.id)
+              .eq("user_id", userId);
+          } catch {}
+
+          memberEntry.status = "accepted";
+          memberEntry.responded_at = new Date().toISOString();
+          myTeams.push(team);
+        } else {
+          // Non-friends: can manually accept or decline
+          incomingInvites.push(team);
+        }
       }
     }
   }
@@ -367,7 +433,7 @@ export async function respondVacationTeamInvite(
   member.status = decision === "accept" ? "accepted" : "declined";
   member.responded_at = new Date().toISOString();
 
-  // Notify leader if accepted
+  // Notify leader
   if (decision === "accept") {
     try {
       await supabase.from("notifications").insert({
@@ -378,12 +444,32 @@ export async function respondVacationTeamInvite(
         type: "success",
       });
     } catch {}
+  } else {
+    try {
+      await supabase.from("notifications").insert({
+        target_user_id: team.leader_id,
+        sent_by: userId,
+        title: "Team Roster Update",
+        message: `${member.name} declined or left team "${team.name}" for ${team.event_title}.`,
+        type: "info",
+      });
+    } catch {}
   }
 
   allTeams[targetIndex] = { ...team };
   saveStoredTeams(allTeams);
 
   return allTeams[targetIndex];
+}
+
+/**
+ * Member leaves or declines an active team
+ */
+export async function leaveVacationTeam(
+  teamId: string,
+  userId: string
+): Promise<VacationTeam | null> {
+  return respondVacationTeamInvite(teamId, userId, "decline");
 }
 
 /**

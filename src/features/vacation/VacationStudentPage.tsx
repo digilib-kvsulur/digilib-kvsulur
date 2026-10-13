@@ -37,6 +37,7 @@ import {
   Shuffle,
   AlertCircle,
   Info,
+  RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,7 @@ import {
   getDeterministicProblemIndex,
   getStoredParticipationMode,
   saveStoredParticipationMode,
+  clearStoredParticipationMode,
   type VacationProblemStatement,
 } from "./problemStatements";
 import VacationCountdownTimer from "./VacationCountdownTimer";
@@ -73,6 +75,7 @@ import {
   createVacationTeam,
   fetchMyVacationTeams,
   formatTeamRoster,
+  leaveVacationTeam,
   respondVacationTeamInvite,
   searchVacationPeers,
 } from "./teamsApi";
@@ -394,35 +397,32 @@ export default function VacationStudentPage({
     const participantId = userId || "student";
     const stored = getStoredParticipationMode(participantId, selectedDayNumber);
     if (stored && stored.mode) {
-      setDayParticipationMode({
-        day: selectedDayNumber,
-        mode: stored.mode,
-        teamId: stored.teamId,
-        teamName: stored.teamName,
-        selectedAt: stored.selectedAt,
-      });
-      if (stored.teamId) setSelectedTeamForDayId(stored.teamId);
-    } else {
-      // Check if user has an accepted team matching today's event
-      const eventTeam = myTeams.find(
-        (t) =>
-          t.event_title.toLowerCase().includes(selectedDayData.event.title.toLowerCase()) ||
-          (activeCompetition && t.activity_id === activeCompetition.id)
-      );
-      if (eventTeam) {
+      if (stored.mode === "team" && stored.teamId) {
+        const foundTeam = myTeams.find((t) => t.id === stored.teamId);
+        if (foundTeam) {
+          setDayParticipationMode({
+            day: selectedDayNumber,
+            mode: "team",
+            teamId: stored.teamId,
+            teamName: stored.teamName || foundTeam.name,
+            selectedAt: stored.selectedAt,
+          });
+          setSelectedTeamForDayId(stored.teamId);
+          return;
+        }
+      } else if (stored.mode === "individual") {
         setDayParticipationMode({
           day: selectedDayNumber,
-          mode: "team",
-          teamId: eventTeam.id,
-          teamName: eventTeam.name,
-          selectedAt: eventTeam.created_at || new Date().toISOString(),
+          mode: "individual",
+          teamId: null,
+          teamName: null,
+          selectedAt: stored.selectedAt,
         });
-        setSelectedTeamForDayId(eventTeam.id);
-      } else {
-        setDayParticipationMode(null);
+        return;
       }
     }
-  }, [userId, selectedDayNumber, myTeams, selectedDayData, activeCompetition]);
+    setDayParticipationMode(null);
+  }, [userId, selectedDayNumber, myTeams]);
 
   // Timing checks for compulsory team formation & 8:00 AM problem release
   const now = new Date();
@@ -520,6 +520,46 @@ export default function VacationStudentPage({
         ? "Your challenge problem statement has been allotted!"
         : "Your problem statement will unlock at 8:00 AM.",
     });
+  };
+
+  const handleSwitchParticipationMode = () => {
+    if (isTeamFormationClosedToday) {
+      toast({
+        title: "Team Selection Locked",
+        description: "Team selection and mode switching for today's challenge closed at 10:00 AM.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const participantId = userId || "student";
+    clearStoredParticipationMode(participantId, selectedDayNumber);
+    setDayParticipationMode(null);
+    toast({
+      title: "Participation Mode Reset",
+      description: "You can now choose Individual mode, pick another team, or form a new team before 10:00 AM.",
+    });
+  };
+
+  const handleLeaveTeam = async (teamId: string, teamName: string) => {
+    if (!userId) return;
+    try {
+      await leaveVacationTeam(teamId, userId);
+      toast({
+        title: "Left Team",
+        description: `You have left team "${teamName}". You can join another team or choose Individual mode.`,
+      });
+      if (dayParticipationMode?.teamId === teamId) {
+        clearStoredParticipationMode(userId || "student", selectedDayNumber);
+        setDayParticipationMode(null);
+      }
+      await loadTeamsData();
+    } catch (err: any) {
+      toast({
+        title: "Error leaving team",
+        description: err?.message || "Could not leave team.",
+        variant: "destructive",
+      });
+    }
   };
 
   // File upload handler
@@ -1097,7 +1137,21 @@ export default function VacationStudentPage({
 
                         {!isTeamFormationClosedToday && myTeams.length > 0 && (
                           <div className="pt-1.5 space-y-1">
-                            <Label className="text-[10px] font-bold text-muted-foreground">Select Your Team:</Label>
+                            <div className="flex items-center justify-between">
+                              <Label className="text-[10px] font-bold text-muted-foreground">Select Your Team:</Label>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setRegModalTab("team-form");
+                                  setRegModalOpen(true);
+                                }}
+                                className="text-[10px] h-5 px-1 text-amber-600 hover:text-amber-700"
+                              >
+                                + Form New Team
+                              </Button>
+                            </div>
                             <select
                               className="w-full text-xs p-1.5 rounded-lg border bg-background font-medium"
                               value={selectedTeamForDayId || myTeams[0].id}
@@ -1193,19 +1247,24 @@ export default function VacationStudentPage({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      {isDayToday && !isTeamFormationClosedToday && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setDayParticipationMode(null)}
-                          className="h-6 text-[11px] font-bold text-muted-foreground hover:text-foreground px-2"
-                        >
-                          Switch Mode
-                        </Button>
-                      )}
-                      {isTeamFormationClosedToday && (
-                        <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-                          <Lock className="h-3 w-3" /> Team locked (past 10 AM)
+                      {!isTeamFormationClosedToday ? (
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleSwitchParticipationMode}
+                            className="h-7 text-[11px] font-bold text-amber-800 dark:text-amber-200 border-amber-500/40 hover:bg-amber-500/10 px-2.5 shadow-2xs gap-1"
+                          >
+                            <RefreshCw className="h-3 w-3 text-amber-600" />
+                            <span>Change Mode / Team</span>
+                          </Button>
+                          <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                            (Till 10:00 AM)
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1 bg-muted/60 px-2 py-1 rounded-md border">
+                          <Lock className="h-3 w-3 text-muted-foreground" /> Mode locked (past 10:00 AM)
                         </span>
                       )}
                     </div>
@@ -2058,9 +2117,20 @@ export default function VacationStudentPage({
                                 {peer.first_name[0] || "S"}
                               </div>
                               <div className="min-w-0">
-                                <p className="font-bold truncate text-foreground">
-                                  {peer.first_name} {peer.last_name}
-                                </p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-bold truncate text-foreground">
+                                    {peer.first_name} {peer.last_name}
+                                  </p>
+                                  {peer.is_friend ? (
+                                    <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[9px] px-1.5 py-0 font-bold">
+                                      Friend 🤝 Auto-Accepts
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[9px] text-muted-foreground px-1.5 py-0">
+                                      Sends Invite ✉️
+                                    </Badge>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                                   {peer.student_class && <span>Class {peer.student_class}</span>}
                                   {peer.admission_number && (
@@ -2169,8 +2239,13 @@ export default function VacationStudentPage({
                   )}
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed">
-                  📢 <strong>How Formation Works:</strong> When you click "Send Invites &amp; Create Team", an in-app invite is sent to each teammate. Once they click <strong>Accept</strong>, the team is formed and ready for project submissions!
+                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed space-y-1">
+                  <p>
+                    🤝 <strong>Smart Auto-Accept:</strong> Teammates who are already your <strong>DLMS Friends</strong> are automatically accepted and joined instantly!
+                  </p>
+                  <p className="text-[10px] opacity-90">
+                    ✉️ Peers who are not yet friends will receive an in-app invite that they can manually accept or decline. All team members can freely change teams or switch to Individual mode before 10:00 AM.
+                  </p>
                 </div>
               </div>
 
@@ -2328,22 +2403,51 @@ export default function VacationStudentPage({
                             ))}
                           </div>
 
-                          {/* Action to use this roster in submission */}
-                          <div className="flex justify-end gap-2 pt-1 border-t">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                handleUseTeamInSubmission(team);
-                                setRegModalOpen(false);
-                                setSubmitDialogOpen(true);
-                              }}
-                              className="text-xs h-7 px-3 gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 hover:bg-amber-500/20 hover:text-amber-950 dark:hover:text-white font-semibold transition-colors"
-                            >
-                              <Copy className="h-3 w-3 text-amber-500" />
-                              <span>Apply Roster to Today's Project Submission</span>
-                            </Button>
+                          {/* Action to manage / select / leave this team */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t">
+                            {!isLeader && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleLeaveTeam(team.id, team.name)}
+                                className="text-xs h-7 px-2.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                <span>Decline / Leave Team</span>
+                              </Button>
+                            )}
+
+                            <div className="flex items-center gap-2 ml-auto">
+                              {!isTeamFormationClosedToday && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => {
+                                    handleConfirmParticipationMode("team", team.id, team.name);
+                                    setRegModalOpen(false);
+                                  }}
+                                  className="text-xs h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1 shadow-2xs"
+                                >
+                                  <Check className="h-3 w-3" />
+                                  <span>Select Team for Today</span>
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  handleUseTeamInSubmission(team);
+                                  setRegModalOpen(false);
+                                  setSubmitDialogOpen(true);
+                                }}
+                                className="text-xs h-7 px-2.5 gap-1 border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 hover:bg-amber-500/20 font-semibold"
+                              >
+                                <Copy className="h-3 w-3 text-amber-500" />
+                                <span>Copy Roster</span>
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       );
