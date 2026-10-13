@@ -308,27 +308,16 @@ export default function VacationStudentPage({
         attempts: 1,
       };
     }
-    if (localCompletedDays[selectedDayData.day]) {
-      return {
-        id: `local-${selectedDayData.day}`,
-        campaign_id: campaign?.id || "",
-        activity_id: activeCompetition.id,
-        student_id: userId || "",
-        status: "approved",
-        points_awarded: 100,
-        review_note: "Completed via Interactive Vacation Lab!",
-        content: "Completed via Interactive Simulator",
-        link: null,
-        submitted_at: new Date().toISOString(),
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: "system",
-        attempts: 1,
-      };
-    }
     return null;
-  }, [activeCompetition, overview, campaign, userId, selectedDayData, localCompletedDays]);
+  }, [activeCompetition, overview, campaign, userId, selectedDayData]);
 
-  const isCompleted = currentSubmission?.status === "approved" || Boolean(localCompletedDays[selectedDayData.day]);
+  // Check if today matches the scheduled date for this day's activity
+  const isDayToday = selectedDayData.isToday;
+  const isUpcomingDay = Boolean(selectedDayData.dateStr && selectedDayData.dateStr > todayStr);
+  const isPastDay = Boolean(selectedDayData.dateStr && selectedDayData.dateStr < todayStr);
+  const canSubmitToday = isDayToday || (!selectedDayData.dateStr);
+
+  const isCompleted = currentSubmission?.status === "approved";
 
   // File upload handler
   const handleDirectFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -379,6 +368,17 @@ export default function VacationStudentPage({
 
   // Submit manual project entry
   const handleSubmitManual = async () => {
+    if (!canSubmitToday) {
+      toast({
+        title: "Submissions not allowed today",
+        description: isUpcomingDay
+          ? `Submissions for Day ${selectedDayNumber} will open on ${selectedDayData.dateStr || "scheduled date"} (8:00 AM – 6:00 PM).`
+          : `The submission deadline for Day ${selectedDayNumber} has passed (${selectedDayData.dateStr}).`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       // Find matching activity ID in DB if virtual
@@ -411,8 +411,8 @@ export default function VacationStudentPage({
     }
   };
 
-  // Handle Game Completion
-  const handleGameComplete = async (result: {
+  // Handle Game Completion (Practice Simulator - Fun & Learning only, no competition points awarded)
+  const handleGameComplete = (result: {
     score: number;
     maxScore: number;
     stars: 1 | 2 | 3;
@@ -420,31 +420,10 @@ export default function VacationStudentPage({
     artworkDataUrl?: string;
   }) => {
     setGameModalOpen(false);
-
-    // Save local cache
-    const updated = { ...localCompletedDays, [selectedDayNumber]: true };
-    setLocalCompletedDays(updated);
-    try {
-      localStorage.setItem("dlms_vacation_local_completed", JSON.stringify(updated));
-    } catch {}
-
-    // Auto submit to DB
-    try {
-      let actId = activeCompetition.id;
-      if (actId.startsWith("virtual-")) {
-        const found = campaignActivities.find((a) => a.title.toLowerCase().includes(selectedDayData.event.title.toLowerCase()));
-        if (found) actId = found.id;
-      }
-      await submitVacationActivity(actId, `[GAME_COMPLETED] ${result.summary}`, result.artworkDataUrl || undefined);
-    } catch {
-      // Offline / virtual activity fallback
-    }
-
     toast({
-      title: "Challenge Completed! ⭐⭐⭐",
-      description: `You earned ${result.score} points for Day ${selectedDayNumber}!`,
+      title: "Practice Completed! ⭐⭐⭐",
+      description: `Great simulation run on Day ${selectedDayNumber}! Note: Mode A is for fun practice. Official competition points (100 Pts / 500 XP) are awarded exclusively through Mode B hands-on project submissions on the scheduled date.`,
     });
-    await load();
   };
 
   // Team Formation & Invite Handlers
