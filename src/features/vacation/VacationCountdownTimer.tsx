@@ -6,6 +6,7 @@ interface VacationCountdownTimerProps {
   mode?: "start" | "end";
   label?: string;
   compact?: boolean;
+  variant?: "default" | "glass";
 }
 
 interface TimeLeft {
@@ -58,6 +59,7 @@ export default function VacationCountdownTimer({
   mode = "end",
   label,
   compact = false,
+  variant = "default",
 }: VacationCountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(() => calculateTimeLeft(targetTime, mode));
 
@@ -71,17 +73,31 @@ export default function VacationCountdownTimer({
 
   if (!timeLeft) return null;
 
+  const isGlass = variant === "glass";
+
   if (timeLeft.isExpired) {
     if (mode === "start") {
       return (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-          <Zap className="h-3.5 w-3.5" />
+        <div
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black shadow-xs ${
+            isGlass
+              ? "bg-emerald-400 text-emerald-950"
+              : "bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+          }`}
+        >
+          <Zap className="h-3.5 w-3.5 fill-current" />
           <span>Live Now 🔥</span>
         </div>
       );
     }
     return (
-      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-semibold">
+      <div
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold ${
+          isGlass
+            ? "bg-black/30 border border-white/20 text-white/80"
+            : "bg-muted text-muted-foreground"
+        }`}
+      >
         <Clock className="h-3.5 w-3.5" />
         <span>Window Closed</span>
       </div>
@@ -100,8 +116,14 @@ export default function VacationCountdownTimer({
 
     if (compact) {
       return (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300">
-          <Calendar className="h-3.5 w-3.5" />
+        <div
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border ${
+            isGlass
+              ? "bg-black/30 border-white/20 text-white backdrop-blur-md"
+              : "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300"
+          }`}
+        >
+          <Calendar className="h-3.5 w-3.5 text-amber-300" />
           <span>{daysText}</span>
         </div>
       );
@@ -136,14 +158,20 @@ export default function VacationCountdownTimer({
   if (compact) {
     return (
       <div
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-colors ${
-          isUrgent
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+          isGlass
+            ? "bg-black/30 border-white/20 text-white backdrop-blur-md shadow-xs"
+            : isUrgent
             ? "bg-red-500/15 border-red-500/30 text-red-600 dark:text-red-400 animate-pulse"
             : "bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300"
         }`}
       >
-        {isUrgent ? <Flame className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
-        <span>
+        {isUrgent ? (
+          <Flame className="h-3.5 w-3.5 text-rose-400 animate-pulse" />
+        ) : (
+          <Clock className="h-3.5 w-3.5 text-amber-300" />
+        )}
+        <span className="font-mono tracking-wide">
           {mode === "start" ? "Starts: " : ""}
           {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
         </span>

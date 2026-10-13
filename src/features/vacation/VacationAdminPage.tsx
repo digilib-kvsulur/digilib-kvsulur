@@ -1079,7 +1079,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-6 text-[10px] px-2 font-bold border-amber-500/40"
+                          className="h-6 text-[10px] px-2 font-bold border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 hover:text-amber-950 dark:hover:text-white transition-colors"
                           onClick={() => {
                             const full: Record<string, number> = {};
                             matchedTemplate.rubric.forEach((r) => {
@@ -1095,7 +1095,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-6 text-[10px] px-2 font-bold border-amber-500/40"
+                          className="h-6 text-[10px] px-2 font-bold border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 hover:text-amber-950 dark:hover:text-white transition-colors"
                           onClick={() => {
                             const reduced: Record<string, number> = {};
                             let s = 0;
@@ -1114,7 +1114,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-6 text-[10px] px-2 font-bold border-amber-500/40"
+                          className="h-6 text-[10px] px-2 font-bold border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 hover:text-amber-950 dark:hover:text-white transition-colors"
                           onClick={() => {
                             const reduced: Record<string, number> = {};
                             let s = 0;

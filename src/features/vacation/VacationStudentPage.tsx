@@ -562,81 +562,94 @@ export default function VacationStudentPage({
 
   return (
     <div className="space-y-4 max-w-5xl mx-auto pb-12">
-      {/* Sleek, Modern Festival Header (Compact & Consolidated) */}
-      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-primary/10 p-3 sm:p-4 shadow-xs space-y-2.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="space-y-0.5 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
-                <Sun className="h-3 w-3" /> Autumn Break '26
-              </span>
-              <span className="text-[11px] font-bold text-muted-foreground">
-                10 Days • 10 Challenges • 1 Pt = 5 XP
-              </span>
-            </div>
-            <h2 className="text-base sm:text-xl font-black text-foreground truncate">
-              {campaign?.title || "DLMS Vacation Festival"}
-            </h2>
-          </div>
+      {/* Hero Festival Header — gradient card with frosted stats */}
+      <div className="rounded-2xl overflow-hidden relative shadow-md border border-white/20">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-orange-600 to-rose-600 pointer-events-none" />
+        {/* Ambient orbs */}
+        <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="absolute -left-12 -bottom-12 w-44 h-44 rounded-full bg-rose-900/30 blur-2xl pointer-events-none" />
 
-          {/* Inline Compact Stats Pills */}
-          <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-            <div className="px-2.5 py-1 rounded-xl bg-card border flex items-center gap-1.5 shadow-2xs">
-              <span className="text-xs font-black text-primary">
-                {overview?.progress?.total_points || 0} Pts
-              </span>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                ({pointsToXp(overview?.progress?.total_points || 0)} XP)
-              </span>
-            </div>
-            <div className="px-2.5 py-1 rounded-xl bg-card border flex items-center gap-1 shadow-2xs">
-              <Flame className="h-3.5 w-3.5 text-orange-600 fill-orange-500/20" />
-              <span className="text-xs font-black text-orange-600">
-                {overview?.progress?.current_streak || 0}
-              </span>
-              <span className="text-[10px] text-muted-foreground font-semibold">Streak</span>
-            </div>
-            <div className="px-2.5 py-1 rounded-xl bg-card border flex items-center gap-1 shadow-2xs hidden sm:flex">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-              <span className="text-xs font-bold text-emerald-600">{completedCount}/10</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Integrated Slim Team Formation Ribbon (Replaces the huge secondary card!) */}
-        <div className="flex items-center justify-between gap-2 p-2 px-3 rounded-xl bg-card/85 border border-amber-500/25 text-xs">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
-              <Users className="h-3 w-3" />
-            </div>
-            <span className="text-[11px] sm:text-xs font-medium text-foreground truncate">
-              <strong className="text-amber-700 dark:text-amber-300 font-bold">14 Oct:</strong> Team Formation Open (2–4 members or solo)
+        <div className="relative z-10 p-4 sm:p-5 space-y-3">
+          {/* Top row: label + campaign status */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-100 bg-black/25 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1.5">
+              <Sun className="h-3 w-3 text-amber-300" />
+              <span>Autumn Break &apos;26 · 10 Days · 1 Pt = 5 XP</span>
+            </span>
+            <span className="text-[11px] font-black text-emerald-950 bg-emerald-400 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+              <Sparkles className="h-3 w-3" />
+              <span>{completedCount}/10 Done</span>
             </span>
           </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 hover:text-amber-950 dark:hover:text-amber-100 h-6 px-2.5 shrink-0 gap-1"
+
+          {/* Campaign title */}
+          <h2 className="text-lg sm:text-2xl font-black text-white leading-tight drop-shadow-sm tracking-tight">
+            {campaign?.title || "DLMS Vacation Festival"}
+          </h2>
+
+          {/* Frosted stats row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Points pill */}
+            <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-xs">
+              <Zap className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
+              <span className="text-sm font-black text-white">{overview?.progress?.total_points || 0} Pts</span>
+              <span className="text-[10px] text-white/70 font-bold">({pointsToXp(overview?.progress?.total_points || 0)} XP)</span>
+            </div>
+            {/* Streak pill */}
+            <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-xs">
+              <Flame className="h-3.5 w-3.5 text-rose-400 fill-rose-400" />
+              <span className="text-sm font-black text-white">{overview?.progress?.current_streak || 0}</span>
+              <span className="text-[10px] text-white/70 font-bold">Day Streak</span>
+            </div>
+            {/* Completed pill */}
+            <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-xs">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+              <span className="text-[10px] text-white/70 font-bold">{completedCount} Completed</span>
+            </div>
+          </div>
+
+          {/* Team Formation ribbon — frosted glass style */}
+          <button
+            type="button"
             onClick={() => {
               if (incomingInvites.length > 0) setRegModalTab("my-teams");
               setRegModalOpen(true);
             }}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-black/25 backdrop-blur-md border border-white/20 text-left hover:bg-black/35 transition-colors active:scale-[0.99]"
           >
-            <span>Team Hub</span>
-            {incomingInvites.length > 0 && (
-              <Badge className="bg-red-500 text-white text-[9px] px-1 py-0 h-3.5">
-                {incomingInvites.length}
-              </Badge>
-            )}
-            <ChevronRight className="h-3 w-3" />
-          </Button>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-amber-400 text-amber-950 flex items-center justify-center shrink-0 shadow-xs">
+                <Users className="h-3.5 w-3.5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] sm:text-xs font-bold text-white leading-snug">
+                  <span className="text-amber-300">14 Oct:</span> Team Formation Open — 2–4 members or solo
+                </p>
+                {incomingInvites.length > 0 && (
+                  <p className="text-[10px] text-amber-200 font-semibold">
+                    🔔 {incomingInvites.length} pending invite{incomingInvites.length > 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-1 bg-white text-orange-950 font-black text-[11px] px-2.5 py-1 rounded-lg shrink-0 shadow-xs">
+              <span>Team Hub</span>
+              <ChevronRight className="h-3 w-3" />
+              {incomingInvites.length > 0 && (
+                <span className="w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center ml-0.5 shadow-xs">
+                  {incomingInvites.length}
+                </span>
+              )}
+            </div>
+          </button>
         </div>
       </div>
 
-      {/* Clean Navigation Tabs */}
+      {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-3">
-        <TabsList className="grid grid-cols-4 w-full h-9 p-0.5 bg-muted/60 rounded-xl border">
-          <TabsTrigger value="arena" className="rounded-lg text-xs font-bold gap-1 py-1 data-[state=active]:bg-card data-[state=active]:shadow-xs">
+        <TabsList className="grid grid-cols-4 w-full h-10 p-1 bg-muted/70 rounded-xl border shadow-xs">
+          <TabsTrigger value="arena" className="rounded-lg text-xs font-bold gap-1 py-1.5 data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-amber-600">
             <Gamepad2 className="h-3.5 w-3.5 text-amber-500" />
             <span className="hidden sm:inline">Challenges</span>
             <span className="sm:hidden">Events</span>
@@ -707,91 +720,104 @@ export default function VacationStudentPage({
             </div>
           </div>
 
-          {/* Active Day Challenge Showcase Card (BIG, DETAILED & ENGAGING) */}
-          <Card className="border-border/80 shadow-xs overflow-hidden">
-            <CardHeader className="p-3.5 sm:p-5 pb-3 bg-muted/20 border-b">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <Badge className="bg-amber-600 text-white text-[11px] font-black h-5">
-                      Day {selectedDayNumber} of 10
-                    </Badge>
-                    <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/25">
-                      {selectedDayData.event.tagline}
+          {/* Active Day Challenge Showcase Card */}
+          <Card className="overflow-hidden shadow-sm border-0">
+            {/* Vivid gradient header matching the day theme */}
+            <div className="relative bg-gradient-to-br from-amber-600 via-orange-600 to-rose-700 p-4 sm:p-5 overflow-hidden">
+              {/* Ambient orb */}
+              <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+              <div className="relative z-10 space-y-2.5">
+                {/* Top badge row */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-black text-amber-950 bg-amber-300 px-2.5 py-0.5 rounded-full shadow-xs">
+                    Day {selectedDayNumber} of 10
+                  </span>
+                  <span className="text-[10px] font-bold text-white/90 bg-black/25 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-white/20">
+                    {selectedDayData.event.tagline}
+                  </span>
+                  {selectedDayData.isToday && (
+                    <span className="text-[10px] font-black text-emerald-950 bg-emerald-400 px-2.5 py-0.5 rounded-full animate-pulse shadow-xs">
+                      ✓ Today&apos;s Live Challenge
                     </span>
-                    {selectedDayData.isToday && (
-                      <Badge className="bg-emerald-600 text-white text-[9px] font-bold h-5 animate-pulse">
-                        Active Today
-                      </Badge>
-                    )}
-                  </div>
-                  <h3 className="text-base sm:text-xl font-black text-foreground">
-                    {selectedDayData.event.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground font-medium">
-                    {selectedDayData.event.subtitle}
-                  </p>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-1.5 self-start sm:self-center shrink-0">
-                  <Badge variant="outline" className="text-xs font-black px-2.5 py-1 bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30">
-                    ⚡ 100 Pts (500 XP)
-                  </Badge>
+                {/* Title */}
+                <h3 className="text-lg sm:text-2xl font-black text-white leading-tight drop-shadow-sm">
+                  {selectedDayData.event.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-white/80 font-medium">
+                  {selectedDayData.event.subtitle}
+                </p>
+
+                {/* Points + Done row */}
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl text-white font-black text-xs shadow-xs">
+                    <Zap className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
+                    <span>100 Competition Pts (500 XP)</span>
+                  </div>
                   {isCompleted && (
-                    <Badge className="bg-emerald-600 text-white font-bold text-xs gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Done
-                    </Badge>
+                    <div className="flex items-center gap-1.5 bg-emerald-400 text-emerald-950 px-3 py-1.5 rounded-xl text-xs font-black shadow-xs">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>Completed!</span>
+                    </div>
                   )}
                 </div>
               </div>
-            </CardHeader>
+            </div>
 
             <CardContent className="p-3.5 sm:p-5 space-y-4">
               {/* Challenge Briefing & Problem Statement */}
-              <div className="rounded-xl border p-3.5 bg-card space-y-2 shadow-2xs">
-                <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <FileText className="h-3.5 w-3.5 text-amber-500" /> Mission Briefing:
-                </h4>
-                <p className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-                  {selectedDayData.event.description}
-                </p>
-
-                {/* What students learn */}
-                {selectedDayData.event.learningOutcomes && (
-                  <div className="pt-2 border-t flex flex-wrap items-center gap-1">
-                    <span className="text-[10px] font-bold text-muted-foreground mr-1">Skills:</span>
-                    {selectedDayData.event.learningOutcomes.map((skill, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-[10px] font-semibold py-0">
-                        ✓ {skill}
-                      </Badge>
-                    ))}
+              <div className="rounded-xl border border-border/60 bg-muted/30 overflow-hidden shadow-xs">
+                <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2 bg-card">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+                    <FileText className="h-3.5 w-3.5 text-amber-600" />
                   </div>
-                )}
+                  <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                    Real-World Mission Briefing:
+                  </h4>
+                </div>
+                <div className="p-4 space-y-3">
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                    {selectedDayData.event.description}
+                  </p>
+                  {/* Skills Developed */}
+                  {selectedDayData.event.learningOutcomes && (
+                    <div className="pt-2 border-t border-border/50 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wide">Skills Developed:</span>
+                      {selectedDayData.event.learningOutcomes.map((skill, idx) => (
+                        <span key={idx} className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-0.5">
+                          ✓ {skill}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Official 100-Point Rubric Breakdown (Collapsible to eliminate visual congestion) */}
+              {/* Official 100-Point Rubric (Collapsible) */}
               {selectedDayData.event.rubric?.length ? (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setShowRubric(!showRubric)}
-                    className="w-full flex items-center justify-between text-left"
+                    className="w-full flex items-center justify-between text-left px-4 py-3 hover:bg-amber-500/10 transition-colors"
                   >
                     <span className="text-xs font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1.5">
                       <Trophy className="h-3.5 w-3.5 text-amber-500" />
                       <span>Official 100-Point Scoring Rubric (500 XP)</span>
                     </span>
-                    <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300">
-                      {showRubric ? "Hide ▲" : "View Criteria ▼"}
+                    <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 shrink-0 ml-2">
+                      {showRubric ? "Hide ▲" : "View ▼"}
                     </span>
                   </button>
 
                   {showRubric && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1.5 border-t border-amber-500/20">
+                    <div className="px-4 pb-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5 border-t border-amber-500/20 pt-3">
                       {selectedDayData.event.rubric.map((r, idx) => (
                         <div
                           key={idx}
-                          className="p-2 rounded-lg border bg-card/80 flex items-center justify-between gap-2 text-xs"
+                          className="p-2.5 rounded-lg border bg-card/80 flex items-center justify-between gap-2 text-xs"
                         >
                           <span className="font-semibold text-foreground truncate">{r.criterion}</span>
                           <div className="text-right shrink-0">
@@ -809,118 +835,146 @@ export default function VacationStudentPage({
                 </div>
               ) : null}
 
-              {/* ACTION HUB: Mode A (Fun Practice Simulator) & Mode B (Official Hands-On Submission) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* Option 1: Practice Simulator / Lab (JUST FOR FUN - 0 POINTS) */}
-                <div className="p-4 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent space-y-3 flex flex-col justify-between shadow-2xs">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
-                        <Gamepad2 className="h-4 w-4" /> Mode A: Practice Simulator
+              {/* ACTION HUB: Mode A (Fun Practice) & Mode B (Official Submit) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Mode A — Practice Simulator */}
+                <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-50 via-orange-50 to-transparent dark:from-amber-900/20 dark:via-orange-900/10 dark:to-transparent overflow-hidden shadow-xs">
+                  <div className="px-4 pt-4 pb-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                          <Gamepad2 className="h-3.5 w-3.5" />
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-200">
+                          Mode A: Practice Lab
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border shrink-0">
+                        0 Pts
                       </span>
-                      <Badge variant="secondary" className="text-[10px] font-bold text-muted-foreground">
-                        Practice Only • 0 Pts
-                      </Badge>
                     </div>
-                    <h5 className="text-sm font-black text-foreground">Play In-App Simulation Challenge</h5>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Practice and explore interactive lab models in-browser! Note: Simulator runs are for fun and skill learning. Official competition points (100 Pts / 500 XP) are awarded exclusively through Mode B hands-on project submissions on the scheduled date.
+                    <h5 className="text-sm font-black text-foreground">Play In-App Simulation</h5>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Explore interactive labs for fun & skill practice. No competition points — those come from Mode B only.
                     </p>
                   </div>
-
-                  <Button
-                    onClick={() => setGameModalOpen(true)}
-                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-xs h-9 transition-colors"
-                  >
-                    <Play className="h-3.5 w-3.5 text-white" />
-                    <span>🎮 Launch Practice Simulator (Fun Mode)</span>
-                  </Button>
+                  <div className="px-4 pb-4">
+                    <Button
+                      onClick={() => setGameModalOpen(true)}
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 h-10 shadow-xs transition-all active:scale-[0.98]"
+                    >
+                      <Play className="h-3.5 w-3.5 text-white" />
+                      <span>🎮 Launch Practice Simulator</span>
+                    </Button>
+                  </div>
                 </div>
 
-                {/* Option 2: Hands-on Project / Write-up Submission (OFFICIAL 100 PTS) */}
-                <div className="p-4 rounded-2xl border border-sky-500/40 bg-gradient-to-br from-sky-500/10 via-indigo-500/5 to-transparent space-y-3 flex flex-col justify-between shadow-2xs">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black uppercase tracking-wider text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
-                        <Camera className="h-4 w-4" /> Mode B: Hands-On Project Showcase
+                {/* Mode B — Official Submission */}
+                <div className="rounded-2xl border border-sky-500/40 bg-gradient-to-br from-sky-50 via-indigo-50 to-transparent dark:from-sky-900/20 dark:via-indigo-900/10 dark:to-transparent overflow-hidden shadow-xs">
+                  <div className="px-4 pt-4 pb-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                          <Camera className="h-3.5 w-3.5" />
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-sky-800 dark:text-sky-200">
+                          Mode B: Competition
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-black text-sky-100 bg-sky-600 px-2 py-0.5 rounded-full shrink-0">
+                        100 Pts (500 XP)
                       </span>
-                      <Badge className="bg-sky-600 text-white text-[10px] font-bold">
-                        Official • 100 Pts (500 XP)
-                      </Badge>
                     </div>
-                    <h5 className="text-sm font-black text-foreground">Submit Physical Model, Write-up, or Media</h5>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Build your model, conduct the experiment, create artwork, or prepare your write-up. Submit photos, PDFs, or links for teacher review and 100-point rubric grading.
+                    <h5 className="text-sm font-black text-foreground">Submit Hands-On Project</h5>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Build, create, or experiment on the scheduled date. Upload photos, PDFs, or link for rubric grading.
                     </p>
                   </div>
-
-                  {canSubmitToday ? (
-                    <Button
-                      onClick={() => setSubmitDialogOpen(true)}
-                      className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs gap-1.5 h-9 shadow-xs transition-colors"
-                    >
-                      <UploadCloud className="h-3.5 w-3.5 text-white" />
-                      <span>{currentSubmission ? "View / Edit Project Entry" : "📝 Submit Hands-On Project (100 Pts)"}</span>
-                    </Button>
-                  ) : isUpcomingDay ? (
-                    <div className="space-y-1">
+                  <div className="px-4 pb-4 space-y-1.5">
+                    {canSubmitToday ? (
                       <Button
-                        disabled
-                        className="w-full bg-muted text-muted-foreground font-semibold text-xs gap-1.5 h-9 cursor-not-allowed opacity-80"
+                        onClick={() => setSubmitDialogOpen(true)}
+                        className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs gap-1.5 h-10 shadow-xs transition-all active:scale-[0.98]"
                       >
-                        <Lock className="h-3.5 w-3.5" />
-                        <span>Submissions Open on {selectedDayData.dateStr || `Day ${selectedDayNumber}`}</span>
+                        <UploadCloud className="h-3.5 w-3.5 text-white" />
+                        <span>{currentSubmission ? "View / Edit Project Entry" : "📝 Submit Hands-On Project"}</span>
                       </Button>
-                      <p className="text-[10px] text-muted-foreground text-center">
-                        🔒 Submissions accepted only on {selectedDayData.dateStr} (8:00 AM – 6:00 PM).
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <Button
-                        disabled={!currentSubmission}
-                        onClick={() => currentSubmission && setSubmitDialogOpen(true)}
-                        className={`w-full text-xs gap-1.5 h-9 ${
-                          currentSubmission
-                            ? "bg-sky-600 hover:bg-sky-700 text-white font-bold"
-                            : "bg-muted text-muted-foreground font-semibold cursor-not-allowed opacity-80"
-                        }`}
-                      >
-                        {currentSubmission ? (
-                          <>
-                            <UploadCloud className="h-3.5 w-3.5 text-white" />
-                            <span>View Submitted Project Entry</span>
-                          </>
-                        ) : (
-                          <>
-                            <Clock className="h-3.5 w-3.5" />
-                            <span>Submission Window Closed ({selectedDayData.dateStr})</span>
-                          </>
-                        )}
-                      </Button>
-                      {!currentSubmission && (
+                    ) : isUpcomingDay ? (
+                      <>
+                        <Button
+                          disabled
+                          className="w-full bg-muted text-muted-foreground font-semibold text-xs gap-1.5 h-10 cursor-not-allowed opacity-80"
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                          <span>Opens {selectedDayData.dateStr || `Day ${selectedDayNumber}`}</span>
+                        </Button>
                         <p className="text-[10px] text-muted-foreground text-center">
-                          The deadline for this activity date has passed.
+                          🔒 Submissions open 8:00 AM – 6:00 PM on {selectedDayData.dateStr}
                         </p>
-                      )}
-                    </div>
-                  )}
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          disabled={!currentSubmission}
+                          onClick={() => currentSubmission && setSubmitDialogOpen(true)}
+                          className={`w-full text-xs gap-1.5 h-10 transition-all active:scale-[0.98] ${
+                            currentSubmission
+                              ? "bg-sky-600 hover:bg-sky-700 text-white font-bold"
+                              : "bg-muted text-muted-foreground font-semibold cursor-not-allowed opacity-80"
+                          }`}
+                        >
+                          {currentSubmission ? (
+                            <>
+                              <UploadCloud className="h-3.5 w-3.5 text-white" />
+                              <span>View Submitted Project</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-3.5 w-3.5" />
+                              <span>Window Closed ({selectedDayData.dateStr})</span>
+                            </>
+                          )}
+                        </Button>
+                        {!currentSubmission && (
+                          <p className="text-[10px] text-muted-foreground text-center">
+                            The submission window for this day has passed.
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Status Banner */}
+              {/* Submission Status Banner */}
               {currentSubmission && (
-                <div className="p-3 rounded-xl border bg-muted/40 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span className="font-bold">Status: {currentSubmission.status.toUpperCase()}</span>
-                    {currentSubmission.points_awarded && (
-                      <span className="text-emerald-600 font-bold">+{currentSubmission.points_awarded} pts awarded</span>
-                    )}
+                <div className={`p-3.5 rounded-xl border flex items-start justify-between gap-3 text-xs ${
+                  currentSubmission.status === "approved"
+                    ? "bg-emerald-500/10 border-emerald-500/30"
+                    : currentSubmission.status === "rejected"
+                    ? "bg-red-500/10 border-red-500/30"
+                    : "bg-amber-500/10 border-amber-500/30"
+                }`}>
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${
+                      currentSubmission.status === "approved"
+                        ? "text-emerald-600"
+                        : currentSubmission.status === "rejected"
+                        ? "text-red-500"
+                        : "text-amber-600"
+                    }`} />
+                    <div className="min-w-0">
+                      <p className="font-bold">
+                        Status: {currentSubmission.status.toUpperCase()}
+                        {currentSubmission.points_awarded && (
+                          <span className="text-emerald-600 ml-2">+{currentSubmission.points_awarded} pts awarded</span>
+                        )}
+                      </p>
+                      {currentSubmission.review_note && (
+                        <p className="text-muted-foreground mt-0.5 line-clamp-2 italic">&ldquo;{currentSubmission.review_note}&rdquo;</p>
+                      )}
+                    </div>
                   </div>
-                  {currentSubmission.review_note && (
-                    <span className="text-muted-foreground truncate max-w-xs">&ldquo;{currentSubmission.review_note}&rdquo;</span>
-                  )}
                 </div>
               )}
             </CardContent>
@@ -929,34 +983,32 @@ export default function VacationStudentPage({
 
         {/* ================= TAB 2: LIVE QUIZ CHAMPIONSHIP ================= */}
         <TabsContent value="quiz" className="space-y-4 m-0">
-          <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent">
-            <CardHeader className="p-4 sm:p-6 pb-2">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Badge className="bg-amber-600 text-white text-xs font-black">
-                    Track 2: Daily Live Quiz Championship
-                  </Badge>
-                  <CardTitle className="text-base sm:text-xl font-black">
-                    {selectedDayData.quizChampionship.title}
-                  </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    {selectedDayData.quizChampionship.description}
-                  </CardDescription>
+          <Card className="overflow-hidden shadow-sm border-0">
+            <div className="relative bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700 p-4 sm:p-5">
+              <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+              <div className="relative z-10 space-y-2">
+                <span className="text-[10px] font-black text-amber-950 bg-amber-300 px-2.5 py-0.5 rounded-full inline-flex">
+                  Track 2: Daily Live Quiz Championship
+                </span>
+                <h3 className="text-lg sm:text-xl font-black text-white leading-tight">
+                  {selectedDayData.quizChampionship.title}
+                </h3>
+                <p className="text-xs text-white/80 font-medium">{selectedDayData.quizChampionship.description}</p>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[10px] font-black text-white/90 bg-black/25 backdrop-blur-xs px-2.5 py-1 rounded-full border border-white/20">
+                    +{selectedDayData.quizChampionship.rewardPoints} Bonus Points
+                  </span>
                 </div>
-                <Badge variant="outline" className="text-xs font-black text-amber-700 dark:text-amber-300 border-amber-500/30">
-                  +{selectedDayData.quizChampionship.rewardPoints} Points
-                </Badge>
               </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-2 space-y-4">
-              <div className="rounded-xl border p-3.5 bg-card/60 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
+            </div>
+            <CardContent className="p-4 sm:p-5 space-y-4">
+              <div className="rounded-xl border bg-muted/30 p-3.5 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed text-foreground">
                 {selectedDayData.quizChampionship.instructions}
               </div>
-
               {onNavigateToQuizzes && (
                 <Button
                   onClick={onNavigateToQuizzes}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs sm:text-sm gap-2 h-10 px-5 shadow-md"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs sm:text-sm gap-2 h-11 px-5 shadow-md w-full sm:w-auto active:scale-[0.98] transition-all"
                 >
                   <Trophy className="h-4 w-4" /> Play Daily Quiz Championship Now →
                 </Button>

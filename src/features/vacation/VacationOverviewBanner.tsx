@@ -1,4 +1,4 @@
-import { ChevronRight, Flame, Sparkles, Sun } from "lucide-react";
+import { ChevronRight, Flame, Sparkles, Sun, Trophy, Users, Zap } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useActiveVacationCampaign } from "./api";
@@ -19,76 +19,111 @@ export default function VacationOverviewBanner({ onOpen }: VacationOverviewBanne
 
   return (
     <Card
-      className="rounded-2xl sm:rounded-3xl border border-amber-500/35 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-primary/10 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer group"
+      className="rounded-2xl sm:rounded-3xl border border-white/20 bg-gradient-to-br from-amber-500 via-orange-600 to-rose-600 text-white shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group relative"
       onClick={onOpen}
     >
-      <CardContent className="p-3.5 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Main Content */}
-        <div className="flex items-start gap-3 min-w-0">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform mt-0.5">
-            <Sun className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+      {/* Decorative ambient glowing background orbs */}
+      <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/15 blur-2xl pointer-events-none group-hover:scale-110 transition-transform duration-500" />
+      <div className="absolute -left-10 -bottom-10 w-44 h-44 rounded-full bg-rose-900/30 blur-2xl pointer-events-none" />
+
+      <CardContent className="p-4 sm:p-6 flex flex-col justify-between gap-4 relative z-10">
+        {/* Top Header Row: Festival Label & Status Badge */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-100 bg-black/25 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1.5 shadow-xs">
+              <Sun className="h-3.5 w-3.5 text-amber-300 animate-spin-slow" />
+              <span>Autumn Break &apos;26</span>
+              <span className="text-white/60">•</span>
+              <span className="text-amber-200">10 Days</span>
+            </span>
+
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide text-white bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1 shadow-xs">
+              <Zap className="h-3 w-3 text-amber-300 fill-amber-300" />
+              <span>1 Pt = 5 XP</span>
+            </span>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
-                <Flame className="h-3 w-3 text-orange-500" /> Play • Learn • Grow
+          <div>
+            {isUpcoming ? (
+              <span className="text-[11px] sm:text-xs font-bold text-white bg-black/30 backdrop-blur-md px-3 py-1 rounded-full border border-white/25 flex items-center gap-1.5 shadow-xs">
+                <span>📅 Starts {campaign.start_date}</span>
               </span>
-              {isUpcoming ? (
-                <span className="text-[11px] sm:text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/25 flex items-center gap-1">
-                  📅 Starts {campaign.start_date}
-                </span>
-              ) : isEnded ? (
-                <span className="text-[11px] sm:text-xs font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border">
-                  Completed
-                </span>
-              ) : (
-                <span className="text-[11px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" /> Live Now
-                </span>
-              )}
-            </div>
-
-            <h4 className="text-sm sm:text-base md:text-lg font-black text-foreground leading-snug line-clamp-2">
-              {campaign.title}
-            </h4>
-
-            {campaign.banner_text && (
-              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                {campaign.banner_text}
-              </p>
+            ) : isEnded ? (
+              <span className="text-[11px] sm:text-xs font-bold text-white/80 bg-black/40 px-3 py-1 rounded-full border border-white/20">
+                Festival Concluded
+              </span>
+            ) : (
+              <span className="text-[11px] sm:text-xs font-black text-emerald-950 bg-emerald-400 px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5 animate-pulse">
+                <Sparkles className="h-3.5 w-3.5 fill-current" />
+                <span>Active Today</span>
+              </span>
             )}
           </div>
         </div>
 
-        {/* Action & Timer Row: On mobile, side-by-side; on desktop, aligned on right */}
-        <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-amber-500/15 shrink-0">
-          {isUpcoming ? (
-            <VacationCountdownTimer
-              compact
-              mode="start"
-              targetTime={campaign.start_date}
-              label="Campaign Starts In"
-            />
-          ) : isEnded ? (
-            <span className="text-xs font-semibold text-muted-foreground px-2 py-1 bg-muted rounded-full">
-              Campaign Ended
+        {/* Center: Title & Description */}
+        <div className="space-y-1.5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 backdrop-blur-md border border-white/25 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:rotate-3 transition-transform mt-0.5">
+              <Flame className="h-5 w-5 sm:h-6 sm:w-6 text-amber-300 fill-amber-300" />
+            </div>
+
+            <div className="min-w-0 flex-1 space-y-1">
+              <h3 className="text-base sm:text-xl md:text-2xl font-black text-white leading-snug drop-shadow-sm tracking-tight">
+                {campaign.title || "Autumn Break Challenge 2026"}
+              </h3>
+              <p className="text-xs sm:text-sm text-white/90 line-clamp-2 leading-relaxed font-medium">
+                {campaign.banner_text || "10 Days of STEAM, AI, Eco & Story Quests • Earn up to 1,000 Points & 5,000 XP! Compete Solo or in Teams."}
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Perks Ribbon on Mobile / Tablet */}
+          <div className="flex items-center gap-2 pt-1 flex-wrap text-[11px] sm:text-xs font-bold text-amber-100">
+            <span className="flex items-center gap-1 bg-black/20 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-white/10">
+              <Trophy className="h-3 w-3 text-amber-300" /> 1,000 Pts
             </span>
-          ) : (
-            <VacationCountdownTimer
-              compact
-              mode="end"
-              targetTime={campaign.end_date}
-              label="Campaign Window"
-            />
-          )}
+            <span className="flex items-center gap-1 bg-black/20 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-white/10">
+              <Users className="h-3 w-3 text-amber-300" /> Teams (2–4) or Solo
+            </span>
+            <span className="flex items-center gap-1 bg-black/20 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-white/10">
+              <Sparkles className="h-3 w-3 text-amber-300" /> 10 Practice Labs
+            </span>
+          </div>
+        </div>
+
+        {/* Bottom Action Bar: Countdown Capsule + High-Contrast Tactile Button */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-white/15">
+          <div className="flex items-center">
+            {isUpcoming ? (
+              <VacationCountdownTimer
+                compact
+                variant="glass"
+                mode="start"
+                targetTime={campaign.start_date}
+                label="Festival Starts In"
+              />
+            ) : isEnded ? (
+              <span className="text-xs font-semibold text-white/70 px-2.5 py-1 bg-black/20 rounded-full border border-white/10">
+                Festival Ended
+              </span>
+            ) : (
+              <VacationCountdownTimer
+                compact
+                variant="glass"
+                mode="end"
+                targetTime={campaign.end_date}
+                label="Daily Window Closes In"
+              />
+            )}
+          </div>
 
           <Button
             size="sm"
-            className="rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm gap-1 h-8 sm:h-9 px-3 text-xs shrink-0"
+            className="rounded-xl font-black bg-white text-orange-950 hover:bg-amber-100 hover:text-orange-900 active:scale-95 shadow-lg gap-1.5 h-10 px-5 text-xs sm:text-sm shrink-0 border-0 transition-all self-end sm:self-auto w-full sm:w-auto"
           >
-            <span>{isUpcoming ? "Preview Events" : isEnded ? "View Highlights" : "Play Today"}</span>
-            <ChevronRight className="h-3.5 w-3.5" />
+            <span>{isUpcoming ? "Preview Events & Form Teams" : isEnded ? "View Festival Highlights" : "Enter Arena & Play Today"}</span>
+            <ChevronRight className="h-4 w-4 text-orange-950 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
       </CardContent>
