@@ -67,6 +67,7 @@ const QuizManager = () => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
   const [leagueSessions, setLeagueSessions] = useState<LeagueSession[]>([]);
+  const [activeTab, setActiveTab] = useState("leagues");
   const [showQuizForm, setShowQuizForm] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
