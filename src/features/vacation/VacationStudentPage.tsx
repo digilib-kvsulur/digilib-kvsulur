@@ -616,7 +616,7 @@ export default function VacationStudentPage({
           <Button
             size="sm"
             variant="ghost"
-            className="text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 h-6 px-2.5 shrink-0 gap-1"
+            className="text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 hover:text-amber-950 dark:hover:text-amber-100 h-6 px-2.5 shrink-0 gap-1"
             onClick={() => {
               if (incomingInvites.length > 0) setRegModalTab("my-teams");
               setRegModalOpen(true);
@@ -1216,7 +1216,12 @@ export default function VacationStudentPage({
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setSubmitDialogOpen(false)} className="text-xs">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSubmitDialogOpen(false)}
+                className="text-xs text-foreground hover:bg-muted hover:text-foreground"
+              >
                 Cancel
               </Button>
               <Button
@@ -1635,7 +1640,7 @@ export default function VacationStudentPage({
                                 setRegModalOpen(false);
                                 setSubmitDialogOpen(true);
                               }}
-                              className="text-xs h-7 px-3 gap-1.5 border-amber-500/30 hover:bg-amber-500/10 text-foreground"
+                              className="text-xs h-7 px-3 gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 hover:bg-amber-500/20 hover:text-amber-950 dark:hover:text-white font-semibold transition-colors"
                             >
                               <Copy className="h-3 w-3 text-amber-500" />
                               <span>Apply Roster to Today's Project Submission</span>

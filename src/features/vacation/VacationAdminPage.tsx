@@ -591,7 +591,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                 <Button
                   variant="outline"
                   onClick={autoDetermineDates}
-                  className="gap-1.5 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 font-semibold"
+                  className="gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 hover:text-amber-950 dark:hover:text-white font-semibold transition-colors"
                 >
                   <Calendar className="h-4 w-4 text-amber-500" />
                   Auto-Schedule Dates ({campaign.start_date || "Start"} → {campaign.end_date || "End"})
@@ -620,7 +620,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-xs font-bold border-amber-500/40"
+                      className="text-xs font-bold border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 hover:text-amber-950 dark:hover:text-white transition-colors"
                       onClick={() => {
                         openActivityEditor({
                           title: "Daily Live Quiz Championship",
