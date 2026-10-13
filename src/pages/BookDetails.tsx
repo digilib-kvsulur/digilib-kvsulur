@@ -300,6 +300,10 @@ export default function BookDetails() {
     if (!userId) { toast({ title: "Sign in required", variant: "destructive" }); navigate("/login"); return; }
     if (myRating < 1) { toast({ title: "Please select a star rating", description: "Tap a star to choose your rating.", variant: "destructive" }); return; }
     if (myText.trim().length < 20) { toast({ title: "Please write a review", description: "Share your thoughts in at least 20 characters to earn points!", variant: "destructive" }); return; }
+    if (!myReviewId && hasReviewedToday) {
+      toast({ title: "Daily limit reached", description: "You can post at most 1 book review per day. Try again tomorrow.", variant: "destructive" });
+      return;
+    }
 
     setSubmittingReview(true);
     try {
@@ -530,40 +534,48 @@ export default function BookDetails() {
                   </p>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-4">
-                  <div className="flex gap-1.5 items-center flex-wrap">
-                    <span className="text-xs font-bold text-slate-500 mr-1 uppercase tracking-wider">Your Rating</span>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <button key={n} onClick={() => setMyRating(n)} type="button" className="hover:scale-110 transition-transform">
-                        <Star className={`h-5 w-5 ${myRating >= n ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
-                      </button>
-                    ))}
-                  </div>
-                  <div className="space-y-1">
-                    <Textarea 
-                      placeholder={`What did you enjoy? What did you learn? Would you recommend it? (Write at least 20 characters to earn +${reviewPoints} XP!)`} 
-                      value={myText} 
-                      onChange={(e) => setMyText(e.target.value)} 
-                      rows={4} 
-                      maxLength={500}
-                      className="rounded-xl border-slate-200 bg-slate-50 text-sm"
-                    />
-                    <div className="flex justify-between items-center">
-                      <p className={`text-[11px] font-medium ${myText.trim().length < 20 ? "text-rose-500" : "text-emerald-600"}`}>
-                        {myText.trim().length < 20
-                          ? `Write ${20 - myText.trim().length} more characters to earn +${reviewPoints} XP`
-                          : "✓ Review ready to post!"}
-                      </p>
-                      <span className="text-[11px] text-slate-400">{myText.length}/500</span>
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={submitReview} 
-                    disabled={submittingReview || myRating < 1 || myText.trim().length < 20} 
-                    size="sm" 
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 rounded-xl font-bold px-5 disabled:opacity-50"
-                  >
-                    {submittingReview ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : (myReviewId ? "Update Review" : `Post Review & Earn +${reviewPoints} XP`)}
-                  </Button>
+                  {hasReviewedToday && !myReviewId ? (
+                    <p className="text-sm text-slate-500 italic py-2">
+                      📅 You've already posted a book review today. Come back tomorrow to review another book!
+                    </p>
+                  ) : (
+                    <>
+                      <div className="flex gap-1.5 items-center flex-wrap">
+                        <span className="text-xs font-bold text-slate-500 mr-1 uppercase tracking-wider">Your Rating</span>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button key={n} onClick={() => setMyRating(n)} type="button" className="hover:scale-110 transition-transform">
+                            <Star className={`h-5 w-5 ${myRating >= n ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                          </button>
+                        ))}
+                      </div>
+                      <div className="space-y-1">
+                        <Textarea
+                          placeholder={`What did you enjoy? What did you learn? Would you recommend it? (Write at least 20 characters to earn +${reviewPoints} XP!)`}
+                          value={myText}
+                          onChange={(e) => setMyText(e.target.value)}
+                          rows={4}
+                          maxLength={500}
+                          className="rounded-xl border-slate-200 bg-slate-50 text-sm"
+                        />
+                        <div className="flex justify-between items-center">
+                          <p className={`text-[11px] font-medium ${myText.trim().length < 20 ? "text-rose-500" : "text-emerald-600"}`}>
+                            {myText.trim().length < 20
+                              ? `Write ${20 - myText.trim().length} more characters to earn +${reviewPoints} XP`
+                              : "✓ Review ready to post!"}
+                          </p>
+                          <span className="text-[11px] text-slate-400">{myText.length}/500</span>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={submitReview}
+                        disabled={submittingReview || myRating < 1 || myText.trim().length < 20}
+                        size="sm"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 rounded-xl font-bold px-5 disabled:opacity-50"
+                      >
+                        {submittingReview ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : (myReviewId ? "Update Review" : `Post Review & Earn +${reviewPoints} XP`)}
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             )}

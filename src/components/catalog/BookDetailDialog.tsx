@@ -101,18 +101,26 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
           <div className="rounded-lg border p-3 space-y-2">
             <p className="text-sm font-medium">{myReviewId ? "Update your review" : "Write a review"}</p>
             <p className="text-xs text-muted-foreground">✍️ Write your thoughts in words to earn <span className="font-semibold text-amber-600">+{reviewPoints} XP</span>. Stars alone don't give points.</p>
-            <div className="flex gap-1">
-              {[1,2,3,4,5].map(n => (
-                <button key={n} onClick={() => setMyRating(n)}>
-                  <Star className={`h-6 w-6 ${myRating >= n ? "fill-warning text-warning" : "text-muted-foreground"}`} />
-                </button>
-              ))}
-            </div>
-            <Textarea placeholder={`What did you enjoy? What did you learn? Would you recommend it? (Write at least 400 characters to earn +${reviewPoints} XP)`} value={myText} onChange={e => setMyText(e.target.value)} rows={3} maxLength={3000} />
-            <p className={`text-[11px] font-medium ${myText.trim().length < 400 ? "text-rose-500" : "text-emerald-600"}`}>
-              {myText.trim().length < 400 ? `Write ${400 - myText.trim().length} more characters to earn +${reviewPoints} XP` : "✓ Ready to post!"}
-            </p>
-            <Button size="sm" onClick={submit} disabled={myRating < 1 || myText.trim().length < 400}>{myReviewId ? "Update" : "Post"} review & earn +{reviewPoints} XP</Button>
+            {hasReviewedToday && !myReviewId ? (
+              <p className="text-sm text-slate-500 italic py-1">
+                📅 You've already posted a book review today. Come back tomorrow to review another book!
+              </p>
+            ) : (
+              <>
+                <div className="flex gap-1">
+                  {[1,2,3,4,5].map(n => (
+                    <button key={n} onClick={() => setMyRating(n)}>
+                      <Star className={`h-6 w-6 ${myRating >= n ? "fill-warning text-warning" : "text-muted-foreground"}`} />
+                    </button>
+                  ))}
+                </div>
+                <Textarea placeholder={`What did you enjoy? What did you learn? Would you recommend it? (Write at least 400 characters to earn +${reviewPoints} XP)`} value={myText} onChange={e => setMyText(e.target.value)} rows={3} maxLength={3000} />
+                <p className={`text-[11px] font-medium ${myText.trim().length < 400 ? "text-rose-500" : "text-emerald-600"}`}>
+                  {myText.trim().length < 400 ? `Write ${400 - myText.trim().length} more characters to earn +${reviewPoints} XP` : "✓ Ready to post!"}
+                </p>
+                <Button size="sm" onClick={submit} disabled={myRating < 1 || myText.trim().length < 400}>{myReviewId ? "Update" : "Post"} review & earn +{reviewPoints} XP</Button>
+              </>
+            )}
           </div>
         )}
 

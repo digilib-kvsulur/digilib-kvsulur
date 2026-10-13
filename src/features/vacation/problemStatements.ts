@@ -564,3 +564,10 @@ export function saveStoredParticipationMode(
     localStorage.setItem(key, JSON.stringify(payload));
   } catch {}
 }
+
+export function clearStoredParticipationMode(userId: string, day: number): void {
+  try {
+    const key = `${PARTICIPATION_SELECTION_STORAGE_PREFIX}${day}_${userId}`;
+    localStorage.removeItem(key);
+  } catch {}
+}

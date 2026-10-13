@@ -172,6 +172,7 @@ export interface VacationPeerProfile {
   admission_number?: string | null;
   avatar_url?: string | null;
   role?: string;
+  is_friend?: boolean;
 }
 
 export interface VacationTeamMember {
