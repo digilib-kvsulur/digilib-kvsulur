@@ -30,7 +30,14 @@ import {
 } from "./api";
 import { vacationRowsToCsv } from "./csv";
 import { vacationErrorMessage } from "./errors";
-import { POSTER_ACTIVITIES, TEN_DAYS_PROGRAM, formatActivityInstructions, parseActivityMeta } from "./constants";
+import {
+  AUTUMN_BREAK_SCHEDULE,
+  POSTER_ACTIVITIES,
+  TEN_DAYS_PROGRAM,
+  formatActivityInstructions,
+  parseActivityMeta,
+  pointsToXp,
+} from "./constants";
 import type {
   VacationActivity,
   VacationCampaign,
@@ -80,6 +87,8 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   const [rejectNote, setRejectNote] = useState("");
   const [approveFor, setApproveFor] = useState<VacationSubmission | null>(null);
   const [approvePoints, setApprovePoints] = useState("");
+  const [rubricScores, setRubricScores] = useState<Record<string, number>>({});
+  const [approveNote, setApproveNote] = useState("");
 
   const campaign = campaigns.find((c) => c.id === campaignId) || null;
 
@@ -250,23 +259,21 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
 
   const setupTenDaysCompleteProgram = async () => {
     let targetCampaign = campaign;
+    const startStr = AUTUMN_BREAK_SCHEDULE.startDate;
+    const endStr = AUTUMN_BREAK_SCHEDULE.endDate;
+
     if (!targetCampaign) {
-      const today = new Date();
-      const startStr = today.toISOString().split("T")[0];
-      const end = new Date(today);
-      end.setDate(end.getDate() + 9);
-      const endStr = end.toISOString().split("T")[0];
       try {
         const created = await upsertVacationCampaign({
-          title: "DLMS – Vacation Games & Competitions",
+          title: "DLMS Autumn Break Special: 10 Days • 10 Events",
           start_date: startStr,
           end_date: endStr,
           timezone: "Asia/Kolkata",
-          default_points: 500,
+          default_points: 100,
           max_award_points: 1000,
           status: "active",
           banner_enabled: true,
-          banner_text: "DLMS 10 Days • 10 Challenges + Daily Live Quiz Championships! Play, Learn & Win points.",
+          banner_text: "DLMS Autumn Break Special: 10 Days • 10 Events • Real Skills (14–25 Oct). 1 Point = 5 XP!",
           banner_link: "",
         });
         targetCampaign = created;
@@ -278,64 +285,56 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
     }
 
     try {
-      const startDate = targetCampaign.start_date ? new Date(targetCampaign.start_date) : new Date();
-      const startStr = startDate.toISOString().split("T")[0];
-      const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 9);
-      const endStr = endDate.toISOString().split("T")[0];
-
-      // 1. Ensure campaign has 10 days span & active status
+      // 1. Ensure campaign has full 14-25 Oct span & active status
       await upsertVacationCampaign({
         id: targetCampaign.id,
-        title: targetCampaign.title || "DLMS – Vacation Games & Competitions",
+        title: targetCampaign.title || "DLMS Autumn Break Special: 10 Days • 10 Events",
         start_date: startStr,
         end_date: endStr,
         timezone: targetCampaign.timezone || "Asia/Kolkata",
-        default_points: 500,
+        default_points: 100,
         max_award_points: 1000,
         status: "active",
         banner_enabled: true,
-        banner_text: "DLMS 10 Days • 10 Challenges + Daily Live Quiz Championships! Play, Learn & Win points.",
+        banner_text: "DLMS Autumn Break Special: 10 Days • 10 Events • Real Skills (14–25 Oct). 1 Point = 5 XP!",
         banner_link: "",
       });
 
-      // 2. Setup milestones (100 for 3 days, 250 for 5 days, 500 for 7 days, 1000 for 10 days)
+      // 2. Setup milestones: 20 pts (100 XP), 50 pts (250 XP), 100 pts (500 XP), 200 pts (1000 XP)
       await replaceMilestones(targetCampaign.id, [
-        { days: 3, bonus_points: 100 },
-        { days: 5, bonus_points: 250 },
-        { days: 7, bonus_points: 500 },
-        { days: 10, bonus_points: 1000 },
+        { days: 3, bonus_points: 20 },
+        { days: 5, bonus_points: 50 },
+        { days: 7, bonus_points: 100 },
+        { days: 10, bonus_points: 200 },
       ]);
 
-      // 3. Upsert 10 Main Events + 10 Daily Quiz Championships
+      // 3. Upsert 10 Main Events (100 pts) + 10 Daily Quiz Championships (50/100 pts)
       let createdCount = 0;
       for (const item of TEN_DAYS_PROGRAM) {
-        const d = new Date(startDate);
-        d.setDate(startDate.getDate() + item.dateOffset);
-        const dateStr = d.toISOString().split("T")[0];
+        const dateStr = item.dateStr;
 
-        // Track 1: Main Event (500 points for creative challenge)
+        // Track 1: Main Event (100 points = 500 XP)
         await upsertActivity({
           campaign_id: targetCampaign.id,
           title: item.event.title,
           instructions: item.event.instructions,
           sort_order: item.day * 2 - 1,
           activity_date: dateStr,
-          opens_at: `${dateStr}T06:00:00`,
-          closes_at: `${dateStr}T23:59:59`,
-          reward_points: 500,
+          opens_at: `${dateStr}T08:00:00`,
+          closes_at: `${dateStr}T18:00:00`,
+          reward_points: 100,
           is_active: true,
         });
 
-        // Track 2: Daily Live Quiz Championship (250 points, Day 10 Grand Finale 500 points)
+        // Track 2: Daily Live Quiz Championship (50 pts = 250 XP, Day 10 Grand Finale 100 pts = 500 XP)
         await upsertActivity({
           campaign_id: targetCampaign.id,
           title: item.quizChampionship.title,
           instructions: item.quizChampionship.instructions,
           sort_order: item.day * 2,
           activity_date: dateStr,
-          opens_at: `${dateStr}T06:00:00`,
-          closes_at: `${dateStr}T23:59:59`,
+          opens_at: `${dateStr}T08:00:00`,
+          closes_at: `${dateStr}T18:00:00`,
           reward_points: item.quizChampionship.rewardPoints,
           is_active: true,
         });
@@ -344,8 +343,8 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
       }
 
       toast({
-        title: "10-Day Vacation Program Ready! 🎉",
-        description: `Configured 10 Events + 10 Daily Quiz Championships (${createdCount} total) from ${startStr} to ${endStr}.`,
+        title: "Autumn Break Master Program Ready! 🎉",
+        description: `Configured 10 Events + 10 Quiz Championships (15–24 Oct, 8 AM–6 PM). 1 Pt = 5 XP!`,
       });
 
       await loadCampaigns();
