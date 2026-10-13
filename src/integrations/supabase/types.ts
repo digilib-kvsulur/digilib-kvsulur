@@ -2006,6 +2006,59 @@ export type Database = {
         }
         Relationships: []
       }
+      points_reset_audit: {
+        Row: {
+          admin_email: string | null
+          admin_id: string | null
+          admin_name: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          notify_students: boolean
+          reason: string
+          scope: string
+          students_affected: number
+          target_class: string | null
+          total_points_cleared: number
+        }
+        Insert: {
+          admin_email?: string | null
+          admin_id?: string | null
+          admin_name?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          notify_students?: boolean
+          reason: string
+          scope: string
+          students_affected?: number
+          target_class?: string | null
+          total_points_cleared?: number
+        }
+        Update: {
+          admin_email?: string | null
+          admin_id?: string | null
+          admin_name?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          notify_students?: boolean
+          reason?: string
+          scope?: string
+          students_affected?: number
+          target_class?: string | null
+          total_points_cleared?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "points_reset_audit_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       poll_options: {
         Row: {
           created_at: string

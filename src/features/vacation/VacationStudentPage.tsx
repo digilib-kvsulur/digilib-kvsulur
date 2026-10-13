@@ -445,6 +445,134 @@ export default function VacationStudentPage({
     await load();
   };
 
+  // Team Formation & Invite Handlers
+  const handleSearchPeers = async () => {
+    if (!teamSearchQuery.trim()) return;
+    setSearchingPeers(true);
+    try {
+      const results = await searchVacationPeers(teamSearchQuery.trim(), userId);
+      setTeamSearchResults(results);
+      if (results.length === 0) {
+        toast({
+          title: "No students found",
+          description: "Try searching with admission number (e.g. 1234) or a student's first/last name.",
+        });
+      }
+    } catch {
+      toast({
+        title: "Search failed",
+        description: "Could not fetch peers.",
+        variant: "destructive",
+      });
+    } finally {
+      setSearchingPeers(false);
+    }
+  };
+
+  const handleAddTeammate = (peer: VacationPeerProfile) => {
+    if (selectedTeammates.some((m) => m.id === peer.id)) {
+      toast({ title: "Already added", description: `${peer.first_name} is already in your selected roster.` });
+      return;
+    }
+    if (selectedTeammates.length >= 3) {
+      toast({
+        title: "Max Team Size Reached",
+        description: "Teams can have at most 4 members (You + 3 peers).",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedTeammates((prev) => [...prev, peer]);
+  };
+
+  const handleRemoveTeammate = (peerId: string) => {
+    setSelectedTeammates((prev) => prev.filter((m) => m.id !== peerId));
+  };
+
+  const handleCreateTeam = async () => {
+    if (!newTeamName.trim()) {
+      toast({
+        title: "Team Name Required",
+        description: "Please enter a creative name for your team.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (selectedTeammates.length === 0) {
+      toast({
+        title: "Teammates Required",
+        description: "Search and add at least 1 peer by admission number or name to form a team.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCreatingTeam(true);
+    try {
+      const created = await createVacationTeam({
+        campaignId: overview?.campaign?.id,
+        name: newTeamName.trim(),
+        eventTitle: teamTargetEvent,
+        leader: myProfile,
+        invitedMembers: selectedTeammates,
+      });
+
+      toast({
+        title: "Team Invites Sent! 🎉",
+        description: `Team "${created.name}" created. Invites sent to ${selectedTeammates.length} teammate(s). The team will be formed once they accept!`,
+      });
+
+      setNewTeamName("");
+      setSelectedTeammates([]);
+      setTeamSearchQuery("");
+      setTeamSearchResults([]);
+      await loadTeamsData();
+      setRegModalTab("my-teams");
+    } catch (err: any) {
+      toast({
+        title: "Could not create team",
+        description: err?.message || "An error occurred while creating the team.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingTeam(false);
+    }
+  };
+
+  const handleRespondInvite = async (teamId: string, decision: "accept" | "decline") => {
+    if (!userId) return;
+    try {
+      const updated = await respondVacationTeamInvite(teamId, userId, decision);
+      if (decision === "accept") {
+        toast({
+          title: "Invitation Accepted! 🤝",
+          description: `You are now part of team "${updated?.name || "your team"}"! Team formed successfully!`,
+        });
+      } else {
+        toast({
+          title: "Invitation Declined",
+          description: "You have declined the team invitation.",
+        });
+      }
+      await loadTeamsData();
+    } catch (err: any) {
+      toast({
+        title: "Error updating invite",
+        description: err?.message || "Could not respond to team invite.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUseTeamInSubmission = (team: VacationTeam) => {
+    const formatted = formatTeamRoster(team);
+    setTeamMembers(formatted);
+    toast({
+      title: "Team Roster Applied! 👥",
+      description: `Roster for "${team.name}" copied to your project submission.`,
+    });
+  };
+
   const completedCount = useMemo(() => {
     const approvedInDb = (overview?.history || []).filter((h) => h.status === "approved").length;
     const localCount = Object.keys(localCompletedDays).length;
