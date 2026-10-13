@@ -458,7 +458,7 @@ export const AUTUMN_BREAK_PROBLEM_STATEMENTS: Record<number, DayProblemSet> = {
     overview: "Teams pick one real-world problem, design a prototype or schematic, and deliver a concise 60-second elevator pitch.",
     problems: [
       {
-        id: "d1-p1", // future makers pitch problems
+        id: "d10-p1", // future makers pitch problems
         day: 10,
         problemNumber: 1,
         title: "Problem 1: Food Waste in the Canteen",

@@ -1,5 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, Download, Plus, Sparkles, Sun, Trash2, Trophy } from "lucide-react";
+import {
+  Calendar,
+  Check,
+  CheckCircle2,
+  Download,
+  Filter,
+  Plus,
+  Search,
+  Shield,
+  Sparkles,
+  Sun,
+  Trash2,
+  Trophy,
+  UserCheck,
+  Users,
+  X,
+  XCircle,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -28,6 +45,7 @@ import {
   upsertActivity,
   upsertVacationCampaign,
 } from "./api";
+import { fetchAllVacationTeamsFromDb } from "./teamsApi";
 import { vacationRowsToCsv } from "./csv";
 import { vacationErrorMessage } from "./errors";
 import {
@@ -47,6 +65,8 @@ import type {
   VacationStreakMilestone,
   VacationSubmission,
   VacationSubmissionType,
+  VacationTeam,
+  VacationTeamMember,
 } from "./types";
 
 interface VacationAdminPageProps {
@@ -89,6 +109,9 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   const [approvePoints, setApprovePoints] = useState("");
   const [rubricScores, setRubricScores] = useState<Record<string, number>>({});
   const [approveNote, setApproveNote] = useState("");
+  const [allTeams, setAllTeams] = useState<VacationTeam[]>([]);
+  const [teamSearch, setTeamSearch] = useState("");
+  const [loadingTeams, setLoadingTeams] = useState(false);
 
   const campaign = campaigns.find((c) => c.id === campaignId) || null;
 
@@ -99,18 +122,20 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   };
 
   const loadDetails = async (id: string) => {
-    const [ms, acts, q, lb, st] = await Promise.all([
+    const [ms, acts, q, lb, st, teams] = await Promise.all([
       fetchMilestones(id),
       fetchActivities(id),
       fetchReviewQueue(id),
       fetchLeaderboard(id, 50),
       fetchParticipationStats(id).catch(() => null),
+      fetchAllVacationTeamsFromDb(id).catch(() => []),
     ]);
     setMilestones(ms.map((m: VacationStreakMilestone) => ({ days: String(m.days), bonus_points: String(m.bonus_points) })));
     setActivities(acts);
     setQueue(q);
     setBoard(lb);
     setStats(st);
+    setAllTeams(teams);
   };
 
   useEffect(() => {
@@ -454,7 +479,8 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
           {canConfigure && <TabsTrigger value="campaign">Campaign</TabsTrigger>}
           {canConfigure && <TabsTrigger value="promotion">Promotion</TabsTrigger>}
           {canConfigure && <TabsTrigger value="activities">Activities</TabsTrigger>}
-          <TabsTrigger value="review">Review</TabsTrigger>
+          <TabsTrigger value="review">Review ({queue.filter(q => q.status === "pending").length})</TabsTrigger>
+          <TabsTrigger value="teams">Teams ({allTeams.length})</TabsTrigger>
           <TabsTrigger value="analytics">Leaderboard & Analytics</TabsTrigger>
         </TabsList>
 
@@ -728,68 +754,336 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
         )}
 
         <TabsContent value="review" className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="pending">pending</SelectItem>
-                <SelectItem value="approved">approved</SelectItem>
-                <SelectItem value="rejected">rejected</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={dayFilter} onValueChange={setDayFilter}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="Day" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All days</SelectItem>
-                {activities.filter((a) => a.activity_date).map((a) => (
-                  <SelectItem key={a.id} value={a.activity_date!}>{a.activity_date} · {a.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input className="w-48" placeholder="Student name" value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)} />
+          {/* Filter Bar & Quick Stats */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border bg-card/60">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-36 h-9 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="pending">⏳ Pending ({queue.filter(q => q.status === "pending").length})</SelectItem>
+                  <SelectItem value="approved">✅ Approved ({queue.filter(q => q.status === "approved").length})</SelectItem>
+                  <SelectItem value="rejected">❌ Rejected ({queue.filter(q => q.status === "rejected").length})</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={dayFilter} onValueChange={setDayFilter}>
+                <SelectTrigger className="w-48 h-9 text-xs"><SelectValue placeholder="Filter by Day" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Days</SelectItem>
+                  {activities.filter((a) => a.activity_date).map((a) => (
+                    <SelectItem key={a.id} value={a.activity_date!}>{a.activity_date} · {a.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative">
+                <Search className="h-3.5 w-3.5 absolute left-2.5 top-3 text-muted-foreground" />
+                <Input
+                  className="w-48 h-9 text-xs pl-8"
+                  placeholder="Search student name..."
+                  value={studentFilter}
+                  onChange={(e) => setStudentFilter(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>Showing <strong>{filteredQueue.length}</strong> of {queue.length} submissions</span>
+            </div>
           </div>
+
           {!filteredQueue.length ? (
-            <p className="text-sm text-muted-foreground">No submissions match these filters.</p>
+            <div className="p-8 text-center rounded-2xl border border-dashed text-muted-foreground space-y-1">
+              <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500/80 mb-2" />
+              <p className="font-semibold text-foreground text-sm">No submissions match these filters</p>
+              <p className="text-xs">Adjust status, date, or student name filter above.</p>
+            </div>
           ) : filteredQueue.map((row) => {
             const act = activities.find((a) => a.id === row.activity_id);
+            const isTeam = (row.content || "").includes("[TEAM ENTRY]") || (row.content || "").includes("Team:");
+            const hasAllotted = (row.content || "").includes("[ALLOTTED:");
+
             return (
-              <Card key={row.id}>
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="font-semibold">{row.student_name}</p>
-                      <p className="text-xs text-muted-foreground">{act?.title} · {act?.activity_date} · attempt {row.attempts}</p>
+              <Card key={row.id} className="border-border/80 shadow-xs hover:shadow-sm transition-all overflow-hidden">
+                <CardContent className="p-4 sm:p-5 space-y-3">
+                  {/* Row Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 border-b pb-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-base text-foreground">{row.student_name}</span>
+                        {isTeam && (
+                          <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-800 dark:text-amber-200 border-amber-500/30 font-bold gap-1">
+                            <Users className="h-3 w-3" /> Team Submission
+                          </Badge>
+                        )}
+                        {hasAllotted && (
+                          <Badge variant="outline" className="text-[10px] bg-sky-500/10 text-sky-800 dark:text-sky-200 border-sky-500/30 font-bold">
+                            ⭐ Allotted Problem
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-foreground">{act?.title || "Daily Challenge"}</span>
+                        <span>•</span>
+                        <span>{act?.activity_date || "Undated"}</span>
+                        <span>•</span>
+                        <span>Attempt #{row.attempts}</span>
+                        {row.submitted_at && (
+                          <>
+                            <span>•</span>
+                            <span>{new Date(row.submitted_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                          </>
+                        )}
+                      </p>
                     </div>
-                    <Badge variant={row.status === "approved" ? "default" : row.status === "rejected" ? "destructive" : "secondary"}>{row.status}</Badge>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge
+                        className={`text-xs px-2.5 py-0.5 capitalize font-bold ${
+                          row.status === "approved"
+                            ? "bg-emerald-500 text-white"
+                            : row.status === "rejected"
+                            ? "bg-red-500 text-white"
+                            : "bg-amber-500 text-white"
+                        }`}
+                      >
+                        {row.status}
+                      </Badge>
+                      {row.points_awarded != null && (
+                        <Badge variant="outline" className="font-mono font-bold text-emerald-700 dark:text-emerald-300 border-emerald-500/40">
+                          +{row.points_awarded} pts ({pointsToXp(row.points_awarded)} XP)
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  {row.content && <p className="text-sm whitespace-pre-wrap">{row.content}</p>}
+
+                  {/* Submission Content */}
+                  {row.content && (
+                    <div className="p-3 rounded-xl bg-muted/40 border text-xs whitespace-pre-wrap font-sans text-foreground/90 leading-relaxed max-h-60 overflow-y-auto">
+                      {row.content}
+                    </div>
+                  )}
+
+                  {/* Links / Media proof */}
                   {row.link && (
-                    <div className="space-y-1.5 pt-1">
-                      <a className="text-xs text-primary underline flex items-center gap-1 font-semibold break-all" href={row.link} target="_blank" rel="noreferrer">
-                        🔗 {row.link}
-                      </a>
+                    <div className="space-y-2 pt-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-muted-foreground">Attached Deliverable:</span>
+                        <a
+                          className="text-xs text-amber-700 dark:text-amber-300 hover:underline font-semibold break-all flex items-center gap-1"
+                          href={row.link}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          🔗 {row.link}
+                        </a>
+                      </div>
                       {/\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(row.link) && (
-                        <div className="mt-1">
+                        <div className="pt-1">
                           <img
                             src={row.link}
                             alt="Student photo proof"
-                            className="max-h-48 max-w-xs object-contain rounded-xl border bg-black/5 shadow-sm"
+                            className="max-h-56 max-w-sm object-contain rounded-xl border bg-black/5 shadow-xs"
                           />
                         </div>
                       )}
                     </div>
                   )}
+
+                  {/* Review Note if exists */}
+                  {row.review_note && (
+                    <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200">
+                      <strong>Teacher Feedback:</strong> &ldquo;{row.review_note}&rdquo;
+                    </div>
+                  )}
+
+                  {/* Actions for Pending Submissions */}
                   {row.status === "pending" && (
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={() => openApproveDialog(row)}>Approve with Rubric</Button>
-                      <Button size="sm" variant="destructive" onClick={() => { setRejectFor(row); setRejectNote(""); }}>Reject</Button>
+                    <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => { setRejectFor(row); setRejectNote(""); }}
+                        className="text-xs h-8 px-3 gap-1"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        <span>Reject Entry</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => openApproveDialog(row)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-4 gap-1.5 shadow-xs"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        <span>Review &amp; Award Points (Rubric)</span>
+                      </Button>
                     </div>
                   )}
                 </CardContent>
               </Card>
             );
           })}
+        </TabsContent>
+
+        {/* TEAM MANAGEMENT TAB */}
+        <TabsContent value="teams" className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border bg-card/60">
+            <div className="space-y-0.5">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Users className="h-4 w-4 text-amber-500" />
+                <span>Vacation Challenge Teams ({allTeams.length})</span>
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Teams formed by students for the Autumn Break challenges. Roster entries, acceptance status, and leaders.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="h-3.5 w-3.5 absolute left-2.5 top-3 text-muted-foreground" />
+                <Input
+                  className="w-56 h-9 text-xs pl-8"
+                  placeholder="Filter by team name, leader, member..."
+                  value={teamSearch}
+                  onChange={(e) => setTeamSearch(e.target.value)}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  setLoadingTeams(true);
+                  try {
+                    const refreshed = await fetchAllVacationTeamsFromDb(campaign?.id);
+                    setAllTeams(refreshed);
+                    toast({ title: "Teams refreshed", description: `Loaded ${refreshed.length} team(s)` });
+                  } catch (err: any) {
+                    toast({ title: "Could not refresh teams", description: err.message, variant: "destructive" });
+                  } finally {
+                    setLoadingTeams(false);
+                  }
+                }}
+                className="h-9 text-xs font-semibold"
+              >
+                Refresh
+              </Button>
+            </div>
+          </div>
+
+          {/* Teams Grid */}
+          {(() => {
+            const filteredTeams = allTeams.filter((t) => {
+              if (!teamSearch.trim()) return true;
+              const q = teamSearch.toLowerCase();
+              return (
+                t.name.toLowerCase().includes(q) ||
+                t.leader_name.toLowerCase().includes(q) ||
+                t.event_title.toLowerCase().includes(q) ||
+                t.members.some((m) => m.name.toLowerCase().includes(q))
+              );
+            });
+
+            if (filteredTeams.length === 0) {
+              return (
+                <div className="p-8 text-center rounded-2xl border border-dashed text-muted-foreground space-y-2">
+                  <Users className="h-8 w-8 mx-auto text-amber-500/70" />
+                  <p className="font-semibold text-foreground text-sm">No teams found</p>
+                  <p className="text-xs">
+                    {allTeams.length === 0
+                      ? "Students have not registered any challenge teams yet."
+                      : "No teams matched your search filter."}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {filteredTeams.map((team) => {
+                  const acceptedCount = team.members.filter((m) => m.status === "accepted").length;
+                  const isFullyFormed = acceptedCount > 1;
+
+                  return (
+                    <Card key={team.id} className="border-border/80 shadow-xs hover:shadow-sm transition-all overflow-hidden flex flex-col justify-between">
+                      <CardHeader className="p-4 pb-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <CardTitle className="text-base font-bold text-foreground truncate">
+                              {team.name}
+                            </CardTitle>
+                            <CardDescription className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                              {team.event_title}
+                            </CardDescription>
+                          </div>
+                          <Badge
+                            className={`text-[10px] font-bold shrink-0 ${
+                              isFullyFormed
+                                ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border-emerald-500/30"
+                                : "bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/30"
+                            }`}
+                          >
+                            {isFullyFormed ? "✅ Formed" : "⏳ Pending"}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="p-4 pt-0 space-y-3">
+                        <div className="text-xs text-muted-foreground">
+                          <span>Team Leader:</span>{" "}
+                          <strong className="text-foreground">{team.leader_name}</strong>
+                          {team.created_at && (
+                            <span className="ml-2 text-[11px]">
+                              • {new Date(team.created_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Member Roster */}
+                        <div className="space-y-1.5 pt-1 border-t">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Roster ({acceptedCount}/{team.members.length} Confirmed):
+                          </p>
+                          <div className="space-y-1">
+                            {team.members.map((m) => (
+                              <div
+                                key={m.id}
+                                className="flex items-center justify-between p-1.5 px-2.5 rounded-lg bg-muted/40 border text-xs"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {m.role === "leader" ? (
+                                    <span className="text-amber-500 font-bold text-xs">⭐</span>
+                                  ) : (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
+                                  )}
+                                  <span className="font-semibold text-foreground truncate">{m.name}</span>
+                                  {m.student_class && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Class {m.student_class}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <span
+                                  className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                                    m.status === "accepted"
+                                      ? "text-emerald-700 dark:text-emerald-300 bg-emerald-500/15"
+                                      : m.status === "declined"
+                                      ? "text-red-700 dark:text-red-300 bg-red-500/15"
+                                      : "text-amber-700 dark:text-amber-300 bg-amber-500/15"
+                                  }`}
+                                >
+                                  {m.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-3">

@@ -1570,6 +1570,7 @@ const StudentDashboard = () => {
             <VacationStudentPage
               userId={user?.id}
               userClass={user?.student_class}
+              userName={user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : undefined}
               onJoinQuizLeague={(session) => {
                 setActiveLeagueSession(session);
                 if (session.status === "active") {

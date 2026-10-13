@@ -89,6 +89,7 @@ import type {
 interface VacationStudentPageProps {
   userId?: string;
   userClass?: string;
+  userName?: string;
   onJoinQuizLeague?: (session: any) => void;
   onNavigateToQuizzes?: () => void;
 }
@@ -96,6 +97,7 @@ interface VacationStudentPageProps {
 export default function VacationStudentPage({
   userId,
   userClass,
+  userName,
   onJoinQuizLeague,
   onNavigateToQuizzes,
 }: VacationStudentPageProps = {}) {
@@ -105,6 +107,12 @@ export default function VacationStudentPage({
   const [board, setBoard] = useState<VacationLeaderboardRow[]>([]);
   const [selectedDayNumber, setSelectedDayNumber] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<"arena" | "quiz" | "standings" | "history">("arena");
+  const [userProfileData, setUserProfileData] = useState<{
+    first_name?: string;
+    last_name?: string;
+    student_class?: string;
+    admission_number?: string;
+  } | null>(null);
 
   // Game Modal State
   const [gameModalOpen, setGameModalOpen] = useState(false);
@@ -151,17 +159,53 @@ export default function VacationStudentPage({
   // Local game completion tracking cache
   const [localCompletedDays, setLocalCompletedDays] = useState<Record<number, boolean>>({});
 
+  // Direct fetch of profile if not passed in
+  useEffect(() => {
+    if (!userId) return;
+    async function loadMyProfile() {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, student_class, admission_number")
+          .eq("id", userId)
+          .maybeSingle();
+        if (!error && data) {
+          setUserProfileData(data);
+        }
+      } catch {}
+    }
+    loadMyProfile();
+  }, [userId]);
+
   const myProfile: VacationPeerProfile = useMemo(() => {
-    const me = board.find((b) => b.is_me);
-    const parts = (me?.display_name || "Student").split(" ");
+    // 1. If explicit userName passed as prop
+    let firstName = "Student";
+    let lastName = "";
+    if (userName) {
+      const parts = userName.trim().split(" ");
+      firstName = parts[0] || "Student";
+      lastName = parts.slice(1).join(" ") || "";
+    } else if (userProfileData?.first_name) {
+      firstName = userProfileData.first_name;
+      lastName = userProfileData.last_name || "";
+    } else {
+      const me = board.find((b) => b.is_me);
+      if (me?.display_name) {
+        const parts = me.display_name.trim().split(" ");
+        firstName = parts[0] || "Student";
+        lastName = parts.slice(1).join(" ") || "";
+      }
+    }
+
     return {
       id: userId || "me",
-      first_name: parts[0] || "Student",
-      last_name: parts.slice(1).join(" ") || "",
-      student_class: userClass || null,
+      first_name: firstName,
+      last_name: lastName,
+      student_class: userClass || userProfileData?.student_class || null,
+      admission_number: userProfileData?.admission_number || null,
       role: "student",
     };
-  }, [board, userId, userClass]);
+  }, [userName, userProfileData, board, userId, userClass]);
 
   const loadTeamsData = async () => {
     if (!userId) return;
@@ -1287,112 +1331,144 @@ export default function VacationStudentPage({
                 </div>
               ) : null}
 
-              {/* ACTION HUB: Mode A (Fun Practice) & Mode B (Official Submit) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Mode A — Practice Simulator */}
-                <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-50 via-orange-50 to-transparent dark:from-amber-900/20 dark:via-orange-900/10 dark:to-transparent overflow-hidden shadow-xs">
-                  <div className="px-4 pt-4 pb-3 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                          <Gamepad2 className="h-3.5 w-3.5" />
-                        </div>
-                        <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-200">
-                          Mode A: Practice Lab
-                        </span>
+              {/* ACTION HUB: Dominant Mode B (Main Challenge) & Mode A (Practice Lab) */}
+              <div className="space-y-3">
+                {/* MODE B — PRIMARY & DOMINANT CHALLENGE SUBMISSION */}
+                <div className="rounded-2xl border-2 border-amber-500/50 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-indigo-950/10 dark:from-slate-900 dark:via-indigo-950/30 dark:to-slate-900 p-4 sm:p-5 shadow-md">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-sm shrink-0">
+                        <UploadCloud className="h-5 w-5" />
                       </div>
-                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border shrink-0">
-                        0 Pts
-                      </span>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-950 dark:text-amber-100 bg-amber-500/25 px-2.5 py-0.5 rounded-full border border-amber-500/40">
+                            ⭐ Official Daily Challenge
+                          </span>
+                          <span className="text-[10px] font-black text-amber-900 dark:text-amber-200 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                            100 Points = 500 XP
+                          </span>
+                        </div>
+                        <h4 className="text-base sm:text-lg font-black text-foreground mt-0.5">
+                          Submit Today's Challenge Solution
+                        </h4>
+                      </div>
                     </div>
-                    <h5 className="text-sm font-black text-foreground">Play In-App Simulation</h5>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Explore interactive labs for fun & skill practice. No competition points — those come from Mode B only.
-                    </p>
+
+                    <div className="text-xs text-muted-foreground sm:text-right">
+                      <span className="font-semibold text-foreground">Window:</span> 8:00 AM – 6:00 PM
+                    </div>
                   </div>
-                  <div className="px-4 pb-4">
-                    <Button
-                      onClick={() => setGameModalOpen(true)}
-                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 h-10 shadow-xs transition-all active:scale-[0.98]"
-                    >
-                      <Play className="h-3.5 w-3.5 text-white" />
-                      <span>🎮 Launch Practice Simulator</span>
-                    </Button>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+                    Solve your allotted problem statement (individually or as a team). Submit your working notes, links, photos, or slides to earn official rubric points and streak bonuses.
+                  </p>
+
+                  <div className="space-y-2">
+                    {canSubmitToday && isPast8AmToday ? (
+                      <Button
+                        size="lg"
+                        onClick={() => setSubmitDialogOpen(true)}
+                        className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-sm h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.99] gap-2"
+                      >
+                        <UploadCloud className="h-5 w-5 text-white" />
+                        <span>{currentSubmission ? "View / Edit Your Challenge Entry" : "🚀 Submit Challenge Solution Now"}</span>
+                      </Button>
+                    ) : isDayToday && isBefore8AmToday ? (
+                      <Button
+                        disabled
+                        size="lg"
+                        className="w-full bg-muted text-muted-foreground font-bold text-sm h-12 cursor-not-allowed opacity-80 gap-2"
+                      >
+                        <Clock className="h-4 w-4" />
+                        <span>Opens at 8:00 AM Today</span>
+                      </Button>
+                    ) : isUpcomingDay ? (
+                      <Button
+                        disabled
+                        size="lg"
+                        className="w-full bg-muted text-muted-foreground font-bold text-sm h-12 cursor-not-allowed opacity-80 gap-2"
+                      >
+                        <Lock className="h-4 w-4" />
+                        <span>Opens on {selectedDayData.dateStr || `Day ${selectedDayNumber}`} (8:00 AM)</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        disabled={!currentSubmission}
+                        size="lg"
+                        onClick={() => currentSubmission && setSubmitDialogOpen(true)}
+                        className={`w-full text-sm h-12 transition-all gap-2 ${
+                          currentSubmission
+                            ? "bg-amber-600 hover:bg-amber-700 text-white font-black shadow-sm"
+                            : "bg-muted text-muted-foreground font-semibold cursor-not-allowed opacity-80"
+                        }`}
+                      >
+                        {currentSubmission ? (
+                          <>
+                            <UploadCloud className="h-4 w-4 text-white" />
+                            <span>View Submitted Project Entry</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="h-4 w-4" />
+                            <span>Submission Window Closed ({selectedDayData.dateStr})</span>
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    {!canSubmitToday && !currentSubmission && (
+                      <p className="text-[11px] text-muted-foreground text-center">
+                        Challenge submissions are accepted exclusively during the scheduled event window.
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                {/* Mode B — Official Submission */}
-                <div className="rounded-2xl border border-sky-500/40 bg-gradient-to-br from-sky-50 via-indigo-50 to-transparent dark:from-sky-900/20 dark:via-indigo-900/10 dark:to-transparent overflow-hidden shadow-xs">
-                  <div className="px-4 pt-4 pb-3 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center shadow-xs shrink-0">
-                          <Camera className="h-3.5 w-3.5" />
-                        </div>
-                        <span className="text-[11px] font-black uppercase tracking-wider text-sky-800 dark:text-sky-200">
-                          Mode B: Competition
+                {/* MODE A — SECONDARY OPTIONAL PRACTICE SIMULATOR (LOCKED OUTSIDE DAY WINDOW) */}
+                <div className="rounded-xl border border-border/80 bg-card/60 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-muted text-foreground flex items-center justify-center shrink-0">
+                      <Gamepad2 className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-foreground">Interactive Practice Lab</span>
+                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.2 rounded font-medium">
+                          Optional Sandbox
                         </span>
                       </div>
-                      <span className="text-[10px] font-black text-sky-100 bg-sky-600 px-2 py-0.5 rounded-full shrink-0">
-                        100 Pts (500 XP)
-                      </span>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {canSubmitToday && isPast8AmToday
+                          ? "Run interactive simulators to explore concepts before submitting."
+                          : "Practice simulator unlocks during active challenge hours (8 AM – 6 PM)."}
+                      </p>
                     </div>
-                    <h5 className="text-sm font-black text-foreground">Submit Hands-On Project</h5>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Build, create, or experiment on the scheduled date. Upload photos, PDFs, or link for rubric grading.
-                    </p>
                   </div>
-                  <div className="px-4 pb-4 space-y-1.5">
-                    {canSubmitToday ? (
+
+                  <div className="shrink-0 self-end sm:self-auto">
+                    {canSubmitToday && isPast8AmToday ? (
                       <Button
-                        onClick={() => setSubmitDialogOpen(true)}
-                        className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs gap-1.5 h-10 shadow-xs transition-all active:scale-[0.98]"
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setGameModalOpen(true)}
+                        className="h-8 text-xs font-bold border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/10 gap-1.5"
                       >
-                        <UploadCloud className="h-3.5 w-3.5 text-white" />
-                        <span>{currentSubmission ? "View / Edit Project Entry" : "📝 Submit Hands-On Project"}</span>
+                        <Play className="h-3 w-3" />
+                        <span>Launch Simulator</span>
                       </Button>
-                    ) : isUpcomingDay ? (
-                      <>
-                        <Button
-                          disabled
-                          className="w-full bg-muted text-muted-foreground font-semibold text-xs gap-1.5 h-10 cursor-not-allowed opacity-80"
-                        >
-                          <Lock className="h-3.5 w-3.5" />
-                          <span>Opens {selectedDayData.dateStr || `Day ${selectedDayNumber}`}</span>
-                        </Button>
-                        <p className="text-[10px] text-muted-foreground text-center">
-                          🔒 Submissions open 8:00 AM – 6:00 PM on {selectedDayData.dateStr}
-                        </p>
-                      </>
                     ) : (
-                      <>
-                        <Button
-                          disabled={!currentSubmission}
-                          onClick={() => currentSubmission && setSubmitDialogOpen(true)}
-                          className={`w-full text-xs gap-1.5 h-10 transition-all active:scale-[0.98] ${
-                            currentSubmission
-                              ? "bg-sky-600 hover:bg-sky-700 text-white font-bold"
-                              : "bg-muted text-muted-foreground font-semibold cursor-not-allowed opacity-80"
-                          }`}
-                        >
-                          {currentSubmission ? (
-                            <>
-                              <UploadCloud className="h-3.5 w-3.5 text-white" />
-                              <span>View Submitted Project</span>
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="h-3.5 w-3.5" />
-                              <span>Window Closed ({selectedDayData.dateStr})</span>
-                            </>
-                          )}
-                        </Button>
-                        {!currentSubmission && (
-                          <p className="text-[10px] text-muted-foreground text-center">
-                            The submission window for this day has passed.
-                          </p>
-                        )}
-                      </>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled
+                        className="h-8 text-xs font-semibold bg-muted text-muted-foreground cursor-not-allowed opacity-70 gap-1"
+                      >
+                        <Lock className="h-3 w-3" />
+                        <span>Locked (Opens 8 AM)</span>
+                      </Button>
                     )}
                   </div>
                 </div>

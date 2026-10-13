@@ -106,6 +106,89 @@ export async function searchVacationPeers(
 }
 
 /**
+ * Helper to fetch all teams with members from Supabase, falling back to localStorage
+ */
+export async function fetchAllVacationTeamsFromDb(campaignId?: string): Promise<VacationTeam[]> {
+  try {
+    let query = (supabase as any)
+      .from("vacation_teams")
+      .select(`
+        id,
+        campaign_id,
+        name,
+        event_title,
+        activity_id,
+        leader_id,
+        created_at,
+        leader:profiles!vacation_teams_leader_id_fkey(first_name, last_name, student_class, admission_number),
+        members:vacation_team_members(
+          id,
+          team_id,
+          user_id,
+          role,
+          status,
+          created_at,
+          updated_at,
+          user:profiles!vacation_team_members_user_id_fkey(first_name, last_name, student_class, admission_number, avatar_url)
+        )
+      `)
+      .order("created_at", { ascending: false });
+
+    if (campaignId) {
+      query = query.eq("campaign_id", campaignId);
+    }
+
+    const { data, error } = await query;
+
+    if (!error && data && Array.isArray(data)) {
+      const dbTeams: VacationTeam[] = data.map((t: any) => {
+        const leadObj = t.leader || {};
+        const leaderName = `${leadObj.first_name || ""} ${leadObj.last_name || ""}`.trim() || "Team Leader";
+        const membersList: VacationTeamMember[] = (t.members || []).map((m: any) => {
+          const uObj = m.user || {};
+          const memName = `${uObj.first_name || ""} ${uObj.last_name || ""}`.trim() || "Member";
+          return {
+            id: m.id,
+            team_id: m.team_id,
+            user_id: m.user_id,
+            name: memName,
+            student_class: uObj.student_class || undefined,
+            admission_number: uObj.admission_number || undefined,
+            avatar_url: uObj.avatar_url || undefined,
+            role: m.role || "member",
+            status: m.status || "pending",
+            invited_at: m.created_at || new Date().toISOString(),
+            responded_at: m.updated_at || undefined,
+          };
+        });
+
+        return {
+          id: t.id,
+          campaign_id: t.campaign_id,
+          name: t.name,
+          event_title: t.event_title,
+          activity_id: t.activity_id,
+          leader_id: t.leader_id,
+          leader_name: leaderName,
+          created_at: t.created_at,
+          members: membersList,
+        };
+      });
+
+      // Merge and update localStorage cache
+      if (dbTeams.length > 0) {
+        saveStoredTeams(dbTeams);
+        return dbTeams;
+      }
+    }
+  } catch {
+    // Fallback to local storage
+  }
+
+  return getStoredTeams();
+}
+
+/**
  * Create a new team and invite member peers
  */
 export async function createVacationTeam(params: {
@@ -117,7 +200,48 @@ export async function createVacationTeam(params: {
   invitedMembers: VacationPeerProfile[];
 }): Promise<VacationTeam> {
   const leaderName = `${params.leader.first_name} ${params.leader.last_name}`.trim() || "Team Leader";
-  const teamId = `team-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+  // 1. Try persisting to Supabase vacation_teams & vacation_team_members
+  let dbTeamId: string | null = null;
+  try {
+    const { data: insertedTeam, error: teamErr } = await (supabase as any)
+      .from("vacation_teams")
+      .insert({
+        campaign_id: params.campaignId || null,
+        name: params.name.trim(),
+        event_title: params.eventTitle,
+        activity_id: params.activityId || null,
+        leader_id: params.leader.id,
+      })
+      .select()
+      .single();
+
+    if (!teamErr && insertedTeam) {
+      dbTeamId = insertedTeam.id;
+
+      // Insert leader as accepted member
+      const memberRows = [
+        {
+          team_id: dbTeamId,
+          user_id: params.leader.id,
+          role: "leader",
+          status: "accepted",
+        },
+        ...params.invitedMembers.map((m) => ({
+          team_id: dbTeamId,
+          user_id: m.id,
+          role: "member",
+          status: "pending",
+        })),
+      ];
+
+      await (supabase as any).from("vacation_team_members").insert(memberRows);
+    }
+  } catch {
+    // If Supabase table is not yet migrated, fall back gracefully to client ID
+  }
+
+  const teamId = dbTeamId || `team-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
   const leaderMember: VacationTeamMember = {
     id: `mem-${Date.now()}-lead`,
@@ -158,7 +282,7 @@ export async function createVacationTeam(params: {
     members: [leaderMember, ...invitees],
   };
 
-  // 1. Try sending DB notifications to invited members
+  // Send DB notifications to invited members
   for (const inv of invitees) {
     try {
       await supabase.from("notifications").insert({
@@ -168,12 +292,10 @@ export async function createVacationTeam(params: {
         message: `${leaderName} invited you to join team "${newTeam.name}" for ${newTeam.event_title}. Open the Vacation Festival to accept!`,
         type: "info",
       });
-    } catch {
-      // In case table RLS restricts client insert
-    }
+    } catch {}
   }
 
-  // 2. Persist in local storage sync
+  // Update local storage sync
   const current = getStoredTeams();
   const updated = [newTeam, ...current.filter((t) => t.id !== newTeam.id)];
   saveStoredTeams(updated);
@@ -190,7 +312,8 @@ export async function fetchMyVacationTeams(userId?: string): Promise<{
 }> {
   if (!userId) return { myTeams: [], incomingInvites: [] };
 
-  const allTeams = getStoredTeams();
+  // Sync from DB first
+  const allTeams = await fetchAllVacationTeamsFromDb();
 
   const myTeams: VacationTeam[] = [];
   const incomingInvites: VacationTeam[] = [];
@@ -221,6 +344,18 @@ export async function respondVacationTeamInvite(
   userId: string,
   decision: "accept" | "decline"
 ): Promise<VacationTeam | null> {
+  // 1. Try DB update first
+  try {
+    await (supabase as any)
+      .from("vacation_team_members")
+      .update({
+        status: decision === "accept" ? "accepted" : "declined",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("team_id", teamId)
+      .eq("user_id", userId);
+  } catch {}
+
   const allTeams = getStoredTeams();
   const targetIndex = allTeams.findIndex((t) => t.id === teamId);
   if (targetIndex === -1) return null;
