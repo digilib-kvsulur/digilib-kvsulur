@@ -426,15 +426,17 @@ export default function VacationStudentPage({
               {campaign?.title || "DLMS Vacation Festival: 10 Days • 10 Challenges"}
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-              Complete daily hands-on creative missions, interactive simulator labs, and live quiz championships!
+              Complete daily hands-on creative missions, interactive simulator labs, and live quiz championships! (1 Pt = 5 XP)
             </p>
           </div>
 
           {/* Quick Header Stats */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="p-2 sm:p-2.5 rounded-2xl bg-card border text-center min-w-[72px]">
+            <div className="p-2 sm:p-2.5 rounded-2xl bg-card border text-center min-w-[76px]">
               <p className="text-base sm:text-lg font-black text-primary">{overview?.progress?.total_points || 0}</p>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase">Points</p>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">
+                {pointsToXp(overview?.progress?.total_points || 0)} XP
+              </p>
             </div>
             <div className="p-2 sm:p-2.5 rounded-2xl bg-card border text-center min-w-[72px]">
               <p className="text-base sm:text-lg font-black text-orange-600">{overview?.progress?.current_streak || 0}</p>
@@ -446,6 +448,41 @@ export default function VacationStudentPage({
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* 14 October Registration & Team Formation Announcement Banner */}
+      <Card className="border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5 shadow-sm">
+        <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Users className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white px-2 py-0.5 rounded-full">
+                  14 October
+                </span>
+                <span className="text-xs font-black text-foreground">
+                  Registration &amp; Team Formation Active
+                </span>
+                <span className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold">
+                  (15–24 Oct Daily Events • 25 Oct Finale)
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Form teams of 2–4 members for collaborative events or compete solo. All PM SHRI KV AFS Sulur students eligible!
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs font-bold border-amber-500/40 hover:bg-amber-500/10 shrink-0 gap-1.5"
+            onClick={() => setRegModalOpen(true)}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Team Guidelines &amp; Program Guide
+          </Button>
         </CardContent>
       </Card>
 
@@ -522,7 +559,7 @@ export default function VacationStudentPage({
 
                         <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[10px]">
                           <span className={isDone ? "text-emerald-600 font-bold" : "text-muted-foreground"}>
-                            {isDone ? "✓ Done" : "500 XP"}
+                            {isDone ? "✓ Done" : "100 Pts (500 XP)"}
                           </span>
                         </div>
                       </button>
@@ -561,7 +598,7 @@ export default function VacationStudentPage({
 
                 <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
                   <Badge variant="outline" className="text-xs font-black px-3 py-1 bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30">
-                    ⚡ 500 Reward Points
+                    ⚡ 100 Competition Pts (500 XP)
                   </Badge>
                   {isCompleted && (
                     <Badge className="bg-emerald-600 text-white font-bold text-xs gap-1">
@@ -594,6 +631,38 @@ export default function VacationStudentPage({
                   </div>
                 )}
               </div>
+
+              {/* Official 100-Point Rubric Breakdown */}
+              {selectedDayData.event.rubric?.length ? (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-200 flex items-center gap-1.5">
+                      <Trophy className="h-3.5 w-3.5 text-amber-500" /> Official 100-Point Scoring Rubric
+                    </h5>
+                    <Badge variant="outline" className="text-[10px] font-bold border-amber-500/40 text-amber-700 dark:text-amber-300">
+                      1 Point = 5 DLMS XP (Max 500 XP)
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    {selectedDayData.event.rubric.map((r, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 rounded-xl border bg-card/80 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <span className="font-semibold text-foreground truncate">{r.criterion}</span>
+                        <div className="text-right shrink-0">
+                          <span className="font-mono font-bold text-amber-700 dark:text-amber-300">
+                            {r.points} Pts
+                          </span>
+                          <span className="text-[10px] text-muted-foreground ml-1">
+                            ({pointsToXp(r.points)} XP)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               {/* ACTION HUB: 2 Ways to Complete (Interactive Game/Lab OR Hands-On Project Upload) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -638,6 +707,14 @@ export default function VacationStudentPage({
 
                   <Button
                     onClick={() => setSubmitDialogOpen(true)}
+                    variant="outline"
+                    className="w-full border-sky-500/40 text-foreground hover:bg-sky-500/10 font-bold text-xs gap-1.5 h-9"
+                  >
+                    <UploadCloud className="h-3.5 w-3.5 text-sky-600" />
+                    {currentSubmission ? "View / Edit Project Entry" : "📝 Submit Project Write-up / Photo"}
+                  </Button>
+                </div>
+              </div>
                     variant="outline"
                     className="w-full border-sky-500/40 text-foreground hover:bg-sky-500/10 font-bold text-xs gap-1.5 h-9"
                   >
