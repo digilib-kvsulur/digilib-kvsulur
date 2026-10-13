@@ -352,14 +352,15 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
         });
 
         // Track 2: Daily Live Quiz Championship (50 pts = 250 XP, Day 10 Grand Finale 100 pts = 500 XP)
+        // Hosted daily at 7:00 PM (19:00 to 22:00) during vacation
         await upsertActivity({
           campaign_id: targetCampaign.id,
           title: item.quizChampionship.title,
           instructions: item.quizChampionship.instructions,
           sort_order: item.day * 2,
           activity_date: dateStr,
-          opens_at: `${dateStr}T08:00:00`,
-          closes_at: `${dateStr}T18:00:00`,
+          opens_at: `${dateStr}T19:00:00`,
+          closes_at: `${dateStr}T22:00:00`,
           reward_points: item.quizChampionship.rewardPoints,
           is_active: true,
         });
@@ -369,7 +370,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
 
       toast({
         title: "Autumn Break Master Program Ready! 🎉",
-        description: `Configured 10 Events + 10 Quiz Championships (15–24 Oct, 8 AM–6 PM). 1 Pt = 5 XP!`,
+        description: `Configured 10 Events (8 AM–6 PM) + 10 Quiz Championships (7 PM Daily). 1 Pt = 5 XP!`,
       });
 
       await loadCampaigns();

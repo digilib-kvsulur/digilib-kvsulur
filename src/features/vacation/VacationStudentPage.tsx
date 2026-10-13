@@ -437,6 +437,11 @@ export default function VacationStudentPage({
   const isPast8AmToday = isDayToday && currentHour >= 8;
   const isBefore8AmToday = isDayToday && currentHour < 8;
 
+  // Daily Live Quiz Championship is hosted at 7:00 PM (19:00) daily during vacation. Lock it till 7:00 PM!
+  const isPast7PmToday = isDayToday && currentHour >= 19;
+  const isBefore7PmToday = isDayToday && currentHour < 19;
+  const isQuizChampionshipUnlocked = Boolean(!isDayToday || isPast7PmToday || isPastDay);
+
   // Problem statement unlocked rule:
   // "once its selected. allot the problem statement at 8am randomly for the day or after the team selection (whichever is highest)."
   const isProblemUnlocked = Boolean(
@@ -858,23 +863,26 @@ export default function VacationStudentPage({
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-3">
-        <TabsList className="grid grid-cols-4 w-full h-10 p-1 bg-muted/70 rounded-xl border shadow-xs">
-          <TabsTrigger value="arena" className="rounded-lg text-xs font-bold gap-1 py-1.5 data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-amber-600">
-            <Gamepad2 className="h-3.5 w-3.5 text-amber-500" />
+        <TabsList className="grid grid-cols-4 w-full h-10 p-0.5 sm:p-1 bg-muted/70 rounded-xl border shadow-xs gap-0.5">
+          <TabsTrigger value="arena" className="rounded-lg text-[11px] sm:text-xs font-bold gap-1 py-1 sm:py-1.5 px-1 data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-amber-600">
+            <Gamepad2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
             <span className="hidden sm:inline">Challenges</span>
             <span className="sm:hidden">Events</span>
           </TabsTrigger>
-          <TabsTrigger value="quiz" className="rounded-lg text-xs font-bold gap-1 py-1 data-[state=active]:bg-card data-[state=active]:shadow-xs">
-            <Trophy className="h-3.5 w-3.5 text-amber-500" />
-            <span className="hidden sm:inline">Daily Quizzes</span>
-            <span className="sm:hidden">Quizzes</span>
+          <TabsTrigger value="quiz" className="rounded-lg text-[11px] sm:text-xs font-bold gap-1 py-1 px-1 data-[state=active]:bg-card data-[state=active]:shadow-xs">
+            <Trophy className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+            <span className="hidden sm:inline">Daily Quiz (7 PM)</span>
+            <span className="sm:hidden">Quiz (7P)</span>
+            {isBefore7PmToday && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" title="Opens at 7:00 PM" />
+            )}
           </TabsTrigger>
-          <TabsTrigger value="standings" className="rounded-lg text-xs font-bold gap-1 py-1 data-[state=active]:bg-card data-[state=active]:shadow-xs">
-            <Award className="h-3.5 w-3.5 text-amber-500" />
+          <TabsTrigger value="standings" className="rounded-lg text-[11px] sm:text-xs font-bold gap-1 py-1 px-1 data-[state=active]:bg-card data-[state=active]:shadow-xs">
+            <Award className="h-3.5 w-3.5 text-amber-500 shrink-0" />
             <span>Standings</span>
           </TabsTrigger>
-          <TabsTrigger value="history" className="rounded-lg text-xs font-bold gap-1 py-1 data-[state=active]:bg-card data-[state=active]:shadow-xs">
-            <Clock className="h-3.5 w-3.5 text-amber-500" />
+          <TabsTrigger value="history" className="rounded-lg text-[11px] sm:text-xs font-bold gap-1 py-1 px-1 data-[state=active]:bg-card data-[state=active]:shadow-xs">
+            <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
             <span>History</span>
           </TabsTrigger>
         </TabsList>
@@ -883,19 +891,19 @@ export default function VacationStudentPage({
         <TabsContent value="arena" className="space-y-3.5 m-0">
           {/* BIG, ENGAGING 10-DAY SELECTION TRACK */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Compass className="h-4 w-4 text-amber-500" />
+            <div className="flex items-center justify-between gap-1.5 px-0.5 flex-wrap">
+              <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 shrink-0">
+                <Compass className="h-3.5 w-3.5 text-amber-500" />
                 <span>10-Day Festival Track</span>
               </span>
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/25">
+              <span className="text-[10.5px] sm:text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/25 shrink-0">
                 Selected: Day {selectedDayNumber} ({selectedDayData.event.title.split(" ")[0]})
               </span>
             </div>
 
-            {/* Big, Touchable Carousel Cards */}
-            <div className="overflow-x-auto pb-2 -mx-1 px-1">
-              <div className="flex items-stretch gap-2.5 min-w-max py-0.5">
+            {/* Carousel Cards with Smooth Scrolling and No Scrollbar Clipping */}
+            <div className="overflow-x-auto pb-2.5 pt-1 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex items-stretch gap-2 sm:gap-2.5 min-w-max">
                 {tenDaysRoadmap.map((item) => {
                   const isSelected = item.day === selectedDayNumber;
                   const isDone = item.isMainApproved || Boolean(localCompletedDays[item.day]);
@@ -908,9 +916,9 @@ export default function VacationStudentPage({
                       key={item.day}
                       type="button"
                       onClick={() => setSelectedDayNumber(item.day)}
-                      className={`relative flex flex-col justify-between p-3 rounded-2xl border text-left transition-all duration-200 shrink-0 w-[130px] sm:w-[145px] h-[94px] sm:h-[102px] cursor-pointer active:scale-95 ${
+                      className={`relative flex flex-col justify-between p-2.5 sm:p-3 rounded-2xl border text-left transition-all duration-200 shrink-0 w-[124px] sm:w-[144px] min-h-[96px] sm:min-h-[104px] cursor-pointer active:scale-95 touch-manipulation ${
                         isSelected
-                          ? "bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400/60 scale-[1.02]"
+                          ? "bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400/60"
                           : item.isToday
                           ? "bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/50 hover:bg-amber-500/20 text-foreground ring-1 ring-amber-500/30"
                           : "bg-card hover:bg-muted/70 border-border/80 text-foreground shadow-2xs"
@@ -919,7 +927,7 @@ export default function VacationStudentPage({
                       {/* Top row: Day badge + Status badge */}
                       <div className="flex items-center justify-between gap-1 w-full">
                         <span
-                          className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                          className={`text-[10px] sm:text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md leading-none ${
                             isSelected
                               ? "bg-black/25 text-white"
                               : item.isToday
@@ -944,24 +952,24 @@ export default function VacationStudentPage({
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
                           </span>
                         ) : (
-                          <span className={`text-[10px] font-bold ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
+                          <span className={`text-[10px] font-bold ${isSelected ? "text-white/85" : "text-muted-foreground"}`}>
                             {formattedDate}
                           </span>
                         )}
                       </div>
 
                       {/* Middle: Title & Badge icon */}
-                      <div className="my-auto py-1">
+                      <div className="py-1">
                         <p
-                          className={`text-xs sm:text-sm font-black line-clamp-1 leading-tight flex items-center gap-1 ${
+                          className={`text-xs sm:text-sm font-black line-clamp-1 leading-tight flex items-center gap-1.5 ${
                             isSelected ? "text-white" : "text-foreground"
                           }`}
                         >
-                          <span className="text-base">{item.event.badgeIcon || "🎯"}</span>
+                          <span className="text-sm sm:text-base shrink-0">{item.event.badgeIcon || "🎯"}</span>
                           <span className="truncate">{item.event.title.split(" ")[0]}</span>
                         </p>
                         <p
-                          className={`text-[10px] font-medium truncate mt-0.5 ${
+                          className={`text-[9.5px] sm:text-[10px] font-medium truncate mt-0.5 ${
                             isSelected ? "text-white/80" : "text-muted-foreground"
                           }`}
                         >
@@ -970,11 +978,11 @@ export default function VacationStudentPage({
                       </div>
 
                       {/* Bottom row: Points pill or Live tag */}
-                      <div className="flex items-center justify-between w-full text-[10px] pt-1 border-t border-current/10">
-                        <span className={`font-mono font-bold ${isSelected ? "text-white/90" : "text-amber-700 dark:text-amber-400"}`}>
+                      <div className="flex items-center justify-between w-full text-[10px] pt-1.5 border-t border-current/10 mt-auto">
+                        <span className={`font-mono font-bold leading-none ${isSelected ? "text-white/95" : "text-amber-700 dark:text-amber-400"}`}>
                           100 Pts
                         </span>
-                        <span className={`text-[9px] font-semibold ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
+                        <span className={`text-[9px] font-semibold leading-none ${isSelected ? "text-white/85" : "text-muted-foreground"}`}>
                           {item.isToday ? "🔥 Live Today" : formattedDate}
                         </span>
                       </div>
@@ -1533,13 +1541,55 @@ export default function VacationStudentPage({
               <div className="rounded-xl border bg-muted/30 p-3.5 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed text-foreground">
                 {selectedDayData.quizChampionship.instructions}
               </div>
-              {onNavigateToQuizzes && (
-                <Button
-                  onClick={onNavigateToQuizzes}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs sm:text-sm gap-2 h-11 px-5 shadow-md w-full sm:w-auto active:scale-[0.98] transition-all"
-                >
-                  <Trophy className="h-4 w-4" /> Play Daily Quiz Championship Now →
-                </Button>
+
+              {/* 7:00 PM Daily Live Championship Lock / Unlock Card */}
+              {!isQuizChampionshipUnlocked ? (
+                <div className="rounded-xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent p-4 sm:p-5 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 border border-amber-500/30">
+                      <Lock className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge className="bg-amber-500/20 text-amber-900 dark:text-amber-100 border-amber-500/30 font-bold text-[10px]">
+                          🔒 Opens at 7:00 PM Tonight
+                        </Badge>
+                        <span className="text-xs font-bold text-foreground">
+                          Daily Live Championship Lobby Locked
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        The live multiplayer quiz championship is hosted every evening at <strong>7:00 PM (19:00 IST)</strong>. Come back at 7:00 PM to compete against classmates in real-time, earn leaderboard points, and maintain your streak multiplier!
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    disabled
+                    className="w-full bg-muted text-muted-foreground font-bold text-xs sm:text-sm gap-2 h-11 cursor-not-allowed opacity-80"
+                  >
+                    <Lock className="h-4 w-4" />
+                    <span>Lobby Opens at 7:00 PM (19:00 IST)</span>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 p-2 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-800 dark:text-emerald-200">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    <span className="font-bold">
+                      {isDayToday ? "🟢 Live Championship Arena Open Now (7:00 PM Window Active)!" : `Day ${selectedDayNumber} Championship Available!`}
+                    </span>
+                  </div>
+
+                  {onNavigateToQuizzes && (
+                    <Button
+                      onClick={onNavigateToQuizzes}
+                      className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-xs sm:text-sm gap-2 h-11 px-6 shadow-md w-full sm:w-auto active:scale-[0.98] transition-all"
+                    >
+                      <Trophy className="h-4 w-4" /> Enter Live Quiz Championship Now →
+                    </Button>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

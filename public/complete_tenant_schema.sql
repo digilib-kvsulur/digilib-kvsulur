@@ -12226,8 +12226,8 @@ BEGIN
   IF TG_OP = 'INSERT' THEN
     SELECT count(*) INTO v_count FROM public.book_reviews
     WHERE user_id = NEW.user_id AND created_at >= date_trunc('day', now());
-    IF v_count >= 2 THEN
-      RAISE EXCEPTION 'You can post at most 2 book reviews per day. Try again tomorrow.';
+    IF v_count >= 1 THEN
+      RAISE EXCEPTION 'You can post at most 1 book review per day. Try again tomorrow.';
     END IF;
   END IF;
   NEW.review_text := v_text;

@@ -18,6 +18,7 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
   const [myText, setMyText] = useState("");
   const [myReviewId, setMyReviewId] = useState<string | null>(null);
   const [reviewPoints, setReviewPoints] = useState(15);
+  const [hasReviewedToday, setHasReviewedToday] = useState(false);
 
   const load = async () => {
     if (!book?.id) return;
@@ -30,6 +31,15 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
       const mine = (data || []).find((r: any) => r.user_id === userId);
       if (mine) { setMyRating(mine.rating); setMyText(mine.review_text || ""); setMyReviewId(mine.id); }
       else { setMyRating(0); setMyText(""); setMyReviewId(null); }
+
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { count: todayCount } = await supabase
+        .from("book_reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", todayStart.toISOString());
+      setHasReviewedToday((todayCount ?? 0) >= 1);
     }
   };
   useEffect(() => { if (open) load(); }, [open, book?.id]);
@@ -38,6 +48,10 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
     if (!userId) { toast({ title: "Please sign in", variant: "destructive" }); return; }
     if (myRating < 1) { toast({ title: "Please select a star rating", description: "Tap a star to choose your rating.", variant: "destructive" }); return; }
     if (myText.trim().length < 400) { toast({ title: "Please write a review", description: "Share your thoughts in at least 400 characters to earn XP!", variant: "destructive" }); return; }
+    if (!myReviewId && hasReviewedToday) {
+      toast({ title: "Daily limit reached", description: "You can post at most 1 book review per day. Try again tomorrow.", variant: "destructive" });
+      return;
+    }
     const payload = { book_id: book.id, user_id: userId, rating: myRating, review_text: myText.trim() };
     const { error } = myReviewId
       ? await supabase.from("book_reviews").update(payload).eq("id", myReviewId)

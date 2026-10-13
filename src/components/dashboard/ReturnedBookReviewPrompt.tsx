@@ -19,6 +19,17 @@ export default function ReturnedBookReviewPrompt({ userId }: { userId?: string }
     if (!userId) return;
     fetchPointsPerReview().then(setReviewPoints);
     (async () => {
+      // Limit: 1 book review per day. Check if the user already reviewed a book today.
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { count: todayReviewsCount } = await supabase
+        .from("book_reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", todayStart.toISOString());
+
+      if ((todayReviewsCount ?? 0) >= 1) return;
+
       const { data: returned } = await supabase.from("book_issues").select("id, book_id, return_date, books(title, author)").eq("user_id", userId).eq("status", "returned").order("return_date", { ascending: false }).limit(5);
       for (const candidate of returned || []) {
         const { data: existing } = await supabase.from("book_reviews").select("id").eq("user_id", userId).eq("book_id", candidate.book_id).maybeSingle();
