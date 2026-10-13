@@ -108,8 +108,43 @@ export default function VacationStudentPage({
   const [regModalOpen, setRegModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Team Formation & Peer Search State
+  const [regModalTab, setRegModalTab] = useState<"team-form" | "my-teams" | "guide">("team-form");
+  const [teamSearchQuery, setTeamSearchQuery] = useState("");
+  const [teamSearchResults, setTeamSearchResults] = useState<VacationPeerProfile[]>([]);
+  const [searchingPeers, setSearchingPeers] = useState(false);
+  const [newTeamName, setNewTeamName] = useState("");
+  const [teamTargetEvent, setTeamTargetEvent] = useState(TEN_DAYS_PROGRAM[0]?.event.title || "STEAM Challenge");
+  const [selectedTeammates, setSelectedTeammates] = useState<VacationPeerProfile[]>([]);
+  const [creatingTeam, setCreatingTeam] = useState(false);
+  const [myTeams, setMyTeams] = useState<VacationTeam[]>([]);
+  const [incomingInvites, setIncomingInvites] = useState<VacationTeam[]>([]);
+
   // Local game completion tracking cache
   const [localCompletedDays, setLocalCompletedDays] = useState<Record<number, boolean>>({});
+
+  const myProfile: VacationPeerProfile = useMemo(() => {
+    const me = board.find((b) => b.is_me);
+    const parts = (me?.display_name || "Student").split(" ");
+    return {
+      id: userId || "me",
+      first_name: parts[0] || "Student",
+      last_name: parts.slice(1).join(" ") || "",
+      student_class: userClass || null,
+      role: "student",
+    };
+  }, [board, userId, userClass]);
+
+  const loadTeamsData = async () => {
+    if (!userId) return;
+    try {
+      const { myTeams: mt, incomingInvites: ii } = await fetchMyVacationTeams(userId);
+      setMyTeams(mt);
+      setIncomingInvites(ii);
+    } catch {
+      // safe fallback
+    }
+  };
 
   const load = async () => {
     try {
@@ -149,12 +184,13 @@ export default function VacationStudentPage({
 
   useEffect(() => {
     load();
+    loadTeamsData();
     // Load local completed cache
     try {
       const cache = localStorage.getItem("dlms_vacation_local_completed");
       if (cache) setLocalCompletedDays(JSON.parse(cache));
     } catch {}
-  }, []);
+  }, [userId]);
 
   const campaign = overview?.campaign;
 
