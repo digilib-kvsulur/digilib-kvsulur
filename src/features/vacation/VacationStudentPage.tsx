@@ -16,6 +16,7 @@ import {
   Target,
   Trophy,
   UploadCloud,
+  Users,
   Zap,
   Gamepad2,
   Layers,
@@ -39,10 +40,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchActivities, fetchLeaderboard, fetchStudentOverview, submitVacationActivity } from "./api";
 import { vacationErrorMessage } from "./errors";
 import {
+  AUTUMN_BREAK_SCHEDULE,
   POSTER_ACTIVITIES,
   TEN_DAYS_PROGRAM,
   inferActivitySubmissionType,
   parseActivityMeta,
+  pointsToXp,
 } from "./constants";
 import VacationCountdownTimer from "./VacationCountdownTimer";
 import VacationGameArenaModal from "./games/VacationGameArenaModal";
@@ -81,10 +84,12 @@ export default function VacationStudentPage({
   // Manual Submission Dialog State
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [content, setContent] = useState("");
+  const [teamMembers, setTeamMembers] = useState("");
   const [link, setLink] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadedFileUrl, setUploadedFileUrl] = useState("");
+  const [regModalOpen, setRegModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Local game completion tracking cache
@@ -216,7 +221,7 @@ export default function VacationStudentPage({
       campaign_id: campaign?.id || "active",
       title: selectedDayData.event.title,
       instructions: selectedDayData.event.instructions,
-      reward_points: 500,
+      reward_points: 100,
       activity_date: selectedDayData.dateStr || todayStr,
       opens_at: null,
       closes_at: null,
@@ -256,7 +261,7 @@ export default function VacationStudentPage({
         activity_id: activeCompetition.id,
         student_id: userId || "",
         status: "approved",
-        points_awarded: 500,
+        points_awarded: 100,
         review_note: "Completed via Interactive Vacation Lab!",
         content: "Completed via Interactive Simulator",
         link: null,
@@ -329,10 +334,15 @@ export default function VacationStudentPage({
         if (found) actId = found.id;
       }
 
-      await submitVacationActivity(actId, content, link);
+      const finalContent = teamMembers.trim()
+        ? `[TEAM ENTRY] Members: ${teamMembers.trim()}\n\n${content}`
+        : content;
+
+      await submitVacationActivity(actId, finalContent, link);
       toast({ title: "Submitted! 🚀", description: "Teachers will review your project and award points." });
       setSubmitDialogOpen(false);
       setContent("");
+      setTeamMembers("");
       setLink("");
       setUploadedFileUrl("");
       await load();

@@ -407,7 +407,30 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
 
   const defaultApprovePoints = (row: VacationSubmission) => {
     const act = activities.find((a) => a.id === row.activity_id);
-    return String(act?.reward_points ?? campaign?.default_points ?? 500);
+    return String(act?.reward_points ?? campaign?.default_points ?? 100);
+  };
+
+  const openApproveDialog = (row: VacationSubmission) => {
+    setApproveFor(row);
+    const act = activities.find((a) => a.id === row.activity_id);
+    const matchedTemplate = POSTER_ACTIVITIES.find(
+      (p) => act?.title.toLowerCase().includes(p.title.toLowerCase())
+    );
+
+    if (matchedTemplate?.rubric?.length) {
+      const initial: Record<string, number> = {};
+      let sum = 0;
+      matchedTemplate.rubric.forEach((r) => {
+        initial[r.criterion] = r.points;
+        sum += r.points;
+      });
+      setRubricScores(initial);
+      setApprovePoints(String(sum));
+    } else {
+      setRubricScores({});
+      setApprovePoints(defaultApprovePoints(row));
+    }
+    setApproveNote("");
   };
 
   return (
@@ -759,7 +782,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                   )}
                   {row.status === "pending" && (
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => { setApproveFor(row); setApprovePoints(defaultApprovePoints(row)); }}>Approve</Button>
+                      <Button size="sm" onClick={() => openApproveDialog(row)}>Approve with Rubric</Button>
                       <Button size="sm" variant="destructive" onClick={() => { setRejectFor(row); setRejectNote(""); }}>Reject</Button>
                     </div>
                   )}
@@ -986,21 +1009,258 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
       </Dialog>
 
       <Dialog open={!!approveFor} onOpenChange={(o) => !o && setApproveFor(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Approve submission</DialogTitle></DialogHeader>
-          <div className="space-y-1"><Label>Points (max {campaign?.max_award_points})</Label><Input type="number" value={approvePoints} onChange={(e) => setApprovePoints(e.target.value)} /></div>
-          <DialogFooter>
-            <Button onClick={async () => {
-              if (!approveFor || !campaign) return;
-              try {
-                await reviewSubmission(approveFor.id, "approve", Number(approvePoints));
-                toast({ title: "Approved" });
-                setApproveFor(null);
-                await loadDetails(campaign.id);
-              } catch (error) {
-                toast({ title: "Review failed", description: vacationErrorMessage(error), variant: "destructive" });
-              }
-            }}>Approve</Button>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg font-black flex items-center justify-between gap-2">
+              <span>Grade &amp; Approve: {approveFor?.student_name}</span>
+              <Badge className="bg-amber-600 text-white text-xs">
+                {pointsToXp(Number(approvePoints) || 0)} XP
+              </Badge>
+            </DialogTitle>
+          </DialogHeader>
+
+          {approveFor && (() => {
+            const act = activities.find((a) => a.id === approveFor.activity_id);
+            const matchedTemplate = POSTER_ACTIVITIES.find(
+              (p) => act?.title.toLowerCase().includes(p.title.toLowerCase())
+            );
+
+            return (
+              <div className="space-y-4 pt-1">
+                {/* Event & Submission Info */}
+                <div className="p-3 rounded-xl border bg-muted/30 space-y-2 text-xs">
+                  <div className="flex items-center justify-between font-bold">
+                    <span className="text-foreground">{act?.title || "Daily Activity"}</span>
+                    <span className="text-muted-foreground">{act?.activity_date || "No date"}</span>
+                  </div>
+
+                  {approveFor.content && (
+                    <div className="space-y-1">
+                      <span className="font-semibold text-muted-foreground">Student Submission:</span>
+                      <p className="p-2.5 rounded-lg bg-card border text-foreground whitespace-pre-wrap leading-relaxed max-h-36 overflow-y-auto font-mono text-[11px]">
+                        {approveFor.content}
+                      </p>
+                    </div>
+                  )}
+
+                  {approveFor.link && (
+                    <div className="space-y-1 pt-1">
+                      <span className="font-semibold text-muted-foreground">External Media / Link:</span>
+                      <a
+                        href={approveFor.link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline font-medium break-all block"
+                      >
+                        {approveFor.link}
+                      </a>
+                      {/\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(approveFor.link) && (
+                        <div className="mt-1">
+                          <img
+                            src={approveFor.link}
+                            alt="Student submission proof"
+                            className="max-h-36 max-w-xs object-contain rounded-lg border bg-black/5"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Rubric Criteria Sheet (if template exists) */}
+                {matchedTemplate?.rubric?.length ? (
+                  <div className="space-y-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-200">
+                        Official 100-Point Rubric Scoring Sheet
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 font-bold border-amber-500/40"
+                          onClick={() => {
+                            const full: Record<string, number> = {};
+                            matchedTemplate.rubric.forEach((r) => {
+                              full[r.criterion] = r.points;
+                            });
+                            setRubricScores(full);
+                            setApprovePoints("100");
+                          }}
+                        >
+                          100 Pts (Max)
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 font-bold border-amber-500/40"
+                          onClick={() => {
+                            const reduced: Record<string, number> = {};
+                            let s = 0;
+                            matchedTemplate.rubric.forEach((r) => {
+                              const val = Math.round(r.points * 0.9);
+                              reduced[r.criterion] = val;
+                              s += val;
+                            });
+                            setRubricScores(reduced);
+                            setApprovePoints(String(s));
+                          }}
+                        >
+                          90%
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 font-bold border-amber-500/40"
+                          onClick={() => {
+                            const reduced: Record<string, number> = {};
+                            let s = 0;
+                            matchedTemplate.rubric.forEach((r) => {
+                              const val = Math.round(r.points * 0.8);
+                              reduced[r.criterion] = val;
+                              s += val;
+                            });
+                            setRubricScores(reduced);
+                            setApprovePoints(String(s));
+                          }}
+                        >
+                          80%
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                      {matchedTemplate.rubric.map((r, idx) => {
+                        const current = rubricScores[r.criterion] ?? r.points;
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between gap-3 text-xs bg-card p-2 rounded-lg border"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <span className="font-semibold text-foreground">{r.criterion}</span>
+                              <span className="text-muted-foreground ml-1 font-mono text-[10px]">
+                                (max {r.points} pts)
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={r.points}
+                                className="w-16 h-7 text-xs text-center font-bold"
+                                value={current}
+                                onChange={(e) => {
+                                  const val = Math.min(r.points, Math.max(0, Number(e.target.value) || 0));
+                                  const updated = { ...rubricScores, [r.criterion]: val };
+                                  setRubricScores(updated);
+                                  const newSum = matchedTemplate.rubric.reduce(
+                                    (acc, item) => acc + (updated[item.criterion] ?? item.points),
+                                    0
+                                  );
+                                  setApprovePoints(String(newSum));
+                                }}
+                              />
+                              <span className="text-[10px] text-muted-foreground font-semibold">/ {r.points}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Total Points & XP Equivalence */}
+                <div className="p-3 rounded-xl border bg-card space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-xs font-bold">Total Award Points</Label>
+                      <p className="text-[11px] text-muted-foreground">
+                        Max allowed: {campaign?.max_award_points || 1000}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <Input
+                        type="number"
+                        className="w-24 h-8 text-sm font-black text-right"
+                        value={approvePoints}
+                        onChange={(e) => setApprovePoints(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs font-bold text-amber-800 dark:text-amber-200">
+                    <span>DLMS Standard: 1 Point = 5 XP</span>
+                    <span className="font-mono text-sm">
+                      {approvePoints || 0} Pts = {pointsToXp(Number(approvePoints) || 0)} XP
+                    </span>
+                  </div>
+                </div>
+
+                {/* Review Note & Feedback */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold">Feedback / Evaluation Note (Optional):</Label>
+                    {matchedTemplate?.rubric?.length ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 text-[10px] text-primary px-1 font-semibold"
+                        onClick={() => {
+                          const breakdown = matchedTemplate.rubric
+                            .map((r) => `${r.criterion}: ${rubricScores[r.criterion] ?? r.points}/${r.points}`)
+                            .join(", ");
+                          setApproveNote(`Rubric: ${breakdown}. Total: ${approvePoints} pts (${pointsToXp(Number(approvePoints) || 0)} XP). Great job!`);
+                        }}
+                      >
+                        Auto-fill Rubric Breakdown
+                      </Button>
+                    ) : null}
+                  </div>
+                  <Textarea
+                    placeholder="Commendation, strengths, or suggestions for the student..."
+                    value={approveNote}
+                    onChange={(e) => setApproveNote(e.target.value)}
+                    rows={2}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+            );
+          })()}
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setApproveFor(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+              onClick={async () => {
+                if (!approveFor || !campaign) return;
+                try {
+                  await reviewSubmission(
+                    approveFor.id,
+                    "approve",
+                    Number(approvePoints),
+                    approveNote.trim() || undefined
+                  );
+                  toast({
+                    title: "Submission Approved! 🎉",
+                    description: `Awarded ${approvePoints} points (${pointsToXp(Number(approvePoints))} XP) to ${approveFor.student_name}.`,
+                  });
+                  setApproveFor(null);
+                  await loadDetails(campaign.id);
+                } catch (error) {
+                  toast({ title: "Review failed", description: vacationErrorMessage(error), variant: "destructive" });
+                }
+              }}
+            >
+              Approve &amp; Award {pointsToXp(Number(approvePoints) || 0)} XP
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
