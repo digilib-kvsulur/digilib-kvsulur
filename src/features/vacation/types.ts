@@ -163,3 +163,40 @@ export interface VacationExportRow {
   submitted_at: string | null;
   reviewed_at: string | null;
 }
+
+export interface VacationPeerProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  student_class?: string | null;
+  admission_number?: string | null;
+  avatar_url?: string | null;
+  role?: string;
+}
+
+export interface VacationTeamMember {
+  id: string;
+  team_id: string;
+  user_id: string;
+  name: string;
+  student_class?: string;
+  admission_number?: string;
+  avatar_url?: string;
+  role: "leader" | "member";
+  status: "pending" | "accepted" | "declined";
+  invited_at: string;
+  responded_at?: string;
+}
+
+export interface VacationTeam {
+  id: string;
+  campaign_id?: string;
+  name: string;
+  activity_id?: string | null;
+  event_title: string;
+  leader_id: string;
+  leader_name: string;
+  created_at: string;
+  members: VacationTeamMember[];
+}
+
