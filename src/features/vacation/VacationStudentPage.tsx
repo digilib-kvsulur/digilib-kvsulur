@@ -659,9 +659,25 @@ export default function VacationStudentPage({
             size="sm"
             variant="outline"
             className="text-xs font-bold border-amber-500/40 hover:bg-amber-500/10 shrink-0 gap-1.5"
-            onClick={() => setRegModalOpen(true)}
+            onClick={() => {
+              if (incomingInvites.length > 0) {
+                setRegModalTab("my-teams");
+              }
+              setRegModalOpen(true);
+            }}
           >
-            <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Team Guidelines &amp; Program Guide
+            <Users className="h-3.5 w-3.5 text-amber-500" />
+            <span>Team Hub &amp; Guide</span>
+            {incomingInvites.length > 0 && (
+              <Badge className="bg-red-500 hover:bg-red-600 text-white text-[10px] px-1.5 py-0 h-4">
+                {incomingInvites.length} Invite{incomingInvites.length > 1 ? "s" : ""}
+              </Badge>
+            )}
+            {incomingInvites.length === 0 && myTeams.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                {myTeams.length} Team{myTeams.length > 1 ? "s" : ""}
+              </Badge>
+            )}
           </Button>
         </CardContent>
       </Card>
@@ -1109,6 +1125,27 @@ export default function VacationStudentPage({
                 placeholder="e.g. Aarav Sharma (8A, Roll 12), Priya Nair (8A, Roll 24)"
                 className="text-xs"
               />
+              {myTeams.length > 0 && (
+                <div className="pt-1 space-y-1">
+                  <p className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
+                    <Users className="h-3 w-3 text-amber-500" /> Quick-fill from your formed teams:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {myTeams.map((team) => (
+                      <button
+                        key={team.id}
+                        type="button"
+                        onClick={() => handleUseTeamInSubmission(team)}
+                        className="text-[10px] px-2 py-0.5 rounded-md border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-foreground font-medium flex items-center gap-1 transition-colors"
+                      >
+                        <Users className="h-2.5 w-2.5 text-amber-500" />
+                        <span>{team.name}</span>
+                        <span className="text-muted-foreground">({team.members.filter((m) => m.status === "accepted").length})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <p className="text-[10px] text-muted-foreground">
                 All team members credited will receive points and badges!
               </p>
@@ -1200,86 +1237,507 @@ export default function VacationStudentPage({
 
       {/* ================= TEAM FORMATION & PROGRAM GUIDE MODAL ================= */}
       <Dialog open={regModalOpen} onOpenChange={setRegModalOpen}>
-        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto p-5 rounded-2xl">
+        <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg font-black flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500" />
-              DLMS Autumn Break Master Program Guide
+              <Users className="h-5 w-5 text-amber-500" />
+              Autumn Break Team Hub &amp; Program Guide
             </DialogTitle>
             <DialogDescription className="text-xs">
-              PM SHRI Kendriya Vidyalaya AFS Sulur • 10 Days • 10 Events • Real Skills
+              PM SHRI Kendriya Vidyalaya AFS Sulur • Search Peers by Admission No. or Name • 2–4 Members
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 pt-2 text-xs">
-            {/* Timeline Breakdown */}
-            <div className="p-3 rounded-xl border bg-muted/40 space-y-2">
-              <p className="font-bold uppercase tracking-wider text-muted-foreground text-[10px]">
-                Official Program Schedule:
-              </p>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between p-2 rounded-lg bg-card border font-semibold">
-                  <span className="text-amber-700 dark:text-amber-300">📅 14 October 2026</span>
-                  <span>Registration &amp; Team Formation</span>
+          <Tabs value={regModalTab} onValueChange={(v: any) => setRegModalTab(v)} className="space-y-4 pt-1">
+            <TabsList className="grid grid-cols-3 w-full h-10 p-1 bg-muted/60 rounded-xl border">
+              <TabsTrigger value="team-form" className="rounded-lg text-xs font-bold gap-1">
+                <UserPlus className="h-3.5 w-3.5 text-amber-500" />
+                <span>Form a Team</span>
+              </TabsTrigger>
+              <TabsTrigger value="my-teams" className="rounded-lg text-xs font-bold gap-1 relative">
+                <Users className="h-3.5 w-3.5 text-amber-500" />
+                <span>My Teams</span>
+                {incomingInvites.length > 0 && (
+                  <Badge className="bg-red-500 text-white text-[9px] px-1 py-0 h-3.5 ml-1 animate-pulse">
+                    {incomingInvites.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="guide" className="rounded-lg text-xs font-bold gap-1">
+                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                <span>Program Guide</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* TAB 1: FORM A TEAM & SEARCH PEERS */}
+            <TabsContent value="team-form" className="space-y-4 m-0 text-xs">
+              {/* Step 1: Team Name & Target Event */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl border bg-card">
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold">Team Name:</Label>
+                  <Input
+                    value={newTeamName}
+                    onChange={(e) => setNewTeamName(e.target.value)}
+                    placeholder="e.g. Sulur Aero Innovators"
+                    className="text-xs h-9"
+                  />
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-card border font-semibold">
-                  <span className="text-primary">🏆 15–24 October 2026</span>
-                  <span>10 Daily Competitions + Live Quizzes (8 AM–6 PM)</span>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-card border font-semibold">
-                  <span className="text-emerald-600 dark:text-emerald-400">🎉 25 October 2026</span>
-                  <span>Results, Grand Leaderboard &amp; Celebration</span>
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold">Target Challenge / Event:</Label>
+                  <select
+                    value={teamTargetEvent}
+                    onChange={(e) => setTeamTargetEvent(e.target.value)}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    {TEN_DAYS_PROGRAM.map((p) => (
+                      <option key={p.day} value={p.event.title}>
+                        Day {p.day}: {p.event.title}
+                      </option>
+                    ))}
+                    <option value="General / All Team Events">All Team Events</option>
+                  </select>
                 </div>
               </div>
-            </div>
 
-            {/* Team Guidelines */}
-            <div className="p-3 rounded-xl border bg-card space-y-2">
-              <p className="font-bold uppercase tracking-wider text-muted-foreground text-[10px] flex items-center gap-1">
-                <Users className="h-3.5 w-3.5 text-amber-500" /> Team Formation Rules:
-              </p>
-              <ul className="space-y-1.5 text-muted-foreground list-disc pl-4 leading-relaxed">
-                <li><strong className="text-foreground">Individual or Team:</strong> You can participate individually in all events, or form teams of 2 to 4 members.</li>
-                <li><strong className="text-foreground">Collaborative Events:</strong> Teams are especially encouraged for Day 1 (Bridge Engineering), Day 3 (Eco-Innovator), and Day 10 (Future-Ready India Pitch).</li>
-                <li><strong className="text-foreground">Team Credit:</strong> Simply list your teammates' Names, Classes, and Admission Numbers when submitting. All teammates receive credit upon approval.</li>
-                <li><strong className="text-foreground">Cross-Class Teams:</strong> Allowed between Class 6 to 12!</li>
-              </ul>
-            </div>
+              {/* Step 2: Search Peers by Admission Number or Name */}
+              <div className="p-3.5 rounded-xl border bg-muted/30 space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold flex items-center gap-1.5">
+                    <Search className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Search Students by Admission No. or Name:</span>
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Enter the student's Admission Number (e.g. 4521) or First/Last Name. When they accept your invitation, the team is formed!
+                  </p>
+                </div>
 
-            {/* Point Standards & XP Conversion */}
-            <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-2">
-              <p className="font-black text-amber-800 dark:text-amber-200 uppercase tracking-wider text-[10px]">
-                DLMS Point Standards (1 Point = 5 XP):
-              </p>
-              <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
-                <div className="p-2 rounded-lg bg-card/80 border">
-                  <p className="font-bold text-foreground">Main Event</p>
-                  <p className="text-amber-700 dark:text-amber-300 font-black">100 Pts = 500 XP</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={teamSearchQuery}
+                    onChange={(e) => setTeamSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSearchPeers();
+                      }
+                    }}
+                    placeholder="Search by Admission No. (e.g. 1234) or Name..."
+                    className="text-xs h-9 bg-background"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleSearchPeers}
+                    disabled={searchingPeers || !teamSearchQuery.trim()}
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs h-9 px-4 shrink-0 gap-1"
+                  >
+                    {searchingPeers ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Search className="h-3.5 w-3.5" />
+                    )}
+                    <span>Search</span>
+                  </Button>
                 </div>
-                <div className="p-2 rounded-lg bg-card/80 border">
-                  <p className="font-bold text-foreground">Daily Live Quiz</p>
-                  <p className="text-amber-700 dark:text-amber-300 font-black">50 Pts = 250 XP</p>
+
+                {/* Search Results List */}
+                {teamSearchResults.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <p className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Search Results ({teamSearchResults.length}):
+                    </p>
+                    <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                      {teamSearchResults.map((peer) => {
+                        const isAdded = selectedTeammates.some((m) => m.id === peer.id);
+                        return (
+                          <div
+                            key={peer.id}
+                            className="flex items-center justify-between p-2 rounded-lg border bg-card text-xs shadow-xs"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-7 h-7 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold flex items-center justify-center text-xs shrink-0">
+                                {peer.first_name[0] || "S"}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold truncate text-foreground">
+                                  {peer.first_name} {peer.last_name}
+                                </p>
+                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                  {peer.student_class && <span>Class {peer.student_class}</span>}
+                                  {peer.admission_number && (
+                                    <span className="font-mono bg-muted px-1.5 py-0.2 rounded">
+                                      Adm: {peer.admission_number}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={isAdded ? "secondary" : "outline"}
+                              disabled={isAdded}
+                              onClick={() => handleAddTeammate(peer)}
+                              className="text-xs h-7 px-2.5 shrink-0 gap-1"
+                            >
+                              {isAdded ? (
+                                <>
+                                  <UserCheck className="h-3 w-3 text-emerald-600" />
+                                  <span>Added</span>
+                                </>
+                              ) : (
+                                <>
+                                  <UserPlus className="h-3 w-3 text-amber-600" />
+                                  <span>Add</span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Step 3: Current Team Roster Preview */}
+              <div className="p-3.5 rounded-xl border bg-card space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-xs flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Team Roster ({1 + selectedTeammates.length} / 4 members):</span>
+                  </p>
+                  <span className="text-[10px] text-muted-foreground font-semibold">
+                    Max 4 members per team
+                  </span>
                 </div>
-                <div className="p-2 rounded-lg bg-card/80 border">
-                  <p className="font-bold text-foreground">Day 10 Quiz Finale</p>
-                  <p className="text-amber-700 dark:text-amber-300 font-black">100 Pts = 500 XP</p>
+
+                <div className="space-y-1.5">
+                  {/* Leader Row (You) */}
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-600 font-bold text-xs">⭐</span>
+                      <div>
+                        <p className="font-bold text-xs">
+                          {myProfile.first_name} {myProfile.last_name} (You)
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {myProfile.student_class ? `Class ${myProfile.student_class} • ` : ""}Team Leader
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-300">
+                      Leader
+                    </Badge>
+                  </div>
+
+                  {/* Added Teammates */}
+                  {selectedTeammates.map((teammate) => (
+                    <div
+                      key={teammate.id}
+                      className="flex items-center justify-between p-2 rounded-lg border bg-muted/40"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-[11px] shrink-0">
+                          {teammate.first_name[0] || "T"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-xs truncate">
+                            {teammate.first_name} {teammate.last_name}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {teammate.student_class ? `Class ${teammate.student_class} ` : ""}
+                            {teammate.admission_number ? `(Adm: ${teammate.admission_number})` : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveTeammate(teammate.id)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+
+                  {selectedTeammates.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground text-center py-2 italic border border-dashed rounded-lg">
+                      No teammates added yet. Search by admission number or name above to build your roster!
+                    </p>
+                  )}
                 </div>
-                <div className="p-2 rounded-lg bg-card/80 border">
-                  <p className="font-bold text-foreground">10-Day Streak</p>
-                  <p className="text-amber-700 dark:text-amber-300 font-black">+200 Pts = 1,000 XP</p>
+
+                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed">
+                  📢 <strong>How Formation Works:</strong> When you click "Send Invites &amp; Create Team", an in-app invite is sent to each teammate. Once they click <strong>Accept</strong>, the team is formed and ready for project submissions!
                 </div>
               </div>
-            </div>
 
-            <div className="flex justify-end pt-1">
+              {/* Action Submit Button */}
               <Button
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
-                onClick={() => setRegModalOpen(false)}
+                type="button"
+                onClick={handleCreateTeam}
+                disabled={creatingTeam || !newTeamName.trim() || selectedTeammates.length === 0}
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs h-10 shadow-md gap-2"
               >
-                Got It! Ready to Compete 🚀
+                {creatingTeam ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Sending Team Invites...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    <span>Send Invites &amp; Create Team 🚀</span>
+                  </>
+                )}
               </Button>
-            </div>
-          </div>
+            </TabsContent>
+
+            {/* TAB 2: MY TEAMS & PENDING INVITATIONS */}
+            <TabsContent value="my-teams" className="space-y-4 m-0 text-xs">
+              {/* Incoming Pending Invitations Section */}
+              {incomingInvites.length > 0 && (
+                <div className="space-y-2 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/10">
+                  <p className="font-bold text-xs text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Pending Invitations for You ({incomingInvites.length}):</span>
+                  </p>
+                  <div className="space-y-2">
+                    {incomingInvites.map((team) => (
+                      <div
+                        key={team.id}
+                        className="p-3 rounded-lg border bg-card space-y-2 shadow-xs"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-black text-sm text-foreground">{team.name}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Invited by <strong className="text-foreground">{team.leader_name}</strong> for{" "}
+                              <span className="text-amber-600 font-semibold">{team.event_title}</span>
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-600">
+                            Invited
+                          </Badge>
+                        </div>
+
+                        <div className="text-[11px] text-muted-foreground">
+                          Members: {team.members.map((m) => m.name).join(", ")}
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1 border-t">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRespondInvite(team.id, "decline")}
+                            className="text-xs h-7 px-3 text-destructive border-destructive/30 hover:bg-destructive/10"
+                          >
+                            <X className="h-3 w-3 mr-1" /> Decline
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleRespondInvite(team.id, "accept")}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-7 px-3"
+                          >
+                            <Check className="h-3 w-3 mr-1" /> Accept &amp; Form Team
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Formed / Active Teams Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-xs flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-amber-500" />
+                    <span>My Active Teams ({myTeams.length}):</span>
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setRegModalTab("team-form")}
+                    className="text-[11px] h-6 px-2 text-amber-600 hover:text-amber-700"
+                  >
+                    + Form New Team
+                  </Button>
+                </div>
+
+                {myTeams.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {myTeams.map((team) => {
+                      const isLeader = team.leader_id === userId;
+                      const acceptedCount = team.members.filter((m) => m.status === "accepted").length;
+                      const isFullyFormed = acceptedCount > 1;
+
+                      return (
+                        <div key={team.id} className="p-3.5 rounded-xl border bg-card space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-black text-sm text-foreground">{team.name}</h4>
+                                <Badge
+                                  className={
+                                    isFullyFormed
+                                      ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px]"
+                                      : "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[10px]"
+                                  }
+                                >
+                                  {isFullyFormed ? "✅ Team Formed" : "⏳ Pending Members"}
+                                </Badge>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                Challenge: <span className="font-semibold text-foreground">{team.event_title}</span> • Led by{" "}
+                                <span className="font-semibold text-foreground">{team.leader_name}</span>
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="text-[10px]">
+                              {isLeader ? "👑 Leader" : "🤝 Member"}
+                            </Badge>
+                          </div>
+
+                          {/* Member Status Grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                            {team.members.map((m) => (
+                              <div
+                                key={m.id}
+                                className="flex items-center justify-between p-1.5 rounded-lg border bg-muted/30 text-[11px]"
+                              >
+                                <span className="font-medium truncate">{m.name}</span>
+                                {m.status === "accepted" ? (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[10px] shrink-0">
+                                    ✅ Joined
+                                  </span>
+                                ) : m.status === "declined" ? (
+                                  <span className="text-destructive font-bold text-[10px] shrink-0">
+                                    ❌ Declined
+                                  </span>
+                                ) : (
+                                  <span className="text-amber-600 font-bold text-[10px] shrink-0">
+                                    ⏳ Invited
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Action to use this roster in submission */}
+                          <div className="flex justify-end gap-2 pt-1 border-t">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                handleUseTeamInSubmission(team);
+                                setRegModalOpen(false);
+                                setSubmitDialogOpen(true);
+                              }}
+                              className="text-xs h-7 px-3 gap-1.5 border-amber-500/30 hover:bg-amber-500/10 text-foreground"
+                            >
+                              <Copy className="h-3 w-3 text-amber-500" />
+                              <span>Apply Roster to Today's Project Submission</span>
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-6 rounded-xl border border-dashed text-center space-y-2">
+                    <p className="text-muted-foreground text-xs">
+                      You haven't formed or joined any teams yet.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setRegModalTab("team-form")}
+                      className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+                    >
+                      <UserPlus className="h-3.5 w-3.5 mr-1" /> Form a Team Now
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* TAB 3: PROGRAM GUIDE */}
+            <TabsContent value="guide" className="space-y-4 m-0 text-xs">
+              {/* Timeline Breakdown */}
+              <div className="p-3 rounded-xl border bg-muted/40 space-y-2">
+                <p className="font-bold uppercase tracking-wider text-muted-foreground text-[10px]">
+                  Official Program Schedule:
+                </p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-card border font-semibold">
+                    <span className="text-amber-700 dark:text-amber-300">📅 14 October 2026</span>
+                    <span>Registration &amp; Team Formation</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-card border font-semibold">
+                    <span className="text-primary">🏆 15–24 October 2026</span>
+                    <span>10 Daily Competitions + Live Quizzes (8 AM–6 PM)</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-card border font-semibold">
+                    <span className="text-emerald-600 dark:text-emerald-400">🎉 25 October 2026</span>
+                    <span>Results, Grand Leaderboard &amp; Celebration</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team Guidelines */}
+              <div className="p-3 rounded-xl border bg-card space-y-2">
+                <p className="font-bold uppercase tracking-wider text-muted-foreground text-[10px] flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5 text-amber-500" /> Team Formation Rules:
+                </p>
+                <ul className="space-y-1.5 text-muted-foreground list-disc pl-4 leading-relaxed">
+                  <li><strong className="text-foreground">Individual or Team:</strong> You can participate individually in all events, or form teams of 2 to 4 members.</li>
+                  <li><strong className="text-foreground">Collaborative Events:</strong> Teams are especially encouraged for Day 1 (Bridge Engineering), Day 3 (Eco-Innovator), and Day 10 (Future-Ready India Pitch).</li>
+                  <li><strong className="text-foreground">Team Credit:</strong> Simply list your teammates' Names, Classes, and Admission Numbers when submitting. All teammates receive credit upon approval.</li>
+                  <li><strong className="text-foreground">Cross-Class Teams:</strong> Allowed between Class 6 to 12!</li>
+                </ul>
+              </div>
+
+              {/* Point Standards & XP Conversion */}
+              <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-2">
+                <p className="font-black text-amber-800 dark:text-amber-200 uppercase tracking-wider text-[10px]">
+                  DLMS Point Standards (1 Point = 5 XP):
+                </p>
+                <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                  <div className="p-2 rounded-lg bg-card/80 border">
+                    <p className="font-bold text-foreground">Main Event</p>
+                    <p className="text-amber-700 dark:text-amber-300 font-black">100 Pts = 500 XP</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-card/80 border">
+                    <p className="font-bold text-foreground">Daily Live Quiz</p>
+                    <p className="text-amber-700 dark:text-amber-300 font-black">50 Pts = 250 XP</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-card/80 border">
+                    <p className="font-bold text-foreground">Day 10 Quiz Finale</p>
+                    <p className="text-amber-700 dark:text-amber-300 font-black">100 Pts = 500 XP</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-card/80 border">
+                    <p className="font-bold text-foreground">10-Day Streak</p>
+                    <p className="text-amber-700 dark:text-amber-300 font-black">+200 Pts = 1,000 XP</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <Button
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+                  onClick={() => setRegModalOpen(false)}
+                >
+                  Got It! Ready to Compete 🚀
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>

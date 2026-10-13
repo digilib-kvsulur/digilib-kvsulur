@@ -3136,6 +3136,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_reset_lifetime_points: {
+        Args: {
+          p_confirmation_phrase: string
+          p_notify_students?: boolean
+          p_reason: string
+          p_scope: string
+          p_student_ids?: string[] | null
+          p_target_class?: string | null
+        }
+        Returns: Json
+      }
       approve_book_request: {
         Args: {
           p_admin_notes?: string
@@ -3284,6 +3295,22 @@ export type Database = {
         Returns: {
           pts: number
           user_id: string
+        }[]
+      }
+      get_points_reset_audit: {
+        Args: { p_limit?: number }
+        Returns: {
+          admin_email: string | null
+          admin_id: string | null
+          admin_name: string | null
+          created_at: string
+          id: string
+          notify_students: boolean
+          reason: string
+          scope: string
+          students_affected: number
+          target_class: string | null
+          total_points_cleared: number
         }[]
       }
       get_profile_role: { Args: { _user_id: string }; Returns: string }
