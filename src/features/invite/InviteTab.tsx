@@ -7,10 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   UserPlus, Copy, Check, Share2, QrCode, Gift, Star, Zap,
-  Users, ChevronRight, ExternalLink, Sparkles, X,
-  Instagram, CheckCircle2, Loader2, Camera
+  Users, ChevronRight, ExternalLink, Sparkles, X
 } from "lucide-react";
-import { triggerConfetti } from "@/lib/confetti";
+import InstagramStoryReward from "./InstagramStoryReward";
 
 const INVITE_BASE_URL = "https://dlms.kvsulur.in/invite";
 const XP_PER_INVITE = 250;
@@ -336,109 +335,15 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
         </CardContent>
       </Card>
 
-      {/* Instagram Story Bonus Card */}
-      <Card className="border-border/50 overflow-hidden relative shadow-sm">
-        <div className="h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500" />
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <CardTitle className="text-base flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center text-white shadow-xs shrink-0">
-                <Instagram className="h-4 w-4" />
-              </span>
-              <span>Share DLMS on Instagram Story</span>
-            </CardTitle>
-            <Badge className="bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-bold border-0 shadow-xs">
-              +250 XP
-            </Badge>
-          </div>
-          <CardDescription>
-            Feature DLMS on your Instagram Story and claim an instant 250 XP reward!
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {igClaimed ? (
-            <div className="flex items-center gap-3 p-4 rounded-2xl bg-fuchsia-50 dark:bg-fuchsia-950/40 border border-fuchsia-200 dark:border-fuchsia-800">
-              <CheckCircle2 className="h-6 w-6 text-fuchsia-600 dark:text-fuchsia-400 shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-fuchsia-900 dark:text-fuchsia-100">
-                  +250 XP Instagram Bonus Claimed! 🎉
-                </p>
-                <p className="text-xs text-fuchsia-700 dark:text-fuchsia-300 mt-0.5">
-                  Thank you for inspiring classmates and spreading the love for books on Instagram!
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Step by step guide */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {[
-                  {
-                    step: "1",
-                    title: "Screenshot DLMS",
-                    desc: "Take a screenshot of your dashboard, reading streak, or books.",
-                    icon: Camera,
-                  },
-                  {
-                    step: "2",
-                    title: "Post Story",
-                    desc: "Share to your Instagram Story. Tag @kvsulur or add link to dlms.kvsulur.in",
-                    icon: Instagram,
-                  },
-                  {
-                    step: "3",
-                    title: "Claim Bonus",
-                    desc: "Come back here and tap 'I've Shared It' to claim +250 XP instantly!",
-                    icon: Sparkles,
-                  },
-                ].map(({ step, title, desc, icon: Icon }) => (
-                  <div
-                    key={step}
-                    className="p-3 rounded-xl bg-muted/40 border border-border/40 flex flex-col gap-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="w-5 h-5 rounded-full bg-pink-100 dark:bg-pink-950/70 text-pink-700 dark:text-pink-300 font-bold text-xs flex items-center justify-center">
-                        {step}
-                      </span>
-                      <Icon className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
-                    </div>
-                    <p className="font-semibold text-xs text-foreground mt-0.5">{title}</p>
-                    <p className="text-[11px] text-muted-foreground leading-snug">{desc}</p>
-                  </div>
-                ))}
-              </div>
+      {/* Instagram Story Bonus Card (NGL-Style 1-Click Story + Screenshot Proof) */}
+      <InstagramStoryReward
+        userId={userId}
+        userName={userName}
+        admissionNumber={admissionNumber}
+        inviteCode={inviteCode}
+        onPointsEarned={load}
+      />
 
-              {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
-                <Button
-                  variant="outline"
-                  onClick={handleOpenInstagram}
-                  className="sm:w-auto gap-2 rounded-xl border-pink-200 dark:border-pink-900/60 hover:bg-pink-50 dark:hover:bg-pink-950/30 text-pink-700 dark:text-pink-300 font-medium"
-                >
-                  <Instagram className="h-4 w-4 text-pink-600" />
-                  <span>Open Instagram</span>
-                </Button>
-                <Button
-                  onClick={handleInstagramClaim}
-                  disabled={igClaiming}
-                  className="flex-1 gap-2 rounded-xl bg-gradient-to-r from-fuchsia-600 via-pink-600 to-rose-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-bold border-0 shadow-md transition-all active:scale-95"
-                >
-                  {igClaiming ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4 text-yellow-300" />
-                  )}
-                  <span>{igClaiming ? "Claiming..." : "I've Shared It! Claim +250 XP 📸"}</span>
-                </Button>
-              </div>
-
-              <p className="text-[11px] text-muted-foreground text-center">
-                One-time reward per student. We trust you on the honor system — thank you for supporting the library! 🙏
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* How it works */}
       <Card className="border-border/50">
