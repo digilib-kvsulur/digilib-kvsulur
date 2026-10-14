@@ -2286,6 +2286,8 @@ export type Database = {
           whatsapp_reward_claimed: boolean
           invite_code: string | null
           invite_reward_claimed: boolean
+          instagram_reward_claimed: boolean
+          instagram_story_shared_at: string | null
         }
         Insert: {
           admission_number?: string | null
@@ -2321,6 +2323,8 @@ export type Database = {
           whatsapp_reward_claimed?: boolean
           invite_code?: string | null
           invite_reward_claimed?: boolean
+          instagram_reward_claimed?: boolean
+          instagram_story_shared_at?: string | null
         }
         Update: {
           admission_number?: string | null
@@ -2356,6 +2360,8 @@ export type Database = {
           whatsapp_reward_claimed?: boolean
           invite_code?: string | null
           invite_reward_claimed?: boolean
+          instagram_reward_claimed?: boolean
+          instagram_story_shared_at?: string | null
         }
         Relationships: []
       }
@@ -3142,6 +3148,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_instagram_story_reward: {
+        Args: never
+        Returns: Json
+      }
       claim_invite_reward: {
         Args: {
           p_inviter_id: string

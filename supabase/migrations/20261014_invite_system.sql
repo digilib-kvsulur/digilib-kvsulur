@@ -110,3 +110,57 @@ $$;
 -- 6. Grant execute to authenticated users
 GRANT EXECUTE ON FUNCTION resolve_invite_code(text) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION claim_invite_reward(uuid) TO authenticated;
+
+-- 7. Add Instagram Story reward tracking to profiles
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS instagram_reward_claimed boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS instagram_story_shared_at timestamptz;
+
+-- 8. RPC: claim_instagram_story_reward
+--    - Awards 250 XP to the user for sharing DLMS on Instagram Story
+--    - Idempotent: can only be claimed once per user
+CREATE OR REPLACE FUNCTION claim_instagram_story_reward()
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id     uuid    := auth.uid();
+  v_already     boolean;
+  v_reward      integer := 250;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RETURN json_build_object('success', false, 'reason', 'unauthenticated');
+  END IF;
+
+  SELECT instagram_reward_claimed INTO v_already
+  FROM profiles
+  WHERE id = v_user_id;
+
+  IF v_already IS TRUE THEN
+    RETURN json_build_object('success', false, 'reason', 'already_claimed');
+  END IF;
+
+  UPDATE profiles
+  SET
+    points                    = points + v_reward,
+    monthly_points            = monthly_points + v_reward,
+    instagram_reward_claimed  = true,
+    instagram_story_shared_at = now()
+  WHERE id = v_user_id;
+
+  INSERT INTO notifications(target_user_id, sent_by, title, message, type, is_read)
+  VALUES (
+    v_user_id,
+    v_user_id,
+    '📸 Instagram Story Bonus! +250 XP',
+    'You shared DLMS on your Instagram Story and earned 250 XP!',
+    'points',
+    false
+  );
+
+  RETURN json_build_object('success', true, 'points_awarded', v_reward);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION claim_instagram_story_reward() TO authenticated;
