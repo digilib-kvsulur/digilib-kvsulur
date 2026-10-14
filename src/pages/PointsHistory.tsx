@@ -422,40 +422,42 @@ const PointsHistoryPage = () => {
 
       // Process Admin Bonus Notifications
       notifsRes.data?.forEach(n => {
-        const match = n.message.match(/(\d+)\s*points/i) || n.message.match(/(\d+)\s*xp/i);
+        const notifTitle = (n.title || "").toLowerCase();
+        const notifMsg = n.message || "";
+        const match = notifMsg.match(/(\d+)\s*points/i) || notifMsg.match(/(\d+)\s*xp/i);
         const pts = match ? parseInt(match[1]) : 50;
         // Avoid duplicate whatsapp notification
-        if (n.title.toLowerCase().includes("invite")) {
+        if (notifTitle.includes("invite")) {
           const m = SOURCE_META.invite;
           allEvents.push({
             id: `notif-${n.id}`,
             source: "invite",
             points: pts || 250,
-            description: n.message,
+            description: notifMsg,
             created_at: n.created_at,
             icon: m.icon,
             color: m.color,
             bg: m.bg,
           });
-        } else if (n.title.toLowerCase().includes("instagram")) {
+        } else if (notifTitle.includes("instagram")) {
           const m = SOURCE_META.instagram;
           allEvents.push({
             id: `notif-${n.id}`,
             source: "instagram",
             points: pts || 250,
-            description: n.message,
+            description: notifMsg,
             created_at: n.created_at,
             icon: m.icon,
             color: m.color,
             bg: m.bg,
           });
-        } else if (!n.title.toLowerCase().includes("whatsapp")) {
+        } else if (!notifTitle.includes("whatsapp")) {
           const m = SOURCE_META.manual;
           allEvents.push({
             id: `notif-${n.id}`,
             source: "manual",
             points: pts,
-            description: `Admin Bonus: ${n.message.replace(/You have been awarded \d+ points\.\s*/i, "")}`,
+            description: notifMsg.replace(/You have been awarded \d+ points\.\s*/i, "") || "Admin Bonus",
             created_at: n.created_at,
             icon: m.icon,
             color: m.color,

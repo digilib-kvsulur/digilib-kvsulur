@@ -59,6 +59,7 @@ const InvitePage = lazy(() => import("./pages/InvitePage"));
 import { TenantProvider } from "@/context/TenantContext";
 import SuperAdminGuard from "@/components/auth/SuperAdminGuard";
 import SetupRedirectGuard from "@/components/auth/SetupRedirectGuard";
+import ErrorBoundary from "@/components/global/ErrorBoundary";
 
 const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
@@ -319,8 +320,9 @@ const App = () => {
               <PWAInstallBanner />
               <DomainMigrationBanner />
               <MigrationInstallGuide />
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
+              <ErrorBoundary>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
                   {/* Standalone Multi-Tenant Routes */}
                   <Route
                     path="/super-admin"
@@ -409,6 +411,7 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
+            </ErrorBoundary>
             </GlobalNotificationsProvider>
           </AppRouter>
         </TooltipProvider>
