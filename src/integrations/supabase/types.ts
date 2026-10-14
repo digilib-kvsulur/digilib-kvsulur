@@ -3148,6 +3148,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_daily_story_reward: {
+        Args: {
+          p_screenshot_url: string
+        }
+        Returns: Json
+      }
+      get_daily_story_status: {
+        Args: never
+        Returns: Json
+      }
       claim_instagram_story_reward: {
         Args: never
         Returns: Json

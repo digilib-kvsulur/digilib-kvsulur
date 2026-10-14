@@ -51,8 +51,6 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [igClaimed, setIgClaimed] = useState<boolean>(false);
-  const [igClaiming, setIgClaiming] = useState<boolean>(false);
 
   const load = useCallback(async () => {
     if (!userId) return;

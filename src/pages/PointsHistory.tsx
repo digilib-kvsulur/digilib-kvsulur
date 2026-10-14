@@ -444,7 +444,7 @@ const PointsHistoryPage = () => {
           allEvents.push({
             id: `notif-${n.id}`,
             source: "instagram",
-            points: pts || 250,
+            points: pts || 200,
             description: notifMsg,
             created_at: n.created_at,
             icon: m.icon,
