@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, Zap, BookOpen, Brain, Flame, Award, Gamepad2, Timer, Trophy, Star, Activity,
-  MessageCircle, Smartphone, CheckCircle2, ShieldCheck, Sparkles, User as UserIcon, ChevronsUpDown, UserPlus
+  MessageCircle, Smartphone, CheckCircle2, ShieldCheck, Sparkles, User as UserIcon, ChevronsUpDown, UserPlus, Instagram
 } from "lucide-react";
 
 interface PointEvent {
@@ -35,6 +35,7 @@ const SOURCE_META: Record<string, { icon: React.ElementType; color: string; bg: 
   review:        { icon: Star,          color: "text-yellow-700 dark:text-yellow-300",  bg: "bg-yellow-100 dark:bg-yellow-950/50",  label: "Book Review" },
   event:         { icon: Sparkles,      color: "text-pink-700 dark:text-pink-300",    bg: "bg-pink-100 dark:bg-pink-950/50",    label: "Event Reward" },
   invite:        { icon: UserPlus,      color: "text-violet-700 dark:text-violet-300",bg: "bg-violet-100 dark:bg-violet-950/50",label: "Friend Invite" },
+  instagram:     { icon: Instagram,     color: "text-fuchsia-700 dark:text-fuchsia-300",bg: "bg-fuchsia-100 dark:bg-fuchsia-950/50",label: "Instagram Story" },
   manual:        { icon: ShieldCheck,   color: "text-amber-700 dark:text-amber-300",   bg: "bg-amber-100 dark:bg-amber-950/50",   label: "Admin Bonus" },
   other:         { icon: Zap,           color: "text-slate-700 dark:text-slate-300",   bg: "bg-slate-100 dark:bg-slate-800",     label: "Points" },
 };
@@ -429,6 +430,18 @@ const PointsHistoryPage = () => {
           allEvents.push({
             id: `notif-${n.id}`,
             source: "invite",
+            points: pts || 250,
+            description: n.message,
+            created_at: n.created_at,
+            icon: m.icon,
+            color: m.color,
+            bg: m.bg,
+          });
+        } else if (n.title.toLowerCase().includes("instagram")) {
+          const m = SOURCE_META.instagram;
+          allEvents.push({
+            id: `notif-${n.id}`,
+            source: "instagram",
             points: pts || 250,
             description: n.message,
             created_at: n.created_at,
