@@ -17,6 +17,8 @@ const MAX_INVITE_XP = 2500;
 interface InviteTabProps {
   userId: string;
   userName?: string;
+  admissionNumber?: string | null;
+  inviteCode?: string | null;
 }
 
 /** Simple inline SVG QR-code substitute — renders a QR-like visual using canvas.
@@ -39,29 +41,40 @@ function QRCodeDisplay({ url }: { url: string }) {
   );
 }
 
-export default function InviteTab({ userId, userName }: InviteTabProps) {
+export default function InviteTab({ userId, userName, admissionNumber: propAdmission, inviteCode: propInviteCode }: InviteTabProps) {
   const { toast } = useToast();
-  const [inviteCode, setInviteCode] = useState<string | null>(null);
-  const [admissionNumber, setAdmissionNumber] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState<string | null>(propInviteCode || null);
+  const [admissionNumber, setAdmissionNumber] = useState<string | null>(propAdmission || null);
   const [inviteCount, setInviteCount] = useState(0);
   const [totalInviteXP, setTotalInviteXP] = useState(0);
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!userId) return;
-    setLoading(true);
     try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("invite_code, admission_number")
-        .eq("id", userId)
-        .single();
+      try {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("invite_code, admission_number")
+          .eq("id", userId)
+          .single();
 
-      if (profile) {
-        setInviteCode((profile as any).invite_code || null);
-        setAdmissionNumber((profile as any).admission_number || null);
+        if (!error && profile) {
+          if ((profile as any).invite_code) setInviteCode((profile as any).invite_code);
+          if ((profile as any).admission_number) setAdmissionNumber((profile as any).admission_number);
+        }
+      } catch {
+        // Fallback if invite_code column isn't created yet
+        try {
+          const { data: prof2 } = await supabase
+            .from("profiles")
+            .select("admission_number")
+            .eq("id", userId)
+            .single();
+          if (prof2?.admission_number) setAdmissionNumber(prof2.admission_number);
+        } catch {}
       }
 
       // Count how many students have redeemed via this user's invite
@@ -89,11 +102,9 @@ export default function InviteTab({ userId, userName }: InviteTabProps) {
     load();
   }, [load]);
 
-  const inviteUrl = inviteCode
-    ? `${INVITE_BASE_URL}/${inviteCode}`
-    : admissionNumber
-    ? `${INVITE_BASE_URL}/${admissionNumber}`
-    : null;
+  const codeToUse = admissionNumber || inviteCode;
+  const inviteUrl = codeToUse ? `${INVITE_BASE_URL}/${codeToUse}` : null;
+  const shortUrl = codeToUse ? `https://dlms.kvsulur.in/i/${codeToUse}` : null;
 
   const handleCopy = async () => {
     if (!inviteUrl) return;

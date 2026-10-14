@@ -12,7 +12,7 @@ import {
   BookOpen, LogOut, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, BookmarkCheck, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug, Palette, Sun, UserPlus
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug, Palette, Sun, UserPlus, Copy
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { clearStoredAuthSession } from "@/lib/authCleanup";
@@ -396,6 +396,7 @@ const StudentDashboard = () => {
         { id: "rankings" as Tab, label: "Rankings", icon: Medal },
         { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
         { id: "community" as Tab, label: "Community", icon: Users },
+        { id: "invite" as Tab, label: "Invite Friends (+250 XP)", icon: UserPlus },
         { id: "network" as Tab, label: "Network", icon: Users },
         { id: "vacation" as Tab, label: "Vacation Campaign", icon: Sun },
         ...(bountyVisible ? [{ id: "bounty" as Tab, label: "Bug Bounty", icon: Target }] : []),
@@ -1133,6 +1134,71 @@ const StudentDashboard = () => {
 
               <VacationOverviewBanner onOpen={() => setActiveTab("vacation")} />
 
+              {/* Invite Friends Live Banner & Redirection Link */}
+              <Card className="rounded-3xl border border-violet-500/30 bg-gradient-to-r from-violet-600/10 via-purple-600/5 to-indigo-600/10 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden">
+                <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                      <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                    </div>
+                    <div className="min-w-0 space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-violet-700 dark:text-violet-300 bg-violet-500/20 px-2.5 py-0.5 rounded-full border border-violet-500/30">
+                          Invite & Earn
+                        </span>
+                        <span className="text-[11px] sm:text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                          <Sparkles className="h-3.5 w-3.5" /> +250 XP per Student
+                        </span>
+                      </div>
+                      <h4 className="text-sm sm:text-base font-black text-foreground">
+                        Invite Friends to First Login
+                      </h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-1">
+                        Many classmates haven't logged into DLMS yet. Share your invite link to get 250 XP on their first sign in!
+                      </p>
+                      {/* Visible Redirection Link */}
+                      <div className="flex items-center gap-2 pt-1 flex-wrap">
+                        <span className="text-xs font-mono font-bold text-violet-700 dark:text-violet-300 bg-violet-100/80 dark:bg-violet-950/60 px-2.5 py-1 rounded-lg border border-violet-300 dark:border-violet-800 select-all max-w-[280px] sm:max-w-none truncate">
+                          https://dlms.kvsulur.in/invite/{user?.admission_number || user?.invite_code || ''}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const link = `https://dlms.kvsulur.in/invite/${user?.admission_number || user?.invite_code || ''}`;
+                            navigator.clipboard.writeText(link);
+                            toast({ title: "Invite Link Copied! 📋", description: "Share it with your classmates via WhatsApp." });
+                          }}
+                          className="h-7 text-xs px-2.5 rounded-lg gap-1 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40"
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copy Link
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const link = `https://dlms.kvsulur.in/invite/${user?.admission_number || user?.invite_code || ''}`;
+                            const msg = encodeURIComponent(`📚 Hey! Join DLMS (Digital Library PM SHRI KV AFS Sulur) with my link: ${link}\nUse your admission number & default password to log in! 🎉`);
+                            window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
+                          }}
+                          className="h-7 text-xs px-2.5 rounded-lg gap-1 border-green-300 dark:border-green-800 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/40"
+                        >
+                          WhatsApp
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setActiveTab("invite")}
+                    className="w-full md:w-auto rounded-xl font-bold bg-violet-600 hover:bg-violet-700 text-white shadow-md gap-1.5 h-10 text-xs sm:text-sm px-4 shrink-0"
+                  >
+                    <span>Open Invite Center</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+
               {/* Bug Bounty Live Banner — ONLY shown when campaign is currently active & not ended */}
               {Boolean(
                 bountyVisible &&
@@ -1588,6 +1654,8 @@ const StudentDashboard = () => {
             <InviteTab
               userId={user.id}
               userName={user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : undefined}
+              admissionNumber={user?.admission_number}
+              inviteCode={user?.invite_code}
             />
           )}
 
