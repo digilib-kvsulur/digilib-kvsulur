@@ -120,7 +120,7 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         <br /><br />
         The site will be back online smoothly by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
-          today, 7:45 PM IST
+          today, 7:05 PM IST
         </span>.
         <br /><br />
         Thank you for your patience and cooperation. 🙏
