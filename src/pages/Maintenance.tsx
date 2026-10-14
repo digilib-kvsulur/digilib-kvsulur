@@ -234,7 +234,7 @@ export default function Maintenance() {
           >
           We're performing scheduled maintenance on DLMS. We'll be back online by:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-              today, 7:45 PM IST
+              today, 7:05 PM IST
             </span>
             .
           </p>
