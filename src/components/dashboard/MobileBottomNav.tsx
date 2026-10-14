@@ -1,7 +1,7 @@
 import {
   Home, BookOpen, FileText, Menu, Brain, User, Trophy,
   BookCheck, Compass, Timer, Award, Medal, CalendarDays, Users,
-  StickyNote, LifeBuoy, MessageSquare, Gamepad2, GraduationCap, Sparkles, Palette, Sun
+  StickyNote, LifeBuoy, MessageSquare, Gamepad2, GraduationCap, Sparkles, Palette, Sun, UserPlus
 } from "lucide-react";
 
 type Tab = string;
@@ -127,6 +127,7 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
       { id: "events", label: "Events", icon: CalendarDays },
       { id: "periodicals", label: "Periodicals", icon: BookOpen },
       { id: "community", label: "Community", icon: Users },
+      { id: "invite", label: "Invite Friends", icon: UserPlus },
       { id: "vacation", label: "Vacation Campaign", icon: Sun },
       { id: "bounty", label: "Bug Bounty", icon: Trophy },
       { id: "ui-reform", label: "UI Reform", icon: Palette },

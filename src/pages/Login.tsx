@@ -119,6 +119,31 @@ const Login = () => {
       if (profile) {
         try { localStorage.setItem("dlms_user_profile", JSON.stringify(profile)); } catch {}
       }
+
+      // --- Invite reward: claim 250 XP for the inviter on first login ---
+      const refCode = searchParams.get("ref");
+      if (refCode && profile?.role === "student" && !(profile as any)?.invite_reward_claimed) {
+        try {
+          const { data: inviterRows } = await supabase.rpc("resolve_invite_code", { p_code: refCode });
+          if (inviterRows && inviterRows.length > 0) {
+            const inviterId = inviterRows[0].inviter_id;
+            const inviterName = inviterRows[0].inviter_name?.trim();
+            const { data: claimResult } = await supabase.rpc("claim_invite_reward", { p_inviter_id: inviterId });
+            if (claimResult?.success) {
+              toast({
+                title: "🎉 Welcome Bonus!",
+                description: inviterName
+                  ? `${inviterName} invited you — they just earned 250 XP!`
+                  : "Your inviter just earned 250 XP for bringing you aboard!",
+              });
+            }
+          }
+        } catch (inviteErr) {
+          console.error("Invite claim error (non-fatal):", inviteErr);
+        }
+      }
+      // --- End invite reward ---
+
       const continueToDashboard = () => {
         switch (profile?.role) {
           case "admin": navigate("/admin-dashboard", { replace: true }); break;

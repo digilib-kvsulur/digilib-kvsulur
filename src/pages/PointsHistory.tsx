@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, Zap, BookOpen, Brain, Flame, Award, Gamepad2, Timer, Trophy, Star, Activity,
-  MessageCircle, Smartphone, CheckCircle2, ShieldCheck, Sparkles, User as UserIcon, ChevronsUpDown
+  MessageCircle, Smartphone, CheckCircle2, ShieldCheck, Sparkles, User as UserIcon, ChevronsUpDown, UserPlus
 } from "lucide-react";
 
 interface PointEvent {
@@ -34,6 +34,7 @@ const SOURCE_META: Record<string, { icon: React.ElementType; color: string; bg: 
   pwa:           { icon: Smartphone,    color: "text-cyan-700 dark:text-cyan-300",    bg: "bg-cyan-100 dark:bg-cyan-950/50",    label: "App Install" },
   review:        { icon: Star,          color: "text-yellow-700 dark:text-yellow-300",  bg: "bg-yellow-100 dark:bg-yellow-950/50",  label: "Book Review" },
   event:         { icon: Sparkles,      color: "text-pink-700 dark:text-pink-300",    bg: "bg-pink-100 dark:bg-pink-950/50",    label: "Event Reward" },
+  invite:        { icon: UserPlus,      color: "text-violet-700 dark:text-violet-300",bg: "bg-violet-100 dark:bg-violet-950/50",label: "Friend Invite" },
   manual:        { icon: ShieldCheck,   color: "text-amber-700 dark:text-amber-300",   bg: "bg-amber-100 dark:bg-amber-950/50",   label: "Admin Bonus" },
   other:         { icon: Zap,           color: "text-slate-700 dark:text-slate-300",   bg: "bg-slate-100 dark:bg-slate-800",     label: "Points" },
 };
@@ -423,7 +424,19 @@ const PointsHistoryPage = () => {
         const match = n.message.match(/(\d+)\s*points/i) || n.message.match(/(\d+)\s*xp/i);
         const pts = match ? parseInt(match[1]) : 50;
         // Avoid duplicate whatsapp notification
-        if (!n.title.toLowerCase().includes("whatsapp")) {
+        if (n.title.toLowerCase().includes("invite")) {
+          const m = SOURCE_META.invite;
+          allEvents.push({
+            id: `notif-${n.id}`,
+            source: "invite",
+            points: pts || 250,
+            description: n.message,
+            created_at: n.created_at,
+            icon: m.icon,
+            color: m.color,
+            bg: m.bg,
+          });
+        } else if (!n.title.toLowerCase().includes("whatsapp")) {
           const m = SOURCE_META.manual;
           allEvents.push({
             id: `notif-${n.id}`,

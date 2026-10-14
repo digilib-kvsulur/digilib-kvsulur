@@ -2284,6 +2284,8 @@ export type Database = {
           username: string | null
           whatsapp_joined_at: string | null
           whatsapp_reward_claimed: boolean
+          invite_code: string | null
+          invite_reward_claimed: boolean
         }
         Insert: {
           admission_number?: string | null
@@ -2317,6 +2319,8 @@ export type Database = {
           username?: string | null
           whatsapp_joined_at?: string | null
           whatsapp_reward_claimed?: boolean
+          invite_code?: string | null
+          invite_reward_claimed?: boolean
         }
         Update: {
           admission_number?: string | null
@@ -2350,6 +2354,8 @@ export type Database = {
           username?: string | null
           whatsapp_joined_at?: string | null
           whatsapp_reward_claimed?: boolean
+          invite_code?: string | null
+          invite_reward_claimed?: boolean
         }
         Relationships: []
       }
@@ -3136,6 +3142,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_invite_reward: {
+        Args: {
+          p_inviter_id: string
+        }
+        Returns: Json
+      }
+      resolve_invite_code: {
+        Args: {
+          p_code: string
+        }
+        Returns: {
+          inviter_id: string
+          inviter_name: string
+          invite_code: string
+        }[]
+      }
       admin_reset_lifetime_points: {
         Args: {
           p_confirmation_phrase: string

@@ -12,7 +12,7 @@ import {
   BookOpen, LogOut, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, BookmarkCheck, CalendarDays, Award,
-  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug, Palette, Sun
+  LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug, Palette, Sun, UserPlus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { clearStoredAuthSession } from "@/lib/authCleanup";
@@ -75,8 +75,9 @@ import MobileBottomNav, { mobileNavSections } from "@/components/dashboard/Mobil
 import { useBackHandler } from "@/hooks/useBackHandler";
 import UIReformChallengeView from "@/components/community/UIReformChallengeView";
 import { VacationOverviewBanner, VacationPromoStrip, VacationStudentPage, useActiveVacationCampaign } from "@/features/vacation";
+import { InviteTab } from "@/features/invite";
 
-type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation";
+type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation" | "invite";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -92,6 +93,7 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "games", label: "Games Corner", icon: Gamepad2 },
   { id: "notes", label: "My Notes", icon: StickyNote },
   { id: "community", label: "Community", icon: Users },
+  { id: "invite", label: "Invite Friends", icon: UserPlus },
   { id: "quizzes", label: "Quizzes", icon: Brain },
   { id: "badges", label: "Badge Cabinet", icon: Award },
   { id: "rankings", label: "Rankings", icon: Medal },
@@ -1578,6 +1580,14 @@ const StudentDashboard = () => {
                 }
               }}
               onNavigateToQuizzes={() => setActiveTab("quizzes")}
+            />
+          )}
+
+          {/* Invite Tab */}
+          {activeTab === "invite" && user?.id && (
+            <InviteTab
+              userId={user.id}
+              userName={user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : undefined}
             />
           )}
 

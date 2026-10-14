@@ -54,6 +54,7 @@ const Maintenance = lazy(() => import("./pages/Maintenance"));
 const SuperAdminPage = lazy(() => import("./pages/SuperAdminPage"));
 const OnboardingWizard = lazy(() => import("./pages/OnboardingWizard"));
 const SuspendedPage = lazy(() => import("./pages/SuspendedPage"));
+const InvitePage = lazy(() => import("./pages/InvitePage"));
 
 import { TenantProvider } from "@/context/TenantContext";
 import SuperAdminGuard from "@/components/auth/SuperAdminGuard";
@@ -344,6 +345,9 @@ const App = () => {
                   <Route path="/support" element={<SetupRedirectGuard><Support /></SetupRedirectGuard>} />
                   <Route path="/feedback" element={<SetupRedirectGuard><Feedback /></SetupRedirectGuard>} />
                   <Route path="/download" element={<SetupRedirectGuard><Download /></SetupRedirectGuard>} />
+                  <Route path="/invite" element={<SetupRedirectGuard><InvitePage /></SetupRedirectGuard>} />
+                  <Route path="/invite/:code" element={<SetupRedirectGuard><InvitePage /></SetupRedirectGuard>} />
+                  <Route path="/i/:code" element={<SetupRedirectGuard><InvitePage /></SetupRedirectGuard>} />
                   <Route
                     path="/student-dashboard"
                     element={(
