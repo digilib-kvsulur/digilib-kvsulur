@@ -149,47 +149,6 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
     window.open(`https://wa.me/?text=${message}`, "_blank", "noopener,noreferrer");
   };
 
-  const handleOpenInstagram = () => {
-    window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
-  };
-
-  const handleInstagramClaim = async () => {
-    setIgClaiming(true);
-    try {
-      const { data, error } = await supabase.rpc("claim_instagram_story_reward");
-      if (error) throw error;
-      if (data?.success) {
-        setIgClaimed(true);
-        triggerConfetti();
-        toast({
-          title: "📸 +250 XP Awarded!",
-          description: "Awesome! Your Instagram Story bonus has been credited.",
-        });
-        load();
-      } else if (data?.reason === "already_claimed") {
-        setIgClaimed(true);
-        toast({
-          title: "Already Claimed",
-          description: "You have already claimed your Instagram Story reward.",
-        });
-      } else {
-        toast({
-          title: "Could Not Claim",
-          description: data?.reason || "Please try again later.",
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err?.message || "Could not claim reward.",
-        variant: "destructive",
-      });
-    } finally {
-      setIgClaiming(false);
-    }
-  };
-
   const progressPct = Math.min((totalInviteXP / MAX_INVITE_XP) * 100, 100);
 
   if (loading) {
