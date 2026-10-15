@@ -3164,8 +3164,13 @@ export type Database = {
       }
       claim_invite_reward: {
         Args: {
-          p_inviter_id: string
+          p_code?: string
+          p_inviter_id?: string
         }
+        Returns: Json
+      }
+      get_my_invite_stats: {
+        Args: never
         Returns: Json
       }
       resolve_invite_code: {

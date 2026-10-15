@@ -59,13 +59,21 @@ const InvitePage = () => {
 
   useEffect(() => {
     if (!code) return;
+    try {
+      localStorage.setItem("dlms_invite_ref", code);
+    } catch (_) {}
+
     const resolve = async () => {
       setResolving(true);
       try {
         const { data, error } = await supabase.rpc("resolve_invite_code", { p_code: code });
         if (!error && data && data.length > 0) {
           setInviterName(data[0].inviter_name?.trim() || null);
-          setResolvedCode(data[0].invite_code || code);
+          const finalCode = data[0].invite_code || code;
+          setResolvedCode(finalCode);
+          try {
+            localStorage.setItem("dlms_invite_ref", finalCode);
+          } catch (_) {}
         }
       } catch (err) {
         console.warn("resolve_invite_code non-critical error:", err);
@@ -78,6 +86,11 @@ const InvitePage = () => {
 
   const handleSignIn = () => {
     const ref = resolvedCode || code;
+    if (ref) {
+      try {
+        localStorage.setItem("dlms_invite_ref", ref);
+      } catch (_) {}
+    }
     navigate(ref ? `/login?ref=${encodeURIComponent(ref)}` : "/login");
   };
 

@@ -3,11 +3,12 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   UserPlus, Copy, Check, Share2, QrCode, Gift, Star, Zap,
-  Users, ChevronRight, ExternalLink, Sparkles, X
+  Users, ChevronRight, ExternalLink, Sparkles, X, CheckCircle2
 } from "lucide-react";
 import InstagramStoryReward from "./InstagramStoryReward";
 
@@ -48,67 +49,129 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
   const [admissionNumber, setAdmissionNumber] = useState<string | null>(propAdmission || null);
   const [inviteCount, setInviteCount] = useState(0);
   const [totalInviteXP, setTotalInviteXP] = useState(0);
+  const [friends, setFriends] = useState<any[]>([]);
+  const [inviteRewardClaimed, setInviteRewardClaimed] = useState(false);
+  const [manualCode, setManualCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!userId) return;
     try {
-      try {
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("invite_code, admission_number, instagram_reward_claimed")
-          .eq("id", userId)
-          .single();
+      // 1. Fetch current profile data
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("invite_code, admission_number, invite_reward_claimed")
+        .eq("id", userId)
+        .maybeSingle();
 
-        if (!error && profile) {
-          if ((profile as any).invite_code) setInviteCode((profile as any).invite_code);
-          if ((profile as any).admission_number) setAdmissionNumber((profile as any).admission_number);
-          if ((profile as any).instagram_reward_claimed) setIgClaimed(true);
-        }
-      } catch {
-        // Fallback if columns aren't created yet
-        try {
-          const { data: prof2 } = await supabase
-            .from("profiles")
-            .select("admission_number")
-            .eq("id", userId)
-            .single();
-          if (prof2?.admission_number) setAdmissionNumber(prof2.admission_number);
-        } catch {}
+      if (profile) {
+        if (profile.invite_code) setInviteCode(profile.invite_code);
+        if (profile.admission_number) setAdmissionNumber(profile.admission_number);
+        setInviteRewardClaimed(Boolean(profile.invite_reward_claimed));
       }
 
-      // Check Instagram reward claimed fallback via notifications
+      // 2. Fetch stats & friends using dedicated RPC get_my_invite_stats()
+      let loadedFromRpc = false;
       try {
-        const { count: igNotifs } = await supabase
-          .from("notifications")
-          .select("id", { count: "exact", head: true })
-          .eq("target_user_id", userId)
-          .like("title", "%Instagram Story%");
-        if ((igNotifs || 0) > 0) setIgClaimed(true);
-      } catch {}
+        const { data: stats, error: statsErr } = await supabase.rpc("get_my_invite_stats");
+        if (!statsErr && stats) {
+          loadedFromRpc = true;
+          const count = Number((stats as any).invite_count || 0);
+          setInviteCount(count);
+          setTotalInviteXP(Number((stats as any).total_xp || count * XP_PER_INVITE));
+          if (Array.isArray((stats as any).friends)) {
+            setFriends((stats as any).friends);
+          }
+          if ((stats as any).invite_reward_claimed !== undefined) {
+            setInviteRewardClaimed(Boolean((stats as any).invite_reward_claimed));
+          }
+        }
+      } catch (rpcErr) {
+        console.warn("get_my_invite_stats RPC fallback:", rpcErr);
+      }
 
-      // Count how many students have redeemed via this user's invite
-      // We approximate by checking profiles where invite_reward_claimed = true
-      // and who joined after this user (since we can't track exact inviter without a join column)
-      // For now, show a count from notifications of type 'points' that we sent to this user as invite rewards
-      const { count } = await supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("target_user_id", userId)
-        .eq("type", "points")
-        .like("title", "%Invite Reward%");
+      // 3. Fallback: query student_invites table directly or notifications
+      if (!loadedFromRpc) {
+        try {
+          const { data: inviteRows, count: invCount } = await supabase
+            .from("student_invites")
+            .select("points_awarded, created_at, invited_user_id, profiles!student_invites_invited_user_id_fkey(first_name, last_name, admission_number)", { count: "exact" })
+            .eq("inviter_id", userId);
 
-      const invCount = count || 0;
-      setInviteCount(invCount);
-      setTotalInviteXP(invCount * XP_PER_INVITE);
+          if (invCount !== null && invCount !== undefined) {
+            setInviteCount(invCount);
+            setTotalInviteXP(invCount * XP_PER_INVITE);
+            if (inviteRows && inviteRows.length > 0) {
+              setFriends(inviteRows.map((r: any) => ({
+                first_name: r.profiles?.first_name || "Student",
+                last_name: r.profiles?.last_name || "",
+                admission_number: r.profiles?.admission_number || "",
+                created_at: r.created_at,
+                points_awarded: r.points_awarded || XP_PER_INVITE,
+              })));
+            }
+          } else {
+            // Last fallback: notifications query
+            const { count: notifCount } = await supabase
+              .from("notifications")
+              .select("id", { count: "exact", head: true })
+              .eq("target_user_id", userId)
+              .ilike("title", "%Invite Reward%");
+            const cnt = notifCount || 0;
+            setInviteCount(cnt);
+            setTotalInviteXP(cnt * XP_PER_INVITE);
+          }
+        } catch {
+          // Keep default states
+        }
+      }
     } catch (err) {
       console.error("InviteTab load error:", err);
     } finally {
       setLoading(false);
     }
   }, [userId]);
+
+  const handleManualRedeem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualCode.trim()) return;
+    setRedeeming(true);
+    try {
+      const { data, error } = await supabase.rpc("claim_invite_reward", { p_code: manualCode.trim() });
+      if (error) {
+        toast({ title: "Failed to Redeem", description: error.message || "Could not claim invite reward.", variant: "destructive" });
+      } else if (data?.success) {
+        toast({
+          title: "🎉 +250 XP Awarded!",
+          description: data.inviter_name
+            ? `Successfully redeemed invite from ${data.inviter_name}! Both of you earned 250 XP.`
+            : "Successfully redeemed invite! +250 XP added to your account.",
+        });
+        setInviteRewardClaimed(true);
+        setManualCode("");
+        load();
+      } else {
+        const reasons: Record<string, string> = {
+          already_claimed: "You have already claimed an invite bonus.",
+          self_invite: "You cannot redeem your own invite code / admission number.",
+          invalid_code: "Invalid invite code or admission number. Please check and try again.",
+          students_only: "Only students are eligible for invite rewards.",
+        };
+        toast({
+          title: "Could Not Redeem",
+          description: reasons[data?.reason] || "Invalid invite code or already claimed.",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to redeem code.", variant: "destructive" });
+    } finally {
+      setRedeeming(false);
+    }
+  };
 
   useEffect(() => {
     load();
@@ -291,6 +354,91 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
           )}
         </CardContent>
       </Card>
+
+      {/* Were You Invited by a Classmate? Manual Redemption */}
+      {!inviteRewardClaimed && (
+        <Card className="border-amber-300/50 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-yellow-500/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Gift className="h-4 w-4 text-amber-500" />
+              Were You Invited by a Classmate?
+            </CardTitle>
+            <CardDescription>
+              Missed using an invite link on first login? Enter your friend's admission number or invite code to claim your <strong>+250 XP welcome bonus</strong>! Both of you get rewarded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleManualRedeem} className="flex flex-col sm:flex-row gap-2">
+              <Input
+                placeholder="Friend's Admission No. (e.g. 12345) or Code"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                className="h-10 rounded-xl font-mono text-sm uppercase"
+                disabled={redeeming}
+              />
+              <Button
+                type="submit"
+                disabled={redeeming || !manualCode.trim()}
+                className="h-10 px-5 rounded-xl gradient-primary text-white font-bold shrink-0 gap-1.5"
+              >
+                {redeeming ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Claiming...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 text-amber-300" />
+                    Claim +250 XP
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Friends Who Joined List */}
+      {friends.length > 0 && (
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                Friends Who Joined ({friends.length})
+              </CardTitle>
+              <Badge variant="outline" className="text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/50">
+                +{friends.length * XP_PER_INVITE} XP Earned
+              </Badge>
+            </div>
+            <CardDescription>Classmates who signed up using your invite link or admission number</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {friends.map((f: any, idx: number) => {
+              const fullName = [f.first_name, f.last_name].filter(Boolean).join(" ") || "Classmate";
+              const dateStr = f.created_at ? new Date(f.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" }) : "";
+              return (
+                <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/40">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                      {(f.first_name || "S")[0].toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-foreground truncate">{fullName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {f.admission_number ? `Adm: ${f.admission_number} · ` : ""}{dateStr}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-200 shrink-0 font-bold text-xs">
+                    +{f.points_awarded || XP_PER_INVITE} XP
+                  </Badge>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Instagram Story Bonus Card (NGL-Style 1-Click Story + Screenshot Proof) */}
       <InstagramStoryReward

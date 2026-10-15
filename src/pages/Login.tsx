@@ -53,6 +53,10 @@ const Login = () => {
   }, [navigate]);
 
   useEffect(() => {
+    const urlRef = searchParams.get("ref");
+    if (urlRef) {
+      try { localStorage.setItem("dlms_invite_ref", urlRef); } catch {}
+    }
     if (searchParams.get("forgot") === "true") {
       setShowForgotPassword(true);
       const idParam = searchParams.get("identifier");
@@ -115,27 +119,49 @@ const Login = () => {
         setIsLoading(false);
         return;
       }
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+      let { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
       if (profile) {
         try { localStorage.setItem("dlms_user_profile", JSON.stringify(profile)); } catch {}
       }
 
-      // --- Invite reward: claim 250 XP for the inviter on first login ---
-      const refCode = searchParams.get("ref");
+      // --- Invite reward: claim +250 XP for BOTH user and inviter on first login ---
+      let refCode = searchParams.get("ref");
+      if (!refCode) {
+        try { refCode = localStorage.getItem("dlms_invite_ref"); } catch {}
+      }
+
       if (refCode && profile?.role === "student" && !(profile as any)?.invite_reward_claimed) {
         try {
-          const { data: inviterRows } = await supabase.rpc("resolve_invite_code", { p_code: refCode });
-          if (inviterRows && inviterRows.length > 0) {
-            const inviterId = inviterRows[0].inviter_id;
-            const inviterName = inviterRows[0].inviter_name?.trim();
-            const { data: claimResult } = await supabase.rpc("claim_invite_reward", { p_inviter_id: inviterId });
-            if (claimResult?.success) {
-              toast({
-                title: "🎉 Welcome Bonus!",
-                description: inviterName
-                  ? `${inviterName} invited you — they just earned 250 XP!`
-                  : "Your inviter just earned 250 XP for bringing you aboard!",
-              });
+          // Call claim_invite_reward(p_code) which credits both claimer and inviter atomically
+          const { data: claimResult, error: claimErr } = await supabase.rpc("claim_invite_reward", { p_code: refCode });
+          if (!claimErr && claimResult && (claimResult as any).success) {
+            try { localStorage.removeItem("dlms_invite_ref"); } catch {}
+            const inviterName = (claimResult as any).inviter_name;
+            toast({
+              title: "🎉 +250 XP Welcome Bonus!",
+              description: inviterName
+                ? `${inviterName} invited you — both of you earned 250 XP!`
+                : "You and your classmate both earned 250 XP!",
+            });
+            // Refresh profile so updated points are reflected in local storage and state immediately
+            const { data: updatedProf } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+            if (updatedProf) {
+              profile = updatedProf;
+              try { localStorage.setItem("dlms_user_profile", JSON.stringify(updatedProf)); } catch {}
+            }
+          } else if (claimErr) {
+            // Fallback for older database schema using p_inviter_id
+            const { data: inviterRows } = await supabase.rpc("resolve_invite_code", { p_code: refCode });
+            if (inviterRows && inviterRows.length > 0) {
+              const inviterId = inviterRows[0].inviter_id;
+              const { data: fallbackResult } = await supabase.rpc("claim_invite_reward", { p_inviter_id: inviterId });
+              if (fallbackResult && (fallbackResult as any).success) {
+                try { localStorage.removeItem("dlms_invite_ref"); } catch {}
+                toast({
+                  title: "🎉 +250 XP Welcome Bonus!",
+                  description: "Invite reward credited successfully!",
+                });
+              }
             }
           }
         } catch (inviteErr) {
