@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,14 +7,29 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Users, Search, UserPlus, UserX, Check, X, Clock
+  Users, Search, UserPlus, UserX, Check, X, Clock, Sparkles, RefreshCw, Trophy
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "@/components/community/ProfileView";
+import { UserConnectionsDialog } from "@/components/community/UserConnectionsDialog";
 
 interface NetworkTabProps {
   user: any;
+}
+
+interface SuggestionUser {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  student_class: string | null;
+  role: string | null;
+  points: number | null;
+  avatar_url: string | null;
+  bio?: string | null;
+  reason?: string | null;
+  mutual_count?: number | null;
 }
 
 const NetworkTab = ({ user }: NetworkTabProps) => {
@@ -24,11 +39,33 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [activeSubTab, setActiveSubTab] = useState("list");
+  
+  // Follow suggestions state
+  const [suggestions, setSuggestions] = useState<SuggestionUser[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionFilter, setSuggestionFilter] = useState<"all" | "class" | "readers" | "mutual">("all");
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
+
+  // Direct connections dialog state (view followers or following of any user)
+  const [connectionsDialog, setConnectionsDialog] = useState<{
+    userId: string;
+    userName: string;
+    tab: "followers" | "following";
+  } | null>(null);
+
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user?.id) loadFriendshipsMap();
+    if (user?.id) {
+      loadFriendshipsMap();
+    }
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadSuggestions();
+    }
+  }, [user?.id, Object.keys(friendshipsMap).length]);
 
   useEffect(() => {
     if (activeSubTab !== "discover") return;
@@ -74,6 +111,82 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
     }
   };
 
+  const loadSuggestions = async () => {
+    if (!user?.id) return;
+    setSuggestionsLoading(true);
+    try {
+      let list: SuggestionUser[] = [];
+      const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)(
+        "get_follow_suggestions",
+        { p_user_id: user.id, p_limit: 30 }
+      );
+
+      if (!rpcErr && Array.isArray(rpcData) && rpcData.length > 0) {
+        list = rpcData;
+      } else {
+        // Fallback: Query profiles directly
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, username, student_class, role, points, avatar_url, bio")
+          .eq("is_approved", true)
+          .neq("id", user.id)
+          .limit(40);
+
+        const myFriendIds = new Set(Object.keys(friendshipsMap));
+        myFriendIds.add(user.id);
+
+        const candidates = (profs || []).filter((p: any) => !myFriendIds.has(p.id));
+
+        list = candidates.map((p: any) => {
+          let reason = "Active in library";
+          if (user.student_class && p.student_class === user.student_class) {
+            reason = `Classmate in ${user.student_class}`;
+          } else if (
+            user.student_class &&
+            p.student_class &&
+            p.student_class.slice(0, 2) === user.student_class.slice(0, 2)
+          ) {
+            reason = `Same grade (${p.student_class})`;
+          } else if (p.points && p.points > 50) {
+            reason = `Top reader (${p.points} XP)`;
+          }
+
+          return {
+            ...p,
+            reason,
+            mutual_count: 0,
+          };
+        });
+
+        // Prioritize classmates then high points
+        list.sort((a, b) => {
+          const aMatch = user.student_class && a.student_class === user.student_class ? 1 : 0;
+          const bMatch = user.student_class && b.student_class === user.student_class ? 1 : 0;
+          if (aMatch !== bMatch) return bMatch - aMatch;
+          return (b.points || 0) - (a.points || 0);
+        });
+      }
+
+      // Resolve avatars
+      const resolved = await Promise.all(
+        list.map(async (item) => {
+          let av = item.avatar_url;
+          if (av && !av.startsWith("http")) {
+            const { data: pub } = supabase.storage.from("avatars").getPublicUrl(av);
+            av = pub?.publicUrl || null;
+          }
+          return { ...item, avatar_url: av };
+        })
+      );
+
+      setSuggestions(resolved);
+    } catch (err) {
+      console.error("Failed to load follow suggestions:", err);
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
+
   const sendFriendRequest = async (targetId: string) => {
     if (!user?.id) return;
     try {
@@ -91,7 +204,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
           .select().single();
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         setFriendshipsMap(m => ({ ...m, [targetId]: data }));
-        toast({ title: "Friend request sent!" });
+        toast({ title: "Follow request sent!" });
         await loadFriendshipsMap();
         return;
       }
@@ -115,7 +228,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
           .select().single();
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         setFriendshipsMap(m => ({ ...m, [targetId]: data }));
-        toast({ title: "Friend request sent!" });
+        toast({ title: "Follow request sent!" });
         await loadFriendshipsMap();
         return;
       }
@@ -126,7 +239,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
         .select().single();
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       setFriendshipsMap(m => ({ ...m, [targetId]: data }));
-      toast({ title: "Friend request sent!" });
+      toast({ title: "Follow request sent!" });
       await loadFriendshipsMap();
     } catch (e: any) {
       toast({ title: "Error", description: e.message || "Failed to send request", variant: "destructive" });
@@ -163,6 +276,32 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
   const pendingOutgoing = Object.entries(friendshipsMap).filter(([_, f]) => f.status === "pending" && f.requester_id === user?.id);
   const acceptedFriends = Object.entries(friendshipsMap).filter(([_, f]) => f.status === "accepted");
 
+  const filteredSuggestions = useMemo(() => {
+    return suggestions.filter((s) => {
+      if (dismissedSuggestions.has(s.id)) return false;
+      if (friendshipsMap[s.id]?.status === "accepted") return false;
+
+      if (suggestionFilter === "class") {
+        return (
+          user?.student_class &&
+          (s.student_class === user.student_class ||
+            (s.student_class && s.student_class.slice(0, 2) === user.student_class.slice(0, 2)))
+        );
+      }
+      if (suggestionFilter === "readers") {
+        return (s.points || 0) >= 30;
+      }
+      if (suggestionFilter === "mutual") {
+        return (s.mutual_count || 0) > 0;
+      }
+      return true;
+    });
+  }, [suggestions, dismissedSuggestions, friendshipsMap, suggestionFilter, user?.student_class]);
+
+  const activeSuggestionsCount = suggestions.filter(
+    (s) => !dismissedSuggestions.has(s.id) && friendshipsMap[s.id]?.status !== "accepted"
+  ).length;
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -179,9 +318,17 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
       <Card className="border-border/40 bg-card/75 backdrop-blur-md shadow-md">
         <CardContent className="p-4">
           <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3 p-0.5 bg-muted/30 border border-border/30 rounded-lg">
+            <TabsList className="grid w-full grid-cols-4 p-0.5 bg-muted/30 border border-border/30 rounded-lg">
               <TabsTrigger value="list" className="text-xs font-bold py-1.5">
                 Friends ({acceptedFriends.length})
+              </TabsTrigger>
+              <TabsTrigger value="suggestions" className="text-xs font-bold py-1.5">
+                Suggestions
+                {activeSuggestionsCount > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold border-indigo-500/20">
+                    {activeSuggestionsCount}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger value="requests" className="text-xs font-bold py-1.5">
                 Requests
@@ -193,17 +340,70 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
             </TabsList>
 
             {/* Friends List */}
-            <TabsContent value="list" className="space-y-3 pt-1 outline-none">
+            <TabsContent value="list" className="space-y-4 pt-1 outline-none">
               {acceptedFriends.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 mx-auto mb-3">
-                    <Users className="h-6 w-6" />
+                <div className="space-y-6">
+                  <div className="text-center py-10 text-muted-foreground">
+                    <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 mx-auto mb-3">
+                      <Users className="h-6 w-6" />
+                    </div>
+                    <p className="font-bold text-foreground/90 text-sm">No classmate links yet</p>
+                    <p className="text-xs text-muted-foreground/80 mt-1 mb-4">Discover and connect with classmates!</p>
+                    <div className="flex justify-center gap-2">
+                      <Button size="sm" onClick={() => setActiveSubTab("suggestions")} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 shadow-md">
+                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                        View Suggestions ({activeSuggestionsCount})
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setActiveSubTab("discover")} className="rounded-lg">
+                        Discover All
+                      </Button>
+                    </div>
                   </div>
-                  <p className="font-bold text-foreground/90 text-sm">No classmate links yet</p>
-                  <p className="text-xs text-muted-foreground/80 mt-1 mb-4">Discover and connect with classmates!</p>
-                  <Button size="sm" onClick={() => setActiveSubTab("discover")} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 shadow-md">
-                    Discover Classmates
-                  </Button>
+
+                  {/* Quick follow suggestions strip */}
+                  {filteredSuggestions.length > 0 && (
+                    <div className="pt-4 border-t border-border/30">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> Suggested Classmates
+                        </h4>
+                        <button
+                          onClick={() => setActiveSubTab("suggestions")}
+                          className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                        >
+                          See all ({activeSuggestionsCount}) →
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                        {filteredSuggestions.slice(0, 3).map((s) => {
+                          const fullName = `${s.first_name || ""} ${s.last_name || ""}`.trim() || s.username || "User";
+                          const ini = fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "U";
+                          return (
+                            <div key={s.id} className="p-3 bg-muted/20 hover:bg-muted/30 border border-border/30 rounded-xl flex items-center justify-between gap-2 transition-all">
+                              <div className="flex items-center gap-2.5 min-w-0 cursor-pointer" onClick={() => setProfileDialogUser(s.id)}>
+                                <Avatar className="h-8 w-8 ring-2 ring-indigo-500/10 shrink-0">
+                                  {s.avatar_url && <AvatarImage src={s.avatar_url} />}
+                                  <AvatarFallback className="bg-gradient-to-br from-indigo-500/80 to-purple-500/80 text-white font-bold text-xs">{ini}</AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-foreground truncate hover:underline">{fullName}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">{s.reason || `Class ${s.student_class || "—"}`}</p>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => sendFriendRequest(s.id)}
+                                className="h-7 px-2.5 text-xs bg-indigo-600 hover:bg-indigo-700 rounded-lg shrink-0"
+                              >
+                                <UserPlus className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -212,19 +412,229 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
                     const ini = `${(p.first_name?.[0] || "").toUpperCase()}${(p.last_name?.[0] || "").toUpperCase()}`;
                     return (
                       <div key={uid} className="flex items-center justify-between p-3.5 bg-muted/20 hover:bg-muted/40 border border-border/30 rounded-xl transition-all">
-                        <div className="flex items-center gap-3 cursor-pointer min-w-0" onClick={() => setProfileDialogUser(uid)}>
-                          <Avatar className="h-10 w-10 ring-2 ring-indigo-500/10">
+                        <div className="flex items-center gap-3 cursor-pointer min-w-0 flex-1 pr-2" onClick={() => setProfileDialogUser(uid)}>
+                          <Avatar className="h-10 w-10 ring-2 ring-indigo-500/10 shrink-0">
                             {p.avatar_url && <AvatarImage src={p.avatar_url} alt={`${p.first_name || "User"}'s profile picture`} />}
                             <AvatarFallback className="bg-gradient-to-br from-indigo-500/80 to-purple-500/80 text-white font-bold text-xs">{ini || "U"}</AvatarFallback>
                           </Avatar>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="text-sm font-bold text-foreground hover:underline truncate">{p.first_name} {p.last_name}</p>
                             <p className="text-xs text-muted-foreground truncate">@{p.username || "username"} · Class {p.student_class || "—"}</p>
                           </div>
                         </div>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeFriend(uid)} title="Remove">
-                          <UserX className="h-4 w-4 text-muted-foreground/60 hover:text-rose-500 transition-colors" />
-                        </Button>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-2 text-xs text-muted-foreground hover:text-indigo-600"
+                            onClick={() => setConnectionsDialog({ userId: uid, userName: `${p.first_name || "Friend"}'s`, tab: "followers" })}
+                            title="View followers & following"
+                          >
+                            <Users className="h-3.5 w-3.5 mr-1" />
+                            <span className="hidden sm:inline">Network</span>
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => removeFriend(uid)} title="Remove friend">
+                            <UserX className="h-4 w-4 text-muted-foreground/60 hover:text-rose-500 transition-colors" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Suggestions Tab */}
+            <TabsContent value="suggestions" className="space-y-4 pt-1 outline-none">
+              {/* Header & filters */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-indigo-500" /> Suggested for You
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Connect with classmates in your grade and active readers across KV Sulur
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={loadSuggestions}
+                  disabled={suggestionsLoading}
+                  className="h-7 text-xs px-2.5 self-start sm:self-auto rounded-lg border-border/50"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${suggestionsLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
+
+              {/* Filter Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <button
+                  onClick={() => setSuggestionFilter("all")}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                    suggestionFilter === "all"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  All ({suggestions.filter((s) => !dismissedSuggestions.has(s.id) && friendshipsMap[s.id]?.status !== "accepted").length})
+                </button>
+                {user?.student_class && (
+                  <button
+                    onClick={() => setSuggestionFilter("class")}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                      suggestionFilter === "class"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    Class {user.student_class}
+                  </button>
+                )}
+                <button
+                  onClick={() => setSuggestionFilter("readers")}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                    suggestionFilter === "readers"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  Top Readers
+                </button>
+                {suggestions.some((s) => (s.mutual_count || 0) > 0) && (
+                  <button
+                    onClick={() => setSuggestionFilter("mutual")}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                      suggestionFilter === "mutual"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    Mutual Connections
+                  </button>
+                )}
+              </div>
+
+              {/* Suggestion Cards Grid */}
+              {suggestionsLoading && suggestions.length === 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                  {[1, 2, 3, 4].map((n) => (
+                    <div key={n} className="p-4 bg-muted/20 border border-border/20 rounded-xl animate-pulse flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-full bg-muted/40 shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3.5 bg-muted/40 rounded w-2/3" />
+                        <div className="h-2.5 bg-muted/30 rounded w-1/3" />
+                      </div>
+                      <div className="w-16 h-8 bg-muted/30 rounded-lg shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredSuggestions.length === 0 ? (
+                <div className="text-center py-10 px-4 border border-dashed border-border/40 rounded-xl">
+                  <Sparkles className="h-8 w-8 mx-auto mb-2 text-indigo-500/40" />
+                  <p className="text-sm font-semibold text-foreground">You're all caught up!</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                    No new suggestions right now for this filter. Check the Discover tab to search and find classmates!
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => setActiveSubTab("discover")}
+                    className="mt-3 text-xs bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm"
+                  >
+                    Search All Classmates
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  {filteredSuggestions.map((s) => {
+                    const existing = friendshipsMap[s.id];
+                    const isPending = existing?.status === "pending";
+                    const fullName = `${s.first_name || ""} ${s.last_name || ""}`.trim() || s.username || "User";
+                    const ini = fullName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase() || "U";
+
+                    return (
+                      <div
+                        key={s.id}
+                        className="relative flex items-center justify-between p-3.5 bg-card/60 hover:bg-card border border-border/30 hover:border-indigo-500/20 rounded-xl shadow-xs transition-all group"
+                      >
+                        {/* Dismiss button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDismissedSuggestions((prev) => new Set([...prev, s.id]));
+                          }}
+                          className="absolute top-2 right-2 text-muted-foreground/40 hover:text-muted-foreground p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Dismiss suggestion"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+
+                        <div
+                          className="flex items-center gap-3 cursor-pointer min-w-0 flex-1 pr-3"
+                          onClick={() => setProfileDialogUser(s.id)}
+                        >
+                          <Avatar className="h-11 w-11 ring-2 ring-indigo-500/10 shrink-0">
+                            {s.avatar_url && <AvatarImage src={s.avatar_url} alt={fullName} />}
+                            <AvatarFallback className="bg-gradient-to-br from-indigo-500/80 to-purple-500/80 text-white font-bold text-xs">
+                              {ini}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-sm font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">
+                                {fullName}
+                              </p>
+                              {s.student_class && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border/50">
+                                  Class {s.student_class}
+                                </Badge>
+                              )}
+                            </div>
+
+                            <p className="text-xs text-muted-foreground truncate">
+                              @{s.username || "user"}
+                            </p>
+
+                            {/* Reason pill */}
+                            <div className="mt-1 flex items-center gap-1">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                                <Sparkles className="h-2.5 w-2.5 shrink-0" />
+                                {s.reason || "Classmate"}
+                              </span>
+                              {typeof s.points === "number" && s.points > 0 && (
+                                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5 ml-1">
+                                  ⭐ {s.points} XP
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action */}
+                        <div className="shrink-0">
+                          {isPending ? (
+                            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs py-1 px-2.5">
+                              <Clock className="h-3 w-3 mr-1" /> Requested
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => sendFriendRequest(s.id)}
+                              className="h-8 text-xs px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 shadow-sm"
+                              title="Follow classmate"
+                            >
+                              <UserPlus className="h-3.5 w-3.5 mr-1" /> Follow
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -376,10 +786,28 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
               onSend={sendFriendRequest}
               onRespond={respondFriendRequest}
               onRemove={removeFriend}
+              onSelectUser={(selectedId) => setProfileDialogUser(selectedId)}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Direct Connections Dialog (Followers / Following) */}
+      {connectionsDialog && (
+        <UserConnectionsDialog
+          isOpen={!!connectionsDialog}
+          onClose={() => setConnectionsDialog(null)}
+          userId={connectionsDialog.userId}
+          userName={connectionsDialog.userName}
+          initialTab={connectionsDialog.tab}
+          currentUserId={user.id}
+          onSelectUser={(selectedId) => {
+            setProfileDialogUser(selectedId);
+            setConnectionsDialog(null);
+          }}
+          onFollowChange={loadFriendshipsMap}
+        />
+      )}
     </div>
   );
 };
