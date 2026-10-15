@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
+import { UserConnectionsDialog } from "./UserConnectionsDialog";
 
 function nameOf(p: any) {
   return p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username || "User" : "User";
@@ -26,9 +27,14 @@ interface Props {
   onSend: (id: string) => void;
   onRespond: (id: string, status: string) => void;
   onRemove: (id: string) => void;
+  onSelectUser?: (id: string) => void;
 }
 
-export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespond, onRemove }: Props) => {
+export const ProfileView = ({ userId: initialUserId, currentUserId, friendship: initialFriendship, onSend, onRespond, onRemove, onSelectUser }: Props) => {
+  const [activeUserId, setActiveUserId] = useState(initialUserId);
+  const [currentFriendship, setCurrentFriendship] = useState<any>(initialFriendship);
+  const [connectionsDialogOpen, setConnectionsDialogOpen] = useState(false);
+  const [connectionsTab, setConnectionsTab] = useState<"followers" | "following">("followers");
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [badges, setBadges] = useState<any[]>([]);
@@ -37,64 +43,89 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      const [{ data: full }, { data: extraStats }, { data: allBadges }, { data: awards }, { data: userPosts }, { data: actStats }] = await Promise.all([
-        supabase.rpc("get_public_profile_full", { _id: userId }),
-        supabase.rpc("get_public_profile_stats", { _id: userId }),
-        supabase.from("badges").select("id, name, icon_name, color, criteria_type, criteria_value, is_active").eq("is_active", true),
-        supabase.from("badge_awards").select("badge_id").eq("user_id", userId),
-        supabase.rpc("get_public_posts_by_user", { _id: userId, _limit: 20 }),
-        supabase.rpc("get_user_activity_stats", { _user_id: userId }),
-      ]);
-      const p: any = (full || [])[0] || null;
-      const s: any = (extraStats || [])[0] || {};
-      const act: any = (actStats || [])[0] || {};
-      setProfile(p);
-      setStats({ ...p, ...s, ...act });
-      
-      const manualAwards = new Set((awards || []).map((a: any) => a.badge_id));
-      const getStatValue = (type?: string) => {
-        if (type === "points") return p?.points || 0;
-        if (type === "books_read") return s?.books_read || 0;
-        if (type === "quizzes_completed") return s?.quizzes || 0;
-        if (type === "login_streak") return s?.current_streak || 0;
-        if (type === "posts_count") return act?.posts_count || 0;
-        if (type === "comments_count") return act?.comments_count || 0;
-        if (type === "friends_count") return act?.friends_count || 0;
-        if (type === "books_issued") return act?.books_issued || 0;
-        if (type === "reviews_count") return act?.reviews_count || 0;
-        return 0;
-      };
+    setActiveUserId(initialUserId);
+    setCurrentFriendship(initialFriendship);
+  }, [initialUserId, initialFriendship]);
 
-      const unlockedBadges = (allBadges || []).filter((b: any) => {
-        if (manualAwards.has(b.id)) return true;
-        if (b.criteria_type === "manual" || !b.criteria_type) return false;
-        return getStatValue(b.criteria_type) >= (b.criteria_value || 0);
-      });
-
-      setBadges(unlockedBadges);
-      setPosts(userPosts || []);
-      if (p?.avatar_url) {
-        if (p.avatar_url.startsWith("http")) {
-          setAvatarUrl(p.avatar_url);
-        } else {
-          const { data: pub } = supabase.storage.from("avatars").getPublicUrl(p.avatar_url);
-          setAvatarUrl(pub?.publicUrl || null);
+  useEffect(() => {
+    if (activeUserId !== initialUserId) {
+      const checkFriendship = async () => {
+        if (!currentUserId || !activeUserId || currentUserId === activeUserId) {
+          setCurrentFriendship(null);
+          return;
         }
-      } else {
-        setAvatarUrl(null);
-      }
-      setLoading(false);
+        const { data } = await supabase
+          .from("friendships")
+          .select("*")
+          .or(`and(requester_id.eq.${currentUserId},addressee_id.eq.${activeUserId}),and(requester_id.eq.${activeUserId},addressee_id.eq.${currentUserId})`)
+          .maybeSingle();
+        setCurrentFriendship(data || null);
+      };
+      checkFriendship();
+    }
+  }, [activeUserId, initialUserId, currentUserId]);
+
+  const load = async () => {
+    if (!activeUserId) return;
+    setLoading(true);
+    const [{ data: full }, { data: extraStats }, { data: allBadges }, { data: awards }, { data: userPosts }, { data: actStats }] = await Promise.all([
+      supabase.rpc("get_public_profile_full", { _id: activeUserId }),
+      supabase.rpc("get_public_profile_stats", { _id: activeUserId }),
+      supabase.from("badges").select("id, name, icon_name, color, criteria_type, criteria_value, is_active").eq("is_active", true),
+      supabase.from("badge_awards").select("badge_id").eq("user_id", activeUserId),
+      supabase.rpc("get_public_posts_by_user", { _id: activeUserId, _limit: 20 }),
+      supabase.rpc("get_user_activity_stats", { _user_id: activeUserId }),
+    ]);
+    const p: any = (full || [])[0] || null;
+    const s: any = (extraStats || [])[0] || {};
+    const act: any = (actStats || [])[0] || {};
+    setProfile(p);
+    setStats({ ...p, ...s, ...act });
+    
+    const manualAwards = new Set((awards || []).map((a: any) => a.badge_id));
+    const getStatValue = (type?: string) => {
+      if (type === "points") return p?.points || 0;
+      if (type === "books_read") return s?.books_read || 0;
+      if (type === "quizzes_completed") return s?.quizzes || 0;
+      if (type === "login_streak") return s?.current_streak || 0;
+      if (type === "posts_count") return act?.posts_count || 0;
+      if (type === "comments_count") return act?.comments_count || 0;
+      if (type === "friends_count") return act?.friends_count || 0;
+      if (type === "books_issued") return act?.books_issued || 0;
+      if (type === "reviews_count") return act?.reviews_count || 0;
+      return 0;
     };
+
+    const unlockedBadges = (allBadges || []).filter((b: any) => {
+      if (manualAwards.has(b.id)) return true;
+      if (b.criteria_type === "manual" || !b.criteria_type) return false;
+      return getStatValue(b.criteria_type) >= (b.criteria_value || 0);
+    });
+
+    setBadges(unlockedBadges);
+    setPosts(userPosts || []);
+    if (p?.avatar_url) {
+      if (p.avatar_url.startsWith("http")) {
+        setAvatarUrl(p.avatar_url);
+      } else {
+        const { data: pub } = supabase.storage.from("avatars").getPublicUrl(p.avatar_url);
+        setAvatarUrl(pub?.publicUrl || null);
+      }
+    } else {
+      setAvatarUrl(null);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     load();
-  }, [userId]);
+  }, [activeUserId]);
 
   if (loading || !profile) return <div className="p-10 text-center text-sm text-muted-foreground">Loading profile…</div>;
 
-  const isSelf = userId === currentUserId;
-  const status = friendship?.status;
-  const iSent = friendship?.requester_id === currentUserId;
+  const isSelf = activeUserId === currentUserId;
+  const status = currentFriendship?.status;
+  const iSent = currentFriendship?.requester_id === currentUserId;
 
   return (
     <div className="max-h-[85vh] overflow-y-auto">
@@ -107,15 +138,31 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
           </Avatar>
           <div className="flex-1 grid grid-cols-3 gap-2 text-center">
             <StatBlock value={profile.posts_count} label="Posts" />
-            <StatBlock value={profile.followers_count} label="Followers" />
-            <StatBlock value={profile.following_count} label="Following" />
+            <StatBlock
+              value={profile.followers_count}
+              label="Followers"
+              clickable
+              onClick={() => {
+                setConnectionsTab("followers");
+                setConnectionsDialogOpen(true);
+              }}
+            />
+            <StatBlock
+              value={profile.following_count}
+              label="Following"
+              clickable
+              onClick={() => {
+                setConnectionsTab("following");
+                setConnectionsDialogOpen(true);
+              }}
+            />
           </div>
         </div>
 
         <DialogHeader className="text-left space-y-1 mb-3">
           <DialogTitle className="text-lg flex items-center gap-2 flex-wrap">
             <span>{nameOf(profile)}</span>
-            <RotationalWinnerBadge userId={userId} size="sm" />
+            <RotationalWinnerBadge userId={activeUserId} size="sm" />
           </DialogTitle>
           <div className="flex flex-wrap items-center gap-1.5">
             {profile.username && <span className="text-xs text-muted-foreground">@{profile.username}</span>}
@@ -127,8 +174,8 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
 
         {!isSelf && (
           <div className="mb-4">
-            {(!friendship || status === "rejected") && (
-              <Button className="w-full" onClick={() => onSend(userId)}>
+            {(!currentFriendship || status === "rejected") && (
+              <Button className="w-full" onClick={() => onSend(activeUserId)}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 {status === "rejected" ? "Send Request Again" : "Follow / Add Friend"}
               </Button>
@@ -136,14 +183,14 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
             {status === "pending" && iSent && <Button variant="outline" className="w-full" disabled><Clock className="h-4 w-4 mr-2" />Request Sent</Button>}
             {status === "pending" && !iSent && (
               <div className="flex gap-2">
-                <Button className="flex-1" onClick={() => onRespond(userId, "accepted")}><Check className="h-4 w-4 mr-2" />Accept</Button>
-                <Button variant="outline" className="flex-1" onClick={() => onRespond(userId, "rejected")}><X className="h-4 w-4 mr-2" />Decline</Button>
+                <Button className="flex-1" onClick={() => onRespond(activeUserId, "accepted")}><Check className="h-4 w-4 mr-2" />Accept</Button>
+                <Button variant="outline" className="flex-1" onClick={() => onRespond(activeUserId, "rejected")}><X className="h-4 w-4 mr-2" />Decline</Button>
               </div>
             )}
             {status === "accepted" && (
               <div className="flex gap-2">
                 <Badge className="flex-1 justify-center py-2 bg-green-600 text-sm"><UserCheck className="h-4 w-4 mr-2" />Following</Badge>
-                <Button variant="outline" onClick={() => onRemove(userId)}><UserX className="h-4 w-4" /></Button>
+                <Button variant="outline" onClick={() => onRemove(activeUserId)}><UserX className="h-4 w-4" /></Button>
               </div>
             )}
           </div>
@@ -200,15 +247,56 @@ export const ProfileView = ({ userId, currentUserId, friendship, onSend, onRespo
           </TabsContent>
         </Tabs>
       </div>
+
+      <UserConnectionsDialog
+        isOpen={connectionsDialogOpen}
+        onClose={() => setConnectionsDialogOpen(false)}
+        userId={activeUserId}
+        userName={nameOf(profile)}
+        initialTab={connectionsTab}
+        currentUserId={currentUserId}
+        onSelectUser={(newId) => {
+          setActiveUserId(newId);
+          onSelectUser?.(newId);
+        }}
+        onFollowChange={() => {
+          load();
+        }}
+      />
     </div>
   );
 };
 
-function StatBlock({ value, label }: any) {
+function StatBlock({
+  value,
+  label,
+  clickable,
+  onClick,
+}: {
+  value: any;
+  label: string;
+  clickable?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <div className="rounded-lg py-1.5">
-      <p className="text-lg font-bold leading-none">{value ?? 0}</p>
-      <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
+    <div
+      onClick={clickable ? onClick : undefined}
+      className={`rounded-lg py-1.5 transition-all select-none ${
+        clickable
+          ? "cursor-pointer hover:bg-muted/70 active:scale-95 group hover:ring-1 hover:ring-indigo-500/20"
+          : ""
+      }`}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => e.key === "Enter" && onClick?.() : undefined}
+      title={clickable ? `Click to see ${label.toLowerCase()}` : undefined}
+    >
+      <p className={`text-lg font-bold leading-none ${clickable ? "group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" : ""}`}>
+        {value ?? 0}
+      </p>
+      <p className={`text-[10px] text-muted-foreground mt-1 ${clickable ? "group-hover:text-foreground font-semibold underline underline-offset-2 decoration-muted-foreground/30" : ""}`}>
+        {label}
+      </p>
     </div>
   );
 }
