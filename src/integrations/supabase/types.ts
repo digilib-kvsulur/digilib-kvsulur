@@ -3403,10 +3403,48 @@ export type Database = {
           quizzes: number
         }[]
       }
+      get_follow_suggestions: {
+        Args: {
+          p_limit?: number
+          p_user_id: string
+        }
+        Returns: {
+          avatar_url: string
+          bio: string
+          first_name: string
+          id: string
+          last_name: string
+          mutual_count: number
+          points: number
+          reason: string
+          role: string
+          student_class: string
+          username: string
+        }[]
+      }
       get_public_profiles: {
         Args: { _ids: string[] }
         Returns: {
           avatar_url: string
+          first_name: string
+          id: string
+          last_name: string
+          points: number
+          role: string
+          student_class: string
+          username: string
+        }[]
+      }
+      get_user_network_connections: {
+        Args: {
+          p_type?: string
+          p_user_id: string
+        }
+        Returns: {
+          avatar_url: string
+          bio: string
+          connection_status: string
+          created_at: string
           first_name: string
           id: string
           last_name: string
