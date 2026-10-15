@@ -345,8 +345,8 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
           instructions: item.event.instructions,
           sort_order: item.day * 2 - 1,
           activity_date: dateStr,
-          opens_at: `${dateStr}T08:00:00`,
-          closes_at: `${dateStr}T18:00:00`,
+          opens_at: `${dateStr}T08:00:00+05:30`,
+          closes_at: `${dateStr}T18:00:00+05:30`,
           reward_points: 100,
           is_active: true,
         });
@@ -359,8 +359,8 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
           instructions: item.quizChampionship.instructions,
           sort_order: item.day * 2,
           activity_date: dateStr,
-          opens_at: `${dateStr}T19:00:00`,
-          closes_at: `${dateStr}T22:00:00`,
+          opens_at: `${dateStr}T19:00:00+05:30`,
+          closes_at: `${dateStr}T22:00:00+05:30`,
           reward_points: item.quizChampionship.rewardPoints,
           is_active: true,
         });
@@ -409,14 +409,17 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
         const dayOffset = Math.min(i, totalDays - 1);
         d.setDate(startDate.getDate() + dayOffset);
         const dateStr = d.toISOString().split("T")[0];
+        const isQuiz = (sorted[i].title || "").toLowerCase().includes("quiz") || (sorted[i].title || "").toLowerCase().includes("championship");
+        const openTime = isQuiz ? "19:00:00+05:30" : "08:00:00+05:30";
+        const closeTime = isQuiz ? "22:00:00+05:30" : "18:00:00+05:30";
         await upsertActivity({
           ...sorted[i],
           campaign_id: campaign.id,
           activity_date: dateStr,
-          opens_at: `${dateStr}T06:00:00`,
-          closes_at: `${dateStr}T23:59:59`,
+          opens_at: `${dateStr}T${openTime}`,
+          closes_at: `${dateStr}T${closeTime}`,
           is_active: true,
-          reward_points: sorted[i].reward_points ?? campaign.default_points ?? 500,
+          reward_points: sorted[i].reward_points ?? campaign.default_points ?? 100,
         });
       }
       toast({

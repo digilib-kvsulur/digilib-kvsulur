@@ -626,11 +626,23 @@ export default function VacationStudentPage({
 
     setSaving(true);
     try {
-      // Find matching activity ID in DB if virtual
       let actId = activeCompetition.id;
       if (actId.startsWith("virtual-")) {
-        const found = campaignActivities.find((a) => a.title.toLowerCase().includes(selectedDayData.event.title.toLowerCase()));
-        if (found) actId = found.id;
+        const found = campaignActivities.find((a) => 
+          a.title.toLowerCase().includes(selectedDayData.event.title.toLowerCase()) ||
+          (selectedDayData.dateStr && a.activity_date === selectedDayData.dateStr && !a.title.toLowerCase().includes("quiz")) ||
+          a.sort_order === selectedDayData.day * 2 - 1
+        );
+        if (found) {
+          actId = found.id;
+        } else {
+          toast({
+            title: "Competition syncing",
+            description: "Please refresh the page to load the official challenge details from the server before submitting.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       const problemTag = allottedProblemInfo?.problem
