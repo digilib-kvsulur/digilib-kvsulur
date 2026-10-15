@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Wrench, BookOpen, Clock, Mail, X, Sparkles, Bell } from "lucide-react";
 
-// 15 Oct 2026, 1:55 PM IST = 15 Oct 2026, 08:25 UTC
-const MAINTENANCE_END = new Date("2026-10-15T08:25:00Z");
+// 15 Oct 2026, 1:58 PM IST = 15 Oct 2026, 08:28 UTC
+const MAINTENANCE_END = new Date("2026-10-15T08:28:00Z");
 
 function getTimeLeft() {
   const diff = MAINTENANCE_END.getTime() - Date.now();
@@ -126,7 +126,7 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         <br /><br />
         The site will be back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
-          today, 1:55 PM IST
+          today, 1:58 PM IST
         </span>. Please hold tight — we're working on it actively.
         <br /><br />
         Thank you for your patience and cooperation. 🙏
@@ -240,7 +240,7 @@ export default function Maintenance() {
           >
           We have detected a database downtime on DLMS. Our team is restarting the DB to restore full health. We'll be back online by:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-              today, 1:55 PM IST
+              today, 1:58 PM IST
             </span>
             .
           </p>
