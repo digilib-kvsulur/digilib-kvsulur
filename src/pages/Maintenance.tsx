@@ -114,14 +114,20 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
       >
         Dear Students & Teachers,
         <br /><br />
-        We are currently undergoing <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          routine scheduled maintenance
-        </span> for a few minutes to apply essential updates and improvements to the system.
+        We have detected a{" "}
+        <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+          database downtime
+        </span>{" "}
+        on DLMS. Our team is currently{" "}
+        <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+          restarting the database
+        </span>{" "}
+        to restore full health and functionality.
         <br /><br />
-        The site will be back online smoothly by{" "}
+        The site will be back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
           today, 1:55 PM IST
-        </span>.
+        </span>. Please hold tight — we're working on it actively.
         <br /><br />
         Thank you for your patience and cooperation. 🙏
       </p>
@@ -232,7 +238,7 @@ export default function Maintenance() {
             className="text-sm sm:text-base md:text-lg leading-relaxed max-w-md mx-auto"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-          We're performing scheduled maintenance on DLMS. We'll be back online by:{" "}
+          We have detected a database downtime on DLMS. Our team is restarting the DB to restore full health. We'll be back online by:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
               today, 1:55 PM IST
             </span>
