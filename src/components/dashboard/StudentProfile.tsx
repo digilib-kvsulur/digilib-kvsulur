@@ -18,6 +18,9 @@ import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadg
 import ProfilePasswordResetCard from "./ProfilePasswordResetCard";
 import { fetchPointsPerAvatarUpload } from "@/lib/librarySettings";
 import { sendLevelUpEmail } from "@/lib/autoEmail";
+import { UserConnectionsDialog } from "@/components/community/UserConnectionsDialog";
+import { ProfileView } from "@/components/community/ProfileView";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface StudentProfileProps {
   user: any;
@@ -31,6 +34,10 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
   const [uploading, setUploading] = useState(false);
   const [social, setSocial] = useState<any>({ posts_count: 0, followers_count: 0, following_count: 0, books_read: 0, quizzes: 0, current_streak: 0 });
   const [levelInfo, setLevelInfo] = useState<any | null>(null);
+  const [connectionsDialogOpen, setConnectionsDialogOpen] = useState(false);
+  const [connectionsTab, setConnectionsTab] = useState<"followers" | "following">("followers");
+  const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
+  const [friendshipsMap, setFriendshipsMap] = useState<Record<string, any>>({});
 
   const [formData, setFormData] = useState({
     first_name: '', last_name: '', email: '', phone: '',
