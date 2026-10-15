@@ -114,11 +114,11 @@ BEGIN
       p.bio,
       COALESCE(fof.mutual_count, 0) AS mutual_count,
       CASE 
-        WHEN COALESCE(fof.mutual_count, 0) > 0 THEN 'Mutual connection (' || fof.mutual_count || ' mutual)'
-        WHEN v_user_class IS NOT NULL AND p.student_class = v_user_class THEN 'Classmate in ' || v_user_class
-        WHEN v_user_class IS NOT NULL AND LEFT(p.student_class, 2) = LEFT(v_user_class, 2) THEN 'Same grade (' || p.student_class || ')'
-        WHEN p.points > 50 THEN 'Top reader (' || p.points || ' pts)'
-        ELSE 'Active in library'
+        WHEN COALESCE(fof.mutual_count, 0) > 0 THEN fof.mutual_count || ' mutuals'
+        WHEN v_user_class IS NOT NULL AND p.student_class = v_user_class THEN 'Class ' || v_user_class
+        WHEN v_user_class IS NOT NULL AND LEFT(p.student_class, 2) = LEFT(v_user_class, 2) THEN 'Class ' || p.student_class
+        WHEN p.points > 50 THEN 'Top reader'
+        ELSE 'Active reader'
       END AS reason,
       CASE 
         WHEN COALESCE(fof.mutual_count, 0) > 0 THEN 1
@@ -144,3 +144,5 @@ $$;
 
 REVOKE ALL ON FUNCTION public.get_follow_suggestions(uuid, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_follow_suggestions(uuid, integer) TO authenticated, anon;
+REVOKE ALL ON FUNCTION public.get_user_network_connections(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_user_network_connections(uuid, text) TO authenticated, anon;
