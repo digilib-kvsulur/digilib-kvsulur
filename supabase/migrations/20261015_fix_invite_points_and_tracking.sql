@@ -280,3 +280,112 @@ GRANT EXECUTE ON FUNCTION resolve_invite_code(text) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION claim_invite_reward(text) TO authenticated;
 GRANT EXECUTE ON FUNCTION claim_invite_reward(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_my_invite_stats() TO authenticated;
+
+-- 8. Fix badge trigger from aborting cross-user points award
+-- When an invite is redeemed, the invited student's session executes an UPDATE on the inviter's profile.
+-- The trigger trg_profile_points_badge previously invoked check_and_award_badges, which threw
+-- "RAISE EXCEPTION 'Not authorized'" because auth.uid() <> inviter_id, causing the entire claim transaction to abort!
+CREATE OR REPLACE FUNCTION public.check_and_award_badges(p_user_id uuid)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  b record;
+  v_val integer;
+  v_awarded integer := 0;
+BEGIN
+  IF p_user_id IS NULL THEN
+    RETURN 0;
+  END IF;
+  
+  -- If invoked on behalf of another user by a non-staff user (e.g. trigger during points update),
+  -- gracefully exit without aborting the parent transaction.
+  IF auth.uid() IS NOT NULL AND auth.uid() IS DISTINCT FROM p_user_id AND NOT public.is_staff_or_admin(auth.uid()) THEN
+    RETURN 0;
+  END IF;
+
+  FOR b IN
+    SELECT *
+    FROM public.badges
+    WHERE is_active = true
+      AND criteria_type IS NOT NULL
+      AND criteria_type <> 'manual'
+      AND criteria_value IS NOT NULL
+      AND criteria_value > 0
+      AND criteria_type IN (
+        'books_read', 'books_issued', 'quizzes_completed', 'login_streak',
+        'points', 'posts_count', 'comments_count', 'reviews_count', 'friends_count'
+      )
+  LOOP
+    IF EXISTS (
+      SELECT 1 FROM public.badge_awards
+      WHERE user_id = p_user_id AND badge_id = b.id
+    ) THEN
+      CONTINUE;
+    END IF;
+
+    v_val := CASE b.criteria_type
+      WHEN 'books_read' THEN (
+        SELECT COUNT(*)::int FROM public.reading_history
+        WHERE user_id = p_user_id AND status = 'approved'
+      )
+      WHEN 'books_issued' THEN (
+        SELECT COUNT(*)::int FROM public.book_issues WHERE user_id = p_user_id
+      )
+      WHEN 'quizzes_completed' THEN (
+        SELECT COUNT(*)::int FROM public.quiz_results WHERE user_id = p_user_id
+      )
+      WHEN 'login_streak' THEN COALESCE(
+        (SELECT current_streak FROM public.login_streaks WHERE user_id = p_user_id), 0
+      )
+      WHEN 'points' THEN COALESCE(
+        (SELECT points FROM public.profiles WHERE id = p_user_id), 0
+      )
+      WHEN 'posts_count' THEN (
+        SELECT COUNT(*)::int FROM public.posts WHERE user_id = p_user_id
+      )
+      WHEN 'comments_count' THEN (
+        SELECT COUNT(*)::int FROM public.post_comments WHERE user_id = p_user_id
+      )
+      WHEN 'reviews_count' THEN (
+        SELECT COUNT(*)::int FROM public.book_reviews WHERE user_id = p_user_id
+      )
+      WHEN 'friends_count' THEN (
+        SELECT COUNT(*)::int FROM public.friendships
+        WHERE status = 'accepted'
+          AND (requester_id = p_user_id OR addressee_id = p_user_id)
+      )
+      ELSE NULL
+    END;
+
+    IF v_val IS NOT NULL AND v_val >= b.criteria_value THEN
+      INSERT INTO public.badge_awards (user_id, badge_id, award_type, note)
+      VALUES (p_user_id, b.id, 'auto', 'Automatically awarded')
+      ON CONFLICT DO NOTHING;
+      v_awarded := v_awarded + 1;
+    END IF;
+  END LOOP;
+
+  RETURN v_awarded;
+END;
+$$;
+
+-- Protect the profile badge trigger so it never aborts an update
+CREATE OR REPLACE FUNCTION public.tg_check_profile_badges()
+RETURNS trigger AS $$
+BEGIN
+  BEGIN
+    IF TG_OP = 'DELETE' THEN
+      PERFORM public.check_and_award_badges(OLD.id);
+      RETURN OLD;
+    END IF;
+    PERFORM public.check_and_award_badges(NEW.id);
+    RETURN NEW;
+  EXCEPTION WHEN OTHERS THEN
+    RETURN NEW;
+  END;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
