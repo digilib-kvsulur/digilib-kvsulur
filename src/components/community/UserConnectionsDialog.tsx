@@ -203,7 +203,7 @@ export const UserConnectionsDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md w-full p-0 overflow-hidden bg-background border border-border/50 rounded-2xl shadow-2xl">
+      <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-md p-0 overflow-hidden bg-background border border-border/50 rounded-2xl shadow-2xl">
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-border/40">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 shrink-0">
