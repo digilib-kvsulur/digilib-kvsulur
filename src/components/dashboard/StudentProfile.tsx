@@ -372,13 +372,42 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
               { icon: <Flame className="h-4 w-4 text-orange-500" />, label: "Streak", value: `${social?.current_streak || 0}d`, bg: "bg-orange-500/10" },
               { icon: <BookOpen className="h-4 w-4 text-blue-500" />, label: "Read", value: social?.books_read || 0, bg: "bg-blue-500/10" },
               { icon: <Sparkles className="h-4 w-4 text-pink-500" />, label: "Quizzes", value: social?.quizzes || 0, bg: "bg-pink-500/10" },
-              { icon: <User className="h-4 w-4 text-indigo-500" />, label: "Followers", value: social?.followers_count || 0, bg: "bg-indigo-500/10" },
-              { icon: <User className="h-4 w-4 text-purple-500" />, label: "Following", value: social?.following_count || 0, bg: "bg-purple-500/10" },
-            ].map((s, i) => (
-              <div key={i} className={`flex flex-col items-center gap-1 p-3 ${s.bg} rounded-xl border border-border/10`}>
+              {
+                icon: <User className="h-4 w-4 text-indigo-500" />,
+                label: "Followers",
+                value: social?.followers_count || 0,
+                bg: "bg-indigo-500/10",
+                clickable: true,
+                onClick: () => {
+                  setConnectionsTab("followers");
+                  setConnectionsDialogOpen(true);
+                },
+              },
+              {
+                icon: <User className="h-4 w-4 text-purple-500" />,
+                label: "Following",
+                value: social?.following_count || 0,
+                bg: "bg-purple-500/10",
+                clickable: true,
+                onClick: () => {
+                  setConnectionsTab("following");
+                  setConnectionsDialogOpen(true);
+                },
+              },
+            ].map((s: any, i) => (
+              <div
+                key={i}
+                onClick={s.clickable ? s.onClick : undefined}
+                className={`flex flex-col items-center gap-1 p-3 ${s.bg} rounded-xl border border-border/10 transition-all ${
+                  s.clickable
+                    ? "cursor-pointer hover:scale-105 active:scale-95 hover:shadow-md hover:ring-2 hover:ring-indigo-500/30 select-none"
+                    : ""
+                }`}
+                title={s.clickable ? `Click to view ${s.label.toLowerCase()}` : undefined}
+              >
                 {s.icon}
                 <span className="text-base font-black text-foreground leading-none">{s.value}</span>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{s.label}</span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${s.clickable ? "text-indigo-600 dark:text-indigo-400 underline decoration-indigo-500/30" : "text-muted-foreground"}`}>{s.label}</span>
               </div>
             ))}
           </div>
@@ -498,6 +527,49 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
 
       {/* ── Security & Password Card ── */}
       <ProfilePasswordResetCard userEmail={user?.email || formData.email} />
+
+      {/* ── User Connections Dialog (Followers / Following) ── */}
+      <UserConnectionsDialog
+        isOpen={connectionsDialogOpen}
+        onClose={() => setConnectionsDialogOpen(false)}
+        userId={user?.id}
+        userName={user?.first_name ? `${user.first_name}'s` : "My"}
+        initialTab={connectionsTab}
+        currentUserId={user?.id}
+        onSelectUser={(selectedId) => setViewingProfileId(selectedId)}
+        onFollowChange={loadSocial}
+      />
+
+      {/* ── Profile View Dialog for selected users ── */}
+      <Dialog open={!!viewingProfileId} onOpenChange={(o) => !o && setViewingProfileId(null)}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden bg-background rounded-xl border border-border/40 shadow-xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>User Profile</DialogTitle>
+            <DialogDescription>View user profile and network options</DialogDescription>
+          </DialogHeader>
+          {viewingProfileId && (
+            <ProfileView
+              userId={viewingProfileId}
+              currentUserId={user?.id}
+              friendship={friendshipsMap[viewingProfileId]}
+              onSend={async (targetId) => {
+                await supabase.from("friendships").insert({ requester_id: user?.id, addressee_id: targetId, status: "pending" });
+                loadSocial();
+              }}
+              onRespond={async (targetId, status) => {
+                const f = friendshipsMap[targetId];
+                if (f) await supabase.from("friendships").update({ status }).eq("id", f.id);
+                loadSocial();
+              }}
+              onRemove={async (targetId) => {
+                const f = friendshipsMap[targetId];
+                if (f) await supabase.from("friendships").delete().eq("id", f.id);
+                loadSocial();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
