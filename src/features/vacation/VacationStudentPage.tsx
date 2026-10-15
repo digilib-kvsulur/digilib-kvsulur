@@ -424,6 +424,35 @@ export default function VacationStudentPage({
     setDayParticipationMode(null);
   }, [userId, selectedDayNumber, myTeams]);
 
+  // Automatically pre-populate team roster into submission form whenever submit dialog opens or mode/team changes
+  useEffect(() => {
+    if (submitDialogOpen) {
+      if (dayParticipationMode?.mode === "team" && dayParticipationMode.teamId) {
+        const foundTeam = myTeams.find((t) => t.id === dayParticipationMode.teamId);
+        if (foundTeam) {
+          setTeamMembers(formatTeamRoster(foundTeam));
+          return;
+        }
+      }
+      if (selectedTeamForDayId) {
+        const foundTeam = myTeams.find((t) => t.id === selectedTeamForDayId);
+        if (foundTeam) {
+          setTeamMembers(formatTeamRoster(foundTeam));
+          return;
+        }
+      }
+      // If student has a team targeting this event or any active team
+      const eventTeam = myTeams.find((t) =>
+        t.target_event?.toLowerCase().includes(selectedDayData.event.title.toLowerCase())
+      ) || myTeams[0];
+      if (eventTeam && dayParticipationMode?.mode !== "individual") {
+        setTeamMembers(formatTeamRoster(eventTeam));
+      } else if (dayParticipationMode?.mode === "individual") {
+        setTeamMembers("");
+      }
+    }
+  }, [submitDialogOpen, dayParticipationMode, selectedTeamForDayId, myTeams, selectedDayData]);
+
   // Timing checks for compulsory team formation & 8:00 AM problem release
   const now = new Date();
   const currentHour = now.getHours();
@@ -645,6 +674,20 @@ export default function VacationStudentPage({
         }
       }
 
+      let trimmedLink = link.trim();
+      if (trimmedLink && !/^https?:\/\//i.test(trimmedLink)) {
+        trimmedLink = `https://${trimmedLink}`;
+      }
+
+      if (!content.trim() && !trimmedLink) {
+        toast({
+          title: "Deliverable link required",
+          description: "Please share a Google Drive, YouTube, or Canva link to submit your challenge solution.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const problemTag = allottedProblemInfo?.problem
         ? `[ALLOTTED: ${allottedProblemInfo.problem.title}]`
         : "";
@@ -657,7 +700,7 @@ export default function VacationStudentPage({
       const headerTags = [problemTag, teamTag].filter(Boolean).join("\n");
       const finalContent = headerTags ? `${headerTags}\n\n${content}` : content;
 
-      await submitVacationActivity(actId, finalContent, link);
+      await submitVacationActivity(actId, finalContent, trimmedLink || undefined);
       toast({ title: "Submitted! 🚀", description: "Teachers will review your project and award points." });
       setSubmitDialogOpen(false);
       setContent("");
@@ -1432,7 +1475,7 @@ export default function VacationStudentPage({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                     <div className="flex items-center gap-2.5">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-sm shrink-0">
-                        <UploadCloud className="h-5 w-5" />
+                        <ExternalLink className="h-5 w-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -1455,7 +1498,7 @@ export default function VacationStudentPage({
                   </div>
 
                   <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-                    Solve your allotted problem statement (individually or as a team). Submit your working notes, links, photos, or slides to earn official rubric points and streak bonuses.
+                    Solve your allotted problem statement (individually or as a team). Share your project deliverable link (Google Drive photos/slides, YouTube video, or Canva) to earn official rubric points and streak bonuses.
                   </p>
 
                   <div className="space-y-2">
@@ -1465,8 +1508,8 @@ export default function VacationStudentPage({
                         onClick={() => setSubmitDialogOpen(true)}
                         className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-sm h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.99] gap-2"
                       >
-                        <UploadCloud className="h-5 w-5 text-white" />
-                        <span>{currentSubmission ? "View / Edit Your Challenge Entry" : "🚀 Submit Challenge Solution Now"}</span>
+                        <ExternalLink className="h-5 w-5 text-white" />
+                        <span>{currentSubmission ? "View / Edit Your Challenge Entry" : "🚀 Submit Challenge Link Now"}</span>
                       </Button>
                     ) : isDayToday && isBefore8AmToday ? (
                       <Button
@@ -1838,30 +1881,39 @@ export default function VacationStudentPage({
             </div>
           )}
 
-          <div className="space-y-3 pt-2">
-            {/* Team Members Input (For Team or Individual Mode) */}
-            <div className="space-y-1">
+          <div className="space-y-3.5 pt-2">
+            {/* Team Members Input (Automatically Filled for Teams) */}
+            <div className="space-y-1.5 p-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold flex items-center gap-1">
+                <Label className="text-xs font-bold flex items-center gap-1.5 text-foreground">
                   <Users className="h-3.5 w-3.5 text-amber-500" />
-                  Team Members (Optional for solo, required for teams):
+                  <span>Team Members:</span>
                 </Label>
-                {selectedDayData.event.recommendedTeamSize && (
+                {teamMembers.trim() ? (
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/20 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Auto-Filled Roster
+                  </span>
+                ) : (
                   <span className="text-[10px] text-muted-foreground font-semibold">
-                    Rec. size: {selectedDayData.event.recommendedTeamSize}
+                    Solo Entry
                   </span>
                 )}
               </div>
               <Input
                 value={teamMembers}
                 onChange={(e) => setTeamMembers(e.target.value)}
-                placeholder="e.g. Aarav Sharma (8A, Roll 12), Priya Nair (8A, Roll 24)"
-                className="text-xs"
+                placeholder="Team members automatically filled here..."
+                className="text-xs bg-background/90"
               />
+              {dayParticipationMode?.mode === "team" && dayParticipationMode.teamName && (
+                <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium">
+                  👥 Pre-filled with all accepted members of team <strong>&ldquo;{dayParticipationMode.teamName}&rdquo;</strong>.
+                </p>
+              )}
               {myTeams.length > 0 && (
                 <div className="pt-1 space-y-1">
                   <p className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-                    <Users className="h-3 w-3 text-amber-500" /> Quick-fill from your formed teams:
+                    <Users className="h-3 w-3 text-amber-500" /> Switch / Select Team:
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {myTeams.map((team) => (
@@ -1869,7 +1921,11 @@ export default function VacationStudentPage({
                         key={team.id}
                         type="button"
                         onClick={() => handleUseTeamInSubmission(team)}
-                        className="text-[10px] px-2 py-0.5 rounded-md border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-foreground font-medium flex items-center gap-1 transition-colors"
+                        className={`text-[10px] px-2 py-0.5 rounded-md border text-foreground font-medium flex items-center gap-1 transition-colors ${
+                          teamMembers.includes(team.name)
+                            ? "border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold"
+                            : "border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
+                        }`}
                       >
                         <Users className="h-2.5 w-2.5 text-amber-500" />
                         <span>{team.name}</span>
@@ -1880,76 +1936,48 @@ export default function VacationStudentPage({
                 </div>
               )}
               <p className="text-[10px] text-muted-foreground">
-                All team members credited will receive points and badges!
+                All team members credited will receive official points and badges upon teacher approval!
               </p>
             </div>
 
+            {/* Project Summary / Solution Description */}
             <div className="space-y-1">
               <Label className="text-xs font-bold">Project Summary / Solution Description:</Label>
               <Textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Describe your model, experiment, solution, or key takeaways..."
-                rows={4}
+                rows={3}
                 className="text-xs"
               />
             </div>
 
-            {/* Direct File Upload */}
-            <div className="p-3 rounded-xl border border-dashed bg-muted/30 space-y-2">
+            {/* Project Deliverable Link (Link Only - File upload removed) */}
+            <div className="space-y-2 p-3.5 rounded-xl border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold flex items-center gap-1.5">
-                  <UploadCloud className="h-4 w-4 text-amber-500" />
-                  <span>Attach Photo / File Proof:</span>
+                <Label className="text-xs font-bold flex items-center gap-1.5 text-foreground">
+                  <LinkIcon className="h-4 w-4 text-amber-500" />
+                  <span>Project Deliverable Link (Required):</span>
                 </Label>
-                {uploadedFileUrl && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-[10px] text-destructive px-1"
-                    onClick={() => { setUploadedFileUrl(""); setLink(""); }}
-                  >
-                    Remove
-                  </Button>
-                )}
+                <span className="text-[10px] text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/20">
+                  Google Drive / YouTube / Canva
+                </span>
               </div>
-
-              {uploadingFile ? (
-                <div className="flex items-center gap-2 text-xs text-amber-600 font-semibold p-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Uploading to library storage...
-                </div>
-              ) : uploadedFileUrl ? (
-                <div className="text-xs font-bold text-emerald-600 flex items-center gap-1.5 p-2 bg-emerald-500/10 rounded-lg">
-                  <CheckCircle2 className="h-4 w-4" /> File attached successfully!
-                </div>
-              ) : (
-                <label className="block cursor-pointer">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,application/pdf"
-                    className="hidden"
-                    onChange={handleDirectFileUpload}
-                  />
-                  <div className="flex items-center justify-center gap-2 p-2 rounded-lg border bg-background hover:bg-muted text-xs font-semibold text-muted-foreground">
-                    <Camera className="h-4 w-4 text-amber-500" /> Choose Photo from Device
-                  </div>
-                </label>
-              )}
-            </div>
-
-            {/* External Link */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold flex items-center gap-1">
-                <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" /> Google Drive / YouTube / Project Link:
-              </Label>
               <Input
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
-                placeholder="https://drive.google.com/..."
-                className="text-xs"
+                placeholder="https://drive.google.com/... or https://youtube.com/..."
+                className="text-xs bg-background"
               />
+              <div className="text-[11px] text-muted-foreground space-y-1 pt-0.5">
+                <p className="flex items-start gap-1">
+                  <span className="text-amber-500 font-bold">💡</span>
+                  <span>Share a <strong>Google Drive</strong> folder/file (photos, PDF, slides), <strong>YouTube</strong> video, or <strong>Canva</strong> presentation.</span>
+                </p>
+                <p className="text-[10px] text-amber-800 dark:text-amber-200 font-medium pl-4">
+                  ⚠️ <strong>Important:</strong> Set Google Drive access to <strong>&ldquo;Anyone with the link can view&rdquo;</strong> so evaluating teachers can access your project.
+                </p>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -1963,7 +1991,7 @@ export default function VacationStudentPage({
               </Button>
               <Button
                 onClick={handleSubmitManual}
-                disabled={saving || uploadingFile || (!content.trim() && !link.trim())}
+                disabled={saving || (!content.trim() && !link.trim())}
                 className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
               >
                 {saving ? "Submitting..." : "Submit for Teacher Review →"}
