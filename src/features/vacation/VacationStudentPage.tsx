@@ -1850,43 +1850,47 @@ export default function VacationStudentPage({
 
       {/* ================= HANDS-ON PROJECT SUBMISSION DIALOG ================= */}
       <Dialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
-        <DialogContent className="max-w-lg p-5 rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-black">
-              Submit Day {selectedDayNumber}: {selectedDayData.event.title}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {allottedProblemInfo ? (
-                <span className="block font-semibold text-amber-700 dark:text-amber-300">
-                  Allotted Brief: {allottedProblemInfo.problem.title} ({dayParticipationMode?.mode === "team" ? `Team "${dayParticipationMode.teamName}"` : "Solo Entry"})
-                </span>
-              ) : (
-                "Share your project write-up, photo of your model, or external link for teacher review."
-              )}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90dvh] sm:max-h-[85vh] p-0 flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-amber-500/30">
+          {/* Fixed Header */}
+          <div className="p-4 sm:p-5 pb-3 border-b border-border/60 bg-card/90 shrink-0 pr-12">
+            <DialogHeader>
+              <DialogTitle className="text-base sm:text-lg font-black text-foreground">
+                Submit Day {selectedDayNumber}: {selectedDayData.event.title}
+              </DialogTitle>
+              <DialogDescription className="text-xs mt-1">
+                {allottedProblemInfo ? (
+                  <span className="block font-semibold text-amber-700 dark:text-amber-300">
+                    Allotted Brief: {allottedProblemInfo.problem.title} ({dayParticipationMode?.mode === "team" ? `Team "${dayParticipationMode.teamName}"` : "Solo Entry"})
+                  </span>
+                ) : (
+                  "Share your project deliverable link and explanation for teacher review."
+                )}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
-          {allottedProblemInfo && (
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
-              <p className="font-bold text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
-                <Dice5 className="h-3.5 w-3.5 text-amber-600" />
-                <span>Your Assigned Problem: {allottedProblemInfo.problem.title}</span>
-              </p>
-              <p className="text-[11px] text-amber-800 dark:text-amber-200 line-clamp-2">
-                {allottedProblemInfo.problem.description}
-              </p>
-              <p className="text-[10px] text-muted-foreground font-semibold pt-0.5">
-                📦 Deliverable: {allottedProblemInfo.problem.deliverable}
-              </p>
-            </div>
-          )}
+          {/* Scrollable Form Body */}
+          <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3.5 overscroll-contain touch-pan-y focus:outline-none">
+            {allottedProblemInfo && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
+                <p className="font-bold text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
+                  <Dice5 className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                  <span>Your Assigned Problem: {allottedProblemInfo.problem.title}</span>
+                </p>
+                <p className="text-[11px] text-amber-800 dark:text-amber-200 line-clamp-3 leading-relaxed">
+                  {allottedProblemInfo.problem.description}
+                </p>
+                <p className="text-[10px] text-muted-foreground font-semibold pt-0.5">
+                  📦 Deliverable: {allottedProblemInfo.problem.deliverable}
+                </p>
+              </div>
+            )}
 
-          <div className="space-y-3.5 pt-2">
             {/* Team Members Input (Automatically Filled for Teams) */}
             <div className="space-y-1.5 p-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <Label className="text-xs font-bold flex items-center gap-1.5 text-foreground">
-                  <Users className="h-3.5 w-3.5 text-amber-500" />
+                  <Users className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                   <span>Team Members:</span>
                 </Label>
                 {teamMembers.trim() ? (
@@ -1903,7 +1907,7 @@ export default function VacationStudentPage({
                 value={teamMembers}
                 onChange={(e) => setTeamMembers(e.target.value)}
                 placeholder="Team members automatically filled here..."
-                className="text-xs bg-background/90"
+                className="text-xs bg-background/90 h-9"
               />
               {dayParticipationMode?.mode === "team" && dayParticipationMode.teamName && (
                 <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium">
@@ -1913,7 +1917,7 @@ export default function VacationStudentPage({
               {myTeams.length > 0 && (
                 <div className="pt-1 space-y-1">
                   <p className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-                    <Users className="h-3 w-3 text-amber-500" /> Switch / Select Team:
+                    <Users className="h-3 w-3 text-amber-500 shrink-0" /> Switch / Select Team:
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {myTeams.map((team) => (
@@ -1921,13 +1925,13 @@ export default function VacationStudentPage({
                         key={team.id}
                         type="button"
                         onClick={() => handleUseTeamInSubmission(team)}
-                        className={`text-[10px] px-2 py-0.5 rounded-md border text-foreground font-medium flex items-center gap-1 transition-colors ${
+                        className={`text-[10px] px-2 py-1 rounded-md border text-foreground font-medium flex items-center gap-1 transition-colors ${
                           teamMembers.includes(team.name)
                             ? "border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold"
                             : "border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
                         }`}
                       >
-                        <Users className="h-2.5 w-2.5 text-amber-500" />
+                        <Users className="h-2.5 w-2.5 text-amber-500 shrink-0" />
                         <span>{team.name}</span>
                         <span className="text-muted-foreground">({team.members.filter((m) => m.status === "accepted").length})</span>
                       </button>
@@ -1942,21 +1946,21 @@ export default function VacationStudentPage({
 
             {/* Project Summary / Solution Description */}
             <div className="space-y-1">
-              <Label className="text-xs font-bold">Project Summary / Solution Description:</Label>
+              <Label className="text-xs font-bold text-foreground">Project Summary / Solution Description:</Label>
               <Textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Describe your model, experiment, solution, or key takeaways..."
                 rows={3}
-                className="text-xs"
+                className="text-xs bg-background resize-none"
               />
             </div>
 
             {/* Project Deliverable Link (Link Only - File upload removed) */}
             <div className="space-y-2 p-3.5 rounded-xl border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <Label className="text-xs font-bold flex items-center gap-1.5 text-foreground">
-                  <LinkIcon className="h-4 w-4 text-amber-500" />
+                  <LinkIcon className="h-4 w-4 text-amber-500 shrink-0" />
                   <span>Project Deliverable Link (Required):</span>
                 </Label>
                 <span className="text-[10px] text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/20">
@@ -1967,7 +1971,7 @@ export default function VacationStudentPage({
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
                 placeholder="https://drive.google.com/... or https://youtube.com/..."
-                className="text-xs bg-background"
+                className="text-xs bg-background h-9"
               />
               <div className="text-[11px] text-muted-foreground space-y-1 pt-0.5">
                 <p className="flex items-start gap-1">
@@ -1979,24 +1983,25 @@ export default function VacationStudentPage({
                 </p>
               </div>
             </div>
+          </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSubmitDialogOpen(false)}
-                className="text-xs text-foreground hover:bg-muted hover:text-foreground"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSubmitManual}
-                disabled={saving || (!content.trim() && !link.trim())}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
-              >
-                {saving ? "Submitting..." : "Submit for Teacher Review →"}
-              </Button>
-            </div>
+          {/* Sticky Footer */}
+          <div className="p-3 sm:p-4 border-t border-border/60 bg-muted/40 backdrop-blur-xs flex items-center justify-end gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSubmitDialogOpen(false)}
+              className="text-xs text-foreground hover:bg-muted"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitManual}
+              disabled={saving || (!content.trim() && !link.trim())}
+              className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs shadow-sm h-9 px-4"
+            >
+              {saving ? "Submitting..." : "Submit for Teacher Review →"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
