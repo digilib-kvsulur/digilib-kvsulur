@@ -187,35 +187,49 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     </script>
 
     <script>
-      // Automatically recover when Vite chunk loading fails after a new deployment
-      // Guard against infinite reload loops with a cooldown and cache eviction
-      window.addEventListener('vite:preloadError', function(event) {
+      // Automatically recover when Vite chunk loading fails after a new deployment.
+      // Two handlers are needed:
+      //   1. vite:preloadError  — fires when modulePreload is ENABLED (link-preload path)
+      //   2. unhandledrejection — fires when modulePreload is DISABLED (dynamic import() path)
+      //      because vite:preloadError is never emitted in that case.
+      // Both share the same cooldown key and cache-eviction logic to avoid reload loops.
+      function _dlmsChunkReload(label, preventFn) {
         var key = 'dlms_preload_reload_ts';
         var lastReload = parseInt(sessionStorage.getItem(key) || '0', 10);
         var now = Date.now();
-        // Allow at most one automatic recovery reload every 20 seconds
         if (now - lastReload > 20000) {
-          event.preventDefault();
+          if (preventFn) preventFn();
           sessionStorage.setItem(key, String(now));
-          // Unregister service workers so stale index.html is never served again
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(regs) {
               for (var i = 0; i < regs.length; i++) regs[i].unregister();
             });
           }
-          // Clear all browser cache storage so new chunk hashes are fetched fresh
           if ('caches' in window) {
             caches.keys().then(function(keys) {
               return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-            }).finally(function() {
-              window.location.reload();
-            });
+            }).finally(function() { window.location.reload(); });
           } else {
             window.location.reload();
           }
         } else {
-          // Do NOT preventDefault when cooldown is active so the real error surfaces instead of undefined
-          console.error('Vite chunk preload error repeated within cooldown window. Halting reload loop.', event.payload || event);
+          console.error('[DLMS] Chunk load error within cooldown window — halting reload loop.', label);
+        }
+      }
+
+      // Handler 1: modulePreload ENABLED path
+      window.addEventListener('vite:preloadError', function(event) {
+        _dlmsChunkReload(event.payload || event, function() { event.preventDefault(); });
+      });
+
+      // Handler 2: modulePreload DISABLED path — lazy import() failures become unhandled rejections
+      window.addEventListener('unhandledrejection', function(event) {
+        var msg = (event.reason && (event.reason.message || String(event.reason))) || '';
+        if (msg.indexOf('dynamically imported module') !== -1 ||
+            msg.indexOf('Failed to fetch') !== -1 ||
+            msg.indexOf('Importing a module script failed') !== -1 ||
+            msg.indexOf('error loading dynamically imported module') !== -1) {
+          _dlmsChunkReload(msg, function() { event.preventDefault(); });
         }
       });
 
