@@ -1901,14 +1901,36 @@ export default function VacationStudentPage({
           {/* Scrollable Form Body */}
           <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3.5 overscroll-contain touch-pan-y focus:outline-none">
             {allottedProblemInfo && (
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
-                <p className="font-bold text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
-                  <Dice5 className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                  <span>Your Assigned Problem: {allottedProblemInfo.problem.title}</span>
-                </p>
-                <p className="text-[11px] text-amber-800 dark:text-amber-200 line-clamp-3 leading-relaxed">
-                  {allottedProblemInfo.problem.description}
-                </p>
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2">
+                <div>
+                  <p className="font-bold text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
+                    <Dice5 className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                    <span>Your Assigned Problem: {allottedProblemInfo.problem.title}</span>
+                  </p>
+                  <p className="text-[11px] text-amber-800 dark:text-amber-200 line-clamp-2 leading-relaxed mt-0.5">
+                    {allottedProblemInfo.problem.description}
+                  </p>
+                </div>
+
+                {allottedProblemInfo.problem.requirements && allottedProblemInfo.problem.requirements.length > 0 && (
+                  <div className="p-2.5 rounded-lg bg-background/80 border border-amber-500/15 space-y-1.5">
+                    <span className="font-bold text-[11px] text-amber-900 dark:text-amber-200 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-amber-500 shrink-0" />
+                      Tasks / Clues ({allottedProblemInfo.problem.requirements.length}):
+                    </span>
+                    <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                      {allottedProblemInfo.problem.requirements.map((req, rIdx) => (
+                        <div key={rIdx} className="text-[10.5px] text-foreground/90 flex items-start gap-1.5">
+                          <span className="w-3.5 h-3.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-200 font-bold text-[8.5px] flex items-center justify-center shrink-0 mt-0.5">
+                            {rIdx + 1}
+                          </span>
+                          <span className="flex-1 whitespace-pre-wrap">{req}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <p className="text-[10px] text-muted-foreground font-semibold pt-0.5">
                   📦 Deliverable: {allottedProblemInfo.problem.deliverable}
                 </p>
