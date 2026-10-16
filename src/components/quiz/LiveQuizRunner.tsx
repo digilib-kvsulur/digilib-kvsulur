@@ -540,7 +540,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       setPointsGranted(true);
       triggerWinnerConfetti(1);
       toast.success(`🎉 Successfully awarded prize points to ${awardedCount} contestants!`, {
-        description: "1st: 5000 pts, 2nd: 2500 pts, 3rd: 1000 pts, 4-10th: 800 pts, others: 500 pts.",
+        description: "1st: 2000 pts, 2nd: 1500 pts, 3rd: 1000 pts, 4-10th: 750 pts, others: 500 pts.",
       });
     } catch (err: any) {
       toast.error("Failed to grant points: " + (err.message || "Unknown error"));
@@ -571,7 +571,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       if (!user) return;
 
       if (!isHost) {
-        // Calculate rank-based prize: 1st=5000, 2nd=2500, 3rd=1000, 4th-10th=800, others=500
+        // Calculate rank-based prize.
         const finalRank = participants.findIndex((p) => p.user_id === user.id) + 1;
         const prizePoints = disqualified ? 0 : (finalRank > 0 ? getPrizeForRank(finalRank) : getPrizeForRank(999));
 
@@ -716,10 +716,10 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
               <h4 className="text-xs font-bold uppercase tracking-wider text-white/60 mb-2 text-center">🏆 Prize Pool</h4>
               <div className="grid grid-cols-2 gap-1 text-xs">
                 {[
-                  { label: "🥇 1st Place", pts: "5,000 pts" },
-                  { label: "🥈 2nd Place", pts: "2,500 pts" },
+                  { label: "🥇 1st Place", pts: "2,000 pts" },
+                  { label: "🥈 2nd Place", pts: "1,500 pts" },
                   { label: "🥉 3rd Place", pts: "1,000 pts" },
-                  { label: "🏅 4th – 10th", pts: "800 pts" },
+                  { label: "🏅 4th – 10th", pts: "750 pts" },
                   { label: "🎖️ All others", pts: "500 pts" },
                   { label: "⛔ Disqualified", pts: "0 pts" },
                 ].map(({ label, pts }) => (

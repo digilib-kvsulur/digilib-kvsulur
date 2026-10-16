@@ -368,7 +368,7 @@ begin
        set status = 'approved', points_awarded = v_pts, reviewed_by = v_uid,
            reviewed_at = now(), review_note = nullif(btrim(p_note), '')
      where id = v_sub.id;
-    update public.profiles set points = coalesce(points, 0) + v_pts
+    update public.profiles set points = coalesce(points, 0) + (v_pts * 5)
      where id = v_sub.student_id;
 
     v_run := public.vacation_refresh_progress(
@@ -387,7 +387,7 @@ begin
     end loop;
 
     if v_bonus > 0 then
-      update public.profiles set points = coalesce(points, 0) + v_bonus
+      update public.profiles set points = coalesce(points, 0) + (v_bonus * 5)
        where id = v_sub.student_id;
       perform public.vacation_refresh_progress(
         v_sub.campaign_id, v_sub.student_id, v_act.activity_date);

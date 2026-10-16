@@ -168,8 +168,8 @@ begin
   select points into v_pts from public.profiles where id = v_s1;
   perform pg_temp.vacation_login(v_teacher);
   perform public.vacation_review_submission(v_sub, 'approve', 8, null);
-  if (select points from public.profiles where id = v_s1) <> v_pts + 8 then
-    raise exception 'points not awarded atomically';
+  if (select points from public.profiles where id = v_s1) <> v_pts + 40 then
+    raise exception 'vacation XP not awarded atomically';
   end if;
   if (select count(*) from public.vacation_point_events where submission_id = v_sub) <> 1 then
     raise exception 'expected one ledger row';

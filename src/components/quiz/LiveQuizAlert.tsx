@@ -8,8 +8,8 @@ interface LiveQuizAlertProps {
 }
 
 // Prize structure (exported for reuse)
-const PRIZE_POINTS: Record<string, number> = { "1": 5000, "2": 2500, "3": 1000 };
-const PRIZE_4_TO_10 = 800;
+const PRIZE_POINTS: Record<string, number> = { "1": 2000, "2": 1500, "3": 1000 };
+const PRIZE_4_TO_10 = 750;
 const PRIZE_OTHERS = 500;
 
 export const getPrizeForRank = (rank: number): number => {
@@ -175,9 +175,9 @@ export const LiveQuizAlert = ({ onJoinLeague }: LiveQuizAlertProps) => {
         {/* Prize teaser */}
         <div className="flex items-center gap-1.5 bg-white/10 rounded-xl px-2.5 py-1.5 text-xs">
           <Trophy className="h-3.5 w-3.5 text-amber-300 shrink-0" />
-          <span className="text-amber-200 font-bold">1st: 5,000 pts</span>
+          <span className="text-amber-200 font-bold">1st: 2,000 pts</span>
           <span className="text-white/40">•</span>
-          <span className="text-white/80">2nd: 2,500</span>
+          <span className="text-white/80">2nd: 1,500</span>
           <span className="text-white/40">•</span>
           <span className="text-white/80">3rd: 1,000</span>
         </div>

@@ -391,10 +391,10 @@ export const MultiplayerLobby = ({
         <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl px-4 py-3">
           <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-2 text-center">🏆 League Prize Pool</p>
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
-            <span className="text-amber-700 dark:text-amber-300 font-bold">🥇 5,000 pts</span>
-            <span className="text-amber-700 dark:text-amber-300 font-semibold">🥈 2,500 pts</span>
+            <span className="text-amber-700 dark:text-amber-300 font-bold">🥇 2,000 pts</span>
+            <span className="text-amber-700 dark:text-amber-300 font-semibold">🥈 1,500 pts</span>
             <span className="text-amber-700 dark:text-amber-300 font-semibold">🥉 1,000 pts</span>
-            <span className="text-amber-600 dark:text-amber-400">🏅 4th–10th: 800 pts</span>
+            <span className="text-amber-600 dark:text-amber-400">🏅 4th–10th: 750 pts</span>
             <span className="text-amber-600 dark:text-amber-400">🎖️ All others: 500 pts</span>
           </div>
         </div>

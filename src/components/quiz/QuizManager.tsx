@@ -583,7 +583,7 @@ const QuizManager = () => {
 
       triggerWinnerConfetti(1);
       sonnerToast.success(`🏆 Awarded prize points to ${awardedCount} contestants!`, {
-        description: "1st: 5000 pts, 2nd: 2500 pts, 3rd: 1000 pts, 4-10th: 800 pts, others: 500 pts.",
+        description: "1st: 2000 pts, 2nd: 1500 pts, 3rd: 1000 pts, 4-10th: 750 pts, others: 500 pts.",
       });
     } catch (err: any) {
       sonnerToast.error("Failed to grant points: " + (err.message || "Unknown error"));
@@ -1026,7 +1026,7 @@ const QuizManager = () => {
                             disabled={isGrantingPoints === session.id}
                             onClick={() => handleGrantLeaguePoints(session)}
                             className="font-bold text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border-amber-300"
-                            title="Award prize points to winners (1st: 5000, 2nd: 2500, 3rd: 1000...)"
+                            title="Award prize points to winners (1st: 2000, 2nd: 1500, 3rd: 1000...)"
                           >
                             <Award className="h-3.5 w-3.5 mr-1 text-amber-600" />
                             {isGrantingPoints === session.id ? "Granting..." : "Grant Points"}
