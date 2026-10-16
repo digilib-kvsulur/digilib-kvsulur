@@ -6,18 +6,25 @@ const DB_VERSION = 1;
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "_id", autoIncrement: true });
-      }
-      if (!db.objectStoreNames.contains(MAP_STORE)) {
-        db.createObjectStore(MAP_STORE, { keyPath: "localKey" });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    if (typeof indexedDB === "undefined") {
+      return reject(new Error("IndexedDB is not supported on this platform"));
+    }
+    try {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: "_id", autoIncrement: true });
+        }
+        if (!db.objectStoreNames.contains(MAP_STORE)) {
+          db.createObjectStore(MAP_STORE, { keyPath: "localKey" });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
