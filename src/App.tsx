@@ -312,15 +312,15 @@ const App = () => {
           <Sonner position="top-right" richColors closeButton />
           <Analytics />
           <AppRouter>
-            <GlobalLibraryLoaderOverlay />
-            <GlobalNotificationsProvider>
-              <CommandPalette />
-              <Seo />
-              <UpdateBanner />
-              <PWAInstallBanner />
-              <DomainMigrationBanner />
-              <MigrationInstallGuide />
-              <ErrorBoundary>
+            <ErrorBoundary>
+              <GlobalLibraryLoaderOverlay />
+              <GlobalNotificationsProvider>
+                <CommandPalette />
+                <Seo />
+                <UpdateBanner />
+                <PWAInstallBanner />
+                <DomainMigrationBanner />
+                <MigrationInstallGuide />
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                   {/* Standalone Multi-Tenant Routes */}
@@ -411,9 +411,9 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
-            </ErrorBoundary>
             </GlobalNotificationsProvider>
-          </AppRouter>
+          </ErrorBoundary>
+        </AppRouter>
         </TooltipProvider>
       </TenantProvider>
     </QueryClientProvider>
