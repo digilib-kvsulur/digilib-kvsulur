@@ -3,6 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Android WebView Legacy Polyfills -->
+    <script>
+      (function() {
+        if (typeof globalThis === 'undefined') window.globalThis = window;
+        if (!window.crypto) window.crypto = window.msCrypto || {};
+        if (!window.crypto.randomUUID) {
+          window.crypto.randomUUID = function() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+              var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+              return v.toString(16);
+            });
+          };
+        }
+        if (!Array.prototype.at) {
+          Array.prototype.at = function(n) {
+            n = Math.trunc(n) || 0;
+            if (n < 0) n += this.length;
+            if (n < 0 || n >= this.length) return undefined;
+            return this[n];
+          };
+        }
+        if (!Object.hasOwn) {
+          Object.hasOwn = function(obj, prop) {
+            return Object.prototype.hasOwnProperty.call(obj, prop);
+          };
+        }
+      })();
+    </script>
     <!-- LCP Preload: Hero image discovered by browser before JS executes -->
     <link rel="preload" as="image" href="/assets/landing-hero.jpg" fetchpriority="high" />
 
@@ -309,18 +337,31 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <div style="width:12rem;height:0.375rem;background:rgba(99,102,241,0.12);border-radius:9999px;overflow:hidden;position:relative;">
           <div class="progress-slide" style="position:absolute;inset-block:0;width:33%;background:linear-gradient(90deg,#6366f1,#818cf8,#f59e0b);border-radius:9999px;"></div>
         </div>
-      </div>
 
-      <!-- Hidden SEO content: crawlable but not visible to users -->
-      <div style="display:none;" aria-hidden="true">
-        <header><h1>PM SHRI KV Sulur Digital Library</h1><p>Digital Library Management System (DLMS) — Kendriya Vidyalaya Air Force Station Sulur, Coimbatore</p></header>
-        <main>
-          <section><h2>A Digital Library Built for PM SHRI Kendriya Vidyalaya Learners</h2><p>Welcome to the official digital library of PM SHRI Kendriya Vidyalaya AFS Sulur. Explore thousands of physical and digital books, textbooks, CBSE and NCERT reference materials, track your reading streaks, take comprehension quizzes, and climb the school leaderboard.</p></section>
-          <nav aria-label="Library Navigation"><h3>Explore Library Portals</h3><ul><li><a href="/catalog">Browse Book Catalogue</a></li><li><a href="/download">Download Android &amp; Windows App</a></li><li><a href="/support">Library Help &amp; Support</a></li><li><a href="/feedback">Share Feedback</a></li><li><a href="/login">Student &amp; Staff Login</a></li></ul></nav>
-          <footer><p>Address: PM SHRI Kendriya Vidyalaya AFS Sulur, Air Force Station Sulur, Coimbatore, Tamil Nadu - 641401</p></footer>
-        </main>
+        <!-- Timeout fallback (shown if loading takes > 6s) -->
+        <div id="pre-react-fallback" style="display:none;margin-top:1.5rem;text-align:center;">
+          <p style="font-size:0.75rem;color:#64748b;margin-bottom:0.5rem;">Taking longer than usual?</p>
+          <button onclick="if('caches' in window){caches.keys().then(function(k){return Promise.all(k.map(function(i){return caches.delete(i)}))}).finally(function(){location.reload()})}else{location.reload()}" style="padding:6px 14px;font-size:12px;background:#4f46e5;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Reload App</button>
+        </div>
       </div>
     </div>
+
+    <!-- Hidden SEO content: crawlable but outside #root so React root mounts cleanly -->
+    <div style="display:none;" aria-hidden="true">
+      <header><h1>PM SHRI KV Sulur Digital Library</h1><p>Digital Library Management System (DLMS) — Kendriya Vidyalaya Air Force Station Sulur, Coimbatore</p></header>
+      <main>
+        <section><h2>A Digital Library Built for PM SHRI Kendriya Vidyalaya Learners</h2><p>Welcome to the official digital library of PM SHRI Kendriya Vidyalaya AFS Sulur. Explore thousands of physical and digital books, textbooks, CBSE and NCERT reference materials, track your reading streaks, take comprehension quizzes, and climb the school leaderboard.</p></section>
+        <nav aria-label="Library Navigation"><h3>Explore Library Portals</h3><ul><li><a href="/catalog">Browse Book Catalogue</a></li><li><a href="/download">Download Android &amp; Windows App</a></li><li><a href="/support">Library Help &amp; Support</a></li><li><a href="/feedback">Share Feedback</a></li><li><a href="/login">Student &amp; Staff Login</a></li></ul></nav>
+        <footer><p>Address: PM SHRI Kendriya Vidyalaya AFS Sulur, Air Force Station Sulur, Coimbatore, Tamil Nadu - 641401</p></footer>
+      </main>
+    </div>
+
+    <script>
+      setTimeout(function() {
+        var fb = document.getElementById('pre-react-fallback');
+        if (fb && document.getElementById('pre-react-loader')) fb.style.display = 'block';
+      }, 6000);
+    </script>
 
     <style>
       @keyframes pulse {

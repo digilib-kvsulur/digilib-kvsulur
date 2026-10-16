@@ -23,10 +23,35 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Unhandled DLMS render exception caught by ErrorBoundary:", error, errorInfo);
+    const msg = error?.message || String(error || "");
+    if (
+      msg.includes("dynamically imported module") ||
+      msg.includes("Failed to fetch") ||
+      msg.includes("ChunkLoadError") ||
+      msg.includes("Importing a module script failed")
+    ) {
+      const key = "dlms_eb_chunk_reload";
+      const last = parseInt(sessionStorage.getItem(key) || "0", 10);
+      if (Date.now() - last > 20000) {
+        sessionStorage.setItem(key, String(Date.now()));
+        this.handleReload();
+      }
+    }
   }
 
   private handleReload = () => {
-    window.location.reload();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        for (const reg of regs) reg.unregister();
+      });
+    }
+    if ("caches" in window) {
+      caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).finally(() => {
+        window.location.reload();
+      });
+    } else {
+      window.location.reload();
+    }
   };
 
   private handleHome = () => {
