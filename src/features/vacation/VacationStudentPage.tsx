@@ -1391,6 +1391,35 @@ export default function VacationStudentPage({
                           </p>
                         </div>
 
+                        {/* Clues, Questions & Specific Tasks Section */}
+                        {allottedProblemInfo?.problem.requirements && allottedProblemInfo.problem.requirements.length > 0 && (
+                          <div className="space-y-2.5 pt-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <h5 className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
+                                <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
+                                <span>Specific Clues, Questions & Tasks:</span>
+                              </h5>
+                              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/25 px-2 py-0.5 rounded-full">
+                                {allottedProblemInfo.problem.requirements.length} Tasks / Clues
+                              </span>
+                            </div>
+
+                            <div className="space-y-2">
+                              {allottedProblemInfo.problem.requirements.map((req, rIdx) => (
+                                <div
+                                  key={rIdx}
+                                  className="p-3 rounded-xl bg-amber-500/5 dark:bg-slate-900/60 border border-amber-500/20 text-xs sm:text-[13px] text-foreground leading-relaxed flex items-start gap-2.5 shadow-2xs"
+                                >
+                                  <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5 border border-amber-500/30">
+                                    {rIdx + 1}
+                                  </span>
+                                  <div className="flex-1 whitespace-pre-wrap font-medium">{req}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Deliverable Callout Box */}
                         <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs space-y-1">
                           <p className="font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
@@ -2019,7 +2048,7 @@ export default function VacationStudentPage({
             </DialogDescription>
           </DialogHeader>
 
-          {!isProblemUnlocked ? (
+          {isDayToday && isBefore8AmToday ? (
             <div className="py-8 px-4 text-center space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 flex items-center justify-center mx-auto border border-amber-500/30">
                 <Lock className="h-6 w-6" />
@@ -2033,6 +2062,12 @@ export default function VacationStudentPage({
             </div>
           ) : (
             <div className="space-y-3 pt-2">
+              {!dayParticipationMode && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-900 dark:text-amber-100 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span>Browse all 5 problem statements below. Confirm your Individual or Team mode on the main challenge card to reveal your officially allotted problem!</span>
+                </div>
+              )}
               {dayProblemSet.problems.map((prob) => {
                 const isMyAllotted = allottedProblemInfo?.problem.id === prob.id;
                 return (
@@ -2057,6 +2092,30 @@ export default function VacationStudentPage({
                     <p className="text-xs text-foreground/90 leading-relaxed mb-2.5 whitespace-pre-wrap font-normal">
                       {prob.description}
                     </p>
+
+                    {/* Clues & Requirements list */}
+                    {prob.requirements && prob.requirements.length > 0 && (
+                      <div className="my-2.5 space-y-1.5 p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                        <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-amber-500" />
+                          <span>Specific Clues, Questions & Tasks ({prob.requirements.length}):</span>
+                        </span>
+                        <div className="space-y-1.5 pl-1 pt-1">
+                          {prob.requirements.map((req, rIdx) => (
+                            <div
+                              key={rIdx}
+                              className="p-2 rounded-lg bg-background/90 border border-amber-500/15 text-[11px] sm:text-xs text-foreground/90 flex items-start gap-2 shadow-2xs"
+                            >
+                              <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-200 font-bold text-[9px] flex items-center justify-center shrink-0 mt-0.5">
+                                {rIdx + 1}
+                              </span>
+                              <span className="flex-1 whitespace-pre-wrap font-medium">{req}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="p-2.5 rounded-lg bg-muted/60 text-[11px] text-muted-foreground border">
                       <strong className="text-foreground">Required Deliverable:</strong> {prob.deliverable}
                     </div>
