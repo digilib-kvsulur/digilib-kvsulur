@@ -129,6 +129,7 @@ export default function VacationStudentPage({
   const [content, setContent] = useState("");
   const [teamMembers, setTeamMembers] = useState("");
   const [link, setLink] = useState("");
+  const [showOptionalLink, setShowOptionalLink] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadedFileUrl, setUploadedFileUrl] = useState("");
@@ -1450,16 +1451,18 @@ export default function VacationStudentPage({
                           </div>
                         )}
 
-                        {/* Deliverable Callout Box */}
-                        <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs space-y-1">
-                          <p className="font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-sky-600" />
-                            <span>Required Deliverables:</span>
-                          </p>
-                          <p className="text-[11px] text-sky-800 dark:text-sky-300 leading-relaxed">
-                            {allottedProblemInfo?.problem.deliverable}
-                          </p>
-                        </div>
+                        {/* Deliverable Callout Box (Only shown for days with media/craft deliverables; hidden for Day 2 Digital Quest) */}
+                        {submissionConfig.requiresLink && allottedProblemInfo?.problem.deliverable && (
+                          <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs space-y-1">
+                            <p className="font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                              <FileText className="h-3.5 w-3.5 text-sky-600" />
+                              <span>Required Deliverables:</span>
+                            </p>
+                            <p className="text-[11px] text-sky-800 dark:text-sky-300 leading-relaxed">
+                              {allottedProblemInfo.problem.deliverable}
+                            </p>
+                          </div>
+                        )}
 
                         {dayParticipationMode.mode === "team" && (
                           <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-200 flex items-center gap-2">
@@ -1557,7 +1560,11 @@ export default function VacationStudentPage({
                   </div>
 
                   <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-                    Solve your allotted problem statement (individually or as a team). Share your project deliverable link (Google Drive photos/slides, YouTube video, or Canva) to earn official rubric points and streak bonuses.
+                    {submissionConfig.requiresLink ? (
+                      "Solve your allotted problem statement (individually or as a team). Share your project deliverable link (Google Drive photos/slides, YouTube video, or Canva) to earn official rubric points and streak bonuses."
+                    ) : (
+                      "Solve your allotted problem statement clues (individually or as a team). Submit your answers and final secret solution directly to earn official points and streak bonuses."
+                    )}
                   </p>
 
                   <div className="space-y-2">
@@ -1568,7 +1575,13 @@ export default function VacationStudentPage({
                         className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-sm h-12 shadow-md hover:shadow-lg transition-all active:scale-[0.99] gap-2"
                       >
                         <ExternalLink className="h-5 w-5 text-white" />
-                        <span>{currentSubmission ? "View / Edit Your Challenge Entry" : "🚀 Submit Challenge Link Now"}</span>
+                        <span>
+                          {currentSubmission
+                            ? "View / Edit Your Challenge Entry"
+                            : submissionConfig.requiresLink
+                            ? "🚀 Submit Challenge Link Now"
+                            : "🚀 Submit Your Solution Now"}
+                        </span>
                       </Button>
                     ) : isDayToday && isBefore8AmToday ? (
                       <Button
@@ -1922,7 +1935,9 @@ export default function VacationStudentPage({
                     Allotted Brief: {allottedProblemInfo.problem.title} ({dayParticipationMode?.mode === "team" ? `Team "${dayParticipationMode.teamName}"` : "Solo Entry"})
                   </span>
                 ) : (
-                  "Share your project deliverable link and explanation for teacher review."
+                  submissionConfig.requiresLink
+                    ? "Share your project deliverable link and explanation for teacher review."
+                    : "Enter your clue answers and solutions directly for teacher review."
                 )}
               </DialogDescription>
             </DialogHeader>
@@ -1961,9 +1976,11 @@ export default function VacationStudentPage({
                   </div>
                 )}
 
-                <p className="text-[10px] text-muted-foreground font-semibold pt-0.5">
-                  📦 Deliverable: {allottedProblemInfo.problem.deliverable}
-                </p>
+                {submissionConfig.requiresLink && allottedProblemInfo.problem.deliverable && (
+                  <p className="text-[10px] text-muted-foreground font-semibold pt-0.5">
+                    📦 Deliverable: {allottedProblemInfo.problem.deliverable}
+                  </p>
+                )}
               </div>
             )}
 
@@ -2073,58 +2090,73 @@ export default function VacationStudentPage({
               />
             </div>
 
-            {/* Project Deliverable Link (Required for media/craft days, Optional for Day 2 quests) */}
-            <div className={`space-y-2 p-3.5 rounded-xl border ${
-              submissionConfig.requiresLink
-                ? "border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent"
-                : "border-border/60 bg-muted/20"
-            }`}>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <Label className="text-xs font-bold flex items-center gap-1.5 text-foreground">
-                  <LinkIcon className="h-4 w-4 text-amber-500 shrink-0" />
-                  <span>
-                    {submissionConfig.requiresLink
-                      ? "Project Deliverable Link (Required):"
-                      : "Supporting Link (Optional):"}
+            {/* Project Deliverable Link (Required for media/craft days, Optional/Collapsible for Day 2 quests) */}
+            {submissionConfig.requiresLink ? (
+              <div className="space-y-2 p-3.5 rounded-xl border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label className="text-xs font-bold flex items-center gap-1.5 text-foreground">
+                    <LinkIcon className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span>Project Deliverable Link (Required):</span>
+                  </Label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border text-amber-700 dark:text-amber-300 bg-amber-500/15 border-amber-500/20">
+                    Google Drive / YouTube / Canva
                   </span>
-                </Label>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  submissionConfig.requiresLink
-                    ? "text-amber-700 dark:text-amber-300 bg-amber-500/15 border-amber-500/20"
-                    : "text-muted-foreground bg-background border-border/60"
-                }`}>
-                  {submissionConfig.requiresLink ? "Google Drive / YouTube / Canva" : "Optional Reference"}
-                </span>
-              </div>
-              <Input
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                placeholder={
-                  submissionConfig.requiresLink
-                    ? "https://drive.google.com/... or https://youtube.com/..."
-                    : "https://drive.google.com/... (optional reference/notes)"
-                }
-                className="text-xs bg-background h-9"
-              />
-              <div className="text-[11px] text-muted-foreground space-y-1 pt-0.5">
-                {submissionConfig.requiresLink ? (
-                  <>
-                    <p className="flex items-start gap-1">
-                      <span className="text-amber-500 font-bold">💡</span>
-                      <span>Share a <strong>Google Drive</strong> folder/file (photos, PDF, slides), <strong>YouTube</strong> video, or <strong>Canva</strong> presentation.</span>
-                    </p>
-                    <p className="text-[10px] text-amber-800 dark:text-amber-200 font-medium pl-4">
-                      ⚠️ <strong>Important:</strong> Set Google Drive access to <strong>&ldquo;Anyone with the link can view&rdquo;</strong> so evaluating teachers can access your project.
-                    </p>
-                  </>
-                ) : (
-                  <p className="flex items-start gap-1 text-[10.5px]">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
-                    <span>No external link needed for this quest! Your written answers above will be reviewed directly by teachers.</span>
+                </div>
+                <Input
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                  placeholder="https://drive.google.com/... or https://youtube.com/..."
+                  className="text-xs bg-background h-9"
+                />
+                <div className="text-[11px] text-muted-foreground space-y-1 pt-0.5">
+                  <p className="flex items-start gap-1">
+                    <span className="text-amber-500 font-bold">💡</span>
+                    <span>Share a <strong>Google Drive</strong> folder/file (photos, PDF, slides), <strong>YouTube</strong> video, or <strong>Canva</strong> presentation.</span>
                   </p>
+                  <p className="text-[10px] text-amber-800 dark:text-amber-200 font-medium pl-4">
+                    ⚠️ <strong>Important:</strong> Set Google Drive access to <strong>&ldquo;Anyone with the link can view&rdquo;</strong> so evaluating teachers can access your project.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="pt-0.5">
+                {link || showOptionalLink ? (
+                  <div className="space-y-1.5 p-2.5 rounded-xl border border-border/60 bg-muted/20">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                        <LinkIcon className="h-3 w-3 text-amber-500" />
+                        <span>Optional Reference Link:</span>
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLink("");
+                          setShowOptionalLink(false);
+                        }}
+                        className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                      >
+                        Hide
+                      </button>
+                    </div>
+                    <Input
+                      value={link}
+                      onChange={(e) => setLink(e.target.value)}
+                      placeholder="https://drive.google.com/... (optional)"
+                      className="text-xs bg-background h-8"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowOptionalLink(true)}
+                    className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium transition-colors py-1"
+                  >
+                    <LinkIcon className="h-3 w-3 text-amber-500/70" />
+                    <span>+ Add optional reference link (e.g. Google Doc notes)</span>
+                  </button>
                 )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Sticky Footer */}
