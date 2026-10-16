@@ -6,6 +6,7 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
   base: process.env.ELECTRON === 'true' ? './' : '/',
   build: {
+    target: "es2018",
     // Keep source maps out of the public production bundle.
     sourcemap: false,
     modulePreload: false,
