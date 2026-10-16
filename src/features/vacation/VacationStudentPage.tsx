@@ -2266,9 +2266,11 @@ export default function VacationStudentPage({
                       </div>
                     )}
 
-                    <div className="p-2.5 rounded-lg bg-muted/60 text-[11px] text-muted-foreground border">
-                      <strong className="text-foreground">Required Deliverable:</strong> {prob.deliverable}
-                    </div>
+                    {submissionConfig.requiresLink && prob.deliverable && (
+                      <div className="p-2.5 rounded-lg bg-muted/60 text-[11px] text-muted-foreground border">
+                        <strong className="text-foreground">Required Deliverable:</strong> {prob.deliverable}
+                      </div>
+                    )}
                   </div>
                 );
               })}
