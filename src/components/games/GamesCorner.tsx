@@ -38,6 +38,9 @@ import Book2048 from "./Book2048";
 import StorySequence from "./StorySequence";
 import CharacterPairUp from "./CharacterPairUp";
 
+const GAME_CONTENT_CACHE_MS = 5 * 60 * 1000;
+const gameContentCache = new Map<string, { items: GameContentItem[]; cachedAt: number }>();
+
 const ICONS: Record<string, React.ElementType> = {
   Layers, Grid3x3, Shuffle, PuzzleIcon: Puzzle, Puzzle, Spade, Grid2x2, Gamepad2, Zap, Sparkles, Trophy, Users,
 };
@@ -104,6 +107,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
   const [plays, setPlays] = useState<any[]>([]);
   const [content, setContent] = useState<GameContentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingGameContent, setLoadingGameContent] = useState(false);
   const [active, setActive] = useState<GameDef | null>(null);
   const [startedAt, setStartedAt] = useState<number>(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -130,10 +134,9 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
         }
       }
 
-      const [{ data: g }, { data: b }, { data: c }] = await Promise.all([
+      const [{ data: g }, { data: b }] = await Promise.all([
         supabase.from("games").select("*").eq("is_enabled", true).order("sort_order"),
-        supabase.from("books").select("id, title, author, cover_url, category").limit(120),
-        supabase.from("game_content").select("*").eq("is_active", true).limit(2000),
+        supabase.from("books").select("id, title, author, cover_url, category").limit(60),
       ]);
       const fetched = (g || []) as GameDef[];
       const existingKeys = new Set(fetched.map((x) => x.key));
@@ -146,7 +149,6 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       combined.sort((a, b) => a.sort_order - b.sort_order);
       setGames(combined);
       setBooks((b || []) as GameBook[]);
-      setContent((c || []) as unknown as GameContentItem[]);
     } catch (e) {
       console.error(e);
       setGames(FALLBACK_GAMES);
@@ -158,7 +160,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
   const loadPlays = useCallback(async () => {
     const { data: p } = await supabase
       .from("game_plays")
-      .select("*")
+      .select("id, game_key, played_at, points_earned, is_win, score")
       .eq("user_id", userId)
       .order("played_at", { ascending: false })
       .limit(100);
@@ -202,6 +204,23 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       return; // ← block game from opening
     }
     setActive(g);
+    setLoadingGameContent(true);
+    const cachedContent = gameContentCache.get(g.key);
+    if (cachedContent && Date.now() - cachedContent.cachedAt < GAME_CONTENT_CACHE_MS) {
+      setContent(cachedContent.items);
+      setLoadingGameContent(false);
+    } else {
+      const { data, error } = await supabase
+        .from("game_content")
+        .select("id, game_key, kind, value, hint, extra, is_active")
+        .eq("game_key", g.key)
+        .eq("is_active", true)
+        .limit(200);
+      const gameItems = error ? [] : (data || []) as GameContentItem[];
+      gameContentCache.set(g.key, { items: gameItems, cachedAt: Date.now() });
+      setContent(gameItems);
+      setLoadingGameContent(false);
+    }
     await startNewSession(g.key);
   };
 
@@ -237,6 +256,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
 
   const renderGame = () => {
     if (!active) return null;
+    if (loadingGameContent) return <Skeleton className="h-64 w-full rounded-xl" />;
     const props = {
       books,
       content: content.filter((c) => c.game_key === active.key),

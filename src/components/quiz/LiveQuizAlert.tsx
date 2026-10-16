@@ -67,7 +67,7 @@ export const LiveQuizAlert = ({ onJoinLeague }: LiveQuizAlertProps) => {
 
     const { data } = await supabase
       .from("quiz_sessions")
-      .select("*, quizzes(*)")
+      .select("id, quiz_id, room_code, status, scheduled_start_at, league_name, created_at, quizzes(title)")
       .or(`status.eq.active,and(status.eq.waiting,or(scheduled_start_at.is.null,scheduled_start_at.lte.${in1Hour})),and(status.eq.scheduled,scheduled_start_at.lte.${in1Hour})`)
       .neq("status", "finished")
       .order("created_at", { ascending: false })

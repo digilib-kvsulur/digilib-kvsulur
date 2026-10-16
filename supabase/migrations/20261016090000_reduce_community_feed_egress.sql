@@ -58,3 +58,19 @@ REVOKE ALL ON FUNCTION public.get_community_post_stats(uuid[]) FROM PUBLIC, anon
 REVOKE ALL ON FUNCTION public.get_community_poll_stats(uuid[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_community_post_stats(uuid[]) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_community_poll_stats(uuid[]) TO authenticated;
+
+-- Let live quiz cards retrieve question counts without transferring question JSON.
+CREATE OR REPLACE FUNCTION public.get_quiz_question_count(p_quiz_id uuid)
+RETURNS integer
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = public
+AS $$
+  SELECT coalesce(jsonb_array_length(quizzes.questions), 0)
+  FROM public.quizzes
+  WHERE quizzes.id = p_quiz_id;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_quiz_question_count(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_quiz_question_count(uuid) TO authenticated;

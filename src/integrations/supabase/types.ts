@@ -2429,38 +2429,47 @@ export type Database = {
       }
       quiz_sessions: {
         Row: {
+          auto_start: boolean
           created_at: string
           current_question_index: number
           host_id: string | null
           id: string
+          league_name: string | null
           quiz_id: string
           room_code: string | null
           scheduled_start_at: string | null
           status: string
+          target_class: string | null
           time_per_question: number
           updated_at: string
         }
         Insert: {
+          auto_start?: boolean
           created_at?: string
           current_question_index?: number
           host_id?: string | null
           id?: string
+          league_name?: string | null
           quiz_id: string
           room_code?: string | null
           scheduled_start_at?: string | null
           status?: string
+          target_class?: string | null
           time_per_question?: number
           updated_at?: string
         }
         Update: {
+          auto_start?: boolean
           created_at?: string
           current_question_index?: number
           host_id?: string | null
           id?: string
+          league_name?: string | null
           quiz_id?: string
           room_code?: string | null
           scheduled_start_at?: string | null
           status?: string
+          target_class?: string | null
           time_per_question?: number
           updated_at?: string
         }
@@ -3452,6 +3461,10 @@ export type Database = {
           vote_count: number
           viewer_voted: boolean
         }[]
+      }
+      get_quiz_question_count: {
+        Args: { p_quiz_id: string }
+        Returns: number
       }
       get_user_network_connections: {
         Args: {

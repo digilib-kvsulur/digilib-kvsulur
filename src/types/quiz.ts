@@ -35,6 +35,7 @@ export interface QuizAttempt {
 }
 
 export interface QuizResult {
+  id?: string;
   quizId: string;
   quizTitle: string;
   score: number;

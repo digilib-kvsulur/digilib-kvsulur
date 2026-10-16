@@ -7,6 +7,7 @@ import { Trophy, Clock, Award, TrendingUp, Star, Play, Sparkles, HelpCircle, Cal
 import { Quiz, QuizResult } from "@/types/quiz";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface QuizPageProps {
   quizzes: Quiz[];
@@ -17,6 +18,24 @@ interface QuizPageProps {
 const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
   const { toast } = useToast();
   const [selectedReview, setSelectedReview] = useState<any | null>(null);
+  const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
+
+  const openAnalysis = async (result: any) => {
+    if (!result.quizId) return;
+    const requestId = result.id || result.quizId;
+    setReviewLoadingId(requestId);
+    const { data, error } = await supabase
+      .from("quizzes")
+      .select("id, title, questions")
+      .eq("id", result.quizId)
+      .maybeSingle();
+    setReviewLoadingId(null);
+    if (error || !data) {
+      toast({ title: "Quiz analysis unavailable", description: "Please try again later.", variant: "destructive" });
+      return;
+    }
+    setSelectedReview({ ...result, quizTitle: result.quizTitle || data.title, quizzes: data });
+  };
 
   const handleStartQuiz = (quiz: Quiz) => {
     try {
@@ -213,8 +232,8 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
                     const score = result.score || 0;
                     const completedAt = result.completedAt || (result as any).completed_at;
                     const pointsEarned = result.pointsEarned || (result as any).points_earned || 0;
-                    const qList = (result as any).quizzes?.questions || [];
-                    const totalQuestions = result.totalQuestions || qList.length || 0;
+                    const answerList = Array.isArray(result.answers) ? result.answers : [];
+                    const totalQuestions = result.totalQuestions || answerList.length || 0;
                     const correctAnswers = result.correctAnswers !== undefined ? result.correctAnswers : Math.round((score / 100) * totalQuestions);
 
                     return (
@@ -237,14 +256,15 @@ const QuizPage = ({ quizzes, results, onSelectQuiz }: QuizPageProps) => {
                         </div>
                         
                         <div className="flex items-center gap-3.5 self-end sm:self-center">
-                          {qList.length > 0 && result.answers && (
+                          {answerList.length > 0 && result.quizId && (
                             <Button 
                               size="sm" 
                               variant="outline" 
                               className="text-xs h-8 text-indigo-600 hover:text-indigo-700"
-                              onClick={() => setSelectedReview(result)}
+                              disabled={reviewLoadingId === (result.id || result.quizId)}
+                              onClick={() => void openAnalysis(result)}
                             >
-                              <Eye className="h-3.5 w-3.5 mr-1" /> Analysis
+                              <Eye className="h-3.5 w-3.5 mr-1" /> {reviewLoadingId === (result.id || result.quizId) ? "Loading…" : "Analysis"}
                             </Button>
                           )}
                           <div className="text-right">

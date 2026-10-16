@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { loadingManager } from "@/lib/loadingManager";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -118,6 +118,7 @@ const StudentDashboard = () => {
   const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
   const [currentBooks, setCurrentBooks] = useState<any[]>([]);
   const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
+  const [availableQuizzesLoaded, setAvailableQuizzesLoaded] = useState(false);
   const [quizResults, setQuizResults] = useState<any[]>([]);
   const [challenges, setChallenges] = useState<any[]>([]);
   const [previousLevel, setPreviousLevel] = useState<number | null>(null);
@@ -608,11 +609,25 @@ const StudentDashboard = () => {
 
   const fetchQuizResults = async () => {
     if (!user?.id) return;
-    const { data } = await supabase.from('quiz_results').select('*, quizzes (title, description, subject, difficulty, questions)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(50);
-    setQuizResults(data || []); setQuizResultsCount(data?.length || 0);
+    const { data } = await supabase.from('quiz_results').select('id, quiz_id, score, points_earned, answers, completed_at, quizzes(title)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(50);
+    const results = (data || []).map((row: any) => ({
+      id: row.id,
+      quizId: row.quiz_id,
+      quizTitle: row.quizzes?.title || "Quiz",
+      score: row.score || 0,
+      pointsEarned: row.points_earned || 0,
+      completedAt: row.completed_at,
+      answers: Array.isArray(row.answers) ? row.answers : [],
+      totalQuestions: Array.isArray(row.answers) ? row.answers.length : 0,
+      correctAnswers: Math.round((row.score || 0) / 100 * (Array.isArray(row.answers) ? row.answers.length : 0)),
+      completionBonus: 0,
+      totalPointsAwarded: row.points_earned || 0,
+      timeSpent: 0,
+    }));
+    setQuizResults(results); setQuizResultsCount(results.length);
   };
 
-  const fetchAvailableQuizzes = async () => {
+  const fetchAvailableQuizzes = useCallback(async () => {
     const { data } = await supabase.from('quizzes')
       .select('id, title, description, difficulty, time_limit, points_reward, questions, is_active, created_at, created_by')
       .eq('is_active', true).order('created_at', { ascending: false });
@@ -629,7 +644,8 @@ const StudentDashboard = () => {
       createdAt: q.created_at, 
       createdBy: q.created_by 
     })) || []);
-  };
+    setAvailableQuizzesLoaded(true);
+  }, []);
 
   const fetchChallenges = async () => {
     const { data: challengeData } = await supabase.from('challenges')
@@ -765,7 +781,7 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     if (user?.id) {
-      fetchCurrentBooks(); fetchQuizResults(); fetchAvailableQuizzes(); fetchChallenges();
+      fetchCurrentBooks(); fetchQuizResults(); fetchChallenges();
       fetchRecentActivities(); fetchMonthlyBooksRead(); fetchBadgesCount(); fetchPendingFriendRequests();
       supabase.from("library_fines").select("id, status")
         .eq("user_id", user.id)
@@ -791,6 +807,12 @@ const StudentDashboard = () => {
         .then(({ count }) => setHasCertificates((count || 0) > 0));
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id && activeTab === "quizzes" && !availableQuizzesLoaded) {
+      void fetchAvailableQuizzes();
+    }
+  }, [activeTab, availableQuizzesLoaded, user?.id, fetchAvailableQuizzes]);
 
   if (loading) {
     loadingManager.update("Loading your library dashboard...");

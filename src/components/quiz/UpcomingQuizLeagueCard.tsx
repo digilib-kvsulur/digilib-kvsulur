@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { quizAudio } from "@/lib/quizAudio";
 
+const quizQuestionCountCache = new Map<string, number>();
+
 interface UpcomingQuizLeagueCardProps {
   userId?: string;
   userClass?: string;
@@ -57,7 +59,7 @@ export const UpcomingQuizLeagueCard = ({
       // Look for waiting or active live sessions, or future scheduled leagues
       const { data, error } = await supabase
         .from("quiz_sessions")
-        .select("*, quizzes(*)")
+        .select("id, quiz_id, host_id, room_code, status, scheduled_start_at, auto_start, league_name, target_class, current_question_index, created_at, quizzes(title)")
         .in("status", ["waiting", "active", "scheduled"])
         .order("created_at", { ascending: false })
         .limit(1)
@@ -68,7 +70,20 @@ export const UpcomingQuizLeagueCard = ({
       }
 
       if (data) {
-        setLeagueSession(data);
+        let totalQuestionCount = 10;
+        if (data.quiz_id) {
+          const cachedCount = quizQuestionCountCache.get(data.quiz_id);
+          if (cachedCount) {
+            totalQuestionCount = cachedCount;
+          } else {
+            const { data: questionCount } = await supabase.rpc("get_quiz_question_count", { p_quiz_id: data.quiz_id });
+            if (typeof questionCount === "number" && questionCount > 0) {
+              totalQuestionCount = questionCount;
+              quizQuestionCountCache.set(data.quiz_id, questionCount);
+            }
+          }
+        }
+        setLeagueSession({ ...data, total_question_count: totalQuestionCount });
         // Check if user is pre-registered
         if (userId) {
           let foundRegistration = false;
@@ -223,7 +238,7 @@ export const UpcomingQuizLeagueCard = ({
   const isLockedByTime = isScheduledInFuture && msUntilStart > 5 * 60 * 1000;
 
   // Check if session is too far along for late joining (> half the questions done)
-  const totalQuestions = leagueSession.quizzes?.questions?.length || 10;
+  const totalQuestions = leagueSession.total_question_count || 10;
   const currentQIndex = leagueSession.current_question_index || 0;
   const tooLateToJoin = leagueSession.status === "finished" || currentQIndex > Math.floor(totalQuestions * 0.6);
 
