@@ -38,6 +38,7 @@ import {
   AlertCircle,
   Info,
   RefreshCw,
+  KeyRound,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +67,8 @@ import {
   getStoredParticipationMode,
   saveStoredParticipationMode,
   clearStoredParticipationMode,
+  getProblemSubmissionConfig,
+  type ProblemSubmissionConfig,
   type VacationProblemStatement,
 } from "./problemStatements";
 import VacationCountdownTimer from "./VacationCountdownTimer";
@@ -122,6 +125,7 @@ export default function VacationStudentPage({
 
   // Manual Submission Dialog State
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [finalAnswer, setFinalAnswer] = useState("");
   const [content, setContent] = useState("");
   const [teamMembers, setTeamMembers] = useState("");
   const [link, setLink] = useState("");
@@ -512,6 +516,11 @@ export default function VacationStudentPage({
     };
   }, [dayParticipationMode, isProblemUnlocked, selectedDayNumber, dayProblemSet, userId]);
 
+  // Tailored submission configuration based on day and allotted problem statement
+  const submissionConfig = useMemo(() => {
+    return getProblemSubmissionConfig(selectedDayNumber, allottedProblemInfo?.problem);
+  }, [selectedDayNumber, allottedProblemInfo]);
+
   const handleConfirmParticipationMode = (
     mode: "team" | "individual",
     teamId?: string | null,
@@ -679,13 +688,27 @@ export default function VacationStudentPage({
         trimmedLink = `https://${trimmedLink}`;
       }
 
-      if (!content.trim() && !trimmedLink) {
-        toast({
-          title: "Deliverable link required",
-          description: "Please share a Google Drive, YouTube, or Canva link to submit your challenge solution.",
-          variant: "destructive",
-        });
-        return;
+      const trimmedContent = content.trim();
+      const trimmedFinalAnswer = finalAnswer.trim();
+
+      if (submissionConfig.requiresLink) {
+        if (!trimmedLink && !trimmedContent) {
+          toast({
+            title: "Deliverable required",
+            description: "Please share a Google Drive, YouTube, or Canva link for your project.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else {
+        if (!trimmedContent && !trimmedFinalAnswer && !trimmedLink) {
+          toast({
+            title: "Solution required",
+            description: "Please enter your answers or final secret code before submitting.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       const problemTag = allottedProblemInfo?.problem
@@ -697,13 +720,20 @@ export default function VacationStudentPage({
         ? `[TEAM ENTRY] Team: ${dayParticipationMode.teamName}`
         : `[SOLO ENTRY]`;
 
-      const headerTags = [problemTag, teamTag].filter(Boolean).join("\n");
-      const finalContent = headerTags ? `${headerTags}\n\n${content}` : content;
+      const answerHeader = trimmedFinalAnswer
+        ? `[KEY ANSWER / CODE]: ${trimmedFinalAnswer}`
+        : "";
+
+      const headerTags = [problemTag, teamTag, answerHeader].filter(Boolean).join("\n");
+      const finalContent = headerTags
+        ? `${headerTags}\n\n${trimmedContent || "(Key answer submitted above)"}`
+        : (trimmedContent || trimmedFinalAnswer);
 
       await submitVacationActivity(actId, finalContent, trimmedLink || undefined);
       toast({ title: "Submitted! 🚀", description: "Teachers will review your project and award points." });
       setSubmitDialogOpen(false);
       setContent("");
+      setFinalAnswer("");
       setTeamMembers("");
       setLink("");
       setUploadedFileUrl("");
@@ -1995,43 +2025,104 @@ export default function VacationStudentPage({
               </p>
             </div>
 
-            {/* Project Summary / Solution Description */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-foreground">Project Summary / Solution Description:</Label>
+            {/* Final Answer / Secret Code Field (for Quests / Problem Statements like Day 2) */}
+            {submissionConfig.finalAnswerLabel && (
+              <div className="space-y-1.5 p-3 rounded-xl border border-amber-500/25 bg-amber-500/5">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label className="text-xs font-bold flex items-center gap-1.5 text-foreground">
+                    <KeyRound className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <span>{submissionConfig.finalAnswerLabel}:</span>
+                  </Label>
+                  <span className="text-[10px] text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/20">
+                    Key Answer
+                  </span>
+                </div>
+                <Input
+                  value={finalAnswer}
+                  onChange={(e) => setFinalAnswer(e.target.value)}
+                  placeholder={submissionConfig.finalAnswerPlaceholder}
+                  className="text-xs bg-background h-9 font-semibold text-foreground"
+                />
+              </div>
+            )}
+
+            {/* Detailed Solution / Step-by-Step Proof */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label className="text-xs font-bold text-foreground">
+                  {submissionConfig.detailsLabel}:
+                </Label>
+                {submissionConfig.templateText && (
+                  <button
+                    type="button"
+                    onClick={() => setContent(submissionConfig.templateText!)}
+                    className="text-[10.5px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors"
+                    title="Click to insert formatted questions/clues template"
+                  >
+                    <Sparkles className="h-3 w-3 text-amber-500 shrink-0" />
+                    <span>{content.trim() ? "Reset Clue Template" : "✨ Insert Clue Template"}</span>
+                  </button>
+                )}
+              </div>
               <Textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Describe your model, experiment, solution, or key takeaways..."
-                rows={3}
-                className="text-xs bg-background resize-none"
+                placeholder={submissionConfig.detailsPlaceholder}
+                rows={submissionConfig.finalAnswerLabel ? 4 : 5}
+                className="text-xs bg-background resize-none leading-relaxed font-mono sm:font-sans"
               />
             </div>
 
-            {/* Project Deliverable Link (Link Only - File upload removed) */}
-            <div className="space-y-2 p-3.5 rounded-xl border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent">
+            {/* Project Deliverable Link (Required for media/craft days, Optional for Day 2 quests) */}
+            <div className={`space-y-2 p-3.5 rounded-xl border ${
+              submissionConfig.requiresLink
+                ? "border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent"
+                : "border-border/60 bg-muted/20"
+            }`}>
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <Label className="text-xs font-bold flex items-center gap-1.5 text-foreground">
                   <LinkIcon className="h-4 w-4 text-amber-500 shrink-0" />
-                  <span>Project Deliverable Link (Required):</span>
+                  <span>
+                    {submissionConfig.requiresLink
+                      ? "Project Deliverable Link (Required):"
+                      : "Supporting Link (Optional):"}
+                  </span>
                 </Label>
-                <span className="text-[10px] text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/20">
-                  Google Drive / YouTube / Canva
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  submissionConfig.requiresLink
+                    ? "text-amber-700 dark:text-amber-300 bg-amber-500/15 border-amber-500/20"
+                    : "text-muted-foreground bg-background border-border/60"
+                }`}>
+                  {submissionConfig.requiresLink ? "Google Drive / YouTube / Canva" : "Optional Reference"}
                 </span>
               </div>
               <Input
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
-                placeholder="https://drive.google.com/... or https://youtube.com/..."
+                placeholder={
+                  submissionConfig.requiresLink
+                    ? "https://drive.google.com/... or https://youtube.com/..."
+                    : "https://drive.google.com/... (optional reference/notes)"
+                }
                 className="text-xs bg-background h-9"
               />
               <div className="text-[11px] text-muted-foreground space-y-1 pt-0.5">
-                <p className="flex items-start gap-1">
-                  <span className="text-amber-500 font-bold">💡</span>
-                  <span>Share a <strong>Google Drive</strong> folder/file (photos, PDF, slides), <strong>YouTube</strong> video, or <strong>Canva</strong> presentation.</span>
-                </p>
-                <p className="text-[10px] text-amber-800 dark:text-amber-200 font-medium pl-4">
-                  ⚠️ <strong>Important:</strong> Set Google Drive access to <strong>&ldquo;Anyone with the link can view&rdquo;</strong> so evaluating teachers can access your project.
-                </p>
+                {submissionConfig.requiresLink ? (
+                  <>
+                    <p className="flex items-start gap-1">
+                      <span className="text-amber-500 font-bold">💡</span>
+                      <span>Share a <strong>Google Drive</strong> folder/file (photos, PDF, slides), <strong>YouTube</strong> video, or <strong>Canva</strong> presentation.</span>
+                    </p>
+                    <p className="text-[10px] text-amber-800 dark:text-amber-200 font-medium pl-4">
+                      ⚠️ <strong>Important:</strong> Set Google Drive access to <strong>&ldquo;Anyone with the link can view&rdquo;</strong> so evaluating teachers can access your project.
+                    </p>
+                  </>
+                ) : (
+                  <p className="flex items-start gap-1 text-[10.5px]">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
+                    <span>No external link needed for this quest! Your written answers above will be reviewed directly by teachers.</span>
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -2048,7 +2139,12 @@ export default function VacationStudentPage({
             </Button>
             <Button
               onClick={handleSubmitManual}
-              disabled={saving || (!content.trim() && !link.trim())}
+              disabled={
+                saving ||
+                (submissionConfig.requiresLink
+                  ? (!content.trim() && !link.trim())
+                  : (!content.trim() && !finalAnswer.trim() && !link.trim()))
+              }
               className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs shadow-sm h-9 px-4"
             >
               {saving ? "Submitting..." : "Submit for Teacher Review →"}
