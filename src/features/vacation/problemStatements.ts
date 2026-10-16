@@ -629,3 +629,118 @@ export function clearStoredParticipationMode(userId: string, day: number): void 
     localStorage.removeItem(key);
   } catch {}
 }
+
+/**
+ * Checks whether a competition day strictly requires an external file/media deliverable link.
+ * Days like Day 2 (Digital Quest), Day 4 (Cyber Safety), Day 6 (History Detective), Day 7 (Math Marathon), Day 9 (Mystery Code Breakers)
+ * are direct question-and-answer, logic deduction, or cipher decoding challenges where solutions are written directly.
+ */
+export function isDayLinkRequired(dayNumber: number): boolean {
+  // Day 1 (Bridge video/load test photo), Day 5 (Speech/video recording), Day 8 (Artwork/poster/short film) require external media links
+  return dayNumber === 1 || dayNumber === 5 || dayNumber === 8;
+}
+
+export interface ProblemSubmissionConfig {
+  requiresLink: boolean;
+  finalAnswerLabel?: string;
+  finalAnswerPlaceholder?: string;
+  detailsLabel: string;
+  detailsPlaceholder: string;
+  templateText?: string;
+  hint?: string;
+}
+
+/**
+ * Returns tailored submission form configuration based on the challenge day and allotted problem statement.
+ */
+export function getProblemSubmissionConfig(
+  dayNumber: number,
+  problem?: VacationProblemStatement | null
+): ProblemSubmissionConfig {
+  const requiresLink = isDayLinkRequired(dayNumber);
+
+  // Day 2: Digital Quest
+  if (dayNumber === 2 && problem) {
+    if (problem.id === "d2-p1") {
+      return {
+        requiresLink: false,
+        finalAnswerLabel: "Final Vault Secret Word (Stage 5)",
+        finalAnswerPlaceholder: "e.g. 4-letter secret word that unlocks the vault",
+        detailsLabel: "Stage-by-Stage Proof & Reasoning (Stages 1 to 5)",
+        detailsPlaceholder: "Write your answers and deductions for Stages 1 through 5...",
+        templateText: `[FINAL VAULT SECRET WORD]: \n\n--- STAGE-BY-STAGE WORKING ---\nStage 1 (Science - Noble gas & atomic number): \nStage 2 (Number Pattern - 1, 3, 6, 10, ?): \nStage 3 (History Landmark - Red Fort date): \nStage 4 (Word Puzzle - School subject): \nStage 5 (Combine codes into secret word): `,
+        hint: "No link needed! Enter your secret word and step-by-step codes directly.",
+      };
+    }
+    if (problem.id === "d2-p2") {
+      return {
+        requiresLink: false,
+        finalAnswerLabel: "Final Secret Discovery Location / Word",
+        finalAnswerPlaceholder: "e.g. 12-letter place formed by the first letters",
+        detailsLabel: "12 Scientific Answers & Sources Used",
+        detailsPlaceholder: "List your answers for Pages 1 through 12, and any science books/websites consulted...",
+        templateText: `[FINAL DISCOVERY LOCATION]: \n\n--- 12 PAGES SCIENTIFIC ANSWERS ---\nPage 1 (Astronomy): \nPage 2 (Laws of Motion): \nPage 3 (Human Body): \nPage 4 (Energy): \nPage 5 (Chemical Changes): \nPage 6 (Water Cycle / Plants): \nPage 7 (Blood): \nPage 8 (Water Cycle): \nPage 9 (Matter): \nPage 10 (Chemistry): \nPage 11 (Human Body): \nPage 12 (Motion): \n\nSources / References Consulted: `,
+        hint: "No link needed! Enter your final discovery place and scientific answers directly.",
+      };
+    }
+    if (problem.id === "d2-p3") {
+      return {
+        requiresLink: false,
+        finalAnswerLabel: "Culprit Name (Accused Suspect)",
+        finalAnswerPlaceholder: "e.g. Suspect 2 (Meera)",
+        detailsLabel: "Step-by-Step Elimination Proofs & 2 Supporting Clues",
+        detailsPlaceholder: "Show how you cleared the innocent suspects and prove the culprit with 2 clues...",
+        templateText: `[CULPRIT NAME]: \n\n--- SUSPECT ELIMINATION PROOFS ---\nSuspect 1 (Arun - Sports Teacher calculation): \nSuspect 2 (Meera - Librarian contradiction/gap): \nSuspect 3 (Karthik - Student travel calculation): \nSuspect 4 (Divya - Music Teacher choir alibi): \nSuspect 5 (Raghav - Lab Assistant walking time): \n\n--- 2 SUPPORTING CLUES FOR CULPRIT ---\nClue 1 (Maths evidence): \nClue 2 (English / Contradiction evidence): `,
+        hint: "No link needed! Name the culprit and provide your elimination proofs directly.",
+      };
+    }
+    if (problem.id === "d2-p4") {
+      return {
+        requiresLink: false,
+        finalAnswerLabel: "Decoded 10-Character Time Capsule Message",
+        finalAnswerPlaceholder: "e.g. 10 letters/digits in order",
+        detailsLabel: "Clues 1–10 Answers & 2-Line Reply to 1990 Students",
+        detailsPlaceholder: "Provide your answers for Clues 1 to 10 and your two-line message back to the 1990 class...",
+        templateText: `[DECODED TIME CAPSULE MESSAGE]: \n\n--- CLUES 1 TO 10 ---\nClue 1 (Pattern): \nClue 2 (Roman numeral 5): \nClue 3 (AFS Sulur town letter): \nClue 4 (Itanagar state letter): \nClue 5 (Footsteps riddle letter): \nClue 6 (Sikkim letter): \nClue 7 (Maths 9 ÷ 9): \nClue 8 (1950 2nd digit): \nClue 9 (Square > 4): \nClue 10 (Zero logic): \n\n--- TWO-LINE REPLY TO 1990 STUDENTS ---\nLine 1: \nLine 2: `,
+        hint: "No link needed! Enter your decoded time capsule code and 2-line message directly.",
+      };
+    }
+    if (problem.id === "d2-p5") {
+      return {
+        requiresLink: false,
+        finalAnswerLabel: "Destination & Secret Phrase ('Ek ...')",
+        finalAnswerPlaceholder: "e.g. New Delhi - Ek Bharat Shreshtha Bharat",
+        detailsLabel: "10-State Route & Key Cultural/Geographical Facts",
+        detailsPlaceholder: "Write the route from Tamil Nadu to all 10 states with one fact each...",
+        templateText: `[DESTINATION & SECRET PHRASE]: \n\n--- 10-STATE ROUTE & KEY FACTS ---\nStart: Tamil Nadu\nStop 1 (Riddle 1): \nStop 2 (Riddle 2): \nStop 3 (Riddle 3): \nStop 4 (Riddle 4): \nStop 5 (Riddle 5): \nStop 6 (Riddle 6): \nStop 7 (Riddle 7): \nStop 8 (Riddle 8): \nStop 9 (Riddle 9): \nStop 10 (Riddle 10 Destination): \nFinal Secret Phrase: `,
+        hint: "No link needed! List your 10-state route and final secret phrase directly.",
+      };
+    }
+  }
+
+  // Generic fallback based on problem requirements
+  let templateText = "";
+  if (problem?.requirements && problem.requirements.length > 0) {
+    templateText = problem.requirements
+      .map((r, i) => {
+        const titlePart = r.split(":")[0] || `Task ${i + 1}`;
+        return `${titlePart}: `;
+      })
+      .join("\n\n");
+  }
+
+  return {
+    requiresLink,
+    finalAnswerLabel: !requiresLink && problem?.title ? `Final Answer / Key Conclusion` : undefined,
+    finalAnswerPlaceholder: "Summarize your final answer, secret code, or key deliverable...",
+    detailsLabel: requiresLink ? "Project Summary / Solution Description" : "Step-by-Step Solution & Working",
+    detailsPlaceholder: requiresLink
+      ? "Describe your model, experiment, solution, or key takeaways..."
+      : "Enter your step-by-step solution, calculations, or explanations...",
+    templateText: templateText || undefined,
+    hint: requiresLink
+      ? "Please share a Google Drive, YouTube, or Canva link for evaluation."
+      : "No external link required! You can write your complete answers directly.",
+  };
+}
+
