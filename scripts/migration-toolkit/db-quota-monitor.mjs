@@ -29,7 +29,23 @@ const findPsql = () => {
   return 'psql';
 };
 const psqlPath = findPsql();
-const dbPassword = 'Pmshri@nep20';
+const databaseUrl = process.env.SUPABASE_DB_URL;
+
+if (!databaseUrl) {
+  console.error('Set SUPABASE_DB_URL to the project\'s Supabase pooler connection string before running this monitor.');
+  process.exit(1);
+}
+
+const dbConnection = new URL(databaseUrl);
+const psqlEnv = {
+  ...process.env,
+  PGHOST: dbConnection.hostname,
+  PGPORT: dbConnection.port || '5432',
+  PGUSER: decodeURIComponent(dbConnection.username),
+  PGPASSWORD: decodeURIComponent(dbConnection.password),
+  PGDATABASE: dbConnection.pathname.slice(1) || 'postgres',
+  PGSSLMODE: 'require',
+};
 
 function formatMB(bytes) {
   return (bytes / (1024 * 1024)).toFixed(2);
@@ -44,28 +60,10 @@ async function checkDatabaseSize() {
     const sizeQuery = "SELECT pg_size_pretty(pg_database_size(current_database())), pg_database_size(current_database());";
 
     function runPsql(query, extraArgs = '') {
-      try {
-        return execSync(
-          `"${psqlPath}" -h db.${projectRef}.supabase.co -U postgres -d postgres ${extraArgs} -c "${query}"`,
-          { env: { ...process.env, PGPASSWORD: dbPassword }, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }
-        );
-      } catch (e) {
-        // Fallback to pooler
-        const poolerHosts = [
-          'aws-0-ap-southeast-1.pooler.supabase.com',
-          'aws-0-ap-northeast-2.pooler.supabase.com',
-          'aws-0-ap-south-1.pooler.supabase.com'
-        ];
-        for (const host of poolerHosts) {
-          try {
-            return execSync(
-              `"${psqlPath}" -h ${host} -p 5432 -U postgres.${projectRef} -d postgres ${extraArgs} -c "${query}"`,
-              { env: { ...process.env, PGPASSWORD: dbPassword }, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
-            );
-          } catch (inner) {}
-        }
-        throw e;
-      }
+      return execSync(
+        `"${psqlPath}" ${extraArgs} -c "${query}"`,
+        { env: psqlEnv, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
+      );
     }
 
     const rawSize = runPsql(sizeQuery, '-t -A -F "|"').trim();

@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert, HelpCircle, CheckCircle2, Calendar, Play, Share2, AlertTriangle, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import imageCompression from "browser-image-compression";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "./ProfileView";
 import { ReelViewer } from "./ReelViewer";
@@ -25,6 +26,16 @@ import { useBackHandler } from "@/hooks/useBackHandler";
 import { applyModerationWarning, isUserExemptFromModeration, detectSpamPattern } from "@/lib/moderationService";
 
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
+const COMMUNITY_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
+
+async function prepareCommunityImage(file: File): Promise<File> {
+  return imageCompression(file, {
+    maxSizeMB: 0.8,
+    maxWidthOrHeight: 1440,
+    useWebWorker: true,
+    fileType: "image/webp",
+  });
+}
 
 function containsBadWords(text: string): boolean {
   const lower = text.toLowerCase();
@@ -471,7 +482,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at, doubt_subject, doubt_class, doubt_status, accepted_comment_id, scheduled_for")
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(60);
+      .limit(30);
 
     if (doubtRes.error) {
       // Fallback query if doubt columns are not yet added to DB table
@@ -480,7 +491,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at")
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false })
-        .limit(60);
+        .limit(30);
       postsData = fallbackRes.data || [];
     } else {
       postsData = doubtRes.data || [];
@@ -495,34 +506,26 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     const userIds = Array.from(new Set(postsData.map((p) => p.user_id)));
     const pollPostIds = postsData.filter((p: any) => p.post_type === "poll").map((p: any) => p.id);
 
-    const [{ data: profs }, likesRes, commentsRes, optionsRes, votesRes] = await Promise.all([
+    const [{ data: profs }, postStatsRes, optionsRes, pollStatsRes] = await Promise.all([
       supabase.rpc("get_public_profiles", { _ids: userIds }),
-      ids.length ? supabase.from("post_likes").select("post_id, user_id").in("post_id", ids) : Promise.resolve({ data: [] as any[] }),
-      ids.length ? supabase.from("post_comments").select("post_id").in("post_id", ids) : Promise.resolve({ data: [] as any[] }),
+      ids.length ? supabase.rpc("get_community_post_stats", { p_post_ids: ids }) : Promise.resolve({ data: [] as any[] }),
       pollPostIds.length
         ? supabase.from("poll_options").select("id, post_id, label, sort_order").in("post_id", pollPostIds).order("sort_order")
         : Promise.resolve({ data: [] as any[] }),
       pollPostIds.length
-        ? supabase.from("poll_votes").select("post_id, option_id, user_id").in("post_id", pollPostIds)
+        ? supabase.rpc("get_community_poll_stats", { p_post_ids: pollPostIds })
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
     const profileMap = new Map((profs || []).map((p: any) => [p.id, p]));
     setProfileCache((c) => ({ ...c, ...Object.fromEntries((profs || []).map((p: any) => [p.id, p])) }));
-    const likeMap = new Map<string, { count: number; liked: boolean }>();
-    (likesRes.data || []).forEach((l: any) => {
-      const e = likeMap.get(l.post_id) || { count: 0, liked: false };
-      e.count++; if (l.user_id === currentUserId) e.liked = true;
-      likeMap.set(l.post_id, e);
-    });
-    const commentMap = new Map<string, number>();
-    (commentsRes.data || []).forEach((c: any) => commentMap.set(c.post_id, (commentMap.get(c.post_id) || 0) + 1));
+    const postStatsMap = new Map((postStatsRes.data || []).map((row: any) => [row.post_id, row]));
 
     const voteCountByOption = new Map<string, number>();
     const myVoteByPost = new Map<string, string>();
-    (votesRes.data || []).forEach((v: any) => {
-      voteCountByOption.set(v.option_id, (voteCountByOption.get(v.option_id) || 0) + 1);
-      if (v.user_id === currentUserId) myVoteByPost.set(v.post_id, v.option_id);
+    (pollStatsRes.data || []).forEach((v: any) => {
+      voteCountByOption.set(v.option_id, Number(v.vote_count) || 0);
+      if (v.viewer_voted) myVoteByPost.set(v.post_id, v.option_id);
     });
     const optionsByPost = new Map<string, PollOption[]>();
     (optionsRes.data || []).forEach((o: any) => {
@@ -543,9 +546,9 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         doubt_subject: subject,
         doubt_status: status,
         author: profileMap.get(p.user_id),
-        likes: likeMap.get(p.id)?.count || 0,
-        liked: likeMap.get(p.id)?.liked || false,
-        comment_count: commentMap.get(p.id) || 0,
+        likes: Number(postStatsMap.get(p.id)?.like_count) || 0,
+        liked: postStatsMap.get(p.id)?.viewer_liked || false,
+        comment_count: Number(postStatsMap.get(p.id)?.comment_count) || 0,
         pollOptions: optionsByPost.get(p.id) || [],
         myVoteOptionId: myVoteByPost.get(p.id) || null,
       };
@@ -731,13 +734,24 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       let mediaUrl: string | null = null;
       let mediaType: string | null = null;
       if (mediaFile && (postKind === "text" || postKind === "story" || postKind === "reel")) {
-        const ext = mediaFile.name.split(".").pop()?.toLowerCase();
+        const uploadFile = mediaFile.type.startsWith("image/")
+          ? await prepareCommunityImage(mediaFile)
+          : mediaFile;
+        if (uploadFile.size > COMMUNITY_MEDIA_MAX_BYTES) {
+          throw new Error("Media must be 10 MB or smaller. Compress the video or PDF before uploading.");
+        }
+        const ext = uploadFile.type === "image/webp"
+          ? "webp"
+          : uploadFile.name.split(".").pop()?.toLowerCase();
         const path = `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("community-media").upload(path, mediaFile, { contentType: mediaFile.type });
+        const { error: upErr } = await supabase.storage.from("community-media").upload(path, uploadFile, {
+          contentType: uploadFile.type,
+          cacheControl: "31536000",
+        });
         if (upErr) throw upErr;
-        const { data: signed } = await supabase.storage.from("community-media").createSignedUrl(path, 60 * 60 * 24 * 365);
-        mediaUrl = signed?.signedUrl || "";
-        mediaType = mediaFile.type.startsWith("image") ? "image" : mediaFile.type.startsWith("video") ? "video" : "pdf";
+        const { data: publicAsset } = supabase.storage.from("community-media").getPublicUrl(path);
+        mediaUrl = publicAsset.publicUrl;
+        mediaType = uploadFile.type.startsWith("image/") ? "image" : uploadFile.type.startsWith("video/") ? "video" : "pdf";
       } else if (postKind === "link") {
         mediaUrl = linkUrl.trim();
         mediaType = "link";
@@ -1538,7 +1552,16 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                   <label htmlFor="community-media" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors px-3 py-1.5 rounded-xl border border-dashed border-border hover:border-primary bg-muted/30 font-medium">
                     <Paperclip className="h-3.5 w-3.5 text-primary" /> {mediaFile ? mediaFile.name : postKind === "reel" ? "Attach video for Reel" : "Attach photo / video / PDF"}
                   </label>
-                  <input id="community-media" type="file" accept={postKind === "reel" ? "video/*" : "image/*,video/*,.pdf"} className="hidden" onChange={(e) => setMediaFile(e.target.files?.[0] || null)} />
+                  <input id="community-media" type="file" accept={postKind === "reel" ? "video/*" : "image/*,video/*,.pdf"} className="hidden" onChange={(e) => {
+                    const selected = e.target.files?.[0] || null;
+                    if (selected && selected.size > COMMUNITY_MEDIA_MAX_BYTES) {
+                      toast({ title: "File is too large", description: "Community media must be 10 MB or smaller.", variant: "destructive" });
+                      e.target.value = "";
+                      setMediaFile(null);
+                      return;
+                    }
+                    setMediaFile(selected);
+                  }} />
                   {mediaFile && (
                     <button onClick={() => setMediaFile(null)} className="text-xs text-destructive hover:text-destructive/80 p-1"><X className="h-3.5 w-3.5" /></button>
                   )}
@@ -2084,7 +2107,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                         muted
                         loop
                         playsInline
-                        preload="metadata"
+                        preload="none"
                       />
                       {/* Top Reel Badge */}
                       <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 bg-black/60 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white border border-white/10">
@@ -2198,10 +2221,10 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 {p.media_url && p.post_type !== "reel" && (
                   <div className="rounded-2xl overflow-hidden border border-border/80 shadow-xs">
                     {p.media_type === "image" && (
-                      <img src={p.media_url} alt="Post media" className="w-full max-h-96 object-contain bg-muted/20" />
+                      <img src={p.media_url} alt="Post media" loading="lazy" decoding="async" className="w-full max-h-96 object-contain bg-muted/20" />
                     )}
                     {p.media_type === "video" && (
-                      <video src={p.media_url} controls className="w-full max-h-80 bg-black" />
+                      <video src={p.media_url} controls preload="none" className="w-full max-h-80 bg-black" />
                     )}
                     {p.media_type === "pdf" && (
                       <a href={p.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3.5 hover:bg-muted/40 transition-colors bg-muted/10">

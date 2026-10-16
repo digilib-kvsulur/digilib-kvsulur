@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bell, CheckCheck, ExternalLink, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,16 +24,10 @@ const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [open, setOpen] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadNotifications();
-  }, []);
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    setCurrentUserId(user.id);
 
     const { data } = await supabase
       .from("notifications")
@@ -43,35 +37,11 @@ const NotificationBell = () => {
       .limit(30);
 
     if (data) setNotifications(data as unknown as Notification[]);
-  };
+  }, []);
 
-  // Realtime Supabase listener
   useEffect(() => {
-    if (!currentUserId) return;
-
-    const channelName = `notifs_${currentUserId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications" },
-        (payload) => {
-          const newNotif = payload.new as Notification;
-          if (!newNotif.target_user_id || newNotif.target_user_id === currentUserId) {
-            setNotifications((prev) => {
-              if (prev.some((n) => n.id === newNotif.id)) return prev;
-              return [newNotif, ...prev];
-            });
-            // Toast & sound are handled globally by GlobalNotificationsProvider to avoid duplicates
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentUserId]);
+    void loadNotifications();
+  }, [loadNotifications]);
 
   const markAsRead = async (id: string) => {
     await supabase.from("notifications").update({ is_read: true }).eq("id", id);
@@ -97,7 +67,10 @@ const NotificationBell = () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(nextOpen) => {
+      setOpen(nextOpen);
+      if (nextOpen) void loadNotifications();
+    }}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full hover:bg-primary/10 transition-colors">
           <Bell className="h-5 w-5" />

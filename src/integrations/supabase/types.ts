@@ -3435,6 +3435,24 @@ export type Database = {
           username: string
         }[]
       }
+      get_community_post_stats: {
+        Args: { p_post_ids: string[] }
+        Returns: {
+          post_id: string
+          like_count: number
+          comment_count: number
+          viewer_liked: boolean
+        }[]
+      }
+      get_community_poll_stats: {
+        Args: { p_post_ids: string[] }
+        Returns: {
+          post_id: string
+          option_id: string
+          vote_count: number
+          viewer_voted: boolean
+        }[]
+      }
       get_user_network_connections: {
         Args: {
           p_type?: string
