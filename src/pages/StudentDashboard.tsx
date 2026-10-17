@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { loadingManager } from "@/lib/loadingManager";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -110,6 +110,7 @@ const StudentDashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const loadedStudentTabData = useRef(new Set<string>());
   const [tabHistory, setTabHistory] = useState<Tab[]>(["overview"]);
   const [showBookRequest, setShowBookRequest] = useState(false);
   const [classRank, setClassRank] = useState<number | string>("N/A");
@@ -607,6 +608,15 @@ const StudentDashboard = () => {
     setCurrentBooks(data || []); setCurrentBooksCount(data?.length || 0);
   };
 
+  const fetchCurrentBooksCount = async () => {
+    if (!user?.id) return;
+    const { count } = await supabase.from("book_issues")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("status", "issued");
+    setCurrentBooksCount(count || 0);
+  };
+
   const fetchQuizResults = async () => {
     if (!user?.id) return;
     const { data } = await supabase.from('quiz_results').select('id, quiz_id, score, points_earned, answers, completed_at, quizzes(title)').eq('user_id', user.id).order('completed_at', { ascending: false }).limit(50);
@@ -625,6 +635,14 @@ const StudentDashboard = () => {
       timeSpent: 0,
     }));
     setQuizResults(results); setQuizResultsCount(results.length);
+  };
+
+  const fetchQuizResultsCount = async () => {
+    if (!user?.id) return;
+    const { count } = await supabase.from("quiz_results")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    setQuizResultsCount(count || 0);
   };
 
   const fetchAvailableQuizzes = useCallback(async () => {
@@ -720,9 +738,7 @@ const StudentDashboard = () => {
   const fetchBadgesCount = async () => {
     if (!user?.id) return;
     try {
-      // Ensure auto-badges are awarded in real-time
-      await supabase.rpc('check_and_award_badges', { p_user_id: user.id });
-
+      // Automatic awards are maintained by database triggers on profile and activity updates.
       const [{ data: allBadges }, { data: awards }, { count: books }, { count: quizzes }, { data: streak }, { data: actStats }] = await Promise.all([
         supabase.from("badges").select("*").eq("is_active", true),
         supabase.from("badge_awards").select("badge_id").eq("user_id", user.id),
@@ -780,33 +796,47 @@ const StudentDashboard = () => {
   };
 
   useEffect(() => {
-    if (user?.id) {
-      fetchCurrentBooks(); fetchQuizResults(); fetchChallenges();
-      fetchRecentActivities(); fetchMonthlyBooksRead(); fetchBadgesCount(); fetchPendingFriendRequests();
-      supabase.from("library_fines").select("id, status")
-        .eq("user_id", user.id)
-        .then(({ data }) => {
-          const rows = data || [];
-          setPendingFines(rows.filter((r) => r.status === "pending").length);
-        });
-      supabase.from("system_settings").select("value").eq("key", "periodicals_visible_to_students").maybeSingle()
-        .then(({ data }) => {
-          const v = data?.value;
-          setPeriodicalsVisible(v === true || v === "true" || (typeof v === "string" && String(v).replace(/"/g, "") === "true"));
-        });
-      supabase
-        .from("book_issues")
-        .select("id, status, issue_date, due_date, return_date, accession_number, books(title, author)")
-        .eq("user_id", user.id)
-        .order("issue_date", { ascending: false })
-        .then(({ data }) => setIssueHistory(data || []));
-      supabase
-        .from("issued_certificates")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .then(({ count }) => setHasCertificates((count || 0) > 0));
+    if (!user?.id) return;
+    const loadKey = `${user.id}:${activeTab}`;
+    if (loadedStudentTabData.current.has(loadKey)) return;
+    loadedStudentTabData.current.add(loadKey);
+
+    if (activeTab === "overview") {
+      void Promise.all([
+        fetchCurrentBooksCount(),
+        fetchQuizResultsCount(),
+        fetchRecentActivities(),
+        fetchMonthlyBooksRead(),
+        fetchBadgesCount(),
+        fetchPendingFriendRequests(),
+        supabase.from("library_fines").select("id", { count: "exact", head: true })
+          .eq("user_id", user.id).eq("status", "pending")
+          .then(({ count }) => setPendingFines(count || 0)),
+        supabase.from("system_settings").select("value")
+          .eq("key", "periodicals_visible_to_students").maybeSingle()
+          .then(({ data }) => {
+            const value = data?.value;
+            setPeriodicalsVisible(value === true || value === "true" || (typeof value === "string" && value.replace(/"/g, "") === "true"));
+          }),
+        supabase.from("issued_certificates").select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .then(({ count }) => setHasCertificates((count || 0) > 0)),
+      ]);
+    } else if (activeTab === "issued") {
+      void Promise.all([
+        fetchCurrentBooks(),
+        supabase.from("book_issues")
+          .select("id, status, issue_date, due_date, return_date, accession_number, books(title, author)")
+          .eq("user_id", user.id)
+          .order("issue_date", { ascending: false })
+          .then(({ data }) => setIssueHistory(data || [])),
+      ]);
+    } else if (activeTab === "quizzes") {
+      void fetchQuizResults();
+    } else if (activeTab === "challenges") {
+      void fetchChallenges();
     }
-  }, [user?.id]);
+  }, [user?.id, activeTab]);
 
   useEffect(() => {
     if (user?.id && activeTab === "quizzes" && !availableQuizzesLoaded) {
