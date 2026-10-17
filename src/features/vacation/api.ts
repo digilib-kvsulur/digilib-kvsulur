@@ -158,6 +158,30 @@ export async function reviewSubmission(id: string, decision: "approve" | "reject
   return data;
 }
 
+export interface VacationDailyXpReconciliation {
+  campaign_id: string;
+  activity_date: string;
+  eligible: number;
+  already_credited: number;
+  credited: number;
+  xp_credited: number;
+  applied: boolean;
+}
+
+export async function reconcileDailyVacationXp(
+  campaignId: string,
+  activityDate: string,
+  apply: boolean
+): Promise<VacationDailyXpReconciliation> {
+  const { data, error } = await supabase.rpc("vacation_reconcile_daily_xp", {
+    p_campaign: campaignId,
+    p_day: activityDate,
+    p_apply: apply,
+  });
+  if (error) throw error;
+  return data as VacationDailyXpReconciliation;
+}
+
 export async function fetchStudentOverview() {
   const { data, error } = await supabase.rpc("vacation_student_overview");
   if (error) throw error;
