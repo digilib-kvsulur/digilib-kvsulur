@@ -221,61 +221,109 @@ export async function resetUserModeration(userId: string, adminId?: string): Pro
 export interface SpamCheckResult {
   isSpam: boolean;
   reason: string;
+  severity: "character-flood" | "repeated-content" | "duplicate-content" | "velocity" | null;
 }
 
-/**
- * Detects spam patterns including character flooding, word flooding, duplicate content, and velocity.
- */
+export interface RecentSpamContent {
+  normalized: string;
+  timestamp: number;
+}
+
+export function normalizeSpamContent(content: string): string {
+  return (content || "")
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/https?:\/\/\S+/g, " link ")
+    .replace(/(.)\1{2,}/gu, "$1$1")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Detect obvious flooding while avoiding punishments for posting quickly alone. */
 export function detectSpamPattern(
   content: string,
   history: {
     recentTimestamps: number[];
-    recentContents: string[];
+    recentContents: RecentSpamContent[];
     velocityLimitMax: number;
     velocityWindowMs: number;
   }
 ): SpamCheckResult {
   const text = (content || "").trim();
   const now = Date.now();
+  const normalized = normalizeSpamContent(text);
+  if (!normalized) return { isSpam: false, reason: "", severity: null };
 
-  // 1. Repetitive character flooding: e.g. "aaaaaaa..." or "!!!!!"
-  if (/(.)\1{14,}/.test(text)) {
+  // 1. Character flooding: tolerate small emphasis, catch sustained key repeats.
+  if (/(.)\1{9,}/u.test(text.normalize("NFKC"))) {
     return {
       isSpam: true,
-      reason: "Excessive repetitive characters detected",
+      reason: "Excessive repeated characters detected",
+      severity: "character-flood",
     };
   }
 
-  // 2. Repetitive words flooding: e.g. "spam spam spam spam spam..."
-  const words = text.split(/\s+/).filter(Boolean);
-  if (words.length >= 6) {
-    const firstWord = words[0].toLowerCase();
-    const allSame = words.every((w) => w.toLowerCase() === firstWord);
-    if (allSame) {
+  // 2. Repeated short messages/words: "hi hi hi" should not pass because it is short.
+  const words = normalized.split(" ").filter(Boolean);
+  let repeatedRun = 1;
+  for (let i = 1; i < words.length; i += 1) {
+    repeatedRun = words[i] === words[i - 1] ? repeatedRun + 1 : 1;
+    if (repeatedRun >= 3) {
       return {
         isSpam: true,
-        reason: "Repetitive word flooding detected",
+        reason: "The same word is repeated several times in one message",
+        severity: "repeated-content",
       };
     }
   }
+  if (words.length >= 5 && new Set(words).size === 1) {
+    return { isSpam: true, reason: "Repetitive word flooding detected", severity: "repeated-content" };
+  }
 
-  // 3. Duplicate content spam (same text submitted recently in last 3 minutes)
-  if (text.length >= 3 && history.recentContents.some((prev) => prev.toLowerCase() === text.toLowerCase())) {
+  // Catch repeated phrases such as "hi there hi there hi there" without
+  // flagging a normal phrase that appears only twice.
+  for (const phraseLength of [2, 3]) {
+    const phraseCounts = new Map<string, number>();
+    for (let i = 0; i <= words.length - phraseLength; i += 1) {
+      const phrase = words.slice(i, i + phraseLength).join(" ");
+      const count = (phraseCounts.get(phrase) || 0) + 1;
+      phraseCounts.set(phrase, count);
+      if (count >= 3) {
+        return {
+          isSpam: true,
+          reason: "The same phrase is repeated several times in one message",
+          severity: "repeated-content",
+        };
+      }
+    }
+  }
+
+  // 3. Repeated submissions. Require three copies (including this one) so
+  // ordinary replies like "Thanks" in separate threads are not blocked.
+  const duplicateWindow = normalized.length <= 3 ? 20_000 : 60_000;
+  const duplicateCount = history.recentContents.filter((entry) =>
+    entry.normalized === normalized && now - entry.timestamp >= 0 && now - entry.timestamp <= duplicateWindow
+  ).length;
+  const duplicateThreshold = 2;
+  if (duplicateCount >= duplicateThreshold) {
     return {
       isSpam: true,
-      reason: "Duplicate identical message submitted within a short timeframe",
+      reason: "The same message was submitted repeatedly in a short time",
+      severity: "duplicate-content",
     };
   }
 
-  // 4. Rate / velocity limit
-  const recentInWindow = history.recentTimestamps.filter((t) => now - t < history.velocityWindowMs);
+  // 4. Rate limits reject a burst but do not by themselves count as misconduct.
+  const recentInWindow = history.recentTimestamps.filter((t) => now - t >= 0 && now - t < history.velocityWindowMs);
   if (recentInWindow.length >= history.velocityLimitMax) {
     const secs = Math.round(history.velocityWindowMs / 1000);
     return {
       isSpam: true,
       reason: `Posting velocity exceeded (limit: max ${history.velocityLimitMax} within ${secs} seconds)`,
+      severity: "velocity",
     };
   }
 
-  return { isSpam: false, reason: "" };
+  return { isSpam: false, reason: "", severity: null };
 }

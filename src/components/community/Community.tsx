@@ -24,7 +24,7 @@ import ReviewsModeration from "@/components/admin/ReviewsModeration";
 import CommunityTermsGate, { hasAcceptedCommunityTerms } from "./CommunityTermsGate";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { getUserActivityStats, incrementUserActivityStat } from "@/lib/userActivityStatsCache";
-import { applyModerationWarning, isUserExemptFromModeration, detectSpamPattern } from "@/lib/moderationService";
+import { applyModerationWarning, isUserExemptFromModeration, detectSpamPattern, normalizeSpamContent } from "@/lib/moderationService";
 
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
 const COMMUNITY_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
@@ -97,6 +97,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [openComments, setOpenComments] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [commentDraft, setCommentDraft] = useState("");
+  const [submittingCommentPosts, setSubmittingCommentPosts] = useState<Set<string>>(new Set());
   const [profileCache, setProfileCache] = useState<Record<string, any>>({});
   const [statsCache, setStatsCache] = useState<Record<string, any>>({});
   const [friendshipsMap, setFriendshipsMap] = useState<Record<string, any>>({});
@@ -119,7 +120,9 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   // Anti-Spam Tracking State & Modal
   const recentPostTimestamps = useRef<number[]>([]);
   const recentCommentTimestamps = useRef<number[]>([]);
-  const recentContents = useRef<string[]>([]);
+  const recentContents = useRef<{ normalized: string; timestamp: number }[]>([]);
+  const submittingCommentIds = useRef<Set<string>>(new Set());
+  const postSubmissionInFlight = useRef(false);
   const [spamModal, setSpamModal] = useState<{ open: boolean; title: string; message: string; isBlocked: boolean } | null>(null);
 
   // Report Post & Reply State
@@ -239,8 +242,8 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     const spamCheck = detectSpamPattern(text, {
       recentTimestamps: type === "post" ? recentPostTimestamps.current : recentCommentTimestamps.current,
       recentContents: recentContents.current,
-      velocityLimitMax: type === "post" ? 2 : 4,
-      velocityWindowMs: 30000,
+      velocityLimitMax: type === "post" ? 3 : 8,
+      velocityWindowMs: type === "post" ? 60000 : 30000,
     });
 
     if (!spamCheck.isSpam) {
@@ -250,21 +253,31 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       } else {
         recentCommentTimestamps.current = [...recentCommentTimestamps.current.slice(-10), now];
       }
-      recentContents.current = [...recentContents.current.slice(-10), text.trim()];
+      recentContents.current = [
+        ...recentContents.current.filter((entry) => now - entry.timestamp < 2 * 60 * 1000).slice(-19),
+        { normalized: normalizeSpamContent(text), timestamp: now },
+      ];
       return true;
     }
 
     // Spam pattern detected - Two-Stage Policy:
     // Stage 1: First offense -> Alert Dialog
     // Stage 2: Continued spamming within 2 minutes of alert -> 1st Warning (24h Block)
-    const alertKey = `dlms_spam_alert_${currentUserId}`;
-    const lastAlertStr = localStorage.getItem(alertKey);
-    const lastAlertTime = lastAlertStr ? parseInt(lastAlertStr, 10) : 0;
-    const isWithinAlertWindow = Date.now() - lastAlertTime < 2 * 60 * 1000;
+    const alertKey = `dlms_spam_alert_v2_${currentUserId}`;
+    let lastAlert: { timestamp: number; severity: string } | null = null;
+    try {
+      const stored = localStorage.getItem(alertKey);
+      lastAlert = stored ? JSON.parse(stored) : null;
+    } catch {
+      lastAlert = null;
+    }
+    const isRepeatedClearSpam =
+      spamCheck.severity !== "velocity" &&
+      Boolean(lastAlert && lastAlert.severity !== "velocity" && Date.now() - lastAlert.timestamp < 2 * 60 * 1000);
 
-    if (isWithinAlertWindow) {
+    if (isRepeatedClearSpam) {
       // Stage 2: Apply block/warning
-      localStorage.removeItem(alertKey);
+      try { localStorage.removeItem(alertKey); } catch { /* Ignore unavailable storage. */ }
       setSpamModal({
         open: true,
         title: "🚫 Account Suspended for Spamming",
@@ -275,18 +288,25 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       await handleModerationStrike(`Repeated spamming and message flooding in community discussions after receiving anti-spam alert: ${spamCheck.reason}`);
       return false;
     } else {
-      // Stage 1: Display warning alert (no block yet)
-      localStorage.setItem(alertKey, String(Date.now()));
+      // Rate-limit hits can ask the user to wait, but do not count as misconduct.
+      try {
+        localStorage.setItem(alertKey, JSON.stringify({ timestamp: Date.now(), severity: spamCheck.severity }));
+      } catch { /* Ignore unavailable storage. */ }
+      const isVelocity = spamCheck.severity === "velocity";
       setSpamModal({
         open: true,
-        title: "⚠️ Anti-Spam Notice: Please Slow Down",
-        message: `Our automated system detected rapid posting or repetitive content (${spamCheck.reason}). Please wait a moment before trying again.\n\n🚨 Warning: Continuing to post spam or flood messages will immediately trigger a 24-Hour DLMS Community Posting Block (1st Warning).`,
+        title: isVelocity ? "Please slow down" : "Anti-spam notice",
+        message: isVelocity
+          ? `You have reached the short posting limit (${spamCheck.reason}). Please wait a little before trying again. This pace limit by itself does not add a moderation strike.`
+          : `The message looks repetitive (${spamCheck.reason}). Please edit it before posting. Repeating clear spam after this notice may trigger moderation.`,
         isBlocked: false,
       });
 
       toast({
-        title: "⚠️ Slow Down: Spam Detected",
-        description: "Please wait a moment before trying again. Continuing to spam will suspend your account.",
+        title: isVelocity ? "Please slow down" : "Repetitive content detected",
+        description: isVelocity
+          ? "Please wait before posting again. A short burst limit does not add a moderation strike."
+          : "Please edit the repeated content before posting. Repeating clear spam after this notice may trigger moderation.",
         variant: "destructive",
       });
       return false;
@@ -721,13 +741,28 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       return;
     }
 
+    // Ignore duplicate clicks while validation or a post upload is in progress.
+    if (postSubmissionInFlight.current || uploadingPost) return;
+    postSubmissionInFlight.current = true;
+
     // Anti-Spam Check (Admins are exempt)
-    const isClean = await validateAntiSpam(`${draft.title} ${draft.content} ${linkUrl}`, "post");
-    if (!isClean) return;
+    let isClean: boolean;
+    try {
+      isClean = await validateAntiSpam(`${draft.title} ${draft.content} ${linkUrl}`, "post");
+    } catch (error: any) {
+      postSubmissionInFlight.current = false;
+      toast({ title: "Could not validate post", description: error?.message || "Please try again.", variant: "destructive" });
+      return;
+    }
+    if (!isClean) {
+      postSubmissionInFlight.current = false;
+      return;
+    }
 
     const cleanOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
     if (postKind === "poll" && cleanOptions.length < 2) {
       toast({ title: "Polls need at least 2 options", variant: "destructive" });
+      postSubmissionInFlight.current = false;
       return;
     }
     setUploadingPost(true);
@@ -848,6 +883,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       toast({ title: "Failed", description: e.message, variant: "destructive" });
     } finally {
       setUploadingPost(false);
+      postSubmissionInFlight.current = false;
     }
   };
 
@@ -1020,37 +1056,52 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     if (!comments[postId]) await loadComments(postId);
   };
   const addComment = async (postId: string) => {
+    if (submittingCommentIds.current.has(postId)) return;
     if (!isAdmin && blockedUntil && new Date(blockedUntil).getTime() > Date.now()) {
       toast({ title: "Action Blocked", description: "You are temporarily blocked from commenting.", variant: "destructive" });
       return;
     }
-    if (!commentDraft.trim()) return;
+    const content = commentDraft.trim();
+    if (!content) return;
     if (!isAdmin && containsBadWords(commentDraft)) {
       await handleModerationStrike("Comment contains prohibited words or inappropriate language.");
       return;
     }
 
-    // Anti-Spam Check (Admins are exempt)
-    const isClean = await validateAntiSpam(commentDraft, "comment");
-    if (!isClean) return;
+    // Prevent Enter/submit double-fires while the validation and insert are pending.
+    submittingCommentIds.current.add(postId);
+    setSubmittingCommentPosts((current) => new Set(current).add(postId));
+    try {
+      const isClean = await validateAntiSpam(content, "comment");
+      if (!isClean) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const uid = user?.id || currentUserId;
-    if (!uid) {
-      toast({ title: "Authentication Error", description: "You must be logged in to comment.", variant: "destructive" });
-      return;
+      const { data: { user } } = await supabase.auth.getUser();
+      const uid = user?.id || currentUserId;
+      if (!uid) {
+        toast({ title: "Authentication Error", description: "You must be logged in to comment.", variant: "destructive" });
+        return;
+      }
+
+      const { error } = await supabase.from("post_comments").insert({ post_id: postId, user_id: uid, content });
+      if (error) {
+        toast({ title: "Comment Error", description: error.message, variant: "destructive" });
+        return;
+      }
+
+      incrementUserActivityStat(uid, "comments_count");
+      setCommentDraft(""); await loadComments(postId);
+      setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p));
+      // Notification to post author is handled automatically by DB trigger tg_notify_post_comment()
+    } catch (error: any) {
+      toast({ title: "Comment Error", description: error?.message || "Could not submit the comment.", variant: "destructive" });
+    } finally {
+      submittingCommentIds.current.delete(postId);
+      setSubmittingCommentPosts((current) => {
+        const next = new Set(current);
+        next.delete(postId);
+        return next;
+      });
     }
-
-    const { error } = await supabase.from("post_comments").insert({ post_id: postId, user_id: uid, content: commentDraft });
-    if (error) {
-      toast({ title: "Comment Error", description: error.message, variant: "destructive" });
-      return;
-    }
-
-    incrementUserActivityStat(uid, "comments_count");
-    setCommentDraft(""); await loadComments(postId);
-    setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p));
-    // Notification to post author is handled automatically by DB trigger tg_notify_post_comment()
   };
   const deleteComment = async (postId: string, id: string) => {
     await supabase.from("post_comments").delete().eq("id", id);
@@ -2371,11 +2422,17 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                         placeholder="Write a helpful response or comment..."
                         value={commentDraft}
                         onChange={(e) => setCommentDraft(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") addComment(p.id); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void addComment(p.id);
+                          }
+                        }}
+                        disabled={submittingCommentPosts.has(p.id)}
                         className="rounded-xl h-9 text-xs"
                       />
-                      <Button size="sm" onClick={() => addComment(p.id)} className="rounded-xl h-9 px-3 gradient-primary text-primary-foreground font-bold shadow-xs">
-                        <Send className="h-3.5 w-3.5" />
+                      <Button size="sm" onClick={() => addComment(p.id)} disabled={submittingCommentPosts.has(p.id)} className="rounded-xl h-9 px-3 gradient-primary text-primary-foreground font-bold shadow-xs">
+                        {submittingCommentPosts.has(p.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                       </Button>
                     </div>
                   </div>
