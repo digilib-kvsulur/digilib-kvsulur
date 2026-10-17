@@ -119,7 +119,11 @@ const Login = () => {
         setIsLoading(false);
         return;
       }
-      const { data, error } = await supabase.auth.signInWithPassword({ email: user.email, password }, { captchaToken });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password,
+        options: { captchaToken },
+      });
       if (error) {
         setCaptchaToken("");
         setCaptchaResetKey((key) => key + 1);
