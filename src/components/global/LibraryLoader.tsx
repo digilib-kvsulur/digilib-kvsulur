@@ -103,6 +103,27 @@ const LibraryLoaderProgressBar = React.memo(() => {
 
 LibraryLoaderProgressBar.displayName = "LibraryLoaderProgressBar";
 
+export const SlowLoadSupportHint: React.FC = () => {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <p className="mt-4 max-w-sm text-center text-xs leading-relaxed text-muted-foreground" role="status">
+      Taking long to load? Please wait and contact{" "}
+      <a className="font-semibold text-primary underline underline-offset-2" href="mailto:dlms@kvsulur.in">
+        dlms@kvsulur.in
+      </a>{" "}
+      for support.
+    </p>
+  );
+};
+
 export const LibraryLoader: React.FC<LibraryLoaderProps> = ({
   message,
   subMessage,
@@ -141,6 +162,7 @@ export const LibraryLoader: React.FC<LibraryLoaderProps> = ({
 
       {/* 3. Memoized progress bar - Never resets on text changes */}
       <LibraryLoaderProgressBar />
+      <SlowLoadSupportHint />
     </div>
   );
 
@@ -199,6 +221,7 @@ export const GlobalLibraryLoaderOverlay: React.FC = () => {
           </p>
         </div>
         <LibraryLoaderProgressBar />
+        <SlowLoadSupportHint />
       </div>
     </div>
   );

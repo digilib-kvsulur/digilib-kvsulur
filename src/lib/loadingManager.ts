@@ -18,7 +18,6 @@ class LoadingManager {
     subMessage: DEFAULT_SUB_MESSAGE,
   };
   private listeners: Set<LoadingListener> = new Set();
-  private autoHideTimer: NodeJS.Timeout | null = null;
 
   getState(): LoadingState {
     return this.state;
@@ -30,7 +29,6 @@ class LoadingManager {
       message: message || this.state.message || DEFAULT_MESSAGE,
       subMessage: subMessage !== undefined ? subMessage : this.state.subMessage || DEFAULT_SUB_MESSAGE,
     };
-    this.resetAutoHide();
     this.notify();
   }
 
@@ -44,15 +42,10 @@ class LoadingManager {
       message,
       subMessage: subMessage !== undefined ? subMessage : this.state.subMessage || DEFAULT_SUB_MESSAGE,
     };
-    this.resetAutoHide();
     this.notify();
   }
 
   hide() {
-    if (this.autoHideTimer) {
-      clearTimeout(this.autoHideTimer);
-      this.autoHideTimer = null;
-    }
     if (!this.state.isLoading) return;
     this.state = {
       ...this.state,
@@ -79,16 +72,6 @@ class LoadingManager {
     });
   }
 
-  // Safety fallback: prevents app from being permanently blocked if an unhandled promise rejection occurs
-  private resetAutoHide() {
-    if (this.autoHideTimer) clearTimeout(this.autoHideTimer);
-    this.autoHideTimer = setTimeout(() => {
-      if (this.state.isLoading) {
-        console.warn("Global loading timeout reached, auto-dismissing loader");
-        this.hide();
-      }
-    }, 12000);
-  }
 }
 
 export const loadingManager = new LoadingManager();

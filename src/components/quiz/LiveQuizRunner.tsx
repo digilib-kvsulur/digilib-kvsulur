@@ -28,6 +28,7 @@ import {
 import { quizAudio } from "@/lib/quizAudio";
 import { triggerConfetti, triggerWinnerConfetti } from "@/lib/confetti";
 import { getPrizeForRank } from "@/components/quiz/LiveQuizAlert";
+import { SlowLoadSupportHint } from "@/components/global/LibraryLoader";
 
 interface LiveQuizRunnerProps {
   quiz: Quiz;
@@ -100,7 +101,6 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   const [isGrantingPoints, setIsGrantingPoints] = useState(false);
   const [pointsGranted, setPointsGranted] = useState(false);
   const [finalStandingsLoading, setFinalStandingsLoading] = useState(false);
-  const [showLongLoadHelp, setShowLongLoadHelp] = useState(false);
   const [hasFinalStandings, setHasFinalStandings] = useState(false);
 
   const channelRef = useRef<any>(null);
@@ -139,16 +139,6 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   useEffect(() => {
     initUser();
   }, []);
-
-  useEffect(() => {
-    if (!finalStandingsLoading) {
-      setShowLongLoadHelp(false);
-      return;
-    }
-
-    const timeout = window.setTimeout(() => setShowLongLoadHelp(true), 8000);
-    return () => window.clearTimeout(timeout);
-  }, [finalStandingsLoading]);
 
   const initUser = async () => {
     const {
@@ -928,15 +918,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                 <p className="text-xs text-white/60">
                   Collecting saved scores and calculating the final ranking…
                 </p>
-                {showLongLoadHelp && (
-                  <p className="text-xs text-white/70">
-                    Taking long to load? Please wait and contact{" "}
-                    <a className="font-semibold text-indigo-300 underline underline-offset-2" href="mailto:dlms@kvsulur.in">
-                      dlms@kvsulur.in
-                    </a>{" "}
-                    for support.
-                  </p>
-                )}
+                <SlowLoadSupportHint />
               </div>
             )}
             {!finalStandingsLoading && participants.length === 0 && (
