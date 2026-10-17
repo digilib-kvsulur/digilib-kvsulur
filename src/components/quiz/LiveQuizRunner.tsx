@@ -845,7 +845,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
               </span>
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-white">
-              After Question {currentIndex + 1} of {quiz.questions.length}
+              After Question {currentIndex + 1} of {questions.length}
             </h3>
           </div>
 
@@ -931,7 +931,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                 onClick={handleNextQuestion}
                 className="w-full h-11 sm:h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-sm shadow-lg gap-2"
               >
-                <span>Skip Timer & {currentIndex < quiz.questions.length - 1 ? "Next Question" : "Conclude Match"}</span>
+                <span>Skip Timer & {currentIndex < questions.length - 1 ? "Next Question" : "Conclude Match"}</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -1164,7 +1164,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         <div className="bg-white/10 h-2 w-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-700"
-            style={{ width: `${((currentIndex + 1) / quiz.questions.length) * 100}%` }}
+            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
           />
         </div>
 
@@ -1172,7 +1172,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         <CardHeader className="flex flex-row items-center justify-between space-y-0 py-2.5 sm:py-3.5 px-3 sm:px-6 bg-white/5 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
             <Badge className="bg-indigo-600/50 hover:bg-indigo-600/50 text-indigo-200 border-indigo-400/40 font-black text-xs sm:text-sm py-1 px-2.5 rounded-xl">
-              Q{currentIndex + 1}/{quiz.questions.length}
+              Q{currentIndex + 1}/{questions.length}
             </Badge>
 
             {/* Streak Indicator */}
@@ -1395,7 +1395,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                   onClick={handleNextQuestion}
                   className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black shadow-md"
                 >
-                  {currentIndex < quiz.questions.length - 1 ? "Next Question" : "Conclude Match"}
+                  {currentIndex < questions.length - 1 ? "Next Question" : "Conclude Match"}
                   <ArrowRight className="h-4 w-4 ml-1.5" />
                 </Button>
               </div>
