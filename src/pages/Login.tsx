@@ -227,7 +227,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-dvh animate-in fade-in duration-300">
+    <div className="flex min-h-dvh animate-in fade-in duration-300 lg:h-dvh lg:min-h-0 lg:overflow-hidden">
       {/* Left Panel - Immersive Branding */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
         <div className="absolute inset-0 gradient-primary" />
@@ -236,7 +236,7 @@ const Login = () => {
         <div className="absolute bottom-10 -right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/5 rounded-full blur-3xl" />
         
-        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+        <div className="relative z-10 flex h-full flex-col justify-between p-8 xl:p-10 w-full">
           <div className="flex items-center gap-3">
             {/* Dual Logo Placeholders */}
             <div className="flex shrink-0 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-2 py-1.5 shadow-sm backdrop-blur-sm">
@@ -257,15 +257,15 @@ const Login = () => {
             </div>
           </div>
           
-          <div className="flex-1 flex flex-col justify-center max-w-md">
-            <h2 className="text-4xl font-extrabold text-primary-foreground mb-4 leading-tight">
+          <div className="flex-1 flex flex-col justify-center max-w-md py-4">
+            <h2 className="text-3xl xl:text-4xl font-extrabold text-primary-foreground mb-3 leading-tight">
               Your Reading<br />Adventure<br />Starts Here ✨
             </h2>
-            <p className="text-primary-foreground/80 text-lg mb-10">
+            <p className="text-primary-foreground/80 text-base xl:text-lg mb-6">
               Track progress, earn rewards, and discover new worlds through reading.
             </p>
             
-            <div className="space-y-5">
+            <div className="space-y-4">
               {[
                 { icon: Sparkles, title: "Gamified Experience", desc: "Earn XP, level up, and unlock achievements" },
                 { icon: Shield, title: "Smart Tracking", desc: "AI-powered reading analytics and insights" },
@@ -307,10 +307,10 @@ const Login = () => {
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="relative flex-1 overflow-y-auto bg-gradient-to-br from-muted/50 via-background to-primary/5 px-4 py-6 sm:px-8 sm:py-10">
-        <div className="mx-auto flex min-h-full w-full max-w-[460px] flex-col justify-center animate-fade-in">
+      <div className="relative flex-1 overflow-y-auto bg-gradient-to-br from-muted/50 via-background to-primary/5 px-4 py-4 sm:px-8 sm:py-6 lg:flex lg:items-center lg:justify-center lg:px-6 lg:py-3">
+        <div className="mx-auto flex min-h-full w-full max-w-[460px] flex-col justify-center animate-fade-in lg:min-h-0 lg:py-2">
           {/* Mobile Logo */}
-          <div className="mb-5 flex items-center gap-3 px-1 lg:hidden sm:mb-7">
+          <div className="mb-4 flex items-center gap-3 px-1 lg:hidden sm:mb-5">
             <div className="flex items-center -space-x-2.5 shrink-0">
               <div className="relative z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200/80 bg-slate-50 shadow-xs" title="PM SHRI Logo">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="relative z-10 h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
@@ -327,10 +327,10 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-border/60 bg-card/95 p-5 shadow-xl shadow-primary/5 backdrop-blur sm:p-8">
+          <div className="rounded-3xl border border-border/60 bg-card/95 p-4 shadow-xl shadow-primary/5 backdrop-blur sm:p-6 lg:p-5">
           {!showForgotPassword && (
-            <div className="mb-6 sm:mb-8">
-              <h2 className="mb-2 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">Welcome back</h2>
+            <div className="mb-4 sm:mb-5">
+              <h2 className="mb-1.5 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-3xl">Welcome back</h2>
               <p className="text-sm text-muted-foreground sm:text-base">Sign in to continue your reading journey</p>
             </div>
           )}
@@ -350,8 +350,8 @@ const Login = () => {
               }}
             />
           ) : (
-            <form onSubmit={handleLogin} className="space-y-5">
-              <Alert className="border-primary/20 bg-primary/5 rounded-xl">
+            <form onSubmit={handleLogin} className="space-y-3.5 lg:space-y-3">
+              <Alert className="border-primary/20 bg-primary/5 rounded-xl py-2.5">
                 <AlertCircle className="h-4 w-4 text-primary" />
                 <AlertDescription className="text-xs text-muted-foreground">Students: sign in with your 5-digit admission number. You can also use email, username, or phone.</AlertDescription>
               </Alert>
@@ -364,7 +364,7 @@ const Login = () => {
                   placeholder="e.g. 12345 or your email"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="h-12 rounded-xl bg-background/80"
+                  className="h-11 rounded-xl bg-background/80 sm:h-12"
                   required
                 />
               </div>
@@ -376,7 +376,7 @@ const Login = () => {
                   </Button>
                 </div>
                 <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 rounded-xl bg-background/80 pr-11" required />
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl bg-background/80 pr-11 sm:h-12" required />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -385,13 +385,13 @@ const Login = () => {
 
               <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
 
-              <Button type="submit" className="h-12 w-full rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg shadow-primary/20 transition-all hover:shadow-xl" disabled={isLoading || !captchaToken}>
+              <Button type="submit" className="h-11 w-full rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg shadow-primary/20 transition-all hover:shadow-xl sm:h-12" disabled={isLoading || !captchaToken}>
                 {isLoading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Signing in...</span> : 'Sign In'}
               </Button>
             </form>
           )}
 
-          <div className="mt-8 pt-6 border-t border-border text-center">
+          <div className="mt-5 pt-4 border-t border-border text-center lg:mt-4 lg:pt-3">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
               <Button variant="link" className="p-0 h-auto text-primary font-semibold" onClick={() => setShowRegistrationNotice(true)}>
@@ -400,7 +400,7 @@ const Login = () => {
             </p>
           </div>
 
-          <div className="text-center mt-4">
+          <div className="text-center mt-2.5">
             <Button variant="link" className="p-0 h-auto text-muted-foreground text-xs" onClick={() => navigate("/")}>
               <ArrowLeft className="h-3 w-3 mr-1" /> Back to Home
             </Button>
