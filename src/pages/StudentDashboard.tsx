@@ -239,10 +239,61 @@ const StudentDashboard = () => {
   const [hasCertificates, setHasCertificates] = useState(false);
   const [activeLeagueSession, setActiveLeagueSession] = useState<any | null>(null);
   const [inLeagueRunner, setInLeagueRunner] = useState(false);
+  const [loadingLeagueQuiz, setLoadingLeagueQuiz] = useState(false);
 
   const streakData = useLoginStreak(user?.id);
   usePushSubscription(user?.id);
   const { settings } = useSchoolSettings();
+
+  const handleJoinQuizLeague = async (session: any) => {
+    if (!session?.id || !session?.quiz_id) {
+      toast({ title: "Quiz unavailable", description: "This league is missing its quiz link.", variant: "destructive" });
+      return;
+    }
+
+    setLoadingLeagueQuiz(true);
+    try {
+      const { data: quiz, error } = await supabase
+        .from("quizzes")
+        .select("*")
+        .eq("id", session.quiz_id)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!quiz || !Array.isArray(quiz.questions) || quiz.questions.length === 0) {
+        toast({
+          title: "Quiz questions unavailable",
+          description: "The league has started, but its quiz has no questions. Please ask the administrator to check this quiz.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const hasValidQuestions = quiz.questions.every((question: any) =>
+        question && typeof question.question === "string" && Array.isArray(question.options) && question.options.length > 0
+      );
+      if (!hasValidQuestions) {
+        toast({
+          title: "Quiz content needs attention",
+          description: "Some questions are incomplete. Please ask the administrator to review this quiz.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setActiveLeagueSession({ ...session, quizzes: quiz });
+      setInLeagueRunner(session.status === "active");
+    } catch (error: any) {
+      console.error("Could not load quiz for league:", error);
+      toast({
+        title: "Could not open league",
+        description: "The quiz could not be loaded. Please try again when the database is available.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingLeagueQuiz(false);
+    }
+  };
 
   const [activeBounty, setActiveBounty] = useState<any>(null);
   const [activeReformCampaign, setActiveReformCampaign] = useState<any>(null);
@@ -448,16 +499,13 @@ const StudentDashboard = () => {
         try {
           const { data } = await supabase
             .from("quiz_sessions")
-            .select("*, quizzes(*)")
+            .select("*, quizzes(title)")
             .eq("room_code", roomParam.toUpperCase().trim())
             .in("status", ["waiting", "active", "scheduled"])
             .maybeSingle();
 
           if (data) {
-            setActiveLeagueSession(data);
-            if (data.status === "active") {
-              setInLeagueRunner(true);
-            }
+            await handleJoinQuizLeague(data);
           }
         } catch (e) {
           console.warn("Could not lookup league room from URL:", e);
@@ -852,6 +900,16 @@ const StudentDashboard = () => {
     loadingManager.update("Connecting to library services...");
     return null;
   }
+  if (loadingLeagueQuiz) {
+    return (
+      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background p-6 text-center">
+        <div>
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm font-medium">Loading quiz league…</p>
+        </div>
+      </div>
+    );
+  }
   if (selectedQuiz) return <StudentQuiz quiz={selectedQuiz} onComplete={handleQuizComplete} onBack={() => setSelectedQuiz(null)} />;
 
   if (activeLeagueSession) {
@@ -1168,20 +1226,10 @@ const StudentDashboard = () => {
               <UpcomingQuizLeagueCard
                 userId={user?.id}
                 userClass={user?.student_class}
-                onJoinLeague={(session) => {
-                  setActiveLeagueSession(session);
-                  if (session.status === "active") {
-                    setInLeagueRunner(true);
-                  }
-                }}
+                onJoinLeague={handleJoinQuizLeague}
               />
               <LiveQuizAlert
-                onJoinLeague={(session) => {
-                  setActiveLeagueSession(session);
-                  if (session.status === "active") {
-                    setInLeagueRunner(true);
-                  }
-                }}
+                onJoinLeague={handleJoinQuizLeague}
               />
 
               <VacationOverviewBanner onOpen={() => setActiveTab("vacation")} />
@@ -1656,9 +1704,7 @@ const StudentDashboard = () => {
               <UpcomingQuizLeagueCard
                 userId={user?.id}
                 userClass={user?.student_class}
-                onJoinLeague={(session) => {
-                  setActiveLeagueSession(session);
-                }}
+                onJoinLeague={handleJoinQuizLeague}
               />
               <QuizPage quizzes={availableQuizzes} results={quizResults} onSelectQuiz={setSelectedQuiz} />
             </div>
