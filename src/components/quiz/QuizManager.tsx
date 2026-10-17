@@ -18,7 +18,6 @@ import { LiveQuizRunner } from "./LiveQuizRunner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
-import { getPrizeForRank } from "./LiveQuizAlert";
 import { triggerWinnerConfetti } from "@/lib/confetti";
 
 interface QuizResult {
@@ -63,6 +62,17 @@ interface LeagueSession {
   registrations_count?: number;
 }
 
+interface LeagueStanding {
+  rank_position: number;
+  user_id: string;
+  display_name: string;
+  score: number;
+  strikes: number;
+  disqualified: boolean;
+  prize_points: number;
+  completed_at: string;
+}
+
 const QuizManager = () => {
   const LEAGUE_PAGE_SIZE = 30;
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -105,6 +115,9 @@ const QuizManager = () => {
   const [editMaxParticipants, setEditMaxParticipants] = useState<string>("");
   const [isSavingLeagueEdit, setIsSavingLeagueEdit] = useState(false);
   const [isGrantingPoints, setIsGrantingPoints] = useState<string | null>(null);
+  const [viewingLeagueResults, setViewingLeagueResults] = useState<LeagueSession | null>(null);
+  const [leagueStandings, setLeagueStandings] = useState<LeagueStanding[]>([]);
+  const [leagueStandingsLoading, setLeagueStandingsLoading] = useState(false);
 
   useEffect(() => {
     loadLeagueSessions();
@@ -363,18 +376,10 @@ const QuizManager = () => {
   const exportLeagueResultsCSV = async (session: LeagueSession) => {
     try {
       sonnerToast.info("Preparing League Results CSV...");
-      const { data, error } = await supabase
-        .from("quiz_results")
-        .select(`
-          id,
-          score,
-          points_earned,
-          completed_at,
-          answers,
-          user_id
-        `)
-        .eq("quiz_id", session.quiz_id)
-        .order("points_earned", { ascending: false });
+      const { data, error } = await (supabase.rpc as any)(
+        "get_quiz_league_final_standings",
+        { p_session_id: session.id }
+      );
 
       if (error) throw error;
 
@@ -383,41 +388,24 @@ const QuizManager = () => {
         return;
       }
 
-      // Fetch student details
-      const userIds = Array.from(new Set(data.map((d) => d.user_id)));
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, admission_number, student_class")
-        .in("id", userIds);
-
-      const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
-
       const headers = [
         "Rank",
         "Student Name",
-        "Admission Number",
-        "Class",
         "League Name",
         "Room Code",
-        "Score (%)",
-        "Points Earned",
+        "Score",
+        "Prize Points",
         "Tab Switch Strikes",
         "Submission Timestamp",
       ];
 
-      const rows = data.map((r, idx) => {
-        const prof = profileMap.get(r.user_id);
-        const name = `"${((prof?.first_name || "") + " " + (prof?.last_name || "")).trim() || "Student"}"`;
-        const adm = `"${prof?.admission_number || "N/A"}"`;
-        const cls = `"${prof?.student_class || "N/A"}"`;
+      const rows = data.map((r: LeagueStanding) => {
+        const name = `"${String(r.display_name || "Student").replace(/"/g, '""')}"`;
         const leagueTitle = `"${session.league_name || session.quizzes?.title || "Quiz League"}"`;
         const room = `"${session.room_code}"`;
-        const scoreVal = r.score;
-        const pts = r.points_earned;
-        const strikes = r.answers?.strikes ?? 0;
         const date = `"${new Date(r.completed_at).toLocaleString()}"`;
 
-        return [idx + 1, name, adm, cls, leagueTitle, room, scoreVal, pts, strikes, date].join(",");
+        return [r.rank_position, name, leagueTitle, room, r.score, r.prize_points, r.strikes, date].join(",");
       });
 
       const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
@@ -528,17 +516,10 @@ const QuizManager = () => {
       setIsGrantingPoints(session.id);
       sonnerToast.info("Calculating contestant ranks and awarding points...");
 
-      const { data, error } = await supabase
-        .from("quiz_results")
-        .select(`
-          id,
-          score,
-          points_earned,
-          answers,
-          user_id
-        `)
-        .eq("quiz_id", session.quiz_id)
-        .order("score", { ascending: false });
+      const { data, error } = await (supabase.rpc as any)(
+        "get_quiz_league_final_standings",
+        { p_session_id: session.id }
+      );
 
       if (error) throw error;
 
@@ -547,31 +528,14 @@ const QuizManager = () => {
         return;
       }
 
-      const sessionResults = data.filter(
-        (r) => !r.answers?.session_id || r.answers?.session_id === session.id
-      );
-
-      const seen = new Map<string, any>();
-      for (const r of sessionResults) {
-        if (!r.user_id) continue;
-        const existing = seen.get(r.user_id);
-        if (!existing || (r.score || 0) > (existing.score || 0)) {
-          seen.set(r.user_id, r);
-        }
-      }
-
-      const contestants = Array.from(seen.values()).sort(
-        (a, b) => (b.score || 0) - (a.score || 0)
-      );
+      const contestants = data as LeagueStanding[];
 
       let awardedCount = 0;
       for (let i = 0; i < contestants.length; i++) {
         const c = contestants[i];
-        const isDisqualified = c.answers?.disqualified === true;
-        if (isDisqualified) continue;
+        if (c.disqualified) continue;
 
-        const rank = i + 1;
-        const prize = getPrizeForRank(rank);
+        const prize = c.prize_points;
 
         if (prize > 0) {
           const { data: profile } = await supabase
@@ -598,6 +562,24 @@ const QuizManager = () => {
       sonnerToast.error("Failed to grant points: " + (err.message || "Unknown error"));
     } finally {
       setIsGrantingPoints(null);
+    }
+  };
+
+  const handleViewLeagueResults = async (session: LeagueSession) => {
+    setViewingLeagueResults(session);
+    setLeagueStandings([]);
+    setLeagueStandingsLoading(true);
+    try {
+      const { data, error } = await (supabase.rpc as any)(
+        "get_quiz_league_final_standings",
+        { p_session_id: session.id }
+      );
+      if (error) throw error;
+      setLeagueStandings((data || []) as LeagueStanding[]);
+    } catch (error: any) {
+      sonnerToast.error(error?.message || "Could not load the saved league standings.");
+    } finally {
+      setLeagueStandingsLoading(false);
     }
   };
 
@@ -1038,7 +1020,7 @@ const QuizManager = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={isGrantingPoints === session.id}
+                            disabled={isGrantingPoints === session.id || !["finished", "completed"].includes(session.status)}
                             onClick={() => handleGrantLeaguePoints(session)}
                             className="font-bold text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border-amber-300"
                             title="Award prize points to winners (1st: 2000, 2nd: 1500, 3rd: 1000...)"
@@ -1046,6 +1028,17 @@ const QuizManager = () => {
                             <Award className="h-3.5 w-3.5 mr-1 text-amber-600" />
                             {isGrantingPoints === session.id ? "Granting..." : "Grant Points"}
                           </Button>
+
+                          {["finished", "completed"].includes(session.status) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void handleViewLeagueResults(session)}
+                              className="font-bold text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                            >
+                              <Trophy className="h-3.5 w-3.5 mr-1" /> View Results
+                            </Button>
+                          )}
 
                           <Button
                             variant="outline"
@@ -1632,6 +1625,53 @@ const QuizManager = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewingLeagueResults} onOpenChange={(open) => !open && setViewingLeagueResults(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Final League Standings</DialogTitle>
+            <DialogDescription>
+              {viewingLeagueResults?.league_name || viewingLeagueResults?.quizzes?.title || "Quiz League"}
+              {leagueStandings.length > 0 ? ` · ${leagueStandings.length} contestants` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {leagueStandingsLoading ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">Loading saved standings…</div>
+          ) : leagueStandings.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              No submitted results were saved for this league.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rank</TableHead>
+                    <TableHead>Participant</TableHead>
+                    <TableHead className="text-right">Score</TableHead>
+                    <TableHead className="text-right">Strikes</TableHead>
+                    <TableHead className="text-right">Prize</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leagueStandings.map((standing) => (
+                    <TableRow key={standing.user_id}>
+                      <TableCell className="font-bold">#{standing.rank_position}</TableCell>
+                      <TableCell>
+                        {standing.display_name}
+                        {standing.disqualified && <Badge variant="destructive" className="ml-2">Disqualified</Badge>}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{standing.score.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">{standing.strikes}</TableCell>
+                      <TableCell className="text-right font-mono">{standing.prize_points.toLocaleString()} pts</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

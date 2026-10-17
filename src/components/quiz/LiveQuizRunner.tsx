@@ -42,6 +42,8 @@ interface ParticipantScore {
   score: number;
   avatar_url?: string;
   strikes?: number;
+  disqualified?: boolean;
+  prize_points?: number;
 }
 
 export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRunnerProps) => {
@@ -54,6 +56,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   const [streak, setStreak] = useState(0);
   const [lastEarnedPoints, setLastEarnedPoints] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [isLeagueSession, setIsLeagueSession] = useState(false);
   const [participants, setParticipants] = useState<ParticipantScore[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -70,9 +73,16 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   const [interBoardTimer, setInterBoardTimer] = useState(5);
   const [isGrantingPoints, setIsGrantingPoints] = useState(false);
   const [pointsGranted, setPointsGranted] = useState(false);
+  const [finalStandingsLoading, setFinalStandingsLoading] = useState(false);
+  const [hasFinalStandings, setHasFinalStandings] = useState(false);
 
   const channelRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scoreRef = useRef(0);
+  const strikesRef = useRef(0);
+  const finishHandledRef = useRef(false);
+  const resultSubmittedRef = useRef(false);
+  const finalStandingsRequestedRef = useRef(false);
   const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
   const question = questions[currentIndex] as Question | undefined;
 
@@ -193,6 +203,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
     setStrikes((prev) => {
       const nextStrike = prev + 1;
+      strikesRef.current = nextStrike;
       quizAudio.playIncorrect();
 
       if (nextStrike >= 3) {
@@ -228,11 +239,12 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       try {
         const { data } = await supabase
           .from("quiz_sessions")
-          .select("time_per_question, current_question_index, status")
+          .select("time_per_question, current_question_index, status, is_league")
           .eq("id", sessionId)
           .maybeSingle();
 
         if (data) {
+          setIsLeagueSession(data.is_league === true);
           if (data.time_per_question) {
             setTotalTime(data.time_per_question);
             setTimeLeft(data.time_per_question);
@@ -295,7 +307,15 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       })
       .on("broadcast", { event: "end_quiz" }, () => {
         setShowInterBoard(false);
+        setFinalStandingsLoading(true);
         finishQuiz();
+      })
+      .on("broadcast", { event: "final_leaderboard" }, (payload) => {
+        const rows = payload.payload?.participants;
+        if (!Array.isArray(rows)) return;
+        setParticipants(rows);
+        setHasFinalStandings(true);
+        setFinalStandingsLoading(false);
       })
       .on("broadcast", { event: "player_score_update" }, (payload) => {
         const updatedPlayer = payload.payload as any;
@@ -343,7 +363,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId, currentUser, totalTime, isHost]);
+  }, [sessionId, currentUser, totalTime, isHost, isLeagueSession]);
 
   // Reset per question
   useEffect(() => {
@@ -414,6 +434,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       const earned = basePoints + speedBonus + streakBonus;
       const newScore = score + earned;
 
+      scoreRef.current = newScore;
       setScore(newScore);
       setStreak(currentStreak);
       setLastEarnedPoints(earned);
@@ -551,7 +572,12 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     }
   };
 
-  const finishQuiz = async (disqualified = false, finalStrikes = strikes) => {
+  const finishQuiz = async (disqualified = false, finalStrikes?: number) => {
+    if (finishHandledRef.current) return;
+    finishHandledRef.current = true;
+    const finalScore = scoreRef.current;
+    const recordedStrikes = finalStrikes ?? strikesRef.current;
+    setFinalStandingsLoading(true);
     setIsFinished(true);
     if (!disqualified) {
       // Rank-based confetti: compute rank from current participants state
@@ -572,34 +598,72 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      if (!isHost) {
-        // Calculate rank-based prize.
-        const finalRank = participants.findIndex((p) => p.user_id === user.id) + 1;
-        const prizePoints = disqualified ? 0 : (finalRank > 0 ? getPrizeForRank(finalRank) : getPrizeForRank(999));
-
-        // Record in quiz_results with session metadata and strikes (points granted upon admin approval)
-        await supabase.from("quiz_results").insert({
+      if (!isHost && !resultSubmittedRef.current) {
+        // Persist the raw score once. Final rank/prize is calculated centrally
+        // after every participant has had time to submit their result.
+        resultSubmittedRef.current = true;
+        const { error } = await supabase.from("quiz_results").insert({
           quiz_id: quiz.id,
           user_id: user.id,
-          score: Math.round((score / ((questions.length || 1) * 750)) * 100),
-          points_earned: prizePoints,
+          score: Math.round((finalScore / ((questions.length || 1) * 750)) * 100),
+          points_earned: 0,
           answers: {
             session_id: sessionId,
             league: true,
-            strikes: finalStrikes,
+            strikes: recordedStrikes,
             disqualified,
-            final_rank: finalRank > 0 ? finalRank : null,
-            quiz_score: score,
+            quiz_score: finalScore,
           },
         });
+        if (error) {
+          resultSubmittedRef.current = false;
+          throw error;
+        }
       }
     } catch (e) {
       console.error("Error saving final league score:", e);
+    } finally {
+      if (isHost && isLeagueSession && !finalStandingsRequestedRef.current) {
+        finalStandingsRequestedRef.current = true;
+        // One host read after participant submissions settle; all players receive
+        // the same final snapshot over Realtime instead of querying individually.
+        window.setTimeout(async () => {
+          try {
+            const { data, error } = await (supabase.rpc as any)(
+              "get_quiz_league_final_standings",
+              { p_session_id: sessionId }
+            );
+            if (error) throw error;
+            const finalParticipants = (data || []).map((row: any) => ({
+              user_id: row.user_id,
+              name: row.display_name || "Student",
+              score: Number(row.score) || 0,
+              strikes: Number(row.strikes) || 0,
+              disqualified: Boolean(row.disqualified),
+              prize_points: Number(row.prize_points) || 0,
+            }));
+            setParticipants(finalParticipants);
+            setHasFinalStandings(true);
+            await channelRef.current?.send({
+              type: "broadcast",
+              event: "final_leaderboard",
+              payload: { participants: finalParticipants },
+            });
+          } catch (error) {
+            console.error("Could not load final quiz league standings:", error);
+          } finally {
+            setFinalStandingsLoading(false);
+          }
+        }, 1800);
+      } else if (!isLeagueSession) {
+        setFinalStandingsLoading(false);
+      }
     }
   };
 
   // Find user's live rank
-  const myRank = participants.findIndex((p) => p.user_id === currentUser?.id) + 1;
+  const standingsReady = !isLeagueSession || hasFinalStandings;
+  const myRank = standingsReady ? participants.findIndex((p) => p.user_id === currentUser?.id) + 1 : 0;
 
   if (!questions.length || !question) {
     return (
@@ -641,9 +705,10 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
   // Podium screen when quiz concludes
   if (isFinished) {
-    const top1 = participants[0];
-    const top2 = participants[1];
-    const top3 = participants[2];
+    const podium = participants.filter((participant) => !participant.disqualified);
+    const top1 = podium[0];
+    const top2 = podium[1];
+    const top3 = podium[2];
 
     return (
       <div className="fixed inset-0 z-[100] w-screen h-dvh bg-background/98 backdrop-blur-xl overflow-y-auto flex items-center justify-center p-2 sm:p-6">
@@ -658,13 +723,20 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
           <CardContent className="p-3 sm:p-8 space-y-5 sm:space-y-8">
             {/* Olympic Podium */}
+            {!standingsReady || participants.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-white/70">
+                {!standingsReady
+                  ? "The host is collecting the saved scores and calculating the final podium…"
+                  : "No participant scores were saved for this league."}
+              </div>
+            ) : (
             <div className="flex items-end justify-center gap-1.5 sm:gap-6 pt-3 sm:pt-6 pb-2 max-w-full px-1">
               {/* 2nd Place */}
               <div className="flex flex-col items-center flex-1 max-w-[95px] sm:max-w-[130px] min-w-0">
                 <div className="text-center mb-1.5 sm:mb-2 w-full px-0.5">
                   <Medal className="h-5 w-5 sm:h-7 sm:w-7 text-slate-300 mx-auto" />
                   <p className="text-[10px] sm:text-xs font-bold truncate mt-1 w-full">{top2?.name || "Runner Up"}</p>
-                  <p className="text-[9px] sm:text-[11px] font-mono text-slate-400">{top2?.score || 0} pts</p>
+                  <p className="text-[9px] sm:text-[11px] font-mono text-slate-400">{top2 ? `${top2.score.toLocaleString()} pts` : "—"}</p>
                 </div>
                 <div className="w-full h-20 sm:h-28 bg-gradient-to-t from-slate-800 to-slate-600 rounded-t-xl sm:rounded-t-2xl flex items-center justify-center border-t-2 border-slate-400 shadow-lg">
                   <span className="text-xl sm:text-3xl font-black text-slate-200">2nd</span>
@@ -676,7 +748,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                 <div className="text-center mb-1.5 sm:mb-2 w-full px-0.5">
                   <Trophy className="h-7 w-7 sm:h-9 sm:w-9 text-amber-300 mx-auto fill-amber-300 animate-bounce" />
                   <p className="text-xs sm:text-sm font-black truncate mt-1 text-amber-300 w-full">{top1?.name || "Champion"}</p>
-                  <p className="text-[10px] sm:text-xs font-mono font-bold text-amber-400">{top1?.score || 0} pts</p>
+                  <p className="text-[10px] sm:text-xs font-mono font-bold text-amber-400">{top1 ? `${top1.score.toLocaleString()} pts` : "—"}</p>
                 </div>
                 <div className="w-full h-28 sm:h-40 bg-gradient-to-t from-amber-700 via-amber-500 to-yellow-400 rounded-t-xl sm:rounded-t-2xl flex items-center justify-center border-t-4 border-yellow-200 shadow-2xl shadow-amber-500/40">
                   <span className="text-2xl sm:text-4xl font-black text-slate-950">1st</span>
@@ -688,13 +760,14 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                 <div className="text-center mb-1.5 sm:mb-2 w-full px-0.5">
                   <Medal className="h-5 w-5 sm:h-7 sm:w-7 text-amber-700 mx-auto" />
                   <p className="text-[10px] sm:text-xs font-bold truncate mt-1 w-full">{top3?.name || "Contender"}</p>
-                  <p className="text-[9px] sm:text-[11px] font-mono text-amber-600">{top3?.score || 0} pts</p>
+                  <p className="text-[9px] sm:text-[11px] font-mono text-amber-600">{top3 ? `${top3.score.toLocaleString()} pts` : "—"}</p>
                 </div>
                 <div className="w-full h-14 sm:h-20 bg-gradient-to-t from-amber-950 to-amber-800 rounded-t-xl sm:rounded-t-2xl flex items-center justify-center border-t-2 border-amber-600 shadow-lg">
                   <span className="text-lg sm:text-2xl font-black text-amber-200">3rd</span>
                 </div>
               </div>
             </div>
+            )}
 
             {/* User's Result Banner */}
             {!isHost && (
@@ -713,7 +786,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                   <div className="inline-flex items-center gap-2 bg-amber-400/20 border border-amber-400/40 rounded-full px-4 py-1.5 mt-1">
                     <Trophy className="h-4 w-4 text-amber-300" />
                     <span className="text-base font-black text-amber-200">
-                      +{getPrizeForRank(myRank).toLocaleString()} Prize Points!
+                      +{(participants.find((p) => p.user_id === currentUser?.id)?.prize_points ?? getPrizeForRank(myRank)).toLocaleString()} Prize Points!
                     </span>
                   </div>
                 )}
@@ -749,8 +822,20 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
             </div>
 
 
+            {/* Final standings arrive once from the host's single database read. */}
+            {finalStandingsLoading && (
+              <p className="text-center text-xs text-white/60" role="status">
+                Collecting saved scores and calculating the final ranking…
+              </p>
+            )}
+            {!finalStandingsLoading && participants.length === 0 && (
+              <p className="text-center text-xs text-white/60">
+                Final standings are not available yet. Please ask the host to refresh the results.
+              </p>
+            )}
+
             {/* Full Contestant Leaderboard Table */}
-            {participants.length > 0 && (
+            {standingsReady && participants.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-white/70">Final Leaderboard Standings</h4>
                 <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
@@ -783,7 +868,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="font-mono text-white/60">{p.score} pts</span>
                         <span className="font-mono font-black text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded-lg">
-                          +{getPrizeForRank(i + 1).toLocaleString()}
+                          +{(p.prize_points ?? getPrizeForRank(i + 1)).toLocaleString()}
                         </span>
                       </div>
                     </div>
