@@ -106,17 +106,16 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
   }
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-muted/20 p-2 sm:p-3">
-      <div className="mb-1.5 flex items-center gap-1.5">
-        <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
-        <span className="text-[11px] sm:text-xs font-semibold text-foreground">Security check</span>
-        <span className="ml-auto text-[10px] text-muted-foreground sm:text-[11px]">Cloudflare</span>
-      </div>
+    <div className="w-full flex flex-col items-center justify-center py-0.5">
       <div
         ref={containerRef}
         className={`flex w-full justify-center overflow-x-hidden ${widgetSize === "compact" ? "min-h-[140px]" : "min-h-[65px]"}`}
       />
-      {loadError && <p role="alert" className="mt-1 text-xs text-destructive">Verification could not be loaded. Please refresh and try again.</p>}
+      {loadError && (
+        <p role="alert" className="mt-1 text-xs text-destructive text-center">
+          Verification could not be loaded. Please refresh and try again.
+        </p>
+      )}
     </div>
   );
 }
