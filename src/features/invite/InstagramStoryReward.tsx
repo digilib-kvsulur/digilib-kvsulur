@@ -44,7 +44,7 @@ export default function InstagramStoryReward({
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const codeToUse = admissionNumber || inviteCode || "";
+  const codeToUse = inviteCode || admissionNumber || "";
   const inviteUrl = codeToUse
     ? `https://dlms.kvsulur.in/invite/${codeToUse}`
     : "https://dlms.kvsulur.in/invite";

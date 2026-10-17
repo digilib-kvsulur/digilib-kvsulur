@@ -168,6 +168,20 @@ const Login = () => {
               profile = updatedProf;
               try { localStorage.setItem("dlms_user_profile", JSON.stringify(updatedProf)); } catch {}
             }
+          } else if (!claimErr && claimResult?.reason) {
+            const reason = (claimResult as any).reason;
+            if (reason === "already_claimed") {
+              try { localStorage.removeItem("dlms_invite_ref"); } catch {}
+            } else if (reason === "self_invite" || reason === "invalid_code") {
+              try { localStorage.removeItem("dlms_invite_ref"); } catch {}
+              toast({
+                title: "Invite could not be applied",
+                description: reason === "self_invite"
+                  ? "You can’t claim a reward using your own invite link."
+                  : "The invite link could not be matched to a student account. Ask your friend to share a fresh link.",
+                variant: "destructive",
+              });
+            }
           } else if (claimErr) {
             // Fallback for older database schema using p_inviter_id
             const { data: inviterRows } = await supabase.rpc("resolve_invite_code", { p_code: refCode });
@@ -213,7 +227,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex animate-in fade-in duration-300">
+    <div className="flex min-h-dvh animate-in fade-in duration-300">
       {/* Left Panel - Immersive Branding */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
         <div className="absolute inset-0 gradient-primary" />
@@ -293,10 +307,10 @@ const Login = () => {
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 bg-background">
-        <div className="w-full max-w-[420px] animate-fade-in">
+      <div className="relative flex-1 overflow-y-auto bg-gradient-to-br from-muted/50 via-background to-primary/5 px-4 py-6 sm:px-8 sm:py-10">
+        <div className="mx-auto flex min-h-full w-full max-w-[460px] flex-col justify-center animate-fade-in">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
+          <div className="mb-5 flex items-center gap-3 px-1 lg:hidden sm:mb-7">
             <div className="flex items-center -space-x-2.5 shrink-0">
               <div className="relative z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200/80 bg-slate-50 shadow-xs" title="PM SHRI Logo">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="relative z-10 h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
@@ -313,10 +327,11 @@ const Login = () => {
             </div>
           </div>
 
+          <div className="rounded-3xl border border-border/60 bg-card/95 p-5 shadow-xl shadow-primary/5 backdrop-blur sm:p-8">
           {!showForgotPassword && (
-            <div className="mb-8">
-              <h2 className="text-3xl font-extrabold text-foreground mb-2">Welcome back</h2>
-              <p className="text-muted-foreground">Sign in to continue your reading journey</p>
+            <div className="mb-6 sm:mb-8">
+              <h2 className="mb-2 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">Welcome back</h2>
+              <p className="text-sm text-muted-foreground sm:text-base">Sign in to continue your reading journey</p>
             </div>
           )}
 
@@ -343,13 +358,13 @@ const Login = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="identifier" className="text-sm font-medium">Admission No. / Email / Username / Phone</Label>
-                <Input
+              <Input
                   id="identifier"
                   type="text"
                   placeholder="e.g. 12345 or your email"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="h-12 rounded-xl"
+                  className="h-12 rounded-xl bg-background/80"
                   required
                 />
               </div>
@@ -361,7 +376,7 @@ const Login = () => {
                   </Button>
                 </div>
                 <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 rounded-xl pr-11" required />
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 rounded-xl bg-background/80 pr-11" required />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -370,7 +385,7 @@ const Login = () => {
 
               <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
 
-              <Button type="submit" className="w-full h-12 rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg hover:shadow-xl transition-all" disabled={isLoading || !captchaToken}>
+              <Button type="submit" className="h-12 w-full rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg shadow-primary/20 transition-all hover:shadow-xl" disabled={isLoading || !captchaToken}>
                 {isLoading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Signing in...</span> : 'Sign In'}
               </Button>
             </form>
@@ -389,6 +404,7 @@ const Login = () => {
             <Button variant="link" className="p-0 h-auto text-muted-foreground text-xs" onClick={() => navigate("/")}>
               <ArrowLeft className="h-3 w-3 mr-1" /> Back to Home
             </Button>
+          </div>
           </div>
         </div>
       </div>

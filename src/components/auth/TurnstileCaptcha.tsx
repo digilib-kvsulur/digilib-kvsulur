@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ShieldCheck } from "lucide-react";
 
 type TurnstileWidgetId = string;
 
@@ -49,8 +50,19 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
   const containerRef = useRef<HTMLDivElement>(null);
   const callbacksRef = useRef({ onToken, onError });
   const [loadError, setLoadError] = useState(false);
+  const [widgetSize, setWidgetSize] = useState<"flexible" | "compact">("flexible");
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim() || DEFAULT_TURNSTILE_SITE_KEY;
   callbacksRef.current = { onToken, onError };
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      setWidgetSize(entry.contentRect.width < 300 ? "compact" : "flexible");
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!siteKey || !containerRef.current) return;
@@ -63,6 +75,7 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
       if (disposed || !containerRef.current || !window.turnstile) return;
       widgetId = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
+        size: widgetSize,
         callback: (token: string) => callbacksRef.current.onToken(token),
         "expired-callback": () => callbacksRef.current.onToken(""),
         "error-callback": () => {
@@ -85,16 +98,21 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
       disposed = true;
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
     };
-  }, [siteKey, resetKey]);
+  }, [siteKey, resetKey, widgetSize]);
 
   if (!siteKey) {
     return <p role="status" className="text-xs text-destructive">Verification is not configured. Please contact the site administrator.</p>;
   }
 
   return (
-    <div className="space-y-1">
-      <div ref={containerRef} className="min-h-[65px]" />
-      {loadError && <p role="alert" className="text-xs text-destructive">Verification could not be loaded. Please refresh and try again.</p>}
+    <div className="rounded-2xl border border-border/60 bg-muted/20 p-3 sm:p-3.5">
+      <div className="mb-2 flex items-center gap-2">
+        <ShieldCheck className="h-4 w-4 text-primary" />
+        <span className="text-xs font-semibold text-foreground">Security check</span>
+        <span className="ml-auto text-[11px] text-muted-foreground">Powered by Cloudflare</span>
+      </div>
+      <div ref={containerRef} className="flex min-h-[65px] w-full justify-center overflow-hidden" />
+      {loadError && <p role="alert" className="mt-1 text-xs text-destructive">Verification could not be loaded. Please refresh and try again.</p>}
     </div>
   );
 }

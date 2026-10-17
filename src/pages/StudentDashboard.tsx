@@ -1188,7 +1188,7 @@ const StudentDashboard = () => {
 
               {/* Invite Friends Live Banner & Redirection Link */}
               {(() => {
-                const inviteCodeOrAdm = user?.admission_number || user?.invite_code || '';
+                const inviteCodeOrAdm = user?.invite_code || user?.admission_number || '';
                 const inviteLink = inviteCodeOrAdm ? `https://dlms.kvsulur.in/invite/${inviteCodeOrAdm}` : 'https://dlms.kvsulur.in/invite';
 
                 return (
@@ -1245,7 +1245,7 @@ const StudentDashboard = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => {
-                                  const msg = encodeURIComponent(`📚 Hey! Join DLMS (Digital Library PM SHRI KV AFS Sulur) with my link:\n${inviteLink}\n\nUse your 5-digit admission number & default password Welcome@123 to log in! 🎉`);
+                                  const msg = encodeURIComponent(`📚 Hey! Join DLMS (Digital Library PM SHRI KV AFS Sulur) with my link:\n${inviteLink}\n\nOpen the invite link and sign in with your own student details and password. 🎉`);
                                   window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
                                 }}
                                 className="flex-1 min-w-[130px] h-10 text-xs sm:text-sm font-semibold rounded-xl border-emerald-400/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 gap-2 shadow-xs transition-colors"

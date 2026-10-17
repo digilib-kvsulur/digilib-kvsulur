@@ -81,7 +81,7 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
           loadedFromRpc = true;
           const count = Number((stats as any).invite_count || 0);
           setInviteCount(count);
-          setTotalInviteXP(Number((stats as any).total_xp || count * XP_PER_INVITE));
+          setTotalInviteXP(Math.min(count * XP_PER_INVITE, MAX_INVITE_XP));
           if (Array.isArray((stats as any).friends)) {
             setFriends((stats as any).friends);
           }
@@ -103,7 +103,7 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
 
           if (invCount !== null && invCount !== undefined) {
             setInviteCount(invCount);
-            setTotalInviteXP(invCount * XP_PER_INVITE);
+            setTotalInviteXP(Math.min(invCount * XP_PER_INVITE, MAX_INVITE_XP));
             if (inviteRows && inviteRows.length > 0) {
               setFriends(inviteRows.map((r: any) => ({
                 first_name: r.profiles?.first_name || "Student",
@@ -177,7 +177,7 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
     load();
   }, [load]);
 
-  const codeToUse = admissionNumber || inviteCode;
+  const codeToUse = inviteCode || admissionNumber;
   const inviteUrl = codeToUse ? `${INVITE_BASE_URL}/${codeToUse}` : null;
   const shortUrl = codeToUse ? `https://dlms.kvsulur.in/i/${codeToUse}` : null;
 
@@ -205,7 +205,7 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
     if (!inviteUrl) return;
     const firstName = userName?.split(" ")[0] || "your friend";
     const message = encodeURIComponent(
-      `📚 Hey! I use DLMS — the Digital Library of PM SHRI KV AFS Sulur. Join me and start your reading adventure!\n\nSign in here 👇\n${inviteUrl}\n\nUse your admission number & default password to log in 🎉`
+      `📚 Hey! I use DLMS — the Digital Library of PM SHRI KV AFS Sulur. Join me and start your reading adventure!\n\nOpen my invite link to join 👇\n${inviteUrl}\n\nSign in with your own student details and password. 🎉`
     );
     window.open(`https://wa.me/?text=${message}`, "_blank", "noopener,noreferrer");
   };
@@ -405,13 +405,13 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="h-4 w-4 text-primary" />
-                Friends Who Joined ({friends.length})
+                Friends Who Joined ({inviteCount})
               </CardTitle>
               <Badge variant="outline" className="text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/50">
-                +{friends.length * XP_PER_INVITE} XP Earned
+                +{totalInviteXP} XP Earned
               </Badge>
             </div>
-            <CardDescription>Classmates who signed up using your invite link or admission number</CardDescription>
+            <CardDescription>Showing recent classmates who joined using your invite link</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5">
             {friends.map((f: any, idx: number) => {
@@ -430,8 +430,8 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
                       </p>
                     </div>
                   </div>
-                  <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-200 shrink-0 font-bold text-xs">
-                    +{f.points_awarded || XP_PER_INVITE} XP
+                  <Badge className="shrink-0 border-emerald-200 bg-emerald-100 text-xs font-bold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
+                    Joined
                   </Badge>
                 </div>
               );
