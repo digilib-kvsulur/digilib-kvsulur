@@ -50,9 +50,7 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
   const containerRef = useRef<HTMLDivElement>(null);
   const callbacksRef = useRef({ onToken, onError });
   const [loadError, setLoadError] = useState(false);
-  const [widgetSize, setWidgetSize] = useState<"flexible" | "compact">(() =>
-    typeof window !== "undefined" && window.matchMedia("(max-width: 480px)").matches ? "compact" : "flexible"
-  );
+  const [widgetSize, setWidgetSize] = useState<"flexible" | "compact">("flexible");
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim() || DEFAULT_TURNSTILE_SITE_KEY;
   callbacksRef.current = { onToken, onError };
 
@@ -60,8 +58,8 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
     const container = containerRef.current;
     if (!container || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(([entry]) => {
-      const compactViewport = window.matchMedia("(max-width: 480px)").matches;
-      setWidgetSize(compactViewport || entry.contentRect.width < 380 ? "compact" : "flexible");
+      // Keep rectangular ("flexible", 65px height) unless the container is narrower than 240px
+      setWidgetSize(entry.contentRect.width > 0 && entry.contentRect.width < 240 ? "compact" : "flexible");
     });
     observer.observe(container);
     return () => observer.disconnect();
@@ -108,10 +106,10 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
   }
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-muted/20 p-2.5 sm:p-3.5">
-      <div className="mb-2 flex items-center gap-2">
-        <ShieldCheck className="h-4 w-4 text-primary" />
-        <span className="text-xs font-semibold text-foreground">Security check</span>
+    <div className="rounded-2xl border border-border/60 bg-muted/20 p-2 sm:p-3">
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+        <span className="text-[11px] sm:text-xs font-semibold text-foreground">Security check</span>
         <span className="ml-auto text-[10px] text-muted-foreground sm:text-[11px]">Cloudflare</span>
       </div>
       <div
