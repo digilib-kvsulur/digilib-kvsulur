@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
 
 const Register = () => {
   const registrationsTemporarilyClosed = true;
@@ -18,6 +19,8 @@ const Register = () => {
     role: "", studentClass: "", rollNumber: "", admissionNumber: "", username: "", phone: "",
   });
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -41,6 +44,10 @@ const Register = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canProceedStep1 || !canProceedStep2) return;
+    if (!captchaToken) {
+      toast({ title: "Verification required", description: "Complete the verification challenge before creating your account.", variant: "destructive" });
+      return;
+    }
     if (formData.role === "student" && (!formData.studentClass || !formData.rollNumber || !formData.admissionNumber)) {
       toast({ title: "Missing Student Info", description: "Please provide class, roll number, and admission number", variant: "destructive" });
       return;
@@ -52,6 +59,7 @@ const Register = () => {
         password: formData.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
+          captchaToken,
           data: {
             first_name: formData.firstName, last_name: formData.lastName, role: formData.role,
             student_class: formData.studentClass, roll_number: formData.rollNumber,
@@ -60,7 +68,12 @@ const Register = () => {
           }
         }
       });
-      if (authError) { toast({ title: "Registration Failed", description: authError.message, variant: "destructive" }); return; }
+      if (authError) {
+        setCaptchaToken("");
+        setCaptchaResetKey((key) => key + 1);
+        toast({ title: "Registration Failed", description: authError.message, variant: "destructive" });
+        return;
+      }
       if (authData.user) {
         toast({ title: "Registration Successful!", description: "Your account is pending admin approval." });
         navigate("/login");
@@ -293,9 +306,11 @@ const Register = () => {
                   <AlertDescription className="text-xs">Your account will require admin approval before you can login.</AlertDescription>
                 </Alert>
 
+                <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
+
                 <div className="flex gap-3">
                   <Button type="button" variant="outline" className="flex-1 h-12 rounded-xl" onClick={() => setStep(2)}>Back</Button>
-                  <Button type="submit" className="flex-1 h-12 rounded-xl gradient-primary border-0 font-semibold shadow-lg" disabled={loading}>
+                  <Button type="submit" className="flex-1 h-12 rounded-xl gradient-primary border-0 font-semibold shadow-lg" disabled={loading || !captchaToken}>
                     {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Creating...</span> : 'Create Account'}
                   </Button>
                 </div>

@@ -41,7 +41,30 @@ Deno.serve(async (request) => {
   const accepted = () => new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
-    const { identifier } = await request.json();
+    const { identifier, captchaToken } = await request.json();
+    const turnstileSecret = Deno.env.get("TURNSTILE_SECRET_KEY");
+    if (!turnstileSecret) throw new Error("Turnstile verification is not configured");
+    if (typeof captchaToken !== "string" || !captchaToken) {
+      return new Response(JSON.stringify({ error: "Complete the verification challenge and try again." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const verificationBody = new URLSearchParams({ secret: turnstileSecret, response: captchaToken });
+    const verificationResponse = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: verificationBody,
+    });
+    const verification = await verificationResponse.json();
+    if (!verificationResponse.ok || !verification.success) {
+      return new Response(JSON.stringify({ error: "Verification expired or failed. Please try again." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const lookup = String(identifier || "").trim();
     if (!lookup || lookup.length > 255) return accepted();
 

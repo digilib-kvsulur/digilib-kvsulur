@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { clearStoredAuthSession, isInvalidRefreshTokenError } from "@/lib/authCleanup";
 import { ForgotPasswordView } from "@/components/auth/ForgotPasswordView";
 import NotificationEmailDialog from "@/components/auth/NotificationEmailDialog";
+import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -18,6 +19,8 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showRegistrationNotice, setShowRegistrationNotice] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -86,6 +89,10 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!captchaToken) {
+      toast({ title: "Verification required", description: "Complete the verification challenge before signing in.", variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
     if (!identifier || !password) {
       toast({ title: "Missing Information", description: "Please fill in all fields", variant: "destructive" });
@@ -112,8 +119,10 @@ const Login = () => {
         setIsLoading(false);
         return;
       }
-      const { data, error } = await supabase.auth.signInWithPassword({ email: user.email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: user.email, password }, { captchaToken });
       if (error) {
+        setCaptchaToken("");
+        setCaptchaResetKey((key) => key + 1);
         if (isInvalidRefreshTokenError(error)) clearStoredAuthSession();
         toast({ title: "Login Failed", description: "Invalid password. Please try again.", variant: "destructive" });
         setIsLoading(false);
@@ -185,6 +194,8 @@ const Login = () => {
         setTimeout(continueToDashboard, 100);
       }
     } catch (error) {
+      setCaptchaToken("");
+      setCaptchaResetKey((key) => key + 1);
       console.error('Login error:', error);
       toast({ title: "Login Failed", description: "An unexpected error occurred", variant: "destructive" });
     }
@@ -347,7 +358,9 @@ const Login = () => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-12 rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg hover:shadow-xl transition-all" disabled={isLoading}>
+              <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
+
+              <Button type="submit" className="w-full h-12 rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg hover:shadow-xl transition-all" disabled={isLoading || !captchaToken}>
                 {isLoading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Signing in...</span> : 'Sign In'}
               </Button>
             </form>

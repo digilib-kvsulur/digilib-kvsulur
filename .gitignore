@@ -26,6 +26,7 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+tmp/r2-copy-manifest-*.json
 .env*
 schema.sql
 data.sql

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
 
 interface ForgotPasswordViewProps {
   onBackToLogin: () => void;
@@ -55,6 +56,8 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
   const [emailSent, setEmailSent] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   // Librarian ticket state
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
@@ -161,16 +164,22 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
   // Step 2A: Send recovery email
   const handleSendEmail = async () => {
     if (!accountData || cooldown > 0) return;
+    if (!captchaToken) {
+      toast({ title: "Verification required", description: "Complete the verification challenge before requesting a reset link.", variant: "destructive" });
+      return;
+    }
 
     setIsSendingEmail(true);
     try {
       const { error } = await supabase.functions.invoke("send-password-reset", {
-        body: { identifier: identifier || accountData.admission_number || accountData.auth_email, redirectTo: `${window.location.origin}/reset-password` },
+        body: { identifier: identifier || accountData.admission_number || accountData.auth_email, captchaToken },
       });
 
       if (error) throw error;
 
       setEmailSent(true);
+      setCaptchaToken("");
+      setCaptchaResetKey((key) => key + 1);
       setRateLimitHit(false);
       setCooldown(60);
       toast({
@@ -178,6 +187,8 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
         description: `If the account details match, a link has been sent to ${accountData.masked_email || "your registered email address"}.`,
       });
     } catch (err: any) {
+      setCaptchaToken("");
+      setCaptchaResetKey((key) => key + 1);
       const isRateLimit = err.message?.toLowerCase().includes("rate limit") || err.status === 429;
       if (isRateLimit) {
         setRateLimitHit(true);
@@ -441,6 +452,8 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
                   {accountData.masked_email || accountData.auth_email}
                 </div>
 
+                <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
+
                 {emailSent ? (
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5 text-center animate-in zoom-in-95">
                     <CheckCircle2 className="h-6 w-6 text-emerald-600 mx-auto" />
@@ -456,6 +469,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
                       <Button
                         variant="link"
                         size="sm"
+                        disabled={!captchaToken || isSendingEmail}
                         onClick={handleSendEmail}
                         className="text-xs font-bold text-indigo-600 p-0 h-auto"
                       >
@@ -466,7 +480,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
                 ) : (
                   <Button
                     type="button"
-                    disabled={isSendingEmail || cooldown > 0}
+                    disabled={isSendingEmail || cooldown > 0 || !captchaToken}
                     onClick={handleSendEmail}
                     className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 active:scale-[0.98] transition-all"
                   >
