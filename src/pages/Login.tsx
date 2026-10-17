@@ -124,7 +124,13 @@ const Login = () => {
         setCaptchaToken("");
         setCaptchaResetKey((key) => key + 1);
         if (isInvalidRefreshTokenError(error)) clearStoredAuthSession();
-        toast({ title: "Login Failed", description: "Invalid password. Please try again.", variant: "destructive" });
+        const authMessage = error.message?.toLowerCase() || "";
+        const description = authMessage.includes("captcha")
+          ? "Verification could not be confirmed. Please retry. If this continues, check that Turnstile is enabled for this Supabase project and its secret key matches this site key."
+          : authMessage.includes("email not confirmed")
+            ? "Please confirm your email address before signing in."
+            : "Invalid credentials. Please check your email/username/phone and password.";
+        toast({ title: "Login Failed", description, variant: "destructive" });
         setIsLoading(false);
         return;
       }
