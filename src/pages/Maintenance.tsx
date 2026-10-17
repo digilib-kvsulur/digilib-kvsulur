@@ -114,20 +114,16 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
       >
         Dear Students & Teachers,
         <br /><br />
-        We have detected a{" "}
+        DLMS is currently under maintenance as we are{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          database downtime
+          upgrading the database server
         </span>{" "}
-        on DLMS. Our team is currently{" "}
-        <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          restarting the database
-        </span>{" "}
-        to restore full health and functionality.
+        to improve performance and reliability.
         <br /><br />
         The site will be back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
-          today, 10:30 PM IST
-        </span>. Please hold tight — we're working on it actively.
+          today, 11:05 AM IST
+        </span>. Please hold tight — we'll be up shortly.
         <br /><br />
         Thank you for your patience and cooperation. 🙏
       </p>
@@ -238,9 +234,9 @@ export default function Maintenance() {
             className="text-sm sm:text-base md:text-lg leading-relaxed max-w-md mx-auto"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-          We have detected a database downtime on DLMS. Our team is restarting the DB to restore full health. We'll be back online by:{" "}
+          We're upgrading the database server to improve performance and reliability. We'll be back online by:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-              today, 10:30 PM IST
+              today, 11:05 AM IST
             </span>
             .
           </p>
