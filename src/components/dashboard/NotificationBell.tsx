@@ -4,6 +4,7 @@ import { Bell, CheckCheck, ExternalLink, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
 } from "@/components/ui/dialog";
@@ -62,7 +63,7 @@ const NotificationBell = () => {
     const ids = unread.map((n) => n.id);
     await supabase.from("notifications").update({ is_read: true }).in("id", ids);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    toast({ title: "All notifications marked as read" });
+    toast.success("All notifications marked as read");
   };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
