@@ -46,6 +46,28 @@ interface ParticipantScore {
   prize_points?: number;
 }
 
+function mergeParticipantScores(current: ParticipantScore[], incoming: any[]): ParticipantScore[] {
+  const merged = new Map(current.map((participant) => [participant.user_id, participant]));
+  for (const row of incoming) {
+    if (!row?.user_id || row.is_host) continue;
+    const previous = merged.get(row.user_id);
+    const previousScore = Number(previous?.score) || 0;
+    const incomingScore = Number(row.score) || 0;
+    const next: ParticipantScore = {
+      ...previous,
+      ...row,
+      user_id: row.user_id,
+      name: row.name || previous?.name || "Student",
+      score: Math.max(previousScore, incomingScore),
+      strikes: Math.max(Number(previous?.strikes) || 0, Number(row.strikes) || 0),
+      disqualified: Boolean(previous?.disqualified || row.disqualified),
+      avatar_url: row.avatar_url || previous?.avatar_url,
+    };
+    merged.set(row.user_id, next);
+  }
+  return Array.from(merged.values()).sort((a, b) => b.score - a.score || a.user_id.localeCompare(b.user_id));
+}
+
 export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRunnerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -78,6 +100,9 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
   const channelRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const participantsRef = useRef<ParticipantScore[]>([]);
+  const resultSavedUserIdsRef = useRef<Set<string>>(new Set());
+  const finalStandingsReadyRef = useRef(false);
   const scoreRef = useRef(0);
   const strikesRef = useRef(0);
   const finishHandledRef = useRef(false);
@@ -85,6 +110,26 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   const finalStandingsRequestedRef = useRef(false);
   const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
   const question = questions[currentIndex] as Question | undefined;
+
+  const updateParticipants = (update: (current: ParticipantScore[]) => ParticipantScore[]) => {
+    const next = update(participantsRef.current);
+    participantsRef.current = next;
+    setParticipants(next);
+  };
+
+  const publishMyScore = (strikeCount = strikesRef.current, disqualified = isDisqualified) => {
+    if (!currentUser || isHost) return;
+    const payload: ParticipantScore = {
+      user_id: currentUser.id,
+      name: currentUser.name,
+      score: scoreRef.current,
+      avatar_url: currentUser.avatar_url,
+      strikes: strikeCount,
+      disqualified,
+    };
+    updateParticipants((current) => mergeParticipantScores(current, [payload]));
+    void channelRef.current?.send({ type: "broadcast", event: "player_score_update", payload });
+  };
 
   useEffect(() => {
     initUser();
@@ -200,27 +245,25 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
   const handleViolation = (reason: string) => {
     if (isFinished || isHost) return;
+    const nextStrike = strikesRef.current + 1;
+    strikesRef.current = nextStrike;
+    setStrikes(nextStrike);
+    quizAudio.playIncorrect();
+    publishMyScore(nextStrike, nextStrike >= 3);
 
-    setStrikes((prev) => {
-      const nextStrike = prev + 1;
-      strikesRef.current = nextStrike;
-      quizAudio.playIncorrect();
-
-      if (nextStrike >= 3) {
-        setIsDisqualified(true);
-        setProctorWarning("Disqualified: 3 Anti-Cheat Strikes exceeded (Tab Switching/Focus Loss). Auto-submitting score.");
-        toast.error("🚨 Contestant Disqualified!", {
-          description: "3 proctor strikes reached. Your current score is auto-submitted.",
-        });
-        finishQuiz(true, nextStrike);
-      } else {
-        setProctorWarning(`⚠️ Strike ${nextStrike}/3 Warning: ${reason}`);
-        toast.error(`⚠️ Proctor Warning: Strike ${nextStrike} of 3!`, {
-          description: nextStrike === 2 ? "Final Warning: Next violation will disqualify you!" : reason,
-        });
-      }
-      return nextStrike;
-    });
+    if (nextStrike >= 3) {
+      setIsDisqualified(true);
+      setProctorWarning("Disqualified: 3 Anti-Cheat Strikes exceeded (Tab Switching/Focus Loss). Auto-submitting score.");
+      toast.error("🚨 Contestant Disqualified!", {
+        description: "3 proctor strikes reached. Your current score is auto-submitted.",
+      });
+      finishQuiz(true, nextStrike);
+    } else {
+      setProctorWarning(`⚠️ Strike ${nextStrike}/3 Warning: ${reason}`);
+      toast.error(`⚠️ Proctor Warning: Strike ${nextStrike} of 3!`, {
+        description: nextStrike === 2 ? "Final Warning: Next violation will disqualify you!" : reason,
+      });
+    }
   };
 
   const reEnterFullscreen = async () => {
@@ -313,50 +356,59 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       .on("broadcast", { event: "final_leaderboard" }, (payload) => {
         const rows = payload.payload?.participants;
         if (!Array.isArray(rows)) return;
+        participantsRef.current = rows;
+        finalStandingsReadyRef.current = true;
         setParticipants(rows);
         setHasFinalStandings(true);
         setFinalStandingsLoading(false);
       })
       .on("broadcast", { event: "player_score_update" }, (payload) => {
         const updatedPlayer = payload.payload as any;
-        if (!updatedPlayer || !updatedPlayer.user_id || updatedPlayer.is_host) return;
-        if (updatedPlayer.name?.toLowerCase().includes("admin") || updatedPlayer.name?.toLowerCase().includes("pm shri kv")) return;
-
-        setParticipants((prev) => {
-          const exists = prev.some((p) => p.user_id === updatedPlayer.user_id);
-          const nextList = exists
-            ? prev.map((p) => (p.user_id === updatedPlayer.user_id ? { ...p, ...updatedPlayer } : p))
-            : [...prev, updatedPlayer];
-          return nextList
-            .filter((p: any) => !p.is_host && !p.name?.toLowerCase().includes("admin") && !p.name?.toLowerCase().includes("pm shri kv"))
-            .sort((a, b) => (b.score || 0) - (a.score || 0));
+        if (finalStandingsReadyRef.current || !updatedPlayer || !updatedPlayer.user_id || updatedPlayer.is_host) return;
+        updateParticipants((current) => mergeParticipantScores(current, [updatedPlayer]));
+      })
+      .on("broadcast", { event: "player_result_saved" }, (payload) => {
+        const userId = payload.payload?.user_id;
+        if (userId) resultSavedUserIdsRef.current.add(userId);
+      })
+      .on("broadcast", { event: "leaderboard_snapshot_request" }, (payload) => {
+        if (!isHost || !isLeagueSession) return;
+        const requestedBy = payload.payload?.user_id;
+        if (!requestedBy) return;
+        void channel.send({
+          type: "broadcast",
+          event: "leaderboard_snapshot",
+          payload: { user_id: requestedBy, participants: participantsRef.current },
         });
+      })
+      .on("broadcast", { event: "leaderboard_snapshot" }, (payload) => {
+        if (finalStandingsReadyRef.current || payload.payload?.user_id !== currentUser?.id || !Array.isArray(payload.payload?.participants)) return;
+        updateParticipants((current) => mergeParticipantScores(current, payload.payload.participants));
       })
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
         const raw = Object.values(state).flatMap((users: any) => users) as any[];
-        // Deduplicate by user_id — keep entry with highest score per user, strictly exclude admin/host
-        const seen = new Map<string, ParticipantScore>();
-        for (const p of raw) {
-          if (!p.user_id || p.is_host) continue;
-          if (p.name?.toLowerCase().includes("admin") || p.name?.toLowerCase().includes("pm shri kv")) continue;
-          const existing = seen.get(p.user_id);
-          if (!existing || (p.score || 0) > (existing.score || 0)) {
-            seen.set(p.user_id, p);
-          }
-        }
-        const deduped = Array.from(seen.values()).sort((a, b) => (b.score || 0) - (a.score || 0));
-        setParticipants(deduped);
+        // Presence is a membership snapshot; older presence metadata can still
+        // say score=0. Merge it without replacing newer score broadcasts.
+        updateParticipants((current) => mergeParticipantScores(current, raw));
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED" && currentUser && !isHost) {
           await channel.track({
             user_id: currentUser.id,
             name: currentUser.name,
-            score: 0,
+            score: scoreRef.current,
+            strikes: strikesRef.current,
             avatar_url: currentUser.avatar_url,
             is_host: false,
           });
+          if (isLeagueSession) {
+            await channel.send({
+              type: "broadcast",
+              event: "leaderboard_snapshot_request",
+              payload: { user_id: currentUser.id },
+            });
+          }
         }
       });
 
@@ -454,30 +506,15 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         quizAudio.playCorrect();
       }
 
-      // 1. Instant Realtime Broadcast to eliminate delay
-      if (channelRef.current && currentUser && !isHost) {
-        const payloadData: ParticipantScore = {
-          user_id: currentUser.id,
-          name: currentUser.name,
-          score: newScore,
-          avatar_url: currentUser.avatar_url,
-          strikes,
-        };
-
-        channelRef.current.send({
-          type: "broadcast",
-          event: "player_score_update",
-          payload: payloadData,
-        });
-
-        // Presence is tracked once when joining the session. Score changes use
-        // the broadcast above so one answer does not trigger full presence syncs.
-      }
     } else {
       setStreak(0);
       setLastEarnedPoints(0);
       quizAudio.playIncorrect();
     }
+
+    // Publish after every answer, including incorrect answers. This keeps the
+    // current score and strike count accurate without a database read per round.
+    publishMyScore();
 
     // Automatically transition from answer splash to inter-question leaderboard after 1.8s
     setTimeout(() => {
@@ -619,22 +656,47 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
           resultSubmittedRef.current = false;
           throw error;
         }
+        resultSavedUserIdsRef.current.add(user.id);
+        void channelRef.current?.send({
+          type: "broadcast",
+          event: "player_result_saved",
+          payload: { user_id: user.id },
+        });
       }
     } catch (e) {
       console.error("Error saving final league score:", e);
     } finally {
       if (isHost && isLeagueSession && !finalStandingsRequestedRef.current) {
         finalStandingsRequestedRef.current = true;
-        // One host read after participant submissions settle; all players receive
-        // the same final snapshot over Realtime instead of querying individually.
-        window.setTimeout(async () => {
+        // Wait for the connected contestants to confirm their single result
+        // insert, with a bounded timeout for dropped clients. Then use one
+        // canonical DB read and broadcast the snapshot to everyone.
+        void (async () => {
           try {
-            const { data, error } = await (supabase.rpc as any)(
+            const expectedUserIds = participantsRef.current.map((p) => p.user_id).filter(Boolean);
+            const deadline = Date.now() + 5000;
+            while (
+              expectedUserIds.some((userId) => !resultSavedUserIdsRef.current.has(userId)) &&
+              Date.now() < deadline
+            ) {
+              await new Promise((resolve) => window.setTimeout(resolve, 150));
+            }
+
+            let { data, error } = await (supabase.rpc as any)(
               "get_quiz_league_final_standings",
               { p_session_id: sessionId }
             );
+            if (!error && (data || []).length < resultSavedUserIdsRef.current.size) {
+              await new Promise((resolve) => window.setTimeout(resolve, 900));
+              const retry = await (supabase.rpc as any)(
+                "get_quiz_league_final_standings",
+                { p_session_id: sessionId }
+              );
+              data = retry.data;
+              error = retry.error;
+            }
             if (error) throw error;
-            const finalParticipants = (data || []).map((row: any) => ({
+            const savedParticipants = (data || []).map((row: any) => ({
               user_id: row.user_id,
               name: row.display_name || "Student",
               score: Number(row.score) || 0,
@@ -642,6 +704,13 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
               disqualified: Boolean(row.disqualified),
               prize_points: Number(row.prize_points) || 0,
             }));
+            const finalParticipants = mergeParticipantScores(savedParticipants, participantsRef.current)
+              .map((participant, index) => ({
+                ...participant,
+                prize_points: participant.disqualified ? 0 : getPrizeForRank(index + 1),
+              }));
+            participantsRef.current = finalParticipants;
+            finalStandingsReadyRef.current = true;
             setParticipants(finalParticipants);
             setHasFinalStandings(true);
             await channelRef.current?.send({
@@ -651,10 +720,26 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
             });
           } catch (error) {
             console.error("Could not load final quiz league standings:", error);
+            // If Postgres is temporarily unhealthy, preserve the accumulated
+            // Realtime scores instead of replacing the final board with zeros.
+            const fallback = mergeParticipantScores([], participantsRef.current)
+              .map((participant, index) => ({
+                ...participant,
+                prize_points: participant.disqualified ? 0 : getPrizeForRank(index + 1),
+              }));
+            participantsRef.current = fallback;
+            finalStandingsReadyRef.current = true;
+            setParticipants(fallback);
+            setHasFinalStandings(true);
+            await channelRef.current?.send({
+              type: "broadcast",
+              event: "final_leaderboard",
+              payload: { participants: fallback },
+            });
           } finally {
             setFinalStandingsLoading(false);
           }
-        }, 1800);
+        })();
       } else if (!isLeagueSession) {
         setFinalStandingsLoading(false);
       }
