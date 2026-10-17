@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Bell, CheckCheck, ExternalLink, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,24 +24,32 @@ const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const loadNotifications = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw userError || new Error("Sign in to view notifications");
 
-    const { data } = await supabase
-      .from("notifications")
-      .select("id, title, message, type, is_read, created_at, target_user_id, image_url, action_link")
-      .or(`target_user_id.eq.${user.id},target_user_id.is.null`)
-      .order("created_at", { ascending: false })
-      .limit(30);
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id, title, message, type, is_read, created_at, target_user_id, image_url, action_link")
+        .or(`target_user_id.eq.${user.id},target_user_id.is.null`)
+        .order("created_at", { ascending: false })
+        .limit(30);
 
-    if (data) setNotifications(data as unknown as Notification[]);
+      if (error) throw error;
+      setNotifications((data || []) as unknown as Notification[]);
+    } catch (error) {
+      console.warn("Could not load notifications:", error);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
-
-  useEffect(() => {
-    void loadNotifications();
-  }, [loadNotifications]);
 
   const markAsRead = async (id: string) => {
     await supabase.from("notifications").update({ is_read: true }).eq("id", id);
@@ -132,7 +140,18 @@ const NotificationBell = () => {
         </DialogHeader>
 
         <div className="space-y-2 overflow-y-auto max-h-[55vh] pr-1 no-scrollbar">
-          {displayed.length === 0 && (
+          {loadError && (
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-center">
+              <p className="text-sm text-muted-foreground">Notifications are temporarily unavailable.</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => void loadNotifications()} disabled={loading}>
+                {loading ? "Retrying…" : "Retry"}
+              </Button>
+            </div>
+          )}
+          {loading && notifications.length === 0 && !loadError && (
+            <div className="py-8 text-center text-sm text-muted-foreground">Loading notifications…</div>
+          )}
+          {displayed.length === 0 && !loading && !loadError && (
             <div className="py-12 text-center text-muted-foreground">
               <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm font-medium">

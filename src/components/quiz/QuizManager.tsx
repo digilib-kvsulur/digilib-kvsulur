@@ -71,9 +71,10 @@ const QuizManager = () => {
   const [activeTab, setActiveTab] = useState("leagues");
   const [showQuizForm, setShowQuizForm] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [resultsLoading, setResultsLoading] = useState(true);
   const [leaguesLoading, setLeaguesLoading] = useState(true);
+  const [leagueLoadError, setLeagueLoadError] = useState(false);
   const [loadingMoreLeagues, setLoadingMoreLeagues] = useState(false);
   const [hasMoreLeagues, setHasMoreLeagues] = useState(false);
   const [quizzesLoaded, setQuizzesLoaded] = useState(false);
@@ -116,6 +117,7 @@ const QuizManager = () => {
 
   const loadQuizzes = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('quizzes')
         .select('*')
@@ -211,6 +213,7 @@ const QuizManager = () => {
     try {
       if (append) setLoadingMoreLeagues(true);
       else setLeaguesLoading(true);
+      if (!append) setLeagueLoadError(false);
       const offset = append ? leagueSessions.length : 0;
       const { data, error } = await supabase
         .from("quiz_sessions")
@@ -221,6 +224,7 @@ const QuizManager = () => {
 
       if (error) {
         console.warn("Could not load league sessions:", error);
+        setLeagueLoadError(true);
         return;
       }
 
@@ -244,6 +248,7 @@ const QuizManager = () => {
       setLeagueSessions((current) => append ? [...current, ...leaguesWithCounts] : leaguesWithCounts);
     } catch (err) {
       console.warn("Error fetching leagues:", err);
+      setLeagueLoadError(true);
     } finally {
       setLeaguesLoading(false);
       setLoadingMoreLeagues(false);
@@ -918,6 +923,12 @@ const QuizManager = () => {
               {leaguesLoading ? (
                 <div className="flex items-center justify-center p-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                </div>
+              ) : leagueLoadError ? (
+                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 text-center">
+                  <p className="text-sm font-medium text-foreground">Quiz leagues could not be loaded from Supabase.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">The database API returned an error. Your quiz data has not been changed.</p>
+                  <Button className="mt-4" variant="outline" onClick={() => void loadLeagueSessions()}>Retry</Button>
                 </div>
               ) : leagueSessions.length === 0 ? (
                 <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-muted/20">
