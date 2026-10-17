@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { incrementUserActivityStat } from "@/lib/userActivityStatsCache";
+import { clearShortLivedCache, readShortLivedCache, writeShortLivedCache } from "@/lib/shortLivedUserCache";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "@/components/community/ProfileView";
 import { UserConnectionsDialog } from "@/components/community/UserConnectionsDialog";
@@ -32,6 +33,8 @@ interface SuggestionUser {
   reason?: string | null;
   mutual_count?: number | null;
 }
+
+const SUGGESTIONS_TTL_MS = 5 * 60 * 1000;
 
 const NetworkTab = ({ user }: NetworkTabProps) => {
   const [friendshipsMap, setFriendshipsMap] = useState<Record<string, any>>({});
@@ -114,6 +117,13 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
 
   const loadSuggestions = async () => {
     if (!user?.id) return;
+    const cacheKey = `follow-suggestions:${user.id}:30`;
+    const cachedSuggestions = readShortLivedCache<SuggestionUser[]>(cacheKey, SUGGESTIONS_TTL_MS);
+    if (cachedSuggestions) {
+      setSuggestions(cachedSuggestions);
+      setSuggestionsLoading(false);
+      return;
+    }
     setSuggestionsLoading(true);
     try {
       let list: SuggestionUser[] = [];
@@ -181,6 +191,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
       );
 
       setSuggestions(resolved);
+      writeShortLivedCache(cacheKey, resolved);
     } catch (err) {
       console.error("Failed to load follow suggestions:", err);
     } finally {
@@ -205,6 +216,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
           .select().single();
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         setFriendshipsMap(m => ({ ...m, [targetId]: data }));
+        clearShortLivedCache(`follow-suggestions:${user.id}:30`);
         toast({ title: "Follow request sent!" });
         await loadFriendshipsMap();
         return;
@@ -229,6 +241,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
           .select().single();
         if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
         setFriendshipsMap(m => ({ ...m, [targetId]: data }));
+        clearShortLivedCache(`follow-suggestions:${user.id}:30`);
         toast({ title: "Follow request sent!" });
         await loadFriendshipsMap();
         return;
@@ -240,6 +253,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
         .select().single();
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       setFriendshipsMap(m => ({ ...m, [targetId]: data }));
+      clearShortLivedCache(`follow-suggestions:${user.id}:30`);
       toast({ title: "Follow request sent!" });
       await loadFriendshipsMap();
     } catch (e: any) {
@@ -253,6 +267,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
     const { error } = await supabase.from("friendships").update({ status }).eq("id", f.id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     if (status === "accepted" && f.status !== "accepted") incrementUserActivityStat(user?.id, "friends_count");
+    clearShortLivedCache(`follow-suggestions:${user.id}:30`);
     toast({ title: status === "accepted" ? "Friend request accepted 🎉" : "Declined" });
     await loadFriendshipsMap();
   };
@@ -263,6 +278,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
     const { error } = await supabase.from("friendships").delete().eq("id", f.id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     if (f.status === "accepted") incrementUserActivityStat(user?.id, "friends_count", -1);
+    clearShortLivedCache(`follow-suggestions:${user.id}:30`);
     setFriendshipsMap(m => { const c = { ...m }; delete c[targetId]; return c; });
     toast({ title: "Friend removed" });
     await loadFriendshipsMap();

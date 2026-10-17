@@ -5,8 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, BookOpen, Star, Compass, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { readShortLivedCache, writeShortLivedCache } from "@/lib/shortLivedUserCache";
 
 type Scored = { book: any; score: number; reasons: string[] };
+type RecommendationSnapshot = { personalizedBooks: Scored[]; trending: any[]; teacherPicks: any[] };
+const RECOMMENDATIONS_TTL_MS = 5 * 60 * 1000;
 
 export default function Recommendations({ userId, studentClass }: { userId: string; studentClass?: string }) {
   const navigate = useNavigate();
@@ -16,8 +19,18 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
   const [loading, setLoading] = useState(true);
 
   const loadRecommendations = async () => {
+    const cacheKey = `recommendations:${userId}:${studentClass || "none"}`;
+    const cached = readShortLivedCache<RecommendationSnapshot>(cacheKey, RECOMMENDATIONS_TTL_MS);
+    if (cached) {
+      setPersonalizedBooks(cached.personalizedBooks);
+      setTrending(cached.trending);
+      setTeacherPicks(cached.teacherPicks);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
+      let nextTeacherPicks: any[] = [];
 
       // 1. Load Teacher recommendations for the class
       if (studentClass) {
@@ -27,13 +40,14 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
           .eq("class_level", studentClass);
 
         if (tpData) {
-          setTeacherPicks(tpData.map(t => ({
+          nextTeacherPicks = tpData.map(t => ({
             ...t.books,
             notes: t.notes,
             recommended_by_teacher: true
-          })).filter(Boolean));
+          })).filter(Boolean);
         }
       }
+      setTeacherPicks(nextTeacherPicks);
 
       // 2. Fetch signals: history, wishlist, quizzes, ratings
       const [
@@ -133,12 +147,18 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
         })
         .sort((a, b) => b.score - a.score);
 
-      setPersonalizedBooks(scored.slice(0, 6));
-      setTrending(
+      const nextPersonalizedBooks = scored.slice(0, 6);
+      const nextTrending =
         [...(popular || [])]
           .filter((b: any) => (b.issue_count || 0) > 0)
-          .slice(0, 6)
-      );
+          .slice(0, 6);
+      setPersonalizedBooks(nextPersonalizedBooks);
+      setTrending(nextTrending);
+      writeShortLivedCache<RecommendationSnapshot>(cacheKey, {
+        personalizedBooks: nextPersonalizedBooks,
+        trending: nextTrending,
+        teacherPicks: nextTeacherPicks,
+      });
     } catch (e) {
       console.error("Error generating recommendations:", e);
     } finally {

@@ -121,36 +121,51 @@ export const showSystemPushNotification = async (
 
 export const GlobalNotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userId, setUserId] = useState<string | null>(null);
+  const currentUserId = React.useRef<string | null>(null);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   // Deduplication cache: prevents duplicate toasts/alerts when multiple events fire in short succession
   const seenNotifKeys = React.useRef<Map<string, number>>(new Map());
+  const unreadCountRequests = React.useRef<Map<string, Promise<void>>>(new Map());
 
   // Auto-subscribe to Web Push and Native Capacitor Push
   usePushSubscription(userId);
 
   const fetchUnreadCount = async (uid: string) => {
+    const existing = unreadCountRequests.current.get(uid);
+    if (existing) return existing;
+    const request = (async () => {
+      try {
+        const { count, error } = await supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("is_read", false)
+          .or(`target_user_id.eq.${uid},target_user_id.is.null`);
+        if (error) throw error;
+        // A previous user's in-flight response must not overwrite the current user's badge.
+        if (currentUserId.current === uid) setUnreadCount(count || 0);
+      } catch (e) {
+        console.warn("Could not fetch unread notifications count:", e);
+      }
+    })();
+    unreadCountRequests.current.set(uid, request);
     try {
-      const { count } = await supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("is_read", false)
-        .or(`target_user_id.eq.${uid},target_user_id.is.null`);
-
-      setUnreadCount(count || 0);
-    } catch (e) {
-      console.warn("Could not fetch unread notifications count:", e);
+      await request;
+    } finally {
+      if (unreadCountRequests.current.get(uid) === request) unreadCountRequests.current.delete(uid);
     }
   };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const uid = session?.user?.id || null;
+      currentUserId.current = uid;
       setUserId(uid);
       if (uid) fetchUnreadCount(uid);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const uid = session?.user?.id || null;
+      currentUserId.current = uid;
       setUserId(uid);
       if (uid) fetchUnreadCount(uid);
       else setUnreadCount(0);
