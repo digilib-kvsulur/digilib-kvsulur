@@ -65,7 +65,11 @@ function mergeParticipantScores(current: ParticipantScore[], incoming: any[]): P
     };
     merged.set(row.user_id, next);
   }
-  return Array.from(merged.values()).sort((a, b) => b.score - a.score || a.user_id.localeCompare(b.user_id));
+  return Array.from(merged.values()).sort(
+    (a, b) => Number(Boolean(a.disqualified)) - Number(Boolean(b.disqualified)) ||
+      b.score - a.score ||
+      a.user_id.localeCompare(b.user_id)
+  );
 }
 
 export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRunnerProps) => {
@@ -577,7 +581,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
       let awardedCount = 0;
       for (let i = 0; i < participants.length; i++) {
         const p = participants[i];
-        if (!p.user_id) continue;
+        if (!p.user_id || p.disqualified) continue;
         const rank = i + 1;
         const prize = getPrizeForRank(rank);
         if (prize > 0) {
