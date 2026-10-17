@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { LibraryLoader } from "@/components/global/LibraryLoader";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { loadingManager } from "@/lib/loadingManager";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,60 +13,61 @@ import {
   ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon,
   Newspaper, Users as UsersIcon, Crown, Sparkles, Zap, Mail, Palette, Sun
 } from "lucide-react";
-import Community from "@/components/community/Community";
-import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import { supabase } from "@/integrations/supabase/client";
 import { clearStoredAuthSession } from "@/lib/authCleanup";
 import { useToast } from "@/hooks/use-toast";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 
-import UserApproval from "@/components/admin/UserApproval";
-import BookManager from "@/components/admin/BookManager";
-import BookIssueRegister from "@/components/admin/BookIssueRegister";
-import BookIssueRequests from "@/components/admin/BookIssueRequests";
-import PointsManager from "@/components/admin/PointsManager";
-import QuizManager from "@/components/quiz/QuizManager";
-import GamesManager from "@/components/admin/GamesManager";
-import BadgeManager from "@/components/admin/BadgeManager";
-import WishlistView from "@/components/admin/WishlistView";
-import AdminProfile from "@/components/admin/AdminProfile";
-import ClassAnalytics from "@/components/admin/ClassAnalytics";
-import LevelManager from "@/components/admin/LevelManager";
-import NotificationSender from "@/components/admin/NotificationSender";
-import EventsManager from "@/components/admin/EventsManager";
-import RenewalRequests from "@/components/admin/RenewalRequests";
-import ReviewsModeration from "@/components/admin/ReviewsModeration";
-import OverdueList from "@/components/admin/OverdueList";
-import CirculationDashboard from "@/components/admin/CirculationDashboard";
-import InventoryAuditManager from "@/components/admin/InventoryAuditManager";
-import ExportReports from "@/components/admin/ExportReports";
-import GalleryManager from "@/components/admin/GalleryManager";
-import BookShelfData from "@/components/admin/BookShelfData";
-import BookCoverData from "@/components/admin/BookCoverData";
-import BookCondemnation from "@/components/admin/BookCondemnation";
-import BarcodeGenerator from "@/components/admin/BarcodeGenerator";
-import SupportTicketsManager from "@/components/admin/SupportTicketsManager";
-import LibrarySettings from "@/components/admin/LibrarySettings";
-import CertificateManager from "@/components/admin/CertificateManager";
-import FineManager from "@/components/admin/FineManager";
-import LostBooksManager from "@/components/admin/LostBooksManager";
-import PeriodicalManager from "@/components/admin/PeriodicalManager";
-import FeedbackManager from "@/components/admin/FeedbackManager";
-import BookOfTheWeek from "@/components/admin/BookOfTheWeek";
-import BookClubManager from "@/components/admin/BookClubManager";
-import StudentBarcodeGenerator from "@/components/admin/StudentBarcodeGenerator";
-import MetadataFetchDashboard from "@/components/admin/MetadataFetchDashboard";
-import ExpressCirculation from "@/components/admin/ExpressCirculation";
-import AcademicYearRollover from "@/components/admin/AcademicYearRollover";
-import BugBountyManager from "@/components/admin/BugBountyManager";
-import UIReformChallengeManager from "@/components/admin/UIReformChallengeManager";
-import EmailCampaignManager from "@/components/admin/EmailCampaignManager";
-import EventWinnersManager from "@/components/admin/EventWinnersManager";
-import SchoolBrandingSettings from "@/components/admin/SchoolBrandingSettings";
-import HomePageEditor from "@/components/admin/HomePageEditor";
-import { VacationAdminPage } from "@/features/vacation";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
+
+const Community = lazy(() => import("@/components/community/Community"));
+const StudyMaterialsManager = lazy(() => import("@/components/admin/StudyMaterialsManager"));
+const UserApproval = lazy(() => import("@/components/admin/UserApproval"));
+const BookManager = lazy(() => import("@/components/admin/BookManager"));
+const BookIssueRegister = lazy(() => import("@/components/admin/BookIssueRegister"));
+const BookIssueRequests = lazy(() => import("@/components/admin/BookIssueRequests"));
+const PointsManager = lazy(() => import("@/components/admin/PointsManager"));
+const QuizManager = lazy(() => import("@/components/quiz/QuizManager"));
+const GamesManager = lazy(() => import("@/components/admin/GamesManager"));
+const BadgeManager = lazy(() => import("@/components/admin/BadgeManager"));
+const WishlistView = lazy(() => import("@/components/admin/WishlistView"));
+const AdminProfile = lazy(() => import("@/components/admin/AdminProfile"));
+const ClassAnalytics = lazy(() => import("@/components/admin/ClassAnalytics"));
+const LevelManager = lazy(() => import("@/components/admin/LevelManager"));
+const NotificationSender = lazy(() => import("@/components/admin/NotificationSender"));
+const EventsManager = lazy(() => import("@/components/admin/EventsManager"));
+const RenewalRequests = lazy(() => import("@/components/admin/RenewalRequests"));
+const ReviewsModeration = lazy(() => import("@/components/admin/ReviewsModeration"));
+const OverdueList = lazy(() => import("@/components/admin/OverdueList"));
+const CirculationDashboard = lazy(() => import("@/components/admin/CirculationDashboard"));
+const InventoryAuditManager = lazy(() => import("@/components/admin/InventoryAuditManager"));
+const ExportReports = lazy(() => import("@/components/admin/ExportReports"));
+const GalleryManager = lazy(() => import("@/components/admin/GalleryManager"));
+const BookShelfData = lazy(() => import("@/components/admin/BookShelfData"));
+const BookCoverData = lazy(() => import("@/components/admin/BookCoverData"));
+const BookCondemnation = lazy(() => import("@/components/admin/BookCondemnation"));
+const BarcodeGenerator = lazy(() => import("@/components/admin/BarcodeGenerator"));
+const SupportTicketsManager = lazy(() => import("@/components/admin/SupportTicketsManager"));
+const LibrarySettings = lazy(() => import("@/components/admin/LibrarySettings"));
+const CertificateManager = lazy(() => import("@/components/admin/CertificateManager"));
+const FineManager = lazy(() => import("@/components/admin/FineManager"));
+const LostBooksManager = lazy(() => import("@/components/admin/LostBooksManager"));
+const PeriodicalManager = lazy(() => import("@/components/admin/PeriodicalManager"));
+const FeedbackManager = lazy(() => import("@/components/admin/FeedbackManager"));
+const BookOfTheWeek = lazy(() => import("@/components/admin/BookOfTheWeek"));
+const BookClubManager = lazy(() => import("@/components/admin/BookClubManager"));
+const StudentBarcodeGenerator = lazy(() => import("@/components/admin/StudentBarcodeGenerator"));
+const MetadataFetchDashboard = lazy(() => import("@/components/admin/MetadataFetchDashboard"));
+const ExpressCirculation = lazy(() => import("@/components/admin/ExpressCirculation"));
+const AcademicYearRollover = lazy(() => import("@/components/admin/AcademicYearRollover"));
+const BugBountyManager = lazy(() => import("@/components/admin/BugBountyManager"));
+const UIReformChallengeManager = lazy(() => import("@/components/admin/UIReformChallengeManager"));
+const EmailCampaignManager = lazy(() => import("@/components/admin/EmailCampaignManager"));
+const EventWinnersManager = lazy(() => import("@/components/admin/EventWinnersManager"));
+const SchoolBrandingSettings = lazy(() => import("@/components/admin/SchoolBrandingSettings"));
+const HomePageEditor = lazy(() => import("@/components/admin/HomePageEditor"));
+const VacationAdminPage = lazy(() => import("@/features/vacation/VacationAdminPage"));
 
 type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor";
 
@@ -159,6 +159,7 @@ const AdminDashboard = () => {
   const [tabHistory, setTabHistory] = useState<Tab[]>(["overview"]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, totalBooksIssued: 0, activeQuizzes: 0, dbSize: 0, storageSize: 0 });
+  const [systemSizesLoaded, setSystemSizesLoaded] = useState(false);
 
   usePushSubscription(user?.id);
   const { settings } = useSchoolSettings();
@@ -221,7 +222,6 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     checkAuth();
-    fetchStats();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         clearStoredAuthSession();
@@ -232,6 +232,15 @@ const AdminDashboard = () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user || activeTab !== "overview" || systemSizesLoaded) return;
+    void fetchStats();
+    // Database and storage size scans are useful, but they should not compete
+    // with the dashboard's first paint or its basic counts.
+    const timer = window.setTimeout(() => void fetchSystemSizes(), 3500);
+    return () => window.clearTimeout(timer);
+  }, [user?.id, activeTab, systemSizesLoaded]);
 
   const checkAuth = async () => {
     try {
@@ -276,7 +285,16 @@ const AdminDashboard = () => {
 
       if (userId) {
         try {
-          const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+          let profileTimeout: number | undefined;
+          const profileRequest = supabase.from('profiles').select('*').eq('id', userId).single();
+          const profileResult = await Promise.race([
+            profileRequest,
+            new Promise((resolve) => {
+              profileTimeout = window.setTimeout(() => resolve({ data: null, error: new Error("Profile request timed out") }), 5000);
+            }),
+          ]);
+          if (profileTimeout) window.clearTimeout(profileTimeout);
+          const { data, error } = profileResult as any;
           if (!error && data) {
             profile = data;
             try { localStorage.setItem("dlms_user_profile", JSON.stringify(data)); } catch {}
@@ -304,39 +322,39 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [users, books, totalIssuesReq, quizzes, dbSizeReq, storageSizeReq] = await Promise.all([
+      const [users, books, totalIssuesReq, quizzes] = await Promise.all([
         supabase.rpc('get_active_users_count'),
         supabase.rpc('get_total_books_count'),
         supabase.from('book_issues').select('*', { count: 'exact', head: true }),
         supabase.rpc('get_active_quizzes_count'),
+      ]);
+
+      setStats((current) => ({
+        ...current,
+        totalUsers: users.data || 0,
+        totalBooks: books.data || 0,
+        totalBooksIssued: totalIssuesReq.count ?? 0,
+        activeQuizzes: quizzes.data || 0,
+      }));
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchSystemSizes = async () => {
+    try {
+      const [db, storage] = await Promise.all([
         supabase.rpc('get_database_size'),
         supabase.rpc('get_storage_size'),
       ]);
-
-      let totalIssued = totalIssuesReq.count ?? 0;
-      if (totalIssued === 0) {
-        try {
-          const { data: borrowCounts } = await supabase.rpc('get_book_borrow_counts');
-          if (borrowCounts && Array.isArray(borrowCounts) && borrowCounts.length > 0) {
-            totalIssued = borrowCounts.reduce((acc: number, row: any) => acc + (Number(row.borrow_count) || 0), 0);
-          } else {
-            const { data: currIssued } = await supabase.rpc('get_books_issued_count');
-            if (currIssued) totalIssued = currIssued;
-          }
-        } catch {
-          // fallback gracefully
-        }
-      }
-
-      setStats({ 
-        totalUsers: users.data || 0, 
-        totalBooks: books.data || 0, 
-        totalBooksIssued: totalIssued, 
-        activeQuizzes: quizzes.data || 0,
-        dbSize: dbSizeReq.data || 0,
-        storageSize: storageSizeReq.data || 0,
-      });
-    } catch (e) { console.error(e); }
+      setStats((current) => ({
+        ...current,
+        dbSize: Number(db.data) || 0,
+        storageSize: Number(storage.data) || 0,
+      }));
+    } catch (error) {
+      console.warn("Could not load system size metrics:", error);
+    } finally {
+      setSystemSizesLoaded(true);
+    }
   };
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
@@ -344,7 +362,11 @@ const AdminDashboard = () => {
 
   if (loading) {
     loadingManager.update("Loading admin dashboard...");
-    return null;
+    return (
+      <div className="min-h-dvh flex items-center justify-center bg-background px-6 text-center text-sm text-muted-foreground">
+        Verifying administrator access…
+      </div>
+    );
   }
 
   const statCards = [
@@ -459,6 +481,7 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <main className="flex-1 lg:ml-64 pt-16 lg:pt-0">
+        <Suspense fallback={<div className="max-w-6xl mx-auto p-8 text-center text-sm text-muted-foreground">Loading this admin section…</div>}>
         <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
           {/* Overview */}
@@ -635,6 +658,7 @@ const AdminDashboard = () => {
           {activeTab === "vacation" && <VacationAdminPage />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
+        </Suspense>
       </main>
     </div>
   );
