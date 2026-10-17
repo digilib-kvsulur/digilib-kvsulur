@@ -54,19 +54,16 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
         { data: issues },
         { data: wishlist },
         { data: quizResults },
-        { data: reviews },
       ] = await Promise.all([
         supabase.from("book_issues").select("book_id, books(category, subject, author)").eq("user_id", userId),
         supabase.from("book_wishlist").select("book_id, books(category, subject, author)").eq("user_id", userId),
         supabase.from("quiz_results").select("quiz_id, quizzes(subject)").eq("user_id", userId),
-        supabase.from("book_reviews").select("book_id, rating").eq("user_id", userId),
       ]);
 
       // Books to exclude (already borrowed / wishlisted / reviewed)
       const seenBookIds = new Set<string>();
       issues?.forEach((i: any) => i.book_id && seenBookIds.add(i.book_id));
       wishlist?.forEach((w: any) => w.book_id && seenBookIds.add(w.book_id));
-      reviews?.forEach((r: any) => r.book_id && seenBookIds.add(r.book_id));
 
       // Weighted interest maps
       const catWeights: Record<string, number> = {};
@@ -106,20 +103,6 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
       [...(popular || []), ...(fresh || [])].forEach((b: any) => poolMap.set(b.id, b));
       const pool = Array.from(poolMap.values());
 
-      // Average community rating per candidate book
-      const ratingMap: Record<string, { sum: number; n: number }> = {};
-      if (pool.length) {
-        const { data: allReviews } = await supabase
-          .from("book_reviews")
-          .select("book_id, rating")
-          .in("book_id", pool.map((b) => b.id))
-          .eq("is_hidden", false);
-        (allReviews || []).forEach((r: any) => {
-          const e = (ratingMap[r.book_id] ||= { sum: 0, n: 0 });
-          e.sum += r.rating; e.n += 1;
-        });
-      }
-
       const maxIssues = Math.max(1, ...pool.map((b: any) => b.issue_count || 0));
 
       const scored: Scored[] = pool
@@ -132,13 +115,6 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
           if (b.subject && subjWeights[b.subject]) { score += 3 * subjWeights[b.subject]; reasons.push(b.subject); }
           if (b.category && catWeights[b.category]) { score += 2 * catWeights[b.category]; reasons.push(b.category); }
           if (b.author && authorWeights[b.author]) { score += 4; reasons.push("Author you read"); }
-
-          const rt = ratingMap[b.id];
-          if (rt && rt.n > 0) {
-            const avg = rt.sum / rt.n;
-            score += avg;
-            if (avg >= 4) reasons.push(`${avg.toFixed(1)}★ rated`);
-          }
 
           score += 3 * ((b.issue_count || 0) / maxIssues);
           if ((b.issue_count || 0) >= maxIssues * 0.6 && maxIssues > 1) reasons.push("Popular");
