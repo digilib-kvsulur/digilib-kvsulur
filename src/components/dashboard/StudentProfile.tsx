@@ -12,6 +12,7 @@ import {
   User, Edit, Save, X, Camera, Settings, Star, GraduationCap, BookOpen, Sparkles, Trophy, Flame
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserLevel } from "@/lib/userLevelCache";
 import { useToast } from "@/hooks/use-toast";
 import * as Icons from "lucide-react";
 import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
@@ -78,8 +79,8 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
   const loadUserLevel = async () => {
     if (!user?.points && user?.points !== 0) return;
     try {
-      const { data } = await supabase.rpc('get_user_level', { user_points: user.points });
-      if (data && data.length > 0) setLevelInfo(data[0]);
+      const data = await getUserLevel(user.points);
+      if (data) setLevelInfo(data);
     } catch (e) {
       console.error('Error fetching level in profile:', e);
     }

@@ -789,7 +789,7 @@ const StudentDashboard = () => {
     if (!user?.id) return;
     try {
       // Automatic awards are maintained by database triggers on profile and activity updates.
-      const [{ data: allBadges }, { data: awards }, { count: books }, { count: quizzes }, { data: streak }, { data: actStats }] = await Promise.all([
+      const [{ data: allBadges }, { data: awards }, { count: books }, { count: quizzes }, { data: streak }, actStats] = await Promise.all([
         supabase.from("badges").select("*").eq("is_active", true),
         supabase.from("badge_awards").select("badge_id").eq("user_id", user.id),
         supabase.from("reading_history").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "approved"),

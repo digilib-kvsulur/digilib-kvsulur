@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Star, MapPin } from "lucide-react";
 import BookShelfLocator from "@/components/student/BookShelfLocator";
 import { fetchPointsPerReview } from "@/lib/librarySettings";
+import { incrementUserActivityStat } from "@/lib/userActivityStatsCache";
 
 export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
   book: any; userId: string | null; open: boolean; onOpenChange: (o: boolean) => void;
@@ -57,6 +58,7 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
       ? await supabase.from("book_reviews").update(payload).eq("id", myReviewId)
       : await supabase.from("book_reviews").insert(payload);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    if (!myReviewId) incrementUserActivityStat(userId, "reviews_count");
     toast({ title: `Review saved! +${reviewPoints} XP earned 🎉` }); load();
   };
 

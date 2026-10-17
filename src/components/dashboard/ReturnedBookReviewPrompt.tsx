@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { incrementUserActivityStat } from "@/lib/userActivityStatsCache";
 import { useToast } from "@/hooks/use-toast";
 import { fetchPointsPerReview } from "@/lib/librarySettings";
 
@@ -48,6 +49,7 @@ export default function ReturnedBookReviewPrompt({ userId }: { userId?: string }
     const { error } = await supabase.from("book_reviews").insert({ book_id: issue.book_id, user_id: userId, rating, review_text: review.trim() });
     setSaving(false);
     if (error) { toast({ title: "Could not save review", description: error.message, variant: "destructive" }); return; }
+    incrementUserActivityStat(userId, "reviews_count");
     toast({ title: `Thanks for your review! +${reviewPoints} XP earned 🎉` }); setIssue(null);
   };
 

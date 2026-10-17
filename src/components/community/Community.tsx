@@ -410,7 +410,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   const fetchProfileStats = async (userId: string) => {
     if (statsCache[userId]) return statsCache[userId];
-    const [{ data: profRows }, { data: statsRows }, { data: awards }, { data: allBadges }, { data: actStats }] = await Promise.all([
+    const [{ data: profRows }, { data: statsRows }, { data: awards }, { data: allBadges }, actStats] = await Promise.all([
       supabase.rpc("get_public_profiles", { _ids: [userId] }),
       supabase.rpc("get_public_profile_stats", { _id: userId }),
       supabase.from("badge_awards").select("badge_id, badges(name, icon_name, color)").eq("user_id", userId),

@@ -10,6 +10,7 @@ import {
   Users, Search, UserPlus, UserX, Check, X, Clock, Sparkles, RefreshCw, Trophy
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { incrementUserActivityStat } from "@/lib/userActivityStatsCache";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileView } from "@/components/community/ProfileView";
 import { UserConnectionsDialog } from "@/components/community/UserConnectionsDialog";
@@ -251,6 +252,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
     if (!f) return;
     const { error } = await supabase.from("friendships").update({ status }).eq("id", f.id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    if (status === "accepted" && f.status !== "accepted") incrementUserActivityStat(user?.id, "friends_count");
     toast({ title: status === "accepted" ? "Friend request accepted 🎉" : "Declined" });
     await loadFriendshipsMap();
   };
@@ -260,6 +262,7 @@ const NetworkTab = ({ user }: NetworkTabProps) => {
     if (!f) return;
     const { error } = await supabase.from("friendships").delete().eq("id", f.id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    if (f.status === "accepted") incrementUserActivityStat(user?.id, "friends_count", -1);
     setFriendshipsMap(m => { const c = { ...m }; delete c[targetId]; return c; });
     toast({ title: "Friend removed" });
     await loadFriendshipsMap();

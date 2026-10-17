@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Zap, TrendingUp, Trophy, Star, X, Loader2, Sparkles } from "lucide-react";
 import * as Icons from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserLevel } from "@/lib/userLevelCache";
 
 interface InChatLevelCardProps {
   currentUser: any;
@@ -31,8 +32,8 @@ export const InChatLevelCard = ({ currentUser, onClose }: InChatLevelCardProps) 
     setLoading(true);
     try {
       const userPoints = currentUser.points || 0;
-      const { data: levelRes } = await supabase.rpc("get_user_level", { user_points: userPoints });
-      if (levelRes && levelRes.length > 0) setLevelInfo(levelRes[0]);
+      const levelRes = await getUserLevel(userPoints);
+      if (levelRes) setLevelInfo(levelRes);
 
       if (currentUser.student_class) {
         const { data: rankRes } = await supabase.rpc("get_user_class_rank", {

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { incrementUserActivityStat } from "@/lib/userActivityStatsCache";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -320,6 +321,7 @@ export default function BookDetails() {
         : await supabase.from("book_reviews").insert(payload);
 
       if (error) throw error;
+      if (!myReviewId) incrementUserActivityStat(userId, "reviews_count");
       toast({ title: "Success", description: `Review posted successfully! +${reviewPoints} XP awarded.` });
       init();
     } catch (e: any) {

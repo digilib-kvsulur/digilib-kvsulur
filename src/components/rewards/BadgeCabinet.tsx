@@ -48,7 +48,7 @@ export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
         }
       });
 
-      const [{ data: bs }, { data: aw }, { data: profile }, { count: books }, { count: quizzes }, { data: streak }, { data: actStats }] = await Promise.all([
+      const [{ data: bs }, { data: aw }, { data: profile }, { count: books }, { count: quizzes }, { data: streak }, actStats] = await Promise.all([
         supabase.from("badges").select("*").eq("is_active", true).order("points"),
         supabase.from("badge_awards").select("badge_id").eq("user_id", userId),
         supabase.from("profiles").select("points").eq("id", userId).maybeSingle(),

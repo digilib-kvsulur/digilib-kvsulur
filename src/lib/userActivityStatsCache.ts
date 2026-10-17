@@ -55,8 +55,7 @@ export async function getUserActivityStats(userId: string): Promise<UserActivity
   const request = (async () => {
     const { data, error } = await supabase.rpc("get_user_activity_stats", { _user_id: userId });
     if (error) {
-      if (cached) return cached.stats;
-      throw error;
+      return cached?.stats ?? null;
     }
     const row = (data || [])[0] as UserActivityStats | undefined;
     if (!row) return null;
