@@ -73,7 +73,8 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
   const channelRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const question = quiz.questions[currentIndex] as Question;
+  const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
+  const question = questions[currentIndex] as Question | undefined;
 
   useEffect(() => {
     initUser();
@@ -237,9 +238,10 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
             setTimeLeft(data.time_per_question);
           }
           // Late join synchronization: Jump immediately to live question
-          if (typeof data.current_question_index === "number" && data.current_question_index > 0) {
-            setCurrentIndex(data.current_question_index);
-            toast.info(`⚡ Joined live match at Question ${data.current_question_index + 1}!`);
+          if (typeof data.current_question_index === "number" && data.current_question_index > 0 && questions.length > 0) {
+            const safeIndex = Math.min(data.current_question_index, questions.length - 1);
+            setCurrentIndex(safeIndex);
+            toast.info(`⚡ Joined live match at Question ${safeIndex + 1}!`);
           }
           if (data.status === "finished") {
             finishQuiz();
@@ -353,7 +355,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
   // Countdown timer
   useEffect(() => {
-    if (showResult || isFinished) return;
+    if (!question || showResult || isFinished) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -394,7 +396,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   };
 
   const handleAnswerSelect = async (index: number) => {
-    if (showResult || selectedAnswer !== null || isHost || isDisqualified) return;
+    if (!question || showResult || selectedAnswer !== null || isHost || isDisqualified) return;
     setSelectedAnswer(index);
     setShowResult(true);
     setShowAnswerSplash(true);
@@ -477,7 +479,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     setShowResult(false);
     setSelectedAnswer(null);
 
-    if (currentIndex < quiz.questions.length - 1) {
+    if (currentIndex < questions.length - 1) {
       const nextIdx = currentIndex + 1;
       await supabase
         .from("quiz_sessions")
@@ -579,7 +581,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         await supabase.from("quiz_results").insert({
           quiz_id: quiz.id,
           user_id: user.id,
-          score: Math.round((score / ((quiz.questions.length || 1) * 750)) * 100),
+          score: Math.round((score / ((questions.length || 1) * 750)) * 100),
           points_earned: prizePoints,
           answers: {
             session_id: sessionId,
@@ -598,6 +600,21 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
 
   // Find user's live rank
   const myRank = participants.findIndex((p) => p.user_id === currentUser?.id) + 1;
+
+  if (!questions.length || !question) {
+    return (
+      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background p-5 text-center">
+        <Card className="w-full max-w-md border-destructive/20">
+          <CardContent className="space-y-3 p-6">
+            <AlertTriangle className="mx-auto h-10 w-10 text-destructive" />
+            <h2 className="text-lg font-bold">This quiz is unavailable</h2>
+            <p className="text-sm text-muted-foreground">The league opened, but its questions could not be loaded. Your score has not been submitted. Please contact the administrator.</p>
+            <Button onClick={onFinish} className="w-full">Return to dashboard</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Disqualified screen
   if (isDisqualified) {
