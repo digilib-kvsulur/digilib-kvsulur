@@ -64,6 +64,7 @@ interface LeagueSession {
 }
 
 const QuizManager = () => {
+  const LEAGUE_PAGE_SIZE = 30;
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
   const [leagueSessions, setLeagueSessions] = useState<LeagueSession[]>([]);
@@ -73,6 +74,8 @@ const QuizManager = () => {
   const [loading, setLoading] = useState(true);
   const [resultsLoading, setResultsLoading] = useState(true);
   const [leaguesLoading, setLeaguesLoading] = useState(true);
+  const [loadingMoreLeagues, setLoadingMoreLeagues] = useState(false);
+  const [hasMoreLeagues, setHasMoreLeagues] = useState(false);
   const [quizzesLoaded, setQuizzesLoaded] = useState(false);
   const [resultsLoaded, setResultsLoaded] = useState(false);
   const [hostingQuiz, setHostingQuiz] = useState<Quiz | null>(null);
@@ -204,13 +207,17 @@ const QuizManager = () => {
     }
   };
 
-  const loadLeagueSessions = async () => {
+  const loadLeagueSessions = async (append = false) => {
     try {
-      setLeaguesLoading(true);
+      if (append) setLoadingMoreLeagues(true);
+      else setLeaguesLoading(true);
+      const offset = append ? leagueSessions.length : 0;
       const { data, error } = await supabase
         .from("quiz_sessions")
         .select("id, quiz_id, host_id, room_code, league_name, scheduled_start_at, target_class, time_per_question, speed_bonus, streak_bonus, auto_start, max_participants, status, created_at, quizzes(title, subject)")
-        .order("created_at", { ascending: false });
+        .eq("is_league", true)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + LEAGUE_PAGE_SIZE - 1);
 
       if (error) {
         console.warn("Could not load league sessions:", error);
@@ -218,6 +225,7 @@ const QuizManager = () => {
       }
 
       const sessions = data || [];
+      setHasMoreLeagues(sessions.length === LEAGUE_PAGE_SIZE);
       const sessionIds = sessions.map((session: any) => session.id);
       const { data: registrations } = sessionIds.length
         ? await supabase.from("quiz_league_registrations" as any)
@@ -233,11 +241,12 @@ const QuizManager = () => {
         registrations_count: registrationCounts.get(session.id) || 0,
       }));
 
-      setLeagueSessions(leaguesWithCounts);
+      setLeagueSessions((current) => append ? [...current, ...leaguesWithCounts] : leaguesWithCounts);
     } catch (err) {
       console.warn("Error fetching leagues:", err);
     } finally {
       setLeaguesLoading(false);
+      setLoadingMoreLeagues(false);
     }
   };
 
@@ -1071,6 +1080,17 @@ const QuizManager = () => {
                       </div>
                     );
                   })}
+                </div>
+              )}
+              {!leaguesLoading && hasMoreLeagues && (
+                <div className="flex justify-center pt-5">
+                  <Button
+                    variant="outline"
+                    onClick={() => void loadLeagueSessions(true)}
+                    disabled={loadingMoreLeagues}
+                  >
+                    {loadingMoreLeagues ? "Loading…" : "Load older leagues"}
+                  </Button>
                 </div>
               )}
             </CardContent>
