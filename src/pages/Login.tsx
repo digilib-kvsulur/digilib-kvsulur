@@ -327,7 +327,7 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-border/60 bg-card/95 p-4 shadow-xl shadow-primary/5 backdrop-blur sm:p-6 lg:p-5">
+          <div className="rounded-3xl border border-border/60 bg-card/95 p-5 shadow-xl shadow-primary/5 backdrop-blur sm:p-6 lg:p-5">
           {!showForgotPassword && (
             <div className="mb-4 sm:mb-5">
               <h2 className="mb-1.5 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-3xl">Welcome back</h2>
