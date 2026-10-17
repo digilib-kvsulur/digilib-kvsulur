@@ -23,6 +23,7 @@ import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadg
 import ReviewsModeration from "@/components/admin/ReviewsModeration";
 import CommunityTermsGate, { hasAcceptedCommunityTerms } from "./CommunityTermsGate";
 import { useBackHandler } from "@/hooks/useBackHandler";
+import { getUserActivityStats, incrementUserActivityStat } from "@/lib/userActivityStatsCache";
 import { applyModerationWarning, isUserExemptFromModeration, detectSpamPattern } from "@/lib/moderationService";
 
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
@@ -414,11 +415,11 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       supabase.rpc("get_public_profile_stats", { _id: userId }),
       supabase.from("badge_awards").select("badge_id, badges(name, icon_name, color)").eq("user_id", userId),
       supabase.from("badges").select("id, name, icon_name, color, criteria_type, criteria_value").eq("is_active", true),
-      supabase.rpc("get_user_activity_stats", { _user_id: userId }),
+      getUserActivityStats(userId),
     ]);
     const prof: any = (profRows || [])[0] || {};
     const stats: any = (statsRows || [])[0] || {};
-    const act: any = (actStats || [])[0] || {};
+    const act: any = actStats || {};
 
     // Merge manually awarded badges with auto-criterion earned badges
     const manualIds = new Set((awards || []).map((a: any) => a.badge_id));
@@ -792,6 +793,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         error = retry.error;
       }
       if (error) throw error;
+      incrementUserActivityStat(currentUserId, "posts_count");
       if (postKind === "poll" && postRow?.id) {
         const { error: optErr } = await supabase.from("poll_options").insert(
           cleanOptions.map((label, i) => ({ post_id: postRow.id, label, sort_order: i }))
@@ -1045,6 +1047,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       return;
     }
 
+    incrementUserActivityStat(uid, "comments_count");
     setCommentDraft(""); await loadComments(postId);
     setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p));
     // Notification to post author is handled automatically by DB trigger tg_notify_post_comment()

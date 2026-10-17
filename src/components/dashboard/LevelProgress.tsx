@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { getUserLevel } from "@/lib/userLevelCache";
 import { Star, TrendingUp } from "lucide-react";
 import * as Icons from "lucide-react";
 
@@ -29,9 +29,8 @@ const LevelProgress = ({ userPoints }: LevelProgressProps) => {
   useEffect(() => {
     const fetchUserLevel = async () => {
       try {
-        const { data, error } = await supabase.rpc('get_user_level', { user_points: userPoints });
-        if (error) throw error;
-        if (data && data.length > 0) setLevelInfo(data[0]);
+        const data = await getUserLevel(userPoints);
+        if (data) setLevelInfo(data);
       } catch (error) {
         console.error('Error fetching user level:', error);
       } finally { setLoading(false); }

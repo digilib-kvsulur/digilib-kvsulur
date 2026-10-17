@@ -10,6 +10,7 @@ import {
   Sparkles, Award, MessageCircle, Heart, FileText, Users as UsersIcon
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserActivityStats } from "@/lib/userActivityStatsCache";
 import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 import { UserConnectionsDialog } from "./UserConnectionsDialog";
 
@@ -74,11 +75,11 @@ export const ProfileView = ({ userId: initialUserId, currentUserId, friendship: 
       supabase.from("badges").select("id, name, icon_name, color, criteria_type, criteria_value, is_active").eq("is_active", true),
       supabase.from("badge_awards").select("badge_id").eq("user_id", activeUserId),
       supabase.rpc("get_public_posts_by_user", { _id: activeUserId, _limit: 20 }),
-      supabase.rpc("get_user_activity_stats", { _user_id: activeUserId }),
+      getUserActivityStats(activeUserId),
     ]);
     const p: any = (full || [])[0] || null;
     const s: any = (extraStats || [])[0] || {};
-    const act: any = (actStats || [])[0] || {};
+    const act: any = actStats || {};
     setProfile(p);
     setStats({ ...p, ...s, ...act });
     

@@ -67,6 +67,8 @@ import Periodicals from "@/components/dashboard/Periodicals";
 import IssuedBooksHub from "@/components/dashboard/IssuedBooksHub";
 import { PWAControls } from "@/components/PWAControls";
 import { fetchMonthlyReadingGoal } from "@/lib/librarySettings";
+import { getUserActivityStats } from "@/lib/userActivityStatsCache";
+import { getUserLevel } from "@/lib/userLevelCache";
 
 import StudentPortfolio from "./StudentPortfolio";
 import Feedback from "./Feedback";
@@ -596,8 +598,8 @@ const StudentDashboard = () => {
 
       if (profile.points !== null && profile.points !== undefined) {
         try {
-          const { data: levelData } = await supabase.rpc('get_user_level', { user_points: profile.points });
-          if (levelData && levelData.length > 0) setPreviousLevel(levelData[0].level_number);
+          const levelInfo = await getUserLevel(profile.points);
+          if (levelInfo) setPreviousLevel(levelInfo.level_number);
         } catch (e) { console.error(e); }
       }
       setUser(mergedUser);
@@ -619,11 +621,11 @@ const StudentDashboard = () => {
   const checkLevelUp = async (newPoints: number) => {
     if (!user?.id || previousLevel === null) return;
     try {
-      const { data: newLevelData } = await supabase.rpc('get_user_level', { user_points: newPoints });
-      if (newLevelData && newLevelData.length > 0) {
-        const newLevel = newLevelData[0].level_number;
+      const newLevelData = await getUserLevel(newPoints);
+      if (newLevelData) {
+        const newLevel = newLevelData.level_number;
         if (newLevel > previousLevel) {
-          setLevelUpBanner({ level_number: newLevel, name: newLevelData[0].name, icon_name: newLevelData[0].icon_name, color: newLevelData[0].color });
+          setLevelUpBanner({ level_number: newLevel, name: newLevelData.name, icon_name: newLevelData.icon_name, color: newLevelData.color });
           sendLevelUpEmail(user.id, `Level ${newLevel}: ${newLevelData[0].name}`, newPoints);
         }
         setPreviousLevel(newLevel);
@@ -793,11 +795,11 @@ const StudentDashboard = () => {
         supabase.from("reading_history").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "approved"),
         supabase.from("quiz_results").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         supabase.from("login_streaks").select("current_streak").eq("user_id", user.id).maybeSingle(),
-        supabase.rpc("get_user_activity_stats", { _user_id: user.id }),
+        getUserActivityStats(user.id),
       ]);
       
       const manualAwards = new Set((awards || []).map((a: any) => a.badge_id));
-      const act: any = ((actStats as any) || [])[0] || {};
+      const act: any = actStats || {};
       const stats = {
         points: user.points || 0,
         booksRead: books || 0,

@@ -310,26 +310,26 @@ const Login = () => {
       <div className="relative flex-1 overflow-y-auto bg-gradient-to-br from-muted/50 via-background to-primary/5 px-4 py-4 sm:px-8 sm:py-6 lg:flex lg:items-center lg:justify-center lg:px-6 lg:py-3">
         <div className="mx-auto flex min-h-full w-full max-w-[460px] flex-col justify-center animate-fade-in lg:min-h-0 lg:py-2">
           {/* Mobile Logo */}
-          <div className="mb-4 flex items-center gap-3 px-1 lg:hidden sm:mb-5">
-            <div className="flex items-center -space-x-2.5 shrink-0">
-              <div className="relative z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200/80 bg-slate-50 shadow-xs" title="PM SHRI Logo">
+          <div className="mb-3 flex items-center gap-2.5 px-0.5 lg:hidden sm:mb-5">
+            <div className="flex items-center -space-x-2 shrink-0">
+              <div className="relative z-10 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-slate-200/80 bg-slate-50 shadow-xs" title="PM SHRI Logo">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="relative z-10 h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
-                <Sparkles className="absolute hidden h-5 w-5 text-amber-500" />
+                <Sparkles className="absolute hidden h-4 w-4 text-amber-500" />
               </div>
-              <div className="relative z-20 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200/80 bg-slate-50 shadow-xs" title="KV Logo">
+              <div className="relative z-20 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-slate-200/80 bg-slate-50 shadow-xs" title="KV Logo">
                 <img src="/logos/kv.png" alt="KV" className="relative z-10 h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
-                <BookOpen className="absolute hidden h-5 w-5 text-indigo-600" />
+                <BookOpen className="absolute hidden h-4 w-4 text-indigo-600" />
               </div>
             </div>
             <div>
-              <h1 className="text-sm font-bold text-foreground">PM SHRI KV AFS SULUR</h1>
-              <p className="text-xs text-muted-foreground">Digital Library Management System</p>
+              <h1 className="text-sm font-bold leading-tight text-foreground">PM SHRI KV AFS SULUR</h1>
+              <p className="text-[11px] text-muted-foreground">Digital Library Management System</p>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-border/60 bg-card/95 p-5 shadow-xl shadow-primary/5 backdrop-blur sm:p-6 lg:p-5">
+          <div className="rounded-2xl border border-border/60 bg-card/95 p-4 shadow-xl shadow-primary/5 backdrop-blur sm:rounded-3xl sm:p-6 lg:p-5">
           {!showForgotPassword && (
-            <div className="mb-4 sm:mb-5">
+            <div className="mb-4 hidden sm:block sm:mb-5">
               <h2 className="mb-1.5 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-3xl">Welcome back</h2>
               <p className="text-sm text-muted-foreground sm:text-base">Sign in to continue your reading journey</p>
             </div>
@@ -350,33 +350,35 @@ const Login = () => {
               }}
             />
           ) : (
-            <form onSubmit={handleLogin} className="space-y-3.5 lg:space-y-3">
-              <Alert className="border-primary/20 bg-primary/5 rounded-xl py-2.5">
-                <AlertCircle className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-xs text-muted-foreground">Students: sign in with your 5-digit admission number. You can also use email, username, or phone.</AlertDescription>
+            <form onSubmit={handleLogin} className="space-y-3 sm:space-y-3.5 lg:space-y-3">
+              <Alert className="border-primary/20 bg-primary/5 rounded-xl py-2 px-3">
+                <AlertCircle className="h-3.5 w-3.5 text-primary shrink-0" />
+                <AlertDescription className="text-xs text-muted-foreground">
+                  Students: Sign in with 5-digit Admission No., Email, or Phone
+                </AlertDescription>
               </Alert>
 
-              <div className="space-y-2">
-                <Label htmlFor="identifier" className="text-sm font-medium">Admission No. / Email / Username / Phone</Label>
-              <Input
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="identifier" className="text-xs sm:text-sm font-medium">Admission No. / Email / Username / Phone</Label>
+                <Input
                   id="identifier"
                   type="text"
                   placeholder="e.g. 12345 or your email"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="h-11 rounded-xl bg-background/80 sm:h-12"
+                  className="h-10.5 rounded-xl bg-background/80 sm:h-12"
                   required
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                  <Label htmlFor="password" className="text-xs sm:text-sm font-medium">Password</Label>
                   <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground hover:text-primary" onClick={() => setShowForgotPassword(true)} type="button">
                     Forgot password?
                   </Button>
                 </div>
                 <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl bg-background/80 pr-11 sm:h-12" required />
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-10.5 rounded-xl bg-background/80 pr-11 sm:h-12" required />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -385,22 +387,22 @@ const Login = () => {
 
               <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
 
-              <Button type="submit" className="h-11 w-full rounded-xl gradient-primary border-0 text-base font-semibold shadow-lg shadow-primary/20 transition-all hover:shadow-xl sm:h-12" disabled={isLoading || !captchaToken}>
+              <Button type="submit" className="h-10.5 w-full rounded-xl gradient-primary border-0 text-sm sm:text-base font-semibold shadow-md shadow-primary/20 transition-all hover:shadow-lg sm:h-12" disabled={isLoading || !captchaToken}>
                 {isLoading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Signing in...</span> : 'Sign In'}
               </Button>
             </form>
           )}
 
-          <div className="mt-5 pt-4 border-t border-border text-center lg:mt-4 lg:pt-3">
-            <p className="text-sm text-muted-foreground">
+          <div className="mt-4 pt-3.5 sm:mt-5 sm:pt-4 border-t border-border/60 text-center lg:mt-4 lg:pt-3">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Button variant="link" className="p-0 h-auto text-primary font-semibold" onClick={() => setShowRegistrationNotice(true)}>
+              <Button variant="link" className="p-0 h-auto text-primary font-semibold text-xs sm:text-sm" onClick={() => setShowRegistrationNotice(true)}>
                 Create Account
               </Button>
             </p>
           </div>
 
-          <div className="text-center mt-2.5">
+          <div className="text-center mt-2">
             <Button variant="link" className="p-0 h-auto text-muted-foreground text-xs" onClick={() => navigate("/")}>
               <ArrowLeft className="h-3 w-3 mr-1" /> Back to Home
             </Button>

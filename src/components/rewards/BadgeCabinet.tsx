@@ -6,6 +6,7 @@ import * as LucideIcons from "lucide-react";
 import { Trophy, Lock, Award, Crown, Calendar, MapPin, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveRotationalCycle, VerifiedWinnerRecord, VerifiedRotationalCycle } from "@/lib/rotationalBadgeService";
+import { getUserActivityStats } from "@/lib/userActivityStatsCache";
 
 interface BadgeCabinetProps { userId: string; }
 interface BadgeRow { id: string; name: string; description?: string; icon_name?: string; color?: string; points: number; criteria_type?: string; criteria_value?: number; is_active: boolean; }
@@ -54,9 +55,9 @@ export default function BadgeCabinet({ userId }: BadgeCabinetProps) {
         supabase.from("reading_history").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "approved"),
         supabase.from("quiz_results").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("login_streaks").select("current_streak").eq("user_id", userId).maybeSingle(),
-        supabase.rpc("get_user_activity_stats", { _user_id: userId }),
+        getUserActivityStats(userId),
       ]);
-      const act: any = ((actStats as any) || [])[0] || {};
+      const act: any = actStats || {};
       setBadges((bs as any) || []);
       setAwards(new Set((aw || []).map((a: any) => a.badge_id)));
       setStats({
