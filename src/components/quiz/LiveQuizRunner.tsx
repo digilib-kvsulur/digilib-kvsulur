@@ -447,8 +447,8 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
           payload: payloadData,
         });
 
-        // 2. Track presence
-        channelRef.current.track(payloadData);
+        // Presence is tracked once when joining the session. Score changes use
+        // the broadcast above so one answer does not trigger full presence syncs.
       }
     } else {
       setStreak(0);

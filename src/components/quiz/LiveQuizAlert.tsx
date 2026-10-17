@@ -42,12 +42,38 @@ export const LiveQuizAlert = ({ onJoinLeague }: LiveQuizAlertProps) => {
     checkActiveSessions();
     const channel = supabase
       .channel("live_alert_watch")
-      .on("postgres_changes", { event: "*", schema: "public", table: "quiz_sessions" }, () => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "quiz_sessions" }, () => {
         checkActiveSessions();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  useEffect(() => {
+    if (!activeSession?.id) return;
+
+    const channel = supabase
+      .channel(`live_alert_session_${activeSession.id}`)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "quiz_sessions",
+        filter: `id=eq.${activeSession.id}`,
+      }, () => {
+        checkActiveSessions();
+      })
+      .on("postgres_changes", {
+        event: "DELETE",
+        schema: "public",
+        table: "quiz_sessions",
+        filter: `id=eq.${activeSession.id}`,
+      }, () => {
+        checkActiveSessions();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [activeSession?.id]);
 
   // Live countdown ticker
   useEffect(() => {

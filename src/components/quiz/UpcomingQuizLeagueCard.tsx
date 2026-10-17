@@ -37,12 +37,13 @@ export const UpcomingQuizLeagueCard = ({
   useEffect(() => {
     fetchActiveOrUpcomingLeague();
 
-    // Supabase Realtime channel for live updates to quiz_sessions & registrations
+    // New sessions are rare; listen for inserts only, rather than waking every
+    // league card for updates to unrelated sessions and question counters.
     const channel = supabase
       .channel("upcoming_league_watch")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "quiz_sessions" },
+        { event: "INSERT", schema: "public", table: "quiz_sessions" },
         () => {
           fetchActiveOrUpcomingLeague();
         }
@@ -53,6 +54,41 @@ export const UpcomingQuizLeagueCard = ({
       supabase.removeChannel(channel);
     };
   }, [userId]);
+
+  useEffect(() => {
+    if (!leagueSession?.id) return;
+
+    const channel = supabase
+      .channel(`upcoming_league_${leagueSession.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "quiz_sessions", filter: `id=eq.${leagueSession.id}` },
+        ({ new: updatedSession }: any) => {
+          if (updatedSession.status === "finished" || updatedSession.status === "cancelled") {
+            setLeagueSession(null);
+            fetchActiveOrUpcomingLeague();
+            return;
+          }
+
+          setLeagueSession((current: any) => current?.id === updatedSession.id
+            ? { ...current, ...updatedSession, total_question_count: current.total_question_count }
+            : current);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "quiz_sessions", filter: `id=eq.${leagueSession.id}` },
+        () => {
+          setLeagueSession(null);
+          fetchActiveOrUpcomingLeague();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [leagueSession?.id, userId]);
 
   const fetchActiveOrUpcomingLeague = async () => {
     try {
@@ -70,6 +106,8 @@ export const UpcomingQuizLeagueCard = ({
       }
 
       if (data) {
+        setRegisteredCount(0);
+        setIsRegistered(false);
         let totalQuestionCount = 10;
         if (data.quiz_id) {
           const cachedCount = quizQuestionCountCache.get(data.quiz_id);
@@ -87,25 +125,15 @@ export const UpcomingQuizLeagueCard = ({
         // Check if user is pre-registered
         if (userId) {
           let foundRegistration = false;
-          let totalRegCount = 0;
           try {
-            const { count, error } = await supabase
+            const { data: registrations, error } = await supabase
               .from("quiz_league_registrations" as any)
-              .select("id", { count: "exact", head: true })
-              .eq("session_id", data.id)
-              .eq("user_id", userId);
-
-            if (!error && count !== null) {
-              foundRegistration = count > 0;
-            }
-
-            const { count: totalReg } = await supabase
-              .from("quiz_league_registrations" as any)
-              .select("id", { count: "exact", head: true })
+              .select("user_id")
               .eq("session_id", data.id);
 
-            if (totalReg !== null) {
-              totalRegCount = totalReg || 0;
+            if (!error && registrations) {
+              foundRegistration = registrations.some((registration: any) => registration.user_id === userId);
+              setRegisteredCount(registrations.length);
             }
           } catch {
             // DB fallback
@@ -115,11 +143,10 @@ export const UpcomingQuizLeagueCard = ({
           const localKey = `league_reg_${data.id}_${userId}`;
           if (localStorage.getItem(localKey) === "true") {
             foundRegistration = true;
-            if (totalRegCount === 0) totalRegCount = 1;
+            setRegisteredCount((current) => Math.max(current, 1));
           }
 
           setIsRegistered(foundRegistration);
-          setRegisteredCount(totalRegCount);
         }
       } else {
         setLeagueSession(null);

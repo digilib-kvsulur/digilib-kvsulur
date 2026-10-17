@@ -73,6 +73,8 @@ const QuizManager = () => {
   const [loading, setLoading] = useState(true);
   const [resultsLoading, setResultsLoading] = useState(true);
   const [leaguesLoading, setLeaguesLoading] = useState(true);
+  const [quizzesLoaded, setQuizzesLoaded] = useState(false);
+  const [resultsLoaded, setResultsLoaded] = useState(false);
   const [hostingQuiz, setHostingQuiz] = useState<Quiz | null>(null);
   const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
   const [hostingLeagueSessionId, setHostingLeagueSessionId] = useState<string | null>(null);
@@ -101,10 +103,13 @@ const QuizManager = () => {
   const [isGrantingPoints, setIsGrantingPoints] = useState<string | null>(null);
 
   useEffect(() => {
-    loadQuizzes();
-    loadQuizResults();
     loadLeagueSessions();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "quizzes" && !quizzesLoaded) void loadQuizzes();
+    if (activeTab === "results" && !resultsLoaded) void loadQuizResults();
+  }, [activeTab, quizzesLoaded, resultsLoaded]);
 
   const loadQuizzes = async () => {
     try {
@@ -120,7 +125,7 @@ const QuizManager = () => {
           description: "Failed to load quizzes",
           variant: "destructive",
         });
-        return;
+        return [];
       }
 
       // Transform data to match Quiz interface
@@ -139,8 +144,11 @@ const QuizManager = () => {
       }));
 
       setQuizzes(transformedQuizzes);
+      setQuizzesLoaded(true);
+      return transformedQuizzes;
     } catch (error) {
       console.error('Error loading quizzes:', error);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -150,10 +158,7 @@ const QuizManager = () => {
     try {
       const { data, error } = await supabase
         .from('quiz_results')
-        .select(`
-          *,
-          quizzes (title, subject)
-        `)
+        .select("id, score, points_earned, completed_at, answers, quiz_id, user_id, quizzes(title, subject)")
         .order('completed_at', { ascending: false });
 
       if (error) {
@@ -166,32 +171,32 @@ const QuizManager = () => {
         return;
       }
 
-      // Manually fetch profile data for each result
-      const resultsWithProfiles = await Promise.all(
-        (data || []).map(async (result) => {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, admission_number, student_class')
-            .eq('id', result.user_id)
-            .maybeSingle();
-
-          if (profileError) {
-            console.error('Error fetching profile:', profileError);
-          }
-
-          return {
-            ...result,
-            profiles: profileData ? {
-              first_name: profileData.first_name || '',
-              last_name: profileData.last_name || '',
-              admission_number: profileData.admission_number || '',
-              student_class: profileData.student_class || ''
-            } : undefined
-          };
-        })
-      );
+      const results = data || [];
+      const userIds = [...new Set(results.map((result) => result.user_id).filter(Boolean))];
+      const profileChunks = Array.from({ length: Math.ceil(userIds.length / 200) }, (_, index) => userIds.slice(index * 200, (index + 1) * 200));
+      const profileResponses = await Promise.all(profileChunks.map((ids) =>
+        supabase.from("profiles")
+          .select("id, first_name, last_name, admission_number, student_class")
+          .in("id", ids)
+      ));
+      const profileById = new Map(profileResponses.flatMap(({ data: profiles }) =>
+        (profiles || []).map((profile) => [profile.id, profile] as const)
+      ));
+      const resultsWithProfiles = results.map((result) => {
+        const profile = profileById.get(result.user_id);
+        return {
+          ...result,
+          profiles: profile ? {
+            first_name: profile.first_name || "",
+            last_name: profile.last_name || "",
+            admission_number: profile.admission_number || "",
+            student_class: profile.student_class || "",
+          } : undefined,
+        };
+      });
 
       setQuizResults(resultsWithProfiles);
+      setResultsLoaded(true);
     } catch (error) {
       console.error('Error loading quiz results:', error);
     } finally {
@@ -204,7 +209,7 @@ const QuizManager = () => {
       setLeaguesLoading(true);
       const { data, error } = await supabase
         .from("quiz_sessions")
-        .select("*, quizzes(title, subject, questions)")
+        .select("id, quiz_id, host_id, room_code, league_name, scheduled_start_at, target_class, time_per_question, speed_bonus, streak_bonus, auto_start, max_participants, status, created_at, quizzes(title, subject)")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -212,20 +217,21 @@ const QuizManager = () => {
         return;
       }
 
-      // Fetch registration counts for each session
-      const leaguesWithCounts = await Promise.all(
-        (data || []).map(async (session: any) => {
-          try {
-            const { count } = await supabase
-              .from("quiz_league_registrations" as any)
-              .select("id", { count: "exact", head: true })
-              .eq("session_id", session.id);
-            return { ...session, registrations_count: count || 0 };
-          } catch {
-            return { ...session, registrations_count: 0 };
-          }
-        })
-      );
+      const sessions = data || [];
+      const sessionIds = sessions.map((session: any) => session.id);
+      const { data: registrations } = sessionIds.length
+        ? await supabase.from("quiz_league_registrations" as any)
+          .select("session_id")
+          .in("session_id", sessionIds)
+        : { data: [] };
+      const registrationCounts = new Map<string, number>();
+      (registrations || []).forEach((registration: any) => {
+        registrationCounts.set(registration.session_id, (registrationCounts.get(registration.session_id) || 0) + 1);
+      });
+      const leaguesWithCounts = sessions.map((session: any) => ({
+        ...session,
+        registrations_count: registrationCounts.get(session.id) || 0,
+      }));
 
       setLeagueSessions(leaguesWithCounts);
     } catch (err) {
@@ -235,13 +241,14 @@ const QuizManager = () => {
     }
   };
 
-  const handleOpenScheduleModal = (quiz?: Quiz) => {
+  const handleOpenScheduleModal = async (quiz?: Quiz) => {
+    const availableQuizzes = quizzesLoaded ? quizzes : await loadQuizzes();
     if (quiz) {
       setSelectedQuizId(quiz.id);
       setLeagueName(`${quiz.title} - Live Championship`);
-    } else if (quizzes.length > 0) {
-      setSelectedQuizId(quizzes[0].id);
-      setLeagueName(`${quizzes[0].title} - Live Championship`);
+    } else if (availableQuizzes?.length) {
+      setSelectedQuizId(availableQuizzes[0].id);
+      setLeagueName(`${availableQuizzes[0].title} - Live Championship`);
     }
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -328,26 +335,14 @@ const QuizManager = () => {
     }
   };
 
-  const handleHostScheduledLeague = (session: LeagueSession) => {
-    const quizMatch = quizzes.find((q) => q.id === session.quiz_id);
-    if (!quizMatch && session.quizzes) {
-      const pseudoQuiz: Quiz = {
-        id: session.quiz_id,
-        title: session.quizzes.title,
-        description: "",
-        subject: session.quizzes.subject,
-        difficulty: "medium",
-        questions: session.quizzes.questions || [],
-        timeLimit: Math.ceil(((session.quizzes.questions?.length || 10) * (session.time_per_question || 30)) / 60),
-        pointsReward: 500,
-        isActive: true,
-        createdAt: session.created_at,
-        createdBy: "",
-      };
-      setHostingQuiz(pseudoQuiz);
-    } else if (quizMatch) {
-      setHostingQuiz(quizMatch);
+  const handleHostScheduledLeague = async (session: LeagueSession) => {
+    const availableQuizzes = quizzesLoaded ? quizzes : await loadQuizzes();
+    const quizMatch = availableQuizzes?.find((q) => q.id === session.quiz_id);
+    if (!quizMatch) {
+      sonnerToast.error("The quiz for this league could not be loaded.");
+      return;
     }
+    setHostingQuiz(quizMatch);
     setHostingLeagueSessionId(session.id);
   };
 
@@ -1302,7 +1297,6 @@ const QuizManager = () => {
               <BulkImportQuiz
                 onDone={loadQuizzes}
                 onNavigateToQuizzes={() => {
-                  loadQuizzes();
                   setActiveTab("quizzes");
                 }}
               />

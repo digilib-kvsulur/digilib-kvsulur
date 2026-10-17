@@ -23,7 +23,7 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
       if (studentClass) {
         const { data: tpData } = await supabase
           .from("class_book_recommendations")
-          .select("*, books(*)")
+          .select("notes, books(id, title, author, category)")
           .eq("class_level", studentClass);
 
         if (tpData) {
@@ -76,8 +76,16 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
 
       // 3. Candidate pool — popular + newest available books
       const [{ data: popular }, { data: fresh }] = await Promise.all([
-        supabase.from("books").select("*").gt("available_copies", 0).order("issue_count", { ascending: false }).limit(40),
-        supabase.from("books").select("*").gt("available_copies", 0).order("first_added_at", { ascending: false }).limit(30),
+        supabase.from("books")
+          .select("id, title, author, category, subject, class_level, issue_count")
+          .gt("available_copies", 0)
+          .order("issue_count", { ascending: false })
+          .limit(40),
+        supabase.from("books")
+          .select("id, title, author, category, subject, class_level, issue_count")
+          .gt("available_copies", 0)
+          .order("first_added_at", { ascending: false })
+          .limit(30),
       ]);
 
       const poolMap = new Map<string, any>();
