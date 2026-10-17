@@ -173,13 +173,13 @@ export async function reconcileDailyVacationXp(
   activityDate: string,
   apply: boolean
 ): Promise<VacationDailyXpReconciliation> {
-  const { data, error } = await supabase.rpc("vacation_reconcile_daily_xp", {
+  const { data, error } = await supabase.rpc("vacation_reconcile_daily_xp" as any, {
     p_campaign: campaignId,
     p_day: activityDate,
     p_apply: apply,
   });
   if (error) throw error;
-  return data as VacationDailyXpReconciliation;
+  return data as unknown as VacationDailyXpReconciliation;
 }
 
 export async function fetchStudentOverview() {

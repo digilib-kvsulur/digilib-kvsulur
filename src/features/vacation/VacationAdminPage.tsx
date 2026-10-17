@@ -40,6 +40,7 @@ import {
   fetchReviewQueue,
   fetchVacationCampaigns,
   replaceMilestones,
+  reconcileDailyVacationXp,
   reviewSubmission,
   seedPosterDrafts,
   upsertActivity,
@@ -109,6 +110,8 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   const [approvePoints, setApprovePoints] = useState("");
   const [rubricScores, setRubricScores] = useState<Record<string, number>>({});
   const [approveNote, setApproveNote] = useState("");
+  const [dailyXpPreview, setDailyXpPreview] = useState<Awaited<ReturnType<typeof reconcileDailyVacationXp>> | null>(null);
+  const [dailyXpBusy, setDailyXpBusy] = useState(false);
   const [allTeams, setAllTeams] = useState<VacationTeam[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
   const [loadingTeams, setLoadingTeams] = useState(false);
@@ -136,6 +139,39 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
     setBoard(lb);
     setStats(st);
     setAllTeams(teams);
+  };
+
+  const verifyDailyXp = async () => {
+    if (!campaign || dayFilter === "all" || !canConfigure || dailyXpBusy) return;
+    setDailyXpBusy(true);
+    try {
+      const result = await reconcileDailyVacationXp(campaign.id, dayFilter, false);
+      setDailyXpPreview(result);
+    } catch (error) {
+      toast({ title: "Could not verify daily XP", description: vacationErrorMessage(error), variant: "destructive" });
+    } finally {
+      setDailyXpBusy(false);
+    }
+  };
+
+  const creditMissingDailyXp = async () => {
+    if (!campaign || !dailyXpPreview || dailyXpPreview.eligible < 1 || dailyXpBusy) return;
+    setDailyXpBusy(true);
+    try {
+      const result = await reconcileDailyVacationXp(dailyXpPreview.campaign_id, dailyXpPreview.activity_date, true);
+      setDailyXpPreview(result);
+      toast({
+        title: result.credited > 0 ? "Missing XP credited" : "No missing XP found",
+        description: result.credited > 0
+          ? `Credited ${result.credited} missing day award(s), totaling ${result.xp_credited} XP. Existing awards were skipped.`
+          : "Every approved submission for this day already has its award recorded.",
+      });
+      await loadDetails(dailyXpPreview.campaign_id);
+    } catch (error) {
+      toast({ title: "Daily XP credit failed", description: vacationErrorMessage(error), variant: "destructive" });
+    } finally {
+      setDailyXpBusy(false);
+    }
   };
 
   useEffect(() => {
@@ -770,15 +806,21 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                   <SelectItem value="rejected">❌ Rejected ({queue.filter(q => q.status === "rejected").length})</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={dayFilter} onValueChange={setDayFilter}>
+              <Select value={dayFilter} onValueChange={(value) => { setDayFilter(value); setDailyXpPreview(null); }}>
                 <SelectTrigger className="w-48 h-9 text-xs"><SelectValue placeholder="Filter by Day" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Days</SelectItem>
-                  {activities.filter((a) => a.activity_date).map((a) => (
-                    <SelectItem key={a.id} value={a.activity_date!}>{a.activity_date} · {a.title}</SelectItem>
+                  {[...new Set(activities.map((a) => a.activity_date).filter((date): date is string => Boolean(date)))].sort().map((date) => (
+                    <SelectItem key={date} value={date}>{date}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {canConfigure && dayFilter !== "all" && (
+                <Button size="sm" variant="outline" className="h-9 text-xs gap-1.5" onClick={verifyDailyXp} disabled={dailyXpBusy}>
+                  <Shield className="h-3.5 w-3.5" />
+                  {dailyXpBusy ? "Checking…" : "Verify XP for this day"}
+                </Button>
+              )}
               <div className="relative">
                 <Search className="h-3.5 w-3.5 absolute left-2.5 top-3 text-muted-foreground" />
                 <Input
@@ -1559,6 +1601,42 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
             >
               Approve &amp; Award {pointsToXp(Number(approvePoints) || 0)} XP
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!dailyXpPreview} onOpenChange={(open) => !open && !dailyXpBusy && setDailyXpPreview(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Verify vacation XP · {dailyXpPreview?.activity_date}</DialogTitle>
+          </DialogHeader>
+          {dailyXpPreview && (
+            <div className="space-y-3 text-sm">
+              <p>
+                {dailyXpPreview.applied ? "Activity awards credited in this run:" : "Approved submissions without an activity award:"}{" "}
+                <strong>{dailyXpPreview.applied ? dailyXpPreview.credited : dailyXpPreview.eligible}</strong>
+              </p>
+              <p>Already credited submissions that will be skipped: <strong>{dailyXpPreview.already_credited}</strong></p>
+              {dailyXpPreview.applied && (
+                <p className="rounded-lg bg-emerald-500/10 p-3 text-emerald-800 dark:text-emerald-200">
+                  Credited {dailyXpPreview.credited} submission(s), totaling {dailyXpPreview.xp_credited} XP. No existing award was repeated.
+                </p>
+              )}
+              {!dailyXpPreview.applied && dailyXpPreview.eligible > 0 && (
+                <p className="text-muted-foreground">Only missing activity awards will be added. Existing ledger entries are protected from duplicate credit.</p>
+              )}
+              {!dailyXpPreview.applied && dailyXpPreview.eligible === 0 && (
+                <p className="text-muted-foreground">All approved submissions for this day already have their XP award recorded.</p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDailyXpPreview(null)} disabled={dailyXpBusy}>Close</Button>
+            {dailyXpPreview && !dailyXpPreview.applied && dailyXpPreview.eligible > 0 && (
+              <Button onClick={creditMissingDailyXp} disabled={dailyXpBusy} className="gap-1.5">
+                {dailyXpBusy ? "Crediting…" : "Credit missing XP"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
