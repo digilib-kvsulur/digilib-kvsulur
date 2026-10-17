@@ -29,4 +29,6 @@ For every school project:
    supabase functions deploy send-password-reset --project-ref <tenant-project-ref>
    ```
 
+If you use additional Vercel preview hostnames, add them to `TURNSTILE_ALLOWED_HOSTNAMES` as a comma-separated Edge Function secret and add those same hostnames to the Turnstile widget. The function checks Cloudflare's returned hostname against this allowlist; local development hostnames are not accepted by the deployed function.
+
 The frontend widget can display without the Supabase settings, but authentication will only be protected after the project settings and Edge Function secret are configured. Keep the Cloudflare hostname list and each tenant's Supabase settings in sync.

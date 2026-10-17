@@ -6,6 +6,11 @@ const corsHeaders = {
 };
 
 const placeholderEmail = (email = "") => /@(kvschool\.in|kvsulur\.com|kvschennairo\.in|kvsulur\.in|internal|dummy|example\.com)$/i.test(email.trim());
+const allowedTurnstileHostnames = new Set([
+  "dlms.kvsulur.in",
+  "dlmskvsulur.vercel.app",
+  ...(Deno.env.get("TURNSTILE_ALLOWED_HOSTNAMES") || "").split(",").map((host) => host.trim().toLowerCase()).filter(Boolean),
+]);
 const isEmail = (email = "") => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 const isGmail = (email = "") => /@gmail\.com$/i.test(email.trim());
 const preferredRecipient = (...candidates: Array<string | null | undefined>) => {
@@ -58,7 +63,9 @@ Deno.serve(async (request) => {
       body: verificationBody,
     });
     const verification = await verificationResponse.json();
-    if (!verificationResponse.ok || !verification.success) {
+    if (!verificationResponse.ok || !verification.success ||
+      typeof verification.hostname !== "string" ||
+      !allowedTurnstileHostnames.has(verification.hostname.toLowerCase())) {
       return new Response(JSON.stringify({ error: "Verification expired or failed. Please try again." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

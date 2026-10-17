@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Wrench, BookOpen, Clock, Mail, X, Sparkles, Bell } from "lucide-react";
 
-// 16 Oct 2026, 10:30 PM IST = 16 Oct 2026, 17:00 UTC
-const MAINTENANCE_END = new Date("2026-10-16T17:00:00Z");
+// 17 Oct 2026, 11:05 AM IST = 17 Oct 2026, 05:35 UTC
+const MAINTENANCE_END = new Date("2026-10-17T05:35:00Z");
 
 function getTimeLeft() {
   const diff = MAINTENANCE_END.getTime() - Date.now();
