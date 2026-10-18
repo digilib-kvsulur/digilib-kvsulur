@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star, Eye, EyeOff, Trash2, Flag, ShieldAlert, CheckCircle2, UserX, Eraser, AlertTriangle, User, ChevronDown, Ban, ShieldCheck, Search } from "lucide-react";
+import { Star, Eye, EyeOff, Trash2, Flag, ShieldAlert, CheckCircle2, UserX, Eraser, AlertTriangle, User, ChevronDown, Ban, ShieldCheck, Search, Loader2, RefreshCw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { applyModerationWarning, resetUserModeration, isUserExemptFromModeration } from "@/lib/moderationService";
@@ -13,6 +13,10 @@ import { applyModerationWarning, resetUserModeration, isUserExemptFromModeration
 export default function ReviewsModeration() {
   const { toast } = useToast();
   const [rows, setRows] = useState<any[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+  const [loadingMoreReviews, setLoadingMoreReviews] = useState(false);
+  const [reviewsError, setReviewsError] = useState("");
+  const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   const [reports, setReports] = useState<any[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
@@ -44,25 +48,39 @@ export default function ReviewsModeration() {
     }
   };
 
-  const loadReviews = async () => {
-    let q = supabase.from("book_reviews")
-      .select("*, books(title)")
-      .order("created_at", { ascending: false }).limit(200);
-    if (!showHidden) q = q.eq("is_hidden", false);
-    const { data, error } = await q;
-    if (error) {
-      console.error(error);
-      toast({ title: "Error", description: error.message || "Failed to load reviews.", variant: "destructive" });
-      return;
+  const loadReviews = async (reset = true) => {
+    if (reset) setLoadingReviews(true);
+    else setLoadingMoreReviews(true);
+    setReviewsError("");
+    try {
+      const offset = reset ? 0 : rows.length;
+      let q = supabase.from("book_reviews")
+        .select("id,book_id,user_id,rating,review_text,is_hidden,created_at,books(title)")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + 49);
+      if (!showHidden) q = q.eq("is_hidden", false);
+      const { data, error } = await q;
+      if (error) throw error;
+      const page = data || [];
+      const userIds = Array.from(new Set(page.map((r: any) => r.user_id).filter(Boolean)));
+      const profileMap: Record<string, any> = {};
+      if (userIds.length) {
+        const { data: profs, error: profileError } = await supabase.from("profiles")
+          .select("id, first_name, last_name").in("id", userIds);
+        if (profileError) throw profileError;
+        (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
+      }
+      const mapped = page.map((r: any) => ({ ...r, profiles: profileMap[r.user_id] }));
+      setRows((current) => reset ? mapped : [...current, ...mapped]);
+      setHasMoreReviews(page.length === 50);
+    } catch (error: any) {
+      console.error("Could not load admin book reviews", error);
+      setReviewsError(error?.message || "Failed to load book reviews.");
+      toast({ title: "Book reviews could not be loaded", description: error?.message || "Please retry.", variant: "destructive" });
+    } finally {
+      setLoadingReviews(false);
+      setLoadingMoreReviews(false);
     }
-    const userIds = Array.from(new Set((data || []).map((r: any) => r.user_id).filter(Boolean)));
-    const profileMap: Record<string, any> = {};
-    if (userIds.length) {
-      const { data: profs } = await supabase.from("profiles")
-        .select("id, first_name, last_name").in("id", userIds);
-      (profs || []).forEach((p: any) => { profileMap[p.id] = p; });
-    }
-    setRows((data || []).map((r: any) => ({ ...r, profiles: profileMap[r.user_id] })));
   };
 
   const loadReports = async () => {
@@ -143,9 +161,13 @@ export default function ReviewsModeration() {
   useEffect(() => { loadReports(); }, []);
 
   const toggleHide = async (r: any) => {
-    await supabase.from("book_reviews").update({ is_hidden: !r.is_hidden }).eq("id", r.id);
+    const { error } = await supabase.from("book_reviews").update({ is_hidden: !r.is_hidden }).eq("id", r.id);
+    if (error) {
+      toast({ title: "Could not update review", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: r.is_hidden ? "Unhidden" : "Hidden" });
-    loadReviews();
+    void loadReviews(true);
   };
 
   const removeReview = async (id: string) => {
@@ -576,12 +598,20 @@ export default function ReviewsModeration() {
 
         {/* TAB 2: Book Reviews */}
         <TabsContent value="reviews" className="space-y-3">
-          <div className="flex justify-end mb-2">
+          <div className="flex justify-end gap-2 mb-2">
+            <Button variant="outline" size="sm" disabled={loadingReviews} onClick={() => void loadReviews(true)}>
+              {loadingReviews ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Refresh
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setShowHidden((v) => !v)}>
               {showHidden ? "Only visible" : "Include hidden"}
             </Button>
           </div>
-          {rows.length === 0 && <p className="text-sm text-muted-foreground">No book reviews found.</p>}
+          {reviewsError && <Card className="border-destructive/40"><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <p className="text-sm text-destructive">Reviews could not be loaded: {reviewsError}</p>
+            <Button size="sm" variant="outline" onClick={() => void loadReviews(true)}>Retry</Button>
+          </CardContent></Card>}
+          {loadingReviews && rows.length === 0 ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : null}
+          {!loadingReviews && rows.length === 0 && !reviewsError && <p className="text-sm text-muted-foreground">No book reviews found.</p>}
           <div className="space-y-3">
             {rows.map((r) => (
               <Card key={r.id} className={r.is_hidden ? "opacity-60" : ""}>
@@ -613,6 +643,9 @@ export default function ReviewsModeration() {
               </Card>
             ))}
           </div>
+          {hasMoreReviews && <div className="flex justify-center"><Button variant="outline" disabled={loadingMoreReviews} onClick={() => void loadReviews(false)}>
+            {loadingMoreReviews && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Load more reviews
+          </Button></div>}
         </TabsContent>
       </Tabs>
     </div>
