@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
-  Trophy, Flame, Clock, Play, Users, Bell, BellRing, Sparkles, Zap, ShieldCheck, Timer
+  Trophy, Flame, Clock, Play, Bell, BellRing, Sparkles, Zap, ShieldCheck, Timer
 } from "lucide-react";
 import { quizAudio } from "@/lib/quizAudio";
 
@@ -24,7 +24,6 @@ export const UpcomingQuizLeagueCard = ({
 }: UpcomingQuizLeagueCardProps) => {
   const [leagueSession, setLeagueSession] = useState<any | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
-  const [registeredCount, setRegisteredCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
@@ -95,7 +94,7 @@ export const UpcomingQuizLeagueCard = ({
       // Look for waiting or active live sessions, or future scheduled leagues
       const { data, error } = await supabase
         .from("quiz_sessions")
-        .select("id, quiz_id, host_id, room_code, status, scheduled_start_at, auto_start, league_name, target_class, current_question_index, created_at, quizzes(title)")
+        .select("id, quiz_id, host_id, room_code, status, scheduled_start_at, auto_start, league_name, target_class, current_question_index, time_per_question, is_league, created_at, quizzes(title)")
         .in("status", ["waiting", "active", "scheduled"])
         .order("created_at", { ascending: false })
         .limit(1)
@@ -106,7 +105,6 @@ export const UpcomingQuizLeagueCard = ({
       }
 
       if (data) {
-        setRegisteredCount(0);
         setIsRegistered(false);
         let totalQuestionCount = 10;
         if (data.quiz_id) {
@@ -126,15 +124,14 @@ export const UpcomingQuizLeagueCard = ({
         if (userId) {
           let foundRegistration = false;
           try {
-            const { data: registrations, error } = await supabase
+            const { data: registration, error } = await supabase
               .from("quiz_league_registrations" as any)
               .select("user_id")
-              .eq("session_id", data.id);
+              .eq("session_id", data.id)
+              .eq("user_id", userId)
+              .maybeSingle();
 
-            if (!error && registrations) {
-              foundRegistration = registrations.some((registration: any) => registration.user_id === userId);
-              setRegisteredCount(registrations.length);
-            }
+            if (!error && registration) foundRegistration = true;
           } catch {
             // DB fallback
           }
@@ -143,7 +140,6 @@ export const UpcomingQuizLeagueCard = ({
           const localKey = `league_reg_${data.id}_${userId}`;
           if (localStorage.getItem(localKey) === "true") {
             foundRegistration = true;
-            setRegisteredCount((current) => Math.max(current, 1));
           }
 
           setIsRegistered(foundRegistration);
@@ -215,7 +211,6 @@ export const UpcomingQuizLeagueCard = ({
 
         localStorage.removeItem(localKey);
         setIsRegistered(false);
-        setRegisteredCount((c) => Math.max(0, c - 1));
         toast.info("League reminder removed.");
       } else {
         try {
@@ -229,7 +224,6 @@ export const UpcomingQuizLeagueCard = ({
 
         localStorage.setItem(localKey, "true");
         setIsRegistered(true);
-        setRegisteredCount((c) => c + 1);
         quizAudio.playStreak();
         toast.success("🎯 You're Registered for the Live League!", {
           description: "We'll chime when the lobby opens. Be ready to compete!",
@@ -322,12 +316,6 @@ export const UpcomingQuizLeagueCard = ({
                   <span>•</span>
                   <span>Room: <strong className="font-mono text-amber-300 font-black">{leagueSession.room_code || "AUTO"}</strong></span>
                 </span>
-                {registeredCount > 0 && (
-                  <span className="flex items-center gap-1 text-xs text-emerald-300 font-medium">
-                    <Users className="h-3.5 w-3.5" />
-                    {registeredCount} Registered
-                  </span>
-                )}
               </div>
 
               {/* Scheduled date & time display */}

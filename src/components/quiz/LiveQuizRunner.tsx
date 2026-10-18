@@ -35,6 +35,8 @@ interface LiveQuizRunnerProps {
   sessionId: string;
   isHost: boolean;
   onFinish: () => void;
+  initialSessionData?: any;
+  currentUserProfile?: any;
 }
 
 interface ParticipantScore {
@@ -73,7 +75,7 @@ function mergeParticipantScores(current: ParticipantScore[], incoming: any[]): P
   );
 }
 
-export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRunnerProps) => {
+export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessionData, currentUserProfile }: LiveQuizRunnerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -85,7 +87,11 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   const [isFinished, setIsFinished] = useState(false);
   const [isLeagueSession, setIsLeagueSession] = useState(false);
   const [participants, setParticipants] = useState<ParticipantScore[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(() => currentUserProfile?.id ? {
+    id: currentUserProfile.id,
+    name: `${currentUserProfile.first_name || ""} ${currentUserProfile.last_name || ""}`.trim() || "Student",
+    avatar_url: currentUserProfile.avatar_url,
+  } : null);
 
   // Proctoring & Fullscreen State
   const [strikes, setStrikes] = useState(0);
@@ -137,8 +143,16 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
   };
 
   useEffect(() => {
-    initUser();
-  }, []);
+    if (currentUserProfile?.id) {
+      setCurrentUser({
+        id: currentUserProfile.id,
+        name: `${currentUserProfile.first_name || ""} ${currentUserProfile.last_name || ""}`.trim() || "Student",
+        avatar_url: currentUserProfile.avatar_url,
+      });
+    } else if (!isHost) {
+      initUser();
+    }
+  }, [currentUserProfile?.id, isHost]);
 
   const initUser = async () => {
     const {
@@ -281,8 +295,22 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     }
   };
 
-  // Fetch session config (e.g. time_per_question & current_question_index for late joiners)
+  // Reuse the session snapshot already loaded by the lobby/dashboard. The
+  // standalone host runner keeps a one-time DB fallback for admin launches.
   useEffect(() => {
+    if (initialSessionData?.id === sessionId) {
+      setIsLeagueSession(initialSessionData.is_league === true);
+      if (initialSessionData.time_per_question) {
+        setTotalTime(initialSessionData.time_per_question);
+        setTimeLeft(initialSessionData.time_per_question);
+      }
+      if (typeof initialSessionData.current_question_index === "number" && initialSessionData.current_question_index > 0 && questions.length > 0) {
+        setCurrentIndex(Math.min(initialSessionData.current_question_index, questions.length - 1));
+      }
+      if (initialSessionData.status === "finished") finishQuiz();
+      return;
+    }
+
     const fetchSessionSettings = async () => {
       try {
         const { data } = await supabase
@@ -313,7 +341,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     };
 
     fetchSessionSettings();
-  }, [sessionId]);
+  }, [sessionId, initialSessionData?.id]);
 
   // Inter-question leaderboard countdown timer (auto-advance)
   useEffect(() => {
@@ -623,7 +651,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     setIsFinished(true);
     if (!disqualified) {
       // Rank-based confetti: compute rank from current participants state
-      const currentUserId = (await supabase.auth.getUser()).data.user?.id;
+      const currentUserId = currentUser?.id || (isHost ? null : (await supabase.auth.getUser()).data.user?.id);
       const rank = currentUserId
         ? participants.findIndex((p) => p.user_id === currentUserId) + 1
         : 0;
@@ -635,10 +663,8 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
     }
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+      const userId = currentUser?.id || (isHost ? null : (await supabase.auth.getUser()).data.user?.id);
+      if (!userId && !isHost) return;
 
       if (!isHost && !resultSubmittedRef.current) {
         // Persist the raw score once. Final rank/prize is calculated centrally
@@ -646,7 +672,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
         resultSubmittedRef.current = true;
         const { error } = await supabase.from("quiz_results").insert({
           quiz_id: quiz.id,
-          user_id: user.id,
+          user_id: userId,
           score: Math.round((finalScore / ((questions.length || 1) * 750)) * 100),
           points_earned: 0,
           answers: {
@@ -661,11 +687,11 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish }: LiveQuizRu
           resultSubmittedRef.current = false;
           throw error;
         }
-        resultSavedUserIdsRef.current.add(user.id);
+        resultSavedUserIdsRef.current.add(userId!);
         void channelRef.current?.send({
           type: "broadcast",
           event: "player_result_saved",
-          payload: { user_id: user.id },
+          payload: { user_id: userId },
         });
       }
     } catch (e) {

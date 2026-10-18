@@ -257,7 +257,9 @@ const StudentDashboard = () => {
     try {
       const { data: quiz, error } = await supabase
         .from("quizzes")
-        .select("*")
+        // The live runner only needs the title and question payload. Avoid
+        // transferring unrelated quiz metadata during a synchronized join.
+        .select("id, title, questions")
         .eq("id", session.quiz_id)
         .maybeSingle();
 
@@ -922,6 +924,8 @@ const StudentDashboard = () => {
             quiz={activeLeagueSession.quizzes}
             sessionId={activeLeagueSession.id}
             isHost={false}
+            initialSessionData={activeLeagueSession}
+            currentUserProfile={user}
             onFinish={() => {
               setActiveLeagueSession(null);
               setInLeagueRunner(false);
@@ -934,7 +938,11 @@ const StudentDashboard = () => {
             quizTitle={activeLeagueSession.league_name || activeLeagueSession.quizzes?.title || "Live Quiz League"}
             isHost={false}
             existingSessionId={activeLeagueSession.id}
-            onStart={() => setInLeagueRunner(true)}
+            currentUserProfile={user}
+            onStart={(_sessionId, sessionData) => {
+              if (sessionData) setActiveLeagueSession((current: any) => ({ ...current, ...sessionData }));
+              setInLeagueRunner(true);
+            }}
             onCancel={() => setActiveLeagueSession(null)}
           />
         )}

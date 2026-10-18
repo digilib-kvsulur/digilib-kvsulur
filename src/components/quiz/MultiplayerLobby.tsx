@@ -12,7 +12,8 @@ interface MultiplayerLobbyProps {
   quizTitle: string;
   isHost: boolean;
   existingSessionId?: string;
-  onStart: (sessionId: string) => void;
+  currentUserProfile?: any;
+  onStart: (sessionId: string, sessionData?: any) => void;
   onCancel: () => void;
 }
 
@@ -21,6 +22,7 @@ export const MultiplayerLobby = ({
   quizTitle,
   isHost,
   existingSessionId,
+  currentUserProfile,
   onStart,
   onCancel,
 }: MultiplayerLobbyProps) => {
@@ -48,10 +50,10 @@ export const MultiplayerLobby = ({
 
   const setupLobby = async () => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+      const authUser = currentUserProfile?.id
+        ? { id: currentUserProfile.id }
+        : (await supabase.auth.getUser()).data.user;
+      if (!authUser) return;
 
       let currentSession: any;
 
@@ -59,7 +61,7 @@ export const MultiplayerLobby = ({
         // Fetch existing scheduled or active session
         const { data, error } = await supabase
           .from("quiz_sessions")
-          .select("*")
+          .select("id, quiz_id, host_id, status, room_code, scheduled_start_at, auto_start, current_question_index, time_per_question, is_league, league_name, target_class")
           .eq("id", existingSessionId)
           .single();
 
@@ -80,7 +82,7 @@ export const MultiplayerLobby = ({
           .from("quiz_sessions")
           .insert({
             quiz_id: quizId,
-            host_id: user.id,
+            host_id: authUser.id,
             status: "waiting",
             room_code: code,
           })
@@ -93,7 +95,7 @@ export const MultiplayerLobby = ({
         // Student joining by quizId
         const { data, error } = await supabase
           .from("quiz_sessions")
-          .select("*")
+          .select("id, quiz_id, host_id, status, room_code, scheduled_start_at, auto_start, current_question_index, time_per_question, is_league, league_name, target_class")
           .eq("quiz_id", quizId)
           .in("status", ["waiting", "scheduled", "active"])
           .order("created_at", { ascending: false })
@@ -116,7 +118,7 @@ export const MultiplayerLobby = ({
       // If the session is already active (match started), bypass lobby and immediately launch quiz
       if (!isHost && currentSession.status === "active") {
         quizAudio.playLeagueStart();
-        onStart(currentSession.id);
+        onStart(currentSession.id, currentSession);
         return;
       }
 
@@ -135,22 +137,24 @@ export const MultiplayerLobby = ({
         })
         .on("broadcast", { event: "start_quiz" }, () => {
           quizAudio.playLeagueStart();
-          onStart(currentSession.id);
+          onStart(currentSession.id, currentSession);
         })
         .subscribe(async (status) => {
           if (status === "SUBSCRIBED") {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("first_name, last_name, avatar_url, student_class")
-              .eq("id", user.id)
-              .maybeSingle();
+            const profile = currentUserProfile?.id === authUser.id
+              ? currentUserProfile
+              : (await supabase
+                  .from("profiles")
+                  .select("first_name, last_name, avatar_url, student_class")
+                  .eq("id", authUser.id)
+                  .maybeSingle()).data;
 
             const displayName = profile
               ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Student"
               : "Student";
 
             await channel.track({
-              user_id: user.id,
+              user_id: authUser.id,
               name: displayName,
               student_class: profile?.student_class || "",
               avatar_url: profile?.avatar_url,
