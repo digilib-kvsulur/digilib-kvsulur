@@ -15,9 +15,15 @@ import {
 } from "lucide-react";
 import { statusMeta, TICKET_CATEGORIES } from "@/components/support/SupportCenter";
 import { sendTicketEmail } from "@/lib/ticketEmail";
+import { Checkbox } from "@/components/ui/checkbox";
 
 /** LOGIN-ISSUE categories that get the password-reset quick-action banner */
 const LOGIN_CATEGORIES = ["login_issue", "account", "password"];
+const isPasswordResetRequest = (ticket: any) => {
+  const category = (ticket.category || "").toLowerCase();
+  const subject = (ticket.subject || "").toLowerCase();
+  return category === "password" || subject.includes("password reset") || subject.includes("reset password");
+};
 
 export default function SupportTicketsManager() {
   const { toast } = useToast();
@@ -38,6 +44,8 @@ export default function SupportTicketsManager() {
   const [showPw, setShowPw] = useState(false);
   const [sendingPwEmail, setSendingPwEmail] = useState(false);
   const [customPassword, setCustomPassword] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -65,6 +73,88 @@ export default function SupportTicketsManager() {
     resolved: tickets.filter(t => t.status === "resolved").length,
     total: tickets.length,
   }), [tickets]);
+
+  const selectedTickets = useMemo(() => tickets.filter((ticket) => selectedIds.includes(ticket.id)), [tickets, selectedIds]);
+  const selectedResetTickets = useMemo(() => selectedTickets.filter((ticket) =>
+    isPasswordResetRequest(ticket) && ["open", "in_progress"].includes(ticket.status),
+  ), [selectedTickets]);
+  const allFilteredSelected = filtered.length > 0 && filtered.every((ticket) => selectedIds.includes(ticket.id));
+
+  const toggleTicketSelection = (id: string, checked: boolean) => {
+    setSelectedIds((current) => checked ? [...new Set([...current, id])] : current.filter((selectedId) => selectedId !== id));
+  };
+
+  const updateSelectedTickets = async (action: "resolve" | "delete") => {
+    if (!selectedIds.length) return;
+    const message = action === "delete"
+      ? `Permanently delete ${selectedIds.length} selected ticket(s) and their message history?`
+      : `Mark ${selectedIds.length} selected ticket(s) as resolved?`;
+    if (!window.confirm(message)) return;
+    setBulkBusy(true);
+    const result = action === "delete"
+      ? await supabase.from("support_tickets").delete().in("id", selectedIds)
+      : await supabase.from("support_tickets").update({ status: "resolved", resolved_at: new Date().toISOString() }).in("id", selectedIds);
+    setBulkBusy(false);
+    if (result.error) {
+      toast({ title: `Could not ${action} tickets`, description: result.error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: action === "delete" ? "Tickets deleted" : "Tickets resolved", description: `${selectedIds.length} ticket(s) updated.` });
+    setSelectedIds([]);
+    if (active && selectedIds.includes(active.id)) setActive(null);
+    await load();
+  };
+
+  const bulkResetPasswords = async () => {
+    if (!selectedResetTickets.length) return;
+    if (!window.confirm(`Reset ${selectedResetTickets.length} selected password-reset account(s) to the shared default password Welcome@123 and resolve those requests? This will overwrite their current passwords.`)) return;
+    setBulkBusy(true);
+    let succeeded = 0;
+    const successfulIds: string[] = [];
+    const failures: string[] = [];
+    for (const ticket of selectedResetTickets) {
+      try {
+        let profileId: string | null = null;
+        if (ticket.admission_number) {
+          const { data, error } = await supabase.from("profiles").select("id,role").eq("admission_number", ticket.admission_number).maybeSingle();
+          if (error) throw error;
+          if (data && data.role !== "student") throw new Error("Bulk default reset is limited to student accounts");
+          profileId = data?.id ?? null;
+        }
+        if (!profileId && ticket.email) {
+          const { data, error } = await supabase.from("profiles").select("id,role").ilike("email", ticket.email).maybeSingle();
+          if (error) throw error;
+          if (data && data.role !== "student") throw new Error("Bulk default reset is limited to student accounts");
+          profileId = data?.id ?? null;
+        }
+        if (!profileId) throw new Error("No matching account found");
+        const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+          body: { user_id: profileId, new_password: "Welcome@123" },
+        });
+        if (error || data?.error || !data?.success) throw new Error(error?.message || data?.error || "Password reset failed");
+        succeeded++;
+        successfulIds.push(ticket.id);
+      } catch (error: any) {
+        failures.push(`${ticket.ticket_number || ticket.full_name}: ${error?.message || "Reset failed"}`);
+      }
+    }
+    if (successfulIds.length) {
+      const { error } = await supabase.from("support_tickets").update({
+        status: "resolved",
+        resolved_at: new Date().toISOString(),
+        admin_response: "Password reset by admin to the default password. Please sign in and change it immediately.",
+      }).in("id", successfulIds);
+      if (error) failures.push(`Ticket update: ${error.message}`);
+    }
+    setBulkBusy(false);
+    setSelectedIds((current) => current.filter((id) => !successfulIds.includes(id)));
+    toast({
+      title: `Password reset completed: ${succeeded}/${selectedResetTickets.length}`,
+      description: failures.length ? failures.slice(0, 3).join("; ") : "Successful reset requests were marked resolved.",
+      variant: failures.length ? "destructive" : undefined,
+    });
+    await load();
+  };
 
   const openTicket = async (t: any) => {
     setActive(t);
@@ -279,6 +369,24 @@ export default function SupportTicketsManager() {
             </Select>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3">
+            <Checkbox aria-label="Select all filtered tickets" checked={allFilteredSelected} onCheckedChange={(checked) => {
+              setSelectedIds((current) => checked
+                ? [...new Set([...current, ...filtered.map((ticket) => ticket.id)])]
+                : current.filter((id) => !filtered.some((ticket) => ticket.id === id)));
+            }} />
+            <span className="mr-auto text-xs text-muted-foreground">{selectedIds.length} selected{selectedResetTickets.length ? ` · ${selectedResetTickets.length} open student reset request(s)` : ""}</span>
+            <Button size="sm" variant="outline" disabled={!selectedIds.length || bulkBusy} onClick={() => updateSelectedTickets("resolve")}>
+              {bulkBusy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}Resolve selected
+            </Button>
+            <Button size="sm" variant="destructive" disabled={!selectedIds.length || bulkBusy} onClick={() => updateSelectedTickets("delete")}>
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete selected
+            </Button>
+            <Button size="sm" disabled={!selectedResetTickets.length || bulkBusy} onClick={bulkResetPasswords}>
+              <KeyRound className="mr-1.5 h-3.5 w-3.5" />Reset selected to default
+            </Button>
+          </div>
+
           {loading ? (
             <div className="py-10 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" /></div>
           ) : filtered.length === 0 ? (
@@ -291,8 +399,9 @@ export default function SupportTicketsManager() {
                   (t.subject || "").toLowerCase().includes("password") ||
                   (t.subject || "").toLowerCase().includes("login");
                 return (
-                  <button key={t.id} onClick={() => openTicket(t)}
-                    className="text-left p-4 rounded-xl border border-border/50 bg-card hover:shadow-md hover:border-primary/30 transition-all">
+                  <div key={t.id} className="flex items-start gap-3 p-4 rounded-xl border border-border/50 bg-card hover:shadow-md hover:border-primary/30 transition-all">
+                    <Checkbox className="mt-1" aria-label={`Select ticket ${t.ticket_number || t.subject}`} checked={selectedIds.includes(t.id)} onCheckedChange={(checked) => toggleTicketSelection(t.id, checked === true)} />
+                    <button onClick={() => openTicket(t)} className="min-w-0 flex-1 text-left">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         {t.ticket_number && (
@@ -312,7 +421,8 @@ export default function SupportTicketsManager() {
                       {t.student_class && <span className="inline-flex items-center gap-1 bg-muted rounded px-1.5 py-0.5"><GraduationCap className="h-3 w-3" />{t.student_class}</span>}
                       {t.priority === "high" && <span className="bg-destructive/10 text-destructive rounded px-1.5 py-0.5 font-bold">Urgent</span>}
                     </div>
-                  </button>
+                    </button>
+                  </div>
                 );
               })}
             </div>

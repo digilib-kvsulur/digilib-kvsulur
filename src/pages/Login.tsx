@@ -13,6 +13,16 @@ import { ForgotPasswordView } from "@/components/auth/ForgotPasswordView";
 import NotificationEmailDialog from "@/components/auth/NotificationEmailDialog";
 import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
 
+const isTemporaryServiceFailure = (error: any) => {
+  const rawStatus = error?.status ?? error?.context?.status;
+  const status = rawStatus == null ? null : Number(rawStatus);
+  const code = `${error?.code || ""}`.toUpperCase();
+  const message = `${error?.message || ""} ${error?.name || ""}`.toLowerCase();
+  return (status !== null && (status === 0 || status === 429 || status >= 500)) ||
+    /^(08|57P|PGRST000|PGRST001|PGRST002)/.test(code) ||
+    /failed to fetch|network error|timed? ?out|temporarily unavailable|service unavailable|server error|connection refused|upstream error|too many requests/.test(message);
+};
+
 const Login = () => {
   const [searchParams] = useSearchParams();
   const [identifier, setIdentifier] = useState("");
@@ -28,6 +38,7 @@ const Login = () => {
   const { toast } = useToast();
   const [recentUsers, setRecentUsers] = useState<{ initials: string; color: string }[]>([]);
   const [pendingNotificationEmail, setPendingNotificationEmail] = useState<{ id: string; email?: string | null; role?: string } | null>(null);
+  const [authUnavailable, setAuthUnavailable] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -52,7 +63,9 @@ const Login = () => {
           else navigate("/student-dashboard", { replace: true });
         });
       }
-    }).catch(() => {});
+    }).catch((error) => {
+      if (isTemporaryServiceFailure(error)) setAuthUnavailable(true);
+    });
   }, [navigate]);
 
   useEffect(() => {
@@ -89,6 +102,7 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthUnavailable(false);
     if (!captchaToken) {
       toast({ title: "Verification required", description: "Complete the verification challenge before signing in.", variant: "destructive" });
       return;
@@ -101,6 +115,11 @@ const Login = () => {
     }
     try {
       const { data: userData, error: userError } = await supabase.rpc('find_user_by_identifier', { identifier });
+      if (userError && isTemporaryServiceFailure(userError)) {
+        setAuthUnavailable(true);
+        setIsLoading(false);
+        return;
+      }
       if (userError || !userData || userData.length === 0) {
         toast({ title: "Login Failed", description: "Invalid credentials. Please check your email/username/phone and password.", variant: "destructive" });
         setIsLoading(false);
@@ -129,6 +148,11 @@ const Login = () => {
         setCaptchaResetKey((key) => key + 1);
         if (isInvalidRefreshTokenError(error)) clearStoredAuthSession();
         const authMessage = error.message?.toLowerCase() || "";
+        if (isTemporaryServiceFailure(error)) {
+          setAuthUnavailable(true);
+          setIsLoading(false);
+          return;
+        }
         const description = authMessage.includes("captcha")
           ? "Verification could not be confirmed. Please retry. If this continues, check that Turnstile is enabled for this Supabase project and its secret key matches this site key."
           : authMessage.includes("email not confirmed")
@@ -221,6 +245,11 @@ const Login = () => {
       setCaptchaToken("");
       setCaptchaResetKey((key) => key + 1);
       console.error('Login error:', error);
+      if (isTemporaryServiceFailure(error)) {
+        setAuthUnavailable(true);
+        setIsLoading(false);
+        return;
+      }
       toast({ title: "Login Failed", description: "An unexpected error occurred", variant: "destructive" });
     }
     setIsLoading(false);
@@ -351,6 +380,14 @@ const Login = () => {
             />
           ) : (
             <form onSubmit={handleLogin} className="space-y-3.5 sm:space-y-4">
+              {authUnavailable && (
+                <Alert className="border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-xs leading-relaxed">
+                    Sign-in services are temporarily unavailable or busy. Please be patient, wait a few minutes, and try again. Your password may still be correct; you do not need to reset it because of this message.
+                  </AlertDescription>
+                </Alert>
+              )}
               <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/15 px-3 py-2 text-xs text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span><strong className="text-foreground font-semibold">Students:</strong> Sign in with your 5-digit Admission No.</span>

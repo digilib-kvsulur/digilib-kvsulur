@@ -71,6 +71,11 @@ const VacationAdminPage = lazy(() => import("@/features/vacation/VacationAdminPa
 
 type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor";
 
+const SYSTEM_SIZE_CACHE_KEY = "dlms_admin_system_sizes_v1";
+const SYSTEM_SIZE_CACHE_TTL_MS = 60 * 60 * 1000;
+const OVERVIEW_STATS_CACHE_KEY = "dlms_admin_overview_stats_v1";
+const OVERVIEW_STATS_CACHE_TTL_MS = 60 * 1000;
+
 const navSections = [
   {
     title: "Main",
@@ -160,6 +165,8 @@ const AdminDashboard = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [stats, setStats] = useState({ totalUsers: 0, totalBooks: 0, totalBooksIssued: 0, activeQuizzes: 0, dbSize: 0, storageSize: 0 });
   const [systemSizesLoaded, setSystemSizesLoaded] = useState(false);
+  const [systemSizesLoading, setSystemSizesLoading] = useState(false);
+  const [systemSizesUpdatedAt, setSystemSizesUpdatedAt] = useState<number | null>(null);
 
   usePushSubscription(user?.id);
   const { settings } = useSchoolSettings();
@@ -322,6 +329,14 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
+      try {
+        const cached = JSON.parse(localStorage.getItem(OVERVIEW_STATS_CACHE_KEY) || "null");
+        if (cached && Number.isFinite(cached.savedAt) && cached.values && Date.now() - cached.savedAt < OVERVIEW_STATS_CACHE_TTL_MS) {
+          setStats((current) => ({ ...current, ...cached.values }));
+          return;
+        }
+      } catch { /* Invalid or unavailable cache; fetch current counts. */ }
+
       const [users, books, totalIssuesReq, quizzes] = await Promise.all([
         supabase.rpc('get_active_users_count'),
         supabase.rpc('get_total_books_count'),
@@ -329,31 +344,56 @@ const AdminDashboard = () => {
         supabase.rpc('get_active_quizzes_count'),
       ]);
 
-      setStats((current) => ({
-        ...current,
+      const values = {
         totalUsers: users.data || 0,
         totalBooks: books.data || 0,
         totalBooksIssued: totalIssuesReq.count ?? 0,
         activeQuizzes: quizzes.data || 0,
-      }));
+      };
+      setStats((current) => ({ ...current, ...values }));
+      try { localStorage.setItem(OVERVIEW_STATS_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), values })); } catch { /* Cache is optional. */ }
     } catch (e) { console.error(e); }
   };
 
-  const fetchSystemSizes = async () => {
+  const fetchSystemSizes = async (forceRefresh = false) => {
+    if (systemSizesLoading) return;
+    setSystemSizesLoading(true);
     try {
+      if (!forceRefresh) {
+        try {
+          const cached = JSON.parse(localStorage.getItem(SYSTEM_SIZE_CACHE_KEY) || "null");
+          if (
+            cached && Number.isFinite(cached.savedAt) && Date.now() - cached.savedAt < SYSTEM_SIZE_CACHE_TTL_MS &&
+            Number.isFinite(cached.dbSize) && Number.isFinite(cached.storageSize)
+          ) {
+            setStats((current) => ({ ...current, dbSize: cached.dbSize, storageSize: cached.storageSize }));
+            setSystemSizesUpdatedAt(cached.savedAt);
+            return;
+          }
+        } catch { /* Invalid or unavailable cache; fetch fresh metrics. */ }
+      }
+
       const [db, storage] = await Promise.all([
         supabase.rpc('get_database_size'),
         supabase.rpc('get_storage_size'),
       ]);
+      if (db.error) throw db.error;
+      if (storage.error) throw storage.error;
+      const dbSize = Number(db.data) || 0;
+      const storageSize = Number(storage.data) || 0;
+      const savedAt = Date.now();
       setStats((current) => ({
         ...current,
-        dbSize: Number(db.data) || 0,
-        storageSize: Number(storage.data) || 0,
+        dbSize,
+        storageSize,
       }));
+      setSystemSizesUpdatedAt(savedAt);
+      try { localStorage.setItem(SYSTEM_SIZE_CACHE_KEY, JSON.stringify({ dbSize, storageSize, savedAt })); } catch { /* Cache is optional. */ }
     } catch (error) {
       console.warn("Could not load system size metrics:", error);
     } finally {
       setSystemSizesLoaded(true);
+      setSystemSizesLoading(false);
     }
   };
 
@@ -535,7 +575,12 @@ const AdminDashboard = () => {
                 </Card>
 
                 <Card className="border-border/50">
-                  <CardHeader><CardTitle className="text-lg">System Health</CardTitle></CardHeader>
+                  <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+                    <div><CardTitle className="text-lg">System Health</CardTitle><p className="mt-1 text-xs text-muted-foreground">{systemSizesUpdatedAt ? `Usage snapshot · ${new Date(systemSizesUpdatedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}` : systemSizesLoading ? "Checking usage…" : "Usage snapshot unavailable"}</p></div>
+                    <Button size="sm" variant="outline" disabled={systemSizesLoading} onClick={() => void fetchSystemSizes(true)} aria-label="Refresh system usage">
+                      <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${systemSizesLoading ? "animate-spin" : ""}`} /> Refresh
+                    </Button>
+                  </CardHeader>
                   <CardContent>
                     <div className="space-y-5">
                       <div>
