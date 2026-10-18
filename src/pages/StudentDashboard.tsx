@@ -22,6 +22,7 @@ import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import { Progress } from "@/components/ui/progress";
 
+import Overview from "@/components/dashboard/Overview";
 import LevelProgress from "@/components/dashboard/LevelProgress";
 import QuizPage from "@/components/dashboard/QuizPage";
 import LoginStreakCard from "@/components/dashboard/LoginStreakCard";
