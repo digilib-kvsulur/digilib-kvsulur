@@ -70,7 +70,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     // standard form/explode encoding and avoids proxies treating the comma-
     // delimited form as one invalid service name.
     SERVICE_NAMES.forEach((service) => url.searchParams.append("services", service));
-    url.searchParams.set("timeout_ms", "8000");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     let response: Response;
@@ -85,6 +84,20 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (!response.ok) {
       const upstreamStatus = response.status;
+      const upstreamText = await response.text().catch(() => "");
+      let upstreamMessage = "";
+      try {
+        const errorBody = JSON.parse(upstreamText);
+        upstreamMessage = String(errorBody?.message || errorBody?.error_description || errorBody?.error || "").slice(0, 500);
+      } catch {
+        upstreamMessage = upstreamText.slice(0, 500);
+      }
+      const upstreamHint = upstreamStatus === 400
+        ? /services/i.test(upstreamMessage) ? "Supabase rejected the services query parameter."
+          : /timeout_ms/i.test(upstreamMessage) ? "Supabase rejected the timeout_ms query parameter."
+          : /ref|project/i.test(upstreamMessage) ? "Supabase rejected the project reference."
+          : "Supabase rejected a query parameter or project reference."
+        : undefined;
       const status = upstreamStatus === 401 || upstreamStatus === 403
         ? "configuration_required"
         : upstreamStatus === 429
@@ -99,7 +112,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         rate_limited: "Supabase is rate limiting health checks. The cached result will be retried shortly.",
         project_not_found: "Supabase could not find this project. Check SUPABASE_PROJECT_REF or the VITE_SUPABASE project ID in Vercel.",
         upstream_unavailable: "Supabase’s Management API returned a server error. The database health is not confirmed by this response.",
-        request_rejected: "Supabase rejected the health request. Check the project reference and service health API configuration.",
+        request_rejected: upstreamHint || "Supabase rejected the health request. Check the project reference and service health API configuration.",
       };
       return respond(res, 200, {
         status,
