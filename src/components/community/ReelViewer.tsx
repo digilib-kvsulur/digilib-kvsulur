@@ -19,7 +19,7 @@ interface ReelViewerProps {
   currentUserId?: string;
   onClose: () => void;
   onLike: (post: Post) => void;
-  onComment?: (postId: string) => void;
+  onComment?: (postId: string, delta: 1 | -1) => void;
   onReport: (post: Post) => void;
 }
 
@@ -637,9 +637,12 @@ export const ReelViewer = ({
       setCommentsList((prev) => [...prev, newC]);
       setNewCommentText("");
 
-      // Update comment count on post
-      activeCommentPost.comment_count = (activeCommentPost.comment_count || 0) + 1;
-      if (onComment) onComment(activeCommentPost.id);
+      // Update the open reel and community feed count without refetching stats.
+      const nextCommentCount = (Number(activeCommentPost.comment_count) || 0) + 1;
+      setActiveCommentPost((current) => current?.id === activeCommentPost.id
+        ? { ...current, comment_count: nextCommentCount }
+        : current);
+      onComment?.(activeCommentPost.id, 1);
     } catch (err: any) {
       toast({ title: "Failed to post comment", description: err.message, variant: "destructive" });
     } finally {
@@ -653,7 +656,11 @@ export const ReelViewer = ({
       if (error) throw error;
       setCommentsList((prev) => prev.filter((c) => c.id !== commentId));
       if (activeCommentPost) {
-        activeCommentPost.comment_count = Math.max(0, (activeCommentPost.comment_count || 1) - 1);
+        const nextCommentCount = Math.max(0, (Number(activeCommentPost.comment_count) || 0) - 1);
+        setActiveCommentPost((current) => current?.id === activeCommentPost.id
+          ? { ...current, comment_count: nextCommentCount }
+          : current);
+        onComment?.(activeCommentPost.id, -1);
       }
       toast({ title: "Comment deleted" });
     } catch (err: any) {

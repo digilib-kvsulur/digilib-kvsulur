@@ -122,6 +122,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const recentCommentTimestamps = useRef<number[]>([]);
   const recentContents = useRef<{ normalized: string; timestamp: number }[]>([]);
   const submittingCommentIds = useRef<Set<string>>(new Set());
+  const pendingLikePostIds = useRef<Set<string>>(new Set());
   const postSubmissionInFlight = useRef(false);
   const [spamModal, setSpamModal] = useState<{ open: boolean; title: string; message: string; isBlocked: boolean } | null>(null);
 
@@ -577,6 +578,18 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (!viewingStory) return;
+    const latest = posts.find((post) => post.id === viewingStory.id);
+    if (!latest) return;
+    if (
+      latest.likes === viewingStory.likes &&
+      latest.liked === viewingStory.liked &&
+      latest.comment_count === viewingStory.comment_count
+    ) return;
+    setViewingStory((current) => current?.id === latest.id ? { ...current, ...latest } : current);
+  }, [posts, viewingStory?.id]);
+
   useEffect(() => { if (currentUserId) { load(); loadFriendshipsMap(); } }, [currentUserId]);
 
   useEffect(() => {
@@ -1014,41 +1027,52 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   };
 
   const toggleLike = async (post: Post) => {
+    if (!post?.id || pendingLikePostIds.current.has(post.id)) return;
     const isCurrentlyLiked = !!post.liked;
-    const currentLikes = typeof post.likes === "number" ? post.likes : 0;
+    const currentLikes = Math.max(0, Number(post.likes) || 0);
     const nextLikes = Math.max(0, currentLikes + (isCurrentlyLiked ? -1 : 1));
+    if (!currentUserId) {
+      toast({ title: "Sign in to like posts", variant: "destructive" });
+      return;
+    }
 
     // Immediate optimistic update
     setPosts((ps) => ps.map((p) => p.id === post.id ? { ...p, liked: !isCurrentlyLiked, likes: nextLikes } : p));
+    pendingLikePostIds.current.add(post.id);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const uid = user?.id || currentUserId;
-      if (!uid) return;
-
+      let error;
       if (isCurrentlyLiked) {
-        await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", uid);
+        ({ error } = await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", currentUserId));
       } else {
-        await supabase.from("post_likes").insert({ post_id: post.id, user_id: uid });
+        ({ error } = await supabase.from("post_likes").insert({ post_id: post.id, user_id: currentUserId }));
         // Handled automatically by backend DB trigger tg_notify_post_like()
       }
+      if (error) throw error;
     } catch (err) {
       console.warn("toggleLike error:", err);
       // Rollback on failure
       setPosts((ps) => ps.map((p) => p.id === post.id ? { ...p, liked: isCurrentlyLiked, likes: currentLikes } : p));
+      toast({ title: "Like update failed", description: "Please try again.", variant: "destructive" });
+    } finally {
+      pendingLikePostIds.current.delete(post.id);
     }
   };
 
-  const loadComments = async (postId: string) => {
-    const { data } = await supabase.from("post_comments")
+  const loadComments = async (postId: string): Promise<number | null> => {
+    const { data, error } = await supabase.from("post_comments")
       .select("id, post_id, user_id, content, created_at, is_accepted_solution")
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
-    if (!data) return;
+    if (error || !data) return null;
     const userIds = Array.from(new Set(data.map((c: any) => c.user_id)));
-    const { data: profs } = await supabase.rpc("get_public_profiles", { _ids: userIds });
+    const { data: profs } = userIds.length
+      ? await supabase.rpc("get_public_profiles", { _ids: userIds })
+      : { data: [] as any[] };
     const m = new Map((profs || []).map((p: any) => [p.id, p]));
     setComments((c) => ({ ...c, [postId]: data.map((x: any) => ({ ...x, author: m.get(x.user_id) })) }));
+    setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: data.length } : p));
+    return data.length;
   };
   const toggleComments = async (postId: string) => {
     if (openComments === postId) { setOpenComments(null); return; }
@@ -1089,8 +1113,11 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       }
 
       incrementUserActivityStat(uid, "comments_count");
-      setCommentDraft(""); await loadComments(postId);
-      setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p));
+      setCommentDraft("");
+      const exactCount = await loadComments(postId);
+      if (exactCount === null) {
+        setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: (Number(p.comment_count) || 0) + 1 } : p));
+      }
       // Notification to post author is handled automatically by DB trigger tg_notify_post_comment()
     } catch (error: any) {
       toast({ title: "Comment Error", description: error?.message || "Could not submit the comment.", variant: "destructive" });
@@ -1104,9 +1131,15 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     }
   };
   const deleteComment = async (postId: string, id: string) => {
-    await supabase.from("post_comments").delete().eq("id", id);
-    await loadComments(postId);
-    setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: Math.max(0, p.comment_count - 1) } : p));
+    const { error } = await supabase.from("post_comments").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Reply could not be deleted", description: error.message, variant: "destructive" });
+      return;
+    }
+    const exactCount = await loadComments(postId);
+    if (exactCount === null) {
+      setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: Math.max(0, (Number(p.comment_count) || 0) - 1) } : p));
+    }
   };
 
   const markCommentAsSolution = async (post: Post, commentId: string, commentAuthorId: string) => {
@@ -2512,7 +2545,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 <Button
                   size="sm"
                   variant={viewingStory.liked ? "default" : "outline"}
-                  onClick={() => toggleLike(viewingStory.id)}
+                  onClick={() => toggleLike(viewingStory)}
                   className={`h-9 px-4 rounded-xl text-xs font-bold gap-1.5 ${viewingStory.liked ? "bg-rose-500 text-white hover:bg-rose-600 border-0" : ""}`}
                 >
                   <Heart className={`h-4 w-4 ${viewingStory.liked ? "fill-white" : ""}`} />
@@ -2565,7 +2598,12 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
                 currentUserId={currentUserId}
                 onClose={() => setActiveReelId(null)}
                 onLike={toggleLike}
-                onComment={toggleComments}
+                onComment={(postId, delta) => {
+                  if (!delta) return;
+                  setPosts((current) => current.map((post) => post.id === postId
+                    ? { ...post, comment_count: Math.max(0, (Number(post.comment_count) || 0) + delta) }
+                    : post));
+                }}
                 onReport={setReportingPost}
               />
             );
