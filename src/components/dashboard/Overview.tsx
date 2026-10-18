@@ -18,7 +18,7 @@ import {
   BookOpen, Brain, Target, Award, Zap, Trophy, TrendingUp, Sparkles,
   Calendar, CalendarDays, Gamepad2, Timer, FileText, BookCheck, Users,
   UserPlus, Copy, Bug, Palette, AlertTriangle, ChevronRight, BookPlus,
-  Compass, Flame, ArrowUpRight, CheckCircle2
+  Compass, Flame, ArrowUpRight, CheckCircle2, Medal
 } from "lucide-react";
 
 export interface OverviewProps {
