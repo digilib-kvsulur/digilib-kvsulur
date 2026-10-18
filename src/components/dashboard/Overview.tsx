@@ -647,13 +647,13 @@ export default function Overview({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* Avatar + Greeting */}
           <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
-            <div className="relative shrink-0">
-              <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl ring-2 ring-purple-400/30 overflow-hidden bg-slate-900 flex items-center justify-center shadow-lg">
+            <div className="relative shrink-0 w-12 h-12 sm:w-16 sm:h-16">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl ring-2 ring-purple-400/30 overflow-hidden bg-slate-900 flex items-center justify-center shadow-lg aspect-square shrink-0">
                 {user?.avatar_url ? (
                   <img
                     src={getAvatarUrl(user.avatar_url)}
                     alt="Profile"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover aspect-square"
                     onError={(e) => {
                       (e.currentTarget as HTMLElement).style.display = "none";
                       const parent = e.currentTarget.parentElement;
