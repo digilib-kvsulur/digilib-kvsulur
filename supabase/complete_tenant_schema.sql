@@ -12940,7 +12940,7 @@ create table public.vacation_submissions (
   campaign_id    uuid not null references public.vacation_campaigns(id) on delete restrict,
   activity_id    uuid not null references public.vacation_activities(id) on delete restrict,
   student_id     uuid not null references public.profiles(id) on delete cascade,
-  content        text check (content is null or char_length(content) <= 5000),
+  content        text check (content is null or char_length(content) <= 100000),
   link           text check (link is null or (char_length(link) <= 2000 and link ~* '^https?://')),
   status         text not null default 'pending'
                  check (status in ('pending', 'approved', 'rejected')),
