@@ -1,701 +1,144 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  ArrowLeft, Zap, BookOpen, Brain, Flame, Award, Gamepad2, Timer, Trophy, Star, Activity,
-  MessageCircle, Smartphone, CheckCircle2, ShieldCheck, Sparkles, User as UserIcon, ChevronsUpDown, UserPlus, Instagram
-} from "lucide-react";
+import { ArrowDownLeft, ArrowLeft, ArrowUpRight, History, Loader2, RefreshCw, ShieldCheck, User as UserIcon, Zap } from "lucide-react";
 
-interface PointEvent {
+type LedgerRow = {
   id: string;
-  source: string;
-  points: number;
+  actor_id: string | null;
+  delta: number;
+  balance_after: number;
+  event_type: "opening_balance" | "credit" | "debit";
   description: string;
   created_at: string;
-  icon: React.ElementType;
-  color: string;
-  bg: string;
-}
-
-const SOURCE_META: Record<string, { icon: React.ElementType; color: string; bg: string; label: string }> = {
-  reading:       { icon: BookOpen,      color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-100 dark:bg-emerald-950/50", label: "Reading" },
-  quiz:          { icon: Brain,         color: "text-purple-700 dark:text-purple-300",  bg: "bg-purple-100 dark:bg-purple-950/50",  label: "Quiz" },
-  timely_return: { icon: CheckCircle2,  color: "text-blue-700 dark:text-blue-300",    bg: "bg-blue-100 dark:bg-blue-950/50",    label: "Timely Return" },
-  streak:        { icon: Flame,         color: "text-orange-700 dark:text-orange-300",  bg: "bg-orange-100 dark:bg-orange-950/50",  label: "Daily Streak" },
-  badge:         { icon: Award,         color: "text-amber-700 dark:text-amber-300",   bg: "bg-amber-100 dark:bg-amber-950/50",   label: "Badge" },
-  game:          { icon: Gamepad2,      color: "text-indigo-700 dark:text-indigo-300",  bg: "bg-indigo-100 dark:bg-indigo-950/50",  label: "Game" },
-  study:         { icon: Timer,         color: "text-teal-700 dark:text-teal-300",    bg: "bg-teal-100 dark:bg-teal-950/50",    label: "Study Session" },
-  challenge:     { icon: Trophy,        color: "text-rose-700 dark:text-rose-300",    bg: "bg-rose-100 dark:bg-rose-950/50",    label: "Challenge" },
-  community:     { icon: MessageCircle, color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-100 dark:bg-emerald-950/50", label: "WhatsApp Community" },
-  pwa:           { icon: Smartphone,    color: "text-cyan-700 dark:text-cyan-300",    bg: "bg-cyan-100 dark:bg-cyan-950/50",    label: "App Install" },
-  review:        { icon: Star,          color: "text-yellow-700 dark:text-yellow-300",  bg: "bg-yellow-100 dark:bg-yellow-950/50",  label: "Book Review" },
-  event:         { icon: Sparkles,      color: "text-pink-700 dark:text-pink-300",    bg: "bg-pink-100 dark:bg-pink-950/50",    label: "Event Reward" },
-  invite:        { icon: UserPlus,      color: "text-violet-700 dark:text-violet-300",bg: "bg-violet-100 dark:bg-violet-950/50",label: "Friend Invite" },
-  instagram:     { icon: Instagram,     color: "text-fuchsia-700 dark:text-fuchsia-300",bg: "bg-fuchsia-100 dark:bg-fuchsia-950/50",label: "Instagram Story" },
-  manual:        { icon: ShieldCheck,   color: "text-amber-700 dark:text-amber-300",   bg: "bg-amber-100 dark:bg-amber-950/50",   label: "Admin Bonus" },
-  other:         { icon: Zap,           color: "text-slate-700 dark:text-slate-300",   bg: "bg-slate-100 dark:bg-slate-800",     label: "Points" },
 };
 
-const getTimeAgo = (d: string) => {
-  if (!d) return "Recently";
-  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
-  if (s < 60) return "Just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
-  return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+type HistoryResponse = {
+  balance: number;
+  earned: number;
+  deducted: number;
+  event_count: number;
+  events: LedgerRow[];
 };
+
+const PAGE_SIZE = 50;
+const number = (value: unknown) => Number(value ?? 0).toLocaleString("en-IN");
 
 const PointsHistoryPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryUserId = searchParams.get("userId");
-
-  const [events, setEvents] = useState<PointEvent[]>([]);
-  const [totalPoints, setTotalPoints] = useState(0);
-  const [targetProfile, setTargetProfile] = useState<any>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<string>("student");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [studentList, setStudentList] = useState<any[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [userId, setUserId] = useState("");
+  const [profile, setProfile] = useState<any>(null);
+  const [students, setStudents] = useState<any[]>([]);
+  const [isStaff, setIsStaff] = useState(false);
+  const [rows, setRows] = useState<LedgerRow[]>([]);
+  const [summary, setSummary] = useState<HistoryResponse>({ balance: 0, earned: 0, deducted: 0, event_count: 0, events: [] });
+  const [filter, setFilter] = useState<"all" | "credit" | "debit">("all");
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("all");
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState("");
+  const historyOffset = useRef(0);
 
-  useEffect(() => {
-    initAuthAndLoad();
-  }, [queryUserId]);
-
-  const initAuthAndLoad = async () => {
-    setLoading(true);
+  const fetchHistory = useCallback(async (targetId: string, append = false) => {
+    if (!targetId) return;
+    append ? setLoadingMore(true) : setLoading(true);
+    setError("");
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
-
-      const { data: myProf } = await supabase
-        .from("profiles")
-        .select("id, role, first_name, last_name")
-        .eq("id", user.id)
-        .single();
-
-      const adminUser = myProf?.role === "admin" || myProf?.role === "teacher";
-      setIsAdmin(adminUser);
-      setCurrentUserRole(myProf?.role || "student");
-
-      if (adminUser) {
-        // Load student list for admin picker
-        const { data: students } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name, student_class, admission_number, points")
-          .eq("role", "student")
-          .order("first_name");
-        setStudentList(students || []);
-      }
-
-      const activeUid = (adminUser && queryUserId) ? queryUserId : user.id;
-      setSelectedUserId(activeUid);
-      await loadUserPointsHistory(activeUid);
-    } catch (err) {
-      console.error("Error initializing points history:", err);
+      const [profileResult, historyResult] = await Promise.all([
+        supabase.from("profiles").select("id, first_name, last_name, student_class, admission_number, role").eq("id", targetId).single(),
+        supabase.rpc("get_point_history", { p_user_id: targetId, p_limit: PAGE_SIZE, p_offset: append ? historyOffset.current : 0 }),
+      ]);
+      if (profileResult.error) throw profileResult.error;
+      if (historyResult.error) throw historyResult.error;
+      const payload = historyResult.data as unknown as HistoryResponse;
+      setProfile(profileResult.data);
+      setSummary(payload);
+      setRows(previous => append ? [...previous, ...(payload.events || [])] : (payload.events || []));
+      historyOffset.current = (append ? historyOffset.current : 0) + (payload.events || []).length;
+    } catch (cause: any) {
+      console.error("Unable to load point history", cause);
+      setError(cause?.message || "Could not load points history.");
+      if (!append) { setRows([]); setProfile(null); }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const init = async () => {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/login"); return; }
+      const { data: ownProfile, error: ownProfileError } = await supabase.from("profiles").select("id, role").eq("id", user.id).single();
+      if (ownProfileError) { setError(ownProfileError.message); setLoading(false); return; }
+      const staff = ownProfile.role === "admin" || ownProfile.role === "teacher";
+      if (cancelled) return;
+      setIsStaff(staff);
+      let targetId = user.id;
+      if (staff) {
+        const { data } = await supabase.from("profiles").select("id, first_name, last_name, student_class, admission_number, points").eq("role", "student").order("first_name");
+        if (cancelled) return;
+        setStudents(data || []);
+        if (queryUserId) targetId = queryUserId;
+      }
+      if (cancelled) return;
+      setUserId(targetId);
+      await fetchHistory(targetId);
+    };
+    void init();
+    return () => { cancelled = true; };
+  }, [fetchHistory, navigate, queryUserId]);
+
+  const selectStudent = (id: string) => {
+    setUserId(id);
+    setSearchParams({ userId: id });
+    setRows([]);
+    historyOffset.current = 0;
   };
-
-  const loadUserPointsHistory = async (userId: string) => {
-    try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, student_class, admission_number, points, role, pwa_installed_at, created_at")
-        .eq("id", userId)
-        .single();
-
-      setTargetProfile(profile);
-      setTotalPoints(profile?.points || 0);
-
-      const allEvents: PointEvent[] = [];
-
-      // 1. WhatsApp Community Reward (+250 XP)
-      if ((profile as any)?.whatsapp_reward_claimed) {
-        const m = SOURCE_META.community;
-        allEvents.push({
-          id: `wa-${userId}`,
-          source: "community",
-          points: 250,
-          description: "Joined PM SHRI KV Sulur WhatsApp Community",
-          created_at: (profile as any).whatsapp_joined_at || (profile as any).created_at || new Date().toISOString(),
-          icon: m.icon,
-          color: m.color,
-          bg: m.bg,
-        });
-      }
-
-      // 2. PWA App Installation Reward (+50 XP)
-      if ((profile as any)?.pwa_installed_at) {
-        const m = SOURCE_META.pwa;
-        allEvents.push({
-          id: `pwa-${userId}`,
-          source: "pwa",
-          points: 50,
-          description: "Installed KV Sulur DLMS Web Application / PWA",
-          created_at: (profile as any).pwa_installed_at,
-          icon: m.icon,
-          color: m.color,
-          bg: m.bg,
-        });
-      }
-
-      // Parallel fetch remaining point sources
-      const [
-        rhRes,
-        qrRes,
-        issuesRes,
-        gpRes,
-        ssRes,
-        cpRes,
-        badgesRes,
-        reviewsRes,
-        eventsRes,
-        notifsRes,
-        streakRes,
-        settingsRes
-      ] = await Promise.all([
-        // 3. Reading history
-        supabase
-          .from("reading_history")
-          .select("id, book_title, points_earned, completed_date")
-          .eq("user_id", userId)
-          .eq("status", "approved")
-          .order("completed_date", { ascending: false })
-          .limit(100),
-
-        // 4. Quiz results
-        supabase
-          .from("quiz_results")
-          .select("id, points_earned, completed_at, quizzes(title)")
-          .eq("user_id", userId)
-          .gt("points_earned", 0)
-          .order("completed_at", { ascending: false })
-          .limit(100),
-
-        // 5. Timely Returned Books (100 pts each)
-        supabase
-          .from("book_issues")
-          .select("id, return_date, due_date, books(title)")
-          .eq("user_id", userId)
-          .eq("status", "returned")
-          .not("return_date", "is", null)
-          .order("return_date", { ascending: false })
-          .limit(100),
-
-        // 6. Game plays
-        supabase
-          .from("game_plays")
-          .select("id, game_key, points_earned, played_at")
-          .eq("user_id", userId)
-          .gt("points_earned", 0)
-          .order("played_at", { ascending: false })
-          .limit(100),
-
-        // 7. Study sessions
-        supabase
-          .from("study_sessions")
-          .select("id, material_title, points_earned, ended_at")
-          .eq("user_id", userId)
-          .gt("points_earned", 0)
-          .not("ended_at", "is", null)
-          .order("ended_at", { ascending: false })
-          .limit(100),
-
-        // 8. Reading challenge rewards
-        supabase
-          .from("challenge_progress")
-          .select("id, is_claimed, completed_at, challenges(title, reward_points)")
-          .eq("user_id", userId)
-          .eq("is_claimed", true)
-          .order("completed_at", { ascending: false })
-          .limit(50),
-
-        // 9. Badge Awards
-        supabase
-          .from("badge_awards")
-          .select("id, awarded_at, note, badges(name, points, icon_name)")
-          .eq("user_id", userId)
-          .order("awarded_at", { ascending: false })
-          .limit(50),
-
-        // 10. Book Reviews
-        supabase
-          .from("book_reviews")
-          .select("id, rating, review_text, created_at, books(title)")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(50),
-
-        // 11. Event Submissions
-        supabase
-          .from("event_submissions")
-          .select("id, created_at, library_events(title)")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(50),
-
-        // 12. Admin Bonus Notifications
-        supabase
-          .from("notifications")
-          .select("id, title, message, created_at")
-          .eq("target_user_id", userId)
-          .eq("type", "points")
-          .order("created_at", { ascending: false })
-          .limit(50),
-
-        // 13. Login streaks
-        supabase
-          .from("login_streaks")
-          .select("current_streak, longest_streak, total_login_days, last_login_date")
-          .eq("user_id", userId)
-          .maybeSingle(),
-
-        // 14. System settings for points
-        supabase
-          .from("system_settings")
-          .select("value")
-          .eq("key", "points_per_review")
-          .maybeSingle(),
-      ]);
-
-      // Process Reading
-      rhRes.data?.filter(r => (r.points_earned || 0) > 0).forEach(r => {
-        const m = SOURCE_META.reading;
-        allEvents.push({
-          id: `rh-${r.id}`,
-          source: "reading",
-          points: r.points_earned || 0,
-          description: `Finished reading "${r.book_title}"`,
-          created_at: r.completed_date || new Date().toISOString(),
-          icon: m.icon,
-          color: m.color,
-          bg: m.bg,
-        });
-      });
-
-      // Process Quizzes
-      qrRes.data?.forEach(q => {
-        const m = SOURCE_META.quiz;
-        allEvents.push({
-          id: `qr-${q.id}`,
-          source: "quiz",
-          points: q.points_earned || 0,
-          description: `Completed Quiz: ${(q as any).quizzes?.title || "Library Quiz"}`,
-          created_at: q.completed_at,
-          icon: m.icon,
-          color: m.color,
-          bg: m.bg,
-        });
-      });
-
-      // Process Timely Returns
-      issuesRes.data?.forEach(iss => {
-        if (iss.return_date && iss.due_date && new Date(iss.return_date) <= new Date(iss.due_date)) {
-          const m = SOURCE_META.timely_return;
-          allEvents.push({
-            id: `iss-${iss.id}`,
-            source: "timely_return",
-            points: 100,
-            description: `Timely return of "${(iss as any).books?.title || "Library Book"}"`,
-            created_at: iss.return_date,
-            icon: m.icon,
-            color: m.color,
-            bg: m.bg,
-          });
-        }
-      });
-
-      // Process Game plays
-      gpRes.data?.forEach(g => {
-        const m = SOURCE_META.game;
-        const name = g.game_key.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
-        allEvents.push({
-          id: `gp-${g.id}`,
-          source: "game",
-          points: g.points_earned,
-          description: `Won Arcade Game: ${name}`,
-          created_at: g.played_at,
-          icon: m.icon,
-          color: m.color,
-          bg: m.bg,
-        });
-      });
-
-      // Process Study sessions
-      ssRes.data?.forEach(s => {
-        const m = SOURCE_META.study;
-        allEvents.push({
-          id: `ss-${s.id}`,
-          source: "study",
-          points: s.points_earned,
-          description: `Focused Study: ${s.material_title || "Study Materials"}`,
-          created_at: s.ended_at || new Date().toISOString(),
-          icon: m.icon,
-          color: m.color,
-          bg: m.bg,
-        });
-      });
-
-      // Process Challenges
-      cpRes.data?.forEach(c => {
-        const m = SOURCE_META.challenge;
-        const pts = (c as any).challenges?.reward_points || 0;
-        if (pts > 0) {
-          allEvents.push({
-            id: `cp-${c.id}`,
-            source: "challenge",
-            points: pts,
-            description: `Reading Challenge: ${(c as any).challenges?.title || "Completed Challenge"}`,
-            created_at: c.completed_at || new Date().toISOString(),
-            icon: m.icon,
-            color: m.color,
-            bg: m.bg,
-          });
-        }
-      });
-
-      // Process Badge Awards
-      badgesRes.data?.forEach(b => {
-        const m = SOURCE_META.badge;
-        const pts = (b as any).badges?.points || 25;
-        allEvents.push({
-          id: `bdg-${b.id}`,
-          source: "badge",
-          points: pts,
-          description: `Badge Earned: ${(b as any).badges?.name || "Library Achievement"}`,
-          created_at: b.awarded_at,
-          icon: m.icon,
-          color: m.color,
-          bg: m.bg,
-        });
-      });
-
-      // Process Book Reviews (configured pts per written review)
-      let reviewPts = 15;
-      if (settingsRes?.data?.value != null) {
-        const val = settingsRes.data.value;
-        const num = typeof val === "number" ? val : Number(String(val).replace(/[^0-9]/g, ""));
-        if (!isNaN(num) && num > 0) reviewPts = num;
-      }
-
-      reviewsRes.data?.forEach(rev => {
-        const hasWrittenReview = rev.review_text && rev.review_text.trim().length >= 20;
-        const pts = hasWrittenReview ? reviewPts : 0;
-        const m = SOURCE_META.review;
-        allEvents.push({
-          id: `rev-${rev.id}`,
-          source: "review",
-          points: pts,
-          description: hasWrittenReview
-            ? `Book Review & Rating for "${(rev as any).books?.title || "Book"}"`
-            : `Book Rating for "${(rev as any).books?.title || "Book"}" (Rating only — write review in words for +${reviewPts} XP)`,
-          created_at: rev.created_at,
-          icon: m.icon,
-          color: m.color,
-          bg: m.bg,
-        });
-      });
-
-      // Process Event Submissions (50 pts for participation/approved)
-      eventsRes.data?.forEach(ev => {
-        const m = SOURCE_META.event;
-        allEvents.push({
-          id: `ev-${ev.id}`,
-          source: "event",
-          points: 50,
-          description: `Event Submission: ${(ev as any).library_events?.title || "Library Event"}`,
-          created_at: (ev as any).created_at,
-          icon: m.icon,
-          color: m.color,
-          bg: m.bg,
-        });
-      });
-
-      // Process Admin Bonus Notifications
-      notifsRes.data?.forEach(n => {
-        const notifTitle = (n.title || "").toLowerCase();
-        const notifMsg = n.message || "";
-        const match = notifMsg.match(/(\d+)\s*points/i) || notifMsg.match(/(\d+)\s*xp/i);
-        const pts = match ? parseInt(match[1]) : 50;
-        // Avoid duplicate whatsapp notification
-        if (notifTitle.includes("invite")) {
-          const m = SOURCE_META.invite;
-          allEvents.push({
-            id: `notif-${n.id}`,
-            source: "invite",
-            points: pts || 250,
-            description: notifMsg,
-            created_at: n.created_at,
-            icon: m.icon,
-            color: m.color,
-            bg: m.bg,
-          });
-        } else if (notifTitle.includes("instagram")) {
-          const m = SOURCE_META.instagram;
-          allEvents.push({
-            id: `notif-${n.id}`,
-            source: "instagram",
-            points: pts || 200,
-            description: notifMsg,
-            created_at: n.created_at,
-            icon: m.icon,
-            color: m.color,
-            bg: m.bg,
-          });
-        } else if (!notifTitle.includes("whatsapp")) {
-          const m = SOURCE_META.manual;
-          allEvents.push({
-            id: `notif-${n.id}`,
-            source: "manual",
-            points: pts,
-            description: notifMsg.replace(/You have been awarded \d+ points\.\s*/i, "") || "Admin Bonus",
-            created_at: n.created_at,
-            icon: m.icon,
-            color: m.color,
-            bg: m.bg,
-          });
-        }
-      });
-
-      // Process Streak bonus summary if active
-      if (streakRes.data && streakRes.data.current_streak > 0) {
-        const m = SOURCE_META.streak;
-        allEvents.push({
-          id: `streak-${userId}`,
-          source: "streak",
-          points: streakRes.data.current_streak * 10,
-          description: `Daily Streak Bonus (${streakRes.data.current_streak} days active streak)`,
-          created_at: streakRes.data.last_login_date || new Date().toISOString(),
-          icon: m.icon,
-          color: m.color,
-          bg: m.bg,
-        });
-      }
-
-      // Sort all events descending by date
-      allEvents.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setEvents(allEvents);
-    } catch (err) {
-      console.error("Error loading user points history:", err);
-    }
-  };
-
-  const handleStudentSelect = (uid: string) => {
-    setSelectedUserId(uid);
-    setSearchParams({ userId: uid });
-    loadUserPointsHistory(uid);
-  };
-
-  const filtered = filter === "all" ? events : events.filter(e => e.source === filter);
-  const totalFiltered = filtered.reduce((acc, e) => acc + e.points, 0);
-  const sources = Array.from(new Set(events.map(e => e.source)));
+  const filteredRows = rows.filter(row => filter === "all" || (filter === "credit" ? row.delta > 0 : row.delta < 0));
+  const hasMore = rows.length < summary.event_count;
 
   return (
-    <div className="min-h-screen bg-background pb-12">
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <main className="min-h-screen bg-background px-4 py-6 sm:py-8">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
-                <Zap className="h-6 w-6 text-primary" /> Points & XP History
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Complete breakdown of all library activities, quizzes, challenges, and rewards.
-              </p>
-            </div>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back"><ArrowLeft className="h-5 w-5" /></Button>
+            <div><h1 className="flex items-center gap-2 text-2xl font-extrabold"><Zap className="h-6 w-6 text-primary" />Points history</h1><p className="text-sm text-muted-foreground">A clear record of every change to the account balance.</p></div>
           </div>
+          {isStaff && students.length > 0 && <div className="flex items-center gap-2 rounded-xl border bg-card p-2"><UserIcon className="ml-1 h-4 w-4 text-muted-foreground" /><Select value={userId} onValueChange={selectStudent}><SelectTrigger className="w-[240px]"><SelectValue placeholder="Choose a student" /></SelectTrigger><SelectContent className="max-h-72">{students.map(student => <SelectItem key={student.id} value={student.id}>{student.first_name} {student.last_name} · {number(student.points)} XP</SelectItem>)}</SelectContent></Select></div>}
+        </header>
 
-          {/* Admin Student Picker */}
-          {isAdmin && studentList.length > 0 && (
-            <div className="flex items-center gap-2 bg-card p-2 rounded-2xl border border-border shadow-xs">
-              <UserIcon className="h-4 w-4 text-muted-foreground ml-1" />
-              <Select value={selectedUserId} onValueChange={handleStudentSelect}>
-                <SelectTrigger className="w-[220px] sm:w-[260px] h-9 text-xs font-semibold">
-                  <SelectValue placeholder="Select Student to Inspect" />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {studentList.map(st => (
-                    <SelectItem key={st.id} value={st.id} className="text-xs">
-                      {st.first_name} {st.last_name} {st.student_class ? `(Class ${st.student_class})` : ""} · {st.points || 0} XP
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </div>
+        {profile && <Card className="border-primary/20 bg-gradient-to-r from-primary/10 to-background"><CardContent className="flex flex-wrap items-center justify-between gap-4 p-5"><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">{profile.first_name} {profile.last_name}</h2><Badge variant="outline" className="capitalize">{profile.role}</Badge>{profile.student_class && <Badge variant="secondary">Class {profile.student_class}</Badge>}{profile.admission_number && <span className="text-xs text-muted-foreground">Adm. {profile.admission_number}</span>}</div><p className="mt-1 text-sm text-muted-foreground">{isStaff ? "Account balance and verified point ledger" : "Your current account balance"}</p></div><div className="rounded-2xl bg-primary/10 px-5 py-3 text-right"><p className="text-3xl font-black text-primary">{number(summary.balance)}</p><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current points</p></div></CardContent></Card>}
 
-        {/* Inspected User Profile Card (if viewing as Admin or Self) */}
-        {targetProfile && (
-          <Card className="border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-background shadow-xs">
-            <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-base sm:text-lg font-bold text-foreground">
-                    {targetProfile.first_name} {targetProfile.last_name}
-                  </h2>
-                  <Badge variant="outline" className="text-[10px] capitalize font-semibold">
-                    {targetProfile.role || "student"}
-                  </Badge>
-                  {targetProfile.student_class && (
-                    <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">
-                      Class {targetProfile.student_class}
-                    </Badge>
-                  )}
-                  {targetProfile.admission_number && (
-                    <span className="font-mono text-xs text-muted-foreground">
-                      Adm: {targetProfile.admission_number}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Member of PM SHRI KV Sulur Digital Library
-                </p>
-              </div>
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Card><CardContent className="p-4"><p className="text-2xl font-extrabold text-emerald-600">+{number(summary.earned)}</p><p className="text-xs text-muted-foreground">Points credited</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-2xl font-extrabold text-rose-600">−{number(summary.deducted)}</p><p className="text-xs text-muted-foreground">Points deducted</p></CardContent></Card>
+          <Card className="col-span-2 sm:col-span-1"><CardContent className="p-4"><p className="text-2xl font-extrabold">{number(summary.event_count)}</p><p className="text-xs text-muted-foreground">Ledger entries</p></CardContent></Card>
+        </section>
+        <p className="-mt-3 text-xs text-muted-foreground">For accounts that existed before point tracking, credited totals include the starting balance recorded at setup.</p>
 
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-2xl sm:text-3xl font-black text-primary">{totalPoints.toLocaleString()}</p>
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total XP Balance</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Summary Overview Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <Card className="border-border/60 bg-gradient-to-br from-primary/10 to-primary/5">
-            <CardContent className="p-4">
-              <p className="text-2xl sm:text-3xl font-extrabold text-primary">{totalPoints.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground font-medium mt-0.5">Current XP Balance</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/60">
-            <CardContent className="p-4">
-              <p className="text-2xl sm:text-3xl font-extrabold text-foreground">{events.length}</p>
-              <p className="text-xs text-muted-foreground font-medium mt-0.5">Total History Events</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/60 col-span-2 sm:col-span-1">
-            <CardContent className="p-4">
-              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600">
-                {events.reduce((a, e) => a + e.points, 0).toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground font-medium mt-0.5">Total XP Calculated</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Source Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
-              filter === "all"
-                ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                : "bg-muted/60 border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            All Sources ({events.length})
-          </button>
-          {sources.map(src => {
-            const m = SOURCE_META[src] || SOURCE_META.other;
-            const cnt = events.filter(e => e.source === src).length;
-            return (
-              <button
-                key={src}
-                onClick={() => setFilter(src)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border ${
-                  filter === src
-                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                    : "bg-muted/60 border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                <m.icon className="h-3.5 w-3.5" />
-                {m.label} ({cnt})
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Event Timeline / List */}
-        <Card className="border-border/60 shadow-xs">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" />
-                {filter === "all" ? "All Points Activity" : `${SOURCE_META[filter]?.label || "Points"} Log`}
-              </CardTitle>
-              <Badge variant="secondary" className="text-xs font-bold">
-                +{totalFiltered.toLocaleString()} XP
-              </Badge>
-            </div>
-            {filter !== "all" && <CardDescription>Showing {filtered.length} activities</CardDescription>}
-          </CardHeader>
-          <CardContent className="space-y-2.5">
-            {loading ? (
-              <div className="space-y-2">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-16 bg-muted rounded-xl animate-pulse" />
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Zap className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                <p className="text-sm font-bold">No points activity found</p>
-                <p className="text-xs mt-1">
-                  {filter !== "all"
-                    ? `No entries recorded for ${SOURCE_META[filter]?.label || filter}.`
-                    : "Read books, complete quizzes, join the WhatsApp community, and play games to earn XP!"}
-                </p>
-              </div>
-            ) : (
-              filtered.map(ev => (
-                <div
-                  key={ev.id}
-                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-muted/20 hover:bg-muted/50 transition-colors border border-border/50"
-                >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${ev.bg}`}>
-                    <ev.icon className={`h-5 w-5 ${ev.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{ev.description}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Badge variant="outline" className="text-[9px] py-0 px-1.5 font-normal capitalize">
-                        {SOURCE_META[ev.source]?.label || ev.source}
-                      </Badge>
-                      <span className="text-[11px] text-muted-foreground">{getTimeAgo(ev.created_at)}</span>
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <span className="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400">
-                      +{ev.points}
-                    </span>
-                    <p className="text-[9px] font-bold text-muted-foreground">XP</p>
-                  </div>
-                </div>
-              ))
-            )}
+        <Card>
+          <CardHeader className="pb-3"><div className="flex flex-wrap items-center justify-between gap-3"><div><CardTitle className="flex items-center gap-2"><History className="h-4 w-4 text-primary" />Account activity</CardTitle><CardDescription>Each entry shows the change and the balance after it was applied.</CardDescription></div><div className="flex gap-2">{(["all", "credit", "debit"] as const).map(value => <Button key={value} size="sm" variant={filter === value ? "default" : "outline"} onClick={() => setFilter(value)}>{value === "all" ? "All" : value === "credit" ? "Added" : "Deducted"}</Button>)}<Button size="icon" variant="outline" aria-label="Refresh history" onClick={() => void fetchHistory(userId)}><RefreshCw className="h-4 w-4" /></Button></div></div></CardHeader>
+          <CardContent className="space-y-2">
+            {loading ? <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading point history…</div> : error ? <div className="py-8 text-center"><p className="text-sm text-destructive">{error}</p><Button className="mt-3" variant="outline" onClick={() => void fetchHistory(userId)}>Try again</Button><p className="mt-3 text-xs text-muted-foreground">If this is the new point history, apply the canonical points ledger migration in Supabase first.</p></div> : filteredRows.length === 0 ? <div className="py-10 text-center text-sm text-muted-foreground">No {filter === "all" ? "point" : filter} entries yet.</div> : filteredRows.map(row => {
+              const positive = row.delta >= 0;
+              const opening = row.event_type === "opening_balance";
+              return <div key={row.id} className="flex items-center gap-3 rounded-xl border bg-card p-3 sm:p-4"><div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${positive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"}`}>{positive ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{row.description}</p><div className="mt-1 flex flex-wrap items-center gap-2"><Badge variant="outline" className="text-[10px]">{opening ? "Starting balance" : positive ? "Credit" : "Deduction"}</Badge>{row.actor_id && row.actor_id !== userId && <Badge variant="secondary" className="gap-1 text-[10px]"><ShieldCheck className="h-3 w-3" />Staff action</Badge>}<span className="text-xs text-muted-foreground">{new Date(row.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span></div></div><div className="shrink-0 text-right"><p className={`font-bold ${positive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{positive ? "+" : "−"}{number(Math.abs(row.delta))}</p><p className="text-[10px] text-muted-foreground">Balance {number(row.balance_after)}</p></div></div>;
+            })}
+            {!loading && !error && hasMore && <div className="pt-2 text-center"><Button variant="outline" disabled={loadingMore} onClick={() => void fetchHistory(userId, true)}>{loadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Load older entries</Button></div>}
           </CardContent>
         </Card>
       </div>
-    </div>
+    </main>
   );
 };
 
 export default PointsHistoryPage;
-

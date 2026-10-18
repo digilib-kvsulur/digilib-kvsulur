@@ -3182,6 +3182,14 @@ export type Database = {
         Args: never
         Returns: Json
       }
+      get_point_history: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_user_id?: string | null
+        }
+        Returns: Json
+      }
       resolve_invite_code: {
         Args: {
           p_code: string

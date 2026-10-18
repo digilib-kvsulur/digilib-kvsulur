@@ -398,74 +398,74 @@ export default function Overview({
 
   // 6. THE STAT BOX (4 Metric Cards)
   const StatsSection = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
       {/* Books Reading */}
       <Card
-        className="border-border/60 hover:border-blue-500/30 hover:shadow-2xs transition-all rounded-2xl cursor-pointer group active:scale-[0.98]"
+        className="border-border/60 hover:border-blue-500/40 hover:shadow-xs transition-all rounded-2xl cursor-pointer group active:scale-[0.98] bg-card"
         onClick={() => setActiveTab("books")}
       >
-        <CardContent className="p-3.5 sm:p-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <BookOpen className="h-3.5 w-3.5" />
-            </div>
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Reading</span>
+        <CardContent className="p-3 sm:p-3.5 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <BookOpen className="h-5 w-5" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-foreground">{currentBooksCount}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Books in progress</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">Reading</p>
+            <p className="text-xl sm:text-2xl font-black text-foreground leading-tight">{currentBooksCount}</p>
+            <p className="text-[10px] text-muted-foreground truncate">in progress</p>
+          </div>
         </CardContent>
       </Card>
 
       {/* Quizzes Taken */}
       <Card
-        className="border-border/60 hover:border-purple-500/30 hover:shadow-2xs transition-all rounded-2xl cursor-pointer group active:scale-[0.98]"
+        className="border-border/60 hover:border-purple-500/40 hover:shadow-xs transition-all rounded-2xl cursor-pointer group active:scale-[0.98] bg-card"
         onClick={() => setActiveTab("quizzes")}
       >
-        <CardContent className="p-3.5 sm:p-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Brain className="h-3.5 w-3.5" />
-            </div>
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Quizzes</span>
+        <CardContent className="p-3 sm:p-3.5 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Brain className="h-5 w-5" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-foreground">{quizResultsCount}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Tests taken</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">Quizzes</p>
+            <p className="text-xl sm:text-2xl font-black text-foreground leading-tight">{quizResultsCount}</p>
+            <p className="text-[10px] text-muted-foreground truncate">completed</p>
+          </div>
         </CardContent>
       </Card>
 
       {/* Monthly Goal Progress */}
-      <Card className="border-border/60 hover:border-emerald-500/30 hover:shadow-2xs transition-all rounded-2xl">
-        <CardContent className="p-3.5 sm:p-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Target className="h-3.5 w-3.5" />
-            </div>
-            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-              {goalPercentage}%
-            </span>
+      <Card className="border-border/60 hover:border-emerald-500/40 hover:shadow-xs transition-all rounded-2xl bg-card">
+        <CardContent className="p-3 sm:p-3.5 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Target className="h-5 w-5" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-foreground">
-            {monthlyBooksRead}/{schoolReadingGoal}
-          </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Monthly reading goal</p>
-          <Progress value={goalPercentage} className="h-1.5 mt-2" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">Goal</p>
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">{goalPercentage}%</span>
+            </div>
+            <p className="text-xl sm:text-2xl font-black text-foreground leading-tight">
+              {monthlyBooksRead}/{schoolReadingGoal}
+            </p>
+            <Progress value={goalPercentage} className="h-1 mt-1" />
+          </div>
         </CardContent>
       </Card>
 
       {/* Badges Earned */}
       <Card
-        className="border-border/60 hover:border-amber-500/30 hover:shadow-2xs transition-all rounded-2xl cursor-pointer group active:scale-[0.98]"
+        className="border-border/60 hover:border-amber-500/40 hover:shadow-xs transition-all rounded-2xl cursor-pointer group active:scale-[0.98] bg-card"
         onClick={() => setActiveTab("badges")}
       >
-        <CardContent className="p-3.5 sm:p-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Award className="h-3.5 w-3.5" />
-            </div>
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cabinet</span>
+        <CardContent className="p-3 sm:p-3.5 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Award className="h-5 w-5" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-foreground">{badgesEarnedCount}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Badges unlocked</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">Badges</p>
+            <p className="text-xl sm:text-2xl font-black text-foreground leading-tight">{badgesEarnedCount}</p>
+            <p className="text-[10px] text-muted-foreground truncate">unlocked</p>
+          </div>
         </CardContent>
       </Card>
     </div>
