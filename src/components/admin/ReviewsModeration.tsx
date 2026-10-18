@@ -223,7 +223,7 @@ export default function ReviewsModeration() {
 
       toast({
         title: res.title,
-        description: `${authorName}: ${res.message}${res.revertedBadgesCount ? ` (${res.revertedBadgesCount} badge(s) reverted)` : ""}`,
+        description: `${authorName}: ${res.message}`,
       });
       await loadReports();
     } catch (e: any) {
