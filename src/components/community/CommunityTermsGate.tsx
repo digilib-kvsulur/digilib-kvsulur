@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ShieldAlert, Users, Heart, Ban, MessageCircle, Flag } from "lucide-react";
+import { ShieldAlert, Users, Heart, Ban, MessageCircle, Flag, BookMarked } from "lucide-react";
 
-export const COMMUNITY_TERMS_VERSION = "v1";
+export const COMMUNITY_TERMS_VERSION = "v2";
 
 export const communityTermsKey = (userId: string) =>
   `community_terms_accepted_${COMMUNITY_TERMS_VERSION}_${userId}`;
@@ -32,7 +32,12 @@ const RULES = [
   {
     icon: MessageCircle,
     title: "No spam or flooding",
-    text: "Do not post the same message repeatedly, advertise, share unrelated links, or flood comments and polls.",
+    text: "Normal greetings and brief replies are welcome. Do not flood the community with repeated words or the same message (for example, ‘hi hi hi’), or repeatedly post unrelated links.",
+  },
+  {
+    icon: BookMarked,
+    title: "Share original work and credit sources",
+    text: "Write posts and stories in your own words. Do not present another person’s writing, answers, or creative work as your own. Quote only what you need and name/link the source. Suspected copies may be held from posting for review.",
   },
   {
     icon: Users,
@@ -98,9 +103,12 @@ export default function CommunityTermsGate({
               <Ban className="h-4 w-4" /> Content Policy &amp; Warnings
             </p>
             <div className="text-xs text-destructive/95 space-y-1.5 font-medium leading-relaxed bg-white/60 p-3 rounded-lg border border-destructive/20">
-              <p><strong>1st Warning :</strong> You will be blocked from posting in DLMS for 24 Hours &amp; Badges during the period will be reverted.</p>
-              <p><strong>2nd Warning :</strong> You will be blocked from posting in DLMS for 48 Hours &amp; Badges during the period will be reverted.</p>
-              <p><strong>3rd Warning :</strong> Your DLMS account will be deactivated.</p>
+              <p><strong>Ordinary reminders:</strong> Clear repeated-content spam receives up to three ordinary reminders first. Posting speed alone only asks you to slow down and does not count as misconduct.</p>
+              <p><strong>Formal warning 1:</strong> After three ordinary reminders, posting is paused for 24 hours.</p>
+              <p><strong>Formal warning 2:</strong> Continued clear violations pause posting for 48 hours.</p>
+              <p><strong>Formal warning 3:</strong> Continued violations may lead to account deactivation and administrator review.</p>
+              <p><strong>Plagiarism:</strong> Likely copied posts are stopped before publishing. Rewrite in your own words or quote and clearly credit the author/source. Repeated deliberate plagiarism may receive formal moderation.</p>
+              <p>Badges are not automatically removed for a community warning. You may appeal a decision to the library team.</p>
             </div>
             <p className="text-[11px] text-muted-foreground italic">
               * Administrators and staff members are exempt from community moderation rules.

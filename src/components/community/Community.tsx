@@ -24,7 +24,7 @@ import ReviewsModeration from "@/components/admin/ReviewsModeration";
 import CommunityTermsGate, { hasAcceptedCommunityTerms } from "./CommunityTermsGate";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { getUserActivityStats, incrementUserActivityStat } from "@/lib/userActivityStatsCache";
-import { applyModerationWarning, isUserExemptFromModeration, detectSpamPattern, normalizeSpamContent } from "@/lib/moderationService";
+import { applyModerationWarning, isUserExemptFromModeration, detectSpamPattern, normalizeSpamContent, recordCommunitySpamReminder, findLikelyCommunityCopy } from "@/lib/moderationService";
 
 const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
 const COMMUNITY_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
@@ -109,6 +109,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   const [hasClubs, setHasClubs] = useState(true);
   const [blockedUntil, setBlockedUntil] = useState<string | null>(null);
   const [userWarnCount, setUserWarnCount] = useState<number>(0);
+  const [moderationExempt, setModerationExempt] = useState(isAdmin);
 
   // Tagging state
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
@@ -238,7 +239,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
   };
 
   const validateAntiSpam = async (text: string, type: "post" | "comment"): Promise<boolean> => {
-    if (isAdmin) return true;
+    if (isAdmin || moderationExempt) return true;
 
     const spamCheck = detectSpamPattern(text, {
       recentTimestamps: type === "post" ? recentPostTimestamps.current : recentCommentTimestamps.current,
@@ -261,45 +262,47 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       return true;
     }
 
-    // Spam pattern detected - Two-Stage Policy:
-    // Stage 1: First offense -> Alert Dialog
-    // Stage 2: Continued spamming within 2 minutes of alert -> 1st Warning (24h Block)
-    const alertKey = `dlms_spam_alert_v2_${currentUserId}`;
-    let lastAlert: { timestamp: number; severity: string } | null = null;
-    try {
-      const stored = localStorage.getItem(alertKey);
-      lastAlert = stored ? JSON.parse(stored) : null;
-    } catch {
-      lastAlert = null;
+    // Posting speed alone is only a cooldown. Clear repeated content earns three
+    // persisted, ordinary reminders before the first formal warning and block.
+    const isVelocity = spamCheck.severity === "velocity";
+    let reminderCount = 0;
+    let formalWarningDue = false;
+    if (!isVelocity) {
+      try {
+        const result = await recordCommunitySpamReminder();
+        reminderCount = result.count;
+        formalWarningDue = result.formalWarningDue;
+        if (result.blocked) {
+          await checkUserBlockStatus();
+          setSpamModal({ open: true, title: "Posting is temporarily paused", message: "Your account already has an active posting restriction. Review your notifications for details and try again after it ends.", isBlocked: true });
+          return false;
+        }
+      } catch (error: any) {
+        console.error("Could not record community spam reminder:", error);
+        toast({ title: "Could not check community rules", description: "Please retry in a moment.", variant: "destructive" });
+        return false;
+      }
     }
-    const isRepeatedClearSpam =
-      spamCheck.severity !== "velocity" &&
-      Boolean(lastAlert && lastAlert.severity !== "velocity" && Date.now() - lastAlert.timestamp < 2 * 60 * 1000);
 
-    if (isRepeatedClearSpam) {
-      // Stage 2: Apply block/warning
-      try { localStorage.removeItem(alertKey); } catch { /* Ignore unavailable storage. */ }
+    if (formalWarningDue) {
       setSpamModal({
         open: true,
-        title: "🚫 Account Suspended for Spamming",
-        message: `You continued to post rapid or repetitive content after receiving an anti-spam alert (${spamCheck.reason}). Your posting privileges have been suspended as per the DLMS 3-tier moderation policy (1st Warning: 24 Hours).`,
+        title: "Formal warning 1: posting paused for 24 hours",
+        message: `You have received three ordinary reminders for repetitive or duplicate content. This is your first formal warning. Posting is now paused for 24 hours. Reason: ${spamCheck.reason}`,
         isBlocked: true,
       });
 
-      await handleModerationStrike(`Repeated spamming and message flooding in community discussions after receiving anti-spam alert: ${spamCheck.reason}`);
+      await handleModerationStrike(`Repeated spam after three ordinary reminders: ${spamCheck.reason}`);
       return false;
     } else {
-      // Rate-limit hits can ask the user to wait, but do not count as misconduct.
-      try {
-        localStorage.setItem(alertKey, JSON.stringify({ timestamp: Date.now(), severity: spamCheck.severity }));
-      } catch { /* Ignore unavailable storage. */ }
-      const isVelocity = spamCheck.severity === "velocity";
+      // Rate-limit hits never count as misconduct or consume an ordinary reminder.
+      const reminder = isVelocity ? "" : ` Ordinary reminder ${reminderCount} of 3.`;
       setSpamModal({
         open: true,
         title: isVelocity ? "Please slow down" : "Anti-spam notice",
         message: isVelocity
           ? `You have reached the short posting limit (${spamCheck.reason}). Please wait a little before trying again. This pace limit by itself does not add a moderation strike.`
-          : `The message looks repetitive (${spamCheck.reason}). Please edit it before posting. Repeating clear spam after this notice may trigger moderation.`,
+          : `The message looks repetitive (${spamCheck.reason}). Please edit it and try again.${reminder} Three ordinary reminders lead to the first formal warning and a 24-hour posting pause.`,
         isBlocked: false,
       });
 
@@ -307,7 +310,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
         title: isVelocity ? "Please slow down" : "Repetitive content detected",
         description: isVelocity
           ? "Please wait before posting again. A short burst limit does not add a moderation strike."
-          : "Please edit the repeated content before posting. Repeating clear spam after this notice may trigger moderation.",
+          : `Please edit the repeated content before posting. ${reminder.trim()}`,
         variant: "destructive",
       });
       return false;
@@ -363,6 +366,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   const checkUserBlockStatus = async () => {
     if (isAdmin) {
+      setModerationExempt(true);
       setBlockedUntil(null);
       return;
     }
@@ -372,9 +376,11 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       .maybeSingle();
 
     if (isUserExemptFromModeration(data?.role)) {
+      setModerationExempt(true);
       setBlockedUntil(null);
       return;
     }
+    setModerationExempt(false);
 
     if (data?.community_blocked_until) {
       if (new Date(data.community_blocked_until).getTime() > Date.now()) {
@@ -390,7 +396,7 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
 
   const handleModerationStrike = async (reason?: string) => {
     // Admins and staff are completely exempt from moderation policies
-    if (isAdmin) return;
+    if (isAdmin || moderationExempt) return;
 
     try {
       const res = await applyModerationWarning({
@@ -747,6 +753,16 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
       toast({ title: "Invalid URL", description: "Link URL must start with http:// or https://", variant: "destructive" });
       return;
     }
+
+    const checkedContent = `${draft.title} ${draft.content}`.trim();
+    if (!isAdmin && !moderationExempt && findLikelyCommunityCopy(checkedContent, posts, currentUserId)) {
+      toast({
+        title: "Please make this post your own",
+        description: "This closely matches another member’s recent community post. Rewrite it in your own words or quote and clearly credit the original author/source.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Check bad words (Admins are exempt)
     if (!isAdmin && (containsBadWords(draft.title) || containsBadWords(draft.content) || (postKind === "link" && containsBadWords(linkUrl)))) {
@@ -1087,6 +1103,17 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
     }
     const content = commentDraft.trim();
     if (!content) return;
+    if (!isAdmin && !moderationExempt && findLikelyCommunityCopy(content, [
+      ...posts,
+      ...Object.values(comments).flat(),
+    ], currentUserId)) {
+      toast({
+        title: "Please make this reply your own",
+        description: "This closely matches another member’s recent community content. Rewrite it in your own words or quote and clearly credit the original author/source.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!isAdmin && containsBadWords(commentDraft)) {
       await handleModerationStrike("Comment contains prohibited words or inappropriate language.");
       return;

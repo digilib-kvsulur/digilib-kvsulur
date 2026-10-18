@@ -275,7 +275,7 @@ export const UpcomingQuizLeagueCard = ({
   const eligible = targetClass === "all" || !userClass || userClass.includes(targetClass);
 
   return (
-    <Card className="overflow-hidden border-2 border-indigo-500/40 bg-gradient-to-r from-indigo-950 via-slate-950 to-purple-950 text-white shadow-xl shadow-indigo-950/30 hover:border-indigo-400/60 transition-all mb-4">
+    <Card className="overflow-hidden rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-950 text-white shadow-md hover:border-indigo-400/50 transition-all">
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Left: League Info & Live Status */}

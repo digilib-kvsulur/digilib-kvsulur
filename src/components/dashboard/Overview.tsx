@@ -642,104 +642,107 @@ export default function Overview({
         </Card>
       )}
 
-      {/* 2. GOOD AFTERNOON HERO BOX */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-purple-950/95 to-indigo-950 text-white border border-purple-500/30 shadow-xl p-4 sm:p-5 md:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          {/* Avatar + Greeting */}
-          <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
-            <div className="relative shrink-0 w-12 h-12 sm:w-16 sm:h-16">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl ring-2 ring-purple-400/30 overflow-hidden bg-slate-900 flex items-center justify-center shadow-lg aspect-square shrink-0">
-                {user?.avatar_url ? (
-                  <img
-                    src={getAvatarUrl(user.avatar_url)}
-                    alt="Profile"
-                    className="w-full h-full object-cover aspect-square"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLElement).style.display = "none";
-                      const parent = e.currentTarget.parentElement;
-                      if (parent && !parent.querySelector(".fallback-char")) {
-                        const span = document.createElement("span");
-                        span.className = "text-xl sm:text-2xl font-black text-white fallback-char";
-                        span.textContent = greetingName[0] || "S";
-                        parent.appendChild(span);
-                      }
-                    }}
-                  />
-                ) : (
-                  <span className="text-xl sm:text-2xl font-black text-indigo-200">
-                    {greetingName[0] || "S"}
-                  </span>
+      {/* 2. HEADER ANNOUNCEMENT ZONE: HERO GREETING + LIVE CHAMPIONSHIP */}
+      <div className="space-y-2.5 sm:space-y-3">
+        {/* Good Afternoon Hero Box */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/20 shadow-md px-4 py-3 sm:px-5 sm:py-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            {/* Avatar + Greeting */}
+            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+              <div className="relative shrink-0 w-11 h-11 sm:w-13 sm:h-13">
+                <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-xl ring-2 ring-indigo-400/30 overflow-hidden bg-slate-900 flex items-center justify-center shadow-sm aspect-square shrink-0">
+                  {user?.avatar_url ? (
+                    <img
+                      src={getAvatarUrl(user.avatar_url)}
+                      alt="Profile"
+                      className="w-full h-full object-cover aspect-square"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = "none";
+                        const parent = e.currentTarget.parentElement;
+                        if (parent && !parent.querySelector(".fallback-char")) {
+                          const span = document.createElement("span");
+                          span.className = "text-lg sm:text-xl font-black text-white fallback-char";
+                          span.textContent = greetingName[0] || "S";
+                          parent.appendChild(span);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-lg sm:text-xl font-black text-indigo-200">
+                      {greetingName[0] || "S"}
+                    </span>
+                  )}
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-slate-900"></span>
+                </span>
+              </div>
+
+              <div className="min-w-0 space-y-0.5">
+                <h2 className="text-base sm:text-xl font-black tracking-tight text-white flex items-center gap-1.5 flex-wrap">
+                  <span>{greeting}, {greetingName}!</span>
+                  <span>👋</span>
+                </h2>
+                {user?.student_class && (
+                  <div>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-white/10 text-white/90 border border-white/15 shadow-2xs">
+                      Class {user.student_class}
+                    </span>
+                  </div>
                 )}
               </div>
-              <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-slate-950"></span>
-              </span>
             </div>
 
-            <div className="min-w-0 space-y-1">
-              <h2 className="text-lg sm:text-2xl font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
-                <span>{greeting}, {greetingName}!</span>
-                <span>👋</span>
-              </h2>
-              {user?.student_class && (
-                <div className="pt-0.5">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/10 text-white/90 border border-white/20 shadow-xs">
-                    Class {user.student_class}
-                  </span>
+            {/* Gamified XP & Rank Badges */}
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              <button
+                onClick={() => navigate("/points-history")}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white backdrop-blur-md transition-all active:scale-95 shadow-2xs"
+                title="View Points History"
+              >
+                <Zap className="h-3.5 w-3.5 fill-amber-300 text-amber-300 shrink-0" />
+                <div className="text-left">
+                  <p className="text-xs sm:text-sm font-black leading-tight text-amber-300">
+                    {(user?.points || 0).toLocaleString()}
+                  </p>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-white/70">
+                    Total XP
+                  </p>
                 </div>
-              )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab("rankings")}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white backdrop-blur-md transition-all active:scale-95 shadow-2xs"
+                title="View Class Rankings"
+              >
+                <Trophy className="h-3.5 w-3.5 text-indigo-300 shrink-0" />
+                <div className="text-left">
+                  <p className="text-xs sm:text-sm font-black leading-tight text-indigo-200">
+                    #{classRank}
+                  </p>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-white/70">
+                    Class Rank
+                  </p>
+                </div>
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Gamified XP & Rank Badges */}
-          <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
-            <button
-              onClick={() => navigate("/points-history")}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white backdrop-blur-md transition-all hover:scale-105 active:scale-95 shadow-sm"
-              title="View Points History"
-            >
-              <Zap className="h-4 w-4 fill-amber-300 text-amber-300 shrink-0" />
-              <div className="text-left">
-                <p className="text-sm sm:text-base font-black leading-tight text-amber-300">
-                  {(user?.points || 0).toLocaleString()}
-                </p>
-                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/70">
-                  Total XP
-                </p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("rankings")}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white backdrop-blur-md transition-all hover:scale-105 active:scale-95 shadow-sm"
-              title="View Class Rankings"
-            >
-              <Trophy className="h-4 w-4 text-indigo-300 shrink-0" />
-              <div className="text-left">
-                <p className="text-sm sm:text-base font-black leading-tight text-indigo-200">
-                  #{classRank}
-                </p>
-                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-white/70">
-                  Class Rank
-                </p>
-              </div>
-            </button>
+        {/* Championship live / upcoming banner (directly beneath Good afternoon box) */}
+        {handleJoinQuizLeague && (
+          <div className="space-y-2.5">
+            <UpcomingQuizLeagueCard
+              userId={user?.id}
+              userClass={user?.student_class}
+              onJoinLeague={handleJoinQuizLeague}
+            />
+            <LiveQuizAlert onJoinLeague={handleJoinQuizLeague} />
           </div>
-        </div>
+        )}
       </div>
-
-      {/* 3. CHAMPIONSHIP LIVE / UPCOMING BANNER (Directly below Good afternoon box) */}
-      {handleJoinQuizLeague && (
-        <div className="space-y-3">
-          <UpcomingQuizLeagueCard
-            userId={user?.id}
-            userClass={user?.student_class}
-            onJoinLeague={handleJoinQuizLeague}
-          />
-          <LiveQuizAlert onJoinLeague={handleJoinQuizLeague} />
-        </div>
-      )}
 
       {/* 3. MOBILE VIEW (< lg): EXACT SEQUENCE REQUESTED:
              1. Event banner

@@ -19,14 +19,14 @@ export default function VacationOverviewBanner({ onOpen }: VacationOverviewBanne
 
   return (
     <Card
-      className="rounded-2xl sm:rounded-3xl border border-amber-500/35 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group relative"
+      className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer group relative"
       onClick={onOpen}
     >
       {/* Decorative ambient glowing background orbs */}
       <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-amber-500/10 blur-3xl pointer-events-none group-hover:scale-110 transition-transform duration-500" />
       <div className="absolute -left-10 -bottom-10 w-44 h-44 rounded-full bg-indigo-500/15 blur-2xl pointer-events-none" />
 
-      <CardContent className="p-4 sm:p-6 flex flex-col justify-between gap-4 relative z-10">
+      <CardContent className="p-4 sm:p-5 flex flex-col justify-between gap-3 sm:gap-3.5 relative z-10">
         {/* Top Header Row: Festival Label & Status Badge */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">

@@ -2,10 +2,50 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendModerationWarningEmail } from "./autoEmail";
 
 export const MODERATION_POLICY = {
-  STRIKE_1: "1st Warning : You will be blocked from posting in DLMS for 24 Hours & Badges during the period will be reverted.",
-  STRIKE_2: "2nd Warning : You will be blocked from posting in DLMS for 48 Hours & Badges during the period will be reverted.",
-  STRIKE_3: "3rd Warning : Your DLMS account will be deactivated.",
+  STRIKE_1: "Formal warning 1: After three ordinary anti-spam reminders, posting is paused for 24 hours. Badges earned during the suspension period may be reviewed and reverted.",
+  STRIKE_2: "Formal warning 2: Posting is paused for 48 hours. Continued violations may lead to account suspension.",
+  STRIKE_3: "Formal warning 3: Community access is suspended and the account is referred to an administrator for review.",
 };
+
+/** Increment a server-persisted ordinary spam reminder. Three reminders trigger the first formal warning. */
+export async function recordCommunitySpamReminder(): Promise<{ count: number; formalWarningDue: boolean; blocked: boolean }> {
+  const { data, error } = await supabase.rpc("record_community_spam_reminder");
+  if (error) throw error;
+  const result = data as { count?: number; formal_warning_due?: boolean; blocked?: boolean } | null;
+  return {
+    count: Number(result?.count) || 0,
+    formalWarningDue: Boolean(result?.formal_warning_due),
+    blocked: Boolean(result?.blocked),
+  };
+}
+
+/** Detect near-copying only against already-loaded community posts; this does not issue an extra query. */
+export function findLikelyCommunityCopy(
+  content: string,
+  candidates: Array<{ user_id?: string; content?: string; title?: string }>,
+  currentUserId: string,
+): boolean {
+  const words = normalizeSpamContent(content).split(" ").filter(Boolean);
+  if (words.length < 24) return false;
+  const shingles = (tokens: string[]) => {
+    const result = new Set<string>();
+    for (let i = 0; i <= tokens.length - 5; i += 1) result.add(tokens.slice(i, i + 5).join(" "));
+    return result;
+  };
+  const sourceShingles = shingles(words);
+  if (!sourceShingles.size) return false;
+
+  return candidates.some(candidate => {
+    if (!candidate.user_id || candidate.user_id === currentUserId) return false;
+    const sourceWords = normalizeSpamContent(`${candidate.title || ""} ${candidate.content || ""}`).split(" ").filter(Boolean);
+    if (sourceWords.length < 24) return false;
+    const candidateShingles = shingles(sourceWords);
+    let shared = 0;
+    sourceShingles.forEach(shingle => { if (candidateShingles.has(shingle)) shared += 1; });
+    const union = sourceShingles.size + candidateShingles.size - shared;
+    return union > 0 && shared / union >= 0.78;
+  });
+}
 
 /**
  * Check whether a user or role is exempt from moderation policies.
@@ -17,37 +57,6 @@ export function isUserExemptFromModeration(roleOrUser?: string | { role?: string
   return role === "admin" || role === "librarian" || role === "teacher";
 }
 
-/**
- * Revert any badges awarded to the user within the given hours window.
- */
-export async function revertBadgesDuringPeriod(userId: string, hours: number): Promise<number> {
-  try {
-    const cutoff = new Date(Date.now() - hours * 3600 * 1000).toISOString();
-    const { data: recentAwards, error: fetchErr } = await supabase
-      .from("badge_awards")
-      .select("id")
-      .eq("user_id", userId)
-      .gte("awarded_at", cutoff);
-
-    if (fetchErr || !recentAwards || recentAwards.length === 0) return 0;
-
-    const ids = recentAwards.map((a: any) => a.id);
-    const { error: delErr } = await supabase
-      .from("badge_awards")
-      .delete()
-      .in("id", ids);
-
-    if (delErr) {
-      console.warn("Failed to revert badges during period:", delErr);
-      return 0;
-    }
-    return ids.length;
-  } catch (err) {
-    console.warn("Error reverting badges:", err);
-    return 0;
-  }
-}
-
 export interface ModerationResult {
   success: boolean;
   exempt?: boolean;
@@ -56,13 +65,12 @@ export interface ModerationResult {
   deactivated: boolean;
   title: string;
   message: string;
-  revertedBadgesCount?: number;
 }
 
 /**
  * Applies the official 3-tier moderation strike/warning to a user:
- * 1st Warning: 24h block & badges reverted
- * 2nd Warning: 48h block & badges reverted
+ * 1st formal warning: 24h community block
+ * 2nd formal warning: 48h community block
  * 3rd Warning: DLMS account deactivated (is_approved = false)
  *
  * Automatically creates an in-app notification and dispatches an email notice.
@@ -109,25 +117,21 @@ export async function applyModerationWarning(params: {
   let isApproved = profile.is_approved !== false;
   let warningTitle = "";
   let warningMessage = "";
-  let revertedBadges = 0;
 
   if (nextLevel === 1) {
     blockedUntil = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
     warningTitle = "1st Warning: Content Moderation Notice";
     warningMessage = MODERATION_POLICY.STRIKE_1 + (reason ? `\nReason: ${reason}` : "");
-    revertedBadges = await revertBadgesDuringPeriod(userId, 24);
   } else if (nextLevel === 2) {
     blockedUntil = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
     warningTitle = "2nd Warning: Content Moderation Notice";
     warningMessage = MODERATION_POLICY.STRIKE_2 + (reason ? `\nReason: ${reason}` : "");
-    revertedBadges = await revertBadgesDuringPeriod(userId, 48);
   } else {
     // 3rd Warning - Account Deactivated
     blockedUntil = "2099-01-01T00:00:00.000Z";
     isApproved = false;
     warningTitle = "3rd Warning: DLMS Account Deactivated";
     warningMessage = MODERATION_POLICY.STRIKE_3 + (reason ? `\nReason: ${reason}` : "");
-    revertedBadges = await revertBadgesDuringPeriod(userId, 72);
   }
 
   // 4. Update the user profile
@@ -136,6 +140,7 @@ export async function applyModerationWarning(params: {
     .update({
       community_warn_count: nextLevel,
       community_blocked_until: blockedUntil,
+      community_soft_warn_count: 0,
       is_approved: isApproved,
     })
     .eq("id", userId);
@@ -177,7 +182,6 @@ export async function applyModerationWarning(params: {
     deactivated: !isApproved,
     title: warningTitle,
     message: warningMessage,
-    revertedBadgesCount: revertedBadges,
   };
 }
 
@@ -190,6 +194,7 @@ export async function resetUserModeration(userId: string, adminId?: string): Pro
     .update({
       community_warn_count: 0,
       community_blocked_until: null,
+      community_soft_warn_count: 0,
       is_approved: true,
     })
     .eq("id", userId);

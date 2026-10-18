@@ -2259,6 +2259,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           community_blocked_until: string | null
+          community_soft_warn_count: number
           community_warn_count: number
           created_at: string
           currently_reading: Json | null
@@ -2296,6 +2297,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           community_blocked_until?: string | null
+          community_soft_warn_count?: number
           community_warn_count?: number
           created_at?: string
           currently_reading?: Json | null
@@ -2333,6 +2335,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           community_blocked_until?: string | null
+          community_soft_warn_count?: number
           community_warn_count?: number
           created_at?: string
           currently_reading?: Json | null
@@ -3188,6 +3191,10 @@ export type Database = {
           p_offset?: number
           p_user_id?: string | null
         }
+        Returns: Json
+      }
+      record_community_spam_reminder: {
+        Args: never
         Returns: Json
       }
       resolve_invite_code: {
