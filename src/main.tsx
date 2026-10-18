@@ -2,9 +2,13 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { processQueue } from '@/lib/offline';
+import { injectSpeedInsights } from '@vercel/speed-insights';
 
 // Attempt to flush any queued offline events on startup
 void processQueue();
+
+// Initialize Vercel Speed Insights
+injectSpeedInsights();
 
 // Register a lightweight service worker to support background sync triggers
 if ('serviceWorker' in navigator) {
