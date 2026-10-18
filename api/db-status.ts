@@ -66,7 +66,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   try {
     const url = new URL(`https://api.supabase.com/v1/projects/${ref}/health`);
-    url.searchParams.set("services", SERVICE_NAMES.join(","));
+    // OpenAPI defines `services` as an array. Repeating the key uses the
+    // standard form/explode encoding and avoids proxies treating the comma-
+    // delimited form as one invalid service name.
+    SERVICE_NAMES.forEach((service) => url.searchParams.append("services", service));
     url.searchParams.set("timeout_ms", "8000");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
