@@ -42,23 +42,25 @@
   <body>
     <main>
       <div class="brand">PM SHRI KV AFS Sulur · DLMS</div>
-      <h1>Service status</h1>
-      <p class="intro">A quick check of the database connection used by the library catalogue.</p>
+      <h1>Supabase status</h1>
+      <p class="intro">Current platform-wide service status reported by Supabase.</p>
       <section class="service" aria-live="polite" aria-atomic="true">
-        <span class="service-name">Database connectivity</span>
+        <span class="service-name">Supabase platform</span>
         <span class="badge checking" id="status-badge"><span class="dot"></span><span id="status-text">Checking…</span></span>
       </section>
+      <p class="intro" id="status-description" style="margin-top:14px"></p>
       <p class="timestamp" id="checked-at">Checking the latest cached status…</p>
       <div class="actions">
         <a href="/">Back to DLMS</a>
         <button id="refresh" type="button">Check status</button>
       </div>
-      <p class="note">This page checks whether a small read-only request can reach the database through the API. Results are cached briefly to avoid adding load. It does not report authentication, realtime, storage, or email service health. If you cannot sign in or use the library, contact <a href="mailto:dlms@kvsulur.in">dlms@kvsulur.in</a>.</p>
+      <p class="note">This page reads Supabase’s public status feed only and makes <strong>no requests to the DLMS database</strong>. It reports platform-wide incidents and cannot detect an issue limited to this school’s project. Results are cached briefly. For project-specific problems or help, contact <a href="mailto:dlms@kvsulur.in">dlms@kvsulur.in</a>. <a href="https://status.supabase.com/" target="_blank" rel="noopener noreferrer">Open Supabase status page</a>.</p>
     </main>
     <script>
       (() => {
         const badge = document.getElementById("status-badge");
         const label = document.getElementById("status-text");
+        const description = document.getElementById("status-description");
         const checkedAt = document.getElementById("checked-at");
         const button = document.getElementById("refresh");
         const pollMs = 180000;
@@ -77,12 +79,15 @@
             const result = await response.json();
             const status = ["operational", "degraded"].includes(result.status) ? result.status : "unknown";
             badge.className = `badge ${status === "operational" ? "operational" : status === "degraded" ? "degraded" : "checking"}`;
-            label.textContent = status === "operational" ? "Operational" : status === "degraded" ? "Experiencing issues" : "Status unavailable";
+            label.textContent = status === "operational" ? "Operational" : status === "degraded" ? "Incident reported" : "Status unavailable";
+            description.textContent = result.description || "Supabase platform status is unavailable.";
             const date = result.checked_at ? new Date(result.checked_at) : new Date();
-            checkedAt.textContent = `Last checked: ${date.toLocaleString()}. The status may be up to a few minutes old.`;
+            const sourceDate = result.updated_at ? new Date(result.updated_at) : null;
+            checkedAt.textContent = `Feed updated: ${sourceDate && !Number.isNaN(sourceDate.getTime()) ? sourceDate.toLocaleString() : "unknown"} · Retrieved: ${date.toLocaleString()}.`;
           } catch {
             badge.className = "badge degraded";
             label.textContent = "Status check unavailable";
+            description.textContent = "Could not reach Supabase’s public status feed.";
             checkedAt.textContent = "Could not reach the status checker. This does not necessarily mean the database is down.";
           } finally {
             lastChecked = Date.now();
