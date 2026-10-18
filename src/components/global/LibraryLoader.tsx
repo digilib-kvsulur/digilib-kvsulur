@@ -119,7 +119,7 @@ export const SlowLoadSupportHint: React.FC = () => {
       <a className="font-semibold text-primary underline underline-offset-2" href="mailto:dlms@kvsulur.in">
         dlms@kvsulur.in
       </a>{" "}
-      for support.
+      for support. Check the <a className="font-semibold text-primary underline underline-offset-2" href="/status">service status page</a>.
     </p>
   );
 };
