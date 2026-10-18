@@ -119,6 +119,11 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
   const finishHandledRef = useRef(false);
   const resultSubmittedRef = useRef(false);
   const finalStandingsRequestedRef = useRef(false);
+  // Browser fullscreen/focus transitions during the first moments of the
+  // Realtime start can emit both `blur` and `visibilitychange`; don't count
+  // startup churn or double-count the same focus transition as multiple strikes.
+  const proctoringGraceUntilRef = useRef(Date.now() + 8000);
+  const lastProctoringViolationAtRef = useRef(0);
   const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
   const question = questions[currentIndex] as Question | undefined;
 
@@ -194,9 +199,6 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
     const handleFSChange = () => {
       const isFS = !!document.fullscreenElement;
       setIsFullscreen(isFS);
-      if (!isFS && !isFinished && !isHost) {
-        handleViolation("Exited fullscreen mode during official league match!");
-      }
     };
 
     document.addEventListener("fullscreenchange", handleFSChange);
@@ -209,16 +211,26 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
   useEffect(() => {
     if (isHost || isFinished) return;
 
-    // Detect tab switch or window minimize
+    // Browser focus can change during startup, audio playback, mobile system
+    // UI, or fullscreen transitions. Only count a tab that stays hidden long
+    // enough to represent an intentional switch, and never count window blur
+    // by itself (it caused false multi-strikes for whole rooms on launch).
+    let hiddenSince: number | null = null;
+    let hiddenTimer: ReturnType<typeof setTimeout> | undefined;
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        handleViolation("Tab switch or backgrounding detected!");
+        hiddenSince = Date.now();
+        if (hiddenTimer) clearTimeout(hiddenTimer);
+        hiddenTimer = setTimeout(() => {
+          if (document.hidden && hiddenSince !== null) {
+            handleViolation("Quiz tab was kept in the background.");
+          }
+        }, 2000);
+      } else {
+        hiddenSince = null;
+        if (hiddenTimer) clearTimeout(hiddenTimer);
+        hiddenTimer = undefined;
       }
-    };
-
-    // Detect clicking outside window / Alt-Tab
-    const handleBlur = () => {
-      handleViolation("Window focus lost! Focus on quiz league window.");
     };
 
     // Block right-click / context menu
@@ -246,7 +258,6 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("blur", handleBlur);
     document.addEventListener("contextmenu", handleContextMenu);
     document.addEventListener("copy", handleCopyCut);
     document.addEventListener("cut", handleCopyCut);
@@ -254,7 +265,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("blur", handleBlur);
+      if (hiddenTimer) clearTimeout(hiddenTimer);
       document.removeEventListener("contextmenu", handleContextMenu);
       document.removeEventListener("copy", handleCopyCut);
       document.removeEventListener("cut", handleCopyCut);
@@ -264,6 +275,10 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
 
   const handleViolation = (reason: string) => {
     if (isFinished || isHost) return;
+    const now = Date.now();
+    if (now < proctoringGraceUntilRef.current) return;
+    if (now - lastProctoringViolationAtRef.current < 1500) return;
+    lastProctoringViolationAtRef.current = now;
     const nextStrike = strikesRef.current + 1;
     strikesRef.current = nextStrike;
     setStrikes(nextStrike);
