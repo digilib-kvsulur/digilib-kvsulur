@@ -114,16 +114,15 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
       >
         Dear Students & Teachers,
         <br /><br />
-        DLMS is currently under maintenance as we are{" "}
+        Our checks on the DLMS side are clear. The current interruption is due to an issue with a{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          upgrading the database server
-        </span>{" "}
-        to improve performance and reliability.
+          third-party service provider
+        </span>.
         <br /><br />
         The site will be back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
           today, 7:03 PM IST
-        </span>. Please hold tight — we'll be up shortly.
+        </span>. We’re monitoring the provider’s recovery and will restore access as soon as service is available.
         <br /><br />
         Thank you for your patience and cooperation. 🙏
       </p>
@@ -234,7 +233,7 @@ export default function Maintenance() {
             className="text-sm sm:text-base md:text-lg leading-relaxed max-w-md mx-auto"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-          We're upgrading the database server to improve performance and reliability. We'll be back online by:{" "}
+          Our checks on the DLMS side are clear. The current interruption is due to an issue with a third-party service provider. We’re monitoring recovery and expect access to return by:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
               today, 7:03 PM IST
             </span>
