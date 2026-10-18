@@ -81,14 +81,29 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     if (!response.ok) {
-      const status = response.status === 401 || response.status === 403
+      const upstreamStatus = response.status;
+      const status = upstreamStatus === 401 || upstreamStatus === 403
         ? "configuration_required"
-        : "unknown";
+        : upstreamStatus === 429
+          ? "rate_limited"
+          : upstreamStatus === 404
+            ? "project_not_found"
+            : upstreamStatus >= 500
+              ? "upstream_unavailable"
+              : "request_rejected";
+      const descriptions: Record<string, string> = {
+        configuration_required: "Supabase rejected the token. Check that it has Project Settings → Read access for this project.",
+        rate_limited: "Supabase is rate limiting health checks. The cached result will be retried shortly.",
+        project_not_found: "Supabase could not find this project. Check SUPABASE_PROJECT_REF or the VITE_SUPABASE project ID in Vercel.",
+        upstream_unavailable: "Supabase’s Management API returned a server error. The database health is not confirmed by this response.",
+        request_rejected: "Supabase rejected the health request. Check the project reference and service health API configuration.",
+      };
       return respond(res, 200, {
         status,
-        description: status === "configuration_required"
-          ? "The monitoring token needs project health read access."
-          : "Supabase project health could not be retrieved right now.",
+        description: descriptions[status],
+        // HTTP status alone helps diagnose configuration without exposing the
+        // token, raw upstream body, or project-specific internal details.
+        upstream_status: upstreamStatus,
         checked_at: new Date().toISOString(),
         services: emptyServices(),
       });
