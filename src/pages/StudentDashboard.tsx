@@ -1104,29 +1104,506 @@ const StudentDashboard = () => {
 
           {/* Overview Tab */}
           {activeTab === "overview" && (
-            <Overview
-              user={user}
-              classRank={classRank}
-              pendingFines={pendingFines}
-              streakData={streakData}
-              checkAuth={checkAuth}
-              currentBooksCount={currentBooksCount}
-              quizResultsCount={quizResultsCount}
-              monthlyBooksRead={monthlyBooksRead}
-              schoolReadingGoal={schoolReadingGoal}
-              badgesEarnedCount={badgesEarnedCount}
-              recentActivities={recentActivities}
-              pendingFriendRequests={pendingFriendRequests}
-              handleRespondFriendRequest={handleRespondFriendRequest}
-              bountyVisible={bountyVisible}
-              activeBounty={activeBounty}
-              uiReformVisible={uiReformVisible}
-              activeReformCampaign={activeReformCampaign}
-              capsuleEnabled={capsuleEnabled}
-              setShowMemoryCapsule={setShowMemoryCapsule}
-              handleJoinQuizLeague={handleJoinQuizLeague}
-              setActiveTab={setActiveTab}
-            />
+            <div className="space-y-6">
+              {pendingFines > 0 && (
+                <Card className="border-destructive/40 bg-destructive/5 cursor-pointer" onClick={() => setActiveTab("issued")}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">You have {pendingFines} pending fine(s)</p>
+                      <p className="text-xs text-muted-foreground">Open Book Issued → Fines to pay via UPI</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {/* Welcome Banner */}
+              <Card className="overflow-hidden border-0 shadow-xl">
+                <div className="gradient-primary relative overflow-hidden">
+                  {/* Decorative circles */}
+                  <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
+                  <div className="absolute -bottom-10 -left-10 w-52 h-52 rounded-full bg-white/5" />
+                  <div className="absolute top-4 right-32 w-20 h-20 rounded-full bg-white/5" />
+                  <div className="relative p-4 sm:p-8">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-5">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20 overflow-hidden">
+                          {user?.avatar_url ? (
+                            <img
+                              src={getAvatarUrl(user.avatar_url)}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = "none";
+                                const parent = e.currentTarget.parentElement;
+                                if (parent && !parent.querySelector(".avatar-fallback-text")) {
+                                  const span = document.createElement("span");
+                                  span.className = "text-xl sm:text-2xl font-black text-white avatar-fallback-text";
+                                  span.textContent = user?.first_name?.[0] || "U";
+                                  parent.appendChild(span);
+                                }
+                              }}
+                            />
+                          ) : (
+                            <span className="text-xl sm:text-2xl font-black text-white">{user?.first_name?.[0]}</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-lg sm:text-2xl font-bold text-primary-foreground leading-tight">Welcome back, {user?.first_name}! 👋</h2>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 sm:mt-1 flex-wrap">
+                            <span className="text-[10px] sm:text-xs font-semibold text-primary-foreground/70 bg-white/15 px-2 py-0.5 rounded-full">Class {user?.student_class}</span>
+                            <p className="text-primary-foreground/70 text-[10px] sm:text-xs">Keep up your reading streak!</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                        <button onClick={() => navigate('/points-history')} className="flex-1 sm:flex-none text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-2 py-2 sm:px-4 sm:py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                          <p className="text-lg sm:text-xl font-black text-white">{(user?.points || 0).toLocaleString()}</p>
+                          <p className="text-[9px] sm:text-[10px] text-white/70 font-semibold uppercase tracking-wide flex items-center gap-0.5 justify-center mt-0.5">
+                            <Zap className="h-2.5 w-2.5" />Total XP
+                          </p>
+                        </button>
+                        <button onClick={() => setActiveTab('rankings')} className="flex-1 sm:flex-none text-center bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-2 py-2 sm:px-4 sm:py-3 backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+                          <p className="text-lg sm:text-xl font-black text-white">#{classRank}</p>
+                          <p className="text-[9px] sm:text-[10px] text-white/70 font-semibold uppercase tracking-wide mt-0.5">Class Rank</p>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Monthly Memory Capsule Banner */}
+              {(() => {
+                if (!capsuleEnabled) return null;
+                const nowDate = new Date();
+                const isWrapFirst7Days = nowDate.getDate() <= 7;
+                const wrapPrevMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() - 1, 1).toLocaleString("default", { month: "long" });
+                const wrapCurrMonth = nowDate.toLocaleString("default", { month: "long" });
+                const bannerMonth = isWrapFirst7Days ? wrapPrevMonth : wrapCurrMonth;
+
+                return (
+                  <Card 
+                    className="overflow-hidden border border-purple-500/40 bg-gradient-to-r from-slate-950 via-purple-950/95 to-indigo-950 text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer group hover:border-purple-400/60"
+                    onClick={() => setShowMemoryCapsule(true)}
+                  >
+                    <CardContent className="p-3 sm:p-5 flex items-center gap-3">
+                      {/* Icon */}
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-pink-500 to-indigo-500 p-0.5 shadow-lg shadow-purple-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                        <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                          <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 animate-pulse text-amber-300" />
+                        </div>
+                      </div>
+                      {/* Text */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <Badge className="bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0 text-[9px] sm:text-[10px] font-black px-2 py-0.5 shadow-sm shrink-0">
+                            {isWrapFirst7Days ? `${bannerMonth.toUpperCase()} WRAP` : "MONTHLY"}
+                          </Badge>
+                          {isWrapFirst7Days && (
+                            <span className="text-[9px] sm:text-[10px] font-black text-emerald-400 uppercase tracking-wider shrink-0">✓ READY</span>
+                          )}
+                        </div>
+                        <p className="text-sm sm:text-base font-black text-white leading-snug line-clamp-2 tracking-tight">
+                          {isWrapFirst7Days ? `Your ${bannerMonth} Reading Wrap is Here! 🚀` : "Your Reading Memory Capsule ✨"}
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-slate-400 line-clamp-1 font-medium mt-0.5 hidden xs:block">
+                          {isWrapFirst7Days 
+                            ? `Stats, XP gains & reading persona`
+                            : "Books read, quizzes, XP & persona"}
+                        </p>
+                      </div>
+                      {/* Button */}
+                      <Button size="sm" className="gradient-primary text-white border-0 font-bold rounded-xl shrink-0 shadow-md group-hover:scale-105 transition-transform px-2.5 sm:px-4 h-9 text-xs whitespace-nowrap">
+                        <span className="hidden sm:inline">Open Wrap →</span>
+                        <span className="sm:hidden">Open →</span>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
+              <UpcomingQuizLeagueCard
+                userId={user?.id}
+                userClass={user?.student_class}
+                onJoinLeague={handleJoinQuizLeague}
+              />
+              <LiveQuizAlert
+                onJoinLeague={handleJoinQuizLeague}
+              />
+
+              <VacationOverviewBanner onOpen={() => setActiveTab("vacation")} />
+
+              {/* Invite Friends Live Banner & Redirection Link */}
+              {(() => {
+                const inviteCodeOrAdm = user?.invite_code || user?.admission_number || '';
+                const inviteLink = inviteCodeOrAdm ? `https://dlms.kvsulur.in/invite/${inviteCodeOrAdm}` : 'https://dlms.kvsulur.in/invite';
+
+                return (
+                  <Card className="rounded-3xl border border-violet-500/30 bg-gradient-to-br from-violet-600/10 via-purple-600/5 to-indigo-600/10 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex flex-col sm:flex-row items-start gap-3.5 sm:gap-4">
+                        {/* Icon */}
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                          <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                        </div>
+
+                        {/* Text and URL Controls */}
+                        <div className="w-full min-w-0 flex-1 space-y-2">
+                          {/* Badges + Title */}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-violet-700 dark:text-violet-300 bg-violet-500/15 px-2 py-0.5 rounded-full border border-violet-500/30">
+                                Invite & Earn
+                              </span>
+                              <span className="text-[10px] sm:text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
+                                <Sparkles className="h-3 w-3" /> +250 XP per Student
+                              </span>
+                            </div>
+                            <h4 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                              Invite Friends to DLMS
+                            </h4>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              Share your link with classmates who haven't logged in yet. Earn <strong className="text-violet-700 dark:text-violet-300 font-bold">+250 XP</strong> on their first sign in!
+                            </p>
+                          </div>
+
+                          {/* Full-width Responsive Link Box */}
+                          <div className="w-full pt-1 space-y-2.5">
+                            <div className="flex items-center w-full min-w-0 rounded-xl bg-violet-100/70 dark:bg-violet-950/60 border border-violet-300/80 dark:border-violet-800 p-1 pl-3 shadow-2xs">
+                              <span className="font-mono text-xs font-bold text-violet-900 dark:text-violet-200 truncate flex-1 min-w-0 select-all">
+                                {inviteLink}
+                              </span>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(inviteLink);
+                                  toast({ title: "Invite Link Copied! 📋", description: "Share it with your classmates." });
+                                }}
+                                className="h-8 px-3 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white shrink-0 ml-1.5 gap-1 shadow-xs"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                                <span>Copy</span>
+                              </Button>
+                            </div>
+
+                            {/* Action Buttons: WhatsApp & Open Center */}
+                            <div className="flex items-center gap-2.5 flex-wrap pt-0.5">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const msg = encodeURIComponent(`📚 Hey! Join DLMS (Digital Library PM SHRI KV AFS Sulur) with my link:\n${inviteLink}\n\nOpen the invite link and sign in with your own student details and password. 🎉`);
+                                  window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
+                                }}
+                                className="flex-1 min-w-[130px] h-10 text-xs sm:text-sm font-semibold rounded-xl border-emerald-400/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 gap-2 shadow-xs transition-colors"
+                              >
+                                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current shrink-0" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                </svg>
+                                <span>WhatsApp</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => setActiveTab("invite")}
+                                className="flex-1 min-w-[130px] h-10 text-xs sm:text-sm font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-xs transition-colors"
+                              >
+                                <span>Open Invite Center</span>
+                                <ChevronRight className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
+              {/* Bug Bounty Live Banner — ONLY shown when campaign is currently active & not ended */}
+              {Boolean(
+                bountyVisible &&
+                activeBounty &&
+                activeBounty.is_active &&
+                activeBounty.ends_at &&
+                new Date(activeBounty.ends_at).getTime() > Date.now()
+              ) && (
+                <Card
+                  className="rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-primary/10 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group"
+                  onClick={() => setActiveTab("bounty")}
+                >
+                  <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform">
+                        <Bug className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                            Active Campaign
+                          </span>
+                          <span className="text-[11px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <Sparkles className="h-3.5 w-3.5" /> +100 XP per Bug
+                          </span>
+                        </div>
+                        <h4 className="text-sm sm:text-base font-black text-foreground truncate">
+                          {activeBounty.title || "Library Bug Hunters Season"}
+                        </h4>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          Spot bugs in DLMS and earn 100 XP reward for each verified report!
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full sm:w-auto rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-1.5 shrink-0 h-9 sm:h-10 text-xs sm:text-sm"
+                    >
+                      <span>Report a Bug</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* UI Reform Challenge Banner — ONLY shown when active or scheduled & not ended */}
+              {Boolean(
+                uiReformVisible &&
+                activeReformCampaign &&
+                activeReformCampaign.status !== "ended" &&
+                activeReformCampaign.ends_at &&
+                new Date(activeReformCampaign.ends_at).getTime() > Date.now()
+              ) && (
+                <Card
+                  className="rounded-3xl border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-indigo-500/5 to-purple-500/10 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group"
+                  onClick={() => setActiveTab("ui-reform")}
+                >
+                  <CardContent className="p-4 sm:p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 sm:gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-110 transition-transform">
+                        <Palette className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-500/20 px-2.5 py-0.5 rounded-full border border-purple-500/30">
+                            {activeReformCampaign.status === "active" ? "🎨 Live Redesign Event" : "⏳ Upcoming Event"}
+                          </span>
+                          <span className="text-[11px] sm:text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <Sparkles className="h-3.5 w-3.5" /> +{activeReformCampaign.reward_points || 1000} XP per Idea
+                          </span>
+                        </div>
+                        <h4 className="text-sm sm:text-base font-black text-foreground truncate">
+                          {activeReformCampaign.title || "UI Reform & Redesign Challenge"}
+                        </h4>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {activeReformCampaign.status === "scheduled"
+                            ? "Starts right after the 1-week Bug Bounty! Submit your UI ideas & wireframes."
+                            : "Propose layout reforms, wireframes & UX improvements for DLMS!"}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full sm:w-auto rounded-xl font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md gap-1.5 shrink-0 h-9 sm:h-10 text-xs sm:text-sm"
+                    >
+                      <span>{activeReformCampaign.status === "scheduled" ? "Preview Challenge" : "Submit Design"}</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Pending Friend Requests Card */}
+              {pendingFriendRequests.length > 0 && (
+                <Card className="rounded-3xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/70 via-indigo-50/30 to-purple-50/50 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-slate-900/40 shadow-sm p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                        <Users className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-foreground">Pending Friend Requests ({pendingFriendRequests.length})</h4>
+                        <p className="text-[11px] text-muted-foreground">Classmates wanting to connect with you</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActiveTab("network")}
+                      className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700"
+                    >
+                      View All →
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {pendingFriendRequests.slice(0, 3).map((req) => (
+                      <div key={req.id} className="p-2.5 rounded-2xl bg-card/80 border border-border/40 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Avatar className="h-8 w-8 border border-border shrink-0">
+                            <AvatarImage src={req.avatar_url} />
+                            <AvatarFallback className="text-[11px] font-bold bg-indigo-100 text-indigo-700">
+                              {req.name.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">{req.name}</p>
+                            {req.student_class && (
+                              <p className="text-[10px] text-muted-foreground">Class {req.student_class}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button
+                            size="sm"
+                            onClick={() => handleRespondFriendRequest(req.id, "accepted")}
+                            className="h-7 px-3 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-xs"
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRespondFriendRequest(req.id, "rejected")}
+                            className="h-7 px-2.5 text-[11px] rounded-xl font-medium text-muted-foreground hover:text-foreground"
+                          >
+                            Decline
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {pendingFriendRequests.length > 3 && (
+                      <p className="text-center text-[11px] text-muted-foreground pt-1">
+                        + {pendingFriendRequests.length - 3} more pending in <span className="font-semibold cursor-pointer text-indigo-600 hover:underline" onClick={() => setActiveTab("network")}>Network</span>
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Level + Streak Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <LevelProgress userPoints={user?.points || 0} />
+                {!streakData.loading && (
+                  <LoginStreakCard
+                    currentStreak={streakData.currentStreak}
+                    longestStreak={streakData.longestStreak}
+                    totalLoginDays={streakData.totalLoginDays}
+                    onPointsClaimed={checkAuth}
+                  />
+                )}
+              </div>
+
+              {user?.student_class && <ClassCompetitions userClass={user.student_class} />}
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: "Books Reading", value: currentBooksCount, icon: BookOpen, color: "text-blue-700", bg: "bg-blue-100", gradient: "from-blue-500 to-indigo-500", tab: "books" },
+                  { label: "Quizzes Taken", value: quizResultsCount, icon: Brain, color: "text-purple-700", bg: "bg-purple-100", gradient: "from-purple-500 to-violet-500", tab: "quizzes" },
+                  { label: "Monthly Goal", value: `${monthlyBooksRead}/${schoolReadingGoal}`, icon: Target, color: "text-emerald-700", bg: "bg-emerald-100", gradient: "from-emerald-500 to-teal-500", tab: null },
+                  { label: "Badges Earned", value: badgesEarnedCount, icon: Award, color: "text-amber-700", bg: "bg-amber-100", gradient: "from-amber-500 to-orange-500", tab: "badges" },
+                ].map((s, i) => (
+                  <Card key={i} className={`border-border/50 hover-lift overflow-hidden ${s.tab ? "cursor-pointer" : ""}`} onClick={() => s.tab && setActiveTab(s.tab as Tab)}>
+                    <div className={`h-1 bg-gradient-to-r ${s.gradient}`} />
+                    <CardContent className="p-4">
+                      <div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center mb-2`}>
+                        <s.icon className={`h-5 w-5 ${s.color}`} />
+                      </div>
+                      <p className="text-2xl font-bold text-foreground">{s.value}</p>
+                      <p className="text-xs text-muted-foreground">{s.label}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+
+              {/* Quick Actions */}
+              <Card className="border-border/50 overflow-hidden">
+                <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+                <CardContent className="p-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Actions</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                    {[
+                      { label: "My Portfolio",    icon: FileText,    tab: "portfolio", color: "text-rose-600",   bg: "bg-rose-50" },
+                      { label: "Games Corner",   icon: Gamepad2,    tab: "games",     color: "text-blue-600",   bg: "bg-blue-50" },
+                      { label: "Study Corner",   icon: Timer,       tab: "study",     color: "text-teal-600",   bg: "bg-teal-50" },
+                      { label: "Quizzes",         icon: Brain,       tab: "quizzes",   color: "text-purple-600", bg: "bg-purple-50" },
+                      { label: "Certificates",   icon: Award,       tab: "certificates", color: "text-amber-600", bg: "bg-amber-50" },
+                      { label: "Study Materials",icon: FileText,    tab: "materials", color: "text-indigo-600", bg: "bg-indigo-50" },
+                      { label: "Library Events", icon: CalendarDays,tab: "events",    color: "text-rose-600",   bg: "bg-rose-50" },
+                      { label: "Community",       icon: Users,       tab: "community", color: "text-orange-600", bg: "bg-orange-50" },
+                      { label: "Network & Friends",icon: Users,      tab: "network",   color: "text-sky-600",    bg: "bg-sky-50" },
+                      { label: "Book Issued",     icon: BookCheck,   tab: "issued",   color: "text-violet-600", bg: "bg-violet-50" },
+                    ].map(a => (
+                      <button
+                        key={a.tab}
+                        onClick={() => setActiveTab(a.tab as Tab)}
+                        className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left group"
+                      >
+                        <div className={`w-7 h-7 rounded-lg ${a.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                          <a.icon className={`h-3.5 w-3.5 ${a.color}`} />
+                        </div>
+                        <span className="text-sm font-medium text-foreground">{a.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity */}
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Recent Activity</CardTitle>
+                    <button onClick={() => navigate('/points-history')} className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
+                      <Zap className="h-3 w-3" /> Points History
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {recentActivities.length > 0 ? (
+                    <div className="space-y-2">
+                      {recentActivities.map((a, i) => (
+                        <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/60 transition-all border border-transparent hover:border-border/50">
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            a.type === 'book'    ? 'bg-blue-100 text-blue-700' :
+                            a.type === 'quiz'    ? 'bg-purple-100 text-purple-700' :
+                            a.type === 'reading' ? 'bg-emerald-100 text-emerald-700' :
+                            a.type === 'study'   ? 'bg-teal-100 text-teal-700' :
+                            a.type === 'game'    ? 'bg-indigo-100 text-indigo-700' :
+                            'bg-amber-100 text-amber-700'
+                          }`}>
+                            {a.type === 'book'    ? <BookOpen className="h-4 w-4" /> :
+                             a.type === 'quiz'    ? <Brain className="h-4 w-4" /> :
+                             a.type === 'reading' ? <Medal className="h-4 w-4" /> :
+                             a.type === 'study'   ? <Timer className="h-4 w-4" /> :
+                             a.type === 'game'    ? <Gamepad2 className="h-4 w-4" /> :
+                             <BookPlus className="h-4 w-4" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{a.title}</p>
+                            <div className="flex items-center gap-2">
+                              {a.score && <span className="text-xs text-success font-medium">Score: {a.score}%</span>}
+                              {a.points ? <span className="text-xs text-warning font-medium">+{a.points} pts</span> : null}
+                              {a.status && <span className="text-xs text-muted-foreground capitalize">Status: {a.status}</span>}
+                            </div>
+                          </div>
+                          <span className="text-xs text-muted-foreground shrink-0">{getTimeAgo(a.time)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm font-medium">No recent activity yet</p>
+                      <p className="text-xs mt-1">Start reading to see your progress here!</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {user?.id && <Recommendations userId={user.id} studentClass={user.student_class} />}
+            </div>
           )}
 
           {activeTab === "events" && user?.id && <EventsList userId={user.id} />}
