@@ -310,15 +310,18 @@ export default function VacationStudentPage({
       }
 
       // Match activity from DB if present
-      const dayActs = campaignActivities.filter((a) => a.activity_date === dateStr || a.sort_order === p.day * 2 - 1 || a.sort_order === p.day * 2);
+      const dayActs = campaignActivities.filter(
+        (a) => a.activity_date === dateStr || a.sort_order === p.day * 2 - 1 || a.sort_order === p.day * 2 || a.sort_order === p.day
+      );
       const mainAct =
-        dayActs.find((a) => !a.title.toLowerCase().includes("quiz") && !a.title.toLowerCase().includes("championship")) ||
+        dayActs.find((a) => a.title.toLowerCase().includes(p.event.title.toLowerCase())) ||
         campaignActivities.find((a) => a.title.toLowerCase().includes(p.event.title.toLowerCase())) ||
+        dayActs.find((a) => !a.title.toLowerCase().includes("championship") && !a.title.toLowerCase().startsWith("daily live quiz")) ||
         null;
 
       const quizAct =
-        dayActs.find((a) => a.title.toLowerCase().includes("quiz") || a.title.toLowerCase().includes("championship")) ||
-        campaignActivities.find((a) => a.title.toLowerCase().includes(`day ${p.day}`) && a.title.toLowerCase().includes("quiz")) ||
+        dayActs.find((a) => a.id !== mainAct?.id && (a.title.toLowerCase().includes("championship") || a.title.toLowerCase().includes("live quiz"))) ||
+        campaignActivities.find((a) => a.id !== mainAct?.id && (a.title.toLowerCase().includes(`day ${p.day}`) && a.title.toLowerCase().includes("quiz"))) ||
         null;
 
       const isMainApproved = Boolean(mainAct && approvedActivityIds.has(mainAct.id));
@@ -671,8 +674,9 @@ export default function VacationStudentPage({
       if (actId.startsWith("virtual-")) {
         const found = campaignActivities.find((a) => 
           a.title.toLowerCase().includes(selectedDayData.event.title.toLowerCase()) ||
-          (selectedDayData.dateStr && a.activity_date === selectedDayData.dateStr && !a.title.toLowerCase().includes("quiz")) ||
-          a.sort_order === selectedDayData.day * 2 - 1
+          (selectedDayData.dateStr && a.activity_date === selectedDayData.dateStr && !a.title.toLowerCase().includes("championship")) ||
+          a.sort_order === selectedDayData.day * 2 - 1 ||
+          a.sort_order === selectedDayData.day
         );
         if (found) {
           actId = found.id;
