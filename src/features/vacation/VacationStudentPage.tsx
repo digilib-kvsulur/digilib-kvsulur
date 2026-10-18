@@ -393,7 +393,6 @@ export default function VacationStudentPage({
   const isDayToday = selectedDayData.isToday;
   const isUpcomingDay = Boolean(selectedDayData.dateStr && selectedDayData.dateStr > todayStr);
   const isPastDay = Boolean(selectedDayData.dateStr && selectedDayData.dateStr < todayStr);
-  const canSubmitToday = isDayToday || (!selectedDayData.dateStr);
 
   const isCompleted = currentSubmission?.status === "approved";
 
@@ -470,6 +469,9 @@ export default function VacationStudentPage({
   // Problem statement released at 8:00 AM daily
   const isPast8AmToday = isDayToday && currentHour >= 8;
   const isBefore8AmToday = isDayToday && currentHour < 8;
+
+  // Submission opens at 8:00 AM on the scheduled date. Only the date comes from the DB.
+  const canSubmitToday = (isDayToday && isPast8AmToday) || !selectedDayData.dateStr;
 
   // Daily Live Quiz Championship is hosted at 7:00 PM (19:00) daily during vacation. Lock it till 7:00 PM!
   const isPast7PmToday = isDayToday && currentHour >= 19;
