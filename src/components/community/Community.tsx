@@ -1375,23 +1375,23 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
             <button
               type="button"
               onClick={onOpenChat}
-              className="group relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-2xl border border-indigo-300/60 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 p-4 text-left text-white shadow-lg shadow-indigo-900/15 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:p-5"
+              className="group relative flex w-full flex-col items-stretch gap-3 overflow-hidden rounded-2xl border border-indigo-300/60 bg-gradient-to-r from-indigo-700 via-violet-700 to-fuchsia-700 p-3.5 text-left text-white shadow-md shadow-indigo-900/10 transition hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4"
               aria-label="Open Friends Chat"
             >
-              <span className="pointer-events-none absolute -right-6 -top-10 h-36 w-36 rounded-full bg-white/10 transition-transform group-hover:scale-125" />
-              <span className="relative flex min-w-0 items-center gap-3 sm:gap-4">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 sm:h-14 sm:w-14">
-                  <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7" />
+              <span className="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-white/10 transition-transform group-hover:scale-110" />
+              <span className="relative flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
+                  <MessageSquare className="h-5 w-5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-2 text-base font-extrabold sm:text-lg">
-                    Friends Chat <Badge className="border-0 bg-white/20 text-[10px] text-white hover:bg-white/25">LIVE</Badge>
+                  <span className="flex items-center gap-2 text-sm font-extrabold sm:text-base">
+                    Friends Chat <Badge className="border-0 bg-white/20 px-1.5 py-0 text-[9px] leading-5 text-white hover:bg-white/25">LIVE</Badge>
                   </span>
-                  <span className="mt-0.5 block text-xs text-white/85 sm:text-sm">Message your friends privately. Messages disappear automatically.</span>
+                  <span className="mt-0.5 block text-xs text-white/85">Private chats and a live group room</span>
                 </span>
               </span>
-              <span className="relative shrink-0 rounded-xl bg-white px-3 py-2 text-xs font-bold text-indigo-700 shadow-sm transition group-hover:bg-indigo-50 sm:px-4 sm:text-sm">
-                Open chat <span aria-hidden="true">→</span>
+              <span className="relative flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-indigo-700 shadow-sm transition group-hover:bg-indigo-50 sm:px-4 sm:text-sm">
+                Open chat <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
               </span>
             </button>
           )}

@@ -86,6 +86,16 @@ CREATE POLICY "friends send private chat broadcast" ON realtime.messages
     )
   );
 
+DROP POLICY IF EXISTS "authenticated users join online group chat" ON realtime.messages;
+CREATE POLICY "authenticated users join online group chat" ON realtime.messages
+  FOR SELECT TO authenticated
+  USING (realtime.topic() = 'friends-group:online');
+
+DROP POLICY IF EXISTS "authenticated users send online group chat" ON realtime.messages;
+CREATE POLICY "authenticated users send online group chat" ON realtime.messages
+  FOR INSERT TO authenticated
+  WITH CHECK (realtime.topic() = 'friends-group:online');
+
 -- TTL cleanup keeps the table bounded. Supabase projects provide pg_cron;
 -- keep migration usable when the extension is unavailable by deferring setup.
 DO $$
