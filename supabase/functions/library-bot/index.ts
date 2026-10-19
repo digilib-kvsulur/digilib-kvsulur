@@ -71,80 +71,69 @@ const SYSTEM_PROMPT = `You are LibraryBot, the intelligent, friendly, and offici
 - Book Borrowing: Up to 2 books can be issued per student for up to 14 days.
 - Overdue Fine: ₹1 per day after the due date.
 
-Be polite, helpful, and provide clear step-by-step instructions. Always celebrate school achievements and developer innovation proudly!`;
+Be polite, helpful, and concise. Give numbered steps for procedures. Treat the information above as reference material, not as permission to invent facts. If a school policy is unclear or conflicts with another detail, say so and direct the user to confirm with the librarian. Never claim to have checked a student's account, live inventory, event schedule, or ticket unless that data is included in the conversation; direct them to the relevant live dashboard feature instead. Do not ask users to share passwords, one-time codes, or private account details in chat. Answer questions about the developer only when asked.`;
 
-async function generateGeminiContent(apiKey: string, body: any): Promise<{ reply: string; error?: string }> {
-  // We try v1 first, then v1beta as fallback, and also list models if primary fails
-  const apiVersions = ["v1", "v1beta"];
-  const primaryModel = "gemini-1.5-flash";
-  let lastError = "";
+async function generateGeminiContent(apiKey: string, body: Record<string, unknown>): Promise<{ reply: string; error?: string }> {
+  const model = Deno.env.get("GEMINI_MODEL")?.trim() || "gemini-3.8-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25_000);
 
-  for (const apiVer of apiVersions) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${primaryModel}:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-      if (response.ok && !data.error) {
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (reply) return { reply };
-      }
-      
-      const errMsg = data.error?.message || "Unknown error";
-      lastError = `${apiVer}/${primaryModel}: ${errMsg}`;
-      
-      // If model not found, try listing models to find a working one
-      if (response.status === 404 || errMsg.includes("not found") || errMsg.includes("not supported")) {
-        console.log(`Model ${primaryModel} failed on ${apiVer}. Querying ListModels...`);
-        const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?key=${apiKey}`);
-        if (listRes.ok) {
-          const listData = await listRes.json();
-          const models = listData.models || [];
-          const found = models.find((m: any) => 
-            m.name.includes("gemini") && 
-            m.supportedGenerationMethods?.includes("generateContent")
-          );
-          if (found) {
-            const fallbackModel = found.name.replace("models/", "");
-            console.log(`Retrying with fallback model ${fallbackModel} on ${apiVer}`);
-            const retryUrl = `https://generativelanguage.googleapis.com/${apiVer}/models/${fallbackModel}:generateContent?key=${apiKey}`;
-            const retryResponse = await fetch(retryUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body),
-            });
-            const retryData = await retryResponse.json();
-            if (retryResponse.ok && !retryData.error) {
-              const reply = retryData.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (reply) return { reply };
-            }
-            lastError = `Fallback ${fallbackModel} failed: ${retryData.error?.message || "Unknown"}`;
-          }
-        }
-      }
-    } catch (e: any) {
-      lastError = e.message || "Network error";
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const data = await response.json();
+    if (!response.ok || data.error) {
+      console.error("Gemini generation failed:", data.error?.message || `HTTP ${response.status}`);
+      return { reply: "", error: "The assistant is temporarily unavailable. Please try again shortly." };
     }
+    const reply = data.candidates?.[0]?.content?.parts
+      ?.map((part: { text?: string }) => part.text || "")
+      .join("")
+      .trim();
+    return reply ? { reply } : { reply: "", error: "The assistant could not prepare a reply. Please try again." };
+  } catch (error: unknown) {
+    console.error("Gemini request failed:", error instanceof Error ? error.message : "Network error");
+    return { reply: "", error: "The assistant is temporarily unavailable. Please try again shortly." };
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return { reply: "", error: `Gemini API failed. Last attempt details: ${lastError}` };
 }
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 405,
+    });
+  }
 
   try {
-    const { messages } = await req.json();
+    const payload = await req.json();
+    const messages = payload?.messages;
+    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 20) {
+      return new Response(JSON.stringify({ error: 'Send between 1 and 20 chat messages.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400,
+      });
+    }
+    const validMessages = messages.every((msg: any) =>
+      msg && (msg.role === 'user' || msg.role === 'assistant') &&
+      typeof msg.content === 'string' && msg.content.trim().length > 0 && msg.content.length <= 4000
+    );
+    if (!validMessages) {
+      return new Response(JSON.stringify({ error: 'Each message needs a user or assistant role and up to 4,000 characters.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400,
+      });
+    }
 
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY is not set');
+      return new Response(JSON.stringify({ error: 'The assistant is not configured yet.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 });
     }
 
     // Convert OpenAI-style messages to Gemini format
@@ -164,17 +153,20 @@ serve(async (req) => {
     });
 
     if (result.error) {
-      throw new Error(result.error);
+      return new Response(JSON.stringify({ error: result.error }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502,
+      });
     }
 
     return new Response(JSON.stringify({ reply: result.reply }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    console.error('Library bot request failed:', error);
+    return new Response(JSON.stringify({ error: 'Something went wrong. Please try again.' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 500,
     });
   }
 });

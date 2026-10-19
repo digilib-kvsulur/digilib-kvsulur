@@ -727,13 +727,17 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
+      // Gemini expects the conversation to begin with a user turn. The first
+      // assistant message is our local welcome, so omit it and bound history.
+      const conversation = newMessages.slice(1).slice(-20);
+      if (conversation[0]?.role === 'assistant') conversation.shift();
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/library-bot`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session?.access_token}`
         },
-        body: JSON.stringify({ messages: newMessages })
+        body: JSON.stringify({ messages: conversation })
       });
 
       if (!res.ok) {
@@ -747,7 +751,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       console.warn("AI Chatbot fallback invoked:", e);
       setMessages([...newMessages, {
         role: 'assistant',
-        content: `I am currently operating in **Fast Rule-Based Mode**! ⚡\n\nQuick Information:\n• 📚 **Borrowing Rules:** 7-day loan for students (max 1 book), 30-day loan for teachers.\n• 🕐 **Timings:** Mon–Fri 8:30 AM – 3:30 PM, Sat 8:30 AM – 12:00 PM.\n• 💰 **Fines:** ₹1 per day overdue penalty.\n• 👨‍💻 **Developer:** G V Tanish Vettrivel (+91 9865190190)\n\nHave a specific question or issue? Click **🎫 Raise Support Ticket** to connect directly with the librarian!`
+        content: `I couldn’t reach the AI service just now, so I don’t want to guess at an answer. Please try again in a moment, or use the quick prompts for book searches, your account details, events, and library help. If you need a person, choose **🎫 Raise Support Ticket**.`
       }]);
     } finally {
       setLoading(false);
@@ -966,7 +970,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
               </div>
             )}
             <div className="flex gap-1.5 items-center px-3 pb-3 pt-1.5">
-              <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !loading && sendMessage()}
+              <Input value={input} maxLength={4000} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !loading && sendMessage()}
                 placeholder={isListening ? "Listening to your voice..." : `Ask or command ${botName}…`}
                 className="bg-muted/40 text-xs h-9 rounded-full border-border/40 focus-visible:ring-primary/30 focus-visible:bg-background transition-colors placeholder:text-muted-foreground/60"
               />
