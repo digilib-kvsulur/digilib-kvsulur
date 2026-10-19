@@ -10,7 +10,7 @@ import {
   Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText,
   Calendar, RefreshCw, Star, AlertTriangle, Barcode, HardDrive, Server,
   Gamepad2, AlertCircle, FileSpreadsheet, LifeBuoy, Library as LibraryIcon,
-  ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon,
+  ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon, BookmarkCheck, Lightbulb, Database,
   Newspaper, Users as UsersIcon, Crown, Sparkles, Zap, Mail, Palette, Sun
 } from "lucide-react";
 import NotificationBell from "@/components/dashboard/NotificationBell";
@@ -70,8 +70,12 @@ const HomePageEditor = lazy(() => import("@/components/admin/HomePageEditor"));
 const VacationAdminPage = lazy(() => import("@/features/vacation/VacationAdminPage"));
 const FriendsChatAdmin = lazy(() => import("@/components/admin/FriendsChatAdmin"));
 const InviteInstagramManager = lazy(() => import("@/components/admin/InviteInstagramManager"));
+const ReservationManager = lazy(() => import("@/components/admin/ReservationManager"));
+const QuizParticipants = lazy(() => import("@/components/admin/QuizParticipants"));
+const SuggestionManager = lazy(() => import("@/components/admin/SuggestionManager"));
+const DataManagement = lazy(() => import("@/components/admin/DataManagement"));
 
-type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "chat" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor" | "invite-instagram";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "quiz-participants" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "chat" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "data-management" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "book-suggestions" | "reservations" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor" | "invite-instagram";
 
 const SYSTEM_SIZE_CACHE_KEY = "dlms_admin_system_sizes_v1";
 const SYSTEM_SIZE_CACHE_TTL_MS = 60 * 60 * 1000;
@@ -116,6 +120,7 @@ const navSections = [
       { id: "cover-data" as Tab, label: "Cover Pages", icon: ImageIcon },
       { id: "barcodes" as Tab, label: "Barcode Stickers", icon: Barcode },
       { id: "renewals" as Tab, label: "Renewals", icon: RefreshCw },
+      { id: "reservations" as Tab, label: "Book Reservations", icon: BookmarkCheck },
       { id: "reviews" as Tab, label: "Moderation & Reports", icon: ShieldAlert },
       { id: "book-of-the-week" as Tab, label: "Book of the Week", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
@@ -126,6 +131,7 @@ const navSections = [
     title: "Engagement",
     items: [
       { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
+      { id: "quiz-participants" as Tab, label: "Quiz Participants", icon: ClipboardList },
       { id: "badges" as Tab, label: "Badges", icon: Award },
       { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
       { id: "certificates" as Tab, label: "Certificates", icon: Award },
@@ -138,6 +144,7 @@ const navSections = [
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
       { id: "email" as Tab, label: "Email Centre", icon: Mail },
       { id: "community" as Tab, label: "Community", icon: MessageSquare },
+      { id: "book-suggestions" as Tab, label: "Book Suggestions", icon: Lightbulb },
       { id: "chat" as Tab, label: "Friends Chat", icon: MessageSquare },
       { id: "bug-bounty" as Tab, label: "Bug Bounty", icon: ShieldAlert },
       { id: "ui-reform" as Tab, label: "UI Reform Challenge", icon: Palette },
@@ -151,6 +158,7 @@ const navSections = [
       { id: "branding" as Tab, label: "School Branding", icon: Palette },
       { id: "home-editor" as Tab, label: "Home Page Editor", icon: Sparkles },
       { id: "settings" as Tab, label: "Library Settings", icon: Settings },
+      { id: "data-management" as Tab, label: "Data Management", icon: Database },
       { id: "profile" as Tab, label: "My Profile", icon: User },
     ],
   },
@@ -675,8 +683,10 @@ const AdminDashboard = () => {
           {activeTab === "condemnation" && <BookCondemnation />}
           {activeTab === "periodicals" && <PeriodicalManager />}
           {activeTab === "clubs" && <BookClubManager />}
+          {activeTab === "reservations" && <ReservationManager />}
           {activeTab === "certificates" && <CertificateManager />}
           {activeTab === "settings" && <LibrarySettings />}
+          {activeTab === "data-management" && <DataManagement />}
           {activeTab === "branding" && <SchoolBrandingSettings />}
           {activeTab === "home-editor" && <HomePageEditor />}
           {activeTab === "shelf-data" && <BookShelfData />}
@@ -689,6 +699,7 @@ const AdminDashboard = () => {
           {activeTab === "gallery" && <GalleryManager />}
           {activeTab === "points" && <PointsManager />}
           {activeTab === "quizzes" && <QuizManager />}
+          {activeTab === "quiz-participants" && <QuizParticipants />}
           {activeTab === "badges" && <BadgeManager />}
           {activeTab === "games" && <GamesManager />}
           {activeTab === "wishlist" && <WishlistView />}
@@ -703,6 +714,7 @@ const AdminDashboard = () => {
           {activeTab === "student-barcodes" && <StudentBarcodeGenerator />}
           {activeTab === "support" && <SupportTicketsManager />}
           {activeTab === "feedback" && <FeedbackManager />}
+          {activeTab === "book-suggestions" && <SuggestionManager />}
           {activeTab === "bug-bounty" && <BugBountyManager />}
           {activeTab === "ui-reform" && <UIReformChallengeManager />}
           {activeTab === "vacation" && <VacationAdminPage />}
