@@ -29,9 +29,16 @@ export default function FeedbackManager() {
         .select("id,full_name,email,category,rating,subject,feedback_text,message,description,created_at")
         .order("created_at", { ascending: false })
         .range(offset, offset + 24);
-
-      if (error) throw error;
-      const page = data || [];
+      let page = data || [];
+      if (error) {
+        const fallback = await supabase
+          .from("user_feedback")
+          .select("id,full_name,email,category,rating,subject,description,created_at")
+          .order("created_at", { ascending: false })
+          .range(offset, offset + 24);
+        if (fallback.error) throw fallback.error;
+        page = (fallback.data || []).map((item) => ({ ...item, feedback_text: null, message: null }));
+      }
       setFeedbacks((current) => reset ? page : [...current, ...page]);
       setHasMore(page.length === 25);
     } catch (err: any) {

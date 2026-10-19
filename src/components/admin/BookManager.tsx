@@ -303,8 +303,8 @@ const BookManager = () => {
   };
 
   // Save manually entered accession numbers to the book's accession_numbers array
-  const handleSaveManualAccessions = async (book: Book) => {
-    const inputs = multiCopyManualAccessions[book.id] || [];
+  const handleSaveManualAccessions = async (book: Book, inputValues?: string[]) => {
+    const inputs = inputValues || multiCopyManualAccessions[book.id] || [];
     const accessions = inputs.map(a => a.trim()).filter(Boolean);
     if (accessions.length === 0) {
       toast({ title: "No accessions entered", description: "Please type at least one accession number.", variant: "destructive" });
@@ -349,6 +349,25 @@ const BookManager = () => {
     } catch (e: any) {
       toast({ title: "Error", description: e.message || "Failed to save accession number.", variant: "destructive" });
     }
+  };
+
+  const handleSaveCopyAccession = async (book: Book, copyIndex: number, accession: string) => {
+    const value = accession.trim();
+    if (!value) return;
+    const accessions = Array.isArray(book.accession_numbers) ? [...book.accession_numbers] : [];
+    while (accessions.length < book.total_copies) accessions.push("");
+    accessions[copyIndex] = value;
+    const cleaned = accessions.map(item => item.trim());
+    const { error } = await supabase.from("books").update({
+      accession_numbers: cleaned,
+      accession_number: cleaned.find(Boolean) || null,
+    }).eq("id", book.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Accession updated", description: `${book.title} · copy ${copyIndex + 1}` });
+    await loadBooks();
   };
   const handleMergeSameTitles = async (primaryBook: Book, duplicates: Book[]) => {
     setBulkBusy(true);
@@ -837,12 +856,33 @@ const BookManager = () => {
           </DialogHeader>
 
           <Tabs defaultValue="duplicates" className="mt-4">
-            <TabsList className="grid grid-cols-4">
+            <TabsList className="grid grid-cols-5">
+              <TabsTrigger value="by_accession">By Accession</TabsTrigger>
               <TabsTrigger value="duplicates">Duplicates ({duplicatesList.length})</TabsTrigger>
               <TabsTrigger value="missing">Missing ({missingAccessions.length})</TabsTrigger>
               <TabsTrigger value="multicopy">Multi-Copy ({multiCopyBooks.length})</TabsTrigger>
               <TabsTrigger value="same_titles">Same Titles ({sameTitleList.length})</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="by_accession" className="pt-3">
+              <p className="text-xs text-muted-foreground mb-3">Manage each physical copy by its own accession number.</p>
+              <div className="border rounded-lg overflow-hidden max-h-[55vh] overflow-y-auto">
+                <Table>
+                  <TableHeader><TableRow><TableHead>Accession #</TableHead><TableHead>Book</TableHead><TableHead>Copy</TableHead><TableHead>Update</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {books.flatMap(book => Array.from({ length: Math.max(book.total_copies, book.accession_numbers?.length || 0, 1) }, (_, index) => {
+                      const accession = book.accession_numbers?.[index] || (index === 0 ? book.accession_number : "") || "";
+                      return <TableRow key={`${book.id}-${index}`}>
+                        <TableCell><Input className="h-8 w-40 font-mono text-xs" value={multiCopyManualAccessions[`${book.id}:${index}`]?.[0] ?? accession} placeholder="Missing accession" onChange={event => setMultiCopyManualAccessions(prev => ({ ...prev, [`${book.id}:${index}`]: [event.target.value] }))} /></TableCell>
+                        <TableCell className="text-xs font-medium">{book.title}<div className="text-muted-foreground">{book.author}</div></TableCell>
+                        <TableCell className="text-xs">{index + 1}</TableCell>
+                        <TableCell><Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => handleSaveCopyAccession(book, index, multiCopyManualAccessions[`${book.id}:${index}`]?.[0] ?? accession)}>Save</Button></TableCell>
+                      </TableRow>;
+                    }))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
 
             {/* Duplicates Tab */}
             <TabsContent value="duplicates" className="space-y-3 pt-3">
@@ -947,18 +987,32 @@ const BookManager = () => {
                     const existingAccs = Array.isArray(b.accession_numbers) && b.accession_numbers.length > 0
                       ? b.accession_numbers
                       : Array(b.total_copies).fill("");
-                    const currentInputs = multiCopyManualAccessions[b.id] ?? existingAccs;
+                    const currentInputs = multiCopyManualAccessions[b.id] ?? (() => {
+                      const suggested = [...existingAccs];
+                      const known = suggested.map(value => value.trim()).filter(Boolean);
+                      const suffixes = known.map(value => value.match(/^(.*?)(\d+)$/)).filter(Boolean) as RegExpMatchArray[];
+                      if (suffixes.length && suffixes.every(match => match[1] === suffixes[0][1])) {
+                        const prefix = suffixes[0][1];
+                        const width = Math.max(...suffixes.map(match => match[2].length));
+                        let next = Math.max(...suffixes.map(match => Number(match[2]))) + 1;
+                        for (let index = 0; index < b.total_copies; index++) {
+                          if (!suggested[index]?.trim()) suggested[index] = `${prefix}${String(next++).padStart(width, "0")}`;
+                        }
+                      }
+                      return suggested;
+                    })();
                     return (
                       <div key={b.id} className="p-3 space-y-2">
                         <div className="flex items-center justify-between gap-2">
                           <div>
                             <p className="text-xs font-semibold text-foreground">{b.title}</p>
                             <p className="text-[10px] text-muted-foreground">{b.author} · {b.total_copies} copies</p>
+                          {currentInputs.some((value: string, index: number) => !existingAccs[index]?.trim() && value.trim()) && <p className="text-[10px] text-indigo-600">Sequential accession numbers are suggested for missing copies; verify before saving.</p>}
                           </div>
                           <Button
                             size="sm"
                             className="h-7 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
-                            onClick={() => handleSaveManualAccessions(b)}
+                            onClick={() => handleSaveManualAccessions(b, currentInputs)}
                             disabled={bulkBusy}
                           >
                             Save Accessions

@@ -41,6 +41,9 @@ const UserApproval = () => {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
+  const [pendingPage, setPendingPage] = useState(1);
+  const [approvedPage, setApprovedPage] = useState(1);
+  const USERS_PER_PAGE = 25;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [syncing, setSyncing] = useState(false);
   const [resetTarget, setResetTarget] = useState<PendingUser | null>(null);
@@ -299,6 +302,7 @@ const UserApproval = () => {
         u.email?.toLowerCase().includes(q) ||
         u.username?.toLowerCase().includes(q) ||
         u.roll_number?.toLowerCase().includes(q) ||
+        u.admission_number?.toLowerCase().includes(q) ||
         u.phone?.includes(q)
       );
     });
@@ -306,6 +310,10 @@ const UserApproval = () => {
 
   const pending = filtered.filter(u => !u.is_approved);
   const approved = filtered.filter(u => u.is_approved);
+  const pendingPageCount = Math.max(1, Math.ceil(pending.length / USERS_PER_PAGE));
+  const approvedPageCount = Math.max(1, Math.ceil(approved.length / USERS_PER_PAGE));
+  const visiblePending = pending.slice((pendingPage - 1) * USERS_PER_PAGE, pendingPage * USERS_PER_PAGE);
+  const visibleApproved = approved.slice((approvedPage - 1) * USERS_PER_PAGE, approvedPage * USERS_PER_PAGE);
 
   const toggleSelect = (id: string) => {
     const n = new Set(selected);
@@ -351,9 +359,9 @@ const UserApproval = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="md:col-span-2 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search by name, email, username, roll, phone..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input placeholder="Search by name, email, admission no., username, roll, phone..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPendingPage(1); setApprovedPage(1); }} />
             </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <Select value={roleFilter} onValueChange={(value) => { setRoleFilter(value); setPendingPage(1); setApprovedPage(1); }}>
               <SelectTrigger><SelectValue placeholder="Role" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All roles</SelectItem>
@@ -361,7 +369,7 @@ const UserApproval = () => {
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={classFilter} onValueChange={setClassFilter}>
+            <Select value={classFilter} onValueChange={(value) => { setClassFilter(value); setPendingPage(1); setApprovedPage(1); }}>
               <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All classes</SelectItem>
@@ -410,7 +418,7 @@ const UserApproval = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pending.map(u => (
+                  {visiblePending.map(u => (
                     <TableRow key={u.id}>
                       <TableCell><input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} /></TableCell>
                       <TableCell>
@@ -448,6 +456,7 @@ const UserApproval = () => {
               </Table>
             </div>
           )}
+          {pending.length > USERS_PER_PAGE && <div className="flex items-center justify-between pt-3 text-sm"><span className="text-muted-foreground">Page {pendingPage} of {pendingPageCount}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={pendingPage <= 1} onClick={() => setPendingPage(p => p - 1)}>Previous</Button><Button size="sm" variant="outline" disabled={pendingPage >= pendingPageCount} onClick={() => setPendingPage(p => p + 1)}>Next</Button></div></div>}
         </CardContent>
       </Card>
 
@@ -474,7 +483,7 @@ const UserApproval = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {approved.map(u => (
+                  {visibleApproved.map(u => (
                     <TableRow key={u.id}>
                       <TableCell>
                         <div className="font-medium">{u.first_name} {u.last_name}</div>
@@ -543,6 +552,7 @@ const UserApproval = () => {
               </Table>
             </div>
           )}
+          {approved.length > USERS_PER_PAGE && <div className="flex items-center justify-between pt-3 text-sm"><span className="text-muted-foreground">Page {approvedPage} of {approvedPageCount}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={approvedPage <= 1} onClick={() => setApprovedPage(p => p - 1)}>Previous</Button><Button size="sm" variant="outline" disabled={approvedPage >= approvedPageCount} onClick={() => setApprovedPage(p => p + 1)}>Next</Button></div></div>}
         </CardContent>
       </Card>
 
