@@ -1349,21 +1349,21 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
   return (
     <div className="space-y-5 animate-in fade-in duration-300">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
-          <TabsList className="h-10 p-1 bg-muted/70 rounded-2xl border border-border">
-            <TabsTrigger value="feed" className="rounded-xl text-xs font-bold px-3.5 data-[state=active]:shadow-xs">
+        <div className="mb-3 flex max-w-full items-center gap-3 overflow-x-auto no-scrollbar">
+          <TabsList className="h-10 w-max shrink-0 rounded-2xl border border-border bg-muted/70 p-1">
+            <TabsTrigger value="feed" className="whitespace-nowrap rounded-xl px-3 text-xs font-bold data-[state=active]:shadow-xs">
               Feed
             </TabsTrigger>
             {hasClubs && (
-              <TabsTrigger value="clubs" className="rounded-xl text-xs font-bold px-3.5 data-[state=active]:shadow-xs">
+              <TabsTrigger value="clubs" className="whitespace-nowrap rounded-xl px-3 text-xs font-bold data-[state=active]:shadow-xs">
                 Book Clubs
               </TabsTrigger>
             )}
-            <TabsTrigger value="survey" className="rounded-xl text-xs font-bold px-3.5 data-[state=active]:shadow-xs">
+            <TabsTrigger value="survey" className="whitespace-nowrap rounded-xl px-3 text-xs font-bold data-[state=active]:shadow-xs">
               Suggestions Survey
             </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="moderation" className="rounded-xl text-xs font-bold px-3.5 text-destructive data-[state=active]:text-destructive data-[state=active]:shadow-xs">
+              <TabsTrigger value="moderation" className="whitespace-nowrap rounded-xl px-3 text-xs font-bold text-destructive data-[state=active]:text-destructive data-[state=active]:shadow-xs">
                 <ShieldAlert className="h-3.5 w-3.5 mr-1" />Moderation
               </TabsTrigger>
             )}
@@ -1375,23 +1375,23 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
             <button
               type="button"
               onClick={onOpenChat}
-              className="group relative flex w-full flex-col items-stretch gap-3 overflow-hidden rounded-2xl border border-indigo-300/60 bg-gradient-to-r from-indigo-700 via-violet-700 to-fuchsia-700 p-3.5 text-left text-white shadow-md shadow-indigo-900/10 transition hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4"
+              className="group relative flex w-full items-center justify-between gap-2 overflow-hidden rounded-2xl border border-indigo-300/60 bg-gradient-to-r from-indigo-700 via-violet-700 to-fuchsia-700 p-3 text-left text-white shadow-md shadow-indigo-900/10 transition hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:gap-4 sm:p-4"
               aria-label="Open Friends Chat"
             >
               <span className="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-white/10 transition-transform group-hover:scale-110" />
-              <span className="relative flex min-w-0 items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
+              <span className="relative flex min-w-0 items-center gap-2.5 sm:gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20 sm:h-11 sm:w-11">
                   <MessageSquare className="h-5 w-5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="flex items-center gap-2 text-sm font-extrabold sm:text-base">
-                    Friends Chat <Badge className="border-0 bg-white/20 px-1.5 py-0 text-[9px] leading-5 text-white hover:bg-white/25">LIVE</Badge>
+                  <span className="flex items-center gap-1.5 text-sm font-extrabold sm:text-base">
+                    Chat with friends <Badge className="border-0 bg-white/20 px-1.5 py-0 text-[9px] leading-5 text-white hover:bg-white/25">LIVE</Badge>
                   </span>
-                  <span className="mt-0.5 block text-xs text-white/85">Private chats and a live group room</span>
+                  <span className="mt-0.5 block truncate text-[11px] text-white/85 sm:text-xs">Private messages · live group room</span>
                 </span>
               </span>
-              <span className="relative flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-indigo-700 shadow-sm transition group-hover:bg-indigo-50 sm:px-4 sm:text-sm">
-                Open chat <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
+              <span className="relative flex shrink-0 items-center justify-center gap-1 rounded-xl bg-white px-2.5 py-2 text-[11px] font-bold text-indigo-700 shadow-sm transition group-hover:bg-indigo-50 sm:gap-2 sm:px-4 sm:text-sm">
+                Open <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
               </span>
             </button>
           )}
@@ -1431,28 +1431,21 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
             </Card>
           )}
 
-          {/* Reels Stories Bar - Premium TikTok/Instagram Style */}
-          <div className="flex items-center gap-3 mb-6 pb-2 overflow-x-auto no-scrollbar pt-1">
-            {/* Create Reel Quick Action */}
-            <div
-              className="flex flex-col items-center gap-1 cursor-pointer group shrink-0"
+          {/* Compact feed actions and reels */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
+            <button
+              type="button"
               onClick={() => { setShowNew(true); setPostKind("reel"); }}
+              className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 text-xs font-bold text-indigo-700 transition hover:bg-indigo-500/15 dark:text-indigo-300"
             >
-              <div className="h-16 w-16 rounded-full border-2 border-dashed border-indigo-500/50 flex flex-col items-center justify-center bg-indigo-500/10 group-hover:bg-indigo-500/20 group-hover:border-indigo-500 transition-all shadow-sm">
-                <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
-                  <Plus className="h-4 w-4" />
-                </div>
-              </div>
-              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 group-hover:underline">
-                Add Reel
-              </span>
-            </div>
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-600 text-white"><Plus className="h-3.5 w-3.5" /></span>
+              Add Reel
+            </button>
 
-            {/* Inline Create Post action beside Add Reel */}
             {(isAdmin || !blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
               <button
                 type="button"
-                className="flex flex-col items-center gap-1 shrink-0 group"
+                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 text-xs font-bold text-primary transition hover:bg-primary/15"
                 onClick={() => {
                   setPostKind("text");
                   setShowNew(true);
@@ -1460,12 +1453,8 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
                 }}
                 aria-label="Create a community post"
               >
-                <span className="h-16 w-16 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center bg-primary/10 group-hover:bg-primary/20 group-hover:border-primary transition-all shadow-sm">
-                  <span className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-md group-hover:scale-110 transition-transform">
-                    <FileText className="h-4 w-4" />
-                  </span>
-                </span>
-                <span className="text-[10px] font-bold text-primary group-hover:underline">Create Post</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary text-primary-foreground"><FileText className="h-3.5 w-3.5" /></span>
+                Create Post
               </button>
             )}
 
