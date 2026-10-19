@@ -1424,6 +1424,27 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               </span>
             </div>
 
+            {/* Mobile-visible Create Post action beside Add Reel */}
+            {(isAdmin || !blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
+              <button
+                type="button"
+                className="flex flex-col items-center gap-1 shrink-0 group sm:hidden"
+                onClick={() => {
+                  setPostKind("text");
+                  setShowNew(true);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                aria-label="Create a community post"
+              >
+                <span className="h-16 w-16 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center bg-primary/10 group-hover:bg-primary/20 group-hover:border-primary transition-all shadow-sm">
+                  <span className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-md group-hover:scale-110 transition-transform">
+                    <FileText className="h-4 w-4" />
+                  </span>
+                </span>
+                <span className="text-[10px] font-bold text-primary group-hover:underline">Create Post</span>
+              </button>
+            )}
+
             {/* Reel User Circles */}
             <div className="flex items-center gap-3">
               {posts.filter(p => p.post_type === "reel" && (!p.scheduled_for || new Date(p.scheduled_for).getTime() <= Date.now())).map(reel => (

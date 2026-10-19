@@ -127,6 +127,7 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
       { id: "events", label: "Events", icon: CalendarDays },
       { id: "periodicals", label: "Periodicals", icon: BookOpen },
       { id: "community", label: "Community", icon: Users },
+      { id: "chat", label: "Friends Chat", icon: MessageSquare },
       { id: "invite", label: "Invite Friends", icon: UserPlus },
       { id: "vacation", label: "Vacation Campaign", icon: Sun },
       { id: "bounty", label: "Bug Bounty", icon: Trophy },

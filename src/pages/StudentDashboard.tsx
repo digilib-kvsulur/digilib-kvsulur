@@ -33,6 +33,7 @@ import ClassCompetitions from "@/components/student/ClassCompetitions";
 import StudyPlan from "@/components/student/StudyPlan";
 import StudyGuide from "@/components/student/StudyGuide";
 import { LibraryBot } from "@/components/chat/LibraryBot";
+import FriendsChat from "@/components/chat/FriendsChat";
 import BugBountyManager from "@/components/admin/BugBountyManager";
 import ReadingHistoryManager from "@/components/dashboard/ReadingHistoryManager";
 import LevelUpBanner from "@/components/rewards/LevelUpBanner";
@@ -79,7 +80,7 @@ import UIReformChallengeView from "@/components/community/UIReformChallengeView"
 import { VacationOverviewBanner, VacationPromoStrip, VacationStudentPage, useActiveVacationCampaign } from "@/features/vacation";
 import { InviteTab } from "@/features/invite";
 
-type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation" | "invite";
+type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "chat" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation" | "invite";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -95,6 +96,7 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "games", label: "Games Corner", icon: Gamepad2 },
   { id: "notes", label: "My Notes", icon: StickyNote },
   { id: "community", label: "Community", icon: Users },
+  { id: "chat", label: "Friends Chat", icon: MessageSquare },
   { id: "invite", label: "Invite Friends", icon: UserPlus },
   { id: "quizzes", label: "Quizzes", icon: Brain },
   { id: "badges", label: "Badge Cabinet", icon: Award },
@@ -1229,6 +1231,7 @@ const StudentDashboard = () => {
 
           {/* Community (includes Book Clubs tab) */}
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={false} />}
+          {activeTab === "chat" && user?.id && <FriendsChat userId={user.id} />}
 
           {/* Quizzes Tab */}
           {activeTab === "quizzes" && (
