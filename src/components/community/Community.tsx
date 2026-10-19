@@ -2552,7 +2552,6 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
               </CardContent>
             </Card>
           ))}
-          </div>
           {hasMorePosts && feedCategory !== "scheduled" && (
             <div className="flex justify-center pt-2">
               <Button
@@ -2566,6 +2565,7 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
               </Button>
             </div>
           )}
+          </div>
         );
       })()}
         </TabsContent>
