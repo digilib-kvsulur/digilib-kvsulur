@@ -875,7 +875,7 @@ const Index = () => {
 
       <LibraryBot
         context="home"
-        suggestedPrompts={["How do students log in?", "What is my 5-digit admission number?", "Forgot my password", "Login is not working", "Check service status"]}
+        suggestedPrompts={["How do students log in?", "What is my 5-digit admission number?", "Forgot my password", "Login is not working", "Check service status", "About the Developer", "Who is the Principal?", "Who is the Librarian?"]}
       />
     </div>
   );
