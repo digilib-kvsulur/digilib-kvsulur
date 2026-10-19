@@ -121,7 +121,7 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         <br /><br />
         The site will be back online by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
-          today, 7:10 PM IST
+          today, 7:07 PM IST
         </span>. We’re monitoring the provider’s recovery and will restore access as soon as service is available.
         <br /><br />
         Thank you for your patience and cooperation. 🙏
@@ -235,7 +235,7 @@ export default function Maintenance() {
           >
           Our checks on the DLMS side are clear. The current interruption is due to an issue with a third-party service provider. We’re monitoring recovery and expect access to return by:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-              today, 7:10 PM IST
+              today, 7:07 PM IST
             </span>
             .
           </p>
