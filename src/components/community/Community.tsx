@@ -3183,12 +3183,13 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
 
       {/* Floating Create Button in Bottom Right */}
       {(isAdmin || !blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
-        <div className="fixed bottom-20 right-5 sm:bottom-8 sm:right-8 z-50">
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-[60] sm:bottom-8 sm:right-8">
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 size="icon"
                 title="Create in Community"
+                aria-label="Create in Community"
                 className="h-14 w-14 sm:h-16 sm:w-16 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-blue-500/40 hover:scale-110 active:scale-95 transition-all duration-300 animate-in zoom-in border-2 border-white/20 p-0 flex items-center justify-center cursor-pointer"
               >
                 <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-white stroke-[2.5]" />
