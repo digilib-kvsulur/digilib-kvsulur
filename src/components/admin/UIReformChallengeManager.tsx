@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ChallengeEvaluationCsvTools, { type ChallengeEvaluationRow } from "@/components/admin/ChallengeEvaluationCsvTools";
 
 interface Campaign {
   id: string;
@@ -270,6 +271,29 @@ export default function UIReformChallengeManager() {
     }
   };
 
+  const applyBulkEvaluations = async (rows: ChallengeEvaluationRow[]) => {
+    let updated = 0;
+    let skipped = 0;
+
+    for (const row of rows) {
+      const submission = submissions.find((item) => item.id === row.submission_id);
+      if (!submission || submission.status !== "pending") { skipped++; continue; }
+      const { data, error } = await supabase.rpc("admin_import_challenge_evaluation" as any, {
+        p_kind: "ui_reform",
+        p_submission_id: submission.id,
+        p_status: row.status,
+        p_award_xp: row.award_xp,
+        p_feedback: row.feedback,
+      });
+      if (error) { skipped++; continue; }
+      if (data?.updated) updated++;
+      else skipped++;
+    }
+
+    if (updated) await loadData();
+    return { updated, skipped };
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
@@ -383,12 +407,37 @@ export default function UIReformChallengeManager() {
 
             {/* Submissions List */}
             <div className="space-y-3 pt-2">
-              <h3 className="text-sm font-bold text-foreground flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-sm font-bold text-foreground">
                 <span>Student Submissions ({submissions.length})</span>
-                <Button variant="ghost" size="sm" onClick={loadData} className="h-7 text-xs text-muted-foreground gap-1">
-                  <RefreshCw className="h-3.5 w-3.5" /> Refresh
-                </Button>
-              </h3>
+                </h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  {submissions.length > 0 && <ChallengeEvaluationCsvTools
+                    label="UI/UX challenge"
+                    fileName="ui-ux-challenge-evaluations.csv"
+                    allowedStatuses={["reviewed", "shortlisted", "winner", "implemented", "rejected"]}
+                    records={submissions.map((submission) => ({
+                      submission_id: submission.id,
+                      student: submission.student ? `${submission.student.first_name} ${submission.student.last_name}`.trim() : "Student",
+                      class: submission.student?.student_class || "",
+                      screen_name: submission.screen_name,
+                      title: submission.title,
+                      problem_statement: submission.problem_statement,
+                      proposed_solution: submission.proposed_solution,
+                      mockup_url: submission.mockup_url || "",
+                      current_status: submission.status,
+                      submission_date: submission.created_at,
+                      status: submission.status === "pending" ? "" : submission.status,
+                      award_xp: submission.points_awarded || 0,
+                      feedback: submission.admin_feedback || "",
+                    }))}
+                    onApply={applyBulkEvaluations}
+                  />}
+                  <Button variant="ghost" size="sm" onClick={loadData} className="h-7 text-xs text-muted-foreground gap-1">
+                    <RefreshCw className="h-3.5 w-3.5" /> Refresh
+                  </Button>
+                </div>
+              </div>
 
               {submissions.length === 0 ? (
                 <div className="text-center py-10 border border-dashed rounded-3xl p-6 text-muted-foreground">

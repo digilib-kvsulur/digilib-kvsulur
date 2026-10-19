@@ -121,7 +121,8 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       console.log("Auth UID:", uid);
       
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
-        contentType: compressedFile.type || "image/jpeg"
+        contentType: compressedFile.type || "image/jpeg",
+        cacheControl: "31536000",
       });
       if (upErr) throw upErr;
 

@@ -22,6 +22,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
+import ChallengeEvaluationCsvTools, { type ChallengeEvaluationRow } from "@/components/admin/ChallengeEvaluationCsvTools";
 
 interface BugBountyCampaign {
   id: string;
@@ -628,6 +629,33 @@ export default function BugBountyManager() {
     }
   };
 
+  const applyBulkEvaluations = async (rows: ChallengeEvaluationRow[]) => {
+    let updated = 0;
+    let skipped = 0;
+
+    for (const row of rows) {
+      const report = reports.find((item) => item.id === row.submission_id);
+      if (!report || report.status !== "pending") { skipped++; continue; }
+      const awardedXP = row.status === "verified" ? row.award_xp : 0;
+      const { data, error } = await supabase.rpc("admin_import_challenge_evaluation" as any, {
+        p_kind: "bug_bounty",
+        p_submission_id: report.id,
+        p_status: row.status,
+        p_award_xp: awardedXP,
+        p_feedback: row.feedback,
+      });
+      if (error) { skipped++; continue; }
+      if (data?.updated) updated++;
+      else skipped++;
+    }
+
+    if (updated) {
+      clearSelection();
+      await loadData();
+    }
+    return { updated, skipped };
+  };
+
   // Export reports to CSV
   const exportToCSV = () => {
     if (reports.length === 0) return;
@@ -965,16 +993,39 @@ export default function BugBountyManager() {
                   </CardDescription>
                 </div>
 
-                {reports.length > 0 && (
-                  <Button
+                <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                  {reports.length > 0 && <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs rounded-xl gap-1.5 self-start sm:self-auto"
+                    className="h-8 text-xs rounded-xl gap-1.5"
                     onClick={exportToCSV}
                   >
                     <Download className="h-3.5 w-3.5" /> Export CSV
-                  </Button>
-                )}
+                  </Button>}
+                  {userRole === "admin" && reports.length > 0 && <ChallengeEvaluationCsvTools
+                    label="Bug Bounty"
+                    fileName="bug-bounty-evaluations.csv"
+                    allowedStatuses={["verified", "rejected"]}
+                    records={reports.map((report) => ({
+                      submission_id: report.id,
+                      reporter: report.reporter_name || "Student",
+                      username: report.reporter_username || "",
+                      title: report.parsed?.title || "",
+                      module: report.parsed?.module || "",
+                      severity: report.parsed?.severity || "",
+                      category: report.parsed?.category || "",
+                      steps: report.parsed?.steps || report.description,
+                      expected: report.parsed?.expected || "",
+                      actual: report.parsed?.actual || "",
+                      current_status: report.status,
+                      reported_at: report.created_at,
+                      status: "",
+                      award_xp: 100,
+                      feedback: report.parsed?.adminFeedback || "",
+                    }))}
+                    onApply={applyBulkEvaluations}
+                  />}
+                </div>
               </div>
 
               {/* Filter Tabs & Search Bar */}

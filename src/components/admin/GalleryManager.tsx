@@ -85,6 +85,7 @@ export default function GalleryManager() {
           for (const bucket of bucketsToTry) {
             const { error: upErr } = await supabase.storage.from(bucket).upload(path, fileToUpload, {
               contentType: f.type || "image/jpeg",
+              cacheControl: "31536000",
               upsert: true
             });
             if (!upErr) {

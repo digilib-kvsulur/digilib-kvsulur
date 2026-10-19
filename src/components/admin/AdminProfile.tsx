@@ -114,6 +114,7 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
       const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
         contentType: "image/jpeg",
+        cacheControl: "31536000",
       });
       if (upErr) throw upErr;
       const { error: dbErr } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", uid);

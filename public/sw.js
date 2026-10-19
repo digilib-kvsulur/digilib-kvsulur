@@ -22,7 +22,11 @@ if (self.location.hostname === LEGACY_HOST) {
 } else {
 
 // ─── Normal Service Worker for dlms.kvsulur.in ─────────────────────────────────
-const CACHE_NAME = 'kvsulur-dlms-v9';
+const CACHE_NAME = 'kvsulur-dlms-v10';
+const STORAGE_IMAGE_CACHE = 'kvsulur-storage-images-v1';
+const STORAGE_IMAGE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const STORAGE_IMAGE_MAX_ENTRIES = 60;
+const STORAGE_IMAGE_MAX_BYTES = 1024 * 1024;
 const ASSETS = [
   '/favicon.png',
   '/manifest.json',
@@ -45,7 +49,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((cacheName) => cacheName !== CACHE_NAME)
+          .filter((cacheName) => cacheName !== CACHE_NAME && cacheName !== STORAGE_IMAGE_CACHE)
           .map((cacheName) => caches.delete(cacheName))
       );
     })
@@ -57,9 +61,53 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
-  // Skip chrome-extension, API calls, Supabase endpoints, and non-http(s)
+  // Skip chrome-extension, API calls, Supabase endpoints, and non-http(s),
+  // except public Supabase Storage images which are safe to cache locally.
   if (!url.protocol.startsWith('http')) return;
-  if (url.pathname.startsWith('/rest/') || url.pathname.startsWith('/auth/') || url.hostname.includes('supabase.co')) return;
+  const isPublicStorageImage = url.hostname.endsWith('.supabase.co') &&
+    /^\/storage\/v1\/object\/(?:public|render\/image\/public)\//.test(url.pathname) &&
+    /\.(?:avif|gif|jpe?g|png|webp)$/i.test(url.pathname) &&
+    event.request.method === 'GET';
+  if (url.pathname.startsWith('/rest/') || url.pathname.startsWith('/auth/') ||
+      (url.hostname.includes('supabase.co') && !isPublicStorageImage)) return;
+
+  if (isPublicStorageImage) {
+    event.respondWith((async () => {
+      const cache = await caches.open(STORAGE_IMAGE_CACHE);
+      const cached = await cache.match(event.request);
+      const cachedAt = cached ? Number(cached.headers.get('x-dlms-cached-at') || 0) : 0;
+      const isFresh = cached && cachedAt > 0 && Date.now() - cachedAt < STORAGE_IMAGE_MAX_AGE_MS;
+      if (isFresh) return cached;
+
+      try {
+        const response = await fetch(event.request);
+        const contentType = response.headers.get('content-type') || '';
+        const contentLength = Number(response.headers.get('content-length') || 0);
+        if (response.status === 200 && contentType.startsWith('image/') &&
+            contentLength > 0 && contentLength <= STORAGE_IMAGE_MAX_BYTES) {
+          const headers = new Headers(response.headers);
+          headers.set('x-dlms-cached-at', String(Date.now()));
+          const cacheableResponse = new Response(response.clone().body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers,
+          });
+          await cache.put(event.request, cacheableResponse);
+          const keys = await cache.keys();
+          while (keys.length > STORAGE_IMAGE_MAX_ENTRIES) {
+            await cache.delete(keys.shift());
+          }
+        }
+        return response;
+      } catch (error) {
+        // Retain expired cache entries until the network succeeds so images
+        // remain available during a temporary outage.
+        if (cached) return cached;
+        throw error;
+      }
+    })());
+    return;
+  }
 
   const isAsset = url.pathname.startsWith('/assets/');
 

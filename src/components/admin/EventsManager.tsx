@@ -103,7 +103,7 @@ export default function EventsManager() {
       const safeName = sf.name.replace(/[^a-z0-9._-]/gi, "_");
       const path = `${userId}/${eventId}/${Date.now()}-${safeName}`;
       const { error: upErr } = await supabase.storage.from("event-images").upload(path, sf, {
-        contentType: sf.type, upsert: false,
+        contentType: sf.type, cacheControl: "31536000", upsert: false,
       });
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from("event-images").getPublicUrl(path);
@@ -128,7 +128,7 @@ export default function EventsManager() {
         const ext = file.name.split(".").pop();
         const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("event-images").upload(path, file, {
-          contentType: file.type, upsert: false,
+          contentType: file.type, cacheControl: "31536000", upsert: false,
         });
         if (upErr) throw upErr;
         const { data: pub } = supabase.storage.from("event-images").getPublicUrl(path);

@@ -119,6 +119,10 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
   const finishHandledRef = useRef(false);
   const resultSubmittedRef = useRef(false);
   const finalStandingsRequestedRef = useRef(false);
+  const questionStartedAtRef = useRef(Date.now());
+  const questionIndexRef = useRef(0);
+  const timeUpHandledRef = useRef(false);
+  const questionTransitionInProgressRef = useRef(false);
   // Browser fullscreen/focus transitions during the first moments of the
   // Realtime start can emit both `blur` and `visibilitychange`; don't count
   // startup churn or double-count the same focus transition as multiple strikes.
@@ -320,6 +324,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
         setTimeLeft(initialSessionData.time_per_question);
       }
       if (typeof initialSessionData.current_question_index === "number" && initialSessionData.current_question_index > 0 && questions.length > 0) {
+        questionIndexRef.current = Math.min(initialSessionData.current_question_index, questions.length - 1);
         setCurrentIndex(Math.min(initialSessionData.current_question_index, questions.length - 1));
       }
       if (initialSessionData.status === "finished") finishQuiz();
@@ -343,6 +348,8 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
           // Late join synchronization: Jump immediately to live question
           if (typeof data.current_question_index === "number" && data.current_question_index > 0 && questions.length > 0) {
             const safeIndex = Math.min(data.current_question_index, questions.length - 1);
+            questionIndexRef.current = safeIndex;
+            questionStartedAtRef.current = Date.now();
             setCurrentIndex(safeIndex);
             toast.info(`⚡ Joined live match at Question ${safeIndex + 1}!`);
           }
@@ -389,12 +396,46 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
         setShowInterBoard(true);
         setInterBoardTimer(5);
       })
+      .on("broadcast", { event: "question_timer_request" }, (payload) => {
+        if (!isHost || !payload.payload?.user_id) return;
+        void channel.send({
+          type: "broadcast",
+          event: "question_timer_sync",
+          payload: {
+            user_id: payload.payload.user_id,
+            index: questionIndexRef.current,
+            remaining_ms: Math.max(0, questionStartedAtRef.current + totalTime * 1000 - Date.now()),
+          },
+        });
+      })
+      .on("broadcast", { event: "question_timer_sync" }, (payload) => {
+        if (isHost || payload.payload?.user_id !== currentUser?.id) return;
+        const remainingMs = Number(payload.payload?.remaining_ms);
+        const index = Number(payload.payload?.index);
+        if (!Number.isFinite(remainingMs) || !Number.isInteger(index) || index < 0 || index >= questions.length) return;
+        const startedAt = Date.now() - Math.max(0, totalTime * 1000 - remainingMs);
+        questionStartedAtRef.current = startedAt;
+        questionIndexRef.current = index;
+        timeUpHandledRef.current = false;
+        setCurrentIndex(index);
+        setTimeLeft(Math.max(0, Math.ceil((startedAt + totalTime * 1000 - Date.now()) / 1000)));
+      })
       .on("broadcast", { event: "next_question" }, (payload) => {
-        setCurrentIndex(payload.payload.index);
+        const nextIndex = Number(payload.payload?.index);
+        if (!Number.isInteger(nextIndex) || nextIndex < 0 || nextIndex >= questions.length) return;
+        const remainingMs = Number(payload.payload?.remaining_ms);
+        const startedAt = Number.isFinite(remainingMs)
+          ? Date.now() - Math.max(0, totalTime * 1000 - remainingMs)
+          : Date.now();
+        questionIndexRef.current = nextIndex;
+        questionStartedAtRef.current = startedAt;
+        timeUpHandledRef.current = false;
+        questionTransitionInProgressRef.current = false;
+        setCurrentIndex(nextIndex);
         setSelectedAnswer(null);
         setShowResult(false);
         setShowInterBoard(false);
-        setTimeLeft(totalTime);
+        setTimeLeft(Math.max(0, Math.ceil((startedAt + totalTime * 1000 - Date.now()) / 1000)));
       })
       .on("broadcast", { event: "end_quiz" }, () => {
         setShowInterBoard(false);
@@ -457,6 +498,11 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
               payload: { user_id: currentUser.id },
             });
           }
+          await channel.send({
+            type: "broadcast",
+            event: "question_timer_request",
+            payload: { user_id: currentUser.id },
+          });
         }
       });
 
@@ -470,7 +516,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
     setSelectedAnswer(null);
     setShowResult(false);
     setShowAnswerSplash(false);
-    setTimeLeft(totalTime);
+    setTimeLeft(Math.max(0, Math.ceil((questionStartedAtRef.current + totalTime * 1000 - Date.now()) / 1000)));
   }, [currentIndex, totalTime]);
 
   // Countdown timer
@@ -478,21 +524,16 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
     if (!question || showResult || isFinished) return;
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 6 && prev > 1) {
-          quizAudio.playTick();
-        }
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleTimeUp();
-          return 0;
-        }
-        return prev - 1;
-      });
+      const remaining = Math.max(0, Math.ceil((questionStartedAtRef.current + totalTime * 1000 - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (isHost && remaining === 0 && !timeUpHandledRef.current) {
+        timeUpHandledRef.current = true;
+        handleTimeUp();
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentIndex, showResult, isFinished]);
+  }, [currentIndex, showResult, isFinished, totalTime, isHost]);
 
   const handleTimeUp = () => {
     setShowResult(true);
@@ -516,7 +557,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
   };
 
   const handleAnswerSelect = async (index: number) => {
-    if (!question || showResult || selectedAnswer !== null || isHost || isDisqualified) return;
+    if (!question || showResult || selectedAnswer !== null || isHost || isDisqualified || Date.now() >= questionStartedAtRef.current + totalTime * 1000) return;
     setSelectedAnswer(index);
     setShowResult(true);
     setShowAnswerSplash(true);
@@ -580,6 +621,8 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
   };
 
   const handleNextQuestion = async () => {
+    if (!isHost || questionTransitionInProgressRef.current) return;
+    questionTransitionInProgressRef.current = true;
     setShowAnswerSplash(false);
     setShowInterBoard(false);
     setShowResult(false);
@@ -592,13 +635,18 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
         .update({ current_question_index: nextIdx })
         .eq("id", sessionId);
 
+      const startedAt = Date.now();
       if (channelRef.current) {
         await channelRef.current.send({
           type: "broadcast",
           event: "next_question",
-          payload: { index: nextIdx },
+          payload: { index: nextIdx, remaining_ms: totalTime * 1000 },
         });
       }
+      questionIndexRef.current = nextIdx;
+      questionStartedAtRef.current = startedAt;
+      timeUpHandledRef.current = false;
+      questionTransitionInProgressRef.current = false;
       setCurrentIndex(nextIdx);
       setTimeLeft(totalTime);
     } else {

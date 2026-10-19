@@ -395,6 +395,7 @@ const StudyMaterialsManager = () => {
 
       const { error: upErr } = await supabase.storage.from("study-materials").upload(path, matsFile, {
         contentType: matsFile.type, upsert: false,
+        cacheControl: "31536000",
       });
       if (upErr) throw upErr;
 
@@ -459,7 +460,7 @@ const StudyMaterialsManager = () => {
         const ext = ncertFile.name.split(".").pop();
         const path = `ncert/${ncertForm.class_number}/${ncertForm.subject}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("study-materials").upload(path, ncertFile, {
-          contentType: ncertFile.type, upsert: false,
+          contentType: ncertFile.type, cacheControl: "31536000", upsert: false,
         });
         if (upErr) throw upErr;
         const { data: pub } = supabase.storage.from("study-materials").getPublicUrl(path);

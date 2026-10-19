@@ -181,7 +181,9 @@ const ReelItem = ({
           className="h-full w-full object-cover sm:rounded-2xl cursor-pointer"
           loop
           playsInline
-          preload="auto"
+          // Only fetch the active reel when playback starts. `auto` makes the
+          // browser eagerly download neighboring videos in a swipe feed.
+          preload="none"
           onTimeUpdate={handleTimeUpdate}
           onWaiting={() => setIsLoading(true)}
           onPlaying={() => setIsLoading(false)}

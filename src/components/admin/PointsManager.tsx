@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { sendLevelUpEmail } from "@/lib/autoEmail";
 import BulkImportPoints from "@/components/admin/BulkImportPoints";
+import BulkImportStreaks from "@/components/admin/BulkImportStreaks";
 import LifetimePointsReset from "@/components/admin/LifetimePointsReset";
 import { cn } from "@/lib/utils";
 import {
@@ -548,7 +549,10 @@ const PointsManager = () => {
                   {users.length} approved student{users.length === 1 ? "" : "s"} loaded. Search by name, admission, or class.
                 </CardDescription>
               </div>
-              <BulkImportPoints onImported={loadUsers} />
+              <div className="flex flex-wrap gap-2">
+                <BulkImportPoints onImported={loadUsers} />
+                <BulkImportStreaks onImported={loadUsers} />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
