@@ -1342,8 +1342,8 @@ const StudentDashboard = () => {
       {/* Celebratory Winner Popup (Rotational Badges & Event Winners) */}
       {user?.id && <RotationalBadgeWinningPopup userId={user.id} />}
 
-      {/* Hide LibraryBot in community tab so community create FAB takes its place */}
-      {activeTab !== "community" && <LibraryBot />}
+      {/* Keep the assistant out of social chat screens. */}
+      {activeTab !== "community" && activeTab !== "chat" && <LibraryBot />}
 
       <MobileBottomNav
         activeTab={activeTab}
