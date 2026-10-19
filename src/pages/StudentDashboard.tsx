@@ -1230,7 +1230,7 @@ const StudentDashboard = () => {
           )}
 
           {/* Community (includes Book Clubs tab) */}
-          {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={false} />}
+          {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={false} onOpenChat={() => setActiveTab("chat")} />}
           {activeTab === "chat" && user?.id && <FriendsChat userId={user.id} />}
 
           {/* Quizzes Tab */}
