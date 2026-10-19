@@ -1883,18 +1883,18 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
           
           return [
             { id: "all", label: "All Posts" },
-            { id: "reels", label: "🎬 Reels", count: posts.filter(p => p.post_type === "reel" && isLivePost(p)).length },
-            { id: "doubts", label: "❓ Academic Doubts", count: posts.filter(p => p.post_type === "doubt" && isLivePost(p)).length },
-            { id: "stories", label: "📖 Student Stories", count: posts.filter(p => p.post_type === "story" && isLivePost(p)).length },
-            { id: "polls", label: "📊 Polls", count: posts.filter(p => p.post_type === "poll" && isLivePost(p)).length },
-            { id: "media", label: "🖼️ Photos & PDFs", count: posts.filter(p => !!p.media_url && isLivePost(p)).length },
-            ...(scheduledCount > 0 || isAdmin ? [{ id: "scheduled", label: "⏱️ Scheduled", count: scheduledCount }] : []),
+            { id: "reels", label: "Reels", count: posts.filter(p => p.post_type === "reel" && isLivePost(p)).length },
+            { id: "doubts", label: "Academic Doubts", count: posts.filter(p => p.post_type === "doubt" && isLivePost(p)).length },
+            { id: "stories", label: "Stories", count: posts.filter(p => p.post_type === "story" && isLivePost(p)).length },
+            { id: "polls", label: "Polls", count: posts.filter(p => p.post_type === "poll" && isLivePost(p)).length },
+            { id: "media", label: "Photos & PDFs", count: posts.filter(p => !!p.media_url && isLivePost(p)).length },
+            ...(scheduledCount > 0 || isAdmin ? [{ id: "scheduled", label: "Scheduled", count: scheduledCount }] : []),
           ].map((cat) => (
             <button
               key={cat.id}
               type="button"
               onClick={() => setFeedCategory(cat.id as any)}
-              className={`text-xs px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              className={`shrink-0 text-xs px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 feedCategory === cat.id
                   ? "gradient-primary text-white shadow-sm"
                   : "bg-muted/70 text-muted-foreground hover:text-foreground hover:bg-muted"
