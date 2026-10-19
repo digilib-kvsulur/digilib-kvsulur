@@ -196,7 +196,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     setMessages([
       {
         role: 'assistant',
-        content: `Hello! 👋 I am **${botName}** — your official AI assistant for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🔍 **Live Book & Shelf Finder** (search title, author, cupboard & shelf)\n• 📚 **My Borrowed Books & Due Dates**\n• 📅 **Upcoming Events & Competitions**\n• 🎮 **Games Corner & XP Info**\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Quick Profile Edits**\n• 💬 **Feedback & Star Ratings**\n• 👑 **Check Badges & Certificates**\n\nHow can I help you today? Tap any prompt below or speak into the mic!`
+        content: `Hello! 👋 I am **${botName}**, your library helper for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🔍 **Live Book & Shelf Finder** (search title, author, cupboard & shelf)\n• 📚 **My Borrowed Books & Due Dates**\n• 📅 **Upcoming Events & Competitions**\n• 🎮 **Games Corner & XP Info**\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Quick Profile Edits**\n• 💬 **Feedback & Star Ratings**\n• 👑 **Check Badges & Certificates**\n\nHow can I help you today? Tap any prompt below or speak into the mic!`
       }
     ]);
     toast.success("Chat restarted!");
@@ -249,7 +249,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         setMessages([
           { 
             role: 'assistant', 
-            content: `Hello! 👋 I am **${activeName}** — your official AI assistant for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🔍 **Live Book & Shelf Finder** (search title, author, cupboard & shelf)\n• 📚 **My Borrowed Books & Due Dates**\n• 📅 **Upcoming Events & Competitions**\n• 🎮 **Games Corner & XP Info**\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Edit Profile Details** (bio, phone, roll no, class)\n• 💬 **Submit Library Feedback & Ratings**\n• 👑 **Check Rotational & Earned Badges**\n• 📜 **View Issued Certificates**\n• ⚡ **Check XP, Level & Class Rank**\n\nHow can I help you today? Tap any prompt below, type your question, or tap 🎙️ to speak!` 
+            content: `Hello! 👋 I am **${activeName}**, your library helper for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🔍 **Live Book & Shelf Finder** (search title, author, cupboard & shelf)\n• 📚 **My Borrowed Books & Due Dates**\n• 📅 **Upcoming Events & Competitions**\n• 🎮 **Games Corner & XP Info**\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Edit Profile Details** (bio, phone, roll no, class)\n• 💬 **Submit Library Feedback & Ratings**\n• 👑 **Check Rotational & Earned Badges**\n• 📜 **View Issued Certificates**\n• ⚡ **Check XP, Level & Class Rank**\n\nHow can I help you today? Tap any prompt below, type your question, or tap 🎙️ to speak!`
           }
         ]);
       });
@@ -395,7 +395,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
           const due = new Date(b.due_date);
           const days = Math.ceil((due.getTime() - today.getTime()) / 86400000);
           const when =
-            days < 0 ? `**${Math.abs(days)} day(s) overdue** (fine ₹${Math.abs(days)})` :
+            days < 0 ? `**${Math.abs(days)} day(s) overdue** (fine ₹${Math.abs(days)})`:
             days === 0 ? "**due today**" :
             `due in **${days} day(s)**`;
           return `• ${b.book_title || "Library book"} — ${when} (${due.toLocaleDateString("en-IN")})`;
@@ -453,7 +453,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     setLoading(true);
 
     // ─────────────────────────────────────────────────────────────
-    // Predefined local answers — no AI tokens consumed for these
+    // Predefined answers are handled locally without an external AI request.
     // ─────────────────────────────────────────────────────────────
     const checkPredefinedAnswer = (text: string): string | null => {
       const t = text.toLowerCase().trim();
@@ -471,7 +471,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
 
       // Greetings
       if (/^(hi|hello|hey|good morning|good afternoon|good evening|namaste|greetings|sup|howdy)$/.test(t) || t === "hi there" || t === "hello there") {
-        return `Hello! 👋 I am **${botName}** — your official AI assistant for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🎫 Support Tickets & Issues\n• ✏️ Quick Profile Edits (bio, phone, class)\n• 💬 Feedback & Star Ratings\n• 👑 Rotational & Earned Badges\n• 📜 Official Certificates\n• ⚡ Level, XP & Class Rankings\n• 📚 Book Borrowing & Rules\n• 💻 Developer & School Info\n\nWhat would you like to do?`;
+        return `Hello! 👋 I am **${botName}**, your library helper for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🎫 Support Tickets & Issues\n• ✏️ Quick Profile Edits (bio, phone, class)\n• 💬 Feedback & Star Ratings\n• 👑 Rotational & Earned Badges\n• 📜 Official Certificates\n• ⚡ Level, XP & Class Rankings\n• 📚 Book Borrowing & Rules\n• 💻 Developer & School Info\n\nWhat would you like to do?`;
       }
 
       // Developer Information (G V Tanish Vettrivel)
@@ -482,7 +482,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         t.includes("gvtanish") || t.includes("9865190190") ||
         /\bdeveloper\b/.test(t)
       ) {
-        return "👨‍💻 **DLMS Developer: G V Tanish Vettrivel**\n\nThe PM SHRI KV AFS Sulur Digital Library Management System (DLMS) was architected and developed by **G V Tanish Vettrivel**, an innovative student programmer and ISRO Yuvika participant from PM SHRI Kendriya Vidyalaya AFS Sulur (Class 11).\n\n🚀 **Key Achievements:**\n• **Software Innovation:** Developed India's first student-centric Kendriya Vidyalaya DLMS featuring one-click book issues, automated barcode stickers, Reading Wrap capsules, gamified XP, and integrated NCERT/CBSE digital resources (launched July 2026).\n• **ISRO Yuvika:** Selected for ISRO's prestigious Young Scientist Programme (YUVIKA 2025) at the Vikram Sarabhai Space Centre (VSSC) in Thiruvananthapuram — chosen as 1 of only 10 students across all of Tamil Nadu.\n• **IIT Kharagpur:** Selected for a 6-week program for IIT Kharagpur's i-Kites / RISE event.\n\n📞 **Developer Contact Details:**\n• **Phone / WhatsApp:** **+91 9865190190**\n• **Social Media Handles:** **@gvtanish** (Instagram, GitHub, LinkedIn)\n• **School Channels:** `@pmshrikvsulur` · `@kvian_rocks`";
+        return "👨‍💻 **DLMS Developer: G V Tanish Vettrivel**\n\nThe PM SHRI KV AFS Sulur Digital Library Management System (DLMS) was architected and developed by **G V Tanish Vettrivel**, an innovative student programmer and ISRO Yuvika participant from PM SHRI Kendriya Vidyalaya AFS Sulur (Class 11).\n\n🚀 **Key Achievements:**\n• **Software Innovation:** Developed India's first student-centric Kendriya Vidyalaya DLMS featuring one-click book issues, automated barcode stickers, Reading Wrap capsules, gamified XP, and integrated NCERT/CBSE digital resources (launched July 2026).\n• **ISRO Yuvika:** Selected for ISRO's prestigious Young Scientist Programme (YUVIKA 2025) at the Vikram Sarabhai Space Centre (VSSC) in Thiruvananthapuram — chosen as 1 of only 10 students across all of Tamil Nadu.\n• **IIT Kharagpur:** Selected for a 6-week program for IIT Kharagpur's i-Kites / RISE event.\n\n📞 **Developer Contact Details:**\n• **Phone / WhatsApp:** **+91 9865190190**\n• **Social Media Handles:** **@gvtanish** (Instagram, GitHub, LinkedIn)\n• **School Channels:** `@pmshrikvsulur`· `@kvian_rocks`";
       }
 
       // PM SHRI KV AFS Sulur School Information
@@ -579,7 +579,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
 
       // Book recommendation
       if (t.includes("recommend") || t.includes("suggestion") || t.includes("suggest") || t.includes("good book") || t.includes("which book") || t.includes("what should i read") || t.includes("best book")) {
-        return "📖 **Book Recommendations**\n\nHere are some great reads by level:\n\n**Class 6–8:** Ruskin Bond stories, Diary of a Wimpy Kid, Famous Five series\n**Class 9–10:** To Kill a Mockingbird, Wings of Fire (A.P.J. Abdul Kalam), Animal Farm\n**Class 11–12:** The Alchemist, Rich Dad Poor Dad, 1984 by George Orwell\n\nFor personalized recommendations, ask me: *'Suggest a science fiction book'* or *'Best book for Class 8'* — I'll use AI to help you!";
+        return "📖 **Book Recommendations**\n\nHere are some popular reads by level:\n\n**Class 6–8:** Ruskin Bond stories, Diary of a Wimpy Kid, Famous Five series\n**Class 9–10:** To Kill a Mockingbird, Wings of Fire (A.P.J. Abdul Kalam), Animal Farm\n**Class 11–12:** The Alchemist, Rich Dad Poor Dad, 1984 by George Orwell\n\nTell me a genre or class to narrow these suggestions. You can check availability in the **Catalog**.";
       }
 
       // Games Corner & Daily Limit
@@ -644,9 +644,9 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
           const location = (b.cupboard_number || b.shelf_number)
             ? `📍 **Shelf Location:** Cupboard **${b.cupboard_number || 'Main'}**, Shelf **${b.shelf_number || 'General'}**`
             : `📍 **Location:** Main Circulation Stack`;
-          const meta = [b.category, b.class_level ? `Class ${b.class_level}` : ""].filter(Boolean).join(" · ");
+          const meta = [b.category, b.class_level ? `Class ${b.class_level}`: ""].filter(Boolean).join(" · ");
 
-          return `• 📖 **[${b.title}](/catalog?search=${encodeURIComponent(b.title)})** by *${b.author || "Unknown"}*${meta ? ` (${meta})` : ""}\n  ${avail}\n  ${location}`;
+          return `• 📖 **[${b.title}](/catalog?search=${encodeURIComponent(b.title)})** by *${b.author || "Unknown"}*${meta ? `(${meta})`: ""}\n  ${avail}\n  ${location}`;
         });
 
         return `📚 **Found ${data.length} match(es) for "${query}":**\n\n${lines.join("\n\n")}\n\n👉 *Tap the book title to open it in Catalog, or request it with your student barcode at the counter!*`;
@@ -694,7 +694,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
             month: "short",
             year: "numeric"
           });
-          const loc = ev.location ? ` · 📍 ${ev.location}` : "";
+          const loc = ev.location ? `· 📍 ${ev.location}`: "";
           return `• 🏆 **${ev.title}** (${dateStr}${loc})\n  ${ev.description || "Open to all students. Participate to earn XP and certificates!"}`;
         }).join("\n\n");
 
@@ -724,38 +724,18 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       return;
     }
 
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Gemini expects the conversation to begin with a user turn. The first
-      // assistant message is our local welcome, so omit it and bound history.
-      const conversation = newMessages.slice(1).slice(-20);
-      if (conversation[0]?.role === 'assistant') conversation.shift();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/library-bot`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({ messages: conversation })
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Server responded with status ${res.status}`);
-      }
-      
-      const data = await res.json();
-      setMessages([...newMessages, { role: 'assistant', content: data.reply }]);
-    } catch (e: any) {
-      console.warn("AI Chatbot fallback invoked:", e);
-      setMessages([...newMessages, {
-        role: 'assistant',
-        content: `I couldn’t reach the AI service just now, so I don’t want to guess at an answer. Please try again in a moment, or use the quick prompts for book searches, your account details, events, and library help. If you need a person, choose **🎫 Raise Support Ticket**.`
-      }]);
-    } finally {
-      setLoading(false);
-    }
+    const helpTopics = [
+      "📚 **My library account** — ask about your books, due dates, fines, or requests.",
+      "🔍 **Find a book** — say *find books by [author]* or *is [title] available?*",
+      "📅 **Events** — ask about upcoming library events or competitions.",
+      "📋 **Library help** — ask about borrowing, renewals, timings, rules, or study materials.",
+      "🎫 **Talk to the librarian** — choose Raise Support Ticket.",
+    ];
+    setMessages([...newMessages, {
+      role: 'assistant',
+      content: `I’m a quick library helper, so I can answer these topics directly:\n\n${helpTopics.join("\n\n")}\n\nTry one of the suggested prompts below, or rephrase your question with a topic such as **book**, **fine**, **event**, or **renewal**.`
+    }]);
+    setLoading(false);
   };
 
   const handleClose = () => {
@@ -841,7 +821,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
               <div>
                 <h3 className="font-bold text-sm text-foreground leading-tight">{botName}</h3>
                 <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <span>KV Sulur Library AI</span>
+                  <span>KV Sulur Library Helper</span>
                   <span>·</span>
                   <span className="text-emerald-600 dark:text-emerald-400 font-medium">Online</span>
                 </p>
