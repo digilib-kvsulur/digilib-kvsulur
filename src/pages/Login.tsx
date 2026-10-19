@@ -478,7 +478,7 @@ const Login = () => {
       )}
       <LibraryBot
         context="login"
-        suggestedPrompts={["Show me the login steps", "I need my 5-digit admission number", "Forgot my password", "Sign in is not working", "Check service status"]}
+        suggestedPrompts={["Show me the login steps", "I need my 5-digit admission number", "Forgot my password", "Sign in is not working", "Check service status", "Recent Championship Winners", "About the Developer", "Who is the Principal?", "Who is the Librarian?"]}
       />
     </div>
   );

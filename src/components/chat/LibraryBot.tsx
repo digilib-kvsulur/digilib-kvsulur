@@ -68,6 +68,7 @@ const DEFAULT_PROMPTS = [
   "🎮 Games Corner",
   "🕐 Library Timings",
   "📖 Reading Wrap",
+  "🏆 Recent Championship Winners",
   "👨‍💻 About the Developer",
   "🏫 Who is the Principal?",
   "📚 Who is the Librarian?",
@@ -87,8 +88,8 @@ const getWelcomeMessage = (name: string, context: LibraryBotContext) => {
 
 export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggestedPrompts?: string[]; context?: LibraryBotContext }) => {
   const contextPrompts: Record<LibraryBotContext, string[]> = {
-    home: ["How do students log in?", "What is the 5-digit admission number?", "Forgot my password", "Login is not working", "Check service status", "About the Developer", "Who is the Principal?", "Who is the Librarian?"],
-    login: ["Show me the login steps", "I need my admission number", "Forgot my password", "Sign in is not working", "Check service status", "About the Developer", "Who is the Principal?", "Who is the Librarian?"],
+    home: ["How do students log in?", "What is the 5-digit admission number?", "Forgot my password", "Login is not working", "Check service status", "Recent Championship Winners", "About the Developer", "Who is the Principal?", "Who is the Librarian?"],
+    login: ["Show me the login steps", "I need my admission number", "Forgot my password", "Sign in is not working", "Check service status", "Recent Championship Winners", "About the Developer", "Who is the Principal?", "Who is the Librarian?"],
     library: DEFAULT_PROMPTS,
   };
   const prompts = suggestedPrompts && suggestedPrompts.length > 0 ? suggestedPrompts : contextPrompts[context];
@@ -488,7 +489,7 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
       const t = text.toLowerCase().trim();
 
       if (t.includes("help menu") || /^(help|help me|menu|what can you do|what can i do|what all can (?:you|i) do|what all can be done(?: here)?|what can be done(?: here)?|what can you help with|what do you do|show options|show me options)[?!. ]*$/.test(t)) {
-        return `🧭 **Here’s what I can do in this chat**\n\n• **Find books:** search by title, author, subject, availability, or shelf location. I’ll show matching catalog results; place a request from the book’s Catalog page.\n• **Your account:** check borrowed books and due dates, outstanding fines, and recent book requests.\n• **Renewal help:** get the steps to request a renewal from My Requests.\n• **Support:** create a support ticket one question at a time, or track an existing ticket by number.\n• **Profile:** update your bio, class, roll number, phone, or username through a guided chat.\n• **Feedback:** send a rating and message one step at a time.\n• **Library info:** look up events, timings, rules, study materials, games, and reading features.\n• **Achievements:** view your badges, certificates, level, and XP cards.\n• **People:** ask about the DLMS developer, principal, librarian, school leadership, and where to find staff information.\n\nTap a suggested prompt below, or type what you need in your own words.`;
+        return `🧭 **Here’s what I can do in this chat**\n\n• **Find books:** search by title, author, subject, availability, or shelf location. I’ll show matching catalog results; place a request from the book’s Catalog page.\n• **Your account:** check borrowed books and due dates, outstanding fines, and recent book requests.\n• **Renewal help:** get the steps to request a renewal from My Requests.\n• **Support:** create a support ticket one question at a time, or track an existing ticket by number.\n• **Profile:** update your bio, class, roll number, phone, or username through a guided chat.\n• **Feedback:** send a rating and message one step at a time.\n• **Library info:** look up events, timings, rules, study materials, games, and reading features.\n• **Championships:** ask for the latest published championship winners.\n• **Achievements:** view your badges, certificates, level, and XP cards.\n• **People:** ask about the DLMS developer, principal, librarian, school leadership, and where to find staff information.\n\nTap a suggested prompt below, or type what you need in your own words.`;
       }
 
       // Check dynamic admin-configured messages first
@@ -523,7 +524,7 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
       }
 
       if (/\b(librarian|library in.?charge|library teacher)\b/.test(t)) {
-        return "📚 **Librarian**\n\nThe KVS librarian seniority list dated **1 January 2026** lists **V. K. Aiswaria** at Sulur AFS. Staff postings can change; please confirm current availability through the [official school website](https://sulur.kvs.ac.in/en/).";
+        return "📚 **Librarian**\n\nThe KVS librarian seniority list dated **1 January 2026** lists **V. K. Aiswaria** at Sulur AFS ([view the KVS list](https://cdnbbsr.s3waas.gov.in/s32d2ca7eedf739ef4c3800713ec482e1a/uploads/2026/03/2026030978.pdf)). Staff postings can change; please confirm current availability through the [official school website](https://sulur.kvs.ac.in/en/).";
       }
 
       if (/\b(teacher|teachers|staff|faculty|who works|school people|school leadership)\b/.test(t)) {
@@ -717,6 +718,81 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
     const catalogAnswer = await checkLiveCatalogSearch(textToSend);
     if (catalogAnswer) {
       setMessages([...newMessages, { role: 'assistant', content: catalogAnswer }]);
+      setLoading(false);
+      return;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Published winners for the most recent championship
+    // ─────────────────────────────────────────────────────────────
+    const checkChampionshipWinners = async (text: string): Promise<string | null> => {
+      const t = text.toLowerCase().trim();
+      const asksForWinners = /\b(winner|winners|champion|champions|who won|result|results)\b/.test(t);
+      const asksAboutChampionship = /\b(championship|champion|tournament|competition)\b/.test(t);
+      if (!asksForWinners || !asksAboutChampionship) return null;
+
+      try {
+        const { data: winnerRows, error: winnersError } = await supabase
+          .from("event_winners" as any)
+          .select("event_id, user_id, position, position_title, published_at")
+          .eq("is_published", true)
+          .order("published_at", { ascending: false })
+          .limit(100);
+        if (winnersError) throw winnersError;
+
+        if (!winnerRows?.length) {
+          return "🏆 **Championship Winners**\n\nThere are no published championship winners available in the DLMS yet. Please check back after the results are published.";
+        }
+
+        const eventIds = [...new Set(winnerRows.map((winner: any) => winner.event_id))];
+        const { data: events, error: eventsError } = await supabase
+          .from("library_events")
+          .select("id, title, event_date")
+          .eq("is_published", true)
+          .in("id", eventIds);
+        if (eventsError) throw eventsError;
+
+        const eventMap = new Map((events || []).map((event) => [event.id, event]));
+        const championshipEvents = winnerRows
+          .map((winner: any) => ({ winner, event: eventMap.get(winner.event_id) }))
+          .filter((entry: any) => entry.event && /championship|tournament|competition/i.test(entry.event.title));
+        const latestEventId = championshipEvents[0]?.event?.id;
+        const recentWinners = championshipEvents.filter((entry: any) => entry.event.id === latestEventId);
+
+        if (!recentWinners.length) {
+          return "🏆 **Championship Winners**\n\nI couldn’t find published winners for a championship yet. Ask the librarian or check the school’s latest announcements for results.";
+        }
+
+        const userIds = [...new Set(recentWinners.map((entry: any) => entry.winner.user_id))];
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, student_class")
+          .in("id", userIds);
+        if (profilesError) throw profilesError;
+
+        const profileMap = new Map((profiles || []).map((profile) => [profile.id, profile]));
+        const event = recentWinners[0].event;
+        const date = event.event_date
+          ? new Date(event.event_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+          : "date not listed";
+        const rows = recentWinners.map(({ winner }: any) => {
+          const profile: any = profileMap.get(winner.user_id);
+          const name = `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || "Student name unavailable";
+          const studentClass = profile?.student_class ? ` · Class ${profile.student_class}` : "";
+          const award = winner.position_title || (winner.position ? `Position ${winner.position}` : "Winner");
+          return `• **${award}:** ${name}${studentClass}`;
+        });
+
+        return `🏆 **${event.title} — Winners**\n*${date}*\n\n${rows.join("\n")}\n\nThese are the latest results published in DLMS.`;
+      } catch (error) {
+        console.warn("Could not load published championship winners:", error);
+        return "🏆 I couldn’t load the championship results just now. Please try again later or check with the librarian.";
+      }
+    };
+
+    const championshipAnswer = await checkChampionshipWinners(textToSend);
+    if (championshipAnswer) {
+      setMessages([...newMessages, { role: "assistant", content: championshipAnswer }]);
       setLoading(false);
       return;
     }
