@@ -70,8 +70,25 @@ const DEFAULT_PROMPTS = [
   "📖 Reading Wrap",
 ];
 
-export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }) => {
-  const prompts = suggestedPrompts && suggestedPrompts.length > 0 ? suggestedPrompts : DEFAULT_PROMPTS;
+type LibraryBotContext = "home" | "login" | "library";
+
+const getWelcomeMessage = (name: string, context: LibraryBotContext) => {
+  if (context === "login") {
+    return `Hi! 👋 I’m **${name}**, your sign-in helper.\n\nStudents: use your **5-digit admission number** and password. Teachers and staff can use their registered email or username. Complete the verification check before tapping **Sign In**.\n\nAsk me for the login steps, password reset help, or what to do if sign-in isn’t working.`;
+  }
+  if (context === "home") {
+    return `Welcome! 👋 I’m **${name}**, your PM SHRI KV AFS Sulur DLMS helper.\n\nI can guide you through signing in, finding your 5-digit student admission number, resetting a password, or checking whether the service is up. Ask **“What can you help me with?”** to see all options.`;
+  }
+  return `Hello! 👋 I am **${name}**, your library helper for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you find books, check your borrowed books and due dates, view events, create or track support tickets, edit your profile, send feedback, and check badges, certificates, and XP.\n\nHow can I help you today? Tap a prompt below, type your question, or tap 🎙️ to speak!`;
+};
+
+export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggestedPrompts?: string[]; context?: LibraryBotContext }) => {
+  const contextPrompts: Record<LibraryBotContext, string[]> = {
+    home: ["How do students log in?", "What is the 5-digit admission number?", "Forgot my password", "Login is not working", "Check service status"],
+    login: ["Show me the login steps", "I need my admission number", "Forgot my password", "Sign in is not working", "Check service status"],
+    library: DEFAULT_PROMPTS,
+  };
+  const prompts = suggestedPrompts && suggestedPrompts.length > 0 ? suggestedPrompts : contextPrompts[context];
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [botName, setBotName] = useState("Avenyx");
@@ -201,7 +218,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     setMessages([
       {
         role: 'assistant',
-        content: `Hello! 👋 I am **${botName}**, your library helper for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🔍 **Live Book & Shelf Finder** (search title, author, cupboard & shelf)\n• 📚 **My Borrowed Books & Due Dates**\n• 📅 **Upcoming Events & Competitions**\n• 🎮 **Games Corner & XP Info**\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Quick Profile Edits**\n• 💬 **Feedback & Star Ratings**\n• 👑 **Check Badges & Certificates**\n\nHow can I help you today? Tap any prompt below or speak into the mic!`
+        content: getWelcomeMessage(botName, context)
       }
     ]);
     toast.success("Chat restarted!");
@@ -254,7 +271,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         setMessages([
           { 
             role: 'assistant', 
-            content: `Hello! 👋 I am **${activeName}**, your library helper for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🔍 **Live Book & Shelf Finder** (search title, author, cupboard & shelf)\n• 📚 **My Borrowed Books & Due Dates**\n• 📅 **Upcoming Events & Competitions**\n• 🎮 **Games Corner & XP Info**\n• 🎫 **Raise & Track Support Tickets**\n• ✏️ **Edit Profile Details** (bio, phone, roll no, class)\n• 💬 **Submit Library Feedback & Ratings**\n• 👑 **Check Rotational & Earned Badges**\n• 📜 **View Issued Certificates**\n• ⚡ **Check XP, Level & Class Rank**\n\nHow can I help you today? Tap any prompt below, type your question, or tap 🎙️ to speak!`
+            content: getWelcomeMessage(activeName, context)
           }
         ]);
       });
@@ -467,7 +484,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     const checkPredefinedAnswer = (text: string): string | null => {
       const t = text.toLowerCase().trim();
 
-      if (t.includes("help menu") || /^(help|help me|menu|what can you do|what can i do|what can you help with|what do you do|show options|show me options)[?!. ]*$/.test(t)) {
+      if (t.includes("help menu") || /^(help|help me|menu|what can you do|what can i do|what all can (?:you|i) do|what all can be done(?: here)?|what can be done(?: here)?|what can you help with|what do you do|show options|show me options)[?!. ]*$/.test(t)) {
         return `🧭 **Here’s what I can do in this chat**\n\n• **Find books:** search by title, author, subject, availability, or shelf location. I’ll show matching catalog results; place a request from the book’s Catalog page.\n• **Your account:** check borrowed books and due dates, outstanding fines, and recent book requests.\n• **Renewal help:** get the steps to request a renewal from My Requests.\n• **Support:** create a support ticket one question at a time, or track an existing ticket by number.\n• **Profile:** update your bio, class, roll number, phone, or username through a guided chat.\n• **Feedback:** send a rating and message one step at a time.\n• **Library info:** look up events, timings, rules, study materials, games, and reading features.\n• **Achievements:** view your badges, certificates, level, and XP cards.\n\nTap a suggested prompt below, or type what you need in your own words.`;
       }
 
@@ -484,7 +501,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
 
       // Greetings
       if (/^(hi|hello|hey|good morning|good afternoon|good evening|namaste|greetings|sup|howdy)$/.test(t) || t === "hi there" || t === "hello there") {
-        return `Hello! 👋 I am **${botName}**, your library helper for PM SHRI KV AFS Sulur Digital Library.\n\nI can help you with:\n• 🎫 Support Tickets & Issues\n• ✏️ Quick Profile Edits (bio, phone, class)\n• 💬 Feedback & Star Ratings\n• 👑 Rotational & Earned Badges\n• 📜 Official Certificates\n• ⚡ Level, XP & Class Rankings\n• 📚 Book Borrowing & Rules\n• 💻 Developer & School Info\n\nWhat would you like to do?`;
+        return getWelcomeMessage(botName, context);
       }
 
       // Developer Information (G V Tanish Vettrivel)
@@ -568,9 +585,22 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
         return "🔍 **How to Search for Books**\n\n1. Click on **Catalog** in the navigation menu.\n2. Use the search bar to search by **Title**, **Author**, or **Subject**.\n3. Use filters to narrow by class, genre, or availability.\n4. Click on a book to view details and request it.\n\n📖 The catalog shows real-time availability — if it shows 0 copies, the book is currently issued.";
       }
 
+      // Login-page and home-page sign-in help
+      if (/\b(not working|is down|won't load|cannot open|can't open|service unavailable|site down|website down|stuck signing in)\b/.test(t) && (context !== "library" || /\b(login|sign.?in|site|website|app|page|dlms|system)\b/.test(t))) {
+        return `🛠️ **DLMS isn’t working?**\n\n1. Check the [DLMS service status page](/status) for an outage or service delay.\n2. If the service is operational and sign-in still fails, email [dlms@kvsulur.in](mailto:dlms@kvsulur.in) with a short description and a screenshot of the error.\n3. For student sign-in, make sure you entered your **5-digit admission number** and completed the verification check.\n\nPlease don’t email or share your password or verification code.`;
+      }
+
+      if (/\b(admission number|admission no|adm no|student login|how (?:do|can) (?:i|we) (?:log ?in|sign in)|login steps|sign.?in steps|how to login|how to sign in)\b/.test(t)) {
+        return `🔐 **How to sign in**\n\n1. Open the **Login** page.\n2. **Students:** enter your school-issued **5-digit admission number** (for example, 12345) in the first box. Don’t use your roll number there. Teachers and staff can use their registered email or username.\n3. Enter your password. If your school gave you the default student password, use **Welcome@123**; it is case-sensitive.\n4. Complete the verification challenge, then tap **Sign In**.\n\nIf you don’t know your admission number, ask your class teacher or the library office; I can’t look it up here. For a forgotten password, tap **Forgot password?** on the Login page.`;
+      }
+
+      if (t.includes("service status") || t.includes("status page") || t === "is dlms down" || t === "is the website down") {
+        return `Check the [DLMS service status page](/status). If it shows the service is operational but you still can’t sign in, email [dlms@kvsulur.in](mailto:dlms@kvsulur.in) with the error message. Don’t include your password or verification code.`;
+      }
+
       // Password reset
       if (t.includes("forgot password") || t.includes("reset password") || t.includes("change password") || t.includes("can't login") || t.includes("cannot login") || t.includes("login problem")) {
-        return "🔑 **Password Help**\n\n**Forgot your password?**\n1. Click **'Forgot Password'** on the login screen.\n2. Enter your registered email.\n3. Check your email for a reset link.\n4. Click the link and set a new password.\n\n**Still having trouble?**\nContact the librarian or submit a ticket by clicking **🎫 Raise Support Ticket**.";
+        return `🔑 **Password Help**\n\n1. On the Login page, tap **Forgot password?**\n2. Students: enter your **5-digit admission number**. Teachers and staff: use your registered email or username.\n3. Follow the on-screen account recovery steps and use the verified recovery method shown there.\n\nIf the page or sign-in service is unavailable, check the [DLMS status page](/status). If the problem continues, email [dlms@kvsulur.in](mailto:dlms@kvsulur.in). Never send your password or one-time code by email.`;
       }
 
       // Study materials / NCERT

@@ -5,8 +5,6 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { getAvatarUrl } from "@/lib/utils";
 import { Download, Share2, Award, BookOpen, Brain, Flame, Target, TrendingUp, Zap, Medal, Trophy, Star, CheckCircle2 } from "lucide-react";
 import html2canvas from "html2canvas";
@@ -176,33 +174,8 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
 
   return (
     <div className={`mx-auto space-y-6 text-slate-800 ${embedded ? "max-w-5xl pb-24 lg:pb-8" : "max-w-5xl pb-12 px-4 sm:px-6 mt-8"}`}>
-      <style>{`
-        .gaming-mesh-banner {
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 50%, rgba(236, 72, 153, 0.95) 100%);
-          position: relative;
-        }
-        .gaming-mesh-banner::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
-          pointer-events: none;
-        }
-        .stat-glow-blue { box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2); }
-        .stat-glow-purple { box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2); }
-        .stat-glow-amber { box-shadow: 0 4px 20px rgba(245, 158, 11, 0.2); }
-        .stat-glow-emerald { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2); }
-        .timeline-glow-amber { box-shadow: 0 0 12px rgba(245, 158, 11, 0.4); }
-        .timeline-glow-emerald { box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
-        @keyframes progress-glow {
-          0%, 100% { box-shadow: 0 0 8px rgba(99, 102, 241, 0.4); }
-          50% { box-shadow: 0 0 18px rgba(139, 92, 246, 0.7); }
-        }
-        .progress-glow-bar { animation: progress-glow 2.5s ease-in-out infinite; }
-      `}</style>
-
       {/* Main Container to Export (Force light background for clean printing) */}
-      <div id="portfolio-container" className="space-y-6 p-4 sm:p-6 rounded-3xl bg-white border border-slate-200 shadow-xl">
+      <div id="portfolio-container" className="space-y-6 p-3 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-sm">
         {/* Print-only Header */}
         <div className="hidden print:block text-center border-b pb-4 mb-4">
           <h2 className="text-2xl font-black text-slate-900">PM SHRI KENDRIYA VIDYALAYA AFS SULUR</h2>
@@ -210,12 +183,13 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
         </div>
 
         {/* Hero header — mobile-first colorful banner */}
-        <div className="relative overflow-hidden rounded-3xl gaming-mesh-banner text-white shadow-xl border border-white/10">
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-thread.png')] opacity-10" />
-          <div className="relative p-6 sm:p-10">
+        <div className="relative overflow-hidden rounded-2xl bg-slate-900 text-white shadow-lg">
+          <div className="absolute -right-16 -top-24 h-72 w-72 rounded-full border-[36px] border-white/[0.04]" />
+          <div className="absolute right-16 -bottom-28 h-56 w-56 rounded-full bg-teal-400/10 blur-2xl" />
+          <div className="relative p-5 sm:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center gap-6">
               <div className="flex items-center gap-5">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 border-white/20 bg-white/10 overflow-hidden shrink-0 flex items-center justify-center shadow-lg relative">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-white/25 bg-white/10 overflow-hidden shrink-0 flex items-center justify-center relative">
                   {user?.avatar_url ? (
                     <img
                       src={getAvatarUrl(user.avatar_url)}
@@ -238,12 +212,12 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
                   )}
                 </div>
                 <div>
-                  <Badge className="bg-white/20 hover:bg-white/30 border-0 text-white text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 mb-2">DLMS Scholar Portfolio</Badge>
-                  <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-none drop-shadow-md flex items-center gap-2 flex-wrap">
+                  <p className="text-xs uppercase font-semibold tracking-[0.18em] text-teal-300 mb-2">Student reading portfolio</p>
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight flex items-center gap-2 flex-wrap">
                     <span>{user?.first_name} {user?.last_name}</span>
                     <RotationalWinnerBadge userId={user?.id} size="sm" />
                   </h1>
-                  <p className="text-indigo-100 text-xs sm:text-sm font-semibold mt-1.5 opacity-90">
+                  <p className="text-slate-300 text-sm mt-1.5">
                     Class {user?.student_class || "—"} · Adm {user?.admission_number || "—"}
                   </p>
                 </div>
@@ -252,7 +226,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
                 <Button
                   size="sm"
                   variant="secondary"
-                  className="rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 flex-1 sm:flex-none h-10 font-bold transition-all"
+                  className="rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/15 flex-1 sm:flex-none h-10 font-semibold transition-colors"
                   onClick={async () => {
                     if (navigator.share) {
                       try {
@@ -284,7 +258,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
                 </Button>
                 <Button
                   size="sm"
-                  className="rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 border-0 text-white flex-1 sm:flex-none h-10 font-bold transition-all shadow-lg shadow-rose-500/25"
+                  className="rounded-lg bg-teal-500 hover:bg-teal-400 border-0 text-slate-950 flex-1 sm:flex-none h-10 font-semibold transition-colors"
                   onClick={exportPortfolio}
                 >
                   <Download className="h-4 w-4 mr-1.5" /> Export PDF
@@ -292,20 +266,20 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
               </div>
             </div>
 
-            {/* 4-col futuristic quick stats strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
+            {/* Key reading stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-7">
               {[
                 { label: "Total XP",     value: stats.points.toLocaleString(), icon: Zap,    gradient: "from-amber-400 to-orange-400" },
                 { label: "Class Rank",   value: `#${classRank}`,              icon: Medal,  gradient: "from-cyan-400 to-blue-400"   },
                 { label: "Login Streak", value: `${stats.streak} Days`,       icon: Flame,  gradient: "from-orange-400 to-red-400"  },
-                { label: "Books Read",   value: `${stats.monthlyRead}/${stats.monthlyGoal}`, icon: Target, gradient: "from-pink-400 to-rose-400" },
+                { label: "Monthly Books", value: `${stats.monthlyRead}/${stats.monthlyGoal}`, icon: Target, gradient: "from-teal-400 to-cyan-400" },
               ].map((s) => (
-                <div key={s.label} className="rounded-2xl bg-white/10 border border-white/10 p-4 text-center hover:bg-white/15 transition-all group">
-                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${s.gradient} flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:scale-110 transition-transform`}>
-                    <s.icon className="h-4 w-4 text-white" />
+                <div key={s.label} className="rounded-xl bg-white/[0.07] border border-white/10 px-3 py-3 text-left">
+                  <div className="flex items-center gap-2 text-teal-300 mb-2">
+                    <s.icon className="h-4 w-4" />
+                    <p className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">{s.label}</p>
                   </div>
-                  <p className="text-xl sm:text-2xl font-black text-white">{s.value}</p>
-                  <p className="text-[9px] text-indigo-200 uppercase tracking-widest font-bold mt-1">{s.label}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-white">{s.value}</p>
                 </div>
               ))}
             </div>
@@ -317,38 +291,37 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
           {[
             {
               label: "Total Books Logged", value: stats.booksRead,     icon: BookOpen,
-              gradient: "from-blue-500 to-indigo-600", bg: "bg-blue-50", border: "border-blue-100",
-              iconBg: "bg-blue-100", iconColor: "text-blue-600", glow: "stat-glow-blue"
+              gradient: "from-teal-500 to-teal-600", bg: "bg-white", border: "border-slate-200",
+              iconBg: "bg-teal-50", iconColor: "text-teal-700", glow: ""
             },
             {
               label: "Quizzes Completed", value: stats.quizzesPassed, icon: Brain,
-              gradient: "from-purple-500 to-violet-600", bg: "bg-purple-50", border: "border-purple-100",
-              iconBg: "bg-purple-100", iconColor: "text-purple-600", glow: "stat-glow-purple"
+              gradient: "from-teal-500 to-teal-600", bg: "bg-white", border: "border-slate-200",
+              iconBg: "bg-teal-50", iconColor: "text-teal-700", glow: ""
             },
             {
               label: "Badges Awarded",    value: stats.badges,         icon: Award,
-              gradient: "from-amber-500 to-orange-500", bg: "bg-amber-50", border: "border-amber-100",
-              iconBg: "bg-amber-100", iconColor: "text-amber-600", glow: "stat-glow-amber"
+              gradient: "from-teal-500 to-teal-600", bg: "bg-white", border: "border-slate-200",
+              iconBg: "bg-teal-50", iconColor: "text-teal-700", glow: ""
             },
             {
               label: "Reading Targets",   value: stats.goalsCompleted, icon: TrendingUp,
-              gradient: "from-emerald-500 to-teal-600", bg: "bg-emerald-50", border: "border-emerald-100",
-              iconBg: "bg-emerald-100", iconColor: "text-emerald-600", glow: "stat-glow-emerald"
+              gradient: "from-teal-500 to-teal-600", bg: "bg-white", border: "border-slate-200",
+              iconBg: "bg-teal-50", iconColor: "text-teal-700", glow: ""
             },
           ].map((s) => (
-            <div key={s.label} className={`relative overflow-hidden rounded-2xl border ${s.border} ${s.bg} ${s.glow} transition-shadow hover:shadow-lg p-5`}>
-              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${s.gradient} rounded-t-2xl`} />
-              <div className={`w-11 h-11 rounded-xl ${s.iconBg} flex items-center justify-center mb-3`}>
-                <s.icon className={`h-6 w-6 ${s.iconColor}`} />
+            <div key={s.label} className={`rounded-xl border ${s.border} ${s.bg} p-4 sm:p-5 transition-shadow hover:shadow-md`}>
+              <div className={`w-10 h-10 rounded-xl ${s.iconBg} flex items-center justify-center mb-3`}>
+                <s.icon className={`h-5 w-5 ${s.iconColor}`} />
               </div>
-              <p className="text-3xl font-black text-slate-800">{s.value}</p>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">{s.label}</p>
+              <p className="text-2xl font-bold text-slate-900">{s.value}</p>
+              <p className="text-xs font-medium text-slate-500 mt-1">{s.label}</p>
             </div>
           ))}
         </div>
 
         {/* Animated Reading Goal Progress Widget */}
-        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-purple-50 p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center">
@@ -364,9 +337,9 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
               <p className="text-[10px] text-slate-500 font-medium">{stats.monthlyRead} of {stats.monthlyGoal} books</p>
             </div>
           </div>
-          <div className="relative h-3.5 rounded-full bg-slate-200 overflow-hidden">
+          <div className="relative h-2.5 rounded-full bg-slate-100 overflow-hidden">
             <div
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full progress-glow-bar transition-all duration-1000"
+              className="absolute inset-y-0 left-0 bg-teal-600 rounded-full transition-all duration-1000"
               style={{ width: `${monthlyProgress}%` }}
             />
           </div>
@@ -383,7 +356,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
           <div className="lg:col-span-2 space-y-6">
 
             {/* Heatmap Card */}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
               <div className="p-4 sm:p-6">
                 <p className="text-sm font-bold text-slate-800 mb-3">Daily Reading Velocity Grid</p>
                 <div className="rounded-2xl p-2 bg-white border border-slate-200">
@@ -393,7 +366,7 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
             </div>
 
             {/* Milestone Timeline */}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
               <div className="p-4 sm:p-5">
                 <div className="flex items-center gap-2 mb-1">
                   <Trophy className="h-4 w-4 text-amber-500" />
@@ -432,8 +405,8 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
           </div>
 
           {/* Right sidebar — Library card + XP summary */}
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+          <div className="space-y-4">
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
               <div className="p-4 pb-2">
                 <p className="text-sm font-bold text-slate-800">Student Identification Card</p>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -448,13 +421,13 @@ export default function StudentPortfolio({ userId, embedded = true }: PortfolioP
             </div>
 
             {/* XP Summary mini card */}
-            <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-violet-50 p-5">
+            <div className="rounded-xl border border-slate-200 bg-white p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Zap className="h-4 w-4 text-indigo-600" />
+                <Zap className="h-4 w-4 text-teal-700" />
                 <p className="text-sm font-bold text-slate-800">XP Summary</p>
               </div>
-              <p className="text-4xl font-black text-indigo-700">{stats.points.toLocaleString()}</p>
-              <p className="text-xs text-indigo-500 font-semibold uppercase tracking-wider mt-1">Total Experience Points</p>
+              <p className="text-3xl font-bold text-slate-900">{stats.points.toLocaleString()}</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">Total experience points</p>
               <div className="mt-4 space-y-2">
                 {[
                   { label: "Books Logged",   value: stats.booksRead,       color: "bg-blue-500"    },

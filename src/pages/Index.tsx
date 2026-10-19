@@ -873,7 +873,10 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      <LibraryBot suggestedPrompts={["How do I login?", "What is my admission number?", "How to reset password?", "I am a guest"]} />
+      <LibraryBot
+        context="home"
+        suggestedPrompts={["How do students log in?", "What is my 5-digit admission number?", "Forgot my password", "Login is not working", "Check service status"]}
+      />
     </div>
   );
 };

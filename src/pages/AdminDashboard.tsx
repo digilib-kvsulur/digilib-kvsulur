@@ -68,8 +68,10 @@ const EventWinnersManager = lazy(() => import("@/components/admin/EventWinnersMa
 const SchoolBrandingSettings = lazy(() => import("@/components/admin/SchoolBrandingSettings"));
 const HomePageEditor = lazy(() => import("@/components/admin/HomePageEditor"));
 const VacationAdminPage = lazy(() => import("@/features/vacation/VacationAdminPage"));
+const FriendsChatAdmin = lazy(() => import("@/components/admin/FriendsChatAdmin"));
+const InviteInstagramManager = lazy(() => import("@/components/admin/InviteInstagramManager"));
 
-type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "chat" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor" | "invite-instagram";
 
 const SYSTEM_SIZE_CACHE_KEY = "dlms_admin_system_sizes_v1";
 const SYSTEM_SIZE_CACHE_TTL_MS = 60 * 60 * 1000;
@@ -136,9 +138,11 @@ const navSections = [
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
       { id: "email" as Tab, label: "Email Centre", icon: Mail },
       { id: "community" as Tab, label: "Community", icon: MessageSquare },
+      { id: "chat" as Tab, label: "Friends Chat", icon: MessageSquare },
       { id: "bug-bounty" as Tab, label: "Bug Bounty", icon: ShieldAlert },
       { id: "ui-reform" as Tab, label: "UI Reform Challenge", icon: Palette },
       { id: "vacation" as Tab, label: "Vacation Campaign", icon: Sun },
+      { id: "invite-instagram" as Tab, label: "Instagram & Invites", icon: UsersIcon },
     ],
   },
   {
@@ -693,6 +697,7 @@ const AdminDashboard = () => {
           {activeTab === "notifications" && <NotificationSender />}
           {activeTab === "email" && <EmailCampaignManager />}
           {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
+          {activeTab === "chat" && <FriendsChatAdmin />}
           {activeTab === "materials" && <StudyMaterialsManager />}
           {activeTab === "barcodes" && <BarcodeGenerator />}
           {activeTab === "student-barcodes" && <StudentBarcodeGenerator />}
@@ -701,6 +706,7 @@ const AdminDashboard = () => {
           {activeTab === "bug-bounty" && <BugBountyManager />}
           {activeTab === "ui-reform" && <UIReformChallengeManager />}
           {activeTab === "vacation" && <VacationAdminPage />}
+          {activeTab === "invite-instagram" && <InviteInstagramManager />}
           {activeTab === "profile" && <AdminProfile user={user} onProfileUpdate={handleProfileUpdate} />}
         </div>
         </Suspense>

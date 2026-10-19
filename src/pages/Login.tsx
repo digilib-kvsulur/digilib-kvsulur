@@ -12,6 +12,7 @@ import { clearStoredAuthSession, isInvalidRefreshTokenError } from "@/lib/authCl
 import { ForgotPasswordView } from "@/components/auth/ForgotPasswordView";
 import NotificationEmailDialog from "@/components/auth/NotificationEmailDialog";
 import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
+import { LibraryBot } from "@/components/chat/LibraryBot";
 
 const isTemporaryServiceFailure = (error: any) => {
   const rawStatus = error?.status ?? error?.context?.status;
@@ -475,6 +476,10 @@ const Login = () => {
           }}
         />
       )}
+      <LibraryBot
+        context="login"
+        suggestedPrompts={["Show me the login steps", "I need my 5-digit admission number", "Forgot my password", "Sign in is not working", "Check service status"]}
+      />
     </div>
   );
 };

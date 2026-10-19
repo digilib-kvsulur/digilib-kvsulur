@@ -28,12 +28,37 @@ export default function FriendsChat({ userId }: { userId: string }) {
   const [onlineCount, setOnlineCount] = useState(0);
   const [draft, setDraft] = useState("");
   const [expiryHours, setExpiryHours] = useState("24");
+  const [chatEnabled, setChatEnabled] = useState(true);
+  const [groupEnabled, setGroupEnabled] = useState(true);
+  const [maxRetentionHours, setMaxRetentionHours] = useState(168);
+  const [configLoading, setConfigLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [newMessageOpen, setNewMessageOpen] = useState(false);
   const [friendSearch, setFriendSearch] = useState("");
   const channelRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    void supabase.from("system_settings").select("key, value")
+      .in("key", ["friends_chat_enabled", "friends_group_chat_enabled", "friends_chat_max_retention_hours"])
+      .then(({ data }) => {
+        if (!mounted) return;
+        const values = Object.fromEntries((data || []).map((row) => [row.key, row.value]));
+        const enabledValue = values.friends_chat_enabled;
+        const groupValue = values.friends_group_chat_enabled;
+        const maxValue = Number(values.friends_chat_max_retention_hours ?? 168);
+        setChatEnabled(enabledValue === undefined || enabledValue === null ? true : enabledValue === true || enabledValue === "true");
+        setGroupEnabled(groupValue === undefined || groupValue === null ? true : groupValue === true || groupValue === "true");
+        const safeMax = [1, 24, 168].includes(maxValue) ? maxValue : 168;
+        setMaxRetentionHours(safeMax);
+        setExpiryHours(String(Math.min(24, safeMax)));
+        setConfigLoading(false);
+      })
+      .catch(() => { if (mounted) setConfigLoading(false); });
+    return () => { mounted = false; };
+  }, []);
 
   const loadFriends = useCallback(async () => {
     const { data: relations } = await supabase.from("friendships").select("requester_id, addressee_id")
@@ -81,7 +106,7 @@ export default function FriendsChat({ userId }: { userId: string }) {
   }, [selected, groupMode, userId, receiveMessage]);
 
   useEffect(() => {
-    if (!groupMode) { setOnlineCount(0); return; }
+    if (!groupMode || !groupEnabled || !chatEnabled) { setOnlineCount(0); return; }
     let mounted = true;
     let userProfile = { name: "Student", avatar_url: null as string | null };
     const channel = supabase.channel(groupTopic, { config: { private: true, presence: { key: userId } } });
@@ -102,7 +127,7 @@ export default function FriendsChat({ userId }: { userId: string }) {
       });
     channelRef.current = channel;
     return () => { mounted = false; channelRef.current = null; void supabase.removeChannel(channel); };
-  }, [groupMode, userId]);
+  }, [groupMode, groupEnabled, chatEnabled, userId]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setMessages((current) => current.filter((m) => new Date(m.expires_at).getTime() > Date.now())), 15000);
@@ -144,7 +169,8 @@ export default function FriendsChat({ userId }: { userId: string }) {
 
   const visibleFriends = useMemo(() => friends.filter((friend) => recentFriendIds.includes(friend.id) || selected?.id === friend.id), [friends, recentFriendIds, selected]);
   const matchingFriends = useMemo(() => friends.filter((friend) => displayName(friend).toLowerCase().includes(friendSearch.trim().toLowerCase())), [friends, friendSearch]);
-  const activeMessages = groupMode ? groupMessages : messages;
+  if (configLoading) return <Card className="mx-auto max-w-xl"><CardContent className="p-6 text-center text-sm text-muted-foreground">Loading chat settings…</CardContent></Card>;
+  if (!chatEnabled) return <Card className="mx-auto max-w-xl"><CardHeader><CardTitle>Friends Chat is unavailable</CardTitle><CardDescription>The school administrator has temporarily turned off student chat.</CardDescription></CardHeader></Card>;
 
   return (
     <div className="mx-auto grid h-[min(720px,calc(100dvh-10rem))] min-h-[420px] max-w-5xl gap-4 md:grid-cols-[280px_1fr]">
@@ -153,11 +179,11 @@ export default function FriendsChat({ userId }: { userId: string }) {
           <div className="flex items-center justify-between"><CardTitle className="flex items-center gap-2 text-lg"><Users className="h-5 w-5" /> Chats</CardTitle>
             <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5 text-xs" onClick={() => { setNewMessageOpen(true); setFriendSearch(""); }}><Plus className="h-3.5 w-3.5" /> New message</Button>
           </div>
-          <button type="button" onClick={() => { setSelected(null); setGroupMode(true); }} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition hover:bg-muted ${groupMode ? "border-primary bg-primary/5" : "border-border"}`}>
+          {groupEnabled && <button type="button" onClick={() => { setSelected(null); setGroupMode(true); }} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition hover:bg-muted ${groupMode ? "border-primary bg-primary/5" : "border-border"}`}>
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white"><Users className="h-5 w-5" /></span>
             <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Everyone online</span><span className="block text-xs text-muted-foreground">Live group chat</span></span>
             <Badge variant="secondary" className="shrink-0">{onlineCount} online</Badge>
-          </button>
+          </button>}
         </CardHeader>
         <CardContent className="min-h-0 flex-1 overflow-y-auto px-3">
           <p className="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recent chats</p>
@@ -195,7 +221,7 @@ export default function FriendsChat({ userId }: { userId: string }) {
               <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p><p className="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-70"><Clock3 className="h-3 w-3" />{new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
             </div></div>)}<div ref={scrollRef} /></div></ScrollArea>
           <div className="border-t p-3"><div className="mb-2 flex items-center justify-between gap-2"><span className="text-xs text-muted-foreground">Auto-delete</span>
-            <Select value={expiryHours} onValueChange={setExpiryHours}><SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">After 1 hour</SelectItem><SelectItem value="24">After 1 day</SelectItem><SelectItem value="168">After 7 days</SelectItem></SelectContent></Select>
+            <Select value={expiryHours} onValueChange={setExpiryHours}><SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger><SelectContent>{[1, 24, 168].filter((hours) => hours <= maxRetentionHours).map((hours) => <SelectItem key={hours} value={String(hours)}>After {hours === 1 ? "1 hour" : hours === 24 ? "1 day" : "7 days"}</SelectItem>)}</SelectContent></Select>
           </div><form onSubmit={sendMessage} className="flex gap-2"><Input value={draft} onChange={(e) => setDraft(e.target.value.slice(0, 1000))} placeholder="Write a message…" maxLength={1000} autoComplete="off" /><Button type="submit" size="icon" disabled={!draft.trim() || sending} aria-label="Send message"><Send className="h-4 w-4" /></Button></form>
           <p className="mt-1 text-right text-[10px] text-muted-foreground">{draft.length}/1000</p></div>
         </> : <CardContent className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-muted-foreground"><MessageCircle className="h-10 w-10 opacity-40" /><p className="text-sm">Choose a chat or start a new message.</p><Badge variant="secondary">Private, real-time chat</Badge></CardContent>}

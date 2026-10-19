@@ -115,7 +115,7 @@ export const InChatTicketWidget = ({
     if (!data) throw new Error(`No ticket found for “${ticketNumber}”. Check the number and try again.`);
     const createdAt = new Date(data.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     const note = data.admin_notes ? ` Librarian reply: ${data.admin_notes}` : "";
-    return `Ticket ${data.ticket_number} is **${(data.status || "open").replace(/_/g, " ")}**. Subject: ${data.subject}. Category: ${(data.category || "general").replace(/_/g, " ")}. Created ${createdAt}.${note}`;
+    return `Ticket ${data.ticket_number} status: ${(data.status || "open").replace(/_/g, " ")}. Subject: ${data.subject}. Category: ${(data.category || "general").replace(/_/g, " ")}. Created ${createdAt}.${note}`;
   };
 
   return (

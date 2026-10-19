@@ -56,6 +56,8 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
   const [termsAccepted, setTermsAccepted] = useState(() => hasAcceptedCommunityTerms(currentUserId));
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [draft, setDraft] = useState({ title: "", content: "" });
   const [postKind, setPostKind] = useState<"text" | "poll" | "link" | "story" | "doubt" | "reel">("text");
@@ -480,12 +482,13 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
     return full;
   };
 
-  const load = async () => {
-    setLoading(true);
-    await checkUserBlockStatus();
+  const load = async (loadMore = false) => {
+    if (loadMore) setLoadingMore(true);
+    else setLoading(true);
+    if (!loadMore) await checkUserBlockStatus();
     
     // Check WhatsApp reward status
-    if (currentUserId) {
+    if (!loadMore && currentUserId) {
       try {
         const { data: prof } = await supabase
           .from("profiles")
@@ -501,16 +504,20 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
     }
 
     // Check if there are any book clubs
-    const { count: clubCount } = await supabase.from("book_clubs").select("*", { count: 'exact', head: true }).eq("is_active", true);
-    setHasClubs((clubCount || 0) > 0);
+    if (!loadMore) {
+      const { count: clubCount } = await supabase.from("book_clubs").select("*", { count: 'exact', head: true }).eq("is_active", true);
+      setHasClubs((clubCount || 0) > 0);
+    }
 
     let postsData: any[] = [];
+    const pageStart = loadMore ? posts.length : 0;
+    const pageEnd = pageStart + 29;
     const doubtRes = await supabase
       .from("posts")
       .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at, doubt_subject, doubt_class, doubt_status, accepted_comment_id, scheduled_for")
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(30);
+      .range(pageStart, pageEnd);
 
     if (doubtRes.error) {
       // Fallback query if doubt columns are not yet added to DB table
@@ -519,15 +526,17 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
         .select("id, user_id, title, content, post_type, media_url, media_type, poll_ends_at, is_pinned, created_at")
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false })
-        .limit(30);
+        .range(pageStart, pageEnd);
       postsData = fallbackRes.data || [];
     } else {
       postsData = doubtRes.data || [];
     }
 
+    setHasMorePosts((postsData || []).length === 30);
     if (!postsData || postsData.length === 0) {
-      setPosts([]);
+      if (!loadMore) setPosts([]);
       setLoading(false);
+      setLoadingMore(false);
       return;
     }
     const ids = postsData.map((p) => p.id);
@@ -562,7 +571,7 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
       optionsByPost.set(o.post_id, list);
     });
 
-    setPosts(postsData.map((p: any) => {
+    const mappedPosts = postsData.map((p: any) => {
       let subject = p.doubt_subject;
       const status = p.doubt_status || "unsolved";
       if (!subject && p.title && p.title.startsWith("[Doubt")) {
@@ -580,8 +589,17 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
         pollOptions: optionsByPost.get(p.id) || [],
         myVoteOptionId: myVoteByPost.get(p.id) || null,
       };
-    }));
+    });
+    if (loadMore) {
+      setPosts((current) => {
+        const knownIds = new Set(current.map((post) => post.id));
+        return [...current, ...mappedPosts.filter((post) => !knownIds.has(post.id))];
+      });
+    } else {
+      setPosts(mappedPosts);
+    }
     setLoading(false);
+    setLoadingMore(false);
   };
 
   useEffect(() => {
@@ -2535,6 +2553,19 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
             </Card>
           ))}
           </div>
+          {hasMorePosts && feedCategory !== "scheduled" && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => void load(true)}
+                disabled={loadingMore}
+              >
+                {loadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loadingMore ? "Loading..." : "Load more posts"}
+              </Button>
+            </div>
+          )}
         );
       })()}
         </TabsContent>
