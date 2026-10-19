@@ -1424,11 +1424,11 @@ function Community({ currentUserId, isAdmin }: { currentUserId: string; isAdmin:
               </span>
             </div>
 
-            {/* Mobile-visible Create Post action beside Add Reel */}
+            {/* Inline Create Post action beside Add Reel */}
             {(isAdmin || !blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
               <button
                 type="button"
-                className="flex flex-col items-center gap-1 shrink-0 group sm:hidden"
+                className="flex flex-col items-center gap-1 shrink-0 group"
                 onClick={() => {
                   setPostKind("text");
                   setShowNew(true);
@@ -3201,125 +3201,6 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
         )}
       </TabsContent>
     </Tabs>
-
-      {/* Floating Create Button in Bottom Right */}
-      {(isAdmin || !blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
-        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-[60] sm:bottom-8 sm:right-8">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                size="icon"
-                title="Create in Community"
-                aria-label="Create in Community"
-                className="h-14 w-14 sm:h-16 sm:w-16 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-blue-500/40 hover:scale-110 active:scale-95 transition-all duration-300 animate-in zoom-in border-2 border-white/20 p-0 flex items-center justify-center cursor-pointer"
-              >
-                <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-white stroke-[2.5]" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              side="top"
-              align="end"
-              sideOffset={14}
-              className="w-72 p-2 rounded-3xl border border-border/80 bg-card/95 backdrop-blur-xl shadow-2xl space-y-1 animate-in fade-in slide-in-from-bottom-3 duration-200"
-            >
-              <div className="px-3.5 py-2.5 border-b border-border/50 mb-1">
-                <p className="text-xs font-black text-foreground">Create in Community</p>
-                <p className="text-[10px] text-muted-foreground font-medium">Choose what you want to share with classmates</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPostKind("text");
-                  setShowNew(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold hover:bg-muted/80 transition-all text-foreground group"
-              >
-                <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                  <FileText className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-foreground">Create Post</p>
-                  <p className="text-[10px] text-muted-foreground font-normal truncate">Share thoughts & recommendations</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPostKind("reel");
-                  setShowNew(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold hover:bg-rose-500/10 transition-all text-foreground group"
-              >
-                <div className="h-9 w-9 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                  <Video className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-rose-600 dark:text-rose-400">Upload Reel</p>
-                  <p className="text-[10px] text-muted-foreground font-normal truncate">Short video & book summary</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPostKind("doubt");
-                  setShowNew(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold hover:bg-amber-500/10 transition-all text-foreground group"
-              >
-                <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                  <HelpCircle className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-amber-700 dark:text-amber-400">Ask Doubt</p>
-                  <p className="text-[10px] text-muted-foreground font-normal truncate">Academic questions for classmates</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPostKind("story");
-                  setShowNew(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold hover:bg-amber-500/10 transition-all text-foreground group"
-              >
-                <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                  <Feather className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-foreground">Story / Writing</p>
-                  <p className="text-[10px] text-muted-foreground font-normal truncate">Creative story, poem or review</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPostKind("poll");
-                  setShowNew(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-bold hover:bg-indigo-500/10 transition-all text-foreground group"
-              >
-                <div className="h-9 w-9 rounded-xl bg-indigo-500/15 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                  <BarChart3 className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-foreground">Community Poll</p>
-                  <p className="text-[10px] text-muted-foreground font-normal truncate">Gather peer votes & opinions</p>
-                </div>
-              </button>
-            </PopoverContent>
-          </Popover>
-        </div>
-      )}
 
     </div>
   );
