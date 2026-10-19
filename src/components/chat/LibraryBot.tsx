@@ -68,6 +68,9 @@ const DEFAULT_PROMPTS = [
   "🎮 Games Corner",
   "🕐 Library Timings",
   "📖 Reading Wrap",
+  "👨‍💻 About the Developer",
+  "🏫 Who is the Principal?",
+  "📚 Who is the Librarian?",
 ];
 
 type LibraryBotContext = "home" | "login" | "library";
@@ -84,8 +87,8 @@ const getWelcomeMessage = (name: string, context: LibraryBotContext) => {
 
 export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggestedPrompts?: string[]; context?: LibraryBotContext }) => {
   const contextPrompts: Record<LibraryBotContext, string[]> = {
-    home: ["How do students log in?", "What is the 5-digit admission number?", "Forgot my password", "Login is not working", "Check service status"],
-    login: ["Show me the login steps", "I need my admission number", "Forgot my password", "Sign in is not working", "Check service status"],
+    home: ["How do students log in?", "What is the 5-digit admission number?", "Forgot my password", "Login is not working", "Check service status", "About the Developer", "Who is the Principal?", "Who is the Librarian?"],
+    login: ["Show me the login steps", "I need my admission number", "Forgot my password", "Sign in is not working", "Check service status", "About the Developer", "Who is the Principal?", "Who is the Librarian?"],
     library: DEFAULT_PROMPTS,
   };
   const prompts = suggestedPrompts && suggestedPrompts.length > 0 ? suggestedPrompts : contextPrompts[context];
@@ -485,7 +488,7 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
       const t = text.toLowerCase().trim();
 
       if (t.includes("help menu") || /^(help|help me|menu|what can you do|what can i do|what all can (?:you|i) do|what all can be done(?: here)?|what can be done(?: here)?|what can you help with|what do you do|show options|show me options)[?!. ]*$/.test(t)) {
-        return `🧭 **Here’s what I can do in this chat**\n\n• **Find books:** search by title, author, subject, availability, or shelf location. I’ll show matching catalog results; place a request from the book’s Catalog page.\n• **Your account:** check borrowed books and due dates, outstanding fines, and recent book requests.\n• **Renewal help:** get the steps to request a renewal from My Requests.\n• **Support:** create a support ticket one question at a time, or track an existing ticket by number.\n• **Profile:** update your bio, class, roll number, phone, or username through a guided chat.\n• **Feedback:** send a rating and message one step at a time.\n• **Library info:** look up events, timings, rules, study materials, games, and reading features.\n• **Achievements:** view your badges, certificates, level, and XP cards.\n\nTap a suggested prompt below, or type what you need in your own words.`;
+        return `🧭 **Here’s what I can do in this chat**\n\n• **Find books:** search by title, author, subject, availability, or shelf location. I’ll show matching catalog results; place a request from the book’s Catalog page.\n• **Your account:** check borrowed books and due dates, outstanding fines, and recent book requests.\n• **Renewal help:** get the steps to request a renewal from My Requests.\n• **Support:** create a support ticket one question at a time, or track an existing ticket by number.\n• **Profile:** update your bio, class, roll number, phone, or username through a guided chat.\n• **Feedback:** send a rating and message one step at a time.\n• **Library info:** look up events, timings, rules, study materials, games, and reading features.\n• **Achievements:** view your badges, certificates, level, and XP cards.\n• **People:** ask about the DLMS developer, principal, librarian, school leadership, and where to find staff information.\n\nTap a suggested prompt below, or type what you need in your own words.`;
       }
 
       // Check dynamic admin-configured messages first
@@ -515,8 +518,20 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
         return "👨‍💻 **DLMS Developer: G V Tanish Vettrivel**\n\nThe PM SHRI KV AFS Sulur Digital Library Management System (DLMS) was architected and developed by **G V Tanish Vettrivel**, an innovative student programmer and ISRO Yuvika participant from PM SHRI Kendriya Vidyalaya AFS Sulur (Class 11).\n\n🚀 **Key Achievements:**\n• **Software Innovation:** Developed India's first student-centric Kendriya Vidyalaya DLMS featuring one-click book issues, automated barcode stickers, Reading Wrap capsules, gamified XP, and integrated NCERT/CBSE digital resources (launched July 2026).\n• **ISRO Yuvika:** Selected for ISRO's prestigious Young Scientist Programme (YUVIKA 2025) at the Vikram Sarabhai Space Centre (VSSC) in Thiruvananthapuram — chosen as 1 of only 10 students across all of Tamil Nadu.\n• **IIT Kharagpur:** Selected for a 6-week program for IIT Kharagpur's i-Kites / RISE event.\n\n📞 **Developer Contact Details:**\n• **Phone / WhatsApp:** **+91 9865190190**\n• **Social Media Handles:** **@gvtanish** (Instagram, GitHub, LinkedIn)\n• **School Channels:** `@pmshrikvsulur`· `@kvian_rocks`";
       }
 
+      if (/\b(principal|head of school|school head|vice principal)\b/.test(t)) {
+        return "🏫 **School Leadership**\n\nThe school’s official website currently lists **Shri Rakesh Kumar Mishra** as Principal. Leadership and staff postings can change, so please check the [official school website](https://sulur.kvs.ac.in/en/) for the latest details. For school matters, contact the office through the official website.";
+      }
+
+      if (/\b(librarian|library in.?charge|library teacher)\b/.test(t)) {
+        return "📚 **Librarian**\n\nThe KVS librarian seniority list dated **1 January 2026** lists **V. K. Aiswaria** at Sulur AFS. Staff postings can change; please confirm current availability through the [official school website](https://sulur.kvs.ac.in/en/).";
+      }
+
+      if (/\b(teacher|teachers|staff|faculty|who works|school people|school leadership)\b/.test(t)) {
+        return "👥 **School Staff and Leadership**\n\nI can help with the developer, principal, and librarian. For the current list of teachers and other staff, check the [official school website](https://sulur.kvs.ac.in/en/) or contact the school office, since staff details can change.";
+      }
+
       // PM SHRI KV AFS Sulur School Information
-      if (t.includes("kv sulur") || t.includes("about kv sulur") || t.includes("sulur.kvs.ac.in") || t.includes("school code") || t.includes("affiliation") || t.includes("about school") || t.includes("kendriya vidyalaya sulur") || t.includes("afs sulur") || t.includes("school info") || t.includes("principal") || t.includes("udise") || t.includes("board result") || t.includes("topper")) {
+      if (t.includes("kv sulur") || t.includes("about kv sulur") || t.includes("sulur.kvs.ac.in") || t.includes("school code") || t.includes("affiliation") || t.includes("about school") || t.includes("kendriya vidyalaya sulur") || t.includes("afs sulur") || t.includes("school info") || t.includes("udise") || t.includes("board result") || t.includes("topper")) {
         return "🏫 **PM SHRI Kendriya Vidyalaya AFS Sulur**\n*(पीएम श्री केन्द्रीय विद्यालय वायुसेना अवस्थान सुलूर)*\n\n• **Location:** Air Force Station Sulur, Kangayampalayam, Coimbatore, Tamil Nadu - 641401\n• **Affiliation Codes:** KV Code: **1787** | CBSE Affiliation: **1900016** | School Code: **59022** | UDISE: **33122100403**\n• **Academic Excellence:** 100% pass rate in Class 10 Board Exams & 98.55% in Class 12.\n• **Senior Secondary Streams:** Computer Science, Biology, and Commerce.\n• **Key Features:** NEP 2020 PM SHRI exemplar school, NIPUN Lakshya, Digital Language Lab, ICT E-Classrooms, BaLA (Building as Learning Aid), NCC & Scouts, and our student-built DLMS digital library!\n• **Official Website:** [sulur.kvs.ac.in](https://sulur.kvs.ac.in)";
       }
 
