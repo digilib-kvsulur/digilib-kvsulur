@@ -455,6 +455,7 @@ const StudentDashboard = () => {
         { id: "rankings" as Tab, label: "Rankings", icon: Medal },
         { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
         { id: "community" as Tab, label: "Community", icon: Users },
+        { id: "chat" as Tab, label: "Friends Chat", icon: MessageSquare },
         { id: "invite" as Tab, label: "Invite Friends (+250 XP)", icon: UserPlus },
         { id: "network" as Tab, label: "Network", icon: Users },
         { id: "vacation" as Tab, label: "Vacation Campaign", icon: Sun },
