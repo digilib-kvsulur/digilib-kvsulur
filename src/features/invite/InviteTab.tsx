@@ -15,6 +15,10 @@ import InstagramStoryReward from "./InstagramStoryReward";
 const INVITE_BASE_URL = "https://dlms.kvsulur.in/invite";
 const XP_PER_INVITE = 250;
 const MAX_INVITE_XP = 2500;
+const MAX_REWARDED_INVITES = MAX_INVITE_XP / XP_PER_INVITE;
+
+const getEarnedInviteXP = (count: number) =>
+  Math.min(Math.max(0, count), MAX_REWARDED_INVITES) * XP_PER_INVITE;
 
 interface InviteTabProps {
   userId: string;
@@ -79,9 +83,11 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
         const { data: stats, error: statsErr } = await supabase.rpc("get_my_invite_stats");
         if (!statsErr && stats) {
           loadedFromRpc = true;
-          const count = Number((stats as any).invite_count || 0);
+          const count = Math.max(0, Number((stats as any).invite_count) || 0);
           setInviteCount(count);
-          setTotalInviteXP(Math.min(count * XP_PER_INVITE, MAX_INVITE_XP));
+          // The DB records 250 on each invite row even after the inviter cap is reached.
+          // Calculate credited XP from the count and program cap instead of summing those rows.
+          setTotalInviteXP(getEarnedInviteXP(count));
           if (Array.isArray((stats as any).friends)) {
             setFriends((stats as any).friends);
           }
@@ -102,8 +108,9 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
             .eq("inviter_id", userId);
 
           if (invCount !== null && invCount !== undefined) {
-            setInviteCount(invCount);
-            setTotalInviteXP(Math.min(invCount * XP_PER_INVITE, MAX_INVITE_XP));
+            const count = Math.max(0, Number(invCount) || 0);
+            setInviteCount(count);
+            setTotalInviteXP(getEarnedInviteXP(count));
             if (inviteRows && inviteRows.length > 0) {
               setFriends(inviteRows.map((r: any) => ({
                 first_name: r.profiles?.first_name || "Student",
@@ -122,7 +129,7 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
               .ilike("title", "%Invite Reward%");
             const cnt = notifCount || 0;
             setInviteCount(cnt);
-            setTotalInviteXP(cnt * XP_PER_INVITE);
+            setTotalInviteXP(getEarnedInviteXP(cnt));
           }
         } catch {
           // Keep default states
@@ -221,57 +228,55 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-5 max-w-3xl mx-auto pb-6">
       {/* Hero Card */}
-      <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white shadow-xl">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNiI+PHBhdGggZD0iTTM2IDE0VjZoLTJ2OGgtOFYyaC0ydjEyaDEwem0wIDBoLTJ2OGgtOHYtOGgtMnYxMGgxMlYxNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40" />
-        <CardContent className="relative z-10 p-6 sm:p-8">
+      <Card className="relative overflow-hidden rounded-2xl border-0 bg-slate-900 text-white shadow-lg">
+        <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full border-[32px] border-white/[0.04]" />
+        <div className="absolute right-20 -bottom-24 h-48 w-48 rounded-full bg-teal-400/10 blur-2xl" />
+        <CardContent className="relative z-10 p-5 sm:p-7">
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/30">
-              <Gift className="h-7 w-7 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-teal-400/15 flex items-center justify-center shrink-0 border border-teal-300/20">
+              <Gift className="h-6 w-6 text-teal-300" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl sm:text-2xl font-extrabold text-white mb-1">
-                Invite Friends, Earn XP! 🚀
+              <p className="text-xs uppercase tracking-[0.18em] font-semibold text-teal-300 mb-1">Invite classmates</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
+                Share DLMS with a friend
               </h2>
-              <p className="text-white/80 text-sm leading-relaxed">
-                Share your unique link. When a classmate logs into DLMS for the first time using your link, you earn <strong className="text-yellow-300">+250 XP</strong> instantly!
+              <p className="text-slate-300 text-sm leading-relaxed max-w-xl">
+                When a new student joins with your link, you earn <strong className="text-teal-200">250 XP</strong>, up to {MAX_REWARDED_INVITES} successful invites.
               </p>
             </div>
           </div>
 
-          {/* Stats row */}
-          <div className="grid grid-cols-2 gap-3 mt-5">
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 border border-white/20 text-center">
-              <p className="text-2xl font-extrabold text-yellow-300">{inviteCount}</p>
-              <p className="text-xs text-white/70 mt-0.5">Friends Joined</p>
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            <div className="bg-white/[0.07] rounded-xl p-3.5 border border-white/10">
+              <p className="text-2xl font-bold text-white">{inviteCount}</p>
+              <p className="text-xs text-slate-400 mt-0.5">Friends joined</p>
             </div>
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 border border-white/20 text-center">
-              <p className="text-2xl font-extrabold text-yellow-300">{totalInviteXP}</p>
-              <p className="text-xs text-white/70 mt-0.5">XP Earned via Invites</p>
+            <div className="bg-white/[0.07] rounded-xl p-3.5 border border-white/10">
+              <p className="text-2xl font-bold text-teal-300">{totalInviteXP.toLocaleString()}</p>
+              <p className="text-xs text-slate-400 mt-0.5">XP credited · {MAX_INVITE_XP.toLocaleString()} max</p>
             </div>
           </div>
 
-          {/* Progress towards cap */}
-          {inviteCount > 0 && (
-            <div className="mt-4">
-              <div className="flex justify-between text-xs text-white/70 mb-1">
-                <span>Invite XP Progress</span>
-                <span>{totalInviteXP} / {MAX_INVITE_XP} XP</span>
-              </div>
-              <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-yellow-300 to-amber-400 rounded-full transition-all duration-700"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
+          <div className="mt-4">
+            <div className="flex justify-between text-xs text-slate-400 mb-2">
+              <span>Invite reward progress</span>
+              <span>{totalInviteXP.toLocaleString()} / {MAX_INVITE_XP.toLocaleString()} XP</span>
             </div>
-          )}
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-teal-400 rounded-full transition-all duration-700"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Invite Link Card */}
-      <Card className="border-border/50">
+      <Card className="rounded-2xl border-border/70 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Share2 className="h-4 w-4 text-primary" />
@@ -357,7 +362,7 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
 
       {/* Were You Invited by a Classmate? Manual Redemption */}
       {!inviteRewardClaimed && (
-        <Card className="border-amber-300/50 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-yellow-500/10">
+      <Card className="rounded-2xl border-amber-300/50 bg-amber-50/50 shadow-sm dark:bg-amber-950/10">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Gift className="h-4 w-4 text-amber-500" />
@@ -400,7 +405,7 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
 
       {/* Friends Who Joined List */}
       {friends.length > 0 && (
-        <Card className="border-border/50">
+        <Card className="rounded-2xl border-border/70 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
@@ -451,7 +456,7 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
 
 
       {/* How it works */}
-      <Card className="border-border/50">
+      <Card className="rounded-2xl border-border/70 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-amber-500" />
@@ -499,7 +504,7 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
           <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 flex items-start gap-3">
             <Star className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-              <strong>Max reward:</strong> Earn up to <strong>{MAX_INVITE_XP} XP</strong> ({MAX_INVITE_XP / XP_PER_INVITE} invites) through the invite program. Each new student only counts once!
+              <strong>Maximum inviter reward:</strong> Earn up to <strong>{MAX_INVITE_XP.toLocaleString()} XP</strong> ({MAX_REWARDED_INVITES} successful invites). Each new student only counts once!
             </p>
           </div>
         </CardContent>
