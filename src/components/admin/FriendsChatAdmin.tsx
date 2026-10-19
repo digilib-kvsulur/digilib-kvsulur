@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 
 const GROUP_TOPIC = "friends-group:online";
+type PrivateMessage = { id: string; sender_id: string; sender_name: string; recipient_id: string; recipient_name: string; body: string; created_at: string; expires_at: string };
+type GroupMessage = { id: string; sender_id: string; name: string; body: string; created_at: string };
 const getBool = (value: unknown, fallback: boolean) => value === undefined || value === null ? fallback : value === true || value === "true";
 const getNumber = (value: unknown, fallback: number) => {
   const parsed = Number(value);
@@ -23,6 +25,8 @@ export default function FriendsChatAdmin() {
   const [activeMessages, setActiveMessages] = useState<number | null>(null);
   const [todayMessages, setTodayMessages] = useState<number | null>(null);
   const [expiredPending, setExpiredPending] = useState<number | null>(null);
+  const [privateMessages, setPrivateMessages] = useState<PrivateMessage[]>([]);
+  const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -30,9 +34,10 @@ export default function FriendsChatAdmin() {
   const load = useCallback(async () => {
     setLoading(true);
     const now = new Date();
-    const [settingsRes, statsRes] = await Promise.all([
+    const [settingsRes, statsRes, messagesRes] = await Promise.all([
       supabase.from("system_settings").select("key, value").in("key", ["friends_chat_enabled", "friends_group_chat_enabled", "friends_chat_max_retention_hours"]),
       (supabase as any).rpc("get_friends_chat_admin_stats"),
+      (supabase as any).rpc("get_friends_chat_admin_messages", { p_limit: 100 }),
     ]);
     if (!settingsRes.error) {
       const values = Object.fromEntries((settingsRes.data || []).map((row) => [row.key, row.value]));
@@ -43,14 +48,28 @@ export default function FriendsChatAdmin() {
     setActiveMessages(statsRes.error ? null : Number(statsRes.data?.active_messages ?? 0));
     setTodayMessages(statsRes.error ? null : Number(statsRes.data?.today_messages ?? 0));
     setExpiredPending(statsRes.error ? null : Number(statsRes.data?.expired_pending ?? 0));
+    setPrivateMessages(messagesRes.error ? [] : (messagesRes.data || []) as PrivateMessage[]);
     setLoading(false);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
 
   useEffect(() => {
+    const timer = window.setInterval(async () => {
+      const { data, error } = await (supabase as any).rpc("get_friends_chat_admin_messages", { p_limit: 100 });
+      if (!error) setPrivateMessages((data || []) as PrivateMessage[]);
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     const channel = supabase.channel(GROUP_TOPIC, { config: { private: true } })
-      .on("presence", { event: "sync" }, () => setOnlineCount(Object.keys(channel.presenceState()).length));
+      .on("presence", { event: "sync" }, () => setOnlineCount(Object.keys(channel.presenceState()).length))
+      .on("broadcast", { event: "group_message" }, ({ payload }) => {
+        const message = payload as GroupMessage;
+        if (!message?.id) return;
+        setGroupMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message].slice(-100));
+      });
     channel.subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, []);
@@ -99,7 +118,31 @@ export default function FriendsChatAdmin() {
                 <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">1 hour</SelectItem><SelectItem value="24">1 day</SelectItem><SelectItem value="168">7 days</SelectItem></SelectContent>
               </Select>
             </div>
-            <div className="flex gap-3 rounded-xl border bg-muted/30 p-3.5"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><p className="text-xs leading-relaxed text-muted-foreground">Private message contents are not shown on this admin page. The counts above show usage only. The online count includes students currently present in the group room.</p></div>
+            <div className="flex gap-3 rounded-xl border bg-muted/30 p-3.5"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><p className="text-xs leading-relaxed text-muted-foreground">Private monitoring only includes messages before expiry. Group messages can be monitored live while this page stays open, but are never retained. The online count reflects current group room presence.</p></div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card className="rounded-2xl">
+          <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-lg"><ShieldCheck className="h-5 w-5 text-primary" /> Private message monitor</CardTitle><CardDescription>Latest unexpired direct messages. This list refreshes every 15 seconds.</CardDescription></CardHeader>
+          <CardContent>
+            {privateMessages.length === 0 ? <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">No unexpired private messages to show.</p> :
+              <div className="max-h-[440px] space-y-2 overflow-y-auto pr-1">{privateMessages.map((message) => <div key={message.id} className="rounded-xl border bg-card p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><p className="text-xs font-semibold">{message.sender_name}<span className="mx-1.5 text-muted-foreground">→</span>{message.recipient_name}</p><time className="text-[10px] text-muted-foreground">{new Date(message.created_at).toLocaleString()}</time></div>
+                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.body}</p>
+                <p className="mt-2 text-right text-[10px] text-muted-foreground">Expires {new Date(message.expires_at).toLocaleString()}</p>
+              </div>)}</div>}
+          </CardContent>
+        </Card>
+        <Card className="rounded-2xl">
+          <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-lg"><Users className="h-5 w-5 text-violet-600" /> Live group room</CardTitle><CardDescription>Messages arrive live while this page is open. Group chat is not saved, so earlier messages cannot be loaded.</CardDescription></CardHeader>
+          <CardContent>
+            {groupMessages.length === 0 ? <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Waiting for group room messages…</p> :
+              <div className="max-h-[440px] space-y-2 overflow-y-auto pr-1">{groupMessages.slice().reverse().map((message) => <div key={message.id} className="rounded-xl border bg-card p-3">
+                <div className="mb-1 flex items-center justify-between gap-3"><p className="text-xs font-semibold">{message.name}</p><time className="shrink-0 text-[10px] text-muted-foreground">{new Date(message.created_at).toLocaleTimeString()}</time></div>
+                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.body}</p>
+              </div>)}</div>}
           </CardContent>
         </Card>
       </div>

@@ -200,7 +200,7 @@ export default function FriendsChat({ userId }: { userId: string }) {
           <CardHeader className="flex-row items-center gap-3 space-y-0 border-b py-3">
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setGroupMode(false)} aria-label="Back to chats"><ArrowLeft className="h-4 w-4" /></Button>
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white"><Users className="h-4 w-4" /></span>
-            <div className="min-w-0 flex-1"><CardTitle className="text-base">Everyone online</CardTitle><p className="text-xs text-muted-foreground">Ephemeral room · messages are not saved</p></div>
+            <div className="min-w-0 flex-1"><CardTitle className="text-base">Everyone online</CardTitle><p className="text-xs text-muted-foreground">Live room · admins may monitor · not saved</p></div>
             <Badge variant="secondary">{onlineCount} online</Badge>
           </CardHeader>
           <ScrollArea className="min-h-0 flex-1 p-4"><div className="space-y-3">
@@ -214,7 +214,7 @@ export default function FriendsChat({ userId }: { userId: string }) {
           <CardHeader className="flex-row items-center gap-3 space-y-0 border-b py-3">
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSelected(null)} aria-label="Back to chats"><ArrowLeft className="h-4 w-4" /></Button>
             <Avatar className="h-9 w-9"><AvatarImage src={selected.avatar_url ? getAvatarUrl(selected.avatar_url) : undefined} /><AvatarFallback>{displayName(selected).slice(0, 1)}</AvatarFallback></Avatar>
-            <div className="min-w-0"><CardTitle className="truncate text-base">{displayName(selected)}</CardTitle><p className="text-xs text-muted-foreground">Private · messages disappear automatically</p></div>
+            <div className="min-w-0"><CardTitle className="truncate text-base">{displayName(selected)}</CardTitle><p className="text-xs text-muted-foreground">Friends only · admins may review until expiry</p></div>
           </CardHeader>
           <ScrollArea className="min-h-0 flex-1 p-4"><div className="space-y-3">{messages.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">Say hello to {displayName(selected)}.</p>}
             {messages.map((message) => <div key={message.id} className={`flex ${message.sender_id === userId ? "justify-end" : "justify-start"}`}><div className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 ${message.sender_id === userId ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
