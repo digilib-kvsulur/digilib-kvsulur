@@ -50,20 +50,24 @@ interface Message {
 type ActiveWidgetType = 'none' | 'ticket' | 'profile' | 'feedback' | 'badges' | 'certificates' | 'level';
 
 const DEFAULT_PROMPTS = [
-  "🔍 Search Book / Shelf",
-  "📚 My books & due dates",
+  "❔ Help Menu",
+  "🔍 Find a Book",
+  "📚 My Books & Due Dates",
+  "📄 My Requests",
+  "🔁 How to Renew a Book",
   "📅 Upcoming Events",
-  "🎮 Games Corner & XP",
-  "💰 Overdue fine amount",
-  "🎫 Raise Support Ticket",
-  "✏️ Quick Profile Edit",
-  "💬 Give Feedback",
-  "👑 Check Badges",
+  "🎫 Create Support Ticket",
+  "🔎 Track Support Ticket",
+  "✏️ Edit My Profile",
+  "💬 Send Feedback",
+  "💰 My Fine Amount",
+  "👑 My Badges",
   "📜 My Certificates",
-  "⚡ Level & XP Info",
-  "🕐 Library timings",
+  "⚡ My Level & XP",
+  "📖 Study Materials",
+  "🎮 Games Corner",
+  "🕐 Library Timings",
   "📖 Reading Wrap",
-  "👨‍💻 About Developer",
 ];
 
 export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }) => {
@@ -79,6 +83,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
 
   // Active Interactive Card Widget State
   const [activeWidget, setActiveWidget] = useState<ActiveWidgetType>('none');
+  const [ticketInitialMode, setTicketInitialMode] = useState<"create" | "track">("create");
 
   // Text-to-speech, speech-to-text & copy state
   const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
@@ -307,8 +312,12 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
       /\b(i have an? (?:issue|problem) with (?:the library|my account|my fine|my book|the app|the system|dlms))\b/.test(t) ||
       /\b(report (?:an? )?(?:issue|problem|bug)|contact (?:the )?librarian|contact support)\b/.test(t)
     ) {
+      const wantsTracking = /\b(track|check|status|existing)\b/.test(t) && /ticket/.test(t);
+      setTicketInitialMode(wantsTracking ? "track" : "create");
       setActiveWidget('ticket');
-      return "🎫 I have opened the **Support Desk** above! You can submit a new ticket or track an existing ticket's status.";
+      return wantsTracking
+        ? "🔎 I’ve opened ticket tracking. Enter the ticket number and I’ll look up its latest status."
+        : "🎫 I’ve opened the Support Desk. I’ll ask a few questions one at a time to create your ticket.";
     }
 
     // 2. Profile Edit Intent
@@ -457,6 +466,10 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
     // ─────────────────────────────────────────────────────────────
     const checkPredefinedAnswer = (text: string): string | null => {
       const t = text.toLowerCase().trim();
+
+      if (t.includes("help menu") || /^(help|help me|menu|what can you do|what can i do|what can you help with|what do you do|show options|show me options)[?!. ]*$/.test(t)) {
+        return `🧭 **Here’s what I can do in this chat**\n\n• **Find books:** search by title, author, subject, availability, or shelf location. I’ll show matching catalog results; place a request from the book’s Catalog page.\n• **Your account:** check borrowed books and due dates, outstanding fines, and recent book requests.\n• **Renewal help:** get the steps to request a renewal from My Requests.\n• **Support:** create a support ticket one question at a time, or track an existing ticket by number.\n• **Profile:** update your bio, class, roll number, phone, or username through a guided chat.\n• **Feedback:** send a rating and message one step at a time.\n• **Library info:** look up events, timings, rules, study materials, games, and reading features.\n• **Achievements:** view your badges, certificates, level, and XP cards.\n\nTap a suggested prompt below, or type what you need in your own words.`;
+      }
 
       // Check dynamic admin-configured messages first
       if (customBotMessages && customBotMessages.length > 0) {
@@ -917,7 +930,7 @@ export const LibraryBot = ({ suggestedPrompts }: { suggestedPrompts?: string[] }
             )}
 
             {/* ── Interactive Cards ────────────────────────── */}
-            {activeWidget === 'ticket' && <InChatTicketWidget currentUser={currentUser} onClose={() => setActiveWidget('none')} onTicketCreated={handleTicketCreated} />}
+      {activeWidget === 'ticket' && <InChatTicketWidget currentUser={currentUser} initialMode={ticketInitialMode} onClose={() => setActiveWidget('none')} onTicketCreated={handleTicketCreated} />}
             {activeWidget === 'profile' && <InChatProfileEditor currentUser={currentUser} onClose={() => setActiveWidget('none')} onProfileUpdated={handleProfileUpdated} />}
             {activeWidget === 'feedback' && <InChatFeedbackWidget currentUser={currentUser} onClose={() => setActiveWidget('none')} onFeedbackSubmitted={handleFeedbackSubmitted} />}
             {activeWidget === 'badges' && <InChatBadgeCard currentUser={currentUser} onClose={() => setActiveWidget('none')} />}
