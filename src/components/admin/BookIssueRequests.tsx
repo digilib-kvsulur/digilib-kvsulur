@@ -712,7 +712,7 @@ const BookIssueRequests = () => {
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 flex-wrap sm:flex-nowrap shrink-0">
+        <div className="w-full sm:w-auto min-w-0 flex gap-2 flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-1.5">
             <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
             <Select value={statusFilter} onValueChange={setStatusFilter}>

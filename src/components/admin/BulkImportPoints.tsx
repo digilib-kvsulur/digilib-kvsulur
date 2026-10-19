@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-type Mode = "set" | "reduce";
+type Mode = "set" | "increase" | "reduce";
 type Status = "valid" | "error";
 
 interface ImportRow {
@@ -140,9 +140,9 @@ const BulkImportPoints = ({ onImported }: { onImported?: () => void }) => {
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Bulk Set or Reduce Points</DialogTitle>
+          <DialogTitle>Bulk Adjust Points</DialogTitle>
           <DialogDescription>
-            Upload a CSV with <span className="font-mono">admission_number</span> and <span className="font-mono">points</span>. Use Set total to replace a total, or Reduce by to deduct points without going below zero.
+            Upload a CSV with <span className="font-mono">admission_number</span> and <span className="font-mono">points</span>. Set total replaces the current total, Increase by adds to it, and Reduce by deducts points without going below zero.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 min-h-0">
@@ -155,7 +155,7 @@ const BulkImportPoints = ({ onImported }: { onImported?: () => void }) => {
             {fileName && <Badge variant="secondary">{fileName} · {rows.length} rows</Badge>}
             <Select value={mode} onValueChange={(value) => setMode(value as Mode)} disabled={results.length > 0}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="set">Set total points</SelectItem><SelectItem value="reduce">Reduce points by</SelectItem></SelectContent>
+              <SelectContent><SelectItem value="set">Set total points</SelectItem><SelectItem value="increase">Increase points by</SelectItem><SelectItem value="reduce">Reduce points by</SelectItem></SelectContent>
             </Select>
           </div>
 
@@ -169,7 +169,7 @@ const BulkImportPoints = ({ onImported }: { onImported?: () => void }) => {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>
-          <Button onClick={submit} disabled={loading || validCount === 0 || results.length > 0}>{loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Updating…</> : `${mode === "set" ? "Set" : "Reduce"} Points for ${validCount} Users`}</Button>
+          <Button onClick={submit} disabled={loading || validCount === 0 || results.length > 0}>{loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Updating…</> : `${mode === "set" ? "Set" : mode === "increase" ? "Increase" : "Reduce"} Points for ${validCount} Users`}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CheckCircle, XCircle, Clock, Search, KeyRound, MoreHorizontal, Copy, Users as UsersIcon, RotateCcw, Loader2, GraduationCap, Trash2, Eye, EyeOff, Mail, Check } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -26,6 +27,7 @@ interface PendingUser {
   username?: string;
   phone?: string;
   admission_number?: string;
+  avatar_url?: string | null;
   points?: number;
   created_at: string;
   is_approved: boolean;
@@ -422,8 +424,16 @@ const UserApproval = () => {
                     <TableRow key={u.id}>
                       <TableCell><input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} /></TableCell>
                       <TableCell>
-                        <div className="font-medium">{u.first_name} {u.last_name}</div>
-                        {u.username && <div className="text-xs text-muted-foreground">@{u.username}</div>}
+                        <div className="flex min-w-[190px] items-center gap-3">
+                          <Avatar className="h-10 w-10 border shadow-sm">
+                            <AvatarImage src={u.avatar_url || undefined} alt={`${u.first_name} ${u.last_name}`} />
+                            <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{`${u.first_name?.[0] || ""}${u.last_name?.[0] || ""}`.toUpperCase() || "U"}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0"><div className="truncate font-medium">{u.first_name} {u.last_name}</div>
+                            {u.username && <div className="truncate text-xs text-muted-foreground">@{u.username}</div>}
+                            {u.admission_number && <div className="text-[11px] text-muted-foreground">Adm. {u.admission_number}</div>}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div>{u.email}</div>
@@ -486,16 +496,22 @@ const UserApproval = () => {
                   {visibleApproved.map(u => (
                     <TableRow key={u.id}>
                       <TableCell>
-                        <div className="font-medium">{u.first_name} {u.last_name}</div>
-                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                        <div className="flex min-w-[210px] items-center gap-3">
+                          <Avatar className="h-10 w-10 border shadow-sm">
+                            <AvatarImage src={u.avatar_url || undefined} alt={`${u.first_name} ${u.last_name}`} />
+                            <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{`${u.first_name?.[0] || ""}${u.last_name?.[0] || ""}`.toUpperCase() || "U"}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0"><div className="truncate font-medium">{u.first_name} {u.last_name}</div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                           {u.username && <span className="text-xs text-muted-foreground">@{u.username}</span>}
+                          {u.admission_number && <span className="text-[11px] text-muted-foreground">Adm. {u.admission_number}</span>}
                           {u.community_blocked_until && new Date(u.community_blocked_until).getTime() > Date.now() && (
                             <Badge variant="destructive" className="text-[9px] py-0 px-1">🚫 Blocked</Badge>
                           )}
                           {u.community_warn_count && u.community_warn_count > 0 && (
                             <Badge variant="secondary" className="text-[9px] py-0 px-1 text-amber-700 bg-amber-50 border-amber-200">⚠️ {u.community_warn_count} warning(s)</Badge>
                           )}
-                        </div>
+                        </div></div></div>
                       </TableCell>
                       <TableCell>{u.email}</TableCell>
                       <TableCell><Badge variant="outline">{u.role}</Badge></TableCell>

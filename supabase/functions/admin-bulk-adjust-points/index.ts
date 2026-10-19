@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type Mode = "set" | "reduce";
+type Mode = "set" | "increase" | "reduce";
 interface ImportRow { rowNumber: number; identifier: string; points: number; }
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const mode: Mode = body?.mode;
     const rows = body?.rows as ImportRow[];
-    if (mode !== "set" && mode !== "reduce") return json({ error: "Mode must be set or reduce" }, 400);
+    if (mode !== "set" && mode !== "increase" && mode !== "reduce") return json({ error: "Mode must be set, increase, or reduce" }, 400);
     if (!Array.isArray(rows) || rows.length === 0 || rows.length > 1000) return json({ error: "Provide between 1 and 1000 rows" }, 400);
 
     const invalid = rows.find((row) => !row || !String(row.identifier || "").trim() || !Number.isInteger(row.points) || row.points < 0);
@@ -64,10 +64,18 @@ Deno.serve(async (req) => {
       if (found.length > 1) { results.push({ rowNumber: row.rowNumber, identifier: row.identifier, success: false, error: "Identifier matches multiple students" }); continue; }
       const profile = found[0];
       const previousPoints = Math.max(0, profile.points || 0);
-      const newPoints = mode === "set" ? row.points : Math.max(0, previousPoints - row.points);
+      const newPoints = mode === "set"
+        ? row.points
+        : mode === "increase"
+          ? previousPoints + row.points
+          : Math.max(0, previousPoints - row.points);
       const { error } = await admin.from("profiles").update({ points: newPoints, updated_at: new Date().toISOString() }).eq("id", profile.id);
       if (error) { results.push({ rowNumber: row.rowNumber, identifier: row.identifier, success: false, error: error.message }); continue; }
-      const description = mode === "set" ? `Your points total was set to ${newPoints} points.` : `${Math.min(row.points, previousPoints)} points were deducted. Your new total is ${newPoints} points.`;
+      const description = mode === "set"
+        ? `Your points total was set to ${newPoints} points.`
+        : mode === "increase"
+          ? `${row.points} points were added. Your new total is ${newPoints} points.`
+          : `${Math.min(row.points, previousPoints)} points were deducted. Your new total is ${newPoints} points.`;
       await admin.from("notifications").insert({ title: "Points updated", message: description, type: "points", target_user_id: profile.id, sent_by: caller.id });
       results.push({ rowNumber: row.rowNumber, identifier: row.identifier, success: true, previousPoints, newPoints });
     }

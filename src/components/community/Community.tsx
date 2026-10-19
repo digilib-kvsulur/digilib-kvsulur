@@ -3299,20 +3299,6 @@ function FriendsPanel({ currentUserId, friendshipsMap, reload, openProfile }: an
         </div>
       )}
 
-      {/* Floating Create Post Button (Bottom Left, Round, Blue) */}
-      <button
-        type="button"
-        onClick={() => {
-          setPostKind("text");
-          setShowNew(true);
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
-        className="fixed bottom-20 sm:bottom-6 left-6 z-40 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-xl shadow-blue-500/30 flex items-center justify-center transition-all duration-200 group focus:outline-none focus:ring-4 focus:ring-blue-300"
-        title="Create new post"
-        aria-label="Create new post"
-      >
-        <Plus className="h-7 w-7 text-white transition-transform duration-200 group-hover:rotate-90" />
-      </button>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { fetchAllApprovedProfiles } from "@/lib/profileFetcher";
+import Papa from "papaparse";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Profile = {
@@ -403,6 +404,7 @@ export default function EmailCampaignManager() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("all");
+  const [admissionNumbers, setAdmissionNumbers] = useState("");
 
   // Compose
   const [activeTemplate, setActiveTemplate] = useState<Template>(TEMPLATES[0]);
@@ -484,6 +486,46 @@ export default function EmailCampaignManager() {
 
   const selectAllVisible = () => setSelected(new Set(visible.map((p) => p.id)));
   const clearSelection = () => setSelected(new Set());
+
+  const addByAdmissionNumbers = (values: string[]) => {
+    const wanted = new Set(values.map((value) => value.trim().replace(/^['"]|['"]$/g, "").toLowerCase()).filter(Boolean));
+    if (wanted.size === 0) {
+      toast({ title: "No admission numbers found", description: "Enter or import one or more admission numbers.", variant: "destructive" });
+      return;
+    }
+
+    const matches = verifiedProfiles.filter((profile) =>
+      profile.admission_number && wanted.has(profile.admission_number.trim().toLowerCase()),
+    );
+    const matchedIds = new Set(matches.map((profile) => profile.id));
+    const unmatchedCount = [...wanted].filter((value) =>
+      !verifiedProfiles.some((profile) => profile.admission_number?.trim().toLowerCase() === value),
+    ).length;
+
+    setSelected((previous) => new Set([...previous, ...matchedIds]));
+    toast({
+      title: matchedIds.size ? "Recipients added" : "No eligible recipients found",
+      description: `${matchedIds.size} verified recipient${matchedIds.size === 1 ? "" : "s"} added${unmatchedCount ? `; ${unmatchedCount} admission number${unmatchedCount === 1 ? "" : "s"} had no confirmed email match` : ""}.`,
+      variant: matchedIds.size ? "default" : "destructive",
+    });
+  };
+
+  const handleAdmissionImport = async (file: File) => {
+    try {
+      const text = await file.text();
+      const rows = Papa.parse<string[]>(text, { skipEmptyLines: true }).data;
+      const normalizeHeader = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const admissionHeaders = new Set(["admissionnumber", "admissionno", "admission", "admno", "admnumber"]);
+      const headerRow = rows[0] || [];
+      const admissionColumn = headerRow.findIndex((cell) => admissionHeaders.has(normalizeHeader(cell)));
+      const values = admissionColumn >= 0
+        ? rows.slice(1).map((row) => row[admissionColumn] || "")
+        : rows.map((row) => row[0] || "");
+      addByAdmissionNumbers(values);
+    } catch {
+      toast({ title: "Could not read import file", description: "Use a CSV or text file with admission numbers, one per row.", variant: "destructive" });
+    }
+  };
 
   const handleSend = async () => {
     if (!selected.size) {
@@ -658,6 +700,48 @@ export default function EmailCampaignManager() {
                   {selected.size > 0 && (
                     <button className="text-destructive hover:underline" onClick={clearSelection}>Clear</button>
                   )}
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-3">
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Add by admission number</p>
+                  <p className="text-[11px] text-muted-foreground">Paste one or more numbers separated by commas or new lines, or import a CSV/TXT file.</p>
+                </div>
+                <Textarea
+                  value={admissionNumbers}
+                  onChange={(event) => setAdmissionNumbers(event.target.value)}
+                  placeholder="Admission numbers (one per line)"
+                  rows={3}
+                  className="resize-y bg-background text-xs"
+                  aria-label="Admission numbers to add as email recipients"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!admissionNumbers.trim()}
+                    onClick={() => {
+                      addByAdmissionNumbers(admissionNumbers.split(/[\n,;\t]+/));
+                      setAdmissionNumbers("");
+                    }}
+                  >
+                    Add numbers
+                  </Button>
+                  <label className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground">
+                    Import CSV/TXT
+                    <input
+                      type="file"
+                      accept=".csv,.txt,text/csv,text/plain"
+                      className="sr-only"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) void handleAdmissionImport(file);
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
                 </div>
               </div>
 

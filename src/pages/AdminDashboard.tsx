@@ -417,7 +417,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="admin-dashboard min-h-dvh w-full min-w-0 overflow-x-clip bg-background flex">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 bg-card border-r border-border flex-col fixed h-full z-40">
         <div className="p-5 border-b border-border">
@@ -502,14 +502,14 @@ const AdminDashboard = () => {
               className="fixed inset-0 top-14 bg-black/50 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
               onClick={() => setMobileNavOpen(false)}
             />
-            <div className="relative z-50 bg-card border-b border-border px-4 pb-3 max-h-[70vh] overflow-y-auto space-y-3 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+            <div className="relative z-50 bg-card border-b border-border px-4 pb-3 max-h-[calc(100dvh-3.5rem)] overflow-y-auto space-y-3 shadow-2xl animate-in slide-in-from-top-2 duration-200">
               {navSections.map(section => (
                 <div key={section.title}>
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{section.title}</p>
                   {section.items.map(item => (
                     <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === item.id ? 'gradient-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:bg-muted'}`}>
-                      <item.icon className="h-4 w-4" /> {item.label}
+                      className={`w-full min-w-0 flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm transition-colors ${activeTab === item.id ? 'gradient-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:bg-muted'}`}>
+                      <item.icon className="h-4 w-4 shrink-0" /> <span className="min-w-0">{item.label}</span>
                     </button>
                   ))}
                 </div>
@@ -520,9 +520,9 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 pt-16 lg:pt-0">
+      <main className="min-w-0 w-full flex-1 lg:ml-64 pt-16 lg:pt-0">
         <Suspense fallback={<div className="max-w-6xl mx-auto p-8 text-center text-sm text-muted-foreground">Loading this admin section…</div>}>
-        <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div key={activeTab} data-admin-content className="admin-dashboard-content w-full min-w-0 max-w-6xl mx-auto p-3 sm:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
           {/* Overview */}
           {activeTab === "overview" && (

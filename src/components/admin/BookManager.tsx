@@ -603,6 +603,7 @@ const BookManager = () => {
                   <TableHead className="w-10">
                     <input type="checkbox" checked={books.length > 0 && books.every(b => selectedBookIds.has(b.id))} onChange={() => toggleSelectAll(books)} />
                   </TableHead>
+                  <TableHead>Cover</TableHead>
                   <TableHead>Accession</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Author</TableHead>
@@ -619,9 +620,17 @@ const BookManager = () => {
                     <TableCell>
                       <input type="checkbox" checked={selectedBookIds.has(book.id)} onChange={() => toggleSelectBook(book.id)} />
                     </TableCell>
+                    <TableCell>
+                      <div className="flex h-14 w-11 items-center justify-center overflow-hidden rounded border bg-muted shadow-sm">
+                        {book.cover_url ? <img src={book.cover_url} alt={`${book.title} cover`} loading="lazy" className="h-full w-full object-cover" onError={event => { event.currentTarget.style.display = "none"; }} /> : <BookOpen className="h-5 w-5 text-muted-foreground/60" />}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-xs font-mono">{book.accession_number || '—'}</TableCell>
-                    <TableCell className="font-medium">{book.title}</TableCell>
-                    <TableCell>{book.author}</TableCell>
+                    <TableCell className="min-w-[190px]">
+                      <div className="font-semibold leading-tight">{book.title}</div>
+                      {book.subject && <div className="mt-1 line-clamp-1 text-[11px] text-muted-foreground">{book.subject}</div>}
+                    </TableCell>
+                    <TableCell className="min-w-[130px]">{book.author}</TableCell>
                     <TableCell className="text-xs">{book.language || '—'}</TableCell>
                     <TableCell>{book.category || '—'}</TableCell>
                     <TableCell>{book.available_copies}/{book.total_copies}</TableCell>
@@ -641,7 +650,7 @@ const BookManager = () => {
                   </TableRow>
                 ))}
                 {books.length === 0 && (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     {totalCount === 0 ? "No books yet. Add your first book or bulk import!" : "No books match your search."}
                   </TableCell></TableRow>
                 )}

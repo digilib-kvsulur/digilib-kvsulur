@@ -680,7 +680,8 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
             onValueChange={(v: any) => setActiveTab(v)}
             className="flex-1 flex flex-col min-h-0"
           >
-            <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div className="max-w-full overflow-x-auto">
               <TabsList className="grid grid-cols-3 w-[420px]">
                 <TabsTrigger value="analysis" className="text-xs">
                   <Sparkles className="h-3.5 w-3.5 mr-1 text-amber-500" />
@@ -695,8 +696,9 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                   Collection &amp; Thresholds
                 </TabsTrigger>
               </TabsList>
+              </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ml-auto">
                 <Button
                   variant="outline"
                   size="sm"

@@ -151,6 +151,25 @@
   }
 }
 
+/* Keep every admin section inside the available mobile viewport. */
+.admin-dashboard-content,
+.admin-dashboard-content > * {
+  min-width: 0;
+}
+
+.admin-dashboard-content .overflow-x-auto {
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 639px) {
+  [role="dialog"] {
+    max-width: calc(100vw - 1.5rem) !important;
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
+  }
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }

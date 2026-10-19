@@ -389,7 +389,7 @@ export default function GameContentManager({ games }: { games: { key: string; na
                 </Button>
               </div>
             </div>
-            <div className="max-h-60 overflow-y-auto border rounded-lg bg-background text-xs">
+            <div className="max-h-60 overflow-auto border rounded-lg bg-background text-xs">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-muted border-b">
