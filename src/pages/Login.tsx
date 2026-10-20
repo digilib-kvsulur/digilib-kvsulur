@@ -342,7 +342,6 @@ const Login = () => {
     <div className="flex min-h-dvh animate-in fade-in duration-300 lg:h-dvh lg:min-h-0 lg:overflow-hidden">
       {/* Left Panel - Immersive Branding */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-[#f4f0e8] text-[#242b3b]">
-        <div className="absolute inset-0 gradient-primary" />
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE0VjZoLTJ2OGgtOFYyaC0ydjEyaDEwem0wIDBoLTJ2OGgtOHYtOGgtMnYxMGgxMlYxNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30" />
         <div className="absolute inset-y-0 right-0 z-10 w-2 bg-indigo-700/90" />
         
@@ -401,7 +400,7 @@ const Login = () => {
             </div>
             <div>
               <h1 className="text-sm font-bold leading-tight text-foreground">PM SHRI KV AFS SULUR</h1>
-              <p className="text-[11px] text-muted-foreground">Digital Library Management System</p>
+              <p className="text-[11px] text-muted-foreground">School Library</p>
             </div>
           </div>
 

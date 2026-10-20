@@ -516,13 +516,7 @@ const Index = () => {
               <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed mx-auto lg:mx-0 font-normal">
                 {settings.home_hero_subtitle || (
                   <>
-                    Find books from the school collection, keep up with library activities, and make time for a good read at PM SHRI KV AFS Sulur.
-                    {/*
-                    <span className="font-semibold text-slate-900">
-                      {settings.school_name || "PM SHRI KENDRIYA VIDYALAYA"} DLMS
-                    </span>
-                    . Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
-                    */}
+                    Find books from the school collection, keep up with library activities, and make time for a good read at {settings.school_name || "PM SHRI KV AFS Sulur"}.
                   </>
                 )}
               </p>
@@ -661,19 +655,19 @@ const Index = () => {
       {/* Features Grid with generous card padding */}
       <section id="about" className="py-24 bg-white relative max-w-7xl mx-auto my-12 rounded-3xl border border-slate-200/80 shadow-md overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
-            <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Built For KV Students</p>
-            <h3 className="text-2xl sm:text-4xl font-black text-slate-900">A Modern Gamified Library</h3>
-            <p className="text-sm text-slate-600 leading-relaxed pt-1">We have reimagined the library experience by connecting reading with gamification, comprehension milestones, and social connection.</p>
+          <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
+            <p className="text-xs font-semibold text-indigo-700 uppercase tracking-widest">Your library, online</p>
+            <h3 className="text-2xl sm:text-4xl font-bold text-slate-900">Everything you need to keep reading</h3>
+            <p className="text-sm text-slate-600 leading-relaxed pt-1">Find books, join library activities, and keep your reading in one place.</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f, i) => (
-              <div key={i} className="p-8 rounded-3xl bg-slate-50/50 border border-slate-200/80 shadow-sm hover:shadow-lg hover:bg-white hover:border-indigo-200 transition-all hover:-translate-y-1 space-y-4">
-                <div className={`w-12 h-12 rounded-xl border ${f.color} flex items-center justify-center`}>
+              <div key={i} className="p-6 border-b border-slate-200 bg-transparent space-y-3">
+                <div className={`w-10 h-10 rounded-lg border ${f.color} flex items-center justify-center`}>
                   <f.icon className="h-6 w-6" />
                 </div>
-                <h4 className="text-xl font-bold text-slate-900">{f.title}</h4>
+                <h4 className="text-lg font-semibold text-slate-900">{f.title}</h4>
                 <p className="text-sm text-slate-600 leading-relaxed">{f.desc}</p>
               </div>
             ))}
@@ -757,12 +751,12 @@ const Index = () => {
 
       {/* CTA Box with generous padding */}
       {!user && (
-        <section className="py-20 relative overflow-hidden bg-gradient-to-tr from-indigo-900 via-indigo-800 to-blue-900 text-white">
+        <section className="py-16 relative overflow-hidden bg-[#f0ece4] text-slate-900 border-y border-[#e2dbcf]">
           <div className="relative max-w-3xl mx-auto px-8 sm:px-12 text-center space-y-7">
-            <h3 className="text-3.5xl sm:text-4xl font-black tracking-tight text-white">Ready to Start Your Reading Adventure?</h3>
-            <p className="text-indigo-100 text-base max-w-lg mx-auto leading-relaxed">Join 1500+ student bookworms at KV AFS Sulur. Log reading activities, earn custom badges, and climb classes league!</p>
-            <Button onClick={() => navigate("/login")} size="lg" className="bg-white hover:bg-slate-100 hover:text-indigo-900 text-indigo-950 text-base px-9 py-4 h-14 rounded-xl font-bold shadow-xl border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
-              Create Account Now <ArrowRight className="ml-2.5 h-5 w-5" />
+            <h3 className="text-3xl sm:text-4xl font-bold tracking-tight">Ready to visit the library?</h3>
+            <p className="text-slate-600 text-base max-w-lg mx-auto leading-relaxed">Sign in to browse the collection and see what’s happening at your school library.</p>
+            <Button onClick={() => navigate("/login")} size="lg" className="bg-indigo-700 hover:bg-indigo-800 text-white text-base px-8 h-12 rounded-lg font-semibold shadow-none border-0">
+              Sign in to the library <ArrowRight className="ml-2.5 h-5 w-5" />
             </Button>
           </div>
         </section>
@@ -792,7 +786,7 @@ const Index = () => {
                 </h3>
               </div>
               <p className="text-xs leading-relaxed text-slate-400 pr-4">
-                Empowering student development, comprehension capabilities, and literature-focused gamified progress for {settings.school_name || "Kendriya Vidyalaya"} learners.
+                Books, reading activities, and library updates for our school community.
               </p>
             </div>
             
