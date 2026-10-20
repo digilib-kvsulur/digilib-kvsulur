@@ -299,17 +299,22 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
 
       const byId = new Map(queue.map((row) => [row.id, row]));
       const seen = new Set<string>();
+      let staleRows = 0;
       const evaluations = parsed.data
         .filter((row) => row.decision?.trim())
-        .map((row, index) => {
+        .flatMap((row, index) => {
           const id = row.submission_id?.trim();
           const decision = row.decision.trim().toLowerCase();
           const submission = id ? byId.get(id) : undefined;
           if (!id || !submission) throw new Error(`CSV row ${index + 2}: submission_id does not belong to this campaign.`);
           if (row.campaign_id?.trim() && row.campaign_id.trim() !== campaign.id) throw new Error(`CSV row ${index + 2}: campaign_id does not match the selected campaign.`);
-          if (submission.status !== "pending") throw new Error(`CSV row ${index + 2}: submission ${id} is no longer pending.`);
           if (seen.has(id)) throw new Error(`CSV row ${index + 2}: submission ${id} appears more than once.`);
           if (decision !== "approve" && decision !== "reject") throw new Error(`CSV row ${index + 2}: decision must be approve or reject.`);
+          seen.add(id);
+          if (submission.status !== "pending") {
+            staleRows += 1;
+            return [];
+          }
           const note = row.review_note?.trim() || "";
           if (decision === "reject" && !note) throw new Error(`CSV row ${index + 2}: review_note is required when rejecting.`);
           const pointsText = row.points?.trim();
@@ -322,12 +327,18 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
           if (decision === "approve" && points !== undefined && (!Number.isInteger(points) || points < 0 || points > campaign.max_award_points)) {
             throw new Error(`CSV row ${index + 2}: points must be a whole number from 0 to ${campaign.max_award_points}.`);
           }
-          seen.add(id);
-          return { submission, decision: decision as "approve" | "reject", points, marks, note };
+          return [{ submission, decision: decision as "approve" | "reject", points, marks, note }];
         });
 
-      if (!evaluations.length) throw new Error("No evaluation rows found. Set decision to approve or reject for rows you reviewed.");
-      if (!window.confirm(`Import ${evaluations.length} evaluation(s) for ${campaign.title}? Marks are stored separately from reward points and XP.`)) return;
+      if (!evaluations.length) {
+        if (staleRows) {
+          toast({ title: "No pending evaluations to import", description: `${staleRows} row(s) were skipped because those submissions have already been evaluated.` });
+          return;
+        }
+        throw new Error("No evaluation rows found. Set decision to approve or reject for rows you reviewed.");
+      }
+      const staleNotice = staleRows ? ` ${staleRows} already evaluated row(s) will be skipped.` : "";
+      if (!window.confirm(`Import ${evaluations.length} evaluation(s) for ${campaign.title}? Marks are stored separately from reward points and XP.${staleNotice}`)) return;
 
       let completed = 0;
       const failures: string[] = [];
@@ -341,8 +352,8 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
       }
       setSelectedSubmissionIds([]);
       toast({
-        title: failures.length ? `Applied ${completed}; ${failures.length} failed` : `Applied ${completed} evaluations`,
-        description: failures.slice(0, 3).join("\n") || "Reviewed submissions have been updated.",
+        title: failures.length ? `Applied ${completed}; ${failures.length} failed` : staleRows ? `Applied ${completed}; skipped ${staleRows} already evaluated` : `Applied ${completed} evaluations`,
+        description: [failures.slice(0, 3).join("\n"), staleRows ? `${staleRows} stale row(s) were skipped because the submission status changed after export.` : ""].filter(Boolean).join("\n") || "Reviewed submissions have been updated.",
         variant: failures.length ? "destructive" : undefined,
       });
       await loadDetails(campaign.id);
