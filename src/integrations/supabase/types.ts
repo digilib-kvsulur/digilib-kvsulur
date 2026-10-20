@@ -3100,6 +3100,7 @@ export type Database = {
           content: string | null
           id: string
           link: string | null
+          marks_awarded: number | null
           points_awarded: number | null
           review_note: string | null
           reviewed_at: string | null
@@ -3115,6 +3116,7 @@ export type Database = {
           content?: string | null
           id?: string
           link?: string | null
+          marks_awarded?: number | null
           points_awarded?: number | null
           review_note?: string | null
           reviewed_at?: string | null
@@ -3130,6 +3132,7 @@ export type Database = {
           content?: string | null
           id?: string
           link?: string | null
+          marks_awarded?: number | null
           points_awarded?: number | null
           review_note?: string | null
           reviewed_at?: string | null
@@ -3769,6 +3772,16 @@ export type Database = {
       vacation_review_submission: {
         Args: {
           p_decision: string
+          p_note?: string
+          p_points?: number
+          p_submission: string
+        }
+        Returns: Json
+      }
+      vacation_review_submission_with_marks: {
+        Args: {
+          p_decision: string
+          p_marks?: number
           p_note?: string
           p_points?: number
           p_submission: string

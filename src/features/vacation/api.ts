@@ -147,12 +147,13 @@ export async function fetchReviewQueue(campaignId: string) {
   return rows.map((row) => ({ ...row, student_name: names.get(row.student_id) || "Student" }));
 }
 
-export async function reviewSubmission(id: string, decision: "approve" | "reject", points?: number, note?: string) {
-  const { data, error } = await supabase.rpc("vacation_review_submission", {
+export async function reviewSubmission(id: string, decision: "approve" | "reject", points?: number, note?: string, marks?: number) {
+  const { data, error } = await supabase.rpc("vacation_review_submission_with_marks", {
     p_submission: id,
     p_decision: decision,
     p_points: points ?? null,
     p_note: note ?? null,
+    p_marks: marks ?? null,
   });
   if (error) throw error;
   return data;

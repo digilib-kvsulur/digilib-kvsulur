@@ -60,6 +60,7 @@ export interface VacationSubmission {
   reviewed_at: string | null;
   review_note: string | null;
   points_awarded: number | null;
+  marks_awarded?: number | null;
   student_name?: string;
 }
 

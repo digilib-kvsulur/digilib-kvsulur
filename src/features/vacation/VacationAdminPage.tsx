@@ -107,8 +107,10 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   const [availableQuizzes, setAvailableQuizzes] = useState<{ id: string; title: string; subject: string }[]>([]);
   const [rejectFor, setRejectFor] = useState<VacationSubmission | null>(null);
   const [rejectNote, setRejectNote] = useState("");
+  const [rejectMarks, setRejectMarks] = useState("");
   const [approveFor, setApproveFor] = useState<VacationSubmission | null>(null);
   const [approvePoints, setApprovePoints] = useState("");
+  const [approveMarks, setApproveMarks] = useState("");
   const [rubricScores, setRubricScores] = useState<Record<string, number>>({});
   const [approveNote, setApproveNote] = useState("");
   const [dailyXpPreview, setDailyXpPreview] = useState<Awaited<ReturnType<typeof reconcileDailyVacationXp>> | null>(null);
@@ -234,6 +236,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
       content: row.content,
       link: row.link,
       points_awarded: row.points_awarded,
+      marks_awarded: row.marks_awarded ?? "",
       review_note: row.review_note,
     }));
     const csv = Papa.unparse(rows, { escapeFormulae: true });
@@ -259,6 +262,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
         link: row.link,
         decision: "",
         points: activity?.reward_points ?? campaign?.default_points ?? 100,
+        marks: "",
         review_note: "",
         max_points: campaign?.max_award_points ?? "",
       };
@@ -284,6 +288,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
           if (key === "id" || key === "submission") return "submission_id";
           if (key === "evaluation" || key === "review_decision") return "decision";
           if (key === "points_awarded") return "points";
+          if (key === "marks_awarded" || key === "mark" || key === "score") return "marks";
           if (key === "feedback" || key === "note") return "review_note";
           return key;
         },
@@ -307,21 +312,26 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
           if (decision === "reject" && !note) throw new Error(`CSV row ${index + 2}: review_note is required when rejecting.`);
           const pointsText = row.points?.trim();
           const points = pointsText ? Number(pointsText) : undefined;
+          const marksText = row.marks?.trim();
+          const marks = marksText ? Number(marksText) : undefined;
+          if (marks !== undefined && (!Number.isFinite(marks) || marks < 0 || marks > 1000)) {
+            throw new Error(`CSV row ${index + 2}: marks must be a number from 0 to 1000.`);
+          }
           if (decision === "approve" && points !== undefined && (!Number.isInteger(points) || points < 0 || points > campaign.max_award_points)) {
             throw new Error(`CSV row ${index + 2}: points must be a whole number from 0 to ${campaign.max_award_points}.`);
           }
           seen.add(id);
-          return { submission, decision: decision as "approve" | "reject", points, note };
+          return { submission, decision: decision as "approve" | "reject", points, marks, note };
         });
 
       if (!evaluations.length) throw new Error("No evaluation rows found. Set decision to approve or reject for rows you reviewed.");
-      if (!window.confirm(`Import ${evaluations.length} evaluation(s) for ${campaign.title}? Approved entries receive points and rejection notes are sent to students.`)) return;
+      if (!window.confirm(`Import ${evaluations.length} evaluation(s) for ${campaign.title}? Marks are stored separately from reward points and XP.`)) return;
 
       let completed = 0;
       const failures: string[] = [];
       for (const evaluation of evaluations) {
         try {
-          await reviewSubmission(evaluation.submission.id, evaluation.decision, evaluation.points, evaluation.note || undefined);
+          await reviewSubmission(evaluation.submission.id, evaluation.decision, evaluation.points, evaluation.note || undefined, evaluation.marks);
           completed += 1;
         } catch (error) {
           failures.push(`${evaluation.submission.student_name || evaluation.submission.id}: ${vacationErrorMessage(error)}`);
@@ -683,6 +693,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
       setRubricScores({});
       setApprovePoints(defaultApprovePoints(row));
     }
+    setApproveMarks(row.marks_awarded == null ? "" : String(row.marks_awarded));
     setApproveNote("");
   };
 
@@ -1076,14 +1087,14 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
               <Button size="sm" variant="outline" disabled={evaluationImportBusy || bulkReviewBusy} onClick={() => document.getElementById("vacation-evaluation-csv")?.click()}>
                 {evaluationImportBusy ? "Importing evaluations…" : "Import evaluated CSV"}
               </Button>
-              <span className="text-xs text-muted-foreground">Fill decision with approve or reject; add points and review_note, then import.</span>
+              <span className="text-xs text-muted-foreground">Fill decision, optional marks, reward points and review note, then import.</span>
               <details className="basis-full rounded-lg bg-muted/50 px-3 py-2 text-xs">
                 <summary className="cursor-pointer font-semibold">Vacation CSV evaluation guide</summary>
                 <div className="mt-2 space-y-2 text-muted-foreground">
                   <p>Export creates one row per pending submission shown by the current filters. Keep <code>submission_id</code> and <code>campaign_id</code> unchanged.</p>
-                  <p>Set <code>decision</code> to <code>approve</code> or <code>reject</code>. For approvals, edit <code>points</code> to a whole number from 0 through the campaign maximum. For rejections, enter a student-facing reason in <code>review_note</code>.</p>
+                  <p>Set <code>decision</code> to <code>approve</code> or <code>reject</code>. Enter an optional numeric <code>marks</code> score (0–1000), separate from reward points and XP. For approvals, edit <code>points</code> to a whole number from 0 through the campaign maximum. For rejections, enter a student-facing reason in <code>review_note</code>.</p>
                   <p>Rows with a blank decision are ignored. Only still-pending submissions for the selected campaign can be evaluated; duplicate, stale, invalid, or over-limit rows are rejected. Rejection notes are sent to students.</p>
-                  <pre className="overflow-x-auto rounded-md bg-background p-2">submission_id,campaign_id,decision,points,review_note</pre>
+                  <pre className="overflow-x-auto rounded-md bg-background p-2">submission_id,campaign_id,decision,marks,points,review_note</pre>
                 </div>
               </details>
             </div>
@@ -1172,6 +1183,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                           +{row.points_awarded} pts ({pointsToXp(row.points_awarded)} XP)
                         </Badge>
                       )}
+                      {row.marks_awarded != null && <Badge variant="outline" className="font-mono">{row.marks_awarded} marks</Badge>}
                     </div>
                   </div>
 
@@ -1221,7 +1233,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => { setRejectFor(row); setRejectNote(""); }}
+                        onClick={() => { setRejectFor(row); setRejectNote(""); setRejectMarks(row.marks_awarded == null ? "" : String(row.marks_awarded)); }}
                         className="text-xs h-8 px-3 gap-1"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -1788,6 +1800,10 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
 
                 {/* Total Points & XP Equivalence */}
                 <div className="p-3 rounded-xl border bg-card space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div><Label className="text-xs font-bold">Marks (optional)</Label><p className="text-[11px] text-muted-foreground">Academic score, separate from XP</p></div>
+                    <Input type="number" min="0" max="1000" step="0.01" className="w-28 h-8 text-sm text-right" value={approveMarks} onChange={(e) => setApproveMarks(e.target.value)} />
+                  </div>
                   <div className="flex items-center justify-between">
                     <div>
                       <Label className="text-xs font-bold">Total Award Points</Label>
@@ -1859,7 +1875,8 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                     approveFor.id,
                     "approve",
                     Number(approvePoints),
-                    approveNote.trim() || undefined
+                    approveNote.trim() || undefined,
+                    approveMarks.trim() ? Number(approveMarks) : undefined
                   );
                   toast({
                     title: "Submission Approved! 🎉",
@@ -1918,11 +1935,12 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
         <DialogContent>
           <DialogHeader><DialogTitle>Reject submission</DialogTitle></DialogHeader>
           <div className="space-y-1"><Label>Reason (required)</Label><Textarea value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Marks (optional, separate from XP)</Label><Input type="number" min="0" max="1000" step="0.01" value={rejectMarks} onChange={(e) => setRejectMarks(e.target.value)} /></div>
           <DialogFooter>
             <Button variant="destructive" onClick={async () => {
               if (!rejectFor || !campaign) return;
               try {
-                await reviewSubmission(rejectFor.id, "reject", undefined, rejectNote);
+                await reviewSubmission(rejectFor.id, "reject", undefined, rejectNote, rejectMarks.trim() ? Number(rejectMarks) : undefined);
                 toast({ title: "Rejected" });
                 setRejectFor(null);
                 await loadDetails(campaign.id);
