@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Wrench, BookOpen, Clock, Mail, X, Sparkles, Bell } from "lucide-react";
 
-// 19 Oct 2026, 7:14 PM IST = 19 Oct 2026, 13:44 UTC
-const MAINTENANCE_END = new Date("2026-10-19T13:44:00Z");
+// 20 Oct 2026, 2:00 PM IST = 20 Oct 2026, 08:30 UTC
+const MAINTENANCE_END = new Date("2026-10-20T08:30:00Z");
 
 function getTimeLeft() {
   const diff = MAINTENANCE_END.getTime() - Date.now();
@@ -114,15 +114,16 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
       >
         Dear Students & Teachers,
         <br /><br />
-        Our checks on the DLMS side are clear. The current interruption is due to an issue with a{" "}
+        DLMS is currently undergoing{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          third-party service provider
-        </span>.
+          scheduled maintenance
+        </span>{" "}
+        from 1:00 PM to 2:00 PM today for essential system updates and improvements.
         <br /><br />
-        The site will be back online by{" "}
+        The site will be back online smoothly by{" "}
         <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
-          today, 7:14 PM IST
-        </span>. We’re monitoring the provider’s recovery and will restore access as soon as service is available.
+          today, 2:00 PM IST
+        </span>.
         <br /><br />
         Thank you for your patience and cooperation. 🙏
       </p>
@@ -233,9 +234,9 @@ export default function Maintenance() {
             className="text-sm sm:text-base md:text-lg leading-relaxed max-w-md mx-auto"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-          Our checks on the DLMS side are clear. The current interruption is due to an issue with a third-party service provider. We’re monitoring recovery and expect access to return by:{" "}
+          DLMS is currently undergoing scheduled maintenance from 1:00 PM to 2:00 PM today. We'll be back online by:{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-              today, 7:14 PM IST
+              today, 2:00 PM IST
             </span>
             .
           </p>
