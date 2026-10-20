@@ -507,17 +507,12 @@ const Login = () => {
                     </AlertDescription>
                   </Alert>
                 )}
-                <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/15 px-3 py-2 text-xs text-muted-foreground">
-                  <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <span><strong className="text-foreground font-semibold">Students:</strong> Sign in with your 5-digit Admission No.</span>
-                </div>
-
                 <div className="space-y-1.5">
                   <Label htmlFor="identifier" className="text-xs sm:text-sm font-medium text-foreground">Admission No. / Email / Phone</Label>
                   <Input
                     id="identifier"
                     type="text"
-                    placeholder="e.g. 12345 or your email"
+                    placeholder="5-digit Admission No. or email / phone"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     className="h-11 rounded-xl bg-background/90 border-border/80 text-sm sm:h-12"

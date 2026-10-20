@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import imageCompression from "browser-image-compression";
 
 interface Campaign {
   id: string;
@@ -224,21 +225,38 @@ export default function UIReformChallengeView({ userId }: UIReformChallengeViewP
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : prev.length < 5 ? [...prev, tag] : prev);
   };
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast({ title: "Invalid File", description: "Please choose an image file (PNG, JPG, WEBP).", variant: "destructive" });
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: "File Too Large", description: "Please upload an image under 10MB.", variant: "destructive" });
+    if (file.size > 15 * 1024 * 1024) {
+      toast({ title: "File Too Large", description: "Please upload an image under 15MB.", variant: "destructive" });
       return;
     }
-    setUploadedFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setUploadPreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+
+    try {
+      // Compress to lightweight web-ready image (~60-150KB) to ensure rapid loading
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.35,
+        maxWidthOrHeight: 1280,
+        useWebWorker: true,
+      });
+      setUploadedFile(compressed);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setUploadPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(compressed);
+    } catch {
+      // Fallback to original file
+      setUploadedFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setUploadPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmitProposal = async () => {

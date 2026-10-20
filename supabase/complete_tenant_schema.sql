@@ -11584,6 +11584,12 @@ CREATE POLICY "Students can update own pending submissions" ON public.ui_reform_
         student_id = auth.uid() AND status = 'pending'
     );
 
+CREATE INDEX IF NOT EXISTS idx_ui_reform_campaigns_created_at ON public.ui_reform_campaigns (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ui_reform_submissions_campaign_id ON public.ui_reform_submissions (campaign_id);
+CREATE INDEX IF NOT EXISTS idx_ui_reform_submissions_student_id ON public.ui_reform_submissions (student_id);
+CREATE INDEX IF NOT EXISTS idx_ui_reform_submissions_created_at ON public.ui_reform_submissions (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ui_reform_submissions_status ON public.ui_reform_submissions (status);
+
 
 -- >>> FILE: 20260920000100_limit_study_points_daily.sql
 -- Cap Study Tracker rewards at 100 XP per student each calendar day.

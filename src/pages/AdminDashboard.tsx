@@ -466,6 +466,11 @@ const AdminDashboard = () => {
               <div className="space-y-0.5">
                 {section.items.map(item => (
                   <button key={item.id} onClick={() => setActiveTab(item.id)}
+                    onMouseEnter={() => {
+                      if (item.id === "ui-reform") {
+                        import("@/components/admin/UIReformChallengeManager");
+                      }
+                    }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === item.id ? 'gradient-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                     <item.icon className="h-4 w-4 shrink-0" /> {item.label}
                   </button>

@@ -1,11 +1,12 @@
 // @ts-nocheck
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
@@ -15,7 +16,7 @@ import {
 import {
   Palette, Sparkles, Calendar, Award, CheckCircle2, XCircle, Clock,
   ExternalLink, Plus, Trophy, ChevronRight, Layers, AlertCircle, RefreshCw, Star,
-  Eye, EyeOff
+  Eye, EyeOff, Search, Maximize2, Filter
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -55,20 +56,65 @@ interface Submission {
   };
 }
 
+// Module-level in-memory cache for instant tab switches (Stale-While-Revalidate)
+interface UIReformCacheData {
+  campaign: Campaign | null;
+  submissions: Submission[];
+  bugBountyEndDate: string | null;
+  studentVisible: boolean;
+  cachedAt: number;
+}
+let uiReformCache: UIReformCacheData | null = null;
+
+const isImageMockup = (url?: string | null): boolean => {
+  if (!url) return false;
+  if (url.startsWith("data:image/")) return true;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes("feedback_attachments") ||
+    lower.endsWith(".png") ||
+    lower.endsWith(".jpg") ||
+    lower.endsWith(".jpeg") ||
+    lower.endsWith(".webp") ||
+    lower.endsWith(".svg") ||
+    lower.includes("blob.core.windows.net") ||
+    lower.includes("supabase.co/storage")
+  );
+};
+
+const getDisplayUrl = (url: string): string => {
+  if (url.startsWith("data:image/")) {
+    return "Embedded Design Mockup (Image)";
+  }
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname}${parsed.pathname.length > 25 ? parsed.pathname.slice(0, 25) + "…" : parsed.pathname}`;
+  } catch {
+    return url.length > 40 ? `${url.slice(0, 40)}…` : url;
+  }
+};
+
 export default function UIReformChallengeManager() {
   const { toast } = useToast();
-  const [campaign, setCampaign] = useState<Campaign | null>(null);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [campaign, setCampaign] = useState<Campaign | null>(() => uiReformCache?.campaign ?? null);
+  const [submissions, setSubmissions] = useState<Submission[]>(() => uiReformCache?.submissions ?? []);
+  const [loading, setLoading] = useState<boolean>(() => !uiReformCache);
+  const [studentVisible, setStudentVisible] = useState<boolean>(() => uiReformCache?.studentVisible ?? true);
+  const [bugBountyEndDate, setBugBountyEndDate] = useState<string | null>(() => uiReformCache?.bugBountyEndDate ?? null);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
   const [adminFeedback, setAdminFeedback] = useState("");
   const [newStatus, setNewStatus] = useState<Submission["status"]>("reviewed");
   const [awardPointsInput, setAwardPointsInput] = useState(1000);
-  const [bugBountyEndDate, setBugBountyEndDate] = useState<string | null>(null);
-  const [studentVisible, setStudentVisible] = useState(true);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
+  const [savingReview, setSavingReview] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Form state for creating/scheduling campaign
   const [formTitle, setFormTitle] = useState("UI Reform & DLMS Redesign Challenge");
@@ -80,56 +126,74 @@ export default function UIReformChallengeManager() {
   const [formEndsAt, setFormEndsAt] = useState("");
   const [formReward, setFormReward] = useState(1000);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent && !uiReformCache) setLoading(true);
     try {
-      // Check student visibility setting
-      const { data: visData } = await supabase
-        .from("system_settings")
-        .select("value")
-        .eq("key", "ui_reform_visible_to_students")
-        .maybeSingle();
-      if (visData) {
-        setStudentVisible(visData.value !== "false" && visData.value !== false);
+      // Fetch settings, campaign, and bug bounty in parallel
+      const [visRes, cRes, bbRes] = await Promise.all([
+        supabase
+          .from("system_settings")
+          .select("value")
+          .eq("key", "ui_reform_visible_to_students")
+          .maybeSingle(),
+        supabase
+          .from("ui_reform_campaigns" as any)
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(1),
+        supabase
+          .from("bug_bounty_campaigns" as any)
+          .select("ends_at, is_active")
+          .order("created_at", { ascending: false })
+          .limit(1),
+      ]);
+
+      let isVisible = true;
+      if (visRes.data) {
+        isVisible = visRes.data.value !== "false" && visRes.data.value !== false;
+        setStudentVisible(isVisible);
       }
 
-      // 1. Fetch latest or active UI Reform Campaign
-      const { data: cData, error: cErr } = await supabase
-        .from("ui_reform_campaigns" as any)
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1);
+      let bbEnd: string | null = null;
+      if (bbRes.data && bbRes.data.length > 0 && bbRes.data[0].ends_at) {
+        bbEnd = bbRes.data[0].ends_at;
+        setBugBountyEndDate(bbEnd);
+      }
 
-      if (!cErr && cData && cData.length > 0) {
-        setCampaign(cData[0] as Campaign);
+      let activeCamp: Campaign | null = null;
+      let subs: Submission[] = [];
 
-        // Fetch submissions for this campaign
+      if (!cRes.error && cRes.data && cRes.data.length > 0) {
+        activeCamp = cRes.data[0] as Campaign;
+        setCampaign(activeCamp);
+
+        // Fetch submissions for this campaign with specific columns for fast query execution
         const { data: sData, error: sErr } = await supabase
           .from("ui_reform_submissions" as any)
-          .select("*, profiles:student_id(first_name, last_name, student_class, avatar_url)")
-          .eq("campaign_id", cData[0].id)
+          .select("id, campaign_id, student_id, screen_name, title, problem_statement, proposed_solution, mockup_url, status, admin_feedback, points_awarded, created_at, profiles:student_id(first_name, last_name, student_class, avatar_url)")
+          .eq("campaign_id", activeCamp.id)
           .order("created_at", { ascending: false });
 
         if (!sErr && sData) {
-          setSubmissions(
-            sData.map((s: any) => ({
-              ...s,
-              student: s.profiles,
-            }))
-          );
+          subs = sData.map((s: any) => ({
+            ...s,
+            student: s.profiles,
+          }));
+          setSubmissions(subs);
         }
+      } else {
+        setCampaign(null);
+        setSubmissions([]);
       }
 
-      // 2. Fetch active or latest bug bounty campaign to know its end date
-      const { data: bbData } = await supabase
-        .from("bug_bounty_campaigns" as any)
-        .select("ends_at, is_active")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (bbData && bbData.length > 0 && bbData[0].ends_at) {
-        setBugBountyEndDate(bbData[0].ends_at);
-      }
+      // Update module cache
+      uiReformCache = {
+        campaign: activeCamp,
+        submissions: subs,
+        bugBountyEndDate: bbEnd,
+        studentVisible: isVisible,
+        cachedAt: Date.now(),
+      };
     } catch (err) {
       console.warn("Error loading UI reform data:", err);
     } finally {
@@ -138,7 +202,8 @@ export default function UIReformChallengeManager() {
   };
 
   useEffect(() => {
-    loadData();
+    // If we have cached data, fetch in background silently; otherwise show loader
+    loadData(!!uiReformCache);
   }, []);
 
   const handleScheduleAfterBugBounty = () => {
@@ -164,6 +229,7 @@ export default function UIReformChallengeManager() {
         });
       if (error) throw error;
       setStudentVisible(next);
+      if (uiReformCache) uiReformCache.studentVisible = next;
       toast({
         title: next ? "Challenge Visible to Students" : "Challenge Hidden from Students",
         description: next
@@ -207,7 +273,8 @@ export default function UIReformChallengeManager() {
         description: isNowActive ? "The challenge is live now!" : "The challenge is scheduled to launch after the Bug Bounty.",
       });
       setShowCreateModal(false);
-      loadData();
+      uiReformCache = null; // Invalidate cache
+      loadData(false);
     } catch (e: any) {
       toast({ title: "Error", description: e.message || "Failed to schedule challenge", variant: "destructive" });
     }
@@ -217,12 +284,13 @@ export default function UIReformChallengeManager() {
     setSelectedSub(sub);
     setNewStatus(sub.status || "reviewed");
     setAdminFeedback(sub.admin_feedback || "");
-    setAwardPointsInput(sub.points_awarded || 150);
+    setAwardPointsInput(sub.points_awarded || 1000);
     setReviewModalOpen(true);
   };
 
   const handleSaveReview = async () => {
     if (!selectedSub) return;
+    setSavingReview(true);
     try {
       const { error } = await supabase
         .from("ui_reform_submissions" as any)
@@ -265,9 +333,26 @@ export default function UIReformChallengeManager() {
 
       toast({ title: "Review Saved!", description: "Status updated and student notified." });
       setReviewModalOpen(false);
-      loadData();
+
+      // Optimistically update local submissions state and cache
+      const updatedList = submissions.map((s) =>
+        s.id === selectedSub.id
+          ? {
+              ...s,
+              status: newStatus,
+              admin_feedback: adminFeedback,
+              points_awarded: awardPointsInput,
+            }
+          : s
+      );
+      setSubmissions(updatedList);
+      if (uiReformCache) uiReformCache.submissions = updatedList;
+
+      loadData(true); // Silent background sync
     } catch (e: any) {
       toast({ title: "Failed to update review", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingReview(false);
     }
   };
 
@@ -290,9 +375,37 @@ export default function UIReformChallengeManager() {
       else skipped++;
     }
 
-    if (updated) await loadData();
+    if (updated) {
+      uiReformCache = null;
+      await loadData(false);
+    }
     return { updated, skipped };
   };
+
+  // Filtered submissions
+  const filteredSubmissions = useMemo(() => {
+    return submissions.filter((sub) => {
+      // Status filter
+      if (statusFilter === "pending" && sub.status !== "pending") return false;
+      if (statusFilter === "reviewed" && sub.status !== "reviewed") return false;
+      if (statusFilter === "shortlisted" && sub.status !== "shortlisted" && sub.status !== "winner") return false;
+      if (statusFilter === "implemented" && sub.status !== "implemented") return false;
+      if (statusFilter === "rejected" && sub.status !== "rejected") return false;
+
+      // Text search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const studentName = sub.student ? `${sub.student.first_name} ${sub.student.last_name}`.toLowerCase() : "";
+        const title = (sub.title || "").toLowerCase();
+        const screen = (sub.screen_name || "").toLowerCase();
+        const problem = (sub.problem_statement || "").toLowerCase();
+        if (!studentName.includes(q) && !title.includes(q) && !screen.includes(q) && !problem.includes(q)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [submissions, statusFilter, searchQuery]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -346,8 +459,29 @@ export default function UIReformChallengeManager() {
         </div>
       </div>
 
-      {/* Campaign Status Card */}
-      {campaign ? (
+      {/* Loading Skeleton */}
+      {loading && !campaign ? (
+        <Card className="rounded-3xl border border-indigo-200/60 dark:border-indigo-900/60 p-6 space-y-5">
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-32 rounded-full" />
+              <Skeleton className="h-7 w-72 rounded-lg" />
+              <Skeleton className="h-4 w-96 rounded-lg" />
+            </div>
+            <Skeleton className="h-10 w-28 rounded-xl" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-20 rounded-2xl" />
+            ))}
+          </div>
+          <div className="space-y-3 pt-4">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-28 rounded-2xl" />
+            ))}
+          </div>
+        </Card>
+      ) : campaign ? (
         <Card className="rounded-3xl border border-indigo-200 dark:border-indigo-900 shadow-sm overflow-hidden">
           <CardHeader className="bg-slate-50 dark:bg-slate-900/50 pb-4 border-b border-border/50">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -380,24 +514,53 @@ export default function UIReformChallengeManager() {
           </CardHeader>
 
           <CardContent className="p-4 sm:p-6 space-y-4">
+            {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-              <div className="p-3 bg-muted/40 rounded-2xl border border-border/40">
+              <div
+                onClick={() => setStatusFilter("all")}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                  statusFilter === "all"
+                    ? "bg-primary/10 border-primary font-bold shadow-xs"
+                    : "bg-muted/40 border-border/40 hover:bg-muted/60"
+                }`}
+              >
                 <p className="text-xl font-black text-foreground">{submissions.length}</p>
                 <p className="text-[11px] text-muted-foreground">Total Proposals</p>
               </div>
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-2xl border border-amber-200 dark:border-amber-900/50">
+              <div
+                onClick={() => setStatusFilter("pending")}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                  statusFilter === "pending"
+                    ? "bg-amber-100 dark:bg-amber-950/60 border-amber-500 shadow-xs"
+                    : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 hover:bg-amber-100/60"
+                }`}
+              >
                 <p className="text-xl font-black text-amber-700 dark:text-amber-400">
                   {submissions.filter((s) => s.status === "pending").length}
                 </p>
                 <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">Pending Review</p>
               </div>
-              <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-2xl border border-purple-200 dark:border-purple-900/50">
+              <div
+                onClick={() => setStatusFilter("shortlisted")}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                  statusFilter === "shortlisted"
+                    ? "bg-purple-100 dark:bg-purple-950/60 border-purple-500 shadow-xs"
+                    : "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-900/50 hover:bg-purple-100/60"
+                }`}
+              >
                 <p className="text-xl font-black text-purple-700 dark:text-purple-400">
                   {submissions.filter((s) => s.status === "shortlisted" || s.status === "winner").length}
                 </p>
                 <p className="text-[11px] text-purple-700 dark:text-purple-400 font-medium">Shortlisted / Winners</p>
               </div>
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-900/50">
+              <div
+                onClick={() => setStatusFilter("implemented")}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                  statusFilter === "implemented"
+                    ? "bg-emerald-100 dark:bg-emerald-950/60 border-emerald-500 shadow-xs"
+                    : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100/60"
+                }`}
+              >
                 <p className="text-xl font-black text-emerald-700 dark:text-emerald-400">
                   {submissions.filter((s) => s.status === "implemented").length}
                 </p>
@@ -405,49 +568,86 @@ export default function UIReformChallengeManager() {
               </div>
             </div>
 
-            {/* Submissions List */}
+            {/* Filter Bar & Search */}
             <div className="space-y-3 pt-2">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="text-sm font-bold text-foreground">
-                <span>Student Submissions ({submissions.length})</span>
-                </h3>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { id: "all", label: "All" },
+                    { id: "pending", label: "Pending" },
+                    { id: "reviewed", label: "Reviewed" },
+                    { id: "shortlisted", label: "Shortlisted" },
+                    { id: "implemented", label: "Implemented" },
+                    { id: "rejected", label: "Rejected" },
+                  ].map((tab) => (
+                    <Button
+                      key={tab.id}
+                      size="sm"
+                      variant={statusFilter === tab.id ? "default" : "outline"}
+                      onClick={() => setStatusFilter(tab.id)}
+                      className="h-7 text-xs rounded-xl px-2.5"
+                    >
+                      {tab.label}
+                    </Button>
+                  ))}
+                </div>
+
                 <div className="flex flex-wrap items-center gap-2">
-                  {submissions.length > 0 && <ChallengeEvaluationCsvTools
-                    label="UI/UX challenge"
-                    fileName="ui-ux-challenge-evaluations.csv"
-                    allowedStatuses={["reviewed", "shortlisted", "winner", "implemented", "rejected"]}
-                    records={submissions.map((submission) => ({
-                      submission_id: submission.id,
-                      student: submission.student ? `${submission.student.first_name} ${submission.student.last_name}`.trim() : "Student",
-                      class: submission.student?.student_class || "",
-                      screen_name: submission.screen_name,
-                      title: submission.title,
-                      problem_statement: submission.problem_statement,
-                      proposed_solution: submission.proposed_solution,
-                      mockup_url: submission.mockup_url || "",
-                      current_status: submission.status,
-                      submission_date: submission.created_at,
-                      status: submission.status === "pending" ? "" : submission.status,
-                      award_xp: submission.points_awarded || 0,
-                      feedback: submission.admin_feedback || "",
-                    }))}
-                    onApply={applyBulkEvaluations}
-                  />}
-                  <Button variant="ghost" size="sm" onClick={loadData} className="h-7 text-xs text-muted-foreground gap-1">
+                  <div className="relative w-full sm:w-56">
+                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Search submissions..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-8 pl-8 text-xs rounded-xl"
+                    />
+                  </div>
+
+                  {submissions.length > 0 && (
+                    <ChallengeEvaluationCsvTools
+                      label="UI/UX challenge"
+                      fileName="ui-ux-challenge-evaluations.csv"
+                      allowedStatuses={["reviewed", "shortlisted", "winner", "implemented", "rejected"]}
+                      records={submissions.map((submission) => ({
+                        submission_id: submission.id,
+                        student: submission.student ? `${submission.student.first_name} ${submission.student.last_name}`.trim() : "Student",
+                        class: submission.student?.student_class || "",
+                        screen_name: submission.screen_name,
+                        title: submission.title,
+                        problem_statement: submission.problem_statement,
+                        proposed_solution: submission.proposed_solution,
+                        mockup_url: submission.mockup_url?.startsWith("data:") ? "[Embedded Image Attached]" : (submission.mockup_url || ""),
+                        current_status: submission.status,
+                        submission_date: submission.created_at,
+                        status: submission.status === "pending" ? "" : submission.status,
+                        award_xp: submission.points_awarded || 0,
+                        feedback: submission.admin_feedback || "",
+                      }))}
+                      onApply={applyBulkEvaluations}
+                    />
+                  )}
+                  <Button variant="ghost" size="sm" onClick={() => loadData(false)} className="h-8 text-xs text-muted-foreground gap-1 rounded-xl">
                     <RefreshCw className="h-3.5 w-3.5" /> Refresh
                   </Button>
                 </div>
               </div>
 
-              {submissions.length === 0 ? (
+              {/* Submissions List */}
+              {filteredSubmissions.length === 0 ? (
                 <div className="text-center py-10 border border-dashed rounded-3xl p-6 text-muted-foreground">
                   <Layers className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-                  <p className="text-sm font-semibold">No design submissions yet</p>
-                  <p className="text-xs">Once students submit their redesign ideas, they will appear here for review.</p>
+                  <p className="text-sm font-semibold">
+                    {submissions.length === 0 ? "No design submissions yet" : "No submissions match this filter"}
+                  </p>
+                  <p className="text-xs">
+                    {submissions.length === 0
+                      ? "Once students submit their redesign ideas, they will appear here for review."
+                      : "Try clearing search or selecting a different status filter."}
+                  </p>
                 </div>
               ) : (
                 <div className="grid gap-3">
-                  {submissions.map((sub) => (
+                  {filteredSubmissions.map((sub) => (
                     <div
                       key={sub.id}
                       className="p-4 rounded-2xl bg-card border border-border/70 hover:border-indigo-300 dark:hover:border-indigo-800 transition-colors shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -481,7 +681,7 @@ export default function UIReformChallengeManager() {
                           <strong className="text-foreground">Reform:</strong> {sub.proposed_solution}
                         </p>
 
-                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground pt-1">
+                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground pt-1 flex-wrap">
                           <span>
                             By: <strong>{sub.student ? `${sub.student.first_name} ${sub.student.last_name}` : "Student"}</strong>
                             {sub.student?.student_class && ` (Class ${sub.student.student_class})`}
@@ -491,14 +691,28 @@ export default function UIReformChallengeManager() {
                           {sub.mockup_url && (
                             <>
                               <span>•</span>
-                              <a
-                                href={sub.mockup_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline inline-flex items-center gap-1"
-                              >
-                                View Mockup <ExternalLink className="h-3 w-3" />
-                              </a>
+                              {isImageMockup(sub.mockup_url) ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLightboxUrl(sub.mockup_url);
+                                  }}
+                                  className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Palette className="h-3 w-3" /> View Mockup
+                                </button>
+                              ) : (
+                                <a
+                                  href={sub.mockup_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline inline-flex items-center gap-1"
+                                >
+                                  <ExternalLink className="h-3 w-3" /> Mockup Link
+                                </a>
+                              )}
                             </>
                           )}
                         </div>
@@ -521,25 +735,25 @@ export default function UIReformChallengeManager() {
           </CardContent>
         </Card>
       ) : (
-          <Card className="rounded-3xl border border-dashed text-center p-8 sm:p-12 space-y-4">
-            <div className="w-16 h-16 rounded-3xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center mx-auto shadow-inner">
-              <Palette className="h-8 w-8" />
-            </div>
-            <div className="max-w-md mx-auto space-y-1">
-              <h3 className="text-lg font-bold">No UI Reform Challenge Created Yet</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                You can organize the UI Reform Challenge to automatically start right after the 1-week Bug Bounty completes, or launch it immediately.
-              </p>
-            </div>
-            <Button
-              onClick={handleScheduleAfterBugBounty}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl gap-2 shadow-md"
-            >
-              <Calendar className="h-4 w-4" />
-              Schedule After 1-Week Bug Bounty
-            </Button>
-          </Card>
-        )}
+        <Card className="rounded-3xl border border-dashed text-center p-8 sm:p-12 space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center mx-auto shadow-inner">
+            <Palette className="h-8 w-8" />
+          </div>
+          <div className="max-w-md mx-auto space-y-1">
+            <h3 className="text-lg font-bold">No UI Reform Challenge Created Yet</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              You can organize the UI Reform Challenge to automatically start right after the 1-week Bug Bounty completes, or launch it immediately.
+            </p>
+          </div>
+          <Button
+            onClick={handleScheduleAfterBugBounty}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl gap-2 shadow-md"
+          >
+            <Calendar className="h-4 w-4" />
+            Schedule After 1-Week Bug Bounty
+          </Button>
+        </Card>
+      )}
 
       {/* Schedule / Create Challenge Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
@@ -628,9 +842,9 @@ export default function UIReformChallengeManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Review Submission Modal */}
+      {/* Review Submission Modal with Full Context & Safe Mockup Rendering */}
       <Dialog open={reviewModalOpen} onOpenChange={setReviewModalOpen}>
-        <DialogContent className="max-w-lg p-6">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle className="text-lg flex items-center gap-2">
               <Award className="h-5 w-5 text-indigo-600" />
@@ -643,20 +857,97 @@ export default function UIReformChallengeManager() {
 
           {selectedSub && (
             <div className="space-y-4 mt-2">
-              <div className="p-3 bg-muted/50 rounded-xl space-y-1 text-xs">
-                <p><strong>Title:</strong> {selectedSub.title}</p>
-                <p><strong>Screen:</strong> {selectedSub.screen_name}</p>
-                <p><strong>Student:</strong> {selectedSub.student ? `${selectedSub.student.first_name} ${selectedSub.student.last_name}` : "Student"}</p>
-                {selectedSub.mockup_url && (
-                  <p>
-                    <strong>Mockup URL:</strong>{" "}
-                    <a href={selectedSub.mockup_url} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">
-                      {selectedSub.mockup_url}
-                    </a>
-                  </p>
-                )}
+              {/* Proposal Header & Student Info */}
+              <div className="p-3 bg-muted/40 rounded-xl space-y-1.5 text-xs border border-border/50">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-sm text-foreground">{selectedSub.title}</span>
+                  <Badge variant="outline" className="text-[10px] bg-background">
+                    {selectedSub.screen_name}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground flex-wrap">
+                  <span>
+                    Student: <strong className="text-foreground">{selectedSub.student ? `${selectedSub.student.first_name} ${selectedSub.student.last_name}` : "Student"}</strong>
+                    {selectedSub.student?.student_class && ` (Class ${selectedSub.student.student_class})`}
+                  </span>
+                  <span>•</span>
+                  <span>Submitted: {new Date(selectedSub.created_at).toLocaleString()}</span>
+                </div>
               </div>
 
+              {/* Problem & Solution Detailed Breakdown */}
+              <div className="max-h-52 overflow-y-auto p-3 bg-muted/20 rounded-xl space-y-2.5 text-xs border border-border/50">
+                <div>
+                  <span className="font-bold text-foreground flex items-center gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 text-amber-500" /> Identified Problem:
+                  </span>
+                  <p className="mt-1 text-muted-foreground whitespace-pre-wrap leading-relaxed pl-5">
+                    {selectedSub.problem_statement}
+                  </p>
+                </div>
+                <div className="border-t border-border/40 pt-2">
+                  <span className="font-bold text-foreground flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-indigo-500" /> Proposed Reform / Solution:
+                  </span>
+                  <p className="mt-1 text-muted-foreground whitespace-pre-wrap leading-relaxed pl-5">
+                    {selectedSub.proposed_solution}
+                  </p>
+                </div>
+              </div>
+
+              {/* Mockup Preview (Safe image render & Lightbox) */}
+              {selectedSub.mockup_url && (
+                <div className="space-y-1.5 pt-1">
+                  <Label className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                    <Palette className="h-3.5 w-3.5 text-indigo-500" />
+                    Attached Mockup / Design
+                  </Label>
+                  {isImageMockup(selectedSub.mockup_url) ? (
+                    <div className="relative group rounded-xl overflow-hidden border border-border/80 bg-slate-950/10 max-h-56 flex items-center justify-center p-1">
+                      <img
+                        src={selectedSub.mockup_url}
+                        alt="Mockup Preview"
+                        loading="lazy"
+                        className="max-h-52 max-w-full object-contain rounded-lg transition-transform hover:scale-[1.01] cursor-pointer"
+                        onClick={() => setLightboxUrl(selectedSub.mockup_url)}
+                      />
+                      <div className="absolute bottom-2 right-2 flex gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="h-7 text-[11px] font-bold bg-white/90 hover:bg-white text-slate-800 shadow-md backdrop-blur-sm"
+                          onClick={() => setLightboxUrl(selectedSub.mockup_url)}
+                        >
+                          <Maximize2 className="h-3 w-3 mr-1" /> Expand Image
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/60">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ExternalLink className="h-4 w-4 text-indigo-500 shrink-0" />
+                        <span className="text-xs text-foreground font-medium truncate">
+                          {getDisplayUrl(selectedSub.mockup_url)}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs font-semibold shrink-0"
+                        asChild
+                      >
+                        <a href={selectedSub.mockup_url} target="_blank" rel="noopener noreferrer">
+                          Open Link <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Status Decision */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold">Decision Status</Label>
                 <Select value={newStatus} onValueChange={(val: any) => setNewStatus(val)}>
@@ -674,6 +965,7 @@ export default function UIReformChallengeManager() {
                 </Select>
               </div>
 
+              {/* XP Award Presets */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold">Points Awarded (XP) — Prize Presets</Label>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -682,7 +974,7 @@ export default function UIReformChallengeManager() {
                     { label: "🥈 2nd Prize", pts: 7500,  cls: "bg-slate-400 hover:bg-slate-500 text-white" },
                     { label: "🥉 3rd Prize", pts: 5000,  cls: "bg-orange-600 hover:bg-orange-700 text-white" },
                     { label: "✅ Good Submission", pts: 1000, cls: "bg-emerald-600 hover:bg-emerald-700 text-white" },
-                  ].map(p => (
+                  ].map((p) => (
                     <Button
                       key={p.pts}
                       size="sm"
@@ -703,6 +995,7 @@ export default function UIReformChallengeManager() {
                 />
               </div>
 
+              {/* Admin Feedback */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold">Admin Feedback Note</Label>
                 <Textarea
@@ -720,10 +1013,32 @@ export default function UIReformChallengeManager() {
             <Button variant="ghost" onClick={() => setReviewModalOpen(false)} className="text-xs">
               Cancel
             </Button>
-            <Button onClick={handleSaveReview} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs">
-              Save Review & Notify
+            <Button
+              disabled={savingReview}
+              onClick={handleSaveReview}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
+            >
+              {savingReview ? "Saving..." : "Save Review & Notify"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lightbox Dialog for Mockup Inspection */}
+      <Dialog open={!!lightboxUrl} onOpenChange={(open) => !open && setLightboxUrl(null)}>
+        <DialogContent className="max-w-4xl p-2 bg-slate-950/95 border-slate-800 text-white">
+          <div className="flex justify-between items-center p-2 border-b border-white/10">
+            <span className="text-xs font-semibold text-slate-300">Design Mockup Preview</span>
+          </div>
+          <div className="max-h-[80vh] overflow-auto flex items-center justify-center p-2">
+            {lightboxUrl && (
+              <img
+                src={lightboxUrl}
+                alt="Full Mockup"
+                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl"
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
