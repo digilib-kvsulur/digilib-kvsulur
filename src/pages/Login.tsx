@@ -12,6 +12,7 @@ import { clearStoredAuthSession, isInvalidRefreshTokenError } from "@/lib/authCl
 import { ForgotPasswordView } from "@/components/auth/ForgotPasswordView";
 import NotificationEmailDialog from "@/components/auth/NotificationEmailDialog";
 import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
+import { LinkGoogleAccountModal } from "@/components/auth/LinkGoogleAccountModal";
 import { LibraryBot } from "@/components/chat/LibraryBot";
 
 const isTemporaryServiceFailure = (error: any) => {
@@ -40,33 +41,66 @@ const Login = () => {
   const [recentUsers, setRecentUsers] = useState<{ initials: string; color: string }[]>([]);
   const [pendingNotificationEmail, setPendingNotificationEmail] = useState<{ id: string; email?: string | null; role?: string } | null>(null);
   const [authUnavailable, setAuthUnavailable] = useState(false);
+  const [unlinkedGoogleSession, setUnlinkedGoogleSession] = useState<{ email: string; id: string } | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.id) {
-        let cachedRole: string | null = null;
-        try {
-          const cached = localStorage.getItem("dlms_user_profile");
-          if (cached) cachedRole = JSON.parse(cached)?.role;
-        } catch {}
+    let mounted = true;
 
-        if (cachedRole) {
-          switch (cachedRole) {
-            case "admin": navigate("/admin-dashboard", { replace: true }); return;
-            case "teacher": navigate("/teacher-dashboard", { replace: true }); return;
-            case "student": navigate("/student-dashboard", { replace: true }); return;
-          }
+    const checkSession = async (session: any) => {
+      if (!session?.user?.id || !mounted) return;
+
+      try {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (error && isTemporaryServiceFailure(error)) {
+          setAuthUnavailable(true);
+          return;
         }
 
-        supabase.from("profiles").select("role").eq("id", session.user.id).single().then(({ data }) => {
-          if (data?.role === "admin") navigate("/admin-dashboard", { replace: true });
-          else if (data?.role === "teacher") navigate("/teacher-dashboard", { replace: true });
+        // Account is recognized if profile exists AND either has an admission number or is teacher/admin
+        const isRecognized = profile && (Boolean(profile.admission_number) || profile.role === "admin" || profile.role === "teacher");
+
+        if (isRecognized) {
+          try {
+            localStorage.setItem("dlms_user_profile", JSON.stringify(profile));
+          } catch {}
+
+          if (profile.role === "admin") navigate("/admin-dashboard", { replace: true });
+          else if (profile.role === "teacher") navigate("/teacher-dashboard", { replace: true });
           else navigate("/student-dashboard", { replace: true });
-        });
+        } else {
+          // Google/OAuth session detected but not linked with a student admission number!
+          const userEmail = session.user.email;
+          if (userEmail) {
+            setUnlinkedGoogleSession({ email: userEmail, id: session.user.id });
+          }
+        }
+      } catch (err: any) {
+        if (isTemporaryServiceFailure(err)) setAuthUnavailable(true);
       }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) checkSession(session);
     }).catch((error) => {
       if (isTemporaryServiceFailure(error)) setAuthUnavailable(true);
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        checkSession(session);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   useEffect(() => {
@@ -100,6 +134,39 @@ const Login = () => {
     };
     loadRecentUsers();
   }, []);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setAuthUnavailable(false);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/login`,
+        },
+      });
+      if (error) {
+        if (isTemporaryServiceFailure(error)) {
+          setAuthUnavailable(true);
+        } else {
+          toast({
+            title: "Google Sign-In Failed",
+            description: error.message || "Failed to initialize Google sign-in.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error("Google sign-in error:", err);
+      toast({
+        title: "Google Sign-In Failed",
+        description: err.message || "Could not connect to Google sign-in.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,9 +249,9 @@ const Login = () => {
             try { localStorage.removeItem("dlms_invite_ref"); } catch {}
             const inviterName = (claimResult as any).inviter_name;
             toast({
-              title: "🎉 +250 XP Welcome Bonus!",
+              title: "ðŸŽ‰ +250 XP Welcome Bonus!",
               description: inviterName
-                ? `${inviterName} invited you — both of you earned 250 XP!`
+                ? `${inviterName} invited you â€” both of you earned 250 XP!`
                 : "You and your classmate both earned 250 XP!",
             });
             // Refresh profile so updated points are reflected in local storage and state immediately
@@ -202,7 +269,7 @@ const Login = () => {
               toast({
                 title: "Invite could not be applied",
                 description: reason === "self_invite"
-                  ? "You can’t claim a reward using your own invite link."
+                  ? "You canâ€™t claim a reward using your own invite link."
                   : "The invite link could not be matched to a student account. Ask your friend to share a fresh link.",
                 variant: "destructive",
               });
@@ -216,7 +283,7 @@ const Login = () => {
               if (fallbackResult && (fallbackResult as any).success) {
                 try { localStorage.removeItem("dlms_invite_ref"); } catch {}
                 toast({
-                  title: "🎉 +250 XP Welcome Bonus!",
+                  title: "ðŸŽ‰ +250 XP Welcome Bonus!",
                   description: "Invite reward credited successfully!",
                 });
               }
@@ -289,7 +356,7 @@ const Login = () => {
           
           <div className="flex-1 flex flex-col justify-center max-w-md py-4">
             <h2 className="text-3xl xl:text-4xl font-extrabold text-primary-foreground mb-3 leading-tight">
-              Your Reading<br />Adventure<br />Starts Here ✨
+              Your Reading<br />Adventure<br />Starts Here âœ¨
             </h2>
             <p className="text-primary-foreground/80 text-base xl:text-lg mb-6">
               Track progress, earn rewards, and discover new worlds through reading.
@@ -380,53 +447,90 @@ const Login = () => {
               }}
             />
           ) : (
-            <form onSubmit={handleLogin} className="space-y-3.5 sm:space-y-4">
-              {authUnavailable && (
-                <Alert className="border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-xs leading-relaxed">
-                    Sign-in services are temporarily unavailable or busy. Please be patient, wait a few minutes, and try again. Your password may still be correct; you do not need to reset it because of this message.
-                  </AlertDescription>
-                </Alert>
-              )}
-              <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/15 px-3 py-2 text-xs text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span><strong className="text-foreground font-semibold">Students:</strong> Sign in with your 5-digit Admission No.</span>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="identifier" className="text-xs sm:text-sm font-medium text-foreground">Admission No. / Email / Phone</Label>
-                <Input
-                  id="identifier"
-                  type="text"
-                  placeholder="e.g. 12345 or your email"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="h-11 rounded-xl bg-background/90 border-border/80 text-sm sm:h-12"
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-foreground">Password</Label>
-                  <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground hover:text-primary" onClick={() => setShowForgotPassword(true)} type="button">
-                    Forgot password?
-                  </Button>
-                </div>
-                <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl bg-background/90 border-border/80 pr-11 text-sm sm:h-12" required />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1">
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
-
-              <Button type="submit" className="h-11 w-full rounded-xl gradient-primary border-0 text-sm sm:text-base font-semibold shadow-md shadow-primary/20 transition-all hover:shadow-lg active:scale-[0.99] sm:h-12" disabled={isLoading || !captchaToken}>
-                {isLoading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Signing in...</span> : 'Sign In'}
+            <div className="space-y-3.5 sm:space-y-4">
+              {/* Google Sign-in Option */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGoogleSignIn}
+                disabled={isLoading || isGoogleLoading}
+                className="h-11 sm:h-12 w-full rounded-xl border-border/80 bg-background hover:bg-muted/60 font-semibold text-foreground text-sm shadow-xs transition-all flex items-center justify-center gap-2.5 active:scale-[0.99]"
+              >
+                {isGoogleLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
+                    Connecting Google...
+                  </span>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                    <span>Continue with Google</span>
+                  </>
+                )}
               </Button>
-            </form>
+
+              <div className="relative my-3 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border/60" />
+                </div>
+                <div className="relative bg-card/95 px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Or sign in with ID
+                </div>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-3.5 sm:space-y-4">
+                {authUnavailable && (
+                  <Alert className="border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-xs leading-relaxed">
+                      Sign-in services are temporarily unavailable or busy. Please be patient, wait a few minutes, and try again. Your password may still be correct; you do not need to reset it because of this message.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <div className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/15 px-3 py-2 text-xs text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span><strong className="text-foreground font-semibold">Students:</strong> Sign in with your 5-digit Admission No.</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="identifier" className="text-xs sm:text-sm font-medium text-foreground">Admission No. / Email / Phone</Label>
+                  <Input
+                    id="identifier"
+                    type="text"
+                    placeholder="e.g. 12345 or your email"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="h-11 rounded-xl bg-background/90 border-border/80 text-sm sm:h-12"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-foreground">Password</Label>
+                    <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground hover:text-primary" onClick={() => setShowForgotPassword(true)} type="button">
+                      Forgot password?
+                    </Button>
+                  </div>
+                  <div className="relative">
+                    <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl bg-background/90 border-border/80 pr-11 text-sm sm:h-12" required />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
+
+                <Button type="submit" className="h-11 w-full rounded-xl gradient-primary border-0 text-sm sm:text-base font-semibold shadow-md shadow-primary/20 transition-all hover:shadow-lg active:scale-[0.99] sm:h-12" disabled={isLoading || !captchaToken}>
+                  {isLoading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Signing in...</span> : 'Sign In'}
+                </Button>
+              </form>
+            </div>
           )}
 
           <div className="mt-4 pt-3.5 border-t border-border/60 text-center sm:mt-5 sm:pt-4">
@@ -473,6 +577,25 @@ const Login = () => {
             else if (role === "teacher") navigate("/teacher-dashboard", { replace: true });
             else if (role === "student") navigate("/student-dashboard", { replace: true });
             else navigate("/", { replace: true });
+          }}
+        />
+      )}
+      {unlinkedGoogleSession && (
+        <LinkGoogleAccountModal
+          open={Boolean(unlinkedGoogleSession)}
+          googleEmail={unlinkedGoogleSession.email}
+          onSuccess={(studentProfile) => {
+            setUnlinkedGoogleSession(null);
+            const role = studentProfile?.role || "student";
+            if (role === "admin") navigate("/admin-dashboard", { replace: true });
+            else if (role === "teacher") navigate("/teacher-dashboard", { replace: true });
+            else navigate("/student-dashboard", { replace: true });
+          }}
+          onCancel={async () => {
+            try {
+              await supabase.auth.signOut();
+            } catch {}
+            setUnlinkedGoogleSession(null);
           }}
         />
       )}

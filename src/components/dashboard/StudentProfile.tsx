@@ -146,7 +146,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
         try {
           await supabase.from("notifications").insert({
             target_user_id: uid,
-            title: `+${pointsAwarded} XP Earned! 📸`,
+            title: `+${pointsAwarded} XP Earned! ðŸ“¸`,
             message: `You earned ${pointsAwarded} points for uploading your profile picture!`,
             type: "points",
           });
@@ -268,7 +268,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
 
   const initials = `${(user?.first_name?.[0] || '').toUpperCase()}${(user?.last_name?.[0] || '').toUpperCase()}`;
   const completeness = calculateCompleteness();
-  // Safely resolve the level icon — fall back to Star if the DB icon name doesn't match a Lucide export
+  // Safely resolve the level icon â€” fall back to Star if the DB icon name doesn't match a Lucide export
   const resolvedIcon = levelInfo?.icon_name ? (Icons as any)[levelInfo.icon_name] : null;
   const LevelIcon: React.ComponentType<any> = typeof resolvedIcon === 'function' ? resolvedIcon : Star;
 
@@ -297,12 +297,12 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
         }
       `}</style>
 
-      {/* ── Profile Header Card ── */}
+      {/* â”€â”€ Profile Header Card â”€â”€ */}
       <Card className="overflow-hidden border-border/40 shadow-lg bg-card">
         {/* Banner */}
         <div className="h-40 profile-gradient-mesh relative" />
 
-        {/* Avatar + Name block — pushed below banner with negative margin */}
+        {/* Avatar + Name block â€” pushed below banner with negative margin */}
         <CardContent className="px-6 pb-6 pt-0">
           <div className="flex flex-col sm:flex-row gap-5 -mt-14 items-end sm:items-end">
             {/* Avatar */}
@@ -323,7 +323,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
                 onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])} />
             </div>
 
-            {/* Name & bio — white-card-background section */}
+            {/* Name & bio â€” white-card-background section */}
             <div className="flex-1 pt-2 min-w-0 bg-card rounded-xl px-4 py-3 border border-border/20 shadow-sm z-10">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h2 className="text-xl font-extrabold tracking-tight text-foreground">
@@ -360,7 +360,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
                   {levelInfo.points_to_next > 0 ? (
                     <p className="text-[10px] text-muted-foreground mt-0.5">{levelInfo.points_to_next} XP to next level</p>
                   ) : (
-                    <p className="text-[10px] text-emerald-500 mt-0.5 font-semibold">Max level achieved! 🎖️</p>
+                    <p className="text-[10px] text-emerald-500 mt-0.5 font-semibold">Max level achieved! ðŸŽ–ï¸</p>
                   )}
                 </div>
               )}
@@ -416,7 +416,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
         </CardContent>
       </Card>
 
-      {/* ── Edit Profile Card ── */}
+      {/* â”€â”€ Edit Profile Card â”€â”€ */}
       <Card className="border-border/40 bg-card/80 backdrop-blur-md shadow-md">
         <CardHeader className="pb-3 border-b border-border/20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -433,7 +433,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
             ) : (
               <div className="flex gap-2">
                 <Button onClick={handleSave} disabled={loading} className="rounded-lg bg-indigo-600 hover:bg-indigo-700 shadow-md font-bold text-xs">
-                  <Save className="h-4 w-4 mr-1.5" />{loading ? 'Saving…' : 'Save Details'}
+                  <Save className="h-4 w-4 mr-1.5" />{loading ? 'Savingâ€¦' : 'Save Details'}
                 </Button>
                 <Button onClick={() => setIsEditing(false)} variant="outline" disabled={loading} className="rounded-lg font-bold text-xs">
                   <X className="h-4 w-4 mr-1.5" />Cancel
@@ -461,7 +461,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
               value={formData.bio}
               onChange={(e) => setFormData(f => ({ ...f, bio: e.target.value }))}
               disabled={!isEditing}
-              placeholder="Tell your classmates about your favorite book genres, interests or reading goals…"
+              placeholder="Tell your classmates about your favorite book genres, interests or reading goalsâ€¦"
               maxLength={200}
               rows={3}
               className="rounded-lg mt-1 border-border/60"
@@ -472,7 +472,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
             <div>
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">First Name</Label>
               <Input value={formData.first_name} disabled className="rounded-lg mt-1 bg-muted/40 border-border/40 text-muted-foreground" />
-              <p className="text-[10px] text-muted-foreground mt-1">Locked — contact the librarian to change your name.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Locked â€” contact the librarian to change your name.</p>
             </div>
             <div>
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Last Name</Label>
@@ -527,10 +527,10 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
         </CardContent>
       </Card>
 
-      {/* ── Security & Password Card ── */}
-      <ProfilePasswordResetCard userEmail={user?.email || formData.email} />
+      {/* Security & Password Card */}
+      <ProfilePasswordResetCard userEmail={user?.email || formData.email} googleEmail={user?.google_email} />
 
-      {/* ── User Connections Dialog (Followers / Following) ── */}
+      {/* â”€â”€ User Connections Dialog (Followers / Following) â”€â”€ */}
       <UserConnectionsDialog
         isOpen={connectionsDialogOpen}
         onClose={() => setConnectionsDialogOpen(false)}
@@ -542,7 +542,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
         onFollowChange={loadSocial}
       />
 
-      {/* ── Profile View Dialog for selected users ── */}
+      {/* â”€â”€ Profile View Dialog for selected users â”€â”€ */}
       <Dialog open={!!viewingProfileId} onOpenChange={(o) => !o && setViewingProfileId(null)}>
         <DialogContent className="max-w-lg p-0 overflow-hidden bg-background rounded-xl border border-border/40 shadow-xl">
           <DialogHeader className="sr-only">
