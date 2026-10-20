@@ -28,7 +28,9 @@ export class ErrorBoundary extends Component<Props, State> {
       msg.includes("dynamically imported module") ||
       msg.includes("Failed to fetch") ||
       msg.includes("ChunkLoadError") ||
-      msg.includes("Importing a module script failed")
+      msg.includes("Importing a module script failed") ||
+      msg.includes("removeChild") ||
+      msg.includes("insertBefore")
     ) {
       const key = "dlms_eb_chunk_reload";
       const last = parseInt(sessionStorage.getItem(key) || "0", 10);

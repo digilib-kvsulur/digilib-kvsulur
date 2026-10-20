@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Android WebView Legacy Polyfills -->
+    <!-- Android WebView Legacy Polyfills & DOM Mutation Crash Guard -->
     <script>
       (function() {
         if (typeof globalThis === 'undefined') window.globalThis = window;
@@ -27,6 +27,42 @@
         if (!Object.hasOwn) {
           Object.hasOwn = function(obj, prop) {
             return Object.prototype.hasOwnProperty.call(obj, prop);
+          };
+        }
+
+        // Prevent crashes when Google Translate, AdSense auto-ads, or browser extensions mutate React DOM nodes
+        if (typeof Node === 'function' && Node.prototype) {
+          var originalRemoveChild = Node.prototype.removeChild;
+          Node.prototype.removeChild = function(child) {
+            if (child && child.parentNode !== this) {
+              if (child.parentNode) {
+                try { return child.parentNode.removeChild(child); } catch (e) { return child; }
+              }
+              return child;
+            }
+            return originalRemoveChild.apply(this, arguments);
+          };
+
+          var originalInsertBefore = Node.prototype.insertBefore;
+          Node.prototype.insertBefore = function(newNode, referenceNode) {
+            if (referenceNode && referenceNode.parentNode !== this) {
+              if (referenceNode.parentNode) {
+                try { return referenceNode.parentNode.insertBefore(newNode, referenceNode); } catch (e) { return newNode; }
+              }
+              return newNode;
+            }
+            return originalInsertBefore.apply(this, arguments);
+          };
+
+          var originalReplaceChild = Node.prototype.replaceChild;
+          Node.prototype.replaceChild = function(newChild, oldChild) {
+            if (oldChild && oldChild.parentNode !== this) {
+              if (oldChild.parentNode) {
+                try { return oldChild.parentNode.replaceChild(newChild, oldChild); } catch (e) { return oldChild; }
+              }
+              return oldChild;
+            }
+            return originalReplaceChild.apply(this, arguments);
           };
         }
       })();
