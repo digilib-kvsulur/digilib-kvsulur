@@ -22,6 +22,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
+import { supabaseFunctionErrorMessage } from "@/lib/supabaseFunctionError";
 
 interface PasswordRequirement {
   id: string;
@@ -249,11 +250,12 @@ const ResetPassword = () => {
       });
     } catch (err: any) {
       const isRateLimit = err.message?.toLowerCase().includes("rate limit") || err.status === 429;
+      const message = await supabaseFunctionErrorMessage(err, "Please check the email address and try again.");
       toast({
         title: isRateLimit ? "Email Rate Limit Reached" : "Failed to Send Reset Link",
         description: isRateLimit
           ? "Supabase email rate limit reached. Too many requests sent in a short period. Please wait a few minutes before trying again."
-          : err.message || "Please check the email address and try again.",
+          : message,
         variant: "destructive",
       });
     } finally {

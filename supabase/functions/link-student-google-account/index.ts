@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     const { data: conflictingStudent, error: conflictLookupError } = await admin
       .from("profiles")
       .select("id, admission_number, first_name, last_name")
-      .eq("google_email", googleEmail)
+      .ilike("google_email", googleEmail)
       .neq("id", studentProfile.id)
       .maybeSingle();
 

@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
+import { supabaseFunctionErrorMessage } from "@/lib/supabaseFunctionError";
 
 interface ForgotPasswordViewProps {
   onBackToLogin: () => void;
@@ -211,6 +212,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
       setCaptchaToken("");
       setCaptchaResetKey((key) => key + 1);
       const isRateLimit = err.message?.toLowerCase().includes("rate limit") || err.status === 429;
+      const message = await supabaseFunctionErrorMessage(err, "Failed to send reset email. Please try again later.");
       if (isRateLimit) {
         setRateLimitHit(true);
         setCooldown(90);
@@ -222,7 +224,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
       } else {
         toast({
           title: "Email Dispatch Failed",
-          description: err.message || "Failed to send reset email. Please try again later.",
+          description: message,
           variant: "destructive",
         });
       }

@@ -454,15 +454,6 @@ const Index = () => {
                 />
                 <BookOpen className="h-5 w-5 text-indigo-600 absolute hidden" />
               </div>
-              <div className="absolute -bottom-6 -left-6 bg-white border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4 shadow-xl hidden md:flex">
-                <div className="w-12 h-12 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
-                  <Trophy className="h-6 w-6 text-white" />
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">1st STUDENT CENTRIC</p>
-                  <p className="text-sm font-black text-slate-900">KVS DLMS</p>
-                </div>
-              </div>
             </div>
             <div>
               <h1 className="text-sm font-black tracking-tight text-slate-900 leading-tight">
@@ -589,6 +580,15 @@ const Index = () => {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-slate-950/10 to-transparent" />
+                </div>
+              </div>
+              <div className="absolute -bottom-6 -left-6 bg-white border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4 shadow-xl hidden md:flex">
+                <div className="w-12 h-12 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+                  <Trophy className="h-6 w-6 text-white" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">1st STUDENT CENTRIC</p>
+                  <p className="text-sm font-black text-slate-900">KVS DLMS</p>
                 </div>
               </div>
             </div>
