@@ -176,10 +176,12 @@ export default function UIReformChallengeManager() {
           .from("ui_reform_submissions" as any)
           .select("id, campaign_id, student_id, screen_name, title, problem_statement, proposed_solution, mockup_url, status, admin_feedback, points_awarded, created_at")
           .eq("campaign_id", activeCamp.id)
-          .order("created_at", { ascending: false });
-          
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(0, 49);
 
         if (!sErr && sData) {
+          setHasMoreSubmissions(sData.length === 50);
           // Fetch student profiles for these submissions in a clean, non-recursive batch query
           const studentIds = Array.from(new Set(sData.map((s: any) => s.student_id).filter(Boolean)));
           const profileMap = new Map();
@@ -212,6 +214,7 @@ export default function UIReformChallengeManager() {
       } else {
         setCampaign(null);
         setSubmissions([]);
+        setHasMoreSubmissions(false);
       }
 
       // Update module cache
@@ -226,6 +229,37 @@ export default function UIReformChallengeManager() {
       console.warn("Error loading UI reform data:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMoreSubmissions = async () => {
+    if (!campaign || loadingMoreSubmissions || !hasMoreSubmissions) return;
+    setLoadingMoreSubmissions(true);
+    try {
+      const start = submissions.length;
+      const { data, error } = await supabase
+        .from("ui_reform_submissions" as any)
+        .select("id, campaign_id, student_id, screen_name, title, problem_statement, proposed_solution, mockup_url, status, admin_feedback, points_awarded, created_at")
+        .eq("campaign_id", campaign.id)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(start, start + 49);
+      if (error) throw error;
+      const batch = (data || []) as Submission[];
+      const studentIds = Array.from(new Set(batch.map((row) => row.student_id).filter(Boolean)));
+      const { data: profiles } = studentIds.length
+        ? await supabase.from("profiles").select("id, first_name, last_name, student_class, avatar_url").in("id", studentIds)
+        : { data: [] };
+      const profileMap = new Map((profiles || []).map((profile: any) => [profile.id, profile]));
+      const enriched = batch.map((row) => ({ ...row, student: profileMap.get(row.student_id) || null }));
+      const all = [...submissions, ...enriched];
+      setSubmissions(all);
+      setHasMoreSubmissions(batch.length === 50);
+      uiReformCache = { ...(uiReformCache as UIReformCacheData), submissions: all, cachedAt: Date.now() };
+    } catch (error: any) {
+      toast({ title: "Could not load more submissions", description: error?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setLoadingMoreSubmissions(false);
     }
   };
 
@@ -770,6 +804,13 @@ export default function UIReformChallengeManager() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              {hasMoreSubmissions && (
+                <div className="flex justify-center pt-3">
+                  <Button variant="outline" onClick={loadMoreSubmissions} disabled={loadingMoreSubmissions}>
+                    {loadingMoreSubmissions ? "Loading…" : "Load 50 more submissions"}
+                  </Button>
                 </div>
               )}
             </div>
