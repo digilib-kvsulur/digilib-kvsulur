@@ -159,6 +159,14 @@ export async function reviewSubmission(id: string, decision: "approve" | "reject
   return data;
 }
 
+export async function revertSubmissionEvaluation(id: string) {
+  const { data, error } = await supabase.rpc("vacation_revert_submission_evaluation" as any, {
+    p_submission: id,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export interface VacationDailyXpReconciliation {
   campaign_id: string;
   activity_date: string;

@@ -23,6 +23,7 @@ export const VACATION_ERROR_MESSAGES: Record<string, string> = {
   vacation_campaigns: "The vacation tables have not been created in Supabase yet. Run migration 20261010150000_vacation_campaign.sql in your Supabase SQL Editor.",
   vacation_submissions_content_check: "Your submission content is too long. Please shorten your response before submitting.",
   invalid_marks: "Marks must be between 0 and 1000.",
+  submission_not_evaluated: "This submission is not currently evaluated, so it cannot be reverted.",
 };
 
 import type { VacationSubmissionType } from "./types";

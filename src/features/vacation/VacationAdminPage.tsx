@@ -43,6 +43,7 @@ import {
   replaceMilestones,
   reconcileDailyVacationXp,
   reviewSubmission,
+  revertSubmissionEvaluation,
   seedPosterDrafts,
   upsertActivity,
   upsertVacationCampaign,
@@ -224,6 +225,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
 
   const pendingFiltered = filteredQueue.filter((row) => row.status === "pending");
   const selectedPending = pendingFiltered.filter((row) => selectedSubmissionIds.includes(row.id));
+  const selectedReviewed = filteredQueue.filter((row) => (row.status === "approved" || row.status === "rejected") && selectedSubmissionIds.includes(row.id));
 
   const downloadSubmissionCsv = () => {
     const rows = filteredQueue.map((row) => ({
@@ -373,6 +375,31 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
     toast({
       title: failures.length ? `Approved ${approved}; ${failures.length} failed` : `Approved ${approved} submissions`,
       description: failures.slice(0, 3).join("\n") || "Each submission received its activity's configured points.",
+      variant: failures.length ? "destructive" : undefined,
+    });
+    await loadDetails(campaign.id);
+  };
+
+  const bulkRevertSelected = async () => {
+    if (!campaign || selectedReviewed.length === 0 || bulkReviewBusy) return;
+    const targets = [...selectedReviewed];
+    if (!window.confirm(`Revert ${targets.length} selected evaluation(s)? Approved entries will return to pending and their associated XP and invalidated streak bonuses will be removed.`)) return;
+    setBulkReviewBusy(true);
+    let reverted = 0;
+    const failures: string[] = [];
+    for (const row of targets) {
+      try {
+        await revertSubmissionEvaluation(row.id);
+        reverted += 1;
+      } catch (error) {
+        failures.push(`${row.student_name || row.id}: ${vacationErrorMessage(error)}`);
+      }
+    }
+    setSelectedSubmissionIds([]);
+    setBulkReviewBusy(false);
+    toast({
+      title: failures.length ? `Reverted ${reverted}; ${failures.length} failed` : `Reverted ${reverted} evaluations`,
+      description: failures.slice(0, 3).join("\n") || "Selected entries are pending review again.",
       variant: failures.length ? "destructive" : undefined,
     });
     await loadDetails(campaign.id);
@@ -1120,6 +1147,28 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
             </div>
           )}
 
+          {filteredQueue.some((row) => row.status === "approved" || row.status === "rejected") && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={filteredQueue.filter((row) => row.status === "approved" || row.status === "rejected").every((row) => selectedSubmissionIds.includes(row.id))}
+                  onChange={(event) => {
+                    const eligibleIds = filteredQueue.filter((row) => row.status === "approved" || row.status === "rejected").map((row) => row.id);
+                    setSelectedSubmissionIds((ids) => event.target.checked
+                      ? [...new Set([...ids, ...eligibleIds])]
+                      : ids.filter((id) => !eligibleIds.includes(id)));
+                  }}
+                />
+                Select all evaluated shown
+              </label>
+              <span className="text-muted-foreground">{selectedReviewed.length} selected</span>
+              <Button size="sm" variant="destructive" disabled={!selectedReviewed.length || bulkReviewBusy} onClick={bulkRevertSelected}>
+                {bulkReviewBusy ? "Reverting…" : `Revert evaluation (${selectedReviewed.length})`}
+              </Button>
+            </div>
+          )}
+
           {!filteredQueue.length ? (
             <div className="p-8 text-center rounded-2xl border border-dashed text-muted-foreground space-y-1">
               <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500/80 mb-2" />
@@ -1138,7 +1187,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 border-b pb-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {row.status === "pending" && <input aria-label={`Select ${row.student_name}'s submission`} type="checkbox" checked={selectedSubmissionIds.includes(row.id)} onChange={(event) => setSelectedSubmissionIds((ids) => event.target.checked ? [...new Set([...ids, row.id])] : ids.filter((id) => id !== row.id))} />}
+                        {(row.status === "pending" || row.status === "approved" || row.status === "rejected") && <input aria-label={`Select ${row.student_name}'s submission`} type="checkbox" checked={selectedSubmissionIds.includes(row.id)} onChange={(event) => setSelectedSubmissionIds((ids) => event.target.checked ? [...new Set([...ids, row.id])] : ids.filter((id) => id !== row.id))} />}
                         <span className="font-bold text-base text-foreground">{row.student_name}</span>
                         {isTeam && (
                           <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-800 dark:text-amber-200 border-amber-500/30 font-bold gap-1">

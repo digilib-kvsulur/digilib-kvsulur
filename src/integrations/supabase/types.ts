@@ -3788,6 +3788,10 @@ export type Database = {
         }
         Returns: Json
       }
+      vacation_revert_submission_evaluation: {
+        Args: { p_submission: string }
+        Returns: Json
+      }
       vacation_seed_poster_drafts: { Args: { p_campaign: string }; Returns: number }
       vacation_student_overview: { Args: never; Returns: Json }
       vacation_submit_activity: {
