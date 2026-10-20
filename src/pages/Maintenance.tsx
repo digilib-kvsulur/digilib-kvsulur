@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { Wrench, BookOpen, Clock, Mail, X, Sparkles, Bell } from "lucide-react";
 
-// 20 Oct 2026, 2:00 PM IST = 20 Oct 2026, 08:30 UTC
-const MAINTENANCE_END = new Date("2026-10-20T08:30:00Z");
+import { MAINTENANCE_CONFIG, getMaintenanceRemainingMs } from "@/config/maintenanceConfig";
 
 function getTimeLeft() {
-  const diff = MAINTENANCE_END.getTime() - Date.now();
+  const diff = getMaintenanceRemainingMs();
   if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
   return {
     days: Math.floor(diff / (1000 * 60 * 60 * 24)),
@@ -108,25 +107,17 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
       <div style={{ borderTop: "1px solid hsl(var(--border))" }} />
 
       {/* Body */}
-      <p
-        className="text-sm sm:text-base leading-relaxed"
+      <div
+        className="text-sm sm:text-base leading-relaxed space-y-3"
         style={{ color: "hsl(var(--muted-foreground))" }}
       >
-        Dear Students & Teachers,
-        <br /><br />
-        DLMS is currently undergoing{" "}
-        <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          scheduled maintenance
-        </span>{" "}
-        from 1:00 PM to 2:00 PM today for essential system updates and improvements.
-        <br /><br />
-        The site will be back online smoothly by{" "}
-        <span className="font-semibold" style={{ color: "hsl(var(--warning))" }}>
-          today, 2:00 PM IST
-        </span>.
-        <br /><br />
-        Thank you for your patience and cooperation. 🙏
-      </p>
+        <p className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+          Dear Students & Teachers,
+        </p>
+        {MAINTENANCE_CONFIG.modalBody.split('\n\n').map((para, i) => (
+          <p key={i}>{para}</p>
+        ))}
+      </div>
 
       {/* Signature */}
       <div
@@ -137,10 +128,10 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
         }}
       >
         <p className="text-xs sm:text-sm font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-          — G V Tanish Vettrivel
+          — {MAINTENANCE_CONFIG.author}
         </p>
         <p className="text-[10px] sm:text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
-          Developer · PM SHRI KV AFS Sulur
+          {MAINTENANCE_CONFIG.authorRole}
         </p>
       </div>
 
@@ -228,15 +219,15 @@ export default function Maintenance() {
             className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight animate-gradient bg-clip-text text-transparent leading-tight"
             style={{ backgroundImage: "var(--gradient-warm)", backgroundSize: "200% 200%" }}
           >
-            Site Under Maintenance
+            {MAINTENANCE_CONFIG.heading}
           </h1>
           <p
             className="text-sm sm:text-base md:text-lg leading-relaxed max-w-md mx-auto"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-          DLMS is currently undergoing scheduled maintenance from 1:00 PM to 2:00 PM today. We'll be back online by:{" "}
+            {MAINTENANCE_CONFIG.subheading}{" "}
             <span className="font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-              today, 2:00 PM IST
+              {MAINTENANCE_CONFIG.displayUntil}
             </span>
             .
           </p>
@@ -291,7 +282,7 @@ export default function Maintenance() {
           {/* Contact button */}
           <a
             id="maintenance-support-btn"
-            href="mailto:dlms@kvsulur.in"
+            href={`mailto:${MAINTENANCE_CONFIG.supportEmail}`}
             className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
             style={{
               background: "var(--gradient-warm)",
@@ -312,9 +303,7 @@ export default function Maintenance() {
           </a>
         </div>
 
-        <p className="text-[10px] sm:text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
-          dlms@kvsulur.in
-        </p>
+        <p className="text-[10px] sm:text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>{MAINTENANCE_CONFIG.supportEmail}</p>
       </div>
 
       {/* Bottom brand strip */}

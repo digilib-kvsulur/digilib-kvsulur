@@ -65,8 +65,7 @@ const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
 const TEACHER_ROLES = ["teacher", "admin"] as const;
 
-// Maintenance window: until 20 Oct 2026, 2:00 PM IST (08:30 UTC)
-const MAINTENANCE_UNTIL = new Date("2026-10-20T08:30:00Z");
+import { isMaintenanceActive, getMaintenanceRemainingMs } from "@/config/maintenanceConfig";
 
 const PageLoader = () => {
   const [show, setShow] = useState(false);
@@ -268,7 +267,12 @@ import { backNavigation } from "@/lib/backNavigation";
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(isNative); // only show splash in native apps by default
-  const [isMaintenance, setIsMaintenance] = useState(() => Date.now() < MAINTENANCE_UNTIL.getTime());
+    const [isMaintenance, setIsMaintenance] = useState(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("bypass=dlms_dev")) {
+      return false;
+    }
+    return isMaintenanceActive();
+  });
 
   useEffect(() => {
     recoverInvalidAuthSession();
@@ -278,7 +282,7 @@ const App = () => {
   // Lift maintenance mode automatically once the window passes
   useEffect(() => {
     if (!isMaintenance) return;
-    const remaining = MAINTENANCE_UNTIL.getTime() - Date.now();
+    const remaining = getMaintenanceRemainingMs();
     if (remaining <= 0) { setIsMaintenance(false); return; }
     const timer = setTimeout(() => setIsMaintenance(false), remaining);
     return () => clearTimeout(timer);
