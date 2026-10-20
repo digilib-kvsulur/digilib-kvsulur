@@ -201,33 +201,67 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
 
       {/* Personalized recommendations */}
       {personalizedBooks.length > 0 && (
-        <Card className="border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-yellow-500 fill-yellow-500 animate-pulse" />
-              Recommended for You
-            </CardTitle>
-            <CardDescription className="text-xs">Based on your class level, reading habits, and quizzes</CardDescription>
+        <Card className="border border-border/70 rounded-3xl overflow-hidden bg-card/70 backdrop-blur-md shadow-sm">
+          <CardHeader className="p-4 sm:p-5 pb-3 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm sm:text-base font-black flex items-center gap-2 text-foreground tracking-tight">
+                <div className="w-6 h-6 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-500 shadow-2xs">
+                  <Sparkles className="h-3.5 w-3.5 fill-amber-500" />
+                </div>
+                <span>Personalized "Next Read" Suggestions</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                AI & collaborative recommendation engine based on your reading velocity, class trends & favorites
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/catalog")}
+              className="text-xs font-bold text-primary hover:text-primary/80 h-8"
+            >
+              Browse All →
+            </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-5 pt-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {personalizedBooks.map(({ book: b, reasons }) => (
-                <div key={b.id} className="p-3.5 rounded-xl border bg-card flex flex-col justify-between hover:shadow-sm transition-all border-border/50">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <BookOpen className="h-4 w-4 text-primary shrink-0" />
-                      <p className="font-semibold text-sm text-foreground truncate">{b.title}</p>
+                <div
+                  key={b.id}
+                  onClick={() => navigate(`/book/${b.id}`)}
+                  className="p-3.5 sm:p-4 rounded-2xl border border-border/60 bg-card hover:bg-muted/40 hover:border-primary/40 flex flex-col justify-between hover:shadow-md transition-all cursor-pointer group active:scale-[0.98]"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <BookOpen className="h-4 w-4" />
+                      </div>
+                      <p className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                        {b.title}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">by {b.author}</p>
+                    <p className="text-[11px] text-muted-foreground truncate pl-0.5">by {b.author || "Unknown"}</p>
+
+                    {/* Smart Reason Badge */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                      {reasons.slice(0, 2).map((r, rIdx) => (
+                        <span
+                          key={rIdx}
+                          className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20"
+                        >
+                          ✦ {r}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex gap-1 flex-wrap">
-                      {b.category && <Badge variant="outline" className="text-[9px] px-1.5 py-0">{b.category}</Badge>}
-                      {b.class_level === studentClass && <Badge className="bg-primary/10 text-primary hover:bg-primary/20 text-[9px] px-1.5 py-0 border-0">Class Pick</Badge>}
-                    </div>
-                    <Button variant="ghost" size="sm" className="h-7 text-xs font-semibold" onClick={() => navigate("/catalog")}>
-                      View
-                    </Button>
+
+                  <div className="mt-3.5 pt-2.5 flex items-center justify-between border-t border-border/40">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase">
+                      {b.category || "General"}
+                    </span>
+                    <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                      View Details →
+                    </span>
                   </div>
                 </div>
               ))}
