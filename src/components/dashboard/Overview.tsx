@@ -500,7 +500,6 @@ export default function Overview({
       </div>
     </div>
   );
-  );
 
   // 7. RECOMMENDATIONS
   const RecommendationsSection = () => (
