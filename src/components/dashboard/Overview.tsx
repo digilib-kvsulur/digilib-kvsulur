@@ -18,8 +18,9 @@ import {
   BookOpen, Brain, Target, Award, Zap, Trophy, TrendingUp, Sparkles,
   Calendar, CalendarDays, Gamepad2, Timer, FileText, BookCheck, Users,
   UserPlus, Copy, Bug, Palette, AlertTriangle, ChevronRight, BookPlus,
-  Compass, CheckCircle2, Medal
+  Compass, CheckCircle2, Medal, GraduationCap, Layers
 } from "lucide-react";
+import { AIBookCheckpointModal } from "@/components/student/AIBookCheckpointModal";
 
 export interface OverviewProps {
   user: any;
@@ -76,6 +77,7 @@ export default function Overview({
   const navigate = useNavigate();
   const { toast } = useToast();
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showAICheckpoint, setShowAICheckpoint] = useState(false);
 
   // Time-aware greeting
   const greeting = useMemo(() => {
@@ -159,16 +161,18 @@ export default function Overview({
 
   // Quick Action App Tiles
   const quickActions = [
+    { label: "CBSE Vault", icon: GraduationCap, tab: "cbse-vault", color: "text-indigo-400", bg: "bg-indigo-500/15", badge: "CBSE" },
+    { label: "AI Checkpoint", icon: Sparkles, tab: "checkpoint", color: "text-purple-400", bg: "bg-purple-500/15", badge: "+50 XP" },
+    { label: "Curriculum Reads", icon: Layers, tab: "curriculum", color: "text-teal-400", bg: "bg-teal-500/15", badge: "NEW" },
+    { label: "NCERT Books", icon: BookOpen, tab: "ncert", color: "text-sky-400", bg: "bg-sky-500/15", badge: "E-BOOKS" },
     { label: "My Portfolio", icon: FileText, tab: "portfolio", color: "text-rose-500", bg: "bg-rose-500/10" },
     { label: "Games Corner", icon: Gamepad2, tab: "games", color: "text-blue-500", bg: "bg-blue-500/10" },
     { label: "Study Tracker", icon: Timer, tab: "study", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { label: "Quizzes", icon: Brain, tab: "quizzes", color: "text-purple-500", bg: "bg-purple-500/10" },
+    { label: "Quizzes", icon: Brain, tab: "quizzes", color: "text-purple-500", bg: "bg-purple-500/10", badge: "LIVE" },
     { label: "Certificates", icon: Award, tab: "certificates", color: "text-amber-500", bg: "bg-amber-500/10" },
     { label: "Study Materials", icon: FileText, tab: "materials", color: "text-indigo-500", bg: "bg-indigo-500/10" },
     { label: "Library Events", icon: CalendarDays, tab: "events", color: "text-pink-500", bg: "bg-pink-500/10" },
     { label: "Community", icon: Users, tab: "community", color: "text-orange-500", bg: "bg-orange-500/10" },
-    { label: "Network", icon: Users, tab: "network", color: "text-sky-500", bg: "bg-sky-500/10" },
-    { label: "Book Issued", icon: BookCheck, tab: "issued", color: "text-violet-500", bg: "bg-violet-500/10" },
   ];
 
   // Activity styling helper
@@ -364,29 +368,45 @@ export default function Overview({
     </Card>
   );
 
-  // 5. STUDENT LAUNCHPAD
+  // 5. STUDENT LAUNCHPAD (Interactive Mission Tiles)
   const LaunchpadSection = () => (
-    <Card className="border-border/60 rounded-2xl overflow-hidden shadow-2xs">
-      <CardHeader className="p-3.5 sm:p-4 pb-2">
+    <Card className="border border-border/70 rounded-3xl overflow-hidden bg-card/60 backdrop-blur-md shadow-sm">
+      <CardHeader className="p-3.5 sm:p-4 pb-2.5">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xs sm:text-sm font-extrabold flex items-center gap-2 text-foreground">
-            <Compass className="h-4 w-4 text-primary" /> Student Launchpad
+          <CardTitle className="text-xs sm:text-sm font-black flex items-center gap-2 text-foreground tracking-tight">
+            <div className="w-6 h-6 rounded-lg bg-primary/15 flex items-center justify-center text-primary shadow-xs">
+              <Compass className="h-3.5 w-3.5" />
+            </div>
+            <span>Student Launchpad</span>
           </CardTitle>
-          <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline">Explore Library Zones</span>
+          <span className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1">
+            <Sparkles className="h-3 w-3 text-amber-400" /> Fast-Track Library Zones
+          </span>
         </div>
       </CardHeader>
-      <CardContent className="p-3.5 sm:p-4 pt-1">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5">
-          {quickActions.map((action) => (
+      <CardContent className="p-3.5 sm:p-4 pt-0">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-2.5">
+          {quickActions.map((action: any) => (
             <button
               key={action.tab}
-              onClick={() => setActiveTab(action.tab)}
-              className="flex flex-col items-center justify-center text-center p-2.5 sm:p-3 rounded-xl border border-border/40 bg-card/70 hover:bg-muted/40 hover:border-primary/30 transition-all hover:scale-[1.02] active:scale-95 group shadow-2xs"
+              onClick={() => {
+                if (action.tab === "checkpoint") {
+                  setShowAICheckpoint(true);
+                } else {
+                  setActiveTab(action.tab);
+                }
+              }}
+              className="relative flex flex-col items-center justify-center text-center p-2.5 sm:p-3 rounded-2xl border border-border/60 bg-card hover:bg-muted/50 hover:border-primary/40 transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-95 group shadow-2xs"
             >
-              <div className={`w-8 h-8 rounded-lg ${action.bg} flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform`}>
+              {action.badge && (
+                <span className="absolute top-1.5 right-1.5 px-1.5 py-0.2 rounded-full text-[8px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                  {action.badge}
+                </span>
+              )}
+              <div className={`w-9 h-9 rounded-xl ${action.bg} flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform shadow-2xs`}>
                 <action.icon className={`h-4 w-4 ${action.color}`} />
               </div>
-              <span className="text-xs font-semibold text-foreground leading-tight line-clamp-1">
+              <span className="text-xs font-bold text-foreground leading-tight line-clamp-1">
                 {action.label}
               </span>
             </button>
@@ -396,79 +416,90 @@ export default function Overview({
     </Card>
   );
 
-  // 6. THE STAT BOX (4 Metric Cards)
+  // 6. THE STAT BOX (4 Futuristic Cyber-Academic Cards)
   const StatsSection = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
       {/* Books Reading */}
-      <Card
-        className="border-border/60 hover:border-blue-500/40 hover:shadow-xs transition-all rounded-2xl cursor-pointer group active:scale-[0.98] bg-card"
+      <div
         onClick={() => setActiveTab("books")}
+        className="relative overflow-hidden rounded-2xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 via-card to-card p-3.5 sm:p-4 hover:border-sky-500/50 hover:shadow-lg hover:shadow-sky-500/10 transition-all cursor-pointer group active:scale-[0.98]"
       >
-        <CardContent className="p-3 sm:p-3.5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+        <div className="flex items-center justify-between mb-2">
+          <div className="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-500 dark:text-sky-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
             <BookOpen className="h-5 w-5" />
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">Reading</p>
-            <p className="text-xl sm:text-2xl font-black text-foreground leading-tight">{currentBooksCount}</p>
-            <p className="text-[10px] text-muted-foreground truncate">in progress</p>
-          </div>
-        </CardContent>
-      </Card>
+          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-300 border border-sky-500/30">
+            Reading
+          </span>
+        </div>
+        <div className="space-y-0.5">
+          <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{currentBooksCount}</p>
+          <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse inline-block shrink-0" /> in active progress
+          </p>
+        </div>
+      </div>
 
       {/* Quizzes Taken */}
-      <Card
-        className="border-border/60 hover:border-purple-500/40 hover:shadow-xs transition-all rounded-2xl cursor-pointer group active:scale-[0.98] bg-card"
+      <div
         onClick={() => setActiveTab("quizzes")}
+        className="relative overflow-hidden rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 via-card to-card p-3.5 sm:p-4 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all cursor-pointer group active:scale-[0.98]"
       >
-        <CardContent className="p-3 sm:p-3.5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+        <div className="flex items-center justify-between mb-2">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-500 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
             <Brain className="h-5 w-5" />
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">Quizzes</p>
-            <p className="text-xl sm:text-2xl font-black text-foreground leading-tight">{quizResultsCount}</p>
-            <p className="text-[10px] text-muted-foreground truncate">completed</p>
-          </div>
-        </CardContent>
-      </Card>
+          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-500/30">
+            Brain IQ
+          </span>
+        </div>
+        <div className="space-y-0.5">
+          <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{quizResultsCount}</p>
+          <p className="text-[11px] font-medium text-muted-foreground truncate">completed quizzes</p>
+        </div>
+      </div>
 
       {/* Monthly Goal Progress */}
-      <Card className="border-border/60 hover:border-emerald-500/40 hover:shadow-xs transition-all rounded-2xl bg-card">
-        <CardContent className="p-3 sm:p-3.5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+      <div
+        onClick={() => setActiveTab("portfolio")}
+        className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-card to-card p-3.5 sm:p-4 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all cursor-pointer group active:scale-[0.98]"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
             <Target className="h-5 w-5" />
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-1">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">Goal</p>
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">{goalPercentage}%</span>
-            </div>
-            <p className="text-xl sm:text-2xl font-black text-foreground leading-tight">
-              {monthlyBooksRead}/{schoolReadingGoal}
-            </p>
-            <Progress value={goalPercentage} className="h-1 mt-1" />
-          </div>
-        </CardContent>
-      </Card>
+          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 font-mono">
+            {goalPercentage}%
+          </span>
+        </div>
+        <div className="space-y-1">
+          <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+            {monthlyBooksRead}<span className="text-sm font-semibold text-muted-foreground">/{schoolReadingGoal}</span>
+          </p>
+          <Progress value={goalPercentage} className="h-1.5 bg-muted rounded-full" />
+        </div>
+      </div>
 
       {/* Badges Earned */}
-      <Card
-        className="border-border/60 hover:border-amber-500/40 hover:shadow-xs transition-all rounded-2xl cursor-pointer group active:scale-[0.98] bg-card"
+      <div
         onClick={() => setActiveTab("badges")}
+        className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-card to-card p-3.5 sm:p-4 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/10 transition-all cursor-pointer group active:scale-[0.98]"
       >
-        <CardContent className="p-3 sm:p-3.5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+        <div className="flex items-center justify-between mb-2">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-500 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
             <Award className="h-5 w-5" />
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">Badges</p>
-            <p className="text-xl sm:text-2xl font-black text-foreground leading-tight">{badgesEarnedCount}</p>
-            <p className="text-[10px] text-muted-foreground truncate">unlocked</p>
-          </div>
-        </CardContent>
-      </Card>
+          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30">
+            ★ Vault
+          </span>
+        </div>
+        <div className="space-y-0.5">
+          <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{badgesEarnedCount}</p>
+          <p className="text-[11px] font-medium text-muted-foreground truncate">unlocked badges</p>
+        </div>
+      </div>
     </div>
+  );
   );
 
   // 7. RECOMMENDATIONS
@@ -823,6 +854,16 @@ export default function Overview({
           <HistorySection />
         </div>
       </div>
+
+      {/* AI Book Checkpoint Dialog */}
+      <AIBookCheckpointModal
+        isOpen={showAICheckpoint}
+        onClose={() => setShowAICheckpoint(false)}
+        bookTitle="Wings of Fire: An Autobiography"
+        bookAuthor="Dr. A.P.J. Abdul Kalam"
+        userId={user?.id}
+        onPointsEarned={checkAuth}
+      />
     </div>
   );
 }

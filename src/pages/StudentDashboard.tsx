@@ -51,6 +51,8 @@ import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudentNotes from "@/components/dashboard/StudentNotes";
 import NCERTBooks from "@/components/dashboard/NCERTBooks";
 import StudyMaterials from "@/components/dashboard/StudyMaterials";
+import CBSEQuestionBankVault from "@/components/student/CBSEQuestionBankVault";
+import TeacherCurriculumLists from "@/components/student/TeacherCurriculumLists";
 import StudyTracker from "@/components/dashboard/StudyTracker";
 import GamesCorner from "@/components/games/GamesCorner";
 import Community from "@/components/community/Community";
@@ -1212,6 +1214,12 @@ const StudentDashboard = () => {
 
           {/* NCERT Books */}
           {activeTab === "ncert" && <NCERTBooks studentClass={user?.student_class} />}
+
+          {/* CBSE Question Bank & Past Papers Vault */}
+          {activeTab === "cbse-vault" && <CBSEQuestionBankVault studentClass={user?.student_class} />}
+
+          {/* Teacher Curriculum Companions */}
+          {activeTab === "curriculum" && <TeacherCurriculumLists studentClass={user?.student_class} />}
 
           {/* Games Corner */}
           {activeTab === "games" && user?.id && <GamesCorner userId={user.id} onPointsEarned={checkAuth} />}

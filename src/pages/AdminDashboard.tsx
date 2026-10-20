@@ -74,8 +74,11 @@ const ReservationManager = lazy(() => import("@/components/admin/ReservationMana
 const QuizParticipants = lazy(() => import("@/components/admin/QuizParticipants"));
 const SuggestionManager = lazy(() => import("@/components/admin/SuggestionManager"));
 const DataManagement = lazy(() => import("@/components/admin/DataManagement"));
+const KVSComplianceDossier = lazy(() => import("@/components/admin/KVSComplianceDossier"));
+const StockVerificationScanner = lazy(() => import("@/components/admin/StockVerificationScanner"));
+const OverdueEmailDispatcher = lazy(() => import("@/components/admin/OverdueEmailDispatcher"));
 
-type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "quiz-participants" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "chat" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "data-management" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "book-suggestions" | "reservations" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor" | "invite-instagram";
+type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "quiz-participants" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "chat" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "data-management" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "book-suggestions" | "reservations" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor" | "invite-instagram" | "kvs-dossier" | "stock-audit" | "overdue-dispatcher";
 
 const SYSTEM_SIZE_CACHE_KEY = "dlms_admin_system_sizes_v1";
 const SYSTEM_SIZE_CACHE_TTL_MS = 60 * 60 * 1000;
@@ -89,6 +92,7 @@ const navSections = [
       { id: "overview" as Tab, label: "Overview", icon: Home },
       { id: "analytics" as Tab, label: "Analytics", icon: BarChart3 },
       { id: "reports" as Tab, label: "Export Reports", icon: FileSpreadsheet },
+      { id: "kvs-dossier" as Tab, label: "KVS Inspection Dossier", icon: FileText },
       { id: "support" as Tab, label: "Support Tickets", icon: LifeBuoy },
       { id: "feedback" as Tab, label: "User Feedback", icon: MessageSquare },
     ],
@@ -106,6 +110,8 @@ const navSections = [
     title: "Library",
     items: [
       { id: "express-circulation" as Tab, label: "Express Circulation Kiosk", icon: Zap },
+      { id: "stock-audit" as Tab, label: "Stock Verification Scanner", icon: Barcode },
+      { id: "overdue-dispatcher" as Tab, label: "Overdue Email Dispatcher", icon: Mail },
       { id: "books" as Tab, label: "Manage Books", icon: BookOpen },
       { id: "metadata-hub" as Tab, label: "Metadata & Cover Hub", icon: Sparkles },
       { id: "circulation" as Tab, label: "Circulation", icon: LibraryIcon },
@@ -680,6 +686,9 @@ const AdminDashboard = () => {
           {activeTab === "circulation" && <CirculationDashboard />}
           {activeTab === "audit" && <InventoryAuditManager />}
           {activeTab === "reports" && <ExportReports />}
+          {activeTab === "kvs-dossier" && <KVSComplianceDossier />}
+          {activeTab === "stock-audit" && <StockVerificationScanner />}
+          {activeTab === "overdue-dispatcher" && <OverdueEmailDispatcher />}
           {activeTab === "book-requests" && <BookIssueRequests />}
           {activeTab === "book-issues" && <BookIssueRegister />}
           {activeTab === "overdue" && <OverdueList />}
