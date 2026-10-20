@@ -100,6 +100,8 @@ export default function UIReformChallengeManager() {
   const [submissions, setSubmissions] = useState<Submission[]>(() => uiReformCache?.submissions ?? []);
   const [loading, setLoading] = useState<boolean>(() => !uiReformCache);
   const [submissionLoadError, setSubmissionLoadError] = useState("");
+  const [hasMoreSubmissions, setHasMoreSubmissions] = useState(false);
+  const [loadingMoreSubmissions, setLoadingMoreSubmissions] = useState(false);
   const [studentVisible, setStudentVisible] = useState<boolean>(() => uiReformCache?.studentVisible ?? true);
   const [bugBountyEndDate, setBugBountyEndDate] = useState<string | null>(() => uiReformCache?.bugBountyEndDate ?? null);
 
@@ -175,6 +177,7 @@ export default function UIReformChallengeManager() {
           .select("id, campaign_id, student_id, screen_name, title, problem_statement, proposed_solution, mockup_url, status, admin_feedback, points_awarded, created_at")
           .eq("campaign_id", activeCamp.id)
           .order("created_at", { ascending: false });
+          
 
         if (!sErr && sData) {
           // Fetch student profiles for these submissions in a clean, non-recursive batch query
