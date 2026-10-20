@@ -167,19 +167,36 @@ export default function UIReformChallengeManager() {
         activeCamp = cRes.data[0] as Campaign;
         setCampaign(activeCamp);
 
-        // Fetch submissions for this campaign with specific columns for fast query execution
+        // Fetch submissions for this campaign directly without embedded join to prevent RLS recursion
         const { data: sData, error: sErr } = await supabase
           .from("ui_reform_submissions" as any)
-          .select("id, campaign_id, student_id, screen_name, title, problem_statement, proposed_solution, mockup_url, status, admin_feedback, points_awarded, created_at, profiles:student_id(first_name, last_name, student_class, avatar_url)")
+          .select("id, campaign_id, student_id, screen_name, title, problem_statement, proposed_solution, mockup_url, status, admin_feedback, points_awarded, created_at")
           .eq("campaign_id", activeCamp.id)
           .order("created_at", { ascending: false });
 
         if (!sErr && sData) {
+          // Fetch student profiles for these submissions in a clean, non-recursive batch query
+          const studentIds = Array.from(new Set(sData.map((s: any) => s.student_id).filter(Boolean)));
+          const profileMap = new Map();
+
+          if (studentIds.length > 0) {
+            const { data: pData } = await supabase
+              .from("profiles")
+              .select("id, first_name, last_name, student_class, avatar_url")
+              .in("id", studentIds);
+
+            if (pData) {
+              pData.forEach((p: any) => profileMap.set(p.id, p));
+            }
+          }
+
           subs = sData.map((s: any) => ({
             ...s,
-            student: s.profiles,
+            student: profileMap.get(s.student_id) || null,
           }));
           setSubmissions(subs);
+        } else if (sErr) {
+          console.warn("Failed to fetch UI reform submissions:", sErr);
         }
       } else {
         setCampaign(null);
@@ -1026,7 +1043,10 @@ export default function UIReformChallengeManager() {
 
       {/* Lightbox Dialog for Mockup Inspection */}
       <Dialog open={!!lightboxUrl} onOpenChange={(open) => !open && setLightboxUrl(null)}>
-        <DialogContent className="max-w-4xl p-2 bg-slate-950/95 border-slate-800 text-white">
+        <DialogContent className="max-w-4xl p-2 bg-slate-950/95 border-slate-800 text-white" aria-describedby={undefined}>
+          <DialogHeader className="sr-only">
+            <DialogTitle>Mockup Preview</DialogTitle>
+          </DialogHeader>
           <div className="flex justify-between items-center p-2 border-b border-white/10">
             <span className="text-xs font-semibold text-slate-300">Design Mockup Preview</span>
           </div>

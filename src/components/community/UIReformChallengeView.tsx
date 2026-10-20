@@ -192,15 +192,25 @@ export default function UIReformChallengeView({ userId }: UIReformChallengeViewP
 
         const { data: showData } = await supabase
           .from("ui_reform_submissions" as never)
-          .select("*, profiles:student_id(first_name, last_name, student_class)")
+          .select("id, campaign_id, student_id, screen_name, title, problem_statement, proposed_solution, mockup_url, status, admin_feedback, points_awarded, upvotes, created_at")
           .eq("campaign_id", camp.id)
           .in("status", ["shortlisted", "winner", "implemented", "reviewed"])
           .order("points_awarded", { ascending: false })
           .limit(15);
 
         if (showData) {
-          const rawList = showData as unknown as Array<Submission & { profiles?: Submission["student"] }>;
-          setShowcaseSubmissions(rawList.map((s) => ({ ...s, student: s.profiles })));
+          const rawList = showData as unknown as Submission[];
+          // Batch-fetch student profiles to avoid RLS join issues
+          const studentIds = Array.from(new Set(rawList.map((s) => s.student_id).filter(Boolean)));
+          const profileMap = new Map();
+          if (studentIds.length > 0) {
+            const { data: pData } = await supabase
+              .from("profiles")
+              .select("id, first_name, last_name, student_class")
+              .in("id", studentIds);
+            if (pData) pData.forEach((p: any) => profileMap.set(p.id, p));
+          }
+          setShowcaseSubmissions(rawList.map((s) => ({ ...s, student: profileMap.get(s.student_id) || null })));
         }
       }
     } catch (e) {
