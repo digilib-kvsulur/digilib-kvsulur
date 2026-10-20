@@ -13,7 +13,7 @@ export interface SchoolMeta {
   status: string;
 }
 
-// ─── Module-level singleton ───────────────────────────────────────────────────
+// â”€â”€â”€ Module-level singleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const DEFAULT_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const DEFAULT_SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
@@ -35,7 +35,7 @@ function buildAuthOptions() {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: !isNativeOrPWA,
+    detectSessionInUrl: true,
   } as const;
 }
 
@@ -75,7 +75,7 @@ export function getSupabase(): SupabaseClient<Database> {
   );
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface CachedTenantData {
   school: SchoolMeta;
@@ -97,11 +97,11 @@ function cacheSchool(
       JSON.stringify({ school, connection, cachedAt: Date.now() })
     );
   } catch {
-    // Storage might be full or unavailable — silently ignore
+    // Storage might be full or unavailable â€” silently ignore
   }
 }
 
-// ─── Dev fallback school ──────────────────────────────────────────────────────
+// â”€â”€â”€ Dev fallback school â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function makeDevSchool(): SchoolMeta {
   return {
@@ -117,7 +117,7 @@ function makeDevSchool(): SchoolMeta {
   };
 }
 
-// ─── initTenantClient ─────────────────────────────────────────────────────────
+// â”€â”€â”€ initTenantClient â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Resolves the correct Supabase credentials for the given hostname.
@@ -128,7 +128,7 @@ export async function initTenantClient(
   hostname: string
 ): Promise<{ client: SupabaseClient<Database>; school: SchoolMeta } | null> {
 
-  // ── Development shortcut ───────────────────────────────────────────────────
+  // â”€â”€ Development shortcut â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (DEV_HOSTNAMES.has(hostname)) {
     const client = getDefaultClient();
     _tenantClient = client;
@@ -136,7 +136,7 @@ export async function initTenantClient(
     return { client, school };
   }
 
-  // ── Registry lookup ────────────────────────────────────────────────────────
+  // â”€â”€ Registry lookup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const registryUrl = import.meta.env.VITE_REGISTRY_URL as string;
   const registryKey = import.meta.env.VITE_REGISTRY_ANON_KEY as string;
 
@@ -176,12 +176,12 @@ export async function initTenantClient(
     .single();
 
   if (error || !data) {
-    // Hostname not registered → caller redirects to /setup
+    // Hostname not registered â†’ caller redirects to /setup
     _tenantClient = null;
     return null;
   }
 
-  // Map DB row → SchoolMeta
+  // Map DB row â†’ SchoolMeta
   const school: SchoolMeta = {
     id: data.id as string,
     name: data.name as string,
@@ -211,7 +211,7 @@ export async function initTenantClient(
     return { client: null as unknown as SupabaseClient<Database>, school };
   }
 
-  // ── Build per-school client ────────────────────────────────────────────────
+  // â”€â”€ Build per-school client â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!connection?.supabase_url || !connection?.anon_key) {
     _tenantClient = null;
     return null;

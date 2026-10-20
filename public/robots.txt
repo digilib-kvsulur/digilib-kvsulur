@@ -5,6 +5,9 @@ Allow: /catalog
 Allow: /download
 Allow: /support
 Allow: /feedback
+Allow: /privacy
+Allow: /terms
+Allow: /ads.txt
 Allow: /book/
 Allow: /logos/
 Allow: /assets/

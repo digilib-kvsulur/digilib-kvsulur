@@ -85,14 +85,29 @@ const Login = () => {
       }
     };
 
+    // 1. Mobile & PWA: Check URL search for PKCE auth code
+    const urlParams = new URLSearchParams(window.location.search);
+    const authCode = urlParams.get("code");
+    if (authCode) {
+      supabase.auth.exchangeCodeForSession(authCode).then(({ data, error }) => {
+        if (data?.session) {
+          checkSession(data.session);
+        }
+      }).catch((err) => {
+        console.warn("PKCE code exchange error:", err);
+      });
+    }
+
+    // 2. Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) checkSession(session);
     }).catch((error) => {
       if (isTemporaryServiceFailure(error)) setAuthUnavailable(true);
     });
 
+    // 3. Listen to auth state changes (SIGNED_IN, INITIAL_SESSION, TOKEN_REFRESHED)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) {
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") && session) {
         checkSession(session);
       }
     });
