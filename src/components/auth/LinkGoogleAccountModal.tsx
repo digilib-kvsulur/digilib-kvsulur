@@ -52,7 +52,17 @@ export const LinkGoogleAccountModal = ({
       });
 
       if (error) {
-        throw new Error(error.message || "Failed to link account");
+        let message = error.message || "Failed to link account";
+        const response = (error as any).context;
+        if (response instanceof Response) {
+          try {
+            const body = await response.clone().json();
+            if (typeof body?.error === "string") message = body.error;
+          } catch {
+            // Keep the SDK message when the function response is not JSON.
+          }
+        }
+        throw new Error(message);
       }
 
       if (data?.error) {
@@ -109,7 +119,7 @@ export const LinkGoogleAccountModal = ({
       aria-modal="true"
       aria-labelledby="link-modal-title"
     >
-      <div className="w-full max-w-md rounded-3xl bg-card border border-border/80 p-6 shadow-2xl sm:p-7 space-y-4">
+      <div className="w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-2xl bg-card border border-border/80 p-4 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl sm:p-7 space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">

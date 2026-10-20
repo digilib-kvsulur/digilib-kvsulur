@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     // 2. Parse request body (admission_number and password)
     const body = await req.json();
     const admissionNumber = String(body.admission_number || "").trim();
-    const password = String(body.password || "").trim();
+    const password = String(body.password || "");
 
     if (!admissionNumber || !password) {
       return new Response(
@@ -48,11 +48,18 @@ Deno.serve(async (req) => {
     // 3. Locate the student account by admission_number
     const { data: studentProfile, error: profileErr } = await admin
       .from("profiles")
-      .select("id, admission_number, first_name, last_name, role, email, notification_email, google_email, is_approved")
+      .select("id, admission_number, first_name, last_name, role, email, notification_email, is_approved")
       .eq("admission_number", admissionNumber)
       .maybeSingle();
 
-    if (profileErr || !studentProfile) {
+    if (profileErr) {
+      console.error("Student lookup failed while linking Google account:", profileErr);
+      return new Response(
+        JSON.stringify({ error: "Could not look up the student account. Please try again or contact the librarian." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!studentProfile) {
       return new Response(
         JSON.stringify({ error: `No student account found with Admission Number: "${admissionNumber}". Please check your admission number.` }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -87,12 +94,20 @@ Deno.serve(async (req) => {
     }
 
     // 6. Check if this Google email is already linked to ANOTHER student account
-    const { data: conflictingStudent } = await admin
+    const { data: conflictingStudent, error: conflictLookupError } = await admin
       .from("profiles")
       .select("id, admission_number, first_name, last_name")
       .eq("google_email", googleEmail)
       .neq("id", studentProfile.id)
       .maybeSingle();
+
+    if (conflictLookupError) {
+      console.error("Google account conflict lookup failed:", conflictLookupError);
+      return new Response(
+        JSON.stringify({ error: "Could not verify whether this Google account is already linked. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (conflictingStudent) {
       return new Response(

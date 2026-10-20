@@ -151,7 +151,7 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
       if (newEmail !== oldEmail) {
         const { error: authError } = await supabase.auth.updateUser({
           email: newEmail,
-        });
+        }, { emailRedirectTo: `${window.location.origin}/login?email_changed=1` });
 
         if (authError) {
           throw new Error(`Failed to update auth login email: ${authError.message}`);
@@ -165,8 +165,7 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
         .update({
           first_name: formData.first_name.trim(),
           last_name: formData.last_name.trim(),
-          email: newEmail,
-          notification_email: newEmail,
+          ...(newEmail === oldEmail ? { email: newEmail, notification_email: newEmail } : {}),
           phone: formData.phone.trim(),
           username: formData.username.trim(),
           bio: formData.bio.trim(),
@@ -185,8 +184,7 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
             ...parsed,
             first_name: formData.first_name.trim(),
             last_name: formData.last_name.trim(),
-            email: newEmail,
-            notification_email: newEmail,
+            ...(newEmail === oldEmail ? { email: newEmail, notification_email: newEmail } : {}),
             phone: formData.phone.trim(),
             username: formData.username.trim(),
           }));

@@ -364,12 +364,12 @@ const Index = () => {
   };
 
   const features = [
-    { icon: BookOpen, title: "Find a book", desc: "Search the school collection by title, author, or subject.", color: "bg-blue-50 text-blue-600 border-blue-100" },
-    { icon: Trophy, title: "Reading challenges", desc: "Take part in quizzes and reading activities set for our students.", color: "bg-amber-50 text-amber-600 border-amber-100" },
-    { icon: BarChart3, title: "Your reading history", desc: "Keep a record of the books you borrow and the activities you complete.", color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
-    { icon: Zap, title: "Reading streaks", desc: "Make a little time for reading and see your progress build.", color: "bg-rose-50 text-rose-600 border-rose-100" },
-    { icon: Target, title: "Personal goals", desc: "Set a reading target and work towards it at your own pace.", color: "bg-purple-50 text-purple-600 border-purple-100" },
-    { icon: Award, title: "Quizzes & awards", desc: "Check what you remember and celebrate your achievements.", color: "bg-cyan-50 text-cyan-600 border-cyan-100" },
+    { icon: BookOpen, title: "Digital Catalog", desc: "Browse a curated collection of reference materials, textbooks, and fiction.", color: "bg-blue-50 text-blue-600 border-blue-100" },
+    { icon: Trophy, title: "Gamified Learning", desc: "Earn experience points (XP), complete daily missions, and climb the school leaderboard.", color: "bg-amber-50 text-amber-600 border-amber-100" },
+    { icon: BarChart3, title: "Progress Analytics", desc: "Track your reading history, analyze speed progress, and unlock custom badges.", color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+    { icon: Zap, title: "Daily Streaks", desc: "Build consistent habits. Log in daily, read books, and keep your reading streak alive.", color: "bg-rose-50 text-rose-600 border-rose-100" },
+    { icon: Target, title: "Monthly Goals", desc: "Set personal reading challenges and participate in classroom book marathons.", color: "bg-purple-50 text-purple-600 border-purple-100" },
+    { icon: Award, title: "Quizzes & Badges", desc: "Test your comprehension with integrated book quizzes and showcase awards on your cabinet.", color: "bg-cyan-50 text-cyan-600 border-cyan-100" },
   ];
 
   if (loading) {
@@ -377,8 +377,13 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-slate-800 font-sans selection:bg-indigo-500/20 selection:text-indigo-900 overflow-x-hidden animate-in fade-in duration-300">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-indigo-500/20 selection:text-indigo-900 overflow-x-hidden animate-in fade-in duration-300">
       {/* Light Background Grids and Blobs wrapped to prevent scrollbar stretch */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f080_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f080_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        <div className="absolute top-[-5%] left-[-5%] w-[45%] h-[45%] rounded-full bg-indigo-200/30 blur-[130px]" />
+        <div className="absolute top-[20%] right-[-5%] w-[40%] h-[40%] rounded-full bg-blue-200/30 blur-[140px]" />
+      </div>
 
       {/* Top Announcement Bar if enabled */}
       {settings.home_announcement_enabled && settings.home_announcement_text && (
@@ -397,7 +402,7 @@ const Index = () => {
       )}
 
       {/* Top Banner strip with generous padding */}
-      <div className="relative hidden border-b border-[#e7e2d9] bg-[#f4f0e8] text-xs z-50 sm:block">
+      <div className="relative hidden border-b border-indigo-100 bg-indigo-50/80 text-xs backdrop-blur-sm z-50 sm:block">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-3 flex items-center justify-between">
           <div className="flex items-center gap-6 text-slate-600">
             <span className="flex items-center gap-2 font-medium">
@@ -426,7 +431,7 @@ const Index = () => {
       </div>
 
       {/* Main Header with generous padding */}
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white transition-all">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md transition-all shadow-xs">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate("/")}>
             {/* Dual Logo Placeholders Container */}
@@ -448,6 +453,15 @@ const Index = () => {
                   }}
                 />
                 <BookOpen className="h-5 w-5 text-indigo-600 absolute hidden" />
+              </div>
+              <div className="absolute -bottom-6 -left-6 bg-white border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4 shadow-xl hidden md:flex">
+                <div className="w-12 h-12 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+                  <Trophy className="h-6 w-6 text-white" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">1st STUDENT CENTRIC</p>
+                  <p className="text-sm font-black text-slate-900">KVS DLMS</p>
+                </div>
               </div>
             </div>
             <div>
@@ -492,28 +506,35 @@ const Index = () => {
       </header>
 
       {/* Hero Section with extra padding */}
-      <section className="relative pt-10 sm:pt-14 lg:pt-16 pb-14 sm:pb-20 overflow-hidden">
+      <section className="relative pt-10 sm:pt-16 lg:pt-20 pb-16 sm:pb-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-14 items-center">
             {/* Left Column */}
             <div className="lg:col-span-6 space-y-4 sm:space-y-6 lg:space-y-7 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 border-b border-[#ded8ce] pb-2 text-xs font-semibold text-indigo-800 mx-auto lg:mx-0">
-                <BookOpen className="h-4 w-4" />
-                {settings.school_name || "PM SHRI KV SULUR"} · School Library
+              <div className="inline-flex items-center gap-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-full px-4 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider mx-auto lg:mx-0 shadow-xs">
+                <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-indigo-600 text-indigo-600" />
+                {settings.school_name || "PM SHRI KV SULUR"} DLMS
               </div>
-              <h2 className="text-3xl sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight text-slate-900 leading-[1.1] max-w-xl">
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.15] max-w-xl">
                 {settings.home_hero_title ? (
                   <span>{settings.home_hero_title}</span>
                 ) : (
                   <>
-                    A good book can take you anywhere.
+                    A Library That Grows With{" "}
+                    <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      Every Reader.
+                    </span>
                   </>
                 )}
               </h2>
               <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed mx-auto lg:mx-0 font-normal">
                 {settings.home_hero_subtitle || (
                   <>
-                    Find books from the school collection, keep up with library activities, and make time for a good read at {settings.school_name || "PM SHRI KV AFS Sulur"}.
+                    Welcome to the digital portal of{" "}
+                    <span className="font-semibold text-slate-900">
+                      {settings.school_name || "PM SHRI KENDRIYA VIDYALAYA"} DLMS
+                    </span>
+                    . Borrow your favorite books, participate in live quizzes, follow friends, and level up your reading XP!
                   </>
                 )}
               </p>
@@ -522,10 +543,10 @@ const Index = () => {
                 {!user ? (
                   <>
                     <Button onClick={() => navigate(settings.home_cta_link || "/login")} size="lg" className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-base px-6 sm:px-9 py-3 sm:py-3.5 h-12 sm:h-14 rounded-xl font-bold shadow-lg shadow-indigo-600/25 border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
-                      {settings.home_cta_text || "Sign in"} <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+                      {settings.home_cta_text || "Open Account"} <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                     <Button onClick={() => navigate("/download")} variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-9 py-3 sm:py-3.5 h-12 sm:h-14 border-slate-300 bg-white hover:bg-indigo-50/50 hover:text-indigo-600 hover:border-indigo-300 text-slate-800 rounded-xl font-bold shadow-xs transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
-                      <Download className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Install the app
+                      <Download className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Install App (PWA)
                     </Button>
                   </>
                 ) : (
@@ -557,15 +578,15 @@ const Index = () => {
 
             {/* Right Column (Visual) */}
             <div className="lg:col-span-6 relative flex justify-center">
-              <div className="relative w-full max-w-[520px] aspect-[4/3] overflow-hidden border border-[#ded8ce] bg-white group">
-                <div className="w-full h-full overflow-hidden relative">
+              <div className="relative w-full max-w-[520px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border border-slate-200 bg-white group p-1">
+                <div className="w-full h-full rounded-3xl overflow-hidden relative">
                   <img
                     src={settings.school_banner_url || heroImg}
                     alt={`${settings.school_name || "KV"} library hall`}
                     width="1040"
                     height="780"
                     fetchPriority="high"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-slate-950/10 to-transparent" />
                 </div>
@@ -650,21 +671,21 @@ const Index = () => {
       )}
 
       {/* Features Grid with generous card padding */}
-      <section id="about" className="py-16 bg-white relative max-w-7xl mx-auto my-8 border-y border-slate-200 overflow-hidden">
+      <section id="about" className="py-24 bg-white relative max-w-7xl mx-auto my-12 rounded-3xl border border-slate-200/80 shadow-md overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
-            <p className="text-xs font-semibold text-indigo-700 uppercase tracking-widest">Your library, online</p>
-            <h3 className="text-2xl sm:text-4xl font-bold text-slate-900">Everything you need to keep reading</h3>
-            <p className="text-sm text-slate-600 leading-relaxed pt-1">Find books, join library activities, and keep your reading in one place.</p>
+          <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
+            <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Built For KV Students</p>
+            <h3 className="text-2xl sm:text-4xl font-black text-slate-900">A Modern Gamified Library</h3>
+            <p className="text-sm text-slate-600 leading-relaxed pt-1">We have reimagined the library experience by connecting reading with gamification, comprehension milestones, and social connection.</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((f, i) => (
-              <div key={i} className="p-6 border-b border-slate-200 bg-transparent space-y-3">
-                <div className={`w-10 h-10 rounded-lg border ${f.color} flex items-center justify-center`}>
+              <div key={i} className="p-8 rounded-3xl bg-slate-50/50 border border-slate-200/80 shadow-sm hover:shadow-lg hover:bg-white hover:border-indigo-200 transition-all hover:-translate-y-1 space-y-4">
+                <div className={`w-12 h-12 rounded-xl border ${f.color} flex items-center justify-center`}>
                   <f.icon className="h-6 w-6" />
                 </div>
-                <h4 className="text-lg font-semibold text-slate-900">{f.title}</h4>
+                <h4 className="text-xl font-bold text-slate-900">{f.title}</h4>
                 <p className="text-sm text-slate-600 leading-relaxed">{f.desc}</p>
               </div>
             ))}
@@ -748,12 +769,12 @@ const Index = () => {
 
       {/* CTA Box with generous padding */}
       {!user && (
-        <section className="py-16 relative overflow-hidden bg-[#f0ece4] text-slate-900 border-y border-[#e2dbcf]">
+        <section className="py-20 relative overflow-hidden bg-gradient-to-tr from-indigo-900 via-indigo-800 to-blue-900 text-white">
           <div className="relative max-w-3xl mx-auto px-8 sm:px-12 text-center space-y-7">
-            <h3 className="text-3xl sm:text-4xl font-bold tracking-tight">Ready to visit the library?</h3>
-            <p className="text-slate-600 text-base max-w-lg mx-auto leading-relaxed">Sign in to browse the collection and see what’s happening at your school library.</p>
-            <Button onClick={() => navigate("/login")} size="lg" className="bg-indigo-700 hover:bg-indigo-800 text-white text-base px-8 h-12 rounded-lg font-semibold shadow-none border-0">
-              Sign in to the library <ArrowRight className="ml-2.5 h-5 w-5" />
+            <h3 className="text-3.5xl sm:text-4xl font-black tracking-tight text-white">Ready to Start Your Reading Adventure?</h3>
+            <p className="text-indigo-100 text-base max-w-lg mx-auto leading-relaxed">Join 1500+ student bookworms at KV AFS Sulur. Log reading activities, earn custom badges, and climb classes league!</p>
+            <Button onClick={() => navigate("/login")} size="lg" className="bg-white hover:bg-slate-100 hover:text-indigo-900 text-indigo-950 text-base px-9 py-4 h-14 rounded-xl font-bold shadow-xl border-0 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
+              Create Account Now <ArrowRight className="ml-2.5 h-5 w-5" />
             </Button>
           </div>
         </section>
@@ -783,7 +804,7 @@ const Index = () => {
                 </h3>
               </div>
               <p className="text-xs leading-relaxed text-slate-400 pr-4">
-                Books, reading activities, and library updates for our school community.
+                Empowering student development, comprehension capabilities, and literature-focused gamified progress for {settings.school_name || "Kendriya Vidyalaya"} learners.
               </p>
             </div>
             

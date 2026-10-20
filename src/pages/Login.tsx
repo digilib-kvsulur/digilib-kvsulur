@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookOpen, AlertCircle, ArrowLeft, Eye, EyeOff, Sparkles } from "lucide-react";
+import { BookOpen, AlertCircle, ArrowLeft, Star, Eye, EyeOff, Sparkles, Shield, Zap } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,7 @@ const Login = () => {
   const [resetEmail, setResetEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [recentUsers, setRecentUsers] = useState<{ initials: string; color: string }[]>([]);
   const [pendingNotificationEmail, setPendingNotificationEmail] = useState<{ id: string; email?: string | null; role?: string } | null>(null);
   const [authUnavailable, setAuthUnavailable] = useState(false);
   const [unlinkedGoogleSession, setUnlinkedGoogleSession] = useState<{ email: string; id: string } | null>(null);
@@ -128,6 +129,26 @@ const Login = () => {
       if (idParam) setResetEmail(idParam);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const loadRecentUsers = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("is_approved", true)
+        .eq("role", "student")
+        .order("created_at", { ascending: false })
+        .limit(6);
+      const palette = ["bg-indigo-400", "bg-violet-400", "bg-pink-400", "bg-sky-400", "bg-emerald-400", "bg-amber-400"];
+      setRecentUsers(
+        (data || []).map((u: any, i: number) => ({
+          initials: `${(u.first_name || "?")[0]}${(u.last_name || "")[0] || ""}`.toUpperCase(),
+          color: palette[i % palette.length],
+        }))
+      );
+    };
+    loadRecentUsers();
+  }, []);
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -320,14 +341,18 @@ const Login = () => {
   return (
     <div className="flex min-h-dvh animate-in fade-in duration-300 lg:h-dvh lg:min-h-0 lg:overflow-hidden">
       {/* Left Panel - Immersive Branding */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-[#f4f0e8] text-[#242b3b]">
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
+        <div className="absolute inset-0 gradient-primary" />
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE0VjZoLTJ2OGgtOFYyaC0ydjEyaDEwem0wIDBoLTJ2OGgtOHYtOGgtMnYxMGgxMlYxNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30" />
         <div className="absolute inset-y-0 right-0 z-10 w-2 bg-indigo-700/90" />
         
-        <div className="relative z-10 flex h-full flex-col justify-between p-8 xl:p-12 w-full">
+        <div className="absolute top-10 -left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/5 rounded-full blur-3xl" />
+        <div className="relative z-10 flex h-full flex-col justify-between p-8 xl:p-10 w-full">
           <div className="flex items-center gap-3">
             {/* Dual Logo Placeholders */}
-            <div className="flex shrink-0 items-center gap-2 rounded-lg border border-[#d8d1c5] bg-white/75 px-2 py-1.5">
+            <div className="flex shrink-0 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-2 py-1.5 shadow-sm backdrop-blur-sm">
               {/* PM SHRI Logo Slot */}
               <div className="relative flex h-10 w-10 items-center justify-center" title="PM SHRI Logo">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="relative z-10 h-full w-full object-contain drop-shadow-sm" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden'); }} />
@@ -340,30 +365,60 @@ const Login = () => {
               </div>
             </div>
             <div>
-              <h1 className="text-base font-bold text-[#242b3b] leading-tight">PM SHRI KV AFS SULUR</h1>
-              <p className="text-xs text-[#626a78]">School Library</p>
+              <h1 className="text-base font-bold text-primary-foreground leading-tight">PM SHRI KV AFS SULUR</h1>
+              <p className="text-xs text-primary-foreground/70">Digital Library Management System</p>
             </div>
           </div>
           
-          <div className="flex-1 flex flex-col justify-center max-w-lg py-4">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-800">A place for curious minds</p>
-            <h2 className="text-4xl xl:text-5xl font-bold text-[#242b3b] mb-4 leading-[1.08] tracking-tight">
-              Find your next<br />good read.
+          <div className="flex-1 flex flex-col justify-center max-w-md py-4">
+            <h2 className="text-3xl xl:text-4xl font-extrabold text-primary-foreground mb-3 leading-tight">
+              Your Reading<br />Adventure<br />Starts Here ✨
             </h2>
-            <p className="text-[#626a78] text-base xl:text-lg mb-8 max-w-md leading-relaxed">
-              Browse the school collection, keep track of what you read, and share what you discover.
+            <p className="text-primary-foreground/80 text-base xl:text-lg mb-6">
+              Track progress, earn rewards, and discover new worlds through reading.
             </p>
-            <div className="border-t border-[#d8d1c5] pt-5 text-sm text-[#626a78]">
-              <span className="font-semibold text-[#242b3b]">PM SHRI Kendriya Vidyalaya AFS Sulur</span>
-              <span className="mx-2 text-[#aaa294]">·</span>Digital Library
+            <div className="space-y-4">
+              {[
+                { icon: Sparkles, title: "Gamified Experience", desc: "Earn XP, level up, and unlock achievements" },
+                { icon: Shield, title: "Smart Tracking", desc: "AI-powered reading analytics and insights" },
+                { icon: Zap, title: "Daily Challenges", desc: "Complete missions and climb the leaderboard" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-4 group">
+                  <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/10 group-hover:bg-white/25 transition-colors shrink-0">
+                    <item.icon className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-primary-foreground">{item.title}</h3>
+                    <p className="text-xs text-primary-foreground/60">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          
+          <div className="flex items-center gap-4">
+            <div className="flex -space-x-2">
+              {recentUsers.length > 0
+                ? recentUsers.slice(0, 5).map((u, i) => (
+                    <div key={i} className={`w-8 h-8 rounded-full ${u.color} border-2 border-white/40 flex items-center justify-center text-[10px] font-bold text-white shadow-sm`}>
+                      {u.initials}
+                    </div>
+                  ))
+                : [...Array(4)].map((_, i) => (
+                    <div key={i} className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-[10px] font-bold text-primary-foreground backdrop-blur-sm">
+                      {['R', 'A', 'V', 'K'][i]}
+                    </div>
+                  ))
+              }
+            </div>
+            <p className="text-xs text-primary-foreground/70">
+              {recentUsers.length > 0 ? `${recentUsers.length * 80}+ active readers` : "Join 500+ active readers"}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="relative flex-1 overflow-y-auto bg-[#faf9f6] px-4 py-4 sm:px-8 sm:py-6 lg:flex lg:items-center lg:justify-center lg:px-6 lg:py-3">
+      <div className="relative flex-1 overflow-y-auto bg-gradient-to-br from-muted/50 via-background to-primary/5 px-4 py-4 sm:px-8 sm:py-6 lg:flex lg:items-center lg:justify-center lg:px-6 lg:py-3">
         <div className="mx-auto flex min-h-full w-full max-w-[460px] flex-col justify-center animate-fade-in lg:min-h-0 lg:py-2">
           {/* Mobile Logo */}
           <div className="mb-4 flex items-center gap-3 px-1 lg:hidden sm:mb-5">
@@ -379,15 +434,15 @@ const Login = () => {
             </div>
             <div>
               <h1 className="text-sm font-bold leading-tight text-foreground">PM SHRI KV AFS SULUR</h1>
-              <p className="text-[11px] text-muted-foreground">School Library</p>
+              <p className="text-[11px] text-muted-foreground">Digital Library Management System</p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#e5e1d9] bg-white p-5 shadow-sm sm:p-7 lg:p-8">
+          <div className="rounded-2xl border border-border/60 bg-card/95 p-5 shadow-xl shadow-primary/5 backdrop-blur sm:rounded-3xl sm:p-6 lg:p-5">
           {!showForgotPassword && (
             <div className="mb-4 sm:mb-5">
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Sign In</h2>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Sign in with your school account</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Access your library account</p>
             </div>
           )}
 

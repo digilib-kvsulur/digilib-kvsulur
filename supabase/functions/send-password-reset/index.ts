@@ -47,51 +47,83 @@ Deno.serve(async (request) => {
 
   try {
     const { identifier, captchaToken } = await request.json();
-    const turnstileSecret = Deno.env.get("TURNSTILE_SECRET_KEY");
-    if (!turnstileSecret) throw new Error("Turnstile verification is not configured");
-    if (typeof captchaToken !== "string" || !captchaToken) {
-      return new Response(JSON.stringify({ error: "Complete the verification challenge and try again." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const verificationBody = new URLSearchParams({ secret: turnstileSecret, response: captchaToken });
-    const verificationResponse = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: verificationBody,
-    });
-    const verification = await verificationResponse.json();
-    if (!verificationResponse.ok || !verification.success ||
-      typeof verification.hostname !== "string" ||
-      !allowedTurnstileHostnames.has(verification.hostname.toLowerCase())) {
-      return new Response(JSON.stringify({ error: "Verification expired or failed. Please try again." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const lookup = String(identifier || "").trim();
-    if (!lookup || lookup.length > 255) return accepted();
-
     const url = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(url, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
-    const [byEmail, byUsername, byAdmission] = await Promise.all([
-      admin.from("profiles").select("id, first_name, last_name, email, notification_email").ilike("email", lookup).maybeSingle(),
-      admin.from("profiles").select("id, first_name, last_name, email, notification_email").ilike("username", lookup).maybeSingle(),
-      admin.from("profiles").select("id, first_name, last_name, email, notification_email").eq("admission_number", lookup).maybeSingle(),
-    ]);
-    const profile = byEmail.data || byUsername.data || byAdmission.data;
-    if (!profile) return accepted();
+
+    const authHeader = request.headers.get("Authorization") || "";
+    let authenticatedUser: { id: string } | null = null;
+    if (authHeader) {
+      const userClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const { data } = await userClient.auth.getUser();
+      authenticatedUser = data.user ? { id: data.user.id } : null;
+    }
+
+    if (!authenticatedUser) {
+      const turnstileSecret = Deno.env.get("TURNSTILE_SECRET_KEY");
+      if (!turnstileSecret) throw new Error("Turnstile verification is not configured");
+      if (typeof captchaToken !== "string" || !captchaToken) {
+        return new Response(JSON.stringify({ error: "Complete the verification challenge and try again." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const verificationBody = new URLSearchParams({ secret: turnstileSecret, response: captchaToken });
+      const verificationResponse = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: verificationBody,
+      });
+      const verification = await verificationResponse.json();
+      if (!verificationResponse.ok || !verification.success ||
+        typeof verification.hostname !== "string" ||
+        !allowedTurnstileHostnames.has(verification.hostname.toLowerCase())) {
+        return new Response(JSON.stringify({ error: "Verification expired or failed. Please try again." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    const lookup = String(identifier || "").trim();
+    if (!authenticatedUser && (!lookup || lookup.length > 255)) return accepted();
+
+    let profile: any = null;
+    if (authenticatedUser) {
+      const { data, error } = await admin
+        .from("profiles")
+        .select("id, first_name, last_name, email, notification_email")
+        .eq("id", authenticatedUser.id)
+        .maybeSingle();
+      if (error) throw error;
+      profile = data;
+      if (!profile) return new Response(JSON.stringify({ error: "Could not find your account profile." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    } else {
+      const [byEmail, byUsername, byAdmission] = await Promise.all([
+        admin.from("profiles").select("id, first_name, last_name, email, notification_email").ilike("email", lookup).maybeSingle(),
+        admin.from("profiles").select("id, first_name, last_name, email, notification_email").ilike("username", lookup).maybeSingle(),
+        admin.from("profiles").select("id, first_name, last_name, email, notification_email").eq("admission_number", lookup).maybeSingle(),
+      ]);
+      profile = byEmail.data || byUsername.data || byAdmission.data;
+      if (!profile) return accepted();
+    }
 
     const { data: authUserData } = await admin.auth.admin.getUserById(profile.id);
     const recipient = preferredRecipient(profile.notification_email, profile.email, authUserData.user?.email);
-    if (!recipient) return accepted();
+    if (!recipient) {
+      if (authenticatedUser) return new Response(JSON.stringify({ error: "No verified recovery email is configured for this account." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return accepted();
+    }
 
     const { data: lastRequest } = await admin.from("password_reset_delivery_limits").select("last_requested_at").eq("user_id", profile.id).maybeSingle();
-    if (lastRequest && Date.now() - new Date(lastRequest.last_requested_at).getTime() < 60_000) return accepted();
+    if (lastRequest && Date.now() - new Date(lastRequest.last_requested_at).getTime() < 60_000) {
+      if (authenticatedUser) return new Response(JSON.stringify({ error: "Please wait a minute before requesting another password reset email." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return accepted();
+    }
     await admin.from("password_reset_delivery_limits").upsert({ user_id: profile.id, last_requested_at: new Date().toISOString() });
 
     if (!authUserData.user?.email) return accepted();
@@ -108,6 +140,10 @@ Deno.serve(async (request) => {
   } catch (error) {
     // Do not surface configuration/account details to an unauthenticated caller.
     console.error("Password reset delivery failed", error);
+    return new Response(JSON.stringify({ error: "The reset email could not be delivered. Please try again later or contact the librarian." }), {
+      status: 502,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
   return accepted();
 });

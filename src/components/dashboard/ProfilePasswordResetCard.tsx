@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { supabaseFunctionErrorMessage } from "@/lib/supabaseFunctionError";
 
 interface ProfilePasswordResetCardProps {
   userEmail?: string;
@@ -125,7 +126,7 @@ export default function ProfilePasswordResetCard({ userEmail, googleEmail }: Pro
     try {
       const redirectUrl = `${window.location.origin}/reset-password`;
       const { error } = await supabase.functions.invoke("send-password-reset", {
-        body: { identifier: userEmail, redirectTo: redirectUrl },
+        body: { redirectTo: redirectUrl },
       });
       if (error) throw error;
 
@@ -135,11 +136,12 @@ export default function ProfilePasswordResetCard({ userEmail, googleEmail }: Pro
       });
     } catch (err: any) {
       const isRateLimit = err.message?.toLowerCase().includes("rate limit") || err.status === 429;
+      const message = await supabaseFunctionErrorMessage(err, "Could not send reset email.");
       toast({
         title: isRateLimit ? "Email Rate Limit" : "Failed to Send Email",
         description: isRateLimit
           ? "Supabase email rate limit reached. Please wait a few minutes before requesting another email."
-          : err.message || "Could not send reset email.",
+          : message,
         variant: "destructive",
       });
     } finally {

@@ -21,6 +21,7 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
 
 interface PasswordRequirement {
   id: string;
@@ -48,6 +49,8 @@ const ResetPassword = () => {
   const [requestEmail, setRequestEmail] = useState("");
   const [isSendingLink, setIsSendingLink] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [isGoogleResetting, setIsGoogleResetting] = useState(false);
 
   const handleGoogleReset = async () => {
@@ -229,14 +232,16 @@ const ResetPassword = () => {
   // Handle requesting a new reset link directly
   const handleRequestNewLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!requestEmail.trim()) return;
+    if (!requestEmail.trim() || !captchaToken) return;
     setIsSendingLink(true);
     try {
       const redirectUrl = `${window.location.origin}/reset-password`;
       const { error } = await supabase.functions.invoke("send-password-reset", {
-        body: { identifier: requestEmail.trim(), redirectTo: redirectUrl },
+        body: { identifier: requestEmail.trim(), redirectTo: redirectUrl, captchaToken },
       });
       if (error) throw error;
+      setCaptchaToken("");
+      setCaptchaResetKey((key) => key + 1);
       setLinkSent(true);
       toast({
         title: "Reset Link Sent! ✉️",
@@ -449,10 +454,11 @@ const ResetPassword = () => {
                       className="h-9 text-xs bg-background"
                       required
                     />
+                    <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
                     <Button
                       type="submit"
                       size="sm"
-                      disabled={isSendingLink || !requestEmail.trim()}
+                      disabled={isSendingLink || !requestEmail.trim() || !captchaToken}
                       className="w-full h-9 text-xs font-bold gradient-primary text-white border-0"
                     >
                       {isSendingLink ? <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
