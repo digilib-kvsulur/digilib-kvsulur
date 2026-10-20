@@ -59,9 +59,9 @@ const LevelProgress = ({ userPoints }: LevelProgressProps) => {
   const IconComponent = Icons[levelInfo.icon_name as keyof typeof Icons] as React.ComponentType<any>;
 
   return (
-    <Card className="border-border/50 overflow-hidden h-full flex flex-col">
-      <div className="h-1" style={{ background: `linear-gradient(90deg, ${levelInfo.color}, ${levelInfo.color}88)` }} />
-      <CardContent className="p-5 flex-1 flex flex-col justify-center gap-3">
+    <Card className="border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 via-card to-card rounded-3xl overflow-hidden h-full flex flex-col shadow-sm">
+      <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${levelInfo.color}, ${levelInfo.color}88)` }} />
+      <CardContent className="p-4 sm:p-5 flex-1 flex flex-col justify-center gap-3">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${levelInfo.color}15` }}>
             {IconComponent ? (
