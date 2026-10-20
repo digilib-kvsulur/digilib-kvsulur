@@ -135,8 +135,8 @@ export default function ProfilePasswordResetCard({ userEmail, googleEmail }: Pro
         description: `We've sent a password reset link to ${userEmail}.`,
       });
     } catch (err: any) {
-      const isRateLimit = err.message?.toLowerCase().includes("rate limit") || err.status === 429;
       const message = await supabaseFunctionErrorMessage(err, "Could not send reset email.");
+      const isRateLimit = message.toLowerCase().includes("wait a minute") || message.toLowerCase().includes("rate limit") || err.status === 429;
       toast({
         title: isRateLimit ? "Email Rate Limit" : "Failed to Send Email",
         description: isRateLimit

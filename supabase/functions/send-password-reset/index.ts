@@ -112,7 +112,8 @@ Deno.serve(async (request) => {
       if (!profile) return accepted();
     }
 
-    const { data: authUserData } = await admin.auth.admin.getUserById(profile.id);
+    const { data: authUserData, error: authUserError } = await admin.auth.admin.getUserById(profile.id);
+    if (authUserError) throw authUserError;
     const recipient = preferredRecipient(profile.notification_email, profile.email, authUserData.user?.email);
     if (!recipient) {
       if (authenticatedUser) return new Response(JSON.stringify({ error: "No verified recovery email is configured for this account." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -124,9 +125,10 @@ Deno.serve(async (request) => {
       if (authenticatedUser) return new Response(JSON.stringify({ error: "Please wait a minute before requesting another password reset email." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       return accepted();
     }
-    await admin.from("password_reset_delivery_limits").upsert({ user_id: profile.id, last_requested_at: new Date().toISOString() });
-
-    if (!authUserData.user?.email) return accepted();
+    if (!authUserData.user?.email) {
+      if (authenticatedUser) return new Response(JSON.stringify({ error: "This account has no login email. Contact the librarian for help." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return accepted();
+    }
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: "recovery",
       email: authUserData.user.email,
@@ -137,6 +139,7 @@ Deno.serve(async (request) => {
     if (linkError || !linkData.properties?.action_link) throw linkError || new Error("Could not create recovery link");
 
     await sendMail(recipient, linkData.properties.action_link, `${profile.first_name || "Library"} ${profile.last_name || "Member"}`.trim());
+    await admin.from("password_reset_delivery_limits").upsert({ user_id: profile.id, last_requested_at: new Date().toISOString() });
   } catch (error) {
     // Do not surface configuration/account details to an unauthenticated caller.
     console.error("Password reset delivery failed", error);

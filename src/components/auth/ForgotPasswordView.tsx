@@ -211,8 +211,8 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({
     } catch (err: any) {
       setCaptchaToken("");
       setCaptchaResetKey((key) => key + 1);
-      const isRateLimit = err.message?.toLowerCase().includes("rate limit") || err.status === 429;
       const message = await supabaseFunctionErrorMessage(err, "Failed to send reset email. Please try again later.");
+      const isRateLimit = message.toLowerCase().includes("wait a minute") || message.toLowerCase().includes("rate limit") || err.status === 429;
       if (isRateLimit) {
         setRateLimitHit(true);
         setCooldown(90);

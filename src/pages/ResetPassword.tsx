@@ -249,8 +249,10 @@ const ResetPassword = () => {
         description: `Check your inbox at ${requestEmail} for the password recovery link.`,
       });
     } catch (err: any) {
-      const isRateLimit = err.message?.toLowerCase().includes("rate limit") || err.status === 429;
+      setCaptchaToken("");
+      setCaptchaResetKey((key) => key + 1);
       const message = await supabaseFunctionErrorMessage(err, "Please check the email address and try again.");
+      const isRateLimit = message.toLowerCase().includes("wait a minute") || message.toLowerCase().includes("rate limit") || err.status === 429;
       toast({
         title: isRateLimit ? "Email Rate Limit Reached" : "Failed to Send Reset Link",
         description: isRateLimit
