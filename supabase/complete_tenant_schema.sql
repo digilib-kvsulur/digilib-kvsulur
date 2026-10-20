@@ -13401,16 +13401,21 @@ begin
       (select coalesce(sum(points), 0) from public.vacation_point_events where campaign_id = p_campaign),
     'by_activity', coalesce((
       select jsonb_agg(jsonb_build_object(
-        'activity_id', a.id, 'title', a.title, 'date', a.activity_date,
-        'submitted', count(s.id),
-        'pending',  count(s.id) filter (where s.status = 'pending'),
-        'approved', count(s.id) filter (where s.status = 'approved'),
-        'rejected', count(s.id) filter (where s.status = 'rejected'))
-        order by a.activity_date nulls last)
-      from public.vacation_activities a
-      left join public.vacation_submissions s on s.activity_id = a.id
-      where a.campaign_id = p_campaign
-      group by a.id, a.title, a.activity_date), '[]'::jsonb));
+        'activity_id', activity_id, 'title', title, 'date', activity_date,
+        'submitted', submitted, 'pending', pending,
+        'approved', approved, 'rejected', rejected)
+        order by activity_date nulls last)
+      from (
+        select a.id as activity_id, a.title, a.activity_date,
+               count(s.id) as submitted,
+               count(s.id) filter (where s.status = 'pending') as pending,
+               count(s.id) filter (where s.status = 'approved') as approved,
+               count(s.id) filter (where s.status = 'rejected') as rejected
+        from public.vacation_activities a
+        left join public.vacation_submissions s on s.activity_id = a.id
+        where a.campaign_id = p_campaign
+        group by a.id, a.title, a.activity_date
+      ) activity_stats), '[]'::jsonb));
 end;
 $$;
 

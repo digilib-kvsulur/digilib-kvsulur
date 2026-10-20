@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookOpen, AlertCircle, ArrowLeft, Star, Eye, EyeOff, Sparkles } from "lucide-react";
+import { BookOpen, AlertCircle, ArrowLeft, Eye, EyeOff, Sparkles } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +38,6 @@ const Login = () => {
   const [resetEmail, setResetEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [recentUsers, setRecentUsers] = useState<{ initials: string; color: string }[]>([]);
   const [pendingNotificationEmail, setPendingNotificationEmail] = useState<{ id: string; email?: string | null; role?: string } | null>(null);
   const [authUnavailable, setAuthUnavailable] = useState(false);
   const [unlinkedGoogleSession, setUnlinkedGoogleSession] = useState<{ email: string; id: string } | null>(null);
@@ -129,26 +128,6 @@ const Login = () => {
       if (idParam) setResetEmail(idParam);
     }
   }, [searchParams]);
-
-  useEffect(() => {
-    const loadRecentUsers = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("first_name, last_name")
-        .eq("is_approved", true)
-        .eq("role", "student")
-        .order("created_at", { ascending: false })
-        .limit(6);
-      const palette = ["bg-indigo-400", "bg-violet-400", "bg-pink-400", "bg-sky-400", "bg-emerald-400", "bg-amber-400"];
-      setRecentUsers(
-        (data || []).map((u: any, i: number) => ({
-          initials: `${(u.first_name || "?")[0]}${(u.last_name || "")[0] || ""}`.toUpperCase(),
-          color: palette[i % palette.length],
-        }))
-      );
-    };
-    loadRecentUsers();
-  }, []);
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);

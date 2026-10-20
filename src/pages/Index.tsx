@@ -497,19 +497,16 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-14 items-center">
             {/* Left Column */}
             <div className="lg:col-span-6 space-y-4 sm:space-y-6 lg:space-y-7 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-full px-4 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider mx-auto lg:mx-0 shadow-xs">
-                <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-indigo-600 text-indigo-600" />
-                {settings.school_name || "PM SHRI KV SULUR"} DLMS
+              <div className="inline-flex items-center gap-2 border-b border-[#ded8ce] pb-2 text-xs font-semibold text-indigo-800 mx-auto lg:mx-0">
+                <BookOpen className="h-4 w-4" />
+                {settings.school_name || "PM SHRI KV SULUR"} · School Library
               </div>
-              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.15] max-w-xl">
+              <h2 className="text-3xl sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight text-slate-900 leading-[1.1] max-w-xl">
                 {settings.home_hero_title ? (
                   <span>{settings.home_hero_title}</span>
                 ) : (
                   <>
-                    Your school library,
-                    <span className="text-indigo-700">
-                      {" "}where reading takes you further.
-                    </span>
+                    A good book can take you anywhere.
                   </>
                 )}
               </h2>
@@ -653,7 +650,7 @@ const Index = () => {
       )}
 
       {/* Features Grid with generous card padding */}
-      <section id="about" className="py-24 bg-white relative max-w-7xl mx-auto my-12 rounded-3xl border border-slate-200/80 shadow-md overflow-hidden">
+      <section id="about" className="py-16 bg-white relative max-w-7xl mx-auto my-8 border-y border-slate-200 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
             <p className="text-xs font-semibold text-indigo-700 uppercase tracking-widest">Your library, online</p>
