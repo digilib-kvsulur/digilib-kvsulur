@@ -213,7 +213,7 @@ export default function ProfilePasswordResetCard({ userEmail, googleEmail }: Pro
                 size="sm"
                 onClick={handleLinkGoogle}
                 disabled={linkingGoogle}
-                className="rounded-lg text-xs font-semibold shrink-0"
+                className="rounded-lg text-xs font-semibold shrink-0 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
               >
                 {linkingGoogle ? "Connecting..." : "Link Google Account"}
               </Button>
