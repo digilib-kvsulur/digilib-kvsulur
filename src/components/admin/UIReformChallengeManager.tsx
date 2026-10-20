@@ -99,6 +99,7 @@ export default function UIReformChallengeManager() {
   const [campaign, setCampaign] = useState<Campaign | null>(() => uiReformCache?.campaign ?? null);
   const [submissions, setSubmissions] = useState<Submission[]>(() => uiReformCache?.submissions ?? []);
   const [loading, setLoading] = useState<boolean>(() => !uiReformCache);
+  const [submissionLoadError, setSubmissionLoadError] = useState("");
   const [studentVisible, setStudentVisible] = useState<boolean>(() => uiReformCache?.studentVisible ?? true);
   const [bugBountyEndDate, setBugBountyEndDate] = useState<string | null>(() => uiReformCache?.bugBountyEndDate ?? null);
 
@@ -127,6 +128,7 @@ export default function UIReformChallengeManager() {
   const [formReward, setFormReward] = useState(1000);
 
   const loadData = async (silent = false) => {
+    setSubmissionLoadError("");
     if (!silent && !uiReformCache) setLoading(true);
     try {
       // Fetch settings, campaign, and bug bounty in parallel
@@ -196,7 +198,13 @@ export default function UIReformChallengeManager() {
           }));
           setSubmissions(subs);
         } else if (sErr) {
-          console.warn("Failed to fetch UI reform submissions:", sErr);
+          console.error("Failed to fetch UI reform submissions:", {
+            code: sErr.code,
+            message: sErr.message,
+            details: sErr.details,
+            hint: sErr.hint,
+          });
+          setSubmissionLoadError(sErr.message || "The submissions query failed.");
         }
       } else {
         setCampaign(null);
@@ -475,6 +483,19 @@ export default function UIReformChallengeManager() {
           </Button>
         </div>
       </div>
+
+      {submissionLoadError && (
+        <div role="alert" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
+          <div className="min-w-0">
+            <p className="font-semibold text-destructive">Could not load UI reform submissions</p>
+            <p className="mt-1 break-words text-muted-foreground">{submissionLoadError}</p>
+            <p className="mt-1 text-xs text-muted-foreground">If the error mentions a missing table or column, apply the latest tenant database migrations.</p>
+          </div>
+          <Button size="sm" variant="outline" className="shrink-0" onClick={() => loadData()}>
+            <RefreshCw className="mr-1.5 h-4 w-4" /> Retry
+          </Button>
+        </div>
+      )}
 
       {/* Loading Skeleton */}
       {loading && !campaign ? (

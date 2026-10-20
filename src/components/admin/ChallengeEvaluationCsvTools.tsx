@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import Papa from "papaparse";
-import { Download, Loader2, Upload } from "lucide-react";
+import { BookOpen, Download, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,6 +33,7 @@ export default function ChallengeEvaluationCsvTools({ label, fileName, records, 
   const inputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<ChallengeEvaluationRow[]>([]);
   const [open, setOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -102,8 +103,35 @@ export default function ChallengeEvaluationCsvTools({ label, fileName, records, 
         <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
           <Upload className="h-3.5 w-3.5 mr-1.5" /> Import Evaluations
         </Button>
+        <Button variant="ghost" size="sm" onClick={() => setGuideOpen(true)}>
+          <BookOpen className="h-3.5 w-3.5 mr-1.5" /> CSV Guide
+        </Button>
         <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => event.target.files?.[0] && chooseFile(event.target.files[0])} />
       </div>
+      <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{label} CSV evaluation guide</DialogTitle>
+            <DialogDescription>Download the evaluation CSV, edit the review columns, then import it to apply decisions.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="font-semibold">Columns to edit</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-muted-foreground">
+                <li><code>submission_id</code> identifies the report or challenge entry. Keep it unchanged.</li>
+                <li><code>status</code> must be one of: {allowedStatuses.map((status) => <code key={status} className="mr-1">{status}</code>)}.</li>
+                <li><code>award_xp</code> must be a whole number 0 or greater. Bug bounty awards XP only for <code>verified</code> reports.</li>
+                <li><code>feedback</code> is optional reviewer feedback for the student.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-semibold">Example evaluation row</p>
+              <pre className="mt-1 overflow-x-auto rounded-lg bg-muted p-3 text-xs">{`submission_id,status,award_xp,feedback\n${rows[0]?.submission_id || "keep-exported-id"},${allowedStatuses[0] || "reviewed"},100,Clear and actionable report`}</pre>
+            </div>
+            <p className="text-xs text-muted-foreground">Only submissions that are still pending will be updated. Preserve the exported IDs and avoid duplicate rows; invalid or already-reviewed rows are skipped.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={open} onOpenChange={(value) => { if (!loading) setOpen(value); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>

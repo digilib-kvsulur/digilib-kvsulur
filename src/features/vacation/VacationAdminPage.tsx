@@ -119,6 +119,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   const [selectedSubmissionIds, setSelectedSubmissionIds] = useState<string[]>([]);
   const [bulkReviewBusy, setBulkReviewBusy] = useState(false);
   const [activityImportBusy, setActivityImportBusy] = useState(false);
+  const [evaluationImportBusy, setEvaluationImportBusy] = useState(false);
 
   const campaign = campaigns.find((c) => c.id === campaignId) || null;
 
@@ -242,6 +243,102 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
     anchor.download = `vacation-submissions-${campaign?.id || "campaign"}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadEvaluationCsv = () => {
+    const rows = pendingFiltered.map((row) => {
+      const activity = activities.find((item) => item.id === row.activity_id);
+      return {
+        submission_id: row.id,
+        campaign_id: row.campaign_id,
+        student_name: row.student_name,
+        activity: activity?.title || "",
+        activity_date: activity?.activity_date || "",
+        submitted_at: row.submitted_at,
+        content: row.content,
+        link: row.link,
+        decision: "",
+        points: activity?.reward_points ?? campaign?.default_points ?? 100,
+        review_note: "",
+        max_points: campaign?.max_award_points ?? "",
+      };
+    });
+    const csv = Papa.unparse(rows, { escapeFormulae: true });
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `vacation-evaluation-${campaign?.id || "campaign"}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importEvaluationCsv = async (file?: File) => {
+    if (!campaign || !file || evaluationImportBusy) return;
+    setEvaluationImportBusy(true);
+    try {
+      const parsed = Papa.parse<Record<string, string>>(await file.text(), {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => {
+          const key = header.trim().toLowerCase().replace(/[ -]+/g, "_");
+          if (key === "id" || key === "submission") return "submission_id";
+          if (key === "evaluation" || key === "review_decision") return "decision";
+          if (key === "points_awarded") return "points";
+          if (key === "feedback" || key === "note") return "review_note";
+          return key;
+        },
+      });
+      if (parsed.errors.length) throw new Error(parsed.errors[0].message);
+
+      const byId = new Map(queue.map((row) => [row.id, row]));
+      const seen = new Set<string>();
+      const evaluations = parsed.data
+        .filter((row) => row.decision?.trim())
+        .map((row, index) => {
+          const id = row.submission_id?.trim();
+          const decision = row.decision.trim().toLowerCase();
+          const submission = id ? byId.get(id) : undefined;
+          if (!id || !submission) throw new Error(`CSV row ${index + 2}: submission_id does not belong to this campaign.`);
+          if (row.campaign_id?.trim() && row.campaign_id.trim() !== campaign.id) throw new Error(`CSV row ${index + 2}: campaign_id does not match the selected campaign.`);
+          if (submission.status !== "pending") throw new Error(`CSV row ${index + 2}: submission ${id} is no longer pending.`);
+          if (seen.has(id)) throw new Error(`CSV row ${index + 2}: submission ${id} appears more than once.`);
+          if (decision !== "approve" && decision !== "reject") throw new Error(`CSV row ${index + 2}: decision must be approve or reject.`);
+          const note = row.review_note?.trim() || "";
+          if (decision === "reject" && !note) throw new Error(`CSV row ${index + 2}: review_note is required when rejecting.`);
+          const pointsText = row.points?.trim();
+          const points = pointsText ? Number(pointsText) : undefined;
+          if (decision === "approve" && points !== undefined && (!Number.isInteger(points) || points < 0 || points > campaign.max_award_points)) {
+            throw new Error(`CSV row ${index + 2}: points must be a whole number from 0 to ${campaign.max_award_points}.`);
+          }
+          seen.add(id);
+          return { submission, decision: decision as "approve" | "reject", points, note };
+        });
+
+      if (!evaluations.length) throw new Error("No evaluation rows found. Set decision to approve or reject for rows you reviewed.");
+      if (!window.confirm(`Import ${evaluations.length} evaluation(s) for ${campaign.title}? Approved entries receive points and rejection notes are sent to students.`)) return;
+
+      let completed = 0;
+      const failures: string[] = [];
+      for (const evaluation of evaluations) {
+        try {
+          await reviewSubmission(evaluation.submission.id, evaluation.decision, evaluation.points, evaluation.note || undefined);
+          completed += 1;
+        } catch (error) {
+          failures.push(`${evaluation.submission.student_name || evaluation.submission.id}: ${vacationErrorMessage(error)}`);
+        }
+      }
+      setSelectedSubmissionIds([]);
+      toast({
+        title: failures.length ? `Applied ${completed}; ${failures.length} failed` : `Applied ${completed} evaluations`,
+        description: failures.slice(0, 3).join("\n") || "Reviewed submissions have been updated.",
+        variant: failures.length ? "destructive" : undefined,
+      });
+      await loadDetails(campaign.id);
+    } catch (error) {
+      toast({ title: "Evaluation import failed", description: vacationErrorMessage(error), variant: "destructive" });
+    } finally {
+      setEvaluationImportBusy(false);
+    }
   };
 
   const bulkApproveSelected = async () => {
@@ -958,6 +1055,39 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
               </Button>
             </div>
           </div>
+
+          {campaign && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 text-sm">
+              <input
+                id="vacation-evaluation-csv"
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                disabled={evaluationImportBusy || bulkReviewBusy}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  void importEvaluationCsv(file);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <Button size="sm" variant="outline" disabled={!pendingFiltered.length || evaluationImportBusy || bulkReviewBusy} onClick={downloadEvaluationCsv}>
+                <Download className="mr-1 h-4 w-4" /> Export evaluation CSV
+              </Button>
+              <Button size="sm" variant="outline" disabled={evaluationImportBusy || bulkReviewBusy} onClick={() => document.getElementById("vacation-evaluation-csv")?.click()}>
+                {evaluationImportBusy ? "Importing evaluations…" : "Import evaluated CSV"}
+              </Button>
+              <span className="text-xs text-muted-foreground">Fill decision with approve or reject; add points and review_note, then import.</span>
+              <details className="basis-full rounded-lg bg-muted/50 px-3 py-2 text-xs">
+                <summary className="cursor-pointer font-semibold">Vacation CSV evaluation guide</summary>
+                <div className="mt-2 space-y-2 text-muted-foreground">
+                  <p>Export creates one row per pending submission shown by the current filters. Keep <code>submission_id</code> and <code>campaign_id</code> unchanged.</p>
+                  <p>Set <code>decision</code> to <code>approve</code> or <code>reject</code>. For approvals, edit <code>points</code> to a whole number from 0 through the campaign maximum. For rejections, enter a student-facing reason in <code>review_note</code>.</p>
+                  <p>Rows with a blank decision are ignored. Only still-pending submissions for the selected campaign can be evaluated; duplicate, stale, invalid, or over-limit rows are rejected. Rejection notes are sent to students.</p>
+                  <pre className="overflow-x-auto rounded-md bg-background p-2">submission_id,campaign_id,decision,points,review_note</pre>
+                </div>
+              </details>
+            </div>
+          )}
 
           {pendingFiltered.length > 0 && (
             <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 text-sm">

@@ -11544,16 +11544,47 @@ CREATE TABLE IF NOT EXISTS public.ui_reform_submissions (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE public.ui_reform_campaigns
+    ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT 'UI Reform & App Redesign Challenge',
+    ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS theme TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS ends_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+    ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'scheduled',
+    ADD COLUMN IF NOT EXISTS reward_points INTEGER DEFAULT 150,
+    ADD COLUMN IF NOT EXISTS rules TEXT,
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+
+ALTER TABLE public.ui_reform_submissions
+    ADD COLUMN IF NOT EXISTS campaign_id UUID REFERENCES public.ui_reform_campaigns(id) ON DELETE CASCADE,
+    ADD COLUMN IF NOT EXISTS student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    ADD COLUMN IF NOT EXISTS screen_name TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS problem_statement TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS proposed_solution TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS mockup_url TEXT,
+    ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending',
+    ADD COLUMN IF NOT EXISTS admin_feedback TEXT,
+    ADD COLUMN IF NOT EXISTS points_awarded INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS upvotes INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+
 -- Enable Row Level Security
+CREATE OR REPLACE FUNCTION public.ui_reform_is_admin()
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = (SELECT auth.uid()) AND role = 'admin');
+$$;
+REVOKE ALL ON FUNCTION public.ui_reform_is_admin() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.ui_reform_is_admin() TO authenticated, service_role;
+
 ALTER TABLE public.ui_reform_campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ui_reform_submissions ENABLE ROW LEVEL SECURITY;
 
 -- Campaigns Policies
 DROP POLICY IF EXISTS "Admins can manage ui_reform_campaigns" ON public.ui_reform_campaigns;
 CREATE POLICY "Admins can manage ui_reform_campaigns" ON public.ui_reform_campaigns
-    FOR ALL TO authenticated USING (
-        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-    );
+    FOR ALL TO authenticated USING (public.ui_reform_is_admin()) WITH CHECK (public.ui_reform_is_admin());
 
 DROP POLICY IF EXISTS "All authenticated users can view ui_reform_campaigns" ON public.ui_reform_campaigns;
 CREATE POLICY "All authenticated users can view ui_reform_campaigns" ON public.ui_reform_campaigns
@@ -11562,9 +11593,7 @@ CREATE POLICY "All authenticated users can view ui_reform_campaigns" ON public.u
 -- Submissions Policies
 DROP POLICY IF EXISTS "Admins can manage ui_reform_submissions" ON public.ui_reform_submissions;
 CREATE POLICY "Admins can manage ui_reform_submissions" ON public.ui_reform_submissions
-    FOR ALL TO authenticated USING (
-        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-    );
+    FOR ALL TO authenticated USING (public.ui_reform_is_admin()) WITH CHECK (public.ui_reform_is_admin());
 
 DROP POLICY IF EXISTS "Students can view own or reviewed submissions" ON public.ui_reform_submissions;
 CREATE POLICY "Students can view own or reviewed submissions" ON public.ui_reform_submissions
