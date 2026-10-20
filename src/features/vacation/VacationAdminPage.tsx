@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Papa from "papaparse";
 import {
   Calendar,
   Check,
@@ -115,6 +116,9 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   const [allTeams, setAllTeams] = useState<VacationTeam[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
   const [loadingTeams, setLoadingTeams] = useState(false);
+  const [selectedSubmissionIds, setSelectedSubmissionIds] = useState<string[]>([]);
+  const [bulkReviewBusy, setBulkReviewBusy] = useState(false);
+  const [activityImportBusy, setActivityImportBusy] = useState(false);
 
   const campaign = campaigns.find((c) => c.id === campaignId) || null;
 
@@ -136,6 +140,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
     setMilestones(ms.map((m: VacationStreakMilestone) => ({ days: String(m.days), bonus_points: String(m.bonus_points) })));
     setActivities(acts);
     setQueue(q);
+    setSelectedSubmissionIds([]);
     setBoard(lb);
     setStats(st);
     setAllTeams(teams);
@@ -213,6 +218,92 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
       return true;
     });
   }, [queue, statusFilter, dayFilter, studentFilter, activities]);
+
+  const pendingFiltered = filteredQueue.filter((row) => row.status === "pending");
+  const selectedPending = pendingFiltered.filter((row) => selectedSubmissionIds.includes(row.id));
+
+  const downloadSubmissionCsv = () => {
+    const rows = filteredQueue.map((row) => ({
+      student_name: row.student_name,
+      activity: activities.find((activity) => activity.id === row.activity_id)?.title || "",
+      activity_date: activities.find((activity) => activity.id === row.activity_id)?.activity_date || "",
+      status: row.status,
+      attempts: row.attempts,
+      submitted_at: row.submitted_at,
+      content: row.content,
+      link: row.link,
+      points_awarded: row.points_awarded,
+      review_note: row.review_note,
+    }));
+    const csv = Papa.unparse(rows, { escapeFormulae: true });
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `vacation-submissions-${campaign?.id || "campaign"}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const bulkApproveSelected = async () => {
+    if (!campaign || selectedPending.length === 0 || bulkReviewBusy) return;
+    const approvedCount = selectedPending.length;
+    if (!window.confirm(`Approve ${approvedCount} selected submission(s) using each activity's configured reward points?`)) return;
+    setBulkReviewBusy(true);
+    let approved = 0;
+    const failures: string[] = [];
+    for (const row of selectedPending) {
+      const activity = activities.find((item) => item.id === row.activity_id);
+      const points = activity?.reward_points ?? campaign.default_points ?? 100;
+      try {
+        await reviewSubmission(row.id, "approve", points, "Bulk approved");
+        approved += 1;
+      } catch (error) {
+        failures.push(`${row.student_name || "Student"}: ${vacationErrorMessage(error)}`);
+      }
+    }
+    setSelectedSubmissionIds([]);
+    setBulkReviewBusy(false);
+    toast({
+      title: failures.length ? `Approved ${approved}; ${failures.length} failed` : `Approved ${approved} submissions`,
+      description: failures.slice(0, 3).join("\n") || "Each submission received its activity's configured points.",
+      variant: failures.length ? "destructive" : undefined,
+    });
+    await loadDetails(campaign.id);
+  };
+
+  const importActivitiesCsv = async (file?: File) => {
+    if (!campaign || !file) return;
+    setActivityImportBusy(true);
+    try {
+      const parsed = Papa.parse<Record<string, string>>(await file.text(), {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim().toLowerCase().replace(/[ -]+/g, "_"),
+      });
+      if (parsed.errors.length) throw new Error(parsed.errors[0].message);
+      const rows = parsed.data.filter((row) => row.title?.trim());
+      if (!rows.length) throw new Error("CSV needs a title column and at least one activity row.");
+      for (const [index, row] of rows.entries()) {
+        const reward = row.reward_points?.trim() ? Number(row.reward_points) : campaign.default_points;
+        if (!Number.isFinite(reward) || reward < 0) throw new Error(`Invalid reward_points in CSV row ${index + 2}.`);
+        await upsertActivity({
+          campaign_id: campaign.id,
+          title: row.title.trim(),
+          instructions: row.instructions?.trim() || null,
+          activity_date: row.activity_date?.trim() || null,
+          reward_points: reward,
+          is_active: !["false", "0", "no", "draft"].includes((row.is_active || "true").trim().toLowerCase()),
+          sort_order: Number(row.sort_order) || activities.length + index + 1,
+        });
+      }
+      toast({ title: `Imported ${rows.length} activities` });
+      await loadDetails(campaign.id);
+    } catch (error) {
+      toast({ title: "Activity import failed", description: vacationErrorMessage(error), variant: "destructive" });
+    } finally {
+      setActivityImportBusy(false);
+    }
+  };
 
   const saveCampaign = async () => {
     try {
@@ -639,6 +730,34 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                   <Plus className="h-4 w-4 mr-1" /> New activity
                 </Button>
               )}
+              {campaign && canConfigure && (
+                <>
+                  <input
+                    id="vacation-activity-csv"
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    disabled={activityImportBusy}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      void importActivitiesCsv(file);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                  <Button variant="outline" disabled={activityImportBusy} onClick={() => document.getElementById("vacation-activity-csv")?.click()}>
+                    <Download className="h-4 w-4 mr-1" /> {activityImportBusy ? "Importing…" : "Import activities CSV"}
+                  </Button>
+                  <Button variant="ghost" onClick={() => {
+                    const blob = new Blob(["title,instructions,activity_date,reward_points,is_active,sort_order\nExample activity,Describe the task,,100,true,1"], { type: "text/csv;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const anchor = document.createElement("a");
+                    anchor.href = url;
+                    anchor.download = "vacation-activities-template.csv";
+                    anchor.click();
+                    URL.revokeObjectURL(url);
+                  }}>CSV template</Button>
+                </>
+              )}
               {campaign && activities.length === 0 && (
                 <Button variant="outline" onClick={async () => {
                   try {
@@ -834,8 +953,31 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
 
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span>Showing <strong>{filteredQueue.length}</strong> of {queue.length} submissions</span>
+              <Button size="sm" variant="outline" className="h-8 gap-1" onClick={downloadSubmissionCsv} disabled={!filteredQueue.length}>
+                <Download className="h-3.5 w-3.5" /> Download CSV
+              </Button>
             </div>
           </div>
+
+          {pendingFiltered.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={pendingFiltered.length > 0 && pendingFiltered.every((row) => selectedSubmissionIds.includes(row.id))}
+                  onChange={(event) => setSelectedSubmissionIds(event.target.checked
+                    ? [...new Set([...selectedSubmissionIds, ...pendingFiltered.map((row) => row.id)])]
+                    : selectedSubmissionIds.filter((id) => !pendingFiltered.some((row) => row.id === id)))}
+                />
+                Select all {pendingFiltered.length} pending shown
+              </label>
+              <span className="text-muted-foreground">{selectedPending.length} selected</span>
+              <Button size="sm" disabled={!selectedPending.length || bulkReviewBusy} onClick={bulkApproveSelected}>
+                <Check className="mr-1 h-4 w-4" />
+                {bulkReviewBusy ? "Evaluating…" : `Approve selected (${selectedPending.length})`}
+              </Button>
+            </div>
+          )}
 
           {!filteredQueue.length ? (
             <div className="p-8 text-center rounded-2xl border border-dashed text-muted-foreground space-y-1">
@@ -855,6 +997,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 border-b pb-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {row.status === "pending" && <input aria-label={`Select ${row.student_name}'s submission`} type="checkbox" checked={selectedSubmissionIds.includes(row.id)} onChange={(event) => setSelectedSubmissionIds((ids) => event.target.checked ? [...new Set([...ids, row.id])] : ids.filter((id) => id !== row.id))} />}
                         <span className="font-bold text-base text-foreground">{row.student_name}</span>
                         {isTeam && (
                           <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-800 dark:text-amber-200 border-amber-500/30 font-bold gap-1">
