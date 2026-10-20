@@ -371,7 +371,7 @@ const Login = () => {
           
           <div className="flex-1 flex flex-col justify-center max-w-md py-4">
             <h2 className="text-3xl xl:text-4xl font-extrabold text-primary-foreground mb-3 leading-tight">
-              Your Reading<br />Adventure<br />Starts Here âœ¨
+              Your Reading<br />Adventure<br />Starts Here ✨
             </h2>
             <p className="text-primary-foreground/80 text-base xl:text-lg mb-6">
               Track progress, earn rewards, and discover new worlds through reading.
