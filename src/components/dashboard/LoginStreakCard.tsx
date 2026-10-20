@@ -127,9 +127,9 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-card border border-border shadow-sm h-full flex flex-col justify-center">
-      <div className={`h-1 bg-gradient-to-r ${getStreakGradient(currentStreak)}`} />
-      <div className="p-5 flex flex-col justify-center gap-3.5">
+    <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-card to-card border border-amber-500/25 shadow-sm h-full flex flex-col justify-center">
+      <div className={`h-1.5 bg-gradient-to-r ${getStreakGradient(currentStreak)}`} />
+      <div className="p-4 sm:p-5 flex flex-col justify-center gap-3">
         {/* Top: flame + streak number */}
         <div className="flex items-center gap-3">
           <div className={`flex items-center justify-center w-12 h-12 rounded-full bg-warning/10 shrink-0 ${currentStreak >= 3 ? 'animate-streak-fire' : ''}`}>
