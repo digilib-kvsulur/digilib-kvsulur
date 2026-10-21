@@ -232,13 +232,14 @@ async function runInteractive() {
   console.log('  [5] +1 hour');
   console.log('  [6] Turn OFF maintenance');
   console.log('  [7] Custom time (e.g. 2:30pm, 7:15pm)');
+  console.log('  [8] Quiz Championship League (set end time)');
   console.log('  [0] Exit');
   console.log('----------------------------------------');
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const ask = (q) => new Promise((resolve) => rl.question(q, resolve));
 
-  const choice = (await ask('Select option [1-7, 0]: ')).trim();
+  const choice = (await ask('Select option [1-8, 0]: ')).trim();
 
   let targetInput = '';
   let reasonInput = '';
@@ -253,6 +254,10 @@ async function runInteractive() {
     case '7':
       targetInput = (await ask('Enter time (e.g. 2:30pm, +20m): ')).trim();
       reasonInput = (await ask('Reason (optional, press Enter to keep default): ')).trim();
+      break;
+    case '8':
+      targetInput = (await ask('Enter when the site should be back online (e.g. 2:30pm, +20m): ')).trim();
+      reasonInput = 'idle to provide a better experience during the Quiz Championship League';
       break;
     case '0':
     default:
