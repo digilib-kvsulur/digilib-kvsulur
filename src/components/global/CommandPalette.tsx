@@ -54,14 +54,15 @@ export const CommandPalette: React.FC = () => {
   // Keyboard shortcut listener: Ctrl+K or Cmd+K
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey) && !e.altKey && !e.repeat && !e.isComposing) {
         e.preventDefault();
-        setOpen((prev) => !prev);
+        e.stopPropagation();
+        setOpen(true);
       }
     };
 
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
+    window.addEventListener("keydown", down, true);
+    return () => window.removeEventListener("keydown", down, true);
   }, []);
 
   // Multi-field smart book search as user types
@@ -74,13 +75,18 @@ export const CommandPalette: React.FC = () => {
     const timer = setTimeout(async () => {
       try {
         const query = searchTerm.trim();
-        const { data } = await supabase
-          .from("books")
-          .select("id, title, author, category, accession_number, isbn")
-          .or(`title.ilike.%${query}%,author.ilike.%${query}%,category.ilike.%${query}%,accession_number.ilike.%${query}%`)
-          .limit(6);
-
-        setBookResults(data || []);
+        const [{ data, error }, { data: categoryMatches, error: categoryError }] = await Promise.all([
+          supabase.rpc("search_books", { search_query: query, p_limit: 6 }),
+          supabase.from("books")
+            .select("id, title, author, category, accession_number")
+            .ilike("category", `%${query}%`)
+            .limit(6),
+        ]);
+        if (error) throw error;
+        if (categoryError) throw categoryError;
+        const unique = new Map<string, any>();
+        [...(data || []), ...(categoryMatches || [])].forEach((book) => unique.set(book.id, book));
+        setBookResults([...unique.values()].slice(0, 6));
       } catch (e) {
         console.error("Book search error in palette:", e);
       }

@@ -144,7 +144,7 @@ const Catalog = () => {
           p_language: selectedLang === "all" ? null : selectedLang,
           p_author: selectedAuthor === "all" ? null : selectedAuthor,
           p_availability: availability,
-          p_sort_by: sortBy,
+          p_sort_by: sortBy === "most_recommended" ? "most_borrowed" : sortBy,
           p_limit: 1000 // Grab enough to virtualize locally or paginate
         });
         if (searchErr) throw searchErr;
@@ -171,18 +171,15 @@ const Catalog = () => {
           query = query.gte("first_added_at", oneMonthAgoIso);
         }
 
-        // Primary: books with covers first, then highest issues, then sort
-        query = query.order("cover_url", { ascending: false, nullsFirst: false });
-        query = query.order("issue_count", { ascending: false, nullsFirst: false });
-
         if (sortBy === "newest") {
           query = query.order("created_at", { ascending: false });
         } else if (sortBy === "most_borrowed") {
           query = query.order("issue_count", { ascending: false, nullsFirst: false });
         } else if (sortBy === "title_az") {
-          query = query.order("title", { ascending: true });
+          query = query.order("title", { ascending: true }).order("author", { ascending: true });
         } else {
-          query = query.order("title", { ascending: true });
+          // Keep pagination stable when popularity values tie.
+          query = query.order("issue_count", { ascending: false, nullsFirst: false }).order("title", { ascending: true });
         }
 
         const from = (currentPage - 1) * pageSize;
@@ -201,9 +198,7 @@ const Catalog = () => {
 
       // Enrich the visible page in the background (does not block rendering)
       if (data && data.length > 0) {
-        const visibleSlice = debouncedSearch.trim()
-          ? data.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-          : data;
+        const visibleSlice = data;
         const bookIds = visibleSlice.map(b => b.id);
         setBorrowCounts(Object.fromEntries(data.map((b: any) => [b.id, b.issue_count || 0])));
         void (async () => {
@@ -233,19 +228,14 @@ const Catalog = () => {
 
   const oneMonthAgo = Date.now() - 30 * 86400_000;
   const displayedBooks = useMemo(() => {
-    const raw = debouncedSearch.trim()
-      ? books.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-      : books;
-    if (currentPage === 1 && !debouncedSearch.trim() && sortBy === "newest") {
-      return [...raw].sort((a, b) => {
-        const aHasCover = a.cover_url && a.cover_url.trim().length > 5 ? 1 : 0;
-        const bHasCover = b.cover_url && b.cover_url.trim().length > 5 ? 1 : 0;
-        if (aHasCover !== bHasCover) return bHasCover - aHasCover;
-        return (b.issue_count || 0) - (a.issue_count || 0);
-      });
-    }
-    return raw;
-  }, [books, debouncedSearch, currentPage, pageSize, sortBy]);
+    // Both database and full-text paths already return the active page in the
+    // requested order. Re-slicing search results here skipped pages after page 1.
+    return books;
+  }, [books]);
+
+  const sortedOptions = (options: string[]) => [...options].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
+  );
 
   const showFeatured = !debouncedSearch && selectedGenre === "all" && selectedSubject === "all" && selectedClass === "all" && currentPage === 1 && books.length > 0;
   const withCovers = useMemo(() => {
@@ -441,7 +431,7 @@ const Catalog = () => {
                 </SelectTrigger>
                 <SelectContent className="rounded-xl max-h-[300px]">
                   <SelectItem value="all" className="font-semibold text-indigo-600">All {filter.lbl}s</SelectItem>
-                  {filter.opts.map((opt: string) => (
+                  {sortedOptions(filter.opts).map((opt: string) => (
                     <SelectItem key={opt} value={opt}>{filter.format ? filter.format(opt) : opt}</SelectItem>
                   ))}
                 </SelectContent>
@@ -462,9 +452,9 @@ const Catalog = () => {
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
-                <SelectItem value="newest">Newest first</SelectItem>
+                <SelectItem value="newest">Recently added</SelectItem>
                 <SelectItem value="most_borrowed">Most borrowed</SelectItem>
-                <SelectItem value="most_recommended">Most recommended</SelectItem>
+                <SelectItem value="most_recommended">Popular (most borrowed)</SelectItem>
                 <SelectItem value="title_az">Title A-Z</SelectItem>
               </SelectContent>
             </Select>
@@ -516,7 +506,7 @@ const Catalog = () => {
                   </SelectTrigger>
                   <SelectContent className="rounded-xl max-h-[250px]">
                     <SelectItem value="all" className="font-semibold text-indigo-600">All {filter.lbl}s</SelectItem>
-                    {filter.opts.map((opt: string) => (
+                    {sortedOptions(filter.opts).map((opt: string) => (
                       <SelectItem key={opt} value={opt}>{filter.format ? filter.format(opt) : opt}</SelectItem>
                     ))}
                   </SelectContent>
@@ -545,9 +535,9 @@ const Catalog = () => {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="newest">Newest first</SelectItem>
+                  <SelectItem value="newest">Recently added</SelectItem>
                   <SelectItem value="most_borrowed">Most borrowed</SelectItem>
-                  <SelectItem value="most_recommended">Most recommended</SelectItem>
+                  <SelectItem value="most_recommended">Popular (most borrowed)</SelectItem>
                   <SelectItem value="title_az">Title A-Z</SelectItem>
                 </SelectContent>
               </Select>

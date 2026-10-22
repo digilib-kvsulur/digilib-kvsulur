@@ -422,14 +422,14 @@ const StudentDashboard = () => {
 
   const navSections = useMemo(() => [
     {
-      title: "Main",
+      title: "Home",
       items: [
         { id: "overview" as Tab, label: "Overview", icon: Home },
         { id: "portfolio" as Tab, label: "My Portfolio", icon: FileText },
       ],
     },
     {
-      title: "Academics",
+      title: "Learning",
       items: [
         { id: "materials" as Tab, label: "Study Materials", icon: FileText },
         { id: "ncert" as Tab, label: "NCERT Books", icon: BookOpen },
@@ -449,7 +449,7 @@ const StudentDashboard = () => {
       ],
     },
     {
-      title: "Engagement & Rewards",
+      title: "Community & Rewards",
       items: [
         { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
         { id: "badges" as Tab, label: "Badge Cabinet", icon: Award },
@@ -467,7 +467,7 @@ const StudentDashboard = () => {
       ],
     },
     {
-      title: "Support & Account",
+      title: "Help & Account",
       items: [
         { id: "support" as Tab, label: "Help & Support", icon: LifeBuoy },
         { id: "feedback" as Tab, label: "Feedback", icon: MessageSquare },

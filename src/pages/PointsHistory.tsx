@@ -86,7 +86,9 @@ const PointsHistoryPage = () => {
         const { data } = await supabase.from("profiles").select("id, first_name, last_name, student_class, admission_number, points").eq("role", "student").order("first_name");
         if (cancelled) return;
         setStudents(data || []);
-        if (queryUserId) targetId = queryUserId;
+        // Staff opening the ledger without a student deep link should land on
+        // a real student account instead of an empty admin history.
+        targetId = queryUserId || data?.[0]?.id || user.id;
       }
       if (cancelled) return;
       setUserId(targetId);

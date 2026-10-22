@@ -40,6 +40,19 @@ const CRIT_LABELS: Record<string, string> = {
   reviews_count: "Book Reviews Written"
 };
 
+const BADGE_PAGE_SIZE = 1000;
+
+async function fetchAllRows<T>(buildQuery: (from: number, to: number) => any): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += BADGE_PAGE_SIZE) {
+    const { data, error } = await buildQuery(from, from + BADGE_PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = (data || []) as T[];
+    rows.push(...page);
+    if (page.length < BADGE_PAGE_SIZE) return rows;
+  }
+}
+
 export default function BadgeManager() {
   const { toast } = useToast();
   const [badges, setBadges] = useState<BadgeRow[]>([]);
@@ -67,32 +80,34 @@ export default function BadgeManager() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("badges").select("*").order("created_at", { ascending: false });
+    try {
+    const { data, error: badgeError } = await supabase.from("badges").select("*").order("created_at", { ascending: false });
+    if (badgeError) throw badgeError;
     setBadges((data as any) || []);
 
     // Fetch all data in parallel with flat queries (nested relations are unreliable without named FK)
     const [
-      { data: awards },
-      { data: allUsers },
-      { data: readings },
-      { data: quizResults },
-      { data: loginStreaks },
-      { data: posts },
-      { data: comments },
-      { data: friendships },
-      { data: issues },
-      { data: reviews }
+      awards,
+      allUsers,
+      readings,
+      quizResults,
+      loginStreaks,
+      posts,
+      comments,
+      friendships,
+      issues,
+      reviews
     ] = await Promise.all([
-      supabase.from("badge_awards").select("badge_id, user_id"),
-      supabase.from("profiles").select("id, points").eq("role", "student").eq("is_approved", true),
-      supabase.from("reading_history").select("user_id").eq("status", "approved"),
-      supabase.from("quiz_results").select("user_id"),
-      supabase.from("login_streaks").select("user_id, current_streak"),
-      supabase.from("posts").select("user_id"),
-      supabase.from("post_comments").select("user_id"),
-      supabase.from("friendships").select("requester_id, addressee_id").eq("status", "accepted"),
-      supabase.from("book_issues").select("user_id"),
-      supabase.from("book_reviews").select("user_id"),
+      fetchAllRows<any>((from, to) => supabase.from("badge_awards").select("badge_id, user_id").order("id").range(from, to)),
+      fetchAllRows<any>((from, to) => supabase.from("profiles").select("id, points").eq("role", "student").eq("is_approved", true).order("id").range(from, to)),
+      fetchAllRows<any>((from, to) => supabase.from("reading_history").select("user_id").eq("status", "approved").order("id").range(from, to)),
+      fetchAllRows<any>((from, to) => supabase.from("quiz_results").select("user_id").order("id").range(from, to)),
+      fetchAllRows<any>((from, to) => supabase.from("login_streaks").select("user_id, current_streak").order("id").range(from, to)),
+      fetchAllRows<any>((from, to) => supabase.from("posts").select("user_id").order("id").range(from, to)),
+      fetchAllRows<any>((from, to) => supabase.from("post_comments").select("user_id").order("id").range(from, to)),
+      fetchAllRows<any>((from, to) => supabase.from("friendships").select("requester_id, addressee_id").eq("status", "accepted").order("id").range(from, to)),
+      fetchAllRows<any>((from, to) => supabase.from("book_issues").select("user_id").order("id").range(from, to)),
+      fetchAllRows<any>((from, to) => supabase.from("book_reviews").select("user_id").order("id").range(from, to)),
     ]);
 
     // Build per-user count maps for each criteria type
@@ -161,8 +176,12 @@ export default function BadgeManager() {
     // Cache for earner drilldown
     setCachedAllUsers(allUsers || []);
     setCachedHelperMaps({ ...allMaps, manualAwards });
-
+    } catch (error: any) {
+      console.error("Failed to load badge recipients", error);
+      toast({ title: "Could not load badge recipients", description: error?.message || "Please refresh and try again.", variant: "destructive" });
+    } finally {
     setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 
@@ -209,23 +228,31 @@ export default function BadgeManager() {
     setEarnerLoading(true);
     setEarnerList([]);
 
+    try {
     if (b.criteria_type === "manual" || !b.criteria_type) {
       // Fetch actual badge_awards records with user + awarder profile
-      const { data: awards } = await supabase
+      const awards = await fetchAllRows<any>((from, to) => supabase
         .from("badge_awards")
-        .select("user_id, awarded_by, award_type, awarded_at, note")
+        .select("id, user_id, awarded_by, award_type, awarded_at, note")
         .eq("badge_id", b.id)
-        .order("awarded_at", { ascending: false });
+        .order("awarded_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to));
 
       if (awards && awards.length > 0) {
         const userIds = awards.map((a: any) => a.user_id);
         const awarderIds = awards.map((a: any) => a.awarded_by).filter(Boolean);
         const allIds = Array.from(new Set([...userIds, ...awarderIds]));
 
-        const { data: profs } = await supabase
+        const idBatches: string[][] = [];
+        for (let i = 0; i < allIds.length; i += 500) idBatches.push(allIds.slice(i, i + 500));
+        const profileResults = await Promise.all(idBatches.map(ids => supabase
           .from("profiles")
           .select("id, first_name, last_name, admission_number, role, student_class")
-          .in("id", allIds);
+          .in("id", ids)));
+        const profileError = profileResults.find(result => result.error)?.error;
+        if (profileError) throw profileError;
+        const profs = profileResults.flatMap(result => result.data || []);
         const profMap: Record<string, any> = {};
         (profs || []).forEach((p: any) => { profMap[p.id] = p; });
 
@@ -256,14 +283,25 @@ export default function BadgeManager() {
 
       // Fetch proper profiles for qualifying users
       if (qualifying.length > 0) {
-        const { data: profs } = await supabase
+        const ids = qualifying.map((u: any) => u.id);
+        const idBatches: string[][] = [];
+        for (let i = 0; i < ids.length; i += 500) idBatches.push(ids.slice(i, i + 500));
+        const profileResults = await Promise.all(idBatches.map(batch => supabase
           .from("profiles")
           .select("id, first_name, last_name, admission_number, student_class")
-          .in("id", qualifying.map((u: any) => u.id));
-        setEarnerList((profs || []).map((p: any) => ({ user: p, awarder: null, award_type: 'auto', awarded_at: null })));
+          .in("id", batch)));
+        const profileError = profileResults.find(result => result.error)?.error;
+        if (profileError) throw profileError;
+        const profs = profileResults.flatMap(result => result.data || []);
+        setEarnerList(profs.map((p: any) => ({ user: p, awarder: null, award_type: 'auto', awarded_at: null })));
       }
     }
-    setEarnerLoading(false);
+    } catch (error: any) {
+      console.error("Failed to load badge earners", error);
+      toast({ title: "Could not load all badge earners", description: error?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setEarnerLoading(false);
+    }
   };
 
   const doAward = async () => {

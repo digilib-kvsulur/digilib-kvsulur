@@ -10,7 +10,7 @@ import {
   Brain, Trophy, Layers, BarChart3, User, Menu, X, Settings, Bell, MessageSquare, FileText,
   Calendar, RefreshCw, Star, AlertTriangle, Barcode, HardDrive, Server,
   Gamepad2, AlertCircle, FileSpreadsheet, LifeBuoy, Library as LibraryIcon,
-  ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon, BookmarkCheck, Lightbulb, Database,
+  ClipboardList, IndianRupee, ShieldAlert, HardDriveDownload, Image as ImageIcon, BookmarkCheck, Lightbulb,
   Newspaper, Users as UsersIcon, Crown, Sparkles, Zap, Mail, Palette, Sun
 } from "lucide-react";
 import NotificationBell from "@/components/dashboard/NotificationBell";
@@ -71,14 +71,12 @@ const VacationAdminPage = lazy(() => import("@/features/vacation/VacationAdminPa
 const FriendsChatAdmin = lazy(() => import("@/components/admin/FriendsChatAdmin"));
 const InviteInstagramManager = lazy(() => import("@/components/admin/InviteInstagramManager"));
 const ReservationManager = lazy(() => import("@/components/admin/ReservationManager"));
-const QuizParticipants = lazy(() => import("@/components/admin/QuizParticipants"));
 const SuggestionManager = lazy(() => import("@/components/admin/SuggestionManager"));
-const DataManagement = lazy(() => import("@/components/admin/DataManagement"));
 const KVSComplianceDossier = lazy(() => import("@/components/admin/KVSComplianceDossier"));
 const StockVerificationScanner = lazy(() => import("@/components/admin/StockVerificationScanner"));
 const OverdueEmailDispatcher = lazy(() => import("@/components/admin/OverdueEmailDispatcher"));
 
-type Tab = "overview" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "quiz-participants" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "chat" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "data-management" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "book-suggestions" | "reservations" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor" | "invite-instagram" | "kvs-dossier" | "stock-audit" | "overdue-dispatcher";
+type Tab = "overview" | "catalog" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "chat" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "book-suggestions" | "reservations" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor" | "invite-instagram" | "kvs-dossier" | "stock-audit" | "overdue-dispatcher";
 
 const SYSTEM_SIZE_CACHE_KEY = "dlms_admin_system_sizes_v1";
 const SYSTEM_SIZE_CACHE_TTL_MS = 60 * 60 * 1000;
@@ -87,7 +85,7 @@ const OVERVIEW_STATS_CACHE_TTL_MS = 60 * 1000;
 
 const navSections = [
   {
-    title: "Main",
+    title: "Dashboard",
     items: [
       { id: "overview" as Tab, label: "Overview", icon: Home },
       { id: "analytics" as Tab, label: "Analytics", icon: BarChart3 },
@@ -98,7 +96,7 @@ const navSections = [
     ],
   },
   {
-    title: "Users",
+    title: "People & Points",
     items: [
       { id: "users" as Tab, label: "User Approval", icon: Users },
       { id: "academic-rollover" as Tab, label: "Academic Year Rollover", icon: RefreshCw },
@@ -109,6 +107,7 @@ const navSections = [
   {
     title: "Library",
     items: [
+      { id: "catalog" as Tab, label: "Browse Catalog", icon: BookOpen },
       { id: "express-circulation" as Tab, label: "Express Circulation Kiosk", icon: Zap },
       { id: "stock-audit" as Tab, label: "Stock Verification Scanner", icon: Barcode },
       { id: "overdue-dispatcher" as Tab, label: "Overdue Email Dispatcher", icon: Mail },
@@ -134,10 +133,9 @@ const navSections = [
     ],
   },
   {
-    title: "Engagement",
+    title: "Activities & Communication",
     items: [
       { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
-      { id: "quiz-participants" as Tab, label: "Quiz Participants", icon: ClipboardList },
       { id: "badges" as Tab, label: "Badges", icon: Award },
       { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
       { id: "certificates" as Tab, label: "Certificates", icon: Award },
@@ -159,12 +157,11 @@ const navSections = [
     ],
   },
   {
-    title: "Settings",
+    title: "School Setup",
     items: [
       { id: "branding" as Tab, label: "School Branding", icon: Palette },
       { id: "home-editor" as Tab, label: "Home Page Editor", icon: Sparkles },
       { id: "settings" as Tab, label: "Library Settings", icon: Settings },
-      { id: "data-management" as Tab, label: "Data Management", icon: Database },
       { id: "profile" as Tab, label: "My Profile", icon: User },
     ],
   },
@@ -471,7 +468,7 @@ const AdminDashboard = () => {
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-1">{section.title}</p>
               <div className="space-y-0.5">
                 {section.items.map(item => (
-                  <button key={item.id} onClick={() => setActiveTab(item.id)}
+                  <button key={item.id} onClick={() => item.id === "catalog" ? navigate("/catalog") : setActiveTab(item.id)}
                     onMouseEnter={() => {
                       if (item.id === "ui-reform") {
                         import("@/components/admin/UIReformChallengeManager");
@@ -530,7 +527,7 @@ const AdminDashboard = () => {
                 <div key={section.title}>
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{section.title}</p>
                   {section.items.map(item => (
-                    <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileNavOpen(false); }}
+                    <button key={item.id} onClick={() => { if (item.id === "catalog") navigate("/catalog"); else setActiveTab(item.id); setMobileNavOpen(false); }}
                       className={`w-full min-w-0 flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm transition-colors ${activeTab === item.id ? 'gradient-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:bg-muted'}`}>
                       <item.icon className="h-4 w-4 shrink-0" /> <span className="min-w-0">{item.label}</span>
                     </button>
@@ -700,7 +697,6 @@ const AdminDashboard = () => {
           {activeTab === "reservations" && <ReservationManager />}
           {activeTab === "certificates" && <CertificateManager />}
           {activeTab === "settings" && <LibrarySettings />}
-          {activeTab === "data-management" && <DataManagement />}
           {activeTab === "branding" && <SchoolBrandingSettings />}
           {activeTab === "home-editor" && <HomePageEditor />}
           {activeTab === "shelf-data" && <BookShelfData />}
@@ -713,7 +709,6 @@ const AdminDashboard = () => {
           {activeTab === "gallery" && <GalleryManager />}
           {activeTab === "points" && <PointsManager />}
           {activeTab === "quizzes" && <QuizManager />}
-          {activeTab === "quiz-participants" && <QuizParticipants />}
           {activeTab === "badges" && <BadgeManager />}
           {activeTab === "games" && <GamesManager />}
           {activeTab === "wishlist" && <WishlistView />}
