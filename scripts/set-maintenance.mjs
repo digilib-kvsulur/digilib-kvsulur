@@ -113,19 +113,21 @@ function readCurrentConfig() {
   const content = fs.readFileSync(CONFIG_FILE, 'utf8');
 
   const enabledMatch = content.match(/enabled:\s*(true|false)/);
+  const idleMatch = content.match(/idle:\s*(true|false)/);
   const untilMatch = content.match(/until:\s*["']([^"']+)["']/);
   const displayMatch = content.match(/displayUntil:\s*["']([^"']+)["']/);
   const subheadingMatch = content.match(/subheading:\s*["']([^"']+)["']/);
 
   return {
     enabled: enabledMatch ? enabledMatch[1] === 'true' : false,
+    idle: idleMatch ? idleMatch[1] === 'true' : false,
     until: untilMatch ? untilMatch[1] : '',
     displayUntil: displayMatch ? displayMatch[1] : '',
     subheading: subheadingMatch ? subheadingMatch[1] : '',
   };
 }
 
-function updateConfigFile({ enabled, untilDate, displayUntil, reason }) {
+function updateConfigFile({ enabled, untilDate, displayUntil, reason, idle = false }) {
   const isoUntil = untilDate.toISOString();
   const author = 'G V Tanish Vettrivel';
   const authorRole = 'Developer · PM SHRI KV AFS Sulur';
@@ -148,6 +150,7 @@ function updateConfigFile({ enabled, untilDate, displayUntil, reason }) {
 
   const newConfigContent = `export interface MaintenanceConfig {
   enabled: boolean;
+  idle: boolean;
   until: string; // ISO 8601 UTC timestamp
   displayUntil: string; // Human readable e.g. "today, 2:00 PM IST"
   heading: string;
@@ -160,6 +163,7 @@ function updateConfigFile({ enabled, untilDate, displayUntil, reason }) {
 
 export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   enabled: ${enabled},
+  idle: ${idle},
   until: "${isoUntil}",
   displayUntil: "${displayUntil}",
   heading: "Site Under Maintenance",
@@ -218,7 +222,7 @@ async function runInteractive() {
     const endMs = new Date(current.until).getTime();
     const isActive = current.enabled && Date.now() < endMs;
     const remainingMin = Math.max(0, Math.round((endMs - Date.now()) / 60000));
-    console.log(`Status    : ${isActive ? '🟡 ACTIVE' : '🟢 OFFLINE / LIFTED'}`);
+    console.log(`Status    : ${isActive ? (current.idle ? '🟢 EVENT IDLE' : '🟡 ACTIVE') : '🟢 OFFLINE / LIFTED'}`);
     if (isActive) {
       console.log(`Until     : ${current.displayUntil} (~${remainingMin} mins remaining)`);
     }
@@ -272,6 +276,7 @@ async function runInteractive() {
     untilDate: parsed.date,
     displayUntil: parsed.display,
     reason: reasonInput,
+    idle: choice === '8',
   });
 
   console.log('\n🎉 Maintenance Config Updated Successfully!');
@@ -327,6 +332,7 @@ async function main() {
     untilDate: parsed.date,
     displayUntil: parsed.display,
     reason: reasonInput,
+    idle: false,
   });
 
   console.log('✅ Maintenance configuration updated!');

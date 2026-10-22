@@ -1,5 +1,6 @@
 export interface MaintenanceConfig {
   enabled: boolean;
+  idle: boolean;
   until: string; // ISO 8601 UTC timestamp
   displayUntil: string; // Human readable e.g. "today, 2:00 PM IST"
   heading: string;
@@ -12,6 +13,7 @@ export interface MaintenanceConfig {
 
 export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   enabled: true,
+  idle: true,
   until: "2026-10-21T12:34:00.000Z",
   displayUntil: "today, 6:04 PM IST",
   heading: "Site Under Maintenance",
