@@ -14,13 +14,13 @@ export interface MaintenanceConfig {
 export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   enabled: true,
   idle: true,
-  until: "2026-10-21T12:34:00.000Z",
-  displayUntil: "today, 6:04 PM IST",
+  until: "2026-10-22T12:25:00.000Z",
+  displayUntil: "today, 5:55 PM IST",
   heading: "Site Under Maintenance",
   subheading:
-    "DLMS is currently undergoing idle to provide a better experience during the Quiz Championship League. We'll be back online by: today, 6:04 PM IST.",
+    "DLMS is currently undergoing idle to provide a better experience during the Quiz Championship League. We'll be back online by: today, 5:55 PM IST.",
   modalBody:
-    "DLMS is currently undergoing idle to provide a better experience during the Quiz Championship League.\n\nThe site will be back online smoothly by today, 6:04 PM IST.\n\nThank you for your patience and cooperation. 🙏",
+    "DLMS is currently undergoing idle to provide a better experience during the Quiz Championship League.\n\nThe site will be back online smoothly by today, 5:55 PM IST.\n\nThank you for your patience and cooperation. 🙏",
   author: "G V Tanish Vettrivel",
   authorRole: "Developer · PM SHRI KV AFS Sulur",
   supportEmail: "dlms@kvsulur.in",
