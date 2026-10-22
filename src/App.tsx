@@ -64,6 +64,7 @@ import ErrorBoundary from "@/components/global/ErrorBoundary";
 const STUDENT_ROLES = ["student"] as const;
 const ADMIN_ROLES = ["admin"] as const;
 const TEACHER_ROLES = ["teacher", "admin"] as const;
+const POINT_HISTORY_ROLES = ["student", "teacher", "admin"] as const;
 
 import { isMaintenanceActive, getMaintenanceRemainingMs, MAINTENANCE_CONFIG } from "@/config/maintenanceConfig";
 
@@ -383,7 +384,7 @@ const App = () => {
                     path="/points-history"
                     element={(
                       <SetupRedirectGuard>
-                        <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                        <ProtectedRoute allowedRoles={POINT_HISTORY_ROLES}>
                           <PointsHistory />
                         </ProtectedRoute>
                       </SetupRedirectGuard>
