@@ -11,6 +11,21 @@ SET subscription_key = COALESCE(
 )
 WHERE subscription_key IS NULL;
 
+-- Older versions replaced a user's subscription inconsistently, which could
+-- leave the same device endpoint attached to multiple rows. Keep the newest.
+WITH ranked_subscriptions AS (
+  SELECT id,
+         row_number() OVER (
+           PARTITION BY subscription_key
+           ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC
+         ) AS row_number
+  FROM public.push_subscriptions
+)
+DELETE FROM public.push_subscriptions AS subscriptions
+USING ranked_subscriptions AS ranked
+WHERE subscriptions.id = ranked.id
+  AND ranked.row_number > 1;
+
 ALTER TABLE public.push_subscriptions
   ALTER COLUMN subscription_key SET NOT NULL;
 
