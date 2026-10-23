@@ -24,7 +24,7 @@ const primaryTabs: { id: Tab; label: string; icon: React.ElementType; center?: b
 
 const vacationPrimaryTabs: { id: Tab; label: string; icon: React.ElementType; center?: boolean }[] = [
   { id: "overview", label: "Home", icon: Home },
-  { id: "quizzes", label: "Quizzes", icon: Brain },
+  { id: "games", label: "Games", icon: Gamepad2 },
   { id: "vacation", label: "Vacation", icon: Sun, center: true },
   { id: "community", label: "Community", icon: Users },
 ];
