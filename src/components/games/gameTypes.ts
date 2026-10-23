@@ -30,10 +30,19 @@ export interface GameContentItem {
   is_active: boolean;
 }
 
+export interface ArcadeQuestion {
+  id: string;
+  prompt: string;
+  options: string[];
+  hint: string;
+  difficulty: number;
+}
+
 export interface GameProps {
   books: GameBook[];
   content: GameContentItem[];
-  onComplete: (win: boolean, score: number) => void;
+  arcadeQuestions?: ArcadeQuestion[];
+  onComplete: (win: boolean, score: number, answers?: { question_id: string; answer: string }[]) => void | Promise<any>;
   onExit: () => void;
 }
 

@@ -12,6 +12,7 @@ import { Gamepad2, Save, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GameContentManager from "./GameContentManager";
 import GameAnalytics from "./GameAnalytics";
+import ArcadeChallengeManager from "./ArcadeChallengeManager";
 
 interface GameRow {
   id: string;
@@ -50,7 +51,12 @@ const DEVELOPED_GAMES = [
   { key: "spine-stacker", name: "Book Shelf Stacker", description: "Precision timing arcade game to stack books into a towering library pile.", icon_name: "Gamepad2", category: "reflex", points_per_win: 15, max_points_per_day: 45, daily_play_limit: 5, sort_order: 21 },
   { key: "book-2048", name: "Reader's 2048", description: "Merge matching literary steps: Letter → Word → Page → Chapter → Masterpiece!", icon_name: "Grid2x2", category: "puzzle", points_per_win: 20, max_points_per_day: 40, daily_play_limit: 3, sort_order: 22 },
   { key: "story-sequence", name: "Story Chrono", description: "Rearrange scrambled plot milestones of beloved tales into the correct chronological order.", icon_name: "Shuffle", category: "puzzle", points_per_win: 15, max_points_per_day: 30, daily_play_limit: 3, sort_order: 23 },
-  { key: "character-clash", name: "Character Pair-Up", description: "Connect legendary literary characters with their partners, sidekicks, and rivals.", icon_name: "Users", category: "memory", points_per_win: 10, max_points_per_day: 40, daily_play_limit: 5, sort_order: 24 }
+  { key: "character-clash", name: "Character Pair-Up", description: "Connect legendary literary characters with their partners, sidekicks, and rivals.", icon_name: "Users", category: "memory", points_per_win: 10, max_points_per_day: 40, daily_play_limit: 5, sort_order: 24 },
+  { key: "logic-grid", name: "Logic Grid", description: "Crack clues and solve increasingly tricky logic puzzles.", icon_name: "Brain", category: "logic", points_per_win: 15, max_points_per_day: 45, daily_play_limit: 3, sort_order: 25 },
+  { key: "map-quest", name: "Map Quest", description: "Explore geography, maps, landmarks and our planet.", icon_name: "Map", category: "geography", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 26 },
+  { key: "science-sprint", name: "Science Sprint", description: "Race through quick science rounds and build your streak.", icon_name: "FlaskConical", category: "science", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 27 },
+  { key: "code-breakers", name: "Code Breakers", description: "Solve patterns, logic and beginner coding challenges.", icon_name: "Code2", category: "coding", points_per_win: 15, max_points_per_day: 45, daily_play_limit: 3, sort_order: 28 },
+  { key: "eco-sort", name: "Eco Sort", description: "Make planet-friendly choices in a fast five-round challenge.", icon_name: "Leaf", category: "environment", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 29 }
 ];
 
 export default function GamesManager() {
@@ -155,6 +161,7 @@ export default function GamesManager() {
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="settings">Game settings</TabsTrigger>
           <TabsTrigger value="content">Game content</TabsTrigger>
+          <TabsTrigger value="arcade">Arcade rounds</TabsTrigger>
         </TabsList>
         <TabsContent value="analytics">
           <GameAnalytics />
@@ -162,6 +169,7 @@ export default function GamesManager() {
         <TabsContent value="content">
           <GameContentManager games={games.map((g) => ({ key: g.key, name: g.name }))} />
         </TabsContent>
+        <TabsContent value="arcade"><ArcadeChallengeManager /></TabsContent>
         <TabsContent value="settings" className="space-y-4">
           {missingKeys.length > 0 && (
             <Card className="border-amber-500/50 bg-amber-500/5 dark:bg-amber-500/10">

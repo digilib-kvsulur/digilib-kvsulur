@@ -88,6 +88,7 @@ function initials(p: any) {
 
 function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: string; isAdmin: boolean; onOpenChat?: () => void }) {
   const dailyCommunityPrompt = getDailyCommunityPrompt();
+  const [weeklyContribution, setWeeklyContribution] = useState({ posts: 0, replies: 0 });
   const [termsAccepted, setTermsAccepted] = useState(() => hasAcceptedCommunityTerms(currentUserId));
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,6 +175,20 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
   const [reportReason, setReportReason] = useState("inappropriate");
   const [reportDetails, setReportDetails] = useState("");
   const [submittingReport, setSubmittingReport] = useState(false);
+
+  const loadWeeklyContribution = async () => {
+    if (!currentUserId) return;
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const [postsResult, repliesResult] = await Promise.all([
+      supabase.from("posts").select("id", { count: "exact", head: true })
+        .eq("user_id", currentUserId).is("scheduled_for", null).gte("created_at", since),
+      supabase.from("post_comments").select("id", { count: "exact", head: true })
+        .eq("user_id", currentUserId).gte("created_at", since),
+    ]);
+    if (!postsResult.error && !repliesResult.error) {
+      setWeeklyContribution({ posts: postsResult.count || 0, replies: repliesResult.count || 0 });
+    }
+  };
 
   // Back handler for Story Viewer
   useBackHandler({
@@ -649,7 +664,7 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
     setViewingStory((current) => current?.id === latest.id ? { ...current, ...latest } : current);
   }, [posts, viewingStory?.id]);
 
-  useEffect(() => { if (currentUserId) { load(); loadFriendshipsMap(); } }, [currentUserId]);
+  useEffect(() => { if (currentUserId) { load(); loadFriendshipsMap(); loadWeeklyContribution(); } }, [currentUserId]);
 
   useEffect(() => {
     if (!loading) {
@@ -960,6 +975,7 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
           ? `Will automatically go live on ${scheduledDisplayDate}. View or manage under the "Scheduled" tab.`
           : undefined,
       });
+      loadWeeklyContribution();
       load();
     } catch (e: any) {
       const isRateLimited = String(e?.message || "").includes("COMMUNITY_POST_RATE_LIMIT");
@@ -1205,6 +1221,7 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
       if (exactCount === null) {
         setPosts((ps) => ps.map((p) => p.id === postId ? { ...p, comment_count: (Number(p.comment_count) || 0) + 1 } : p));
       }
+      loadWeeklyContribution();
       // Notification to post author is handled automatically by DB trigger tg_notify_post_comment()
     } catch (error: any) {
       toast({ title: "Comment Error", description: error?.message || "Could not submit the comment.", variant: "destructive" });
@@ -1508,6 +1525,30 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
                     <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Today’s community spark</p>
                     <p className="mt-1 text-sm font-semibold text-foreground">{dailyCommunityPrompt}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">Share an idea, ask a question, or start a conversation.</p>
+                    <div className="mt-3 max-w-md space-y-1.5">
+                      <div className="flex items-center justify-between gap-3 text-[11px]">
+                        <span className="font-semibold text-foreground">Weekly community quest</span>
+                        <span className="text-muted-foreground">{Math.min(3, weeklyContribution.posts + weeklyContribution.replies)} / 3 helpful contributions</span>
+                      </div>
+                      <div
+                        className="h-1.5 overflow-hidden rounded-full bg-muted"
+                        role="progressbar"
+                        aria-label="Weekly community contributions"
+                        aria-valuemin={0}
+                        aria-valuemax={3}
+                        aria-valuenow={Math.min(3, weeklyContribution.posts + weeklyContribution.replies)}
+                      >
+                        <div
+                          className="h-full rounded-full bg-primary transition-all duration-500"
+                          style={{ width: `${Math.min(100, ((weeklyContribution.posts + weeklyContribution.replies) / 3) * 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        {weeklyContribution.posts + weeklyContribution.replies >= 3
+                          ? "You helped make the community better this week. Thanks!"
+                          : "Share one idea and leave a couple of helpful replies. No pressure—thoughtful contributions count."}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <Button
