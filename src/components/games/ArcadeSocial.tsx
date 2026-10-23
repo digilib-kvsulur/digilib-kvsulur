@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Swords, Users, Trophy, Copy, Loader2, Send, Check, X, Circle } from "lucide-react";
 import { GameDef } from "./gameTypes";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "react-router-dom";
 
 type ClassStanding = { student_class: string; total_xp: number; students: number };
 type Room = { id: string; room_code: string; status: string; game_key: string; winner_id: string | null; expires_at: string };
@@ -18,6 +19,7 @@ const ONLINE_TOPIC = "arcade_online_students";
 
 export default function ArcadeSocial({ userId, games, onStartDuel }: { userId: string; games: GameDef[]; onStartDuel: (gameKey: string, roomId: string) => void }) {
   const { toast } = useToast();
+  const location = useLocation();
   const [standings, setStandings] = useState<ClassStanding[]>([]);
   const [online, setOnline] = useState<OnlineStudent[]>([]);
   const [invite, setInvite] = useState<DuelInvite | null>(null);
@@ -44,6 +46,15 @@ export default function ArcadeSocial({ userId, games, onStartDuel }: { userId: s
   }, []);
 
   useEffect(() => { void loadStandings(); }, [loadStandings]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roomCodeFromLink = params.get("duel_invite");
+    if (!roomCodeFromLink) return;
+    setInvite({ room_code: roomCodeFromLink.toUpperCase(), game_key: "", game_name: "Head-to-head", inviter_name: "A student" });
+    params.delete("duel_invite");
+    const query = params.toString();
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+  }, [location.search]);
   useEffect(() => {
     let mounted = true;
     let presenceChannel: ReturnType<typeof supabase.channel> | undefined;
@@ -122,7 +133,15 @@ export default function ArcadeSocial({ userId, games, onStartDuel }: { userId: s
       const { error } = await recipient.send({ type: "broadcast", event: "duel_invite", payload: { room_code: activeRoom.room_code, game_key: selectedGame, game_name: gameName, inviter_name: nameRef.current, inviter_id: userId } });
       await supabase.removeChannel(recipient);
       if (error) throw error;
-      toast({ title: `Invite sent to ${student.name}`, description: `They can join your ${gameName} duel from their Games Corner.` });
+      const { data: pushResult, error: pushError } = await supabase.functions.invoke("send-game-duel-invite", {
+        body: { room_code: activeRoom.room_code, recipient_id: student.user_id },
+      });
+      const pushMessage = pushError
+        ? "The live invite was sent, but the push notification could not be delivered."
+        : pushResult?.sent > 0
+          ? `A push notification was sent to ${pushResult.sent} device${pushResult.sent === 1 ? "" : "s"}.`
+          : "The live invite was sent. This player has no registered push device.";
+      toast({ title: `Invite sent to ${student.name}`, description: pushMessage });
     } catch (error: any) {
       toast({ title: "Invite could not be sent", description: error?.message || "Please try again.", variant: "destructive" });
     } finally { setBusy(false); }
