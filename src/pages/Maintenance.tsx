@@ -156,7 +156,6 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
 export default function Maintenance() {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft());
   const [showModal, setShowModal] = useState(!MAINTENANCE_CONFIG.idle);
-  const accent = MAINTENANCE_CONFIG.idle ? "#16a34a" : "hsl(var(--warning))";
 
   useEffect(() => {
     const id = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
