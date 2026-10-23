@@ -42,7 +42,12 @@ export default function ArcadeSocial({ userId, games, onStartDuel }: { userId: s
     if (!room?.id) return;
     const channel = supabase.channel(`game_duel_${room.id}`).on("postgres_changes", {
       event: "UPDATE", schema: "public", table: "game_duel_rooms", filter: `id=eq.${room.id}`,
-    }, (payload) => trackRoom(payload.new as Room)).subscribe();
+    }, (payload) => trackRoom(payload.new as Room)).subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        const { data } = await (supabase as any).from("game_duel_rooms").select("id,room_code,status,game_key,winner_id,expires_at").eq("id", room.id).maybeSingle();
+        if (data) trackRoom(data as Room);
+      }
+    });
     return () => { void supabase.removeChannel(channel); };
   }, [room?.id, trackRoom]);
   useEffect(() => {

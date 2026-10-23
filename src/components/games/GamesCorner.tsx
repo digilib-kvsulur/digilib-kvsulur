@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import {
-  Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles, Users, Brain, Map, FlaskConical, Code2, Leaf, Flame, Star,
+  Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles, Users, Brain, Map as MapIcon, FlaskConical, Code2, Leaf, Flame, Star,
 } from "lucide-react";
 import { GameDef, GameBook, GameContentItem, ArcadeQuestion } from "./gameTypes";
 import BookMatch from "./BookMatch";
@@ -46,7 +46,7 @@ const SERVER_ARCADE_KEYS = new Set(["logic-grid", "map-quest", "science-sprint",
 const gameContentCache = new Map<string, { items: GameContentItem[]; cachedAt: number }>();
 
 const ICONS: Record<string, React.ElementType> = {
-  Layers, Grid3x3, Shuffle, PuzzleIcon: Puzzle, Puzzle, Spade, Grid2x2, Gamepad2, Zap, Sparkles, Trophy, Users, Brain, Map, FlaskConical, Code2, Leaf,
+  Layers, Grid3x3, Shuffle, PuzzleIcon: Puzzle, Puzzle, Spade, Grid2x2, Gamepad2, Zap, Sparkles, Trophy, Users, Brain, Map: MapIcon, FlaskConical, Code2, Leaf,
 };
 
 const ACCENTS: Record<string, string> = {
@@ -153,20 +153,13 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
         }
       }
 
-      const [{ data: g }, { data: b }] = await Promise.all([
-        supabase.from("games").select("*").eq("is_enabled", true).order("sort_order"),
+      const [{ data: g, error: gamesError }, { data: b }] = await Promise.all([
+        supabase.from("games").select("*").order("sort_order"),
         supabase.from("books").select("id, title, author, cover_url, category").limit(60),
       ]);
+      if (gamesError) throw gamesError;
       const fetched = (g || []) as GameDef[];
-      const existingKeys = new Set(fetched.map((x) => x.key));
-      const combined = [...fetched];
-      for (const dg of FALLBACK_GAMES) {
-        if (!existingKeys.has(dg.key)) {
-          combined.push(dg);
-        }
-      }
-      combined.sort((a, b) => a.sort_order - b.sort_order);
-      setGames(combined);
+      setGames(fetched.length ? fetched.filter((game) => game.is_enabled) : FALLBACK_GAMES);
       setBooks((b || []) as GameBook[]);
     } catch (e) {
       console.error(e);
