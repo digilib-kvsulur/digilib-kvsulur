@@ -20,6 +20,13 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+function sameApplicationServerKey(subscription: PushSubscription, expected: Uint8Array): boolean {
+  const actual = subscription.options.applicationServerKey;
+  if (!actual) return false;
+  const bytes = new Uint8Array(actual);
+  return bytes.length === expected.length && bytes.every((byte, index) => byte === expected[index]);
+}
+
 /**
  * Subscribes the current web browser client to push notifications and saves the token in Supabase.
  * Call this function from an explicit user gesture (e.g. clicking "Enable Notifications").
@@ -40,49 +47,31 @@ export async function subscribeWebPush(userId: string): Promise<boolean> {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return false;
 
-    let registration: ServiceWorkerRegistration;
-    try {
-      registration = await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise<ServiceWorkerRegistration>((_, reject) =>
-          setTimeout(() => reject(new Error('SW ready timeout')), 2500)
-        ),
-      ]);
-    } catch {
-      registration = await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
-    }
+    const registration = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
 
-    const appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource;
+    const expectedKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+    const appServerKey = expectedKey as BufferSource;
 
     let subscription: PushSubscription | null = null;
-    try {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: appServerKey,
-      });
-    } catch (subErr) {
-      const existingSub = await registration.pushManager.getSubscription();
-      if (existingSub) {
-        console.warn('Push subscription key mismatch or invalid state, resubscribing...', subErr);
-        await existingSub.unsubscribe();
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: appServerKey,
-        });
-      } else {
-        throw subErr;
-      }
+    subscription = await registration.pushManager.getSubscription();
+    if (subscription && !sameApplicationServerKey(subscription, expectedKey)) {
+      await subscription.unsubscribe();
+      subscription = null;
     }
+    if (!subscription) subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appServerKey });
 
     if (!subscription) return false;
 
+    const subscriptionObject = subscription.toJSON();
+    const subscriptionKey = subscription.endpoint;
     const { error } = await supabase.from('push_subscriptions').upsert(
       {
         user_id: userId,
-        subscription_object: subscription.toJSON() as unknown as Json,
+        subscription_key: subscriptionKey,
+        subscription_object: subscriptionObject as unknown as Json,
       },
-      { onConflict: 'user_id' }
+      { onConflict: 'subscription_key' }
     );
 
     if (error) {
@@ -119,9 +108,11 @@ export async function subscribeWebPush(userId: string): Promise<boolean> {
  */
 export function usePushSubscription(userId: string | null | undefined) {
   const subscribed = useRef(false);
+  const registering = useRef(false);
 
   useEffect(() => {
-    if (!userId || subscribed.current) return;
+    if (!userId || subscribed.current || registering.current) return;
+    registering.current = true;
 
     // --- CASE A: Native Platform (Capacitor APK/iOS) ---
     if (Capacitor.isNativePlatform()) {
@@ -146,15 +137,14 @@ export function usePushSubscription(userId: string | null | undefined) {
             console.warn('Could not create notification channel:', channelErr);
           }
 
-          await PushNotifications.register();
-
           PushNotifications.addListener('registration', async (token) => {
             const { error } = await supabase.from('push_subscriptions').upsert(
               {
                 user_id: userId,
+                subscription_key: `capacitor:${token.value}`,
                 subscription_object: { type: 'capacitor', token: token.value } as unknown as Json,
               },
-              { onConflict: 'user_id' }
+              { onConflict: 'subscription_key' }
             );
 
             if (error) {
@@ -178,28 +168,37 @@ export function usePushSubscription(userId: string | null | undefined) {
           PushNotifications.addListener('registrationError', (err) => {
             console.error('Capacitor push registration error:', err);
           });
+
+          // Attach listeners before register: some Android builds emit the token
+          // immediately and the previous ordering could lose the only callback.
+          await PushNotifications.register();
         } catch (e) {
           console.warn('Native push registration failed:', e);
         }
       };
 
-      registerNative();
+      registerNative().finally(() => { registering.current = false; });
       return;
     }
 
     // --- CASE B: Web Browser (PWA/Website) ---
     const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-    if (!VAPID_PUBLIC_KEY) return;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+    if (!VAPID_PUBLIC_KEY || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) { registering.current = false; return; }
 
     // Only auto-subscribe if the user has ALREADY granted permission previously
     if (Notification.permission === 'granted') {
       const syncGrantedSubscription = async () => {
         try {
+          await navigator.serviceWorker.register('/sw.js');
           const registration = await navigator.serviceWorker.ready;
-          const appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource;
+          const expectedKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+          const appServerKey = expectedKey as BufferSource;
 
           let subscription = await registration.pushManager.getSubscription();
+          if (subscription && !sameApplicationServerKey(subscription, expectedKey)) {
+            await subscription.unsubscribe();
+            subscription = null;
+          }
           if (!subscription) {
             subscription = await registration.pushManager.subscribe({
               userVisibleOnly: true,
@@ -208,21 +207,25 @@ export function usePushSubscription(userId: string | null | undefined) {
           }
 
           if (subscription) {
-            await supabase.from('push_subscriptions').upsert(
+            const { error } = await supabase.from('push_subscriptions').upsert(
               {
                 user_id: userId,
+                subscription_key: subscription.endpoint,
                 subscription_object: subscription.toJSON() as unknown as Json,
               },
-              { onConflict: 'user_id' }
+              { onConflict: 'subscription_key' }
             );
+            if (error) throw error;
             subscribed.current = true;
           }
         } catch (err) {
           console.warn('Push subscription background sync failed:', err);
+        } finally {
+          registering.current = false;
         }
       };
 
       syncGrantedSubscription();
-    }
+    } else registering.current = false;
   }, [userId]);
 }

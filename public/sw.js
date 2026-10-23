@@ -114,15 +114,9 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     (async () => {
       try {
-        if (isAsset) {
-          try {
-            const cachedAsset = await caches.match(event.request);
-            if (cachedAsset) return cachedAsset;
-          } catch (e) {
-            /* ignore cache match error */
-          }
-        }
-
+        // Hashed bundles are checked against the active deployment first. A
+        // cache-first response can keep a suspended PWA on an old app shell,
+        // whose later lazy imports may point at chunks removed by a deploy.
         try {
           const networkResponse = await fetch(event.request);
           if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
@@ -141,8 +135,13 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         } catch (netErr) {
           try {
-            const cachedResponse = await caches.match(event.request);
-            if (cachedResponse) return cachedResponse;
+            // Keep offline support, but only use an old bundle when the network
+            // is unavailable. A network 404 is returned above so the app can
+            // reload the current document instead of executing stale modules.
+            if (isAsset) {
+              const cachedAsset = await caches.match(event.request);
+              if (cachedAsset) return cachedAsset;
+            }
 
             if (event.request.mode === 'navigate') {
               const indexResponse = await caches.match('/index.html');

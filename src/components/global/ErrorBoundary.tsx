@@ -42,18 +42,14 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReload = () => {
+    const cleanup: Promise<unknown>[] = [];
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistrations().then((regs) => {
-        for (const reg of regs) reg.unregister();
-      });
+      cleanup.push(navigator.serviceWorker.getRegistrations().then((regs) => Promise.all(regs.map((reg) => reg.unregister()))));
     }
     if ("caches" in window) {
-      caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).finally(() => {
-        window.location.reload();
-      });
-    } else {
-      window.location.reload();
+      cleanup.push(caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))));
     }
+    void Promise.allSettled(cleanup).finally(() => window.location.reload());
   };
 
   private handleHome = () => {

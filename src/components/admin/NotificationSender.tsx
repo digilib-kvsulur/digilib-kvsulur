@@ -172,19 +172,22 @@ const NotificationSender = () => {
         }
       }
 
-      // Fire push notifications via Edge Function (non-blocking, best-effort)
+      let pushSummary = "Push dispatch unavailable";
       if (inserted && inserted.length > 0) {
-        const pushPayloads = inserted.slice(0, 50);
-        pushPayloads.forEach(record => {
-          supabase.functions.invoke("push-notification", {
-            body: { record },
-          }).catch(() => {});
+        const { data: pushResult, error: pushError } = await supabase.functions.invoke("push-notification", {
+          body: { records: inserted.map(({ id }) => ({ id })) },
         });
+        if (pushError) {
+          console.error("Push dispatch failed:", pushError);
+          pushSummary = "Push delivery failed; in-app notifications were saved";
+        } else {
+          pushSummary = `${pushResult?.sent ?? 0} device push(es) delivered${pushResult?.failed ? `, ${pushResult.failed} failed` : ""}`;
+        }
       }
 
       toast({
         title: "Dispatched!",
-        description: `Notification sent to ${recipientIds.length} recipient(s)${sendAsEmail ? " and dispatched via email" : ""}.`,
+        description: `In-app alert saved for ${recipientIds.length} recipient(s); ${pushSummary}${sendAsEmail ? "; email campaign dispatched" : ""}.`,
       });
       setTitle("");
       setMessage("");
