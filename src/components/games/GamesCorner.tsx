@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import {
-  Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles, Users, Brain, Map as MapIcon, FlaskConical, Code2, Leaf, Flame, Star, LockKeyhole, ChevronRight,
+  Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles, Users, Brain, Map as MapIcon, FlaskConical, Code2, Leaf, Flame, Star, LockKeyhole, Moon, Clock3,
 } from "lucide-react";
 import { GameDef, GameBook, GameContentItem, ArcadeQuestion } from "./gameTypes";
 import BookMatch from "./BookMatch";
@@ -370,6 +370,36 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       default: return <p className="text-sm text-muted-foreground">This game is coming soon.</p>;
     }
   };
+
+  if (!loading && scheduleMsg) {
+    return (
+      <div className="relative isolate flex min-h-[60vh] items-center justify-center overflow-hidden rounded-3xl border border-indigo-200/70 bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-950 px-5 py-12 text-center text-white shadow-xl sm:min-h-[66vh] sm:px-10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <span className="absolute left-[12%] top-[18%] h-1 w-1 rounded-full bg-white/80 shadow-[0_0_12px_3px_rgba(255,255,255,0.4)]" />
+          <span className="absolute right-[18%] top-[28%] h-1.5 w-1.5 rounded-full bg-sky-200 shadow-[0_0_14px_4px_rgba(186,230,253,0.35)]" />
+          <span className="absolute bottom-[24%] left-[24%] h-1 w-1 rounded-full bg-violet-200 shadow-[0_0_12px_3px_rgba(221,214,254,0.35)]" />
+          <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-violet-500/15 blur-3xl" />
+          <div className="absolute -bottom-24 -left-12 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
+        </div>
+        <div className="relative mx-auto max-w-xl space-y-6">
+          <div className="relative mx-auto grid h-24 w-24 place-items-center rounded-[2rem] border border-white/15 bg-white/[0.07] shadow-[0_0_60px_rgba(129,140,248,0.2)]">
+            <Moon className="h-11 w-11 fill-indigo-200/20 text-indigo-100" strokeWidth={1.5} />
+            <span className="absolute -right-2 top-1 grid h-9 w-9 place-items-center rounded-xl border border-white/15 bg-slate-900 text-amber-200"><Sparkles className="h-4 w-4" /></span>
+          </div>
+          <div className="space-y-2">
+            <Badge className="border-indigo-200/20 bg-indigo-300/10 text-indigo-100 hover:bg-indigo-300/10"><Moon className="mr-1.5 h-3 w-3" /> ARCADE REST TIME</Badge>
+            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">The games are sleeping</h2>
+            <p className="mx-auto max-w-md text-sm leading-relaxed text-indigo-100/75">The arcade is taking a little break. Your game trail and next challenges will be ready when it opens again.</p>
+          </div>
+          <div className="mx-auto flex w-fit max-w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-left backdrop-blur-sm">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-300/10 text-indigo-100"><Clock3 className="h-5 w-5" /></span>
+            <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-200/65">Come play again</p><p className="text-sm font-semibold text-white">{scheduleMsg.replace("Games are sleeping. ", "")}</p></div>
+          </div>
+          <p className="text-xs text-indigo-100/50">Until then, take a breather and come back ready for a new high score.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
