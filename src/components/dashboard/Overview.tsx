@@ -18,9 +18,8 @@ import {
   BookOpen, Brain, Target, Award, Zap, Trophy, TrendingUp, Sparkles,
   Calendar, CalendarDays, Gamepad2, Timer, FileText, BookCheck, Users,
   UserPlus, Copy, Bug, Palette, AlertTriangle, ChevronRight, BookPlus,
-  Compass, CheckCircle2, Medal, GraduationCap, Layers
+  Compass, CheckCircle2, Medal, Network, MessageSquare
 } from "lucide-react";
-import { AIBookCheckpointModal } from "@/components/student/AIBookCheckpointModal";
 
 export interface OverviewProps {
   user: any;
@@ -77,7 +76,6 @@ export default function Overview({
   const navigate = useNavigate();
   const { toast } = useToast();
   const [copiedLink, setCopiedLink] = useState(false);
-  const [showAICheckpoint, setShowAICheckpoint] = useState(false);
 
   // Time-aware greeting
   const greeting = useMemo(() => {
@@ -161,9 +159,6 @@ export default function Overview({
 
   // Quick Action App Tiles
   const quickActions = [
-    { label: "CBSE Vault", icon: GraduationCap, tab: "cbse-vault", color: "text-indigo-400", bg: "bg-indigo-500/15", badge: "CBSE" },
-    { label: "AI Checkpoint", icon: Sparkles, tab: "checkpoint", color: "text-purple-400", bg: "bg-purple-500/15", badge: "+50 XP" },
-    { label: "Curriculum Reads", icon: Layers, tab: "curriculum", color: "text-teal-400", bg: "bg-teal-500/15", badge: "NEW" },
     { label: "NCERT Books", icon: BookOpen, tab: "ncert", color: "text-sky-400", bg: "bg-sky-500/15", badge: "E-BOOKS" },
     { label: "My Portfolio", icon: FileText, tab: "portfolio", color: "text-rose-500", bg: "bg-rose-500/10" },
     { label: "Games Corner", icon: Gamepad2, tab: "games", color: "text-blue-500", bg: "bg-blue-500/10" },
@@ -173,6 +168,9 @@ export default function Overview({
     { label: "Study Materials", icon: FileText, tab: "materials", color: "text-indigo-500", bg: "bg-indigo-500/10" },
     { label: "Library Events", icon: CalendarDays, tab: "events", color: "text-pink-500", bg: "bg-pink-500/10" },
     { label: "Community", icon: Users, tab: "community", color: "text-orange-500", bg: "bg-orange-500/10" },
+    { label: "Network", icon: Network, tab: "network", color: "text-cyan-500", bg: "bg-cyan-500/10" },
+    { label: "Friends Chat", icon: MessageSquare, tab: "chat", color: "text-violet-500", bg: "bg-violet-500/10" },
+    { label: "Feedback", icon: MessageSquare, tab: "feedback", color: "text-amber-500", bg: "bg-amber-500/10" },
   ];
 
   // Activity styling helper
@@ -389,13 +387,7 @@ export default function Overview({
           {quickActions.map((action: any) => (
             <button
               key={action.tab}
-              onClick={() => {
-                if (action.tab === "checkpoint") {
-                  setShowAICheckpoint(true);
-                } else {
-                  setActiveTab(action.tab);
-                }
-              }}
+              onClick={() => setActiveTab(action.tab)}
               className="relative flex flex-col items-center justify-center text-center p-2.5 sm:p-3 rounded-2xl border border-border/60 bg-card hover:bg-muted/50 hover:border-primary/40 transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-95 group shadow-2xs"
             >
               {action.badge && (
@@ -854,15 +846,6 @@ export default function Overview({
         </div>
       </div>
 
-      {/* AI Book Checkpoint Dialog */}
-      <AIBookCheckpointModal
-        isOpen={showAICheckpoint}
-        onClose={() => setShowAICheckpoint(false)}
-        bookTitle="Wings of Fire: An Autobiography"
-        bookAuthor="Dr. A.P.J. Abdul Kalam"
-        userId={user?.id}
-        onPointsEarned={checkAuth}
-      />
     </div>
   );
 }
