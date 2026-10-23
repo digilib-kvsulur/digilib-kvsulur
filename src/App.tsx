@@ -66,7 +66,7 @@ const ADMIN_ROLES = ["admin"] as const;
 const TEACHER_ROLES = ["teacher", "admin"] as const;
 const POINT_HISTORY_ROLES = ["student", "teacher", "admin"] as const;
 
-import { isMaintenanceActive, getMaintenanceRemainingMs, MAINTENANCE_CONFIG } from "@/config/maintenanceConfig";
+import { isMaintenanceActive, getMaintenanceRemainingMs } from "@/config/maintenanceConfig";
 
 const PageLoader = () => {
   const [show, setShow] = useState(false);
@@ -272,7 +272,7 @@ const App = () => {
     if (typeof window !== "undefined" && window.location.search.includes("bypass=dlms_dev")) {
       return false;
     }
-    return !MAINTENANCE_CONFIG.idle && isMaintenanceActive();
+    return isMaintenanceActive();
   });
 
   useEffect(() => {
@@ -314,11 +314,6 @@ const App = () => {
       <TenantProvider>
         <TooltipProvider>
           <DeveloperMessagePopup />
-          {MAINTENANCE_CONFIG.idle && isMaintenanceActive() && (
-            <div className="fixed inset-x-0 top-0 z-[100] bg-emerald-600 px-4 py-2 text-center text-sm font-medium text-white shadow">
-              DLMS is in event idle mode for the Quiz Championship League. We’ll be back online by {MAINTENANCE_CONFIG.displayUntil}.
-            </div>
-          )}
           <Sonner position="top-right" richColors closeButton />
           <Analytics />
           <AppRouter>
