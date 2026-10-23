@@ -135,10 +135,14 @@ function updateConfigFile({ enabled, untilDate, displayUntil, reason, idle = fal
 
   let subheading;
   let modalBody;
+  const heading = idle ? 'Quiz Championship League in Progress' : 'Site Under Maintenance';
 
   if (!enabled) {
     subheading = 'System is currently online and operational.';
     modalBody = 'No maintenance scheduled.';
+  } else if (idle) {
+    subheading = 'DLMS access is temporarily paused to provide a better experience during the Quiz Championship League.';
+    modalBody = `DLMS access is temporarily paused during the Quiz Championship League.\n\nThe site will be available again by ${displayUntil}.\n\nThank you for your patience and cooperation. 🙏`;
   } else {
     const cleanReason = reason && reason.trim().length > 0
       ? reason.trim()
@@ -166,7 +170,7 @@ export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   idle: ${idle},
   until: "${isoUntil}",
   displayUntil: "${displayUntil}",
-  heading: "Site Under Maintenance",
+  heading: ${JSON.stringify(heading)},
   subheading:
     ${JSON.stringify(subheading)},
   modalBody:
