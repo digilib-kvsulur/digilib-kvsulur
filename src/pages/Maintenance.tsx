@@ -155,7 +155,8 @@ const DevModal = ({ onClose }: { onClose: () => void }) => (
 
 export default function Maintenance() {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft());
-  const [showModal, setShowModal] = useState(true);
+  const [showModal, setShowModal] = useState(!MAINTENANCE_CONFIG.idle);
+  const accent = MAINTENANCE_CONFIG.idle ? "#16a34a" : "hsl(var(--warning))";
 
   useEffect(() => {
     const id = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
@@ -217,7 +218,7 @@ export default function Maintenance() {
         <div className="space-y-2 sm:space-y-3">
           <h1
             className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight animate-gradient bg-clip-text text-transparent leading-tight"
-            style={{ backgroundImage: "var(--gradient-warm)", backgroundSize: "200% 200%" }}
+            style={{ backgroundImage: MAINTENANCE_CONFIG.idle ? "linear-gradient(90deg, #16a34a, #22c55e)" : "var(--gradient-warm)", backgroundSize: "200% 200%" }}
           >
             {MAINTENANCE_CONFIG.heading}
           </h1>
@@ -258,7 +259,9 @@ export default function Maintenance() {
 
         {/* Footer note */}
         <p className="text-xs sm:text-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
-          This applies to all library locations. Thank you for your patience.
+          {MAINTENANCE_CONFIG.idle
+            ? "DLMS access is paused for all library locations during the event. Thank you for your patience."
+            : "This applies to all library locations. Thank you for your patience."}
         </p>
 
         {/* Action buttons row */}
