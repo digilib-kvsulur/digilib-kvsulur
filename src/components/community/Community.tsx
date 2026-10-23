@@ -10,7 +10,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert, HelpCircle, CheckCircle2, Calendar, Play, Share2, AlertTriangle, MessageSquare } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Send, Plus, Users, Search, UserPlus, Check, X, Flame, Trophy, Award, BookOpen, Sparkles, UserCheck, Clock, UserX, Image, FileText, Video, Paperclip, Pin, BarChart3, Link2, ExternalLink, Flag, Loader2, Feather, BookMarked, Eye, Bookmark, AtSign, ShieldAlert, HelpCircle, CheckCircle2, Calendar, Play, Share2, AlertTriangle, MessageSquare, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import imageCompression from "browser-image-compression";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +26,7 @@ import { useBackHandler } from "@/hooks/useBackHandler";
 import { getUserActivityStats, incrementUserActivityStat } from "@/lib/userActivityStatsCache";
 import { applyModerationWarning, isUserExemptFromModeration, detectSpamPattern, normalizeSpamContent, recordCommunitySpamReminder, findLikelyCommunityCopy } from "@/lib/moderationService";
 
-const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "scam", "spam", "dumbass", "vulgar"];
+const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "idiot", "bastard", "dumbass"];
 const COMMUNITY_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
 
 async function prepareCommunityImage(file: File): Promise<File> {
@@ -39,8 +39,42 @@ async function prepareCommunityImage(file: File): Promise<File> {
 }
 
 function containsBadWords(text: string): boolean {
-  const lower = text.toLowerCase();
-  return BAD_WORDS.some(w => lower.includes(w));
+  const normalized = (text || "").normalize("NFKC").toLocaleLowerCase();
+  return BAD_WORDS.some(word => new RegExp(`(^|[^\\p{L}\\p{N}])${word}($|[^\\p{L}\\p{N}])`, "u").test(normalized));
+}
+
+const MODERATION_APPEAL_EMAIL = "dlms@kvsulur.in";
+const COMMUNITY_PROMPTS = [
+  "What book would you recommend to a friend?",
+  "Share one study trick that actually helps you.",
+  "What topic are you curious about this week?",
+  "If you could add one book to our library, what would it be?",
+  "Tell us about a story that stayed with you.",
+  "What small thing made your school day better?",
+  "What question could someone in our community help answer?",
+];
+
+function getDailyCommunityPrompt(): string {
+  const today = new Date();
+  const dayOfYear = Math.floor((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(today.getFullYear(), 0, 0)) / 86_400_000);
+  return COMMUNITY_PROMPTS[dayOfYear % COMMUNITY_PROMPTS.length];
+}
+
+function moderationAppealHref(userId: string, blockedUntil: string | null, warningCount: number): string {
+  const subject = "Community moderation appeal";
+  const body = [
+    "Hello DLMS team,",
+    "",
+    "I would like to request a review of my community posting restriction.",
+    `DLMS user ID: ${userId}`,
+    `Warning count shown: ${warningCount}`,
+    `Restriction end time shown: ${blockedUntil ? new Date(blockedUntil).toLocaleString() : "Not shown"}`,
+    "",
+    "Please let me know what content or activity caused this action and whether it can be reviewed.",
+    "",
+    "Thank you.",
+  ].join("\n");
+  return `mailto:${MODERATION_APPEAL_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 import type { Post, Comment, PollOption } from "./types";
@@ -53,6 +87,7 @@ function initials(p: any) {
 }
 
 function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: string; isAdmin: boolean; onOpenChat?: () => void }) {
+  const dailyCommunityPrompt = getDailyCommunityPrompt();
   const [termsAccepted, setTermsAccepted] = useState(() => hasAcceptedCommunityTerms(currentUserId));
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -782,9 +817,9 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
       return;
     }
     
-    // Check bad words (Admins are exempt)
+    // A first inappropriate-word match is an edit prompt, never an automatic strike.
     if (!isAdmin && (containsBadWords(draft.title) || containsBadWords(draft.content) || (postKind === "link" && containsBadWords(linkUrl)))) {
-      await handleModerationStrike("Post contains prohibited words or inappropriate language.");
+      toast({ title: "Please edit this post", description: "Remove the inappropriate language and try again. This notice does not add a warning or block your account.", variant: "destructive" });
       return;
     }
 
@@ -927,7 +962,14 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
       });
       load();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message, variant: "destructive" });
+      const isRateLimited = String(e?.message || "").includes("COMMUNITY_POST_RATE_LIMIT");
+      toast({
+        title: isRateLimited ? "Hourly community pace limit reached" : "Failed",
+        description: isRateLimited
+          ? "You can share up to 8 posts per hour. Please wait before posting again; this pace limit does not add a warning or block your account."
+          : e.message,
+        variant: "destructive",
+      });
     } finally {
       setUploadingPost(false);
       postSubmissionInFlight.current = false;
@@ -1133,7 +1175,7 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
       return;
     }
     if (!isAdmin && containsBadWords(commentDraft)) {
-      await handleModerationStrike("Comment contains prohibited words or inappropriate language.");
+      toast({ title: "Please edit this reply", description: "Remove the inappropriate language and try again. This notice does not add a warning or block your account.", variant: "destructive" });
       return;
     }
 
@@ -1434,7 +1476,7 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
                       <p><strong>2nd Warning:</strong> You will be blocked from posting in DLMS for 48 Hours &amp; Badges during the period will be reverted.</p>
                     )}
                     {userWarnCount >= 3 && (
-                      <p><strong>3rd Warning:</strong> Your DLMS account will be deactivated.</p>
+                      <p><strong>3rd Warning:</strong> Community posting is paused for 7 days while an administrator reviews the case. Your DLMS account stays active.</p>
                     )}
                     {userWarnCount === 0 && (
                       <p>You have been temporarily suspended from posting or commenting in the community due to content policy violations.</p>
@@ -1442,10 +1484,45 @@ function Community({ currentUserId, isAdmin, onOpenChat }: { currentUserId: stri
                   </div>
                   <p className="text-[11px] text-muted-foreground pt-1">
                     Your posting access will be restored on: <strong className="text-foreground">{new Date(blockedUntil).toLocaleString()}</strong>.
-                    <span className="block text-destructive/80 font-medium mt-0.5">3rd Warning results in complete DLMS account deactivation.</span>
+                    <span className="block text-destructive/80 font-medium mt-0.5">Community restrictions can be appealed; your DLMS account remains active.</span>
                   </p>
+                  <a
+                    href={moderationAppealHref(currentUserId, blockedUntil, userWarnCount)}
+                    className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-lg border border-primary/30 bg-background px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    <Mail className="h-4 w-4" /> Appeal this restriction by email
+                  </a>
                 </div>
               </div>
+            </Card>
+          )}
+
+          {(isAdmin || !blockedUntil || new Date(blockedUntil).getTime() <= Date.now()) && (
+            <Card className="overflow-hidden border-primary/15 bg-gradient-to-r from-primary/5 via-background to-violet-500/5">
+              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Sparkles className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Today’s community spark</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">{dailyCommunityPrompt}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Share an idea, ask a question, or start a conversation.</p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="shrink-0 rounded-xl"
+                  onClick={() => {
+                    setDraft({ title: dailyCommunityPrompt, content: "" });
+                    setPostKind("text");
+                    setShowNew(true);
+                  }}
+                >
+                  Start a post <Plus className="ml-1 h-3.5 w-3.5" />
+                </Button>
+              </CardContent>
             </Card>
           )}
 

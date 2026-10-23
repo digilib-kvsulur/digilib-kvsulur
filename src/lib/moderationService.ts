@@ -2,9 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendModerationWarningEmail } from "./autoEmail";
 
 export const MODERATION_POLICY = {
-  STRIKE_1: "Formal warning 1: After three ordinary anti-spam reminders, posting is paused for 24 hours. Badges earned during the suspension period may be reviewed and reverted.",
-  STRIKE_2: "Formal warning 2: Posting is paused for 48 hours. Continued violations may lead to account suspension.",
-  STRIKE_3: "Formal warning 3: Community access is suspended and the account is referred to an administrator for review.",
+  STRIKE_1: "Formal warning 1: After three ordinary anti-spam reminders, community posting is paused for 24 hours.",
+  STRIKE_2: "Formal warning 2: Community posting is paused for 48 hours. Further repeated violations may lead to a longer community restriction and administrator review.",
+  STRIKE_3: "Formal warning 3: Community posting is paused for 7 days and referred to an administrator for review. Your DLMS account remains active.",
 };
 
 /** Increment a server-persisted ordinary spam reminder. Three reminders trigger the first formal warning. */
@@ -71,7 +71,7 @@ export interface ModerationResult {
  * Applies the official 3-tier moderation strike/warning to a user:
  * 1st formal warning: 24h community block
  * 2nd formal warning: 48h community block
- * 3rd Warning: DLMS account deactivated (is_approved = false)
+ * 3rd Warning: 7-day community posting pause and administrator review; the DLMS account stays active.
  *
  * Automatically creates an in-app notification and dispatches an email notice.
  * Admins are completely exempt.
@@ -114,7 +114,7 @@ export async function applyModerationWarning(params: {
   const nextLevel: 1 | 2 | 3 = targetLevel ?? (Math.min(3, currentCount + 1) as 1 | 2 | 3);
 
   let blockedUntil: string | null = null;
-  let isApproved = profile.is_approved !== false;
+  const isApproved = profile.is_approved !== false;
   let warningTitle = "";
   let warningMessage = "";
 
@@ -127,10 +127,9 @@ export async function applyModerationWarning(params: {
     warningTitle = "2nd Warning: Content Moderation Notice";
     warningMessage = MODERATION_POLICY.STRIKE_2 + (reason ? `\nReason: ${reason}` : "");
   } else {
-    // 3rd Warning - Account Deactivated
-    blockedUntil = "2099-01-01T00:00:00.000Z";
-    isApproved = false;
-    warningTitle = "3rd Warning: DLMS Account Deactivated";
+    // Keep DLMS login available; only pause community posting while the case is reviewed.
+    blockedUntil = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
+    warningTitle = "3rd Warning: Community Posting Paused for Review";
     warningMessage = MODERATION_POLICY.STRIKE_3 + (reason ? `\nReason: ${reason}` : "");
   }
 
@@ -169,7 +168,7 @@ export async function applyModerationWarning(params: {
       warningTitle,
       warningMessage,
       warningLevel: nextLevel,
-      actionType: nextLevel === 1 ? "suspended_24h" : nextLevel === 2 ? "suspended_48h" : "deactivated",
+      actionType: nextLevel === 1 ? "suspended_24h" : nextLevel === 2 ? "suspended_48h" : "warning",
     });
   } catch (emailErr) {
     console.warn("Failed to dispatch moderation email:", emailErr);
