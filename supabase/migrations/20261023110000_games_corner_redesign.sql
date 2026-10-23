@@ -98,6 +98,7 @@ BEGIN
   IF v_game.id IS NULL THEN RAISE EXCEPTION 'Game unavailable'; END IF;
   PERFORM 1 FROM public.profiles WHERE id=v_uid FOR UPDATE;
   IF v_game.daily_play_limit > 0 AND (SELECT count(*) FROM public.game_plays WHERE user_id=v_uid AND game_key=p_game_key AND played_at::date=CURRENT_DATE) >= v_game.daily_play_limit THEN RAISE EXCEPTION 'Daily play limit reached'; END IF;
+  DELETE FROM public.game_sessions WHERE user_id=v_uid AND started_at<now()-interval '6 hours';
   INSERT INTO public.game_sessions(user_id,game_key) VALUES(v_uid,p_game_key) RETURNING id INTO v_session;
   WITH selected AS (
     SELECT q.*,row_number() OVER(PARTITION BY q.difficulty ORDER BY md5(q.id::text||CURRENT_DATE::text||v_uid::text)) AS pick
@@ -125,6 +126,7 @@ BEGIN
   IF v_session.id IS NULL OR v_session.consumed_at IS NOT NULL OR v_session.game_key NOT IN ('logic-grid','map-quest','science-sprint','code-breakers','eco-sort') THEN RAISE EXCEPTION 'Challenge session is invalid or already used'; END IF;
   IF jsonb_typeof(p_answers)<>'array' OR jsonb_array_length(p_answers)<>5 THEN RAISE EXCEPTION 'Submit all five round answers'; END IF;
   IF now()-v_session.started_at < interval '8 seconds' OR now()-v_session.started_at > interval '20 minutes' THEN RAISE EXCEPTION 'Challenge timing could not be verified'; END IF;
+  IF (SELECT count(*) FROM public.game_plays WHERE user_id=v_uid AND played_at>now()-interval '5 minutes')>=10 THEN RAISE EXCEPTION 'Too many rounds too quickly — slow down to earn points'; END IF;
   IF (SELECT count(*) FROM (SELECT DISTINCT value->>'question_id' FROM jsonb_array_elements(p_answers)) a) <> 5 THEN RAISE EXCEPTION 'Each round must be answered once'; END IF;
   FOR v_answer IN SELECT value FROM jsonb_array_elements(p_answers) LOOP
     v_q:=(v_answer->>'question_id')::uuid; v_text:=COALESCE(v_answer->>'answer','');
@@ -249,6 +251,20 @@ $$;
 GRANT EXECUTE ON FUNCTION public.get_game_progress() TO authenticated;
 REVOKE ALL ON FUNCTION public.get_game_progress() FROM PUBLIC, anon;
 
+CREATE OR REPLACE FUNCTION public.get_arcade_analytics()
+RETURNS TABLE(arcade_rounds bigint,completed_challenges bigint,participating_students bigint,verified_answers bigint,xp_awarded bigint)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+  SELECT COUNT(*)*5,
+         COUNT(*) FILTER(WHERE is_win),
+         COUNT(DISTINCT user_id),
+         COALESCE(SUM(LEAST(GREATEST(score/20,0),5)),0),
+         COALESCE(SUM(points_earned),0)
+  FROM public.game_plays
+  WHERE game_key IN ('logic-grid','map-quest','science-sprint','code-breakers','eco-sort');
+$$;
+REVOKE ALL ON FUNCTION public.get_arcade_analytics() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_arcade_analytics() TO authenticated;
+
 CREATE TABLE IF NOT EXISTS public.game_duel_rooms (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   room_code text NOT NULL UNIQUE,
@@ -259,6 +275,7 @@ CREATE TABLE IF NOT EXISTS public.game_duel_rooms (
   host_play_id uuid REFERENCES public.game_plays(id) ON DELETE SET NULL,
   guest_play_id uuid REFERENCES public.game_plays(id) ON DELETE SET NULL,
   winner_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  activated_at timestamptz,
   expires_at timestamptz NOT NULL DEFAULT now() + interval '15 minutes',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -284,7 +301,7 @@ BEGIN
   IF p_game_key NOT IN ('logic-grid','map-quest','science-sprint','code-breakers','eco-sort') THEN RAISE EXCEPTION 'Choose a server-verified arcade game'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.games WHERE key = p_game_key AND is_enabled) THEN RAISE EXCEPTION 'Game unavailable'; END IF;
   UPDATE public.game_duel_rooms SET status='expired', updated_at=now() WHERE status IN ('waiting','active') AND expires_at < now();
-  v_code := upper(substr(encode(gen_random_bytes(8),'hex'),1,6));
+  v_code := upper(substr(replace(gen_random_uuid()::text,'-',''),1,6));
   INSERT INTO public.game_duel_rooms(room_code,game_key,host_id) VALUES(v_code,p_game_key,v_uid) RETURNING id INTO v_id;
   RETURN QUERY SELECT v_id,v_code;
 END $$;
@@ -299,7 +316,7 @@ BEGIN
   SELECT * INTO r FROM public.game_duel_rooms WHERE room_code=upper(btrim(p_room_code)) FOR UPDATE;
   IF r.id IS NULL OR r.expires_at < now() OR r.status <> 'waiting' THEN RAISE EXCEPTION 'Room is unavailable'; END IF;
   IF r.host_id = v_uid THEN RAISE EXCEPTION 'You cannot join your own room'; END IF;
-  UPDATE public.game_duel_rooms SET guest_id=v_uid,status='active',updated_at=now(),expires_at=now()+interval '15 minutes' WHERE id=r.id;
+  UPDATE public.game_duel_rooms SET guest_id=v_uid,status='active',activated_at=now(),updated_at=now(),expires_at=now()+interval '15 minutes' WHERE id=r.id;
   RETURN QUERY SELECT r.id,r.game_key,'active'::text;
 END $$;
 
@@ -312,7 +329,10 @@ BEGIN
   SELECT * INTO r FROM public.game_duel_rooms WHERE id=p_room_id FOR UPDATE;
   IF r.id IS NULL OR r.status <> 'active' OR r.expires_at < now() OR v_uid NOT IN (r.host_id,r.guest_id) THEN RAISE EXCEPTION 'Duel is unavailable'; END IF;
   SELECT * INTO p FROM public.game_plays WHERE id=p_play_id AND user_id=v_uid AND game_key=r.game_key;
-  IF p.id IS NULL OR p.played_at < r.created_at OR p.client_nonce NOT LIKE 'arcade:%' THEN RAISE EXCEPTION 'A verified arcade round for this duel is required'; END IF;
+  IF p.id IS NULL OR p.played_at < r.activated_at OR p.client_nonce NOT LIKE 'arcade:%'
+     OR NOT EXISTS(SELECT 1 FROM public.game_sessions s WHERE s.id=p.session_id AND s.user_id=v_uid AND s.started_at>=r.activated_at) THEN
+    RAISE EXCEPTION 'A verified arcade round started for this duel is required';
+  END IF;
   IF v_uid=r.host_id THEN
     IF r.host_play_id IS NOT NULL THEN RAISE EXCEPTION 'Play already submitted'; END IF;
     UPDATE public.game_duel_rooms SET host_play_id=p.id,updated_at=now() WHERE id=r.id;

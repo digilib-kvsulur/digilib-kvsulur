@@ -18,11 +18,11 @@ export default function NewArcadeGame({ gameKey, arcadeQuestions = [], onComplet
   const Icon = game?.icon || Brain;
   const questions = arcadeQuestions;
   const [round, setRound] = useState(0);
-  const [correct, setCorrect] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [answers, setAnswers] = useState<{ question_id: string; answer: string }[]>([]);
   const [finished, setFinished] = useState(false);
   const [verifiedCorrect, setVerifiedCorrect] = useState<number | null>(null);
+  const [resultSaved, setResultSaved] = useState(true);
   const question = questions[round];
 
   if (!game || !question) return <div className="p-6 text-center text-sm text-muted-foreground">This challenge could not load. Close it and try again.</div>;
@@ -34,11 +34,11 @@ export default function NewArcadeGame({ gameKey, arcadeQuestions = [], onComplet
     if (round === questions.length - 1) {
       void Promise.resolve(onComplete(false, 0, nextAnswers)).then((result) => {
         setVerifiedCorrect(Number(result?.correct_answers) || 0);
+        setResultSaved(result?.saved !== false);
         setFinished(true);
-      });
+      }).catch(() => { setResultSaved(false); setFinished(true); });
       return;
     }
-    setCorrect(round + 1);
   };
   const next = () => { setRound((n) => n + 1); setSelected(null); };
 
@@ -48,6 +48,6 @@ export default function NewArcadeGame({ gameKey, arcadeQuestions = [], onComplet
       <Badge variant="secondary">Round {Math.min(round + 1, questions.length)} / {questions.length}</Badge>
     </div>
     <Progress value={finished ? 100 : (round / questions.length) * 100} aria-label="Round progress" />
-    {finished ? <div className="rounded-2xl border bg-card p-6 text-center space-y-3"><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-500/10"><Check className="h-7 w-7 text-amber-600" /></div><h3 className="text-xl font-bold">{(verifiedCorrect || 0) >= 3 ? "Challenge cleared!" : "Good effort!"}</h3><p className="text-sm text-muted-foreground">You answered {verifiedCorrect || 0} of {questions.length} correctly. Your result was checked and saved securely.</p><Button variant="outline" onClick={onExit}>Back to arcade</Button></div> : <div className="rounded-2xl border bg-card p-5 sm:p-7 space-y-5"><div className="flex items-center justify-between"><Badge variant="outline">{question.difficulty < 3 ? "Warm-up" : question.difficulty < 5 ? "Challenge" : "Boss round"}</Badge><span className="text-xs text-muted-foreground">Round {round + 1} of {questions.length}</span></div><h3 className="text-lg sm:text-xl font-semibold leading-relaxed">{question.prompt}</h3><div className="grid gap-2">{question.options.map((option) => <Button key={option} variant={selected === option ? "secondary" : "outline"} className="h-auto min-h-12 justify-start whitespace-normal text-left" onClick={() => choose(option)} disabled={!!selected}>{option}</Button>)}</div>{selected && <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/60 p-3"><p className="text-sm text-muted-foreground">Answer locked in. Continue to the next round.</p>{round < questions.length - 1 && <Button size="sm" onClick={next}>Next round <ArrowRight className="ml-1 h-4 w-4" /></Button>}</div>}</div>}
+    {finished ? <div className="rounded-2xl border bg-card p-6 text-center space-y-3"><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-500/10"><Check className="h-7 w-7 text-amber-600" /></div><h3 className="text-xl font-bold">{resultSaved ? (verifiedCorrect || 0) >= 3 ? "Challenge cleared!" : "Good effort!" : "Result not saved"}</h3><p className="text-sm text-muted-foreground">{resultSaved ? `You answered ${verifiedCorrect || 0} of ${questions.length} correctly. Your result was checked and saved securely.` : "Your answers could not be checked. Return to the arcade and try again when you are online."}</p><Button variant="outline" onClick={onExit}>Back to arcade</Button></div> : <div className="rounded-2xl border bg-card p-5 sm:p-7 space-y-5"><div className="flex items-center justify-between"><Badge variant="outline">{question.difficulty < 3 ? "Warm-up" : question.difficulty < 5 ? "Challenge" : "Boss round"}</Badge><span className="text-xs text-muted-foreground">Round {round + 1} of {questions.length}</span></div><h3 className="text-lg sm:text-xl font-semibold leading-relaxed">{question.prompt}</h3><div className="grid gap-2">{question.options.map((option) => <Button key={option} variant={selected === option ? "secondary" : "outline"} className="h-auto min-h-12 justify-start whitespace-normal text-left" onClick={() => choose(option)} disabled={!!selected}>{option}</Button>)}</div>{selected && <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/60 p-3"><p className="text-sm text-muted-foreground">Answer locked in. Continue to the next round.</p>{round < questions.length - 1 && <Button size="sm" onClick={next}>Next round <ArrowRight className="ml-1 h-4 w-4" /></Button>}</div>}</div>}
   </div>;
 }

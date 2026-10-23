@@ -118,6 +118,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
   const { count: queueCount } = useQueueStatus();
   const [games, setGames] = useState<GameDef[]>([]);
   const [progressStats, setProgressStats] = useState({ total_xp: 0, today_xp: 0, total_plays: 0, wins: 0, current_streak: 0, level: 1, xp_to_next: 250 });
+  const [progressLoaded, setProgressLoaded] = useState(false);
   const [books, setBooks] = useState<GameBook[]>([]);
   const [plays, setPlays] = useState<any[]>([]);
   const [content, setContent] = useState<GameContentItem[]>([]);
@@ -182,7 +183,10 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
     ]);
     setPlays(p || []);
     const row: any = Array.isArray(progress) ? progress[0] : progress;
-    if (row) setProgressStats({ total_xp: Number(row.total_xp) || 0, today_xp: Number(row.today_xp) || 0, total_plays: Number(row.total_plays) || 0, wins: Number(row.wins) || 0, current_streak: Number(row.current_streak) || 0, level: Number(row.level) || 1, xp_to_next: Number(row.xp_to_next) || 0 });
+    if (row) {
+      setProgressStats({ total_xp: Number(row.total_xp) || 0, today_xp: Number(row.today_xp) || 0, total_plays: Number(row.total_plays) || 0, wins: Number(row.wins) || 0, current_streak: Number(row.current_streak) || 0, level: Number(row.level) || 1, xp_to_next: Number(row.xp_to_next) || 0 });
+      setProgressLoaded(true);
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -195,8 +199,8 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
     return plays.filter((p) => new Date(p.played_at).toDateString() === today);
   }, [plays]);
 
-  const totalXp = progressStats.total_xp || plays.reduce((a, p) => a + (p.points_earned || 0), 0);
-  const todayXp = progressStats.today_xp || todayPlays.reduce((a, p) => a + (p.points_earned || 0), 0);
+  const totalXp = progressLoaded ? progressStats.total_xp : plays.reduce((a, p) => a + (p.points_earned || 0), 0);
+  const todayXp = progressLoaded ? progressStats.today_xp : todayPlays.reduce((a, p) => a + (p.points_earned || 0), 0);
   const playsFor = (key: string) => todayPlays.filter((p) => p.game_key === key).length;
   const categories = useMemo(() => ["all", ...Array.from(new Set(games.map((g) => g.category)))], [games]);
   const visibleGames = useMemo(() => selectedCategory === "all" ? games : games.filter((game) => game.category === selectedCategory), [games, selectedCategory]);
@@ -267,7 +271,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       const row: any = Array.isArray(data) ? data[0] : data;
       if (error || !row) {
         toast({ title: "Could not save challenge", description: error?.message || "Please retry the challenge.", variant: "destructive" });
-        return { correct_answers: 0 };
+        return { correct_answers: 0, saved: false };
       }
       const points = Number(row.points_awarded) || 0;
       toast({ title: points > 0 ? `+${points} XP earned!` : row.is_win ? "Challenge cleared!" : "Result saved", description: row.message || `You got ${row.correct_answers} answers correct.` });
@@ -384,7 +388,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
           { label: "Total game XP", value: totalXp, icon: Zap },
           { label: `XP today · ${Math.max(1000 - todayXp, 0)} left`, value: todayXp, icon: Sparkles },
           { label: "Arcade level", value: progressStats.level, icon: Star },
-          { label: `Day streak · ${progressStats.current_streak} days`, value: progressStats.wins, icon: Flame },
+          { label: "Current streak", value: `${progressStats.current_streak} days`, icon: Flame },
         ].map((s) => (
           <Card key={s.label} className="border-border/50">
             <CardContent className="p-4">
@@ -401,7 +405,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-5">
           <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl bg-primary text-primary-foreground"><span className="text-[9px] font-bold uppercase">Level</span><span className="text-lg font-black">{progressStats.level}</span></div>
           <div className="min-w-0 flex-1"><div className="mb-1 flex items-center justify-between gap-2 text-xs"><span className="font-semibold">Arcade progress</span><span className="text-muted-foreground">{(totalXp % 250).toLocaleString()} / 250 XP</span></div><Progress value={(totalXp % 250) / 2.5} aria-label="Progress to next arcade level" /><p className="mt-1 text-[11px] text-muted-foreground">{progressStats.xp_to_next} XP to Level {progressStats.level + 1}. Keep your streak going to unlock new badges.</p></div>
-          <div className="flex flex-wrap gap-1.5">{progressStats.total_plays >= 1 && <Badge variant="secondary"><Trophy className="mr-1 h-3 w-3" />First clear</Badge>}{progressStats.wins >= 5 && <Badge variant="secondary"><Star className="mr-1 h-3 w-3" />Five wins</Badge>}{progressStats.current_streak >= 3 && <Badge variant="secondary"><Flame className="mr-1 h-3 w-3" />3-day streak</Badge>}</div>
+          <div className="flex flex-wrap gap-1.5">{progressStats.total_plays >= 1 && <Badge variant="secondary"><Trophy className="mr-1 h-3 w-3" />First clear</Badge>}{progressStats.wins >= 5 && <Badge variant="secondary"><Star className="mr-1 h-3 w-3" />Five wins</Badge>}{progressStats.current_streak >= 3 && <Badge variant="secondary"><Flame className="mr-1 h-3 w-3" />3-day streak</Badge>}{progressStats.level >= 5 && <Badge className="bg-gradient-to-r from-amber-500 to-fuchsia-500 text-white"><Sparkles className="mr-1 h-3 w-3" />Arcade glow</Badge>}</div>
         </CardContent>
       </Card>
 
@@ -426,7 +430,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
             const used = playsFor(g.key);
             const limitHit = g.daily_play_limit > 0 && used >= g.daily_play_limit;
             return (
-              <Card key={g.id} className="group overflow-hidden rounded-2xl border-border/60 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+              <Card key={g.id} className={`group overflow-hidden rounded-2xl border-border/60 transition-all hover:-translate-y-0.5 hover:shadow-lg ${progressStats.level >= 5 ? "ring-1 ring-amber-400/50" : ""}`}>
                 <div className={`h-1.5 bg-gradient-to-r ${ACCENTS[g.key] || "from-primary to-accent"}`} />
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-start justify-between gap-2">

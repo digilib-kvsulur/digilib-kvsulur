@@ -4,14 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Gamepad2, Trophy, Zap, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Target, Users } from "lucide-react";
 
 export default function GameAnalytics() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
+  const [arcadeStats, setArcadeStats] = useState({ arcade_rounds: 0, completed_challenges: 0, participating_students: 0, verified_answers: 0, xp_awarded: 0 });
 
   useEffect(() => {
     const fetchAnalytics = async () => {
-      const { data: plays, error } = await supabase.rpc('get_game_analytics');
+      const [{ data: plays }, { data: arcadeData }] = await Promise.all([
+        supabase.rpc('get_game_analytics'),
+        (supabase as any).rpc('get_arcade_analytics'),
+      ]);
+      const arcade = Array.isArray(arcadeData) ? arcadeData[0] : arcadeData;
+      if (arcade) setArcadeStats({ arcade_rounds: Number(arcade.arcade_rounds) || 0, completed_challenges: Number(arcade.completed_challenges) || 0, participating_students: Number(arcade.participating_students) || 0, verified_answers: Number(arcade.verified_answers) || 0, xp_awarded: Number(arcade.xp_awarded) || 0 });
 
       if (!plays || plays.length === 0) {
         setLoading(false);
@@ -98,6 +105,20 @@ export default function GameAnalytics() {
           </CardContent>
         </Card>
       </div>
+
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-base font-semibold"><Target className="h-4 w-4 text-primary" /> New Arcade Rounds</h3>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Metric icon={Gamepad2} label="Rounds answered" value={arcadeStats.arcade_rounds.toLocaleString()} />
+          <Metric icon={Trophy} label="Challenges cleared" value={arcadeStats.completed_challenges.toLocaleString()} />
+          <Metric icon={Users} label="Students playing" value={arcadeStats.participating_students.toLocaleString()} />
+          <Metric icon={Zap} label="Verified answers · XP" value={`${arcadeStats.verified_answers.toLocaleString()} · ${arcadeStats.xp_awarded.toLocaleString()}`} />
+        </div>
+      </div>
     </div>
   );
+}
+
+function Metric({ icon: Icon, label, value }: { icon: typeof Gamepad2; label: string; value: string }) {
+  return <Card><CardContent className="p-4"><p className="flex items-center gap-2 text-xs text-muted-foreground"><Icon className="h-4 w-4 text-primary" />{label}</p><p className="mt-2 text-xl font-bold">{value}</p></CardContent></Card>;
 }
