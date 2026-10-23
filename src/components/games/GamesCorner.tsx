@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import {
-  Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles, Users, Brain, Map as MapIcon, FlaskConical, Code2, Leaf, Flame, Star,
+  Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles, Users, Brain, Map as MapIcon, FlaskConical, Code2, Leaf, Flame, Star, LockKeyhole, ChevronRight,
 } from "lucide-react";
 import { GameDef, GameBook, GameContentItem, ArcadeQuestion } from "./gameTypes";
 import BookMatch from "./BookMatch";
@@ -195,9 +195,14 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
   const totalXp = progressLoaded ? progressStats.total_xp : plays.reduce((a, p) => a + (p.points_earned || 0), 0);
   const todayXp = progressLoaded ? progressStats.today_xp : todayPlays.reduce((a, p) => a + (p.points_earned || 0), 0);
   const playsFor = (key: string) => todayPlays.filter((p) => p.game_key === key).length;
+  const unlockedCount = totalXp >= 400 ? games.length : totalXp >= 150 ? Math.min(20, games.length) : Math.min(10, games.length);
+  const nextUnlockXp = totalXp >= 400 ? null : totalXp >= 150 ? 400 : 150;
+  const xpUntilUnlock = nextUnlockXp === null ? 0 : Math.max(0, nextUnlockXp - totalXp);
+  const trailStage = totalXp >= 400 ? 3 : totalXp >= 150 ? 2 : 1;
+  const unlockedGames = games.slice(0, unlockedCount);
   const categories = useMemo(() => ["all", ...Array.from(new Set(games.map((g) => g.category)))], [games]);
   const visibleGames = useMemo(() => selectedCategory === "all" ? games : games.filter((game) => game.category === selectedCategory), [games, selectedCategory]);
-  const featuredGame = games.length ? games[(new Date().getUTCDate() + new Date().getUTCMonth()) % games.length] : null;
+  const featuredGame = unlockedGames.length ? unlockedGames[(new Date().getUTCDate() + new Date().getUTCMonth()) % unlockedGames.length] : null;
 
   const startNewSession = async (gameKey: string) => {
     setStartedAt(Date.now());
@@ -371,7 +376,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg sm:p-8">
         <div className="pointer-events-none absolute -right-8 -top-12 h-52 w-52 rounded-full bg-white/10 blur-2xl" />
         <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
-          <div className="space-y-3"><Badge className="border-white/20 bg-white/15 text-white hover:bg-white/20"><Sparkles className="mr-1 h-3 w-3" /> YOUR ARCADE</Badge><h2 className="text-3xl font-black tracking-tight sm:text-4xl">Play. Learn. Level up.</h2><p className="max-w-lg text-sm text-white/80">Fresh challenges, clever games and new personal bests are waiting for you.</p><div className="flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-white/15 px-3 py-1.5">{games.length} games</span><span className="rounded-full bg-white/15 px-3 py-1.5">Daily XP limit: 1,000</span>{queueCount > 0 && <span className="rounded-full bg-white/15 px-3 py-1.5">{queueCount} plays syncing</span>}</div></div>
+          <div className="space-y-3"><Badge className="border-white/20 bg-white/15 text-white hover:bg-white/20"><Sparkles className="mr-1 h-3 w-3" /> YOUR ARCADE</Badge><h2 className="text-3xl font-black tracking-tight sm:text-4xl">Play. Explore. Unlock.</h2><p className="max-w-lg text-sm text-white/80">Fresh challenges, clever games and new personal bests are waiting for you.</p><div className="flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-white/15 px-3 py-1.5">{unlockedCount} of {games.length} games open</span><span className="rounded-full bg-white/15 px-3 py-1.5">Daily XP limit: 1,000</span>{queueCount > 0 && <span className="rounded-full bg-white/15 px-3 py-1.5">{queueCount} plays syncing</span>}</div></div>
           {featuredGame && <div className="w-full rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm sm:max-w-xs"><div className="mb-3 flex items-center justify-between"><span className="text-xs font-bold uppercase tracking-wider text-white/75">Daily spotlight</span><Flame className="h-4 w-4 text-amber-200" /></div><h3 className="text-lg font-bold">{featuredGame.name}</h3><p className="mt-1 line-clamp-2 text-xs text-white/75">{featuredGame.description}</p><Button size="sm" className="mt-4 w-full bg-white text-violet-700 hover:bg-white/90" onClick={() => openGame(featuredGame)}><Play className="mr-1 h-4 w-4" /> Play today's spotlight</Button></div>}
         </div>
       </div>
@@ -380,7 +385,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
         {[
           { label: "Total game XP", value: totalXp, icon: Zap },
           { label: `XP today · ${Math.max(1000 - todayXp, 0)} left`, value: todayXp, icon: Sparkles },
-          { label: "Arcade level", value: progressStats.level, icon: Star },
+          { label: "Trail stage", value: `${trailStage} of 3`, icon: Star },
           { label: "Current streak", value: `${progressStats.current_streak} days`, icon: Flame },
         ].map((s) => (
           <Card key={s.label} className="border-border/50">
@@ -395,10 +400,10 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       </div>
 
       <Card className="overflow-hidden rounded-2xl border-primary/15 bg-gradient-to-r from-primary/5 to-amber-500/5">
-        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-5">
-          <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl bg-primary text-primary-foreground"><span className="text-[9px] font-bold uppercase">Level</span><span className="text-lg font-black">{progressStats.level}</span></div>
-          <div className="min-w-0 flex-1"><div className="mb-1 flex items-center justify-between gap-2 text-xs"><span className="font-semibold">Arcade progress</span><span className="text-muted-foreground">{(totalXp % 250).toLocaleString()} / 250 XP</span></div><Progress value={(totalXp % 250) / 2.5} aria-label="Progress to next arcade level" /><p className="mt-1 text-[11px] text-muted-foreground">{progressStats.xp_to_next} XP to Level {progressStats.level + 1}. Keep your streak going to unlock new badges.</p></div>
-          <div className="flex flex-wrap gap-1.5">{progressStats.total_plays >= 1 && <Badge variant="secondary"><Trophy className="mr-1 h-3 w-3" />First clear</Badge>}{progressStats.wins >= 5 && <Badge variant="secondary"><Star className="mr-1 h-3 w-3" />Five wins</Badge>}{progressStats.current_streak >= 3 && <Badge variant="secondary"><Flame className="mr-1 h-3 w-3" />3-day streak</Badge>}{progressStats.level >= 5 && <Badge className="bg-gradient-to-r from-amber-500 to-fuchsia-500 text-white"><Sparkles className="mr-1 h-3 w-3" />Arcade glow</Badge>}</div>
+        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-5">
+          <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-primary text-primary-foreground"><span className="text-[9px] font-bold uppercase">Trail</span><span className="text-lg font-black">{trailStage}</span></div>
+          <div className="min-w-0 flex-1"><div className="mb-1 flex items-center justify-between gap-2 text-xs"><span className="font-semibold">Your game trail</span><span className="text-muted-foreground">{unlockedCount} games open · {games.length - unlockedCount} ahead</span></div><Progress value={nextUnlockXp === null ? 100 : Math.min(100, (totalXp / nextUnlockXp) * 100)} aria-label="Progress toward the next game unlock" /><p className="mt-1 text-[11px] text-muted-foreground">{nextUnlockXp === null ? "Every game is unlocked. Choose any challenge!" : `${xpUntilUnlock} XP until ${unlockedCount + 1} more games open.`} Earn XP in any open game to explore further.</p></div>
+          <div className="flex flex-wrap gap-1.5">{progressStats.total_plays >= 1 && <Badge variant="secondary"><Trophy className="mr-1 h-3 w-3" />First clear</Badge>}{progressStats.wins >= 5 && <Badge variant="secondary"><Star className="mr-1 h-3 w-3" />Five wins</Badge>}{progressStats.current_streak >= 3 && <Badge variant="secondary"><Flame className="mr-1 h-3 w-3" />3-day streak</Badge>}{totalXp >= 1000 && <Badge className="bg-gradient-to-r from-amber-500 to-fuchsia-500 text-white"><Sparkles className="mr-1 h-3 w-3" />Arcade glow</Badge>}</div>
         </CardContent>
       </Card>
 
@@ -414,23 +419,25 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
         </Card>
       ) : (
         <div className="space-y-4">
-        <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Filter games by category">
-          {categories.map((category) => <Button key={category} size="sm" variant={selectedCategory === category ? "default" : "outline"} className="shrink-0 rounded-full capitalize" onClick={() => setSelectedCategory(category)}>{category === "all" ? "All games" : category.replace(/-/g, " ")}</Button>)}
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter games by category">
+          {categories.map((category) => <Button key={category} size="sm" variant={selectedCategory === category ? "default" : "outline"} className="rounded-full capitalize" onClick={() => setSelectedCategory(category)}>{category === "all" ? "All games" : category.replace(/-/g, " ")}</Button>)}
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visibleGames.map((g) => {
             const Icon = ICONS[g.icon_name] || Gamepad2;
             const used = playsFor(g.key);
+            const gameIndex = games.findIndex((game) => game.id === g.id);
+            const unlocked = gameIndex < unlockedCount;
             const limitHit = g.daily_play_limit > 0 && used >= g.daily_play_limit;
             return (
-              <Card key={g.id} className={`group overflow-hidden rounded-2xl border-border/60 transition-all hover:-translate-y-0.5 hover:shadow-lg ${progressStats.level >= 5 ? "ring-1 ring-amber-400/50" : ""}`}>
+              <Card key={g.id} className={`group overflow-hidden rounded-2xl border-border/60 transition-all ${unlocked ? "hover:-translate-y-0.5 hover:shadow-lg" : "opacity-75"}`}>
                 <div className={`h-1.5 bg-gradient-to-r ${ACCENTS[g.key] || "from-primary to-accent"}`} />
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className={`p-2.5 rounded-xl bg-gradient-to-br ${ACCENTS[g.key] || "from-primary to-accent"} text-primary-foreground`}>
                       <Icon className="h-5 w-5" />
                     </div>
-                    <Badge variant="secondary" className="text-[10px] capitalize"><Star className="mr-1 h-3 w-3" />{g.category}</Badge>
+                    <Badge variant={unlocked ? "secondary" : "outline"} className="text-[10px] capitalize">{unlocked ? <><Star className="mr-1 h-3 w-3" />{g.category}</> : <><LockKeyhole className="mr-1 h-3 w-3" />{gameIndex < 20 ? "Trail 2" : "Trail 3"}</>}</Badge>
                   </div>
                   <div>
                     <h3 className="font-semibold">{g.name}</h3>
@@ -442,8 +449,8 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
                       <span>{Math.max(g.daily_play_limit - used, 0)} plays left today</span>
                     )}
                   </div>
-                  <Button className="w-full" size="sm" variant={limitHit ? "outline" : "default"} onClick={() => openGame(g)} disabled={limitHit}>
-                    <Play className="h-4 w-4 mr-1" /> {limitHit ? "Come back tomorrow!" : "Play now"}
+                  <Button className="w-full" size="sm" variant={limitHit || !unlocked ? "outline" : "default"} onClick={() => openGame(g)} disabled={limitHit || !unlocked}>
+                    {!unlocked ? <><LockKeyhole className="mr-1 h-4 w-4" />Unlock with {gameIndex < 20 ? 150 : 400} XP</> : limitHit ? "Come back tomorrow!" : <><Play className="mr-1 h-4 w-4" />Play now</>}
                   </Button>
                 </CardContent>
               </Card>
