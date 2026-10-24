@@ -40,9 +40,12 @@ import StorySequence from "./StorySequence";
 import CharacterPairUp from "./CharacterPairUp";
 import NewArcadeGame from "./NewArcadeGames";
 import ArcadeSocial from "./ArcadeSocial";
+import ArcadeMiniGame from "./ArcadeMiniGames";
+import LiveArcadeBoard from "./LiveArcadeBoard";
 
 const GAME_CONTENT_CACHE_MS = 5 * 60 * 1000;
 const SERVER_ARCADE_KEYS = new Set(["logic-grid", "map-quest", "science-sprint", "code-breakers", "eco-sort"]);
+const LIVE_BOARD_KEYS = new Set(["tic-tac-toe", "snakes-ladders"]);
 const gameContentCache = new Map<string, { items: GameContentItem[]; cachedAt: number }>();
 
 const ICONS: Record<string, React.ElementType> = {
@@ -79,6 +82,10 @@ const ACCENTS: Record<string, string> = {
   "science-sprint": "from-emerald-500 to-teal-600",
   "code-breakers": "from-amber-500 to-orange-600",
   "eco-sort": "from-lime-500 to-green-600",
+  "ping-pong": "from-fuchsia-500 to-violet-600",
+  snake: "from-lime-500 to-emerald-600",
+  "tic-tac-toe": "from-violet-500 to-sky-600",
+  "snakes-ladders": "from-amber-500 to-rose-500",
 };
 
 const FALLBACK_GAMES: GameDef[] = [
@@ -110,7 +117,11 @@ const FALLBACK_GAMES: GameDef[] = [
   { id: "map-quest", key: "map-quest", name: "Map Quest", description: "Explore geography, maps, landmarks and our planet.", icon_name: "Map", category: "geography", is_enabled: true, points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 26 },
   { id: "science-sprint", key: "science-sprint", name: "Science Sprint", description: "Race through quick science rounds and build your streak.", icon_name: "FlaskConical", category: "science", is_enabled: true, points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 27 },
   { id: "code-breakers", key: "code-breakers", name: "Code Breakers", description: "Solve patterns, logic and beginner coding challenges.", icon_name: "Code2", category: "coding", is_enabled: true, points_per_win: 15, max_points_per_day: 45, daily_play_limit: 3, sort_order: 28 },
-  { id: "eco-sort", key: "eco-sort", name: "Eco Sort", description: "Make planet-friendly choices in a fast five-round challenge.", icon_name: "Leaf", category: "environment", is_enabled: true, points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 29 }
+  { id: "eco-sort", key: "eco-sort", name: "Eco Sort", description: "Make planet-friendly choices in a fast five-round challenge.", icon_name: "Leaf", category: "environment", is_enabled: true, points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 29 },
+  { id: "ping-pong", key: "ping-pong", name: "Ping Pong", description: "Rally against the arcade bot and race to five points.", icon_name: "Gamepad2", category: "arcade", is_enabled: true, points_per_win: 15, max_points_per_day: 45, daily_play_limit: 3, sort_order: 30 },
+  { id: "snake", key: "snake", name: "Snake", description: "Guide your growing snake, collect fruit and beat your best run.", icon_name: "Gamepad2", category: "arcade", is_enabled: true, points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 31 },
+  { id: "tic-tac-toe", key: "tic-tac-toe", name: "Tic-Tac-Toe", description: "Practice against the computer or challenge a friend live.", icon_name: "Grid3x3", category: "strategy", is_enabled: true, points_per_win: 10, max_points_per_day: 40, daily_play_limit: 4, sort_order: 32 },
+  { id: "snakes-ladders", key: "snakes-ladders", name: "Snakes & Ladders", description: "Race up the ladders and dodge the snakes. Play against a friend live.", icon_name: "Grid2x2", category: "strategy", is_enabled: true, points_per_win: 12, max_points_per_day: 48, daily_play_limit: 3, sort_order: 33 }
 ];
 
 export default function GamesCorner({ userId, onPointsEarned }: { userId: string; onPointsEarned?: () => void }) {
@@ -284,7 +295,7 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       return row;
     }
     const duration = Math.floor((Date.now() - startedAt) / 1000);
-    const clientNonce = `${active.key}-${startedAt}-${Math.random().toString(36).slice(2, 10)}`;
+    const clientNonce = `${duelRoomId ? `arcade:${duelRoomId}:` : `${active.key}-`}${startedAt}-${Math.random().toString(36).slice(2, 10)}`;
     const payload = {
       p_game_key: active.key,
       p_score: Math.round(score),
@@ -324,6 +335,13 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
     const game = games.find((candidate) => candidate.key === gameKey);
     if (!game) return;
     setDuelRoomId(roomId);
+    if (LIVE_BOARD_KEYS.has(gameKey)) {
+      setActive(game);
+      setLoadingGameContent(false);
+      setSessionId(null);
+      setArcadeQuestions([]);
+      return;
+    }
     void openGame(game);
   };
 
@@ -362,6 +380,10 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       case "book-2048": return <Book2048 {...props} />;
       case "story-sequence": return <StorySequence {...props} />;
       case "character-clash": return <CharacterPairUp {...props} />;
+      case "ping-pong":
+      case "snake": return <ArcadeMiniGame {...props} gameKey={active.key} />;
+      case "tic-tac-toe":
+      case "snakes-ladders": return duelRoomId ? <LiveArcadeBoard gameKey={active.key} roomId={duelRoomId} userId={userId} onExit={() => setActive(null)} /> : <ArcadeMiniGame {...props} gameKey={active.key} />;
       case "logic-grid":
       case "map-quest":
       case "science-sprint":

@@ -14,7 +14,7 @@ type ClassStanding = { student_class: string; total_xp: number; students: number
 type Room = { id: string; room_code: string; status: string; game_key: string; winner_id: string | null; expires_at: string };
 type OnlineStudent = { user_id: string; name: string };
 type DuelInvite = { room_code: string; game_key: string; game_name: string; inviter_name: string };
-const VERIFIED_DUEL_GAMES = new Set(["logic-grid", "map-quest", "science-sprint", "code-breakers", "eco-sort"]);
+const VERIFIED_DUEL_GAMES = new Set(["logic-grid", "map-quest", "science-sprint", "code-breakers", "eco-sort", "ping-pong", "snake", "tic-tac-toe", "snakes-ladders"]);
 const ONLINE_TOPIC = "arcade_online_students";
 
 export default function ArcadeSocial({ userId, games, onStartDuel }: { userId: string; games: GameDef[]; onStartDuel: (gameKey: string, roomId: string) => void }) {

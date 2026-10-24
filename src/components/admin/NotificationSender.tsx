@@ -149,7 +149,7 @@ const NotificationSender = () => {
         sent_by: user.id,
       }));
 
-      const { data: inserted, error } = await supabase.from("notifications").insert(insertRows).select();
+      const { error } = await supabase.from("notifications").insert(insertRows);
       if (error) throw error;
 
       // Dispatch automated email notification campaign if toggle is active
@@ -172,22 +172,9 @@ const NotificationSender = () => {
         }
       }
 
-      let pushSummary = "Push dispatch unavailable";
-      if (inserted && inserted.length > 0) {
-        const { data: pushResult, error: pushError } = await supabase.functions.invoke("push-notification", {
-          body: { records: inserted.map(({ id }) => ({ id })) },
-        });
-        if (pushError) {
-          console.error("Push dispatch failed:", pushError);
-          pushSummary = "Push delivery failed; in-app notifications were saved";
-        } else {
-          pushSummary = `${pushResult?.sent ?? 0} device push(es) delivered${pushResult?.failed ? `, ${pushResult.failed} failed` : ""}`;
-        }
-      }
-
       toast({
         title: "Dispatched!",
-        description: `In-app alert saved for ${recipientIds.length} recipient(s); ${pushSummary}${sendAsEmail ? "; email campaign dispatched" : ""}.`,
+        description: `Notification queued for ${recipientIds.length} recipient(s)${sendAsEmail ? "; email campaign dispatched" : ""}. Push delivery runs in the background for devices that enabled notifications.`,
       });
       setTitle("");
       setMessage("");

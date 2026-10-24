@@ -257,6 +257,10 @@ const Login = () => {
       }
 
       if (refCode && profile?.role === "student" && !(profile as any)?.invite_reward_claimed) {
+        // Guard: Old students with existing points cannot claim welcome bonuses
+        if (Number(profile.points || 0) > 0) {
+          try { localStorage.removeItem("dlms_invite_ref"); } catch {}
+        } else {
         try {
           // Call claim_invite_reward(p_code) which credits both claimer and inviter atomically
           const { data: claimResult, error: claimErr } = await supabase.rpc("claim_invite_reward", { p_code: refCode });
@@ -306,6 +310,7 @@ const Login = () => {
           }
         } catch (inviteErr) {
           console.error("Invite claim error (non-fatal):", inviteErr);
+        }
         }
       }
       // --- End invite reward ---

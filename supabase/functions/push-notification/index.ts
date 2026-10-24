@@ -25,25 +25,35 @@ serve(async (req) => {
     if (!url || !anonKey || !serviceRoleKey) return json({ error: 'Supabase function secrets are incomplete' }, 500)
     if (!vapidPublic || !vapidPrivate || !vapidSubject) return json({ error: 'VAPID keys are not configured' }, 503)
 
-    const authorization = req.headers.get('Authorization')
-    if (!authorization) return json({ error: 'Authentication required' }, 401)
-    const userClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } })
-    const { data: { user }, error: authError } = await userClient.auth.getUser()
-    if (authError || !user) return json({ error: 'Invalid authentication' }, 401)
     const adminClient = createClient(url, serviceRoleKey)
-    const { data: profile, error: profileError } = await adminClient.from('profiles').select('role').eq('id', user.id).maybeSingle()
-    if (profileError) throw profileError
-    if (profile?.role !== 'admin') return json({ error: 'Only admins can dispatch push notifications' }, 403)
-
     const body = await req.json()
     const records = Array.isArray(body.records) ? body.records : body.record ? [body.record] : []
     const ids = [...new Set(records.map((record: { id?: string }) => record?.id).filter((id: unknown): id is string => typeof id === 'string'))]
     if (!ids.length) return json({ error: 'No notification records supplied' }, 400)
 
-    // Resolve records from the database and ensure they were created by this admin.
-    const { data: notifications, error: notificationError } = await adminClient.from('notifications')
-      .select('id,title,message,image_url,action_link,target_user_id,sent_by')
-      .in('id', ids).eq('sent_by', user.id)
+    // Database-triggered delivery is authenticated with a shared secret from
+    // Supabase Vault. User initiated dispatches still require an admin JWT.
+    const configuredWebhookSecret = Deno.env.get('PUSH_WEBHOOK_SECRET')
+    const suppliedWebhookSecret = req.headers.get('x-push-secret')
+    const isDatabaseWebhook = !!configuredWebhookSecret && !!suppliedWebhookSecret && suppliedWebhookSecret === configuredWebhookSecret
+    let userId: string | null = null
+    if (!isDatabaseWebhook) {
+      const authorization = req.headers.get('Authorization')
+      if (!authorization || !anonKey) return json({ error: 'Authentication required' }, 401)
+      const userClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } })
+      const { data: { user }, error: authError } = await userClient.auth.getUser()
+      if (authError || !user) return json({ error: 'Invalid authentication' }, 401)
+      const { data: profile, error: profileError } = await adminClient.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      if (profileError) throw profileError
+      if (profile?.role !== 'admin') return json({ error: 'Only admins can dispatch push notifications' }, 403)
+      userId = user.id
+    }
+
+    // Always resolve content from the database; callers only supply record IDs.
+    let notificationQuery = adminClient.from('notifications')
+      .select('id,title,message,image_url,action_link,target_user_id,sent_by').in('id', ids)
+    if (userId) notificationQuery = notificationQuery.eq('sent_by', userId)
+    const { data: notifications, error: notificationError } = await notificationQuery
     if (notificationError) throw notificationError
     if (!notifications?.length) return json({ error: 'No authorized notifications found' }, 403)
 
@@ -55,21 +65,30 @@ serve(async (req) => {
       if (error) return { notificationId: notification.id, sent: 0, failed: 1, error: error.message }
       const webSubscriptions = (subscriptions || []).filter((sub) => sub.subscription_object?.endpoint && sub.subscription_object?.type !== 'capacitor')
       const outcomes = await Promise.all(webSubscriptions.map(async (sub) => {
-        try {
-          await webpush.sendNotification(sub.subscription_object, JSON.stringify({
+        const payload = JSON.stringify({
             title: notification.title,
             body: notification.message,
             icon: notification.image_url || '/pwa-192x192.png',
             data: { url: notification.action_link || '/' },
-          }))
-          return { ok: true }
-        } catch (error) {
-          const statusCode = (error as { statusCode?: number }).statusCode
-          if (statusCode === 404 || statusCode === 410) {
-            await adminClient.from('push_subscriptions').delete().eq('id', sub.id)
+        })
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            await webpush.sendNotification(sub.subscription_object, payload)
+            return { ok: true }
+          } catch (error) {
+            const statusCode = (error as { statusCode?: number }).statusCode
+            if (statusCode === 404 || statusCode === 410) {
+              await adminClient.from('push_subscriptions').delete().eq('id', sub.id)
+              return { ok: false, error: error instanceof Error ? error.message : String(error), statusCode }
+            }
+            const retryable = !statusCode || statusCode === 429 || statusCode >= 500
+            if (!retryable || attempt === 2) {
+              return { ok: false, error: error instanceof Error ? error.message : String(error), statusCode }
+            }
+            await new Promise((resolve) => setTimeout(resolve, 300 * (2 ** attempt)))
           }
-          return { ok: false, error: error instanceof Error ? error.message : String(error), statusCode }
         }
+        return { ok: false, error: 'Delivery attempts exhausted' }
       }))
       return {
         notificationId: notification.id,

@@ -1319,6 +1319,7 @@ const StudentDashboard = () => {
               userName={user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : undefined}
               admissionNumber={user?.admission_number}
               inviteCode={user?.invite_code}
+              userPoints={user?.points}
             />
           )}
 

@@ -8,14 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   UserPlus, Copy, Check, Share2, QrCode, Gift, Star, Zap,
-  Users, ChevronRight, ExternalLink, Sparkles, X, CheckCircle2
+  Users, ChevronRight, ExternalLink, Sparkles, X, CheckCircle2,
+  Award, ShieldCheck, MessageCircle, Info, TrendingUp, Flame
 } from "lucide-react";
+import { triggerConfetti } from "@/lib/confetti";
 import InstagramStoryReward from "./InstagramStoryReward";
 
 const INVITE_BASE_URL = "https://dlms.kvsulur.in/invite";
 const XP_PER_INVITE = 250;
 const MAX_INVITE_XP = 2500;
-const MAX_REWARDED_INVITES = MAX_INVITE_XP / XP_PER_INVITE;
+const MAX_REWARDED_INVITES = MAX_INVITE_XP / XP_PER_INVITE; // 10
 
 const getEarnedInviteXP = (count: number) =>
   Math.min(Math.max(0, count), MAX_REWARDED_INVITES) * XP_PER_INVITE;
@@ -25,29 +27,134 @@ interface InviteTabProps {
   userName?: string;
   admissionNumber?: string | null;
   inviteCode?: string | null;
+  userPoints?: number | null;
 }
 
-/** Simple inline SVG QR-code substitute — renders a QR-like visual using canvas.
- *  We use a lightweight approach: encode URL in a visible box with QR hint since
- *  we can't install qrcode.react without npm. The full QR is shown via Google Charts API. */
-function QRCodeDisplay({ url }: { url: string }) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+interface TierInfo {
+  name: string;
+  badge: string;
+  color: string;
+  border: string;
+  bg: string;
+  nextTier?: string;
+  needed: number;
+}
+
+const getTierInfo = (count: number): TierInfo => {
+  if (count >= 8) {
+    return {
+      name: "DLMS Legend",
+      badge: "👑",
+      color: "text-purple-600 dark:text-purple-300",
+      border: "border-purple-300 dark:border-purple-800",
+      bg: "bg-purple-500/10 dark:bg-purple-950/40",
+      needed: 0,
+    };
+  }
+  if (count >= 5) {
+    return {
+      name: "Library Ambassador",
+      badge: "🥇",
+      color: "text-amber-600 dark:text-amber-300",
+      border: "border-amber-300 dark:border-amber-800",
+      bg: "bg-amber-500/10 dark:bg-amber-950/40",
+      nextTier: "DLMS Legend",
+      needed: 8 - count,
+    };
+  }
+  if (count >= 2) {
+    return {
+      name: "Reading Scout",
+      badge: "🥈",
+      color: "text-sky-600 dark:text-sky-300",
+      border: "border-sky-300 dark:border-sky-800",
+      bg: "bg-sky-500/10 dark:bg-sky-950/40",
+      nextTier: "Library Ambassador",
+      needed: 5 - count,
+    };
+  }
+  return {
+    name: "Book Pioneer",
+    badge: "🥉",
+    color: "text-emerald-600 dark:text-emerald-300",
+    border: "border-emerald-300 dark:border-emerald-800",
+    bg: "bg-emerald-500/10 dark:bg-emerald-950/40",
+    nextTier: "Reading Scout",
+    needed: 2 - count,
+  };
+};
+
+/** High-res QR code card generator with school library branding */
+function QRCodeModal({
+  url,
+  code,
+  userName,
+  onClose,
+}: {
+  url: string;
+  code: string;
+  userName?: string;
+  onClose: () => void;
+}) {
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(url)}`;
+
   return (
-    <div className="flex flex-col items-center gap-3">
-      <img
-        src={qrUrl}
-        alt="Invite QR Code"
-        className="rounded-xl border border-border w-48 h-48 object-contain"
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = "none";
-        }}
-      />
-      <p className="text-xs text-muted-foreground text-center max-w-[200px] break-all">{url}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+      <div className="relative w-full max-w-sm rounded-3xl bg-background border border-border p-6 shadow-2xl space-y-4 text-center">
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="space-y-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-primary">PM SHRI KV AFS SULUR</p>
+          <h3 className="text-lg font-black text-foreground">Scan to Join DLMS 📚</h3>
+          <p className="text-xs text-muted-foreground">
+            Point your phone camera at this QR code to open the invitation
+          </p>
+        </div>
+
+        <div className="p-3 bg-white rounded-2xl border border-slate-200 inline-block shadow-inner">
+          <img
+            src={qrUrl}
+            alt="Invite QR Code"
+            className="w-52 h-52 object-contain mx-auto rounded-lg"
+          />
+        </div>
+
+        <div className="space-y-1.5 pt-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold font-mono">
+            <span>Invite Code:</span>
+            <span className="text-sm font-extrabold">{code}</span>
+          </div>
+          {userName && (
+            <p className="text-xs text-muted-foreground">
+              Invited by <span className="font-semibold text-foreground">{userName}</span>
+            </p>
+          )}
+        </div>
+
+        <Button
+          onClick={onClose}
+          className="w-full h-10 rounded-xl gradient-primary text-white font-semibold"
+        >
+          Done
+        </Button>
+      </div>
     </div>
   );
 }
 
-export default function InviteTab({ userId, userName, admissionNumber: propAdmission, inviteCode: propInviteCode }: InviteTabProps) {
+export default function InviteTab({
+  userId,
+  userName,
+  admissionNumber: propAdmission,
+  inviteCode: propInviteCode,
+  userPoints = 0,
+}: InviteTabProps) {
   const { toast } = useToast();
   const [inviteCode, setInviteCode] = useState<string | null>(propInviteCode || null);
   const [admissionNumber, setAdmissionNumber] = useState<string | null>(propAdmission || null);
@@ -57,9 +164,14 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
   const [inviteRewardClaimed, setInviteRewardClaimed] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [redeeming, setRedeeming] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedMessage, setCopiedMessage] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // If a student already has points or past activity, they are an existing/old student.
+  // Old students should NEVER be shown the welcome redemption card.
+  const isOldStudent = Boolean(userPoints && userPoints > 0);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -67,7 +179,7 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
       // 1. Fetch current profile data
       const { data: profile } = await supabase
         .from("profiles")
-        .select("invite_code, admission_number, invite_reward_claimed")
+        .select("invite_code, admission_number, invite_reward_claimed, points")
         .eq("id", userId)
         .maybeSingle();
 
@@ -85,8 +197,6 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
           loadedFromRpc = true;
           const count = Math.max(0, Number((stats as any).invite_count) || 0);
           setInviteCount(count);
-          // The DB records 250 on each invite row even after the inviter cap is reached.
-          // Calculate credited XP from the count and program cap instead of summing those rows.
           setTotalInviteXP(getEarnedInviteXP(count));
           if (Array.isArray((stats as any).friends)) {
             setFriends((stats as any).friends);
@@ -104,7 +214,10 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
         try {
           const { data: inviteRows, count: invCount } = await supabase
             .from("student_invites")
-            .select("points_awarded, created_at, invited_user_id, profiles!student_invites_invited_user_id_fkey(first_name, last_name, admission_number)", { count: "exact" })
+            .select(
+              "points_awarded, created_at, invited_user_id, profiles!student_invites_invited_user_id_fkey(first_name, last_name, admission_number)",
+              { count: "exact" }
+            )
             .eq("inviter_id", userId);
 
           if (invCount !== null && invCount !== undefined) {
@@ -112,24 +225,16 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
             setInviteCount(count);
             setTotalInviteXP(getEarnedInviteXP(count));
             if (inviteRows && inviteRows.length > 0) {
-              setFriends(inviteRows.map((r: any) => ({
-                first_name: r.profiles?.first_name || "Student",
-                last_name: r.profiles?.last_name || "",
-                admission_number: r.profiles?.admission_number || "",
-                created_at: r.created_at,
-                points_awarded: r.points_awarded || XP_PER_INVITE,
-              })));
+              setFriends(
+                inviteRows.map((r: any) => ({
+                  first_name: r.profiles?.first_name || "Student",
+                  last_name: r.profiles?.last_name || "",
+                  admission_number: r.profiles?.admission_number || "",
+                  created_at: r.created_at,
+                  points_awarded: r.points_awarded || XP_PER_INVITE,
+                }))
+              );
             }
-          } else {
-            // Last fallback: notifications query
-            const { count: notifCount } = await supabase
-              .from("notifications")
-              .select("id", { count: "exact", head: true })
-              .eq("target_user_id", userId)
-              .ilike("title", "%Invite Reward%");
-            const cnt = notifCount || 0;
-            setInviteCount(cnt);
-            setTotalInviteXP(getEarnedInviteXP(cnt));
           }
         } catch {
           // Keep default states
@@ -147,15 +252,22 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
     if (!manualCode.trim()) return;
     setRedeeming(true);
     try {
-      const { data, error } = await supabase.rpc("claim_invite_reward", { p_code: manualCode.trim() });
+      const { data, error } = await supabase.rpc("claim_invite_reward", {
+        p_code: manualCode.trim(),
+      });
       if (error) {
-        toast({ title: "Failed to Redeem", description: error.message || "Could not claim invite reward.", variant: "destructive" });
+        toast({
+          title: "Failed to Redeem",
+          description: error.message || "Could not claim invite reward.",
+          variant: "destructive",
+        });
       } else if (data?.success) {
+        triggerConfetti();
         toast({
           title: "🎉 +250 XP Awarded!",
           description: data.inviter_name
-            ? `Successfully redeemed invite from ${data.inviter_name}! Both of you earned 250 XP.`
-            : "Successfully redeemed invite! +250 XP added to your account.",
+            ? `Welcome bonus redeemed! You and ${data.inviter_name} each earned 250 XP.`
+            : "Welcome bonus redeemed! +250 XP added to your account.",
         });
         setInviteRewardClaimed(true);
         setManualCode("");
@@ -163,18 +275,24 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
       } else {
         const reasons: Record<string, string> = {
           already_claimed: "You have already claimed an invite bonus.",
-          self_invite: "You cannot redeem your own invite code / admission number.",
+          existing_student: "Invite welcome bonuses are strictly for new students joining DLMS for the first time.",
+          not_new_student: "Invite welcome bonuses are strictly for new students joining DLMS for the first time.",
+          self_invite: "You cannot redeem your own invite code or admission number.",
           invalid_code: "Invalid invite code or admission number. Please check and try again.",
           students_only: "Only students are eligible for invite rewards.",
         };
         toast({
           title: "Could Not Redeem",
-          description: reasons[data?.reason] || "Invalid invite code or already claimed.",
+          description: reasons[data?.reason] || "Invalid invite code or not eligible.",
           variant: "destructive",
         });
       }
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to redeem code.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message || "Failed to redeem code.",
+        variant: "destructive",
+      });
     } finally {
       setRedeeming(false);
     }
@@ -186,88 +304,130 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
 
   const codeToUse = inviteCode || admissionNumber;
   const inviteUrl = codeToUse ? `${INVITE_BASE_URL}/${codeToUse}` : null;
-  const shortUrl = codeToUse ? `https://dlms.kvsulur.in/i/${codeToUse}` : null;
 
-  const handleCopy = async () => {
+  const handleCopyLink = async () => {
     if (!inviteUrl) return;
     try {
       await navigator.clipboard.writeText(inviteUrl);
-      setCopied(true);
-      toast({ title: "Link Copied!", description: "Share it with your friends." });
-      setTimeout(() => setCopied(false), 2500);
+      setCopiedLink(true);
+      toast({
+        title: "Link Copied! 📋",
+        description: "Share it with your classmates who haven't joined yet.",
+      });
+      setTimeout(() => setCopiedLink(false), 2500);
     } catch {
-      // Fallback for browsers without clipboard API
       const el = document.createElement("textarea");
       el.value = inviteUrl;
       document.body.appendChild(el);
       el.select();
       document.execCommand("copy");
       document.body.removeChild(el);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
     }
   };
 
   const handleWhatsApp = () => {
     if (!inviteUrl) return;
-    const firstName = userName?.split(" ")[0] || "your friend";
     const message = encodeURIComponent(
-      `📚 Hey! I use DLMS — the Digital Library of PM SHRI KV AFS Sulur. Join me and start your reading adventure!\n\nOpen my invite link to join 👇\n${inviteUrl}\n\nSign in with your own student details and password. 🎉`
+      `📚 Hey! I use DLMS — the Digital Library of PM SHRI KV AFS Sulur.\n\nJoin me on DLMS to track books, play reading games, and compete on our class leaderboard! 🚀\n\n👉 Click my invite link to join:\n${inviteUrl}\n\n💡 Sign in with your 5-digit Admission Number & default password Welcome@123\nYou get a +250 XP bonus on your first login! 🎉`
     );
     window.open(`https://wa.me/?text=${message}`, "_blank", "noopener,noreferrer");
   };
 
+  const handleCopyMessage = async () => {
+    if (!inviteUrl) return;
+    const message = `📚 Join me on DLMS (PM SHRI KV AFS Sulur Digital Library)!\n\nRead books, play quiz leagues, and earn XP together! 🚀\n\n👉 Sign in here: ${inviteUrl}\n\nUse your Admission Number & Welcome@123 to log in and get +250 XP bonus! 🎉`;
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopiedMessage(true);
+      toast({
+        title: "Message Copied! 💬",
+        description: "Paste it directly on Instagram, Telegram, or SMS.",
+      });
+      setTimeout(() => setCopiedMessage(false), 2500);
+    } catch {
+      handleCopyLink();
+    }
+  };
+
   const progressPct = Math.min((totalInviteXP / MAX_INVITE_XP) * 100, 100);
+  const tier = getTierInfo(inviteCount);
+  const remainingInvites = Math.max(0, MAX_REWARDED_INVITES - inviteCount);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col items-center justify-center py-20 space-y-3">
+        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-muted-foreground font-medium">Loading your invite hub...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5 max-w-3xl mx-auto pb-6">
-      {/* Hero Card */}
-      <Card className="relative overflow-hidden rounded-2xl border-0 bg-slate-900 text-white shadow-lg">
-        <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full border-[32px] border-white/[0.04]" />
-        <div className="absolute right-20 -bottom-24 h-48 w-48 rounded-full bg-teal-400/10 blur-2xl" />
-        <CardContent className="relative z-10 p-5 sm:p-7">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-teal-400/15 flex items-center justify-center shrink-0 border border-teal-300/20">
-              <Gift className="h-6 w-6 text-teal-300" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs uppercase tracking-[0.18em] font-semibold text-teal-300 mb-1">Invite classmates</p>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
-                Share DLMS with a friend
+    <div className="space-y-6 max-w-4xl mx-auto pb-10">
+      {/* ── 1. Gamified Hero Card ────────────────────────────────────── */}
+      <Card className="relative overflow-hidden rounded-3xl border-0 bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 text-white shadow-xl">
+        {/* Glow & Grid Accents */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_50%)] pointer-events-none" />
+        <div className="absolute -left-16 -bottom-16 w-48 h-48 rounded-full bg-amber-400/20 blur-3xl pointer-events-none" />
+        <div className="absolute right-12 top-6 w-36 h-36 rounded-full bg-teal-400/15 blur-2xl pointer-events-none" />
+
+        <CardContent className="relative z-10 p-6 sm:p-8 space-y-6">
+          {/* Header Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-bold tracking-wide">
+                <span>{tier.badge}</span>
+                <span>{tier.name}</span>
+                <span className="text-white/60">·</span>
+                <span className="text-amber-300 font-extrabold">{totalInviteXP} XP Earned</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight pt-1">
+                Invite Friends to DLMS 🚀
               </h2>
-              <p className="text-slate-300 text-sm leading-relaxed max-w-xl">
-                When a new student joins with your link, you earn <strong className="text-teal-200">250 XP</strong>, up to {MAX_REWARDED_INVITES} successful invites.
+              <p className="text-white/85 text-xs sm:text-sm leading-relaxed max-w-xl">
+                Share your invite link with classmates who haven't logged in yet. When a new classmate signs in for the first time, you <strong className="text-amber-300">both earn +250 XP</strong> instantly!
+              </p>
+            </div>
+
+            {/* Quick Badge / Trophy */}
+            <div className="hidden sm:flex flex-col items-center justify-center p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 min-w-[130px] shrink-0 text-center">
+              <span className="text-3xl mb-0.5">{tier.badge}</span>
+              <p className="text-xs font-bold text-white leading-tight">{tier.name}</p>
+              <p className="text-[10px] text-white/70 mt-0.5">
+                {inviteCount >= MAX_REWARDED_INVITES
+                  ? "Max Level Reached! 👑"
+                  : `${tier.needed} more to next tier`}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="bg-white/[0.07] rounded-xl p-3.5 border border-white/10">
-              <p className="text-2xl font-bold text-white">{inviteCount}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Friends joined</p>
+          {/* Stats Bar */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/15 text-center">
+              <p className="text-xl sm:text-2xl font-black text-white">{inviteCount}</p>
+              <p className="text-[11px] sm:text-xs text-white/75 font-medium mt-0.5">Friends Joined</p>
             </div>
-            <div className="bg-white/[0.07] rounded-xl p-3.5 border border-white/10">
-              <p className="text-2xl font-bold text-teal-300">{totalInviteXP.toLocaleString()}</p>
-              <p className="text-xs text-slate-400 mt-0.5">XP credited · {MAX_INVITE_XP.toLocaleString()} max</p>
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/15 text-center">
+              <p className="text-xl sm:text-2xl font-black text-amber-300">+{totalInviteXP}</p>
+              <p className="text-[11px] sm:text-xs text-white/75 font-medium mt-0.5">XP Credited</p>
+            </div>
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/15 text-center">
+              <p className="text-xl sm:text-2xl font-black text-emerald-300">{remainingInvites}</p>
+              <p className="text-[11px] sm:text-xs text-white/75 font-medium mt-0.5">Slots Remaining</p>
             </div>
           </div>
 
-          <div className="mt-4">
-            <div className="flex justify-between text-xs text-slate-400 mb-2">
-              <span>Invite reward progress</span>
-              <span>{totalInviteXP.toLocaleString()} / {MAX_INVITE_XP.toLocaleString()} XP</span>
+          {/* Progress towards 2,500 XP maximum reward cap */}
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center justify-between text-xs font-medium text-white/85">
+              <span>Program Reward Progress ({inviteCount}/{MAX_REWARDED_INVITES} Friends)</span>
+              <span className="font-bold text-amber-300">{totalInviteXP} / {MAX_INVITE_XP} XP</span>
             </div>
-            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-2.5 w-full bg-white/20 rounded-full overflow-hidden p-0.5">
               <div
-                className="h-full bg-teal-400 rounded-full transition-all duration-700"
+                className="h-full bg-gradient-to-r from-amber-300 via-yellow-400 to-emerald-400 rounded-full transition-all duration-700 shadow-sm"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -275,126 +435,158 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
         </CardContent>
       </Card>
 
-      {/* Invite Link Card */}
-      <Card className="rounded-2xl border-border/70 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Share2 className="h-4 w-4 text-primary" />
-            Your Invite Link
-          </CardTitle>
-          <CardDescription>Share this with classmates who haven't joined yet</CardDescription>
+      {/* ── 2. Share Station Card ────────────────────────────────────── */}
+      <Card className="rounded-3xl border-border/70 shadow-sm overflow-hidden bg-card">
+        <CardHeader className="pb-3 border-b border-border/40">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Share2 className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold">Your Personal Invite Link</CardTitle>
+                <CardDescription className="text-xs">
+                  Give this link or your admission number to classmates who haven't logged in yet
+                </CardDescription>
+              </div>
+            </div>
+
+            {codeToUse && (
+              <Badge variant="outline" className="font-mono text-xs font-bold px-3 py-1 rounded-full border-primary/30 text-primary bg-primary/5">
+                Code: {codeToUse}
+              </Badge>
+            )}
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+
+        <CardContent className="p-5 sm:p-6 space-y-4">
           {inviteUrl ? (
             <>
-              {/* Link display */}
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/60 border border-border/50">
-                <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="flex-1 text-sm font-mono text-foreground truncate select-all">
+              {/* Monospace Link Box */}
+              <div className="flex items-center gap-2 p-2.5 sm:p-3 rounded-2xl bg-muted/60 border border-border/70 focus-within:border-primary transition-all">
+                <ExternalLink className="h-4 w-4 text-muted-foreground ml-1 shrink-0" />
+                <span className="flex-1 text-xs sm:text-sm font-mono text-foreground truncate select-all">
                   {inviteUrl}
                 </span>
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={handleCopy}
-                  className="shrink-0 gap-1.5 h-8 rounded-lg"
+                  onClick={handleCopyLink}
+                  className={`h-9 px-3.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                    copiedLink
+                      ? "bg-emerald-600 text-white"
+                      : "gradient-primary text-white shadow-xs"
+                  }`}
                 >
-                  {copied ? (
-                    <><Check className="h-3.5 w-3.5 text-green-500" /> Copied!</>
+                  {copiedLink ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 mr-1" />
+                      <span>Copied!</span>
+                    </>
                   ) : (
-                    <><Copy className="h-3.5 w-3.5" /> Copy</>
+                    <>
+                      <Copy className="h-3.5 w-3.5 mr-1" />
+                      <span>Copy Link</span>
+                    </>
                   )}
                 </Button>
               </div>
 
-              {/* Action buttons */}
-              <div className="flex flex-wrap gap-3">
+              {/* Action Buttons Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                {/* 1. Share via WhatsApp */}
                 <Button
                   onClick={handleWhatsApp}
-                  className="flex-1 min-w-[140px] gap-2 bg-green-600 hover:bg-green-700 text-white rounded-xl border-0"
+                  className="h-11 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs sm:text-sm shadow-xs border-0 gap-2"
                 >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current shrink-0" xmlns="http://www.w3.org/2000/svg">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                   </svg>
-                  Share via WhatsApp
+                  <span>Share on WhatsApp</span>
                 </Button>
+
+                {/* 2. Copy Full Share Message */}
                 <Button
                   variant="outline"
-                  onClick={handleCopy}
-                  className="flex-1 min-w-[120px] gap-2 rounded-xl"
+                  onClick={handleCopyMessage}
+                  className="h-11 rounded-2xl border-border/80 font-bold text-xs sm:text-sm gap-2"
                 >
-                  {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  {copied ? "Copied!" : "Copy Link"}
+                  {copiedMessage ? (
+                    <>
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span>Message Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="h-4 w-4 text-primary" />
+                      <span>Copy Full Message</span>
+                    </>
+                  )}
                 </Button>
+
+                {/* 3. Open QR Code Dialog */}
                 <Button
                   variant="outline"
-                  onClick={() => setShowQR(!showQR)}
-                  className="gap-2 rounded-xl"
+                  onClick={() => setShowQR(true)}
+                  className="h-11 rounded-2xl border-border/80 font-bold text-xs sm:text-sm gap-2"
                 >
-                  <QrCode className="h-4 w-4" />
-                  QR Code
+                  <QrCode className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                  <span>Show QR Code</span>
                 </Button>
               </div>
 
-              {/* QR Code panel */}
-              {showQR && (
-                <div className="flex flex-col items-center gap-3 pt-4 pb-2 border-t border-border/50">
-                  <div className="flex items-center justify-between w-full">
-                    <p className="text-sm font-medium">Scan to join DLMS</p>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowQR(false)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <QRCodeDisplay url={inviteUrl} />
-                  <p className="text-xs text-muted-foreground text-center">
-                    Students can scan this QR code to open your invite link directly
-                  </p>
-                </div>
-              )}
+              {/* Informative Hint Banner */}
+              <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-primary/5 border border-primary/15 text-xs text-muted-foreground">
+                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  Your friend just needs to click your link and log in with their <strong>5-digit Admission Number</strong> and default password <strong>Welcome@123</strong>. Both of you will instantly receive <strong>+250 XP</strong>!
+                </p>
+              </div>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Your invite code is being generated. Please refresh the page in a moment.
+            <p className="text-xs text-muted-foreground text-center py-4">
+              Your invite link is being prepared. Please refresh in a moment.
             </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Were You Invited by a Classmate? Manual Redemption */}
-      {!inviteRewardClaimed && (
-      <Card className="rounded-2xl border-amber-300/50 bg-amber-50/50 shadow-sm dark:bg-amber-950/10">
+      {/* ── 3. First-Login Welcome Bonus (STRICTLY GATED to new students only) ── */}
+      {!inviteRewardClaimed && !isOldStudent && (
+        <Card className="rounded-3xl border-amber-300/60 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-yellow-500/10 shadow-sm overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Gift className="h-4 w-4 text-amber-500" />
-              Were You Invited by a Classmate?
-            </CardTitle>
-            <CardDescription>
-              Missed using an invite link on first login? Enter your friend's admission number or invite code to claim your <strong>+250 XP welcome bonus</strong>! Both of you get rewarded.
+            <div className="flex items-center gap-2">
+              <Gift className="h-5 w-5 text-amber-500 shrink-0" />
+              <CardTitle className="text-base font-bold text-foreground">
+                Were You Invited by a Classmate?
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs text-muted-foreground">
+              New to DLMS? If a classmate invited you and you signed in without their link, enter their Admission Number to claim your <strong>+250 XP welcome bonus</strong>!
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleManualRedeem} className="flex flex-col sm:flex-row gap-2">
+          <CardContent className="pt-2">
+            <form onSubmit={handleManualRedeem} className="flex flex-col sm:flex-row gap-2.5">
               <Input
-                placeholder="Friend's Admission No. (e.g. 12345) or Code"
+                placeholder="Enter friend's Admission No. (e.g. 15383)"
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value)}
-                className="h-10 rounded-xl font-mono text-sm uppercase"
+                className="h-11 rounded-2xl font-mono text-sm uppercase bg-background"
                 disabled={redeeming}
               />
               <Button
                 type="submit"
                 disabled={redeeming || !manualCode.trim()}
-                className="h-10 px-5 rounded-xl gradient-primary text-white font-bold shrink-0 gap-1.5"
+                className="h-11 px-6 rounded-2xl gradient-primary text-white font-bold shrink-0 gap-2 shadow-xs"
               >
                 {redeeming ? (
                   <>
                     <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Claiming...
+                    <span>Claiming...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 text-amber-300" />
-                    Claim +250 XP
+                    <span>Claim +250 XP</span>
                   </>
                 )}
               </Button>
@@ -403,49 +595,118 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
         </Card>
       )}
 
-      {/* Friends Who Joined List */}
-      {friends.length > 0 && (
-        <Card className="rounded-2xl border-border/70 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                Friends Who Joined ({inviteCount})
-              </CardTitle>
-              <Badge variant="outline" className="text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/50">
+      {/* ── 4. Friends Who Joined Roster ────────────────────────────── */}
+      <Card className="rounded-3xl border-border/70 shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 border-b border-border/40">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold">Friends Who Joined</CardTitle>
+                <CardDescription className="text-xs">
+                  {friends.length > 0
+                    ? `${friends.length} classmate${friends.length > 1 ? "s" : ""} joined through your invites`
+                    : "Track your successful classmate invitations here"}
+                </CardDescription>
+              </div>
+            </div>
+
+            {friends.length > 0 && (
+              <Badge variant="outline" className="text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 font-bold px-3 py-1 rounded-full text-xs">
                 +{totalInviteXP} XP Earned
               </Badge>
-            </div>
-            <CardDescription>Showing recent classmates who joined using your invite link</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2.5">
-            {friends.map((f: any, idx: number) => {
-              const fullName = [f.first_name, f.last_name].filter(Boolean).join(" ") || "Classmate";
-              const dateStr = f.created_at ? new Date(f.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" }) : "";
-              return (
-                <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/40">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                      {(f.first_name || "S")[0].toUpperCase()}
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-5 sm:p-6">
+          {friends.length > 0 ? (
+            <div className="space-y-2.5">
+              {friends.map((f: any, idx: number) => {
+                const fullName = [f.first_name, f.last_name].filter(Boolean).join(" ") || "Classmate";
+                const initial = (f.first_name || "S")[0].toUpperCase();
+                const palette = [
+                  "bg-indigo-500 text-white",
+                  "bg-violet-500 text-white",
+                  "bg-emerald-500 text-white",
+                  "bg-amber-500 text-white",
+                  "bg-rose-500 text-white",
+                  "bg-sky-500 text-white",
+                ];
+                const avatarColor = palette[idx % palette.length];
+                const dateStr = f.created_at
+                  ? new Date(f.created_at).toLocaleDateString("en-IN", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : "";
+
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3.5 rounded-2xl bg-muted/40 border border-border/50 hover:border-border transition-all"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm shadow-xs shrink-0 ${avatarColor}`}>
+                        {initial}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-foreground truncate">{fullName}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-2">
+                          {f.admission_number && <span>Adm: {f.admission_number}</span>}
+                          {dateStr && <span>· Joined {dateStr}</span>}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-foreground truncate">{fullName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {f.admission_number ? `Adm: ${f.admission_number} · ` : ""}{dateStr}
-                      </p>
+
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold shrink-0">
+                      <Zap className="h-3.5 w-3.5" />
+                      <span>+250 XP</span>
                     </div>
                   </div>
-                  <Badge className="shrink-0 border-emerald-200 bg-emerald-100 text-xs font-bold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
-                    Joined
-                  </Badge>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-10 px-4 space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-muted/70 mx-auto flex items-center justify-center text-muted-foreground/60 shadow-inner">
+                <Users className="h-8 w-8" />
+              </div>
 
-      {/* Instagram Story Bonus Card (NGL-Style 1-Click Story + Screenshot Proof) */}
+              <div className="space-y-1 max-w-sm mx-auto">
+                <h4 className="text-base font-bold text-foreground">No Classmates Invited Yet</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Share your link with friends in class. As soon as they sign in with their admission number, they'll appear here!
+                </p>
+              </div>
+
+              {/* 3 Quick Action Ideas */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-lg mx-auto pt-2 text-left">
+                <div className="p-3 rounded-2xl bg-muted/30 border border-border/50 space-y-1">
+                  <span className="text-base">💬</span>
+                  <p className="text-xs font-bold text-foreground">Class WhatsApp</p>
+                  <p className="text-[11px] text-muted-foreground">Share the link in your study groups</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-muted/30 border border-border/50 space-y-1">
+                  <span className="text-base">🎮</span>
+                  <p className="text-xs font-bold text-foreground">Library Games</p>
+                  <p className="text-[11px] text-muted-foreground">Challenge benchmates in Wordle & Book Match</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-muted/30 border border-border/50 space-y-1">
+                  <span className="text-base">🏆</span>
+                  <p className="text-xs font-bold text-foreground">Class Rankings</p>
+                  <p className="text-[11px] text-muted-foreground">Help your section reach #1 on the leaderboard</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── 5. Instagram Story Bonus Card (NGL-Style 1-Click Story) ─── */}
       <InstagramStoryReward
         userId={userId}
         userName={userName}
@@ -454,61 +715,74 @@ export default function InviteTab({ userId, userName, admissionNumber: propAdmis
         onPointsEarned={load}
       />
 
-
-      {/* How it works */}
-      <Card className="rounded-2xl border-border/70 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
+      {/* ── 6. How It Works & Fair Play Rules ──────────────────────── */}
+      <Card className="rounded-3xl border-border/70 shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 border-b border-border/40">
+          <CardTitle className="text-base font-bold flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-amber-500" />
-            How It Works
+            <span>How Invites Work</span>
           </CardTitle>
+          <CardDescription className="text-xs">
+            Simple 3-step process to earn bonus points with your friends
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+        <CardContent className="p-5 sm:p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               {
                 step: "1",
                 title: "Share Your Link",
-                desc: "Copy your invite link or share via WhatsApp with classmates who haven't joined DLMS yet.",
-                icon: Share2,
-                color: "bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300",
+                desc: "Send your invite link or admission number to a classmate who hasn't used DLMS yet.",
+                color: "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
               },
               {
                 step: "2",
-                title: "Friend Opens Link",
-                desc: "They open the invite link and land on the DLMS invite page, then log in with their admission number.",
-                icon: UserPlus,
-                color: "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
+                title: "Friend Logs In",
+                desc: "They open your link and log in with their 5-digit admission number and Welcome@123.",
+                color: "bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300",
               },
               {
                 step: "3",
-                title: "You Earn 250 XP! 🎉",
-                desc: "The moment they log in for the first time, 250 XP is instantly credited to your account!",
-                icon: Zap,
-                color: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+                title: "Both Earn 250 XP!",
+                desc: "You receive +250 XP and your friend receives +250 XP welcome bonus instantly!",
+                color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
               },
-            ].map(({ step, title, desc, icon: Icon, color }) => (
-              <div key={step} className="flex items-start gap-4 p-3 rounded-xl bg-muted/40 border border-border/30">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${color}`}>
+            ].map(({ step, title, desc, color }) => (
+              <div key={step} className="p-4 rounded-2xl bg-muted/40 border border-border/50 space-y-2">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${color}`}>
                   {step}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground">{title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{desc}</p>
-                </div>
-                <Icon className={`h-4 w-4 shrink-0 mt-0.5 ${color.split(' ')[1]}`} />
+                <h5 className="font-bold text-sm text-foreground">{title}</h5>
+                <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 flex items-start gap-3">
-            <Star className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-              <strong>Maximum inviter reward:</strong> Earn up to <strong>{MAX_INVITE_XP.toLocaleString()} XP</strong> ({MAX_REWARDED_INVITES} successful invites). Each new student only counts once!
-            </p>
+          {/* Fair Play Notice */}
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 flex items-start gap-3">
+            <ShieldCheck className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-0.5 text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+              <p className="font-bold">Fair Play & Community Guidelines</p>
+              <p className="text-amber-700 dark:text-amber-400/90">
+                • <strong>New Students Only:</strong> Welcome bonuses apply strictly when a student signs in to DLMS for the first time. Existing students with library activity or points cannot claim invite rewards.
+              </p>
+              <p className="text-amber-700 dark:text-amber-400/90">
+                • <strong>Program Limit:</strong> Each student can earn invite rewards for up to <strong>10 classmates</strong> (maximum <strong>2,500 XP</strong>) to keep school leaderboard rankings fair and competitive.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* QR Code Modal Display */}
+      {showQR && inviteUrl && (
+        <QRCodeModal
+          url={inviteUrl}
+          code={codeToUse || ""}
+          userName={userName}
+          onClose={() => setShowQR(false)}
+        />
+      )}
     </div>
   );
 }

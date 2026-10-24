@@ -155,6 +155,23 @@ export async function reviewSubmission(id: string, decision: "approve" | "reject
     p_note: note ?? null,
     p_marks: marks ?? null,
   });
+  if (error) {
+    if ((error as any)?.message?.includes("already_reviewed")) {
+      return editSubmissionReview(id, decision, points, note, marks);
+    }
+    throw error;
+  }
+  return data;
+}
+
+export async function editSubmissionReview(id: string, decision: "approve" | "reject", points?: number, note?: string, marks?: number) {
+  const { data, error } = await supabase.rpc("vacation_edit_submission_review" as any, {
+    p_submission: id,
+    p_decision: decision,
+    p_points: points ?? null,
+    p_note: note ?? null,
+    p_marks: marks ?? null,
+  });
   if (error) throw error;
   return data;
 }

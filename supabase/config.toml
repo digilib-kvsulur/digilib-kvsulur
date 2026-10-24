@@ -1,4 +1,8 @@
 project_id = "qbpnsqdtfuhdbiqajsfr"
+[functions.push-notification]
+enabled = true
+verify_jwt = false
+
 [functions.generate-quiz]
 enabled = true
 verify_jwt = false
