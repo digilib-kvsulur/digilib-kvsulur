@@ -104,8 +104,10 @@ type Point = { x: number; y: number };
 const DIRECTIONS: Record<string, Point> = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
 function Snake({ onComplete, onExit }: GameProps) {
   const [body, setBody] = useState<Point[]>([{ x: 6, y: 7 }, { x: 5, y: 7 }, { x: 4, y: 7 }]);
+  const bodyRef = useRef(body); bodyRef.current = body;
   const [food, setFood] = useState<Point>({ x: 10, y: 7 });
   const [score, setScore] = useState(0);
+  const scoreRef = useRef(score); scoreRef.current = score;
   const [done, setDone] = useState(false);
   const direction = useRef<Point>(DIRECTIONS.right);
   const completed = useRef(false);
@@ -121,22 +123,25 @@ function Snake({ onComplete, onExit }: GameProps) {
   useEffect(() => {
     if (done) return;
     const timer = window.setInterval(() => {
-      setBody((current) => {
-        const head = { x: current[0].x + direction.current.x, y: current[0].y + direction.current.y };
-        const ate = head.x === food.x && head.y === food.y;
-        const collisionBody = ate ? current : current.slice(0, -1);
-        if (head.x < 0 || head.x >= 14 || head.y < 0 || head.y >= 14 || collisionBody.some((segment) => segment.x === head.x && segment.y === head.y)) { finish(score); return current; }
-        const next = [head, ...current.slice(0, ate ? undefined : -1)];
-        if (ate) { const nextScore = score + 1; setScore(nextScore); setFood({ x: Math.floor(Math.random() * 14), y: Math.floor(Math.random() * 14) }); }
-        return next;
-      });
+      const current = bodyRef.current;
+      const head = { x: current[0].x + direction.current.x, y: current[0].y + direction.current.y };
+      const ate = head.x === food.x && head.y === food.y;
+      const collisionBody = ate ? current : current.slice(0, -1);
+      if (head.x < 0 || head.x >= 14 || head.y < 0 || head.y >= 14 || collisionBody.some((segment) => segment.x === head.x && segment.y === head.y)) { finish(scoreRef.current); return; }
+      const next = [head, ...current.slice(0, ate ? undefined : -1)];
+      bodyRef.current = next; setBody(next);
+      if (ate) {
+        const nextScore = scoreRef.current + 1; scoreRef.current = nextScore; setScore(nextScore);
+        const freeCells = Array.from({ length: 196 }, (_, i) => ({ x: i % 14, y: Math.floor(i / 14) })).filter((cell) => !next.some((segment) => segment.x === cell.x && segment.y === cell.y));
+        setFood(freeCells[Math.floor(Math.random() * freeCells.length)] || { x: 0, y: 0 });
+      }
     }, 180);
     return () => window.clearInterval(timer);
   }, [done, finish, food, score]);
   const setDirection = (key: string) => { const next = DIRECTIONS[key]; if (next.x !== -direction.current.x || next.y !== -direction.current.y) direction.current = next; };
-  const reset = () => { setBody([{ x: 6, y: 7 }, { x: 5, y: 7 }, { x: 4, y: 7 }]); setFood({ x: 10, y: 7 }); setScore(0); setDone(false); completed.current = false; direction.current = DIRECTIONS.right; };
+  const reset = () => { const initialBody = [{ x: 6, y: 7 }, { x: 5, y: 7 }, { x: 4, y: 7 }]; bodyRef.current = initialBody; scoreRef.current = 0; setBody(initialBody); setFood({ x: 10, y: 7 }); setScore(0); setDone(false); completed.current = false; direction.current = DIRECTIONS.right; };
   const occupied = useMemo(() => new Set(body.map((part) => `${part.x},${part.y}`)), [body]);
-  return <div className="mx-auto max-w-sm space-y-4 text-center"><div><Badge variant="secondary">Fruit collected: {score}</Badge><h3 className="mt-2 text-xl font-bold">Snake</h3><p className="text-sm text-muted-foreground">Guide the snake with arrow keys or the touch controls.</p></div><div className="mx-auto grid aspect-square w-full max-w-[300px] grid-cols-3 gap-0.5 rounded-2xl border bg-emerald-950 p-2" style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}>{Array.from({ length: 196 }, (_, index) => { const x = index % 14, y = Math.floor(index / 14); const isSnake = occupied.has(`${x},${y}`); const isHead = body[0]?.x === x && body[0]?.y === y; const isFood = food.x === x && food.y === y; return <span key={index} className={`rounded-sm ${isHead ? "bg-lime-200" : isSnake ? "bg-lime-400" : isFood ? "grid place-items-center bg-transparent text-[10px]" : "bg-emerald-900/60"}`}>{isFood ? "🍎" : ""}</span>; })}</div><div className="mx-auto grid w-36 grid-cols-3 gap-1"><span /><Button size="icon" variant="outline" aria-label="Move up" onClick={() => setDirection("up")}><ArrowUp /></Button><span /><Button size="icon" variant="outline" aria-label="Move left" onClick={() => setDirection("left")}><ArrowLeft /></Button><Button size="icon" variant="outline" aria-label="Move down" onClick={() => setDirection("down")}><ArrowDown /></Button><Button size="icon" variant="outline" aria-label="Move right" onClick={() => setDirection("right")}><ArrowRight /></Button></div>{done && <div aria-live="polite" className="space-x-2"><Badge>{score >= 5 ? "Great run!" : "Run ended — try again!"}</Badge><Button size="sm" variant="outline" onClick={reset}><RotateCcw className="mr-1 h-4 w-4" />Play again</Button></div>}<Button variant="ghost" onClick={onExit}>Back to arcade</Button></div>;
+  return <div className="mx-auto max-w-sm space-y-4 text-center"><div><Badge variant="secondary">Fruit collected: {score}</Badge><h3 className="mt-2 text-xl font-bold">Snake</h3><p className="text-sm text-muted-foreground">Guide the snake with arrow keys or the touch controls.</p></div><div className="mx-auto grid aspect-square w-full max-w-[300px] grid-cols-3 gap-0.5 rounded-2xl border bg-emerald-950 p-2" style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))", gridAutoRows: "1fr" }}>{Array.from({ length: 196 }, (_, index) => { const x = index % 14, y = Math.floor(index / 14); const isSnake = occupied.has(`${x},${y}`); const isHead = body[0]?.x === x && body[0]?.y === y; const isFood = food.x === x && food.y === y; return <span key={index} className={`rounded-sm ${isHead ? "bg-lime-200" : isSnake ? "bg-lime-400" : isFood ? "grid place-items-center bg-transparent text-[10px]" : "bg-emerald-900/60"}`}>{isFood ? "🍎" : ""}</span>; })}</div><div className="mx-auto grid w-36 grid-cols-3 gap-1"><span /><Button size="icon" variant="outline" aria-label="Move up" onClick={() => setDirection("up")}><ArrowUp /></Button><span /><Button size="icon" variant="outline" aria-label="Move left" onClick={() => setDirection("left")}><ArrowLeft /></Button><Button size="icon" variant="outline" aria-label="Move down" onClick={() => setDirection("down")}><ArrowDown /></Button><Button size="icon" variant="outline" aria-label="Move right" onClick={() => setDirection("right")}><ArrowRight /></Button></div>{done && <div aria-live="polite" className="space-x-2"><Badge>{score >= 5 ? "Great run!" : "Run ended — try again!"}</Badge><Button size="sm" variant="outline" onClick={reset}><RotateCcw className="mr-1 h-4 w-4" />Play again</Button></div>}<Button variant="ghost" onClick={onExit}>Back to arcade</Button></div>;
 }
 
 function SnakesAndLadders({ onComplete, onExit }: GameProps) {
