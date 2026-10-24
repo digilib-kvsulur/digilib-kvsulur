@@ -14,13 +14,13 @@ export interface MaintenanceConfig {
 export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   enabled: true,
   idle: true,
-  until: "2026-10-24T04:44:00.000Z",
-  displayUntil: "today, 10:14 AM IST",
+  until: "2026-10-24T04:49:00.000Z",
+  displayUntil: "today, 10:19 AM IST",
   heading: "Quiz Championship League in Progress",
   subheading:
     "DLMS access is temporarily paused to provide a better experience during the Quiz Championship League.",
   modalBody:
-    "DLMS access is temporarily paused during the Quiz Championship League.\n\nThe site will be available again by today, 10:14 AM IST.\n\nThank you for your patience and cooperation. 🙏",
+    "DLMS access is temporarily paused during the Quiz Championship League.\n\nThe site will be available again by today, 10:19 AM IST.\n\nThank you for your patience and cooperation. 🙏",
   author: "G V Tanish Vettrivel",
   authorRole: "Developer · PM SHRI KV AFS Sulur",
   supportEmail: "dlms@kvsulur.in",
