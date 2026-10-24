@@ -56,7 +56,11 @@ const DEVELOPED_GAMES = [
   { key: "map-quest", name: "Map Quest", description: "Explore geography, maps, landmarks and our planet.", icon_name: "Map", category: "geography", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 26 },
   { key: "science-sprint", name: "Science Sprint", description: "Race through quick science rounds and build your streak.", icon_name: "FlaskConical", category: "science", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 27 },
   { key: "code-breakers", name: "Code Breakers", description: "Solve patterns, logic and beginner coding challenges.", icon_name: "Code2", category: "coding", points_per_win: 15, max_points_per_day: 45, daily_play_limit: 3, sort_order: 28 },
-  { key: "eco-sort", name: "Eco Sort", description: "Make planet-friendly choices in a fast five-round challenge.", icon_name: "Leaf", category: "environment", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 29 }
+  { key: "eco-sort", name: "Eco Sort", description: "Make planet-friendly choices in a fast five-round challenge.", icon_name: "Leaf", category: "environment", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 29 },
+  { key: "ping-pong", name: "Ping Pong", description: "Rally against the arcade bot and race to five points.", icon_name: "Gamepad2", category: "arcade", points_per_win: 15, max_points_per_day: 45, daily_play_limit: 3, sort_order: 30 },
+  { key: "snake", name: "Snake", description: "Guide your growing snake, collect fruit and beat your best run.", icon_name: "Gamepad2", category: "arcade", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 31 },
+  { key: "tic-tac-toe", name: "Tic-Tac-Toe", description: "Practice against the computer or challenge a friend live.", icon_name: "Grid3x3", category: "strategy", points_per_win: 10, max_points_per_day: 40, daily_play_limit: 4, sort_order: 32 },
+  { key: "snakes-ladders", name: "Snakes & Ladders", description: "Race up the ladders and dodge the snakes. Play against a friend live.", icon_name: "Grid2x2", category: "strategy", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 3, sort_order: 33 }
 ];
 
 export default function GamesManager() {
