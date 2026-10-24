@@ -10,6 +10,7 @@ VALUES
 ON CONFLICT (key) DO NOTHING;
 
 ALTER TABLE public.game_duel_rooms
+  ADD COLUMN IF NOT EXISTS activated_at timestamptz,
   ADD COLUMN IF NOT EXISTS board_state jsonb NOT NULL DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS turn_user_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL;
 
