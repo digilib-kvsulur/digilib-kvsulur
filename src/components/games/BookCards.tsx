@@ -22,11 +22,19 @@ export default function BookCards({ books, onComplete, onExit }: GameProps) {
   const [reveal, setReveal] = useState(false);
   const [over, setOver] = useState(false);
   const [seed, setSeed] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let active = true;
+    setLoaded(false);
+    setLoadError(false);
     (async () => {
-      const { data } = await supabase.rpc("get_book_borrow_counts");
+      const { data, error } = await supabase.rpc("get_book_borrow_counts");
+      if (error) {
+        if (active) { setLoadError(true); setLoaded(true); }
+        return;
+      }
       const counts = new Map<string, number>();
       (data || []).forEach((r: any) => counts.set(r.book_id, Number(r.borrow_count) || 0));
       const enriched = books.map((b) => ({
@@ -34,9 +42,11 @@ export default function BookCards({ books, onComplete, onExit }: GameProps) {
         author: b.author,
         cover_url: b.cover_url,
         count: counts.get(b.id) ?? 0,
-      }));
-      const withVariety = enriched.length >= 4 ? enriched : [];
-      if (active) setDeck(shuffle(withVariety).slice(0, ROUNDS * 2 + 2));
+      })).filter((book) => book.count >= 1);
+      if (active) {
+        setDeck(enriched.length >= 2 ? shuffle(enriched).slice(0, ROUNDS * 2) : []);
+        setLoaded(true);
+      }
     })();
     return () => {
       active = false;
@@ -56,10 +66,10 @@ export default function BookCards({ books, onComplete, onExit }: GameProps) {
     if (win) setScore((s) => s + 1);
     window.setTimeout(() => {
       setReveal(false);
-      if (round + 1 >= ROUNDS || (round + 1) * 2 + 1 >= deck.length) {
+      if (round + 1 >= totalRounds) {
         const finalScore = win ? score + 1 : score;
         setOver(true);
-        onComplete(finalScore >= Math.ceil(ROUNDS * 0.6), finalScore);
+        onComplete(finalScore >= Math.ceil(totalRounds * 0.6), finalScore);
       } else {
         setRound((r) => r + 1);
       }
@@ -74,15 +84,19 @@ export default function BookCards({ books, onComplete, onExit }: GameProps) {
     setSeed((s) => s + 1);
   };
 
-  if (!deck.length) {
+  const totalRounds = Math.min(ROUNDS, Math.floor(deck.length / 2));
+
+  if (!loaded) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Shuffling the deck…</p>;
   }
+  if (loadError) return <div className="space-y-3 py-8 text-center"><p className="text-sm text-muted-foreground">Borrowing history could not be loaded. Please try again.</p><Button size="sm" variant="outline" onClick={restart}><RotateCcw className="mr-1 h-4 w-4" />Try again</Button></div>;
+  if (!deck.length) return <div className="space-y-2 py-8 text-center"><BookOpen className="mx-auto h-8 w-8 text-muted-foreground" /><p className="font-medium">No issued books to compare yet</p><p className="text-sm text-muted-foreground">Book Card Duel needs at least two books with one or more issue records.</p></div>;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div className="flex gap-2">
-          <Badge variant="secondary">Round {Math.min(round + 1, ROUNDS)}/{ROUNDS}</Badge>
+          <Badge variant="secondary">Round {Math.min(round + 1, totalRounds)}/{totalRounds}</Badge>
           <Badge variant="secondary">Score: {score}</Badge>
         </div>
         <div className="flex gap-2">
@@ -118,7 +132,7 @@ export default function BookCards({ books, onComplete, onExit }: GameProps) {
                 <p className="text-xs text-muted-foreground line-clamp-1">{b.author}</p>
                 {reveal && (
                   <Badge className="mt-2" variant="secondary">
-                    {b.count} issues
+                    {b.count} {b.count === 1 ? "issue" : "issues"}
                   </Badge>
                 )}
               </button>
@@ -129,7 +143,7 @@ export default function BookCards({ books, onComplete, onExit }: GameProps) {
         <Card className="p-6 text-center space-y-2 border-primary/40 bg-primary/5">
           <Trophy className="h-8 w-8 text-primary mx-auto" />
           <p className="font-semibold">
-            Final score: {score}/{ROUNDS}
+            Final score: {score}/{totalRounds}
           </p>
           <Button size="sm" variant="outline" onClick={restart}>
             Play again
