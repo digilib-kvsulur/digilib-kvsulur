@@ -18,6 +18,7 @@ import NotificationEmailDialog from "@/components/auth/NotificationEmailDialog";
 import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
 import { LinkGoogleAccountModal } from "@/components/auth/LinkGoogleAccountModal";
 import { LibraryBot } from "@/components/chat/LibraryBot";
+import { getAvatarUrl } from "@/lib/utils";
 
 const isTemporaryServiceFailure = (error: any) => {
   const rawStatus = error?.status ?? error?.context?.status;
@@ -42,7 +43,8 @@ const Login = () => {
   const [resetEmail, setResetEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [recentUsers, setRecentUsers] = useState<{ initials: string; color: string }[]>([]);
+  const [recentUsers, setRecentUsers] = useState<{ name: string; initials: string; avatar_url?: string | null; color: string }[]>([]);
+  const [activeUsersCount, setActiveUsersCount] = useState<number | null>(null);
   const [pendingNotificationEmail, setPendingNotificationEmail] = useState<{ id: string; email?: string | null; role?: string } | null>(null);
   const [authUnavailable, setAuthUnavailable] = useState(false);
   const [unlinkedGoogleSession, setUnlinkedGoogleSession] = useState<{ email: string; id: string } | null>(null);
@@ -136,20 +138,71 @@ const Login = () => {
 
   useEffect(() => {
     const loadRecentUsers = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("first_name, last_name")
-        .eq("is_approved", true)
-        .eq("role", "student")
-        .order("created_at", { ascending: false })
-        .limit(6);
-      const palette = ["bg-indigo-400", "bg-violet-400", "bg-pink-400", "bg-sky-400", "bg-emerald-400", "bg-amber-400"];
-      setRecentUsers(
-        (data || []).map((u: any, i: number) => ({
-          initials: `${(u.first_name || "?")[0]}${(u.last_name || "")[0] || ""}`.toUpperCase(),
-          color: palette[i % palette.length],
-        }))
-      );
+      const CACHE_KEY = "dlms_social_proof_cache_v2";
+      const CACHE_TTL = 6 * 60 * 60 * 1000; // 6-hour TTL (virtually zero DB usage on revisits)
+
+      // 1. Check local cache first
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Date.now() - parsed.timestamp < CACHE_TTL && Array.isArray(parsed.users) && parsed.users.length > 0) {
+            setRecentUsers(parsed.users);
+            if (parsed.count) setActiveUsersCount(parsed.count);
+            return;
+          }
+        }
+      } catch {}
+
+      // 2. Fetch fresh data if cache is missing or expired
+      try {
+        const palette = ["bg-indigo-500", "bg-violet-500", "bg-pink-500", "bg-sky-500", "bg-emerald-500", "bg-amber-500"];
+
+        // Lightweight query for the latest 5 approved profiles
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, avatar_url")
+          .eq("is_approved", true)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        // Highly optimized HEAD query for total count (0 rows returned over the wire)
+        const { count } = await supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("is_approved", true);
+
+        const users = (profiles || []).map((u: any, i: number) => {
+          const firstName = (u.first_name || "").trim();
+          const lastName = (u.last_name || "").trim();
+          const fullName = `${firstName} ${lastName}`.trim() || "Scholar";
+          const initials = `${(firstName || "?")[0] || ""}${(lastName || "")[0] || ""}`.toUpperCase() || "S";
+          return {
+            name: fullName,
+            initials,
+            avatar_url: u.avatar_url || null,
+            color: palette[i % palette.length],
+          };
+        });
+
+        const finalCount = count || 1200;
+        setRecentUsers(users);
+        setActiveUsersCount(finalCount);
+
+        // Save to cache
+        try {
+          localStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({
+              timestamp: Date.now(),
+              users,
+              count: finalCount,
+            })
+          );
+        } catch {}
+      } catch (err) {
+        console.warn("Could not load social proof:", err);
+      }
     };
     loadRecentUsers();
   }, []);
@@ -347,16 +400,16 @@ const Login = () => {
       {/* Left Panel - Premium Brand Showcase (Desktop >= lg) */}
       <div className="hidden lg:flex lg:w-[48%] xl:w-[50%] lg:h-full lg:overflow-hidden relative bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white select-none">
         {/* Subtle grid texture & glowing mesh background */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:28px_28px] opacity-40" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:32px_32px] opacity-40" />
         <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 left-1/3 w-80 h-80 rounded-full bg-sky-500/10 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex h-full flex-col justify-between p-6 xl:p-8 w-full">
+        <div className="relative z-10 flex h-full flex-col justify-between p-8 xl:p-12 2xl:p-14 w-full max-w-xl mx-auto">
           {/* School Header & Dual Logos */}
-          <div className="flex items-center gap-3">
-            <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 p-1.5 shadow-lg backdrop-blur-md">
-              <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-xs" title="PM SHRI Logo">
+          <div className="flex items-center gap-3.5">
+            <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 p-2 shadow-lg backdrop-blur-md">
+              <div className="relative flex h-10 w-10 xl:h-11 xl:w-11 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-xs" title="PM SHRI Logo">
                 <img
                   src="/logos/pm-shri.png"
                   alt="PM SHRI"
@@ -366,9 +419,9 @@ const Login = () => {
                     (e.target as HTMLElement).nextElementSibling?.classList.remove("hidden");
                   }}
                 />
-                <Sparkles className="absolute hidden h-4 w-4 text-amber-500" />
+                <Sparkles className="absolute hidden h-5 w-5 text-amber-500" />
               </div>
-              <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-xs" title="KV Logo">
+              <div className="relative flex h-10 w-10 xl:h-11 xl:w-11 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-xs" title="KV Logo">
                 <img
                   src="/logos/kv.png"
                   alt="KV"
@@ -378,40 +431,40 @@ const Login = () => {
                     (e.target as HTMLElement).nextElementSibling?.classList.remove("hidden");
                   }}
                 />
-                <BookOpen className="absolute hidden h-4 w-4 text-indigo-600" />
+                <BookOpen className="absolute hidden h-5 w-5 text-indigo-600" />
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xs font-black tracking-wider uppercase text-white">PM SHRI KV AFS SULUR</h1>
-                <span className="text-[9px] font-bold bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.2 rounded-full">
+                <h1 className="text-sm xl:text-base font-black tracking-wider uppercase text-white">PM SHRI KV AFS SULUR</h1>
+                <span className="text-[10px] font-black bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded-full">
                   DLMS
                 </span>
               </div>
-              <p className="text-[11px] text-white/70">Digital Library Management System</p>
+              <p className="text-xs xl:text-sm text-white/70">Digital Library Management System</p>
             </div>
           </div>
 
           {/* Core Visual Value Pitch */}
-          <div className="max-w-md py-4 space-y-4">
-            <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white/10 text-indigo-200 border border-white/15 backdrop-blur-md">
-                <Sparkles className="h-3 w-3 text-amber-400" />
+          <div className="space-y-6 my-auto py-4">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-indigo-200 border border-white/15 backdrop-blur-md">
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
                 <span>Next-Gen Academic Super-App</span>
               </div>
-              <h2 className="text-2xl xl:text-3xl font-black text-white tracking-tight leading-tight">
+              <h2 className="text-3xl xl:text-4xl 2xl:text-5xl font-black text-white tracking-tight leading-[1.15]">
                 Read. Compete.<br />
                 <span className="bg-gradient-to-r from-amber-300 via-indigo-200 to-sky-300 bg-clip-text text-transparent">
                   Earn Prestige.
                 </span>
               </h2>
-              <p className="text-white/70 text-xs xl:text-sm leading-relaxed">
+              <p className="text-white/80 text-sm xl:text-base leading-relaxed">
                 Connect your admission credentials to log reading hours, earn streak multipliers, and join school-wide quiz leagues.
               </p>
             </div>
 
             {/* Feature Highlights Grid */}
-            <div className="space-y-2 pt-1">
+            <div className="space-y-3 pt-1">
               {[
                 {
                   icon: Flame,
@@ -436,14 +489,14 @@ const Login = () => {
                 return (
                   <div
                     key={i}
-                    className="flex items-start gap-3 p-2.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
+                    className="flex items-center gap-3.5 p-3.5 xl:p-4 rounded-2xl bg-white/[0.06] border border-white/10 backdrop-blur-sm hover:bg-white/[0.10] transition-colors"
                   >
-                    <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${feat.color}`}>
-                      <Icon className="h-4 w-4" />
+                    <div className={`w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 ${feat.color}`}>
+                      <Icon className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-xs font-bold text-white">{feat.title}</h3>
-                      <p className="text-[10px] text-white/60 leading-tight">{feat.desc}</p>
+                      <h3 className="text-sm xl:text-base font-bold text-white">{feat.title}</h3>
+                      <p className="text-xs xl:text-sm text-white/70 leading-normal">{feat.desc}</p>
                     </div>
                   </div>
                 );
@@ -452,46 +505,61 @@ const Login = () => {
           </div>
 
           {/* Social Proof Footer */}
-          <div className="flex items-center gap-3 pt-3 border-t border-white/10">
-            <div className="flex -space-x-2">
+          <div className="flex items-center gap-3.5 pt-4 border-t border-white/10">
+            <div className="flex -space-x-2.5">
               {recentUsers.length > 0
                 ? recentUsers.slice(0, 5).map((u, i) => (
                     <div
                       key={i}
-                      className={`w-7 h-7 rounded-full ${u.color} border-2 border-slate-900 flex items-center justify-center text-[9px] font-black text-white shadow-xs`}
+                      className={`relative w-8 h-8 xl:w-9 xl:h-9 rounded-full ${u.color} border-2 border-slate-900 overflow-hidden flex items-center justify-center text-[10px] xl:text-xs font-black text-white shadow-xs shrink-0 select-none`}
+                      title={u.name}
                     >
-                      {u.initials}
+                      {u.avatar_url ? (
+                        <img
+                          src={getAvatarUrl(u.avatar_url) || ""}
+                          alt={u.name}
+                          className="absolute inset-0 w-full h-full object-cover z-10"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      ) : null}
+                      <span className="relative z-0">{u.initials}</span>
                     </div>
                   ))
                 : ["KV", "AF", "SU", "LU", "R"].map((initials, i) => (
                     <div
                       key={i}
-                      className="w-7 h-7 rounded-full bg-indigo-600 border-2 border-slate-900 flex items-center justify-center text-[9px] font-bold text-white"
+                      className="w-8 h-8 xl:w-9 xl:h-9 rounded-full bg-indigo-600 border-2 border-slate-900 flex items-center justify-center text-[10px] xl:text-xs font-bold text-white shrink-0"
                     >
                       {initials}
                     </div>
                   ))}
             </div>
-            <p className="text-[11px] text-white/70">
-              Join <strong className="text-white font-bold">1,200+ students & staff</strong> active on DLMS
+            <p className="text-xs xl:text-sm text-white/80">
+              Join{" "}
+              <strong className="text-white font-bold">
+                {activeUsersCount ? `${activeUsersCount.toLocaleString()}+ students & staff` : "1,200+ students & staff"}
+              </strong>{" "}
+              active on DLMS
             </p>
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Sign In Form (100% Height, No Vertical Scroll) */}
-      <div className="flex-1 flex flex-col justify-center items-center px-4 py-2 sm:px-6 relative h-dvh overflow-hidden select-none">
+      {/* Right Panel - Sign In Form */}
+      <div className="flex-1 flex flex-col justify-center items-center px-4 py-4 sm:px-8 relative h-dvh overflow-hidden select-none bg-slate-50/70 dark:bg-slate-950/80">
         {/* Subtle decorative radial glow behind form */}
-        <div className="absolute top-1/4 right-1/4 w-72 h-72 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
 
-        <div className="w-full max-w-[390px] space-y-2.5 my-auto">
+        <div className="w-full max-w-[420px] sm:max-w-[450px] space-y-3 my-auto">
           {/* Mobile Header (Hidden on lg) */}
-          <div className="flex flex-col items-center text-center gap-1.5 lg:hidden">
-            <div className="flex items-center gap-2 p-1 rounded-2xl bg-muted/60 border border-border/80 shadow-xs">
-              <div className="h-7 w-7 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
+          <div className="flex flex-col items-center text-center gap-1.5 lg:hidden mb-1">
+            <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-card border border-border shadow-xs">
+              <div className="h-8 w-8 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
               </div>
-              <div className="h-7 w-7 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
+              <div className="h-8 w-8 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
                 <img src="/logos/kv.png" alt="KV" className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
               </div>
             </div>
@@ -502,13 +570,13 @@ const Login = () => {
           </div>
 
           {/* Form Card Container */}
-          <div className="rounded-3xl border border-border/70 bg-card/90 p-4 sm:p-5 shadow-xl shadow-primary/5 backdrop-blur-xl">
+          <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 xl:p-8 shadow-xl shadow-slate-900/5 dark:shadow-black/20 backdrop-blur-xl">
             {!showForgotPassword && (
-              <div className="mb-3 space-y-0.5">
-                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+              <div className="mb-4 sm:mb-5 space-y-1">
+                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
                   Sign In
                 </h2>
-                <p className="text-[11px] sm:text-xs text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Enter your credentials to access your library dashboard.
                 </p>
               </div>
@@ -529,23 +597,23 @@ const Login = () => {
                 }}
               />
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-3.5">
                 {/* Google Sign-in Option */}
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleGoogleSignIn}
                   disabled={isLoading || isGoogleLoading}
-                  className="h-9 sm:h-10 w-full rounded-2xl border border-border/80 bg-background hover:bg-muted font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 active:scale-[0.99]"
+                  className="h-10.5 sm:h-11 w-full rounded-xl border border-border/80 bg-background hover:bg-muted font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2.5 active:scale-[0.99]"
                 >
                   {isGoogleLoading ? (
                     <span className="flex items-center gap-2 text-foreground">
-                      <span className="w-3.5 h-3.5 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
+                      <span className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
                       Connecting Google...
                     </span>
                   ) : (
                     <>
-                      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                      <svg className="h-4.5 w-4.5 shrink-0" viewBox="0 0 24 24">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
@@ -557,29 +625,29 @@ const Login = () => {
                 </Button>
 
                 {/* Divider */}
-                <div className="relative my-2 flex items-center justify-center">
+                <div className="relative my-2.5 flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-border/70" />
                   </div>
-                  <div className="relative bg-card px-2.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="relative bg-card px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Or sign in with ID
                   </div>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-2.5">
+                <form onSubmit={handleLogin} className="space-y-3">
                   {authUnavailable && (
-                    <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 rounded-2xl py-1.5 px-3">
-                      <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-                      <AlertDescription className="text-[10px] leading-relaxed">
+                    <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 rounded-xl py-2 px-3">
+                      <AlertCircle className="h-4 w-4 text-amber-500" />
+                      <AlertDescription className="text-xs leading-relaxed">
                         Sign-in service is busy. Please wait a minute and retry.
                       </AlertDescription>
                     </Alert>
                   )}
 
                   {/* Admission / Identifier Field */}
-                  <div className="space-y-0.5">
-                    <Label htmlFor="identifier" className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
-                      <User className="h-3 w-3 text-muted-foreground" />
+                  <div className="space-y-1">
+                    <Label htmlFor="identifier" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
                       <span>Admission No. / Email / Phone</span>
                     </Label>
                     <div className="relative">
@@ -589,23 +657,23 @@ const Login = () => {
                         placeholder="5-digit Admission No. (e.g. 13412)"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
-                        className="h-9 sm:h-10 rounded-2xl bg-background/80 border-border/80 text-xs sm:text-sm focus-visible:ring-primary shadow-2xs pl-3.5"
+                        className="h-10.5 sm:h-11 rounded-xl bg-background border-border/80 text-sm focus-visible:ring-primary shadow-xs pl-3.5"
                         required
                       />
                     </div>
                   </div>
 
                   {/* Password Field */}
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
-                        <Lock className="h-3 w-3 text-muted-foreground" />
+                      <Label htmlFor="password" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>Password</span>
                       </Label>
                       <button
                         type="button"
                         onClick={() => setShowForgotPassword(true)}
-                        className="text-[10px] font-semibold text-primary hover:underline"
+                        className="text-xs font-semibold text-primary hover:underline"
                       >
                         Forgot password?
                       </button>
@@ -617,7 +685,7 @@ const Login = () => {
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="h-9 sm:h-10 rounded-2xl bg-background/80 border-border/80 pr-9 text-xs sm:text-sm focus-visible:ring-primary shadow-2xs pl-3.5"
+                        className="h-10.5 sm:h-11 rounded-xl bg-background border-border/80 pr-10 text-sm focus-visible:ring-primary shadow-xs pl-3.5"
                         required
                       />
                       <button
@@ -626,25 +694,25 @@ const Login = () => {
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
-                        {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
 
                   {/* Turnstile Captcha */}
-                  <div className="py-0.5">
+                  <div className="py-1 flex justify-center">
                     <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
                   </div>
 
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    className="h-9.5 sm:h-10.5 w-full rounded-2xl gradient-primary border-0 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] text-white"
+                    className="h-11 sm:h-11.5 w-full rounded-xl gradient-primary border-0 text-sm sm:text-base font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] text-white"
                     disabled={isLoading || !captchaToken}
                   >
                     {isLoading ? (
                       <span className="flex items-center gap-2">
-                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         Signing in...
                       </span>
                     ) : (
@@ -656,8 +724,8 @@ const Login = () => {
             )}
 
             {/* Bottom Account Links */}
-            <div className="mt-3 pt-2.5 border-t border-border/60 text-center space-y-1">
-              <p className="text-[11px] text-muted-foreground">
+            <div className="mt-4 pt-3 border-t border-border/60 text-center space-y-1.5">
+              <p className="text-xs text-muted-foreground">
                 Don't have an account?{" "}
                 <button
                   type="button"
@@ -672,9 +740,9 @@ const Login = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate("/")}
-                  className="h-6 text-[11px] text-muted-foreground hover:text-foreground rounded-xl"
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground rounded-lg"
                 >
-                  <ArrowLeft className="h-3 w-3 mr-1" /> Back to Home
+                  <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to Home
                 </Button>
               </div>
             </div>
