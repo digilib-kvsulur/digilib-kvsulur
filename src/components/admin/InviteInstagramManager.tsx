@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, Instagram, Link2, Loader2, RefreshCw, Search, Share2, Users, Award } from "lucide-react";
+import { ExternalLink, Instagram, Link2, Loader2, RefreshCw, Search, Share2, Users, Award, Ban } from "lucide-react";
 
-type Story = { id: string; user_id: string; screenshot_url: string; claimed_date: string; points_awarded: number; created_at: string; student?: any };
-type Invite = { id: string; inviter_id: string; invited_user_id: string; points_awarded: number; created_at: string; inviter?: any; invited?: any };
+type Story = { id: string; user_id: string; screenshot_url: string; claimed_date: string; points_awarded: number; points_revoked?: number; status: string; created_at: string; student?: any };
+type Invite = { id: string; inviter_id: string; invited_user_id: string; points_awarded: number; points_revoked?: number; status?: string; created_at: string; inviter?: any; invited?: any };
 
 const fullName = (profile: any) => [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Student";
 
@@ -21,13 +21,14 @@ export default function InviteInstagramManager() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [reviewing, setReviewing] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [storyResult, inviteResult] = await Promise.all([
-        (supabase as any).from("instagram_story_submissions").select("id,user_id,screenshot_url,claimed_date,points_awarded,created_at,profiles!instagram_story_submissions_user_id_fkey(first_name,last_name,admission_number,student_class)").order("created_at", { ascending: false }).limit(500),
-        (supabase as any).from("student_invites").select("id,inviter_id,invited_user_id,points_awarded,created_at,inviter:profiles!student_invites_inviter_id_fkey(first_name,last_name,admission_number),invited:profiles!student_invites_invited_user_id_fkey(first_name,last_name,admission_number)").order("created_at", { ascending: false }).limit(1000),
+        (supabase as any).from("instagram_story_submissions").select("id,user_id,screenshot_url,claimed_date,points_awarded,points_revoked,status,created_at,profiles!instagram_story_submissions_user_id_fkey(first_name,last_name,admission_number,student_class)").order("created_at", { ascending: false }).limit(500),
+        (supabase as any).from("student_invites").select("id,inviter_id,invited_user_id,points_awarded,points_revoked,status,created_at,inviter:profiles!student_invites_inviter_id_fkey(first_name,last_name,admission_number),invited:profiles!student_invites_invited_user_id_fkey(first_name,last_name,admission_number)").order("created_at", { ascending: false }).limit(1000),
       ]);
       if (storyResult.error) throw storyResult.error;
       if (inviteResult.error) throw inviteResult.error;
@@ -39,6 +40,21 @@ export default function InviteInstagramManager() {
   }, [toast]);
 
   useEffect(() => { void loadData(); }, [loadData]);
+
+  const revokeReward = async (kind: "story" | "invite", id: string) => {
+    const label = kind === "story" ? "Instagram Story claim" : "invite reward";
+    if (!window.confirm(`Mark this ${label} as fake and revoke the awarded XP? This cannot be undone.`)) return;
+    setReviewing(`${kind}:${id}`);
+    try {
+      const { data, error } = await (supabase as any).rpc(kind === "story" ? "admin_revoke_story_reward" : "admin_revoke_invite_reward", { p_submission: id });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.reason === "already_reviewed" ? "This reward has already been reviewed." : "The reward could not be revoked.");
+      toast({ title: "Reward revoked", description: `${Number(data.points_revoked || 0).toLocaleString()} XP removed.` });
+      await loadData();
+    } catch (error: any) {
+      toast({ title: "Review failed", description: error?.message || "Please refresh and try again.", variant: "destructive" });
+    } finally { setReviewing(null); }
+  };
 
   const leaderboard = useMemo(() => {
     const grouped = new Map<string, { id: string; profile: any; count: number; points: number; latest: string }>();
@@ -94,11 +110,11 @@ export default function InviteInstagramManager() {
       </TabsContent>
       <TabsContent value="invites" className="space-y-4">
         <SearchBox value={search} onChange={setSearch} placeholder="Search inviter or friend by name or admission number" />
-        <Card><CardHeader><CardTitle className="text-base">Successful invites</CardTitle><CardDescription>Each row represents a student who joined through an invite.</CardDescription></CardHeader><CardContent className="p-0 sm:p-6">{loading && !invites.length ? <Loading /> : filteredInvites.length ? <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Invited by</TableHead><TableHead>New student</TableHead><TableHead>Date</TableHead><TableHead className="text-right">XP</TableHead></TableRow></TableHeader><TableBody>{filteredInvites.map((invite) => <TableRow key={invite.id}><TableCell><p className="font-medium">{fullName(invite.inviter)}</p><p className="text-xs text-muted-foreground">{invite.inviter?.admission_number}</p></TableCell><TableCell><p className="font-medium">{fullName(invite.invited)}</p><p className="text-xs text-muted-foreground">{invite.invited?.admission_number}</p></TableCell><TableCell className="whitespace-nowrap">{new Date(invite.created_at).toLocaleDateString()}</TableCell><TableCell className="text-right">{invite.points_awarded}</TableCell></TableRow>)}</TableBody></Table></div> : <Empty text="No invite records match your search." />}</CardContent></Card>
+          <Card><CardHeader><CardTitle className="text-base">Successful invites</CardTitle><CardDescription>Review an invite and revoke both students’ XP if the referral is fake.</CardDescription></CardHeader><CardContent className="p-0 sm:p-6">{loading && !invites.length ? <Loading /> : filteredInvites.length ? <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Invited by</TableHead><TableHead>New student</TableHead><TableHead>Date</TableHead><TableHead>XP</TableHead><TableHead className="text-right">Review</TableHead></TableRow></TableHeader><TableBody>{filteredInvites.map((invite) => <TableRow key={invite.id}><TableCell><p className="font-medium">{fullName(invite.inviter)}</p><p className="text-xs text-muted-foreground">{invite.inviter?.admission_number}</p></TableCell><TableCell><p className="font-medium">{fullName(invite.invited)}</p><p className="text-xs text-muted-foreground">{invite.invited?.admission_number}</p></TableCell><TableCell className="whitespace-nowrap">{new Date(invite.created_at).toLocaleDateString()}</TableCell><TableCell>{invite.status === "revoked" ? <Badge variant="destructive">Revoked · {invite.points_revoked || 0} XP</Badge> : <Badge variant="secondary">{invite.points_awarded} XP</Badge>}</TableCell><TableCell className="text-right">{invite.status === "revoked" ? <span className="text-xs text-muted-foreground">Reviewed</span> : <Button size="sm" variant="destructive" onClick={() => void revokeReward("invite", invite.id)} disabled={!!reviewing}><Ban className="mr-1.5 h-3.5 w-3.5" />{reviewing === `invite:${invite.id}` ? "Reviewing…" : "Fake · revoke XP"}</Button>}</TableCell></TableRow>)}</TableBody></Table></div> : <Empty text="No invite records match your search." />}</CardContent></Card>
       </TabsContent>
       <TabsContent value="instagram" className="space-y-4">
         <SearchBox value={search} onChange={setSearch} placeholder="Search student by name, admission number, or date" />
-        <Card><CardHeader><CardTitle className="text-base">Instagram Story reward claims</CardTitle><CardDescription>Claims currently award XP automatically. Open the attached screenshot to review the proof.</CardDescription></CardHeader><CardContent className="p-0 sm:p-6">{loading && !stories.length ? <Loading /> : filteredStories.length ? <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Student</TableHead><TableHead>Claim date</TableHead><TableHead>Submitted</TableHead><TableHead>XP</TableHead><TableHead className="text-right">Proof</TableHead></TableRow></TableHeader><TableBody>{filteredStories.map((story) => <TableRow key={story.id}><TableCell><p className="font-medium">{fullName(story.student)}</p><p className="text-xs text-muted-foreground">{story.student?.admission_number}{story.student?.student_class ? ` · ${story.student.student_class}` : ""}</p></TableCell><TableCell className="whitespace-nowrap">{new Date(`${story.claimed_date}T00:00:00`).toLocaleDateString()}</TableCell><TableCell className="whitespace-nowrap">{new Date(story.created_at).toLocaleString()}</TableCell><TableCell><Badge variant="secondary">+{story.points_awarded} XP</Badge></TableCell><TableCell className="text-right"><Button asChild size="sm" variant="outline"><a href={story.screenshot_url} target="_blank" rel="noreferrer">View <ExternalLink className="ml-2 h-3.5 w-3.5" /></a></Button></TableCell></TableRow>)}</TableBody></Table></div> : <Empty text="No Instagram proof submissions match your search." />}</CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-base">Instagram Story reward claims</CardTitle><CardDescription>Open the screenshot, then mark fake submissions to revoke their XP.</CardDescription></CardHeader><CardContent className="p-0 sm:p-6">{loading && !stories.length ? <Loading /> : filteredStories.length ? <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Student</TableHead><TableHead>Claim date</TableHead><TableHead>Submitted</TableHead><TableHead>XP</TableHead><TableHead className="text-right">Review</TableHead></TableRow></TableHeader><TableBody>{filteredStories.map((story) => <TableRow key={story.id}><TableCell><p className="font-medium">{fullName(story.student)}</p><p className="text-xs text-muted-foreground">{story.student?.admission_number}{story.student?.student_class ? ` · ${story.student.student_class}` : ""}</p></TableCell><TableCell className="whitespace-nowrap">{new Date(`${story.claimed_date}T00:00:00`).toLocaleDateString()}</TableCell><TableCell className="whitespace-nowrap">{new Date(story.created_at).toLocaleString()}</TableCell><TableCell>{story.status === "rejected" ? <Badge variant="destructive">Revoked · {story.points_revoked || 0} XP</Badge> : <Badge variant="secondary">+{story.points_awarded} XP</Badge>}</TableCell><TableCell className="text-right"><div className="flex justify-end gap-2">{story.status !== "rejected" && <Button size="sm" variant="destructive" onClick={() => void revokeReward("story", story.id)} disabled={!!reviewing}><Ban className="mr-1.5 h-3.5 w-3.5" />{reviewing === `story:${story.id}` ? "Reviewing…" : "Fake · revoke XP"}</Button>}<Button asChild size="sm" variant="outline"><a href={story.screenshot_url} target="_blank" rel="noreferrer">View <ExternalLink className="ml-2 h-3.5 w-3.5" /></a></Button></div></TableCell></TableRow>)}</TableBody></Table></div> : <Empty text="No Instagram proof submissions match your search." />}</CardContent></Card>
       </TabsContent>
     </Tabs>
   </div>;
