@@ -343,7 +343,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-dvh w-full overflow-x-hidden bg-background lg:h-dvh lg:overflow-hidden">
+    <div className="flex h-dvh min-h-dvh w-full overflow-hidden bg-background">
       {/* Left Panel - Premium Brand Showcase (Desktop >= lg) */}
       <div className="hidden lg:flex lg:w-[48%] xl:w-[50%] lg:h-full lg:overflow-hidden relative bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white select-none">
         {/* Subtle grid texture & glowing mesh background */}
@@ -479,37 +479,37 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Right Panel - Sign In Form */}
-      <div className="flex-1 flex flex-col justify-center items-center px-4 py-4 sm:px-6 relative lg:h-full lg:overflow-hidden overflow-y-auto">
+      {/* Right Panel - Sign In Form (100% Height, No Vertical Scroll) */}
+      <div className="flex-1 flex flex-col justify-center items-center px-4 py-2 sm:px-6 relative h-dvh overflow-hidden select-none">
         {/* Subtle decorative radial glow behind form */}
-        <div className="absolute top-1/4 right-1/4 w-80 h-80 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/4 right-1/4 w-72 h-72 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
-        <div className="w-full max-w-[400px] space-y-3.5 my-auto">
+        <div className="w-full max-w-[390px] space-y-2.5 my-auto">
           {/* Mobile Header (Hidden on lg) */}
-          <div className="flex flex-col items-center text-center gap-2 lg:hidden">
+          <div className="flex flex-col items-center text-center gap-1.5 lg:hidden">
             <div className="flex items-center gap-2 p-1 rounded-2xl bg-muted/60 border border-border/80 shadow-xs">
-              <div className="h-8 w-8 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
+              <div className="h-7 w-7 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
               </div>
-              <div className="h-8 w-8 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
+              <div className="h-7 w-7 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
                 <img src="/logos/kv.png" alt="KV" className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
               </div>
             </div>
             <div>
-              <h2 className="text-sm font-black text-foreground uppercase tracking-tight">PM SHRI KV AFS SULUR</h2>
-              <p className="text-[11px] text-muted-foreground">Digital Library Management System</p>
+              <h2 className="text-xs font-black text-foreground uppercase tracking-tight">PM SHRI KV AFS SULUR</h2>
+              <p className="text-[10px] text-muted-foreground">Digital Library Management System</p>
             </div>
           </div>
 
           {/* Form Card Container */}
-          <div className="rounded-3xl border border-border/70 bg-card/80 p-5 sm:p-6 shadow-xl shadow-primary/5 backdrop-blur-xl">
+          <div className="rounded-3xl border border-border/70 bg-card/90 p-4 sm:p-5 shadow-xl shadow-primary/5 backdrop-blur-xl">
             {!showForgotPassword && (
-              <div className="mb-4 space-y-0.5">
+              <div className="mb-3 space-y-0.5">
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
                   Sign In
                 </h2>
-                <p className="text-xs text-muted-foreground">
-                  Welcome back! Enter your credentials to access your dashboard.
+                <p className="text-[11px] sm:text-xs text-muted-foreground">
+                  Enter your credentials to access your library dashboard.
                 </p>
               </div>
             )}
@@ -529,14 +529,14 @@ const Login = () => {
                 }}
               />
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {/* Google Sign-in Option */}
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleGoogleSignIn}
                   disabled={isLoading || isGoogleLoading}
-                  className="h-10 sm:h-11 w-full rounded-2xl border border-border/80 bg-background hover:bg-muted font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2 active:scale-[0.99]"
+                  className="h-9 sm:h-10 w-full rounded-2xl border border-border/80 bg-background hover:bg-muted font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 active:scale-[0.99]"
                 >
                   {isGoogleLoading ? (
                     <span className="flex items-center gap-2 text-foreground">
@@ -557,7 +557,7 @@ const Login = () => {
                 </Button>
 
                 {/* Divider */}
-                <div className="relative my-2.5 flex items-center justify-center">
+                <div className="relative my-2 flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-border/70" />
                   </div>
@@ -566,19 +566,19 @@ const Login = () => {
                   </div>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-3">
+                <form onSubmit={handleLogin} className="space-y-2.5">
                   {authUnavailable && (
-                    <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 rounded-2xl py-2">
+                    <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 rounded-2xl py-1.5 px-3">
                       <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-                      <AlertDescription className="text-[11px] leading-relaxed">
-                        Sign-in service is temporarily busy. Please wait a minute and retry.
+                      <AlertDescription className="text-[10px] leading-relaxed">
+                        Sign-in service is busy. Please wait a minute and retry.
                       </AlertDescription>
                     </Alert>
                   )}
 
                   {/* Admission / Identifier Field */}
-                  <div className="space-y-1">
-                    <Label htmlFor="identifier" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="identifier" className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
                       <User className="h-3 w-3 text-muted-foreground" />
                       <span>Admission No. / Email / Phone</span>
                     </Label>
@@ -589,16 +589,16 @@ const Login = () => {
                         placeholder="5-digit Admission No. (e.g. 13412)"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
-                        className="h-10 sm:h-11 rounded-2xl bg-background/80 border-border/80 text-xs sm:text-sm focus-visible:ring-primary shadow-2xs pl-3.5"
+                        className="h-9 sm:h-10 rounded-2xl bg-background/80 border-border/80 text-xs sm:text-sm focus-visible:ring-primary shadow-2xs pl-3.5"
                         required
                       />
                     </div>
                   </div>
 
                   {/* Password Field */}
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Label htmlFor="password" className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
                         <Lock className="h-3 w-3 text-muted-foreground" />
                         <span>Password</span>
                       </Label>
@@ -617,7 +617,7 @@ const Login = () => {
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="h-10 sm:h-11 rounded-2xl bg-background/80 border-border/80 pr-10 text-xs sm:text-sm focus-visible:ring-primary shadow-2xs pl-3.5"
+                        className="h-9 sm:h-10 rounded-2xl bg-background/80 border-border/80 pr-9 text-xs sm:text-sm focus-visible:ring-primary shadow-2xs pl-3.5"
                         required
                       />
                       <button
@@ -632,12 +632,14 @@ const Login = () => {
                   </div>
 
                   {/* Turnstile Captcha */}
-                  <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
+                  <div className="py-0.5">
+                    <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
+                  </div>
 
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    className="h-10 sm:h-11 w-full rounded-2xl gradient-primary border-0 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] text-white"
+                    className="h-9.5 sm:h-10.5 w-full rounded-2xl gradient-primary border-0 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] text-white"
                     disabled={isLoading || !captchaToken}
                   >
                     {isLoading ? (
@@ -654,8 +656,8 @@ const Login = () => {
             )}
 
             {/* Bottom Account Links */}
-            <div className="mt-3.5 pt-3 border-t border-border/60 text-center space-y-1.5">
-              <p className="text-xs text-muted-foreground">
+            <div className="mt-3 pt-2.5 border-t border-border/60 text-center space-y-1">
+              <p className="text-[11px] text-muted-foreground">
                 Don't have an account?{" "}
                 <button
                   type="button"
@@ -670,7 +672,7 @@ const Login = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate("/")}
-                  className="h-7 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+                  className="h-6 text-[11px] text-muted-foreground hover:text-foreground rounded-xl"
                 >
                   <ArrowLeft className="h-3 w-3 mr-1" /> Back to Home
                 </Button>
