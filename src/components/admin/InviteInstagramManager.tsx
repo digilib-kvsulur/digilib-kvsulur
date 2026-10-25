@@ -23,7 +23,11 @@ export default function InviteInstagramManager() {
   const [activeTab, setActiveTab] = useState("overview");
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [reviewIndex, setReviewIndex] = useState(0);
+  const [readyScreenshotIds, setReadyScreenshotIds] = useState<Set<string>>(() => new Set());
   const swipeStartX = useRef<number | null>(null);
+  const markScreenshotReady = useCallback((id: string) => {
+    setReadyScreenshotIds((ready) => ready.has(id) ? ready : new Set(ready).add(id));
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -89,22 +93,34 @@ export default function InviteInstagramManager() {
   }, [stories, search]);
   const pendingStories = useMemo(() => filteredStories.filter((story) => story.status === "approved"), [filteredStories]);
   const currentReviewStory = pendingStories.length ? pendingStories[reviewIndex % pendingStories.length] : null;
+  const nextReviewStory = pendingStories.length > 1 ? pendingStories[(reviewIndex + 1) % pendingStories.length] : null;
+  const isReviewReady = !!currentReviewStory && readyScreenshotIds.has(currentReviewStory.id) && (!nextReviewStory || readyScreenshotIds.has(nextReviewStory.id));
   useEffect(() => {
-    if (activeTab !== "instagram" || !currentReviewStory || reviewing) return;
+    if (activeTab !== "instagram") return;
+    for (const story of [currentReviewStory, nextReviewStory]) {
+      if (!story || readyScreenshotIds.has(story.id)) continue;
+      const image = new Image();
+      image.onload = () => markScreenshotReady(story.id);
+      image.onerror = () => markScreenshotReady(story.id);
+      image.src = story.screenshot_url;
+    }
+  }, [activeTab, currentReviewStory, nextReviewStory, readyScreenshotIds, markScreenshotReady]);
+  useEffect(() => {
+    if (activeTab !== "instagram" || !currentReviewStory || !isReviewReady || reviewing) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']") || event.altKey || event.ctrlKey || event.metaKey) return;
-      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "r") {
+      if (event.key === "ArrowLeft") {
         event.preventDefault();
         void reviewReward("story", currentReviewStory.id, "reject");
-      } else if (event.key === "ArrowRight" || event.key.toLowerCase() === "a") {
+      } else if (event.key === "ArrowRight") {
         event.preventDefault();
         void reviewReward("story", currentReviewStory.id, "accept");
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeTab, currentReviewStory, reviewing, reviewReward]);
+  }, [activeTab, currentReviewStory, isReviewReady, reviewing, reviewReward]);
   const filteredInvites = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return invites;
@@ -146,15 +162,15 @@ export default function InviteInstagramManager() {
       </TabsContent>
       <TabsContent value="instagram" className="space-y-4">
         <SearchBox value={search} onChange={setSearch} placeholder="Search student by name, admission number, or date" />
-        <Card><CardHeader><CardTitle className="text-base">Instagram Story quick review</CardTitle><CardDescription>Swipe right to accept, left to reject. You can also use the buttons.</CardDescription></CardHeader><CardContent>
+        <Card><CardHeader><CardTitle className="text-base">Instagram Story quick review</CardTitle><CardDescription>Use ← to reject and → to accept. The next screenshot loads before a decision advances the queue.</CardDescription></CardHeader><CardContent>
           {loading && !stories.length ? <Loading /> : currentReviewStory ? <div className="mx-auto max-w-md">
             <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground"><span>{fullName(currentReviewStory.student)}{currentReviewStory.student?.admission_number ? ` · ${currentReviewStory.student.admission_number}` : ""}</span><span>{(reviewIndex % pendingStories.length) + 1} / {pendingStories.length}</span></div>
-            <div className="overflow-hidden rounded-xl border bg-muted/30" onTouchStart={(event) => { swipeStartX.current = event.touches[0]?.clientX ?? null; }} onTouchEnd={(event) => { const start = swipeStartX.current; swipeStartX.current = null; if (start === null || reviewing) return; const delta = event.changedTouches[0]?.clientX - start; if (Math.abs(delta) > 40) void reviewReward("story", currentReviewStory.id, delta > 0 ? "accept" : "reject"); }}>
-              <a href={currentReviewStory.screenshot_url} target="_blank" rel="noreferrer" className="flex min-h-72 items-center justify-center bg-black/5"><img src={currentReviewStory.screenshot_url} alt={`Instagram Story proof from ${fullName(currentReviewStory.student)}`} className="max-h-[65vh] w-full object-contain" loading="lazy" onError={(event) => { event.currentTarget.alt = "Screenshot could not be loaded. Open the proof link to view it."; }} /></a>
+            <div className="overflow-hidden rounded-xl border bg-muted/30" onTouchStart={(event) => { swipeStartX.current = event.touches[0]?.clientX ?? null; }} onTouchEnd={(event) => { const start = swipeStartX.current; swipeStartX.current = null; if (start === null || !isReviewReady || reviewing) return; const delta = event.changedTouches[0]?.clientX - start; if (Math.abs(delta) > 40) void reviewReward("story", currentReviewStory.id, delta > 0 ? "accept" : "reject"); }}>
+              <a href={currentReviewStory.screenshot_url} target="_blank" rel="noreferrer" className="flex min-h-72 items-center justify-center bg-black/5"><img src={currentReviewStory.screenshot_url} alt={`Instagram Story proof from ${fullName(currentReviewStory.student)}`} className="max-h-[65vh] w-full object-contain" loading="eager" onLoad={() => markScreenshotReady(currentReviewStory.id)} onError={(event) => { markScreenshotReady(currentReviewStory.id); event.currentTarget.alt = "Screenshot could not be loaded. Open the proof link to view it."; }} /></a>
               <div className="flex items-center justify-between gap-3 p-3"><div className="min-w-0"><p className="font-medium">{new Date(`${currentReviewStory.claimed_date}T00:00:00`).toLocaleDateString()} · +{currentReviewStory.points_awarded} XP</p><p className="text-xs text-muted-foreground">Submitted {new Date(currentReviewStory.created_at).toLocaleString()}</p></div><Button asChild size="sm" variant="outline"><a href={currentReviewStory.screenshot_url} target="_blank" rel="noreferrer">Open full size <ExternalLink className="ml-2 h-3.5 w-3.5" /></a></Button></div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3"><Button variant="destructive" className="h-12" disabled={!!reviewing} onClick={() => void reviewReward("story", currentReviewStory.id, "reject")}><ArrowLeft className="mr-2 h-4 w-4" />Reject · revoke XP</Button><Button className="h-12" disabled={!!reviewing} onClick={() => void reviewReward("story", currentReviewStory.id, "accept")}><Check className="mr-2 h-4 w-4" />Accept</Button></div>
-            <p className="mt-2 text-center text-xs text-muted-foreground"><ArrowLeft className="mr-1 inline h-3 w-3" />← / R reject <span className="mx-2">·</span> → / A accept <ArrowRight className="ml-1 inline h-3 w-3" /></p>
+            <div className="mt-4 grid grid-cols-2 gap-3"><Button variant="destructive" className="h-12" disabled={!!reviewing || !isReviewReady} onClick={() => void reviewReward("story", currentReviewStory.id, "reject")}><ArrowLeft className="mr-2 h-4 w-4" />Reject · revoke XP</Button><Button className="h-12" disabled={!!reviewing || !isReviewReady} onClick={() => void reviewReward("story", currentReviewStory.id, "accept")}><Check className="mr-2 h-4 w-4" />Accept <ArrowRight className="ml-2 h-4 w-4" /></Button></div>
+            <p className="mt-2 text-center text-xs text-muted-foreground">{isReviewReady ? "← Reject · → Accept" : "Loading next screenshot…"}</p>
           </div> : <Empty text="All matching screenshots have been reviewed." />}
         </CardContent></Card>
         <Card><CardHeader><CardTitle className="text-base">All Instagram Story claims</CardTitle><CardDescription>Previously reviewed claims remain here for reference.</CardDescription></CardHeader><CardContent className="p-0 sm:p-6">{loading && !stories.length ? <Loading /> : filteredStories.length ? <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Student</TableHead><TableHead>Claim date</TableHead><TableHead>XP</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Proof</TableHead></TableRow></TableHeader><TableBody>{filteredStories.map((story) => <TableRow key={story.id}><TableCell><p className="font-medium">{fullName(story.student)}</p><p className="text-xs text-muted-foreground">{story.student?.admission_number}{story.student?.student_class ? ` · ${story.student.student_class}` : ""}</p></TableCell><TableCell>{new Date(`${story.claimed_date}T00:00:00`).toLocaleDateString()}</TableCell><TableCell>{story.status === "rejected" ? <Badge variant="destructive">Revoked · {story.points_revoked || 0} XP</Badge> : <Badge variant="secondary">+{story.points_awarded} XP</Badge>}</TableCell><TableCell><Badge variant={story.status === "rejected" ? "destructive" : story.status === "verified" ? "default" : "outline"}>{story.status === "rejected" ? "Rejected" : story.status === "verified" ? "Accepted" : "Awaiting review"}</Badge></TableCell><TableCell className="text-right"><Button asChild size="sm" variant="outline"><a href={story.screenshot_url} target="_blank" rel="noreferrer">View <ExternalLink className="ml-2 h-3.5 w-3.5" /></a></Button></TableCell></TableRow>)}</TableBody></Table></div> : <Empty text="No Instagram proof submissions match your search." />}</CardContent></Card>
