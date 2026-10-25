@@ -46,10 +46,16 @@ BEGIN
     RETURN NULL;
   END IF;
 
+  -- pg_net's extension schema is not necessarily the schema containing its
+  -- API functions (Supabase commonly exposes them from `net`). Resolve the
+  -- callable function itself instead of assuming both schemas are identical.
   SELECT n.nspname INTO v_pg_net_schema
-  FROM pg_extension e
-  JOIN pg_namespace n ON n.oid = e.extnamespace
-  WHERE e.extname = 'pg_net';
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE p.proname = 'http_post'
+    AND p.proargtypes = '25 3802 3802 3802 23'::oidvector
+  ORDER BY CASE WHEN n.nspname = 'net' THEN 0 ELSE 1 END
+  LIMIT 1;
 
   IF v_pg_net_schema IS NULL THEN
     RAISE WARNING 'Push delivery skipped: pg_net is not installed';

@@ -17,8 +17,9 @@ import { VacationOverviewBanner } from "@/features/vacation";
 import {
   BookOpen, Brain, Target, Award, Zap, Trophy, TrendingUp, Sparkles,
   Calendar, CalendarDays, Gamepad2, Timer, FileText, BookCheck, Users,
-  UserPlus, Copy, Bug, Palette, AlertTriangle, ChevronRight, BookPlus,
-  Compass, CheckCircle2, Medal, Network, MessageSquare
+  UserPlus, Copy, Bug, Palette, AlertTriangle, ChevronRight, Compass,
+  CheckCircle2, Medal, Network, MessageSquare, Flame, ArrowUpRight,
+  Sun, Moon, Check, MapPin, BookMarked
 } from "lucide-react";
 
 export interface OverviewProps {
@@ -77,15 +78,15 @@ export default function Overview({
   const { toast } = useToast();
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Time-aware greeting
-  const greeting = useMemo(() => {
+  // Time-aware greeting & contextual icon
+  const { greeting, timeIcon: TimeIcon } = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return { greeting: "Good morning", timeIcon: Sun };
+    if (hour < 17) return { greeting: "Good afternoon", timeIcon: Sun };
+    return { greeting: "Good evening", timeIcon: Moon };
   }, []);
 
-  // Compute greeting name (if first name looks small or is initials, include 2nd or 3rd word)
+  // Compute clean greeting name
   const greetingName = useMemo(() => {
     if (!user) return "Scholar";
     const firstName = (user.first_name || "").trim();
@@ -100,17 +101,15 @@ export default function Overview({
       return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
     };
 
-    // If first name word is 1-2 chars (e.g. initials like "G", "G V", "A K"), show up to 3 words
     if (words[0].length <= 2 && words.length > 1) {
       const parts: string[] = [];
       for (let i = 0; i < Math.min(words.length, 3); i++) {
         parts.push(formatWord(words[i]));
-        if (words[i].length > 2 && i >= 1) break; // Found the substantial name
+        if (words[i].length > 2 && i >= 1) break;
       }
       return parts.join(" ");
     }
 
-    // If first name word is very short (3 chars or less e.g. "Ali", "Dan", "Jay") and 2nd word exists
     if (words[0].length <= 3 && words.length > 1) {
       return `${formatWord(words[0])} ${formatWord(words[1])}`;
     }
@@ -128,7 +127,7 @@ export default function Overview({
     return `${Math.floor(sec / 86400)}d ago`;
   };
 
-  // Invite code URL
+  // Referral link
   const inviteCodeOrAdm = user?.invite_code || user?.admission_number || "";
   const inviteLink = inviteCodeOrAdm
     ? `https://dlms.kvsulur.in/invite/${inviteCodeOrAdm}`
@@ -157,22 +156,6 @@ export default function Overview({
     Math.round((monthlyBooksRead / (schoolReadingGoal || 1)) * 100)
   );
 
-  // Quick Action App Tiles
-  const quickActions = [
-    { label: "NCERT Books", icon: BookOpen, tab: "ncert", color: "text-sky-400", bg: "bg-sky-500/15", badge: "E-BOOKS" },
-    { label: "My Portfolio", icon: FileText, tab: "portfolio", color: "text-rose-500", bg: "bg-rose-500/10" },
-    { label: "Games Corner", icon: Gamepad2, tab: "games", color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Study Tracker", icon: Timer, tab: "study", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { label: "Quizzes", icon: Brain, tab: "quizzes", color: "text-purple-500", bg: "bg-purple-500/10", badge: "LIVE" },
-    { label: "Certificates", icon: Award, tab: "certificates", color: "text-amber-500", bg: "bg-amber-500/10" },
-    { label: "Study Materials", icon: FileText, tab: "materials", color: "text-indigo-500", bg: "bg-indigo-500/10" },
-    { label: "Library Events", icon: CalendarDays, tab: "events", color: "text-pink-500", bg: "bg-pink-500/10" },
-    { label: "Community", icon: Users, tab: "community", color: "text-orange-500", bg: "bg-orange-500/10" },
-    { label: "Network", icon: Network, tab: "network", color: "text-cyan-500", bg: "bg-cyan-500/10" },
-    { label: "Friends Chat", icon: MessageSquare, tab: "chat", color: "text-violet-500", bg: "bg-violet-500/10" },
-    { label: "Feedback", icon: MessageSquare, tab: "feedback", color: "text-amber-500", bg: "bg-amber-500/10" },
-  ];
-
   // Activity styling helper
   const getActivityStyle = (type: string) => {
     switch (type) {
@@ -187,665 +170,774 @@ export default function Overview({
       case "game":
         return { icon: Gamepad2, color: "text-indigo-500", bg: "bg-indigo-500/10" };
       default:
-        return { icon: BookPlus, color: "text-amber-500", bg: "bg-amber-500/10" };
+        return { icon: Sparkles, color: "text-amber-500", bg: "bg-amber-500/10" };
     }
   };
 
-  /* -------------------------------------------------------------
-     REUSABLE SECTIONS (USED FOR PRECISE ORDERING ON MOBILE & DESKTOP)
-     ------------------------------------------------------------- */
+  // Curated Primary Launchpad Hubs
+  const primaryHubs = [
+    {
+      id: "catalog",
+      label: "Books Catalog",
+      description: "Browse 5,000+ library titles",
+      icon: Compass,
+      badge: "BROWSE",
+      color: "text-indigo-500",
+      bg: "bg-indigo-500/10 hover:bg-indigo-500/15",
+      border: "hover:border-indigo-500/30",
+      action: () => navigate("/catalog"),
+    },
+    {
+      id: "ncert",
+      label: "NCERT Textbooks",
+      description: "Class 1-12 official e-books",
+      icon: BookOpen,
+      badge: "E-BOOKS",
+      color: "text-sky-500",
+      bg: "bg-sky-500/10 hover:bg-sky-500/15",
+      border: "hover:border-sky-500/30",
+      action: () => setActiveTab("ncert"),
+    },
+    {
+      id: "quizzes",
+      label: "Daily Quizzes",
+      description: "Compete in live quiz leagues",
+      icon: Brain,
+      badge: "LIVE XP",
+      color: "text-purple-500",
+      bg: "bg-purple-500/10 hover:bg-purple-500/15",
+      border: "hover:border-purple-500/30",
+      action: () => setActiveTab("quizzes"),
+    },
+    {
+      id: "portfolio",
+      label: "My Portfolio",
+      description: "Reading logs & achievements",
+      icon: FileText,
+      badge: null,
+      color: "text-rose-500",
+      bg: "bg-rose-500/10 hover:bg-rose-500/15",
+      border: "hover:border-rose-500/30",
+      action: () => setActiveTab("portfolio"),
+    },
+    {
+      id: "study",
+      label: "Study Tracker",
+      description: "Focus timer & session notes",
+      icon: Timer,
+      badge: null,
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10 hover:bg-emerald-500/15",
+      border: "hover:border-emerald-500/30",
+      action: () => setActiveTab("study"),
+    },
+    {
+      id: "games",
+      label: "Games Corner",
+      description: "Chess, wordle & library quests",
+      icon: Gamepad2,
+      badge: null,
+      color: "text-amber-500",
+      bg: "bg-amber-500/10 hover:bg-amber-500/15",
+      border: "hover:border-amber-500/30",
+      action: () => setActiveTab("games"),
+    },
+    {
+      id: "events",
+      label: "Library Events",
+      description: "Workshops, fairs & meets",
+      icon: CalendarDays,
+      badge: null,
+      color: "text-pink-500",
+      bg: "bg-pink-500/10 hover:bg-pink-500/15",
+      border: "hover:border-pink-500/30",
+      action: () => setActiveTab("events"),
+    },
+    {
+      id: "certificates",
+      label: "Certificates Vault",
+      description: "Official library merit honors",
+      icon: Award,
+      badge: null,
+      color: "text-teal-500",
+      bg: "bg-teal-500/10 hover:bg-teal-500/15",
+      border: "hover:border-teal-500/30",
+      action: () => setActiveTab("certificates"),
+    },
+  ];
 
-  // 1. EVENT BANNER SECTION (Vacation Campaign + Monthly Memory Wrap)
-  const EventBannerSection = () => (
-    <div className="space-y-3">
-      {/* Vacation Campaign Banner */}
-      <VacationOverviewBanner onOpen={() => setActiveTab("vacation")} />
+  // Secondary Quick Navigation Chips
+  const secondaryQuickChips = [
+    { label: "Book Issued Hub", tab: "issued", icon: BookCheck },
+    { label: "Community Forum", tab: "community", icon: Users },
+    { label: "Classmates Network", tab: "network", icon: Network },
+    { label: "Friends Chat", tab: "chat", icon: MessageSquare },
+    { label: "Library Map", tab: "locator", icon: MapPin },
+    { label: "Study Materials", tab: "materials", icon: FileText },
+  ];
 
-      {/* Monthly Memory Capsule Banner (if active) */}
-      {(() => {
-        if (!capsuleEnabled || !setShowMemoryCapsule) return null;
-        const nowDate = new Date();
-        const isWrapFirst7Days = nowDate.getDate() <= 7;
-        const wrapPrevMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() - 1, 1).toLocaleString("default", { month: "long" });
-        const bannerMonth = isWrapFirst7Days ? wrapPrevMonth : nowDate.toLocaleString("default", { month: "long" });
-
-        return (
-          <Card
-            className="overflow-hidden border border-purple-500/30 bg-gradient-to-r from-slate-950 via-purple-950/90 to-indigo-950 text-white shadow-xs hover:shadow-md transition-all cursor-pointer group rounded-2xl"
-            onClick={() => setShowMemoryCapsule(true)}
-          >
-            <CardContent className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 via-pink-500 to-indigo-500 p-0.5 shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-                  <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-amber-300 animate-pulse" />
-                  </div>
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <Badge className="bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0 text-[9px] font-black px-1.5 py-0.2 shrink-0">
-                      {isWrapFirst7Days ? `${bannerMonth.toUpperCase()} WRAP` : "MONTHLY"}
-                    </Badge>
-                    {isWrapFirst7Days && (
-                      <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider shrink-0">
-                        ✓ READY
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs sm:text-sm font-extrabold text-white truncate mt-0.5">
-                    {isWrapFirst7Days ? `Your ${bannerMonth} Reading Wrap is Here! 🚀` : "Your Reading Memory Capsule ✨"}
-                  </p>
-                </div>
-              </div>
-              <Button size="sm" className="gradient-primary text-white border-0 font-bold rounded-xl shrink-0 h-8 text-xs px-3 shadow-xs">
-                <span>Open →</span>
-              </Button>
-            </CardContent>
-          </Card>
-        );
-      })()}
-
-      {/* Active Bug Bounty / UI Reform Campaign */}
-      {bountyVisible && activeBounty?.is_active && activeBounty.ends_at && new Date(activeBounty.ends_at).getTime() > Date.now() && (
-        <Card
-          className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-card shadow-xs hover:shadow-md transition-all cursor-pointer"
-          onClick={() => setActiveTab("bounty")}
-        >
-          <CardContent className="p-3.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0">
-                <Bug className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-foreground truncate">Bug Hunter Campaign</span>
-                  <Badge variant="outline" className="text-[9px] font-bold border-amber-500/40 text-amber-600 bg-amber-500/10">
-                    +100 XP
-                  </Badge>
-                </div>
-                <p className="text-[11px] text-muted-foreground truncate">Spot bugs to earn rewarded library XP</p>
-              </div>
-            </div>
-            <Button size="sm" className="h-7 px-3 text-xs rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0">
-              Report →
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {uiReformVisible && activeReformCampaign && activeReformCampaign.status !== "ended" && activeReformCampaign.ends_at && new Date(activeReformCampaign.ends_at).getTime() > Date.now() && (
-        <Card
-          className="rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-card shadow-xs hover:shadow-md transition-all cursor-pointer"
-          onClick={() => setActiveTab("ui-reform")}
-        >
-          <CardContent className="p-3.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
-                <Palette className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-foreground truncate">UI Reform Challenge</span>
-                  <Badge variant="outline" className="text-[9px] font-bold border-purple-500/40 text-purple-600 bg-purple-500/10">
-                    +{activeReformCampaign.reward_points || 1000} XP
-                  </Badge>
-                </div>
-                <p className="text-[11px] text-muted-foreground truncate">Submit layout ideas & wireframes</p>
-              </div>
-            </div>
-            <Button size="sm" className="h-7 px-3 text-xs rounded-xl font-bold bg-purple-600 hover:bg-purple-700 text-white shrink-0">
-              Submit →
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+  // Check if any secondary campaigns are active
+  const hasWrapActive = Boolean(capsuleEnabled && setShowMemoryCapsule);
+  const hasBountyActive = Boolean(
+    bountyVisible &&
+    activeBounty?.is_active &&
+    activeBounty?.ends_at &&
+    new Date(activeBounty.ends_at).getTime() > Date.now()
   );
-
-  // 2. LEVEL PROGRESS
-  const LevelSection = () => <LevelProgress userPoints={user?.points || 0} />;
-
-  // 3. STREAK CARD
-  const StreakSection = () => (
-    streakData && !streakData.loading ? (
-      <LoginStreakCard
-        currentStreak={streakData.currentStreak}
-        longestStreak={streakData.longestStreak}
-        totalLoginDays={streakData.totalLoginDays}
-        onPointsClaimed={checkAuth}
-      />
-    ) : null
+  const hasReformActive = Boolean(
+    uiReformVisible &&
+    activeReformCampaign &&
+    activeReformCampaign.status !== "ended" &&
+    activeReformCampaign?.ends_at &&
+    new Date(activeReformCampaign.ends_at).getTime() > Date.now()
   );
+  const hasSecondaryCampaigns = hasWrapActive || hasBountyActive || hasReformActive;
 
-  // 4. INVITE CARD
-  const InviteSection = () => (
-    <Card className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 via-card to-purple-500/5 shadow-2xs">
-      <CardContent className="p-3.5 sm:p-4 space-y-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-violet-600 text-white flex items-center justify-center shrink-0">
-              <UserPlus className="h-3.5 w-3.5" />
-            </div>
-            <span className="text-xs font-bold text-foreground">Invite Classmates</span>
-          </div>
-          <Badge variant="outline" className="border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-[10px] font-bold px-2 py-0.5">
-            <Sparkles className="h-2.5 w-2.5 mr-1" /> +250 XP
-          </Badge>
-        </div>
-        <p className="text-[11px] text-muted-foreground leading-snug">
-          Earn +250 XP for every friend who signs in with your invite link!
-        </p>
-        <div className="flex items-center gap-2 pt-0.5">
-          <Button
-            size="sm"
-            onClick={handleCopyInvite}
-            className="flex-1 h-8 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1 shadow-2xs"
-          >
-            {copiedLink ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleWhatsAppShare}
-            className="h-8 rounded-xl text-xs font-semibold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 px-2.5"
-          >
-            WhatsApp
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setActiveTab("invite")}
-            className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-foreground shrink-0"
-            title="Open Invite Center"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  // 5. STUDENT LAUNCHPAD (Interactive Mission Tiles)
-  const LaunchpadSection = () => (
-    <Card className="border border-border/70 rounded-3xl overflow-hidden bg-card/60 backdrop-blur-md shadow-sm">
-      <CardHeader className="p-3.5 sm:p-4 pb-2.5">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xs sm:text-sm font-black flex items-center gap-2 text-foreground tracking-tight">
-            <div className="w-6 h-6 rounded-lg bg-primary/15 flex items-center justify-center text-primary shadow-xs">
-              <Compass className="h-3.5 w-3.5" />
-            </div>
-            <span>Student Launchpad</span>
-          </CardTitle>
-          <span className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1">
-            <Sparkles className="h-3 w-3 text-amber-400" /> Fast-Track Library Zones
-          </span>
-        </div>
-      </CardHeader>
-      <CardContent className="p-3.5 sm:p-4 pt-0">
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-2.5">
-          {quickActions.map((action: any) => (
-            <button
-              key={action.tab}
-              onClick={() => setActiveTab(action.tab)}
-              className="relative flex flex-col items-center justify-center text-center p-2.5 sm:p-3 rounded-2xl border border-border/60 bg-card hover:bg-muted/50 hover:border-primary/40 transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-95 group shadow-2xs"
-            >
-              {action.badge && (
-                <span className="absolute top-1.5 right-1.5 px-1.5 py-0.2 rounded-full text-[8px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                  {action.badge}
-                </span>
-              )}
-              <div className={`w-9 h-9 rounded-xl ${action.bg} flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform shadow-2xs`}>
-                <action.icon className={`h-4 w-4 ${action.color}`} />
-              </div>
-              <span className="text-xs font-bold text-foreground leading-tight line-clamp-1">
-                {action.label}
-              </span>
-            </button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  // 6. THE STAT BOX (4 Futuristic Cyber-Academic Cards)
-  const StatsSection = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
-      {/* Books Reading */}
-      <div
-        onClick={() => setActiveTab("books")}
-        className="relative overflow-hidden rounded-2xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 via-card to-card p-3.5 sm:p-4 hover:border-sky-500/50 hover:shadow-lg hover:shadow-sky-500/10 transition-all cursor-pointer group active:scale-[0.98]"
-      >
-        <div className="flex items-center justify-between mb-2">
-          <div className="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-500 dark:text-sky-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
-            <BookOpen className="h-5 w-5" />
-          </div>
-          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-300 border border-sky-500/30">
-            Reading
-          </span>
-        </div>
-        <div className="space-y-0.5">
-          <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{currentBooksCount}</p>
-          <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1 truncate">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse inline-block shrink-0" /> in active progress
-          </p>
-        </div>
-      </div>
-
-      {/* Quizzes Taken */}
-      <div
-        onClick={() => setActiveTab("quizzes")}
-        className="relative overflow-hidden rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 via-card to-card p-3.5 sm:p-4 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all cursor-pointer group active:scale-[0.98]"
-      >
-        <div className="flex items-center justify-between mb-2">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-500 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
-            <Brain className="h-5 w-5" />
-          </div>
-          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-500/30">
-            Brain IQ
-          </span>
-        </div>
-        <div className="space-y-0.5">
-          <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{quizResultsCount}</p>
-          <p className="text-[11px] font-medium text-muted-foreground truncate">completed quizzes</p>
-        </div>
-      </div>
-
-      {/* Monthly Goal Progress */}
-      <div
-        onClick={() => setActiveTab("portfolio")}
-        className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-card to-card p-3.5 sm:p-4 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all cursor-pointer group active:scale-[0.98]"
-      >
-        <div className="flex items-center justify-between mb-2">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
-            <Target className="h-5 w-5" />
-          </div>
-          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 font-mono">
-            {goalPercentage}%
-          </span>
-        </div>
-        <div className="space-y-1">
-          <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
-            {monthlyBooksRead}<span className="text-sm font-semibold text-muted-foreground">/{schoolReadingGoal}</span>
-          </p>
-          <Progress value={goalPercentage} className="h-1.5 bg-muted rounded-full" />
-        </div>
-      </div>
-
-      {/* Badges Earned */}
-      <div
-        onClick={() => setActiveTab("badges")}
-        className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-card to-card p-3.5 sm:p-4 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/10 transition-all cursor-pointer group active:scale-[0.98]"
-      >
-        <div className="flex items-center justify-between mb-2">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-500 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
-            <Award className="h-5 w-5" />
-          </div>
-          <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30">
-            ★ Vault
-          </span>
-        </div>
-        <div className="space-y-0.5">
-          <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{badgesEarnedCount}</p>
-          <p className="text-[11px] font-medium text-muted-foreground truncate">unlocked badges</p>
-        </div>
-      </div>
-    </div>
-  );
-
-  // 7. RECOMMENDATIONS
-  const RecommendationsSection = () => (
-    user?.id ? (
-      <div className="pt-0.5">
-        <Recommendations userId={user.id} studentClass={user.student_class} />
-      </div>
-    ) : null
-  );
-
-  // 8. HISTORY (Recent Activity)
-  const HistorySection = () => (
-    <Card className="border-border/60 rounded-2xl overflow-hidden shadow-2xs">
-      <CardHeader className="p-3.5 sm:p-4 pb-2.5">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xs sm:text-sm font-extrabold flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" /> Recent Activity
-          </CardTitle>
-          <button
-            onClick={() => navigate("/points-history")}
-            className="text-xs text-primary font-bold hover:underline flex items-center gap-1"
-          >
-            <Zap className="h-3 w-3" /> History
-          </button>
-        </div>
-      </CardHeader>
-      <CardContent className="p-3.5 sm:p-4 pt-0">
-        {recentActivities && recentActivities.length > 0 ? (
-          <div className="space-y-2">
-            {recentActivities.slice(0, 5).map((item, i) => {
-              const style = getActivityStyle(item.type);
-              return (
-                <div
-                  key={i}
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all border border-border/30"
-                >
-                  <div className={`w-7 h-7 rounded-lg ${style.bg} ${style.color} flex items-center justify-center shrink-0`}>
-                    <style.icon className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-foreground truncate">{item.title}</p>
-                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                      {item.score !== undefined && item.score !== null && (
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                          Score: {item.score}%
-                        </span>
-                      )}
-                      {item.points && (
-                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
-                          +{item.points} XP
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
-                    {formatTimeAgo(item.time)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-6 text-muted-foreground space-y-1">
-            <Calendar className="h-8 w-8 mx-auto opacity-30" />
-            <p className="text-xs font-semibold">No recent activity</p>
-            <p className="text-[11px] text-muted-foreground">
-              Read books or take quizzes to see your journey!
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  // Pending Friend Requests (if any)
-  const FriendRequestsSection = () => (
-    pendingFriendRequests && pendingFriendRequests.length > 0 && handleRespondFriendRequest ? (
-      <Card className="rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/40 via-purple-50/20 to-card dark:from-indigo-950/20 dark:via-card dark:to-card shadow-2xs p-3.5">
-        <div className="flex items-center justify-between gap-3 mb-2.5">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-              <Users className="h-3.5 w-3.5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-foreground">
-                Friend Requests ({pendingFriendRequests.length})
-              </h4>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab("network")}
-            className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 h-6 px-1.5"
-          >
-            View All →
-          </Button>
-        </div>
-        <div className="space-y-1.5">
-          {pendingFriendRequests.slice(0, 2).map((req) => (
-            <div
-              key={req.id}
-              className="p-2 rounded-xl bg-card border border-border/40 flex items-center justify-between gap-2"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <Avatar className="h-7 w-7 border border-border shrink-0">
-                  <AvatarImage src={req.avatar_url} />
-                  <AvatarFallback className="text-[10px] font-bold bg-indigo-100 text-indigo-700">
-                    {req.name?.slice(0, 2).toUpperCase() || "FR"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-foreground truncate">{req.name}</p>
-                  {req.student_class && (
-                    <p className="text-[9px] text-muted-foreground">Class {req.student_class}</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <Button
-                  size="sm"
-                  onClick={() => handleRespondFriendRequest(req.id, "accepted")}
-                  className="h-6 px-2 text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold"
-                >
-                  Accept
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleRespondFriendRequest(req.id, "rejected")}
-                  className="h-6 px-1.5 text-[10px] rounded-lg font-medium text-muted-foreground"
-                >
-                  Decline
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-    ) : null
-  );
+  // Monthly Capsule Data
+  const nowDate = new Date();
+  const isWrapFirst7Days = nowDate.getDate() <= 7;
+  const wrapPrevMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() - 1, 1).toLocaleString("default", { month: "long" });
+  const bannerMonth = isWrapFirst7Days ? wrapPrevMonth : nowDate.toLocaleString("default", { month: "long" });
 
   return (
-    <div className="space-y-4 sm:space-y-5 w-full max-w-full">
-      {/* 1. URGENT NOTIFICATIONS BAR (Fines / Live Quizzes) */}
+    <div className="space-y-5 sm:space-y-6 w-full max-w-full pb-8">
+      {/* 1. URGENT NOTIFICATIONS BAR (Fines) */}
       {pendingFines > 0 && (
-        <Card
-          className="border-destructive/40 bg-destructive/10 hover:bg-destructive/15 transition-all cursor-pointer shadow-2xs rounded-2xl overflow-hidden"
+        <div
           onClick={() => setActiveTab("issued")}
+          className="relative overflow-hidden rounded-2xl border border-destructive/30 bg-destructive/10 hover:bg-destructive/15 p-3.5 sm:p-4 transition-all duration-200 cursor-pointer shadow-xs flex items-center justify-between gap-3 group"
         >
-          <CardContent className="p-3 sm:p-3.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-destructive/20 text-destructive flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-bold text-destructive truncate">
-                  You have {pendingFines} overdue fine{pendingFines > 1 ? "s" : ""}
-                </p>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  Tap to open Book Issued hub & settle via UPI
-                </p>
-              </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-destructive/20 text-destructive flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-4 w-4" />
             </div>
-            <Button size="sm" variant="destructive" className="shrink-0 h-7 text-xs rounded-xl font-bold px-2.5">
-              <span>Pay Now</span>
-              <ChevronRight className="h-3 w-3 ml-0.5" />
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-bold text-destructive truncate">
+                You have {pendingFines} overdue book fine{pendingFines > 1 ? "s" : ""}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                Tap to view your issued books & clear dues via UPI
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="shrink-0 h-8 px-3 text-xs rounded-xl font-bold shadow-xs group-hover:translate-x-0.5 transition-transform"
+          >
+            <span>Resolve Now</span>
+            <ChevronRight className="h-3.5 w-3.5 ml-1" />
+          </Button>
+        </div>
       )}
 
-      {/* 2. HEADER ANNOUNCEMENT ZONE: HERO GREETING + LIVE CHAMPIONSHIP */}
-      <div className="space-y-2.5 sm:space-y-3">
-        {/* Good Afternoon Hero Box */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/20 shadow-md px-4 py-3 sm:px-5 sm:py-3.5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            {/* Avatar + Greeting */}
-            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
-              <div className="relative shrink-0 w-11 h-11 sm:w-13 sm:h-13">
-                <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-xl ring-2 ring-indigo-400/30 overflow-hidden bg-slate-900 flex items-center justify-center shadow-sm aspect-square shrink-0">
-                  {user?.avatar_url ? (
-                    <img
-                      src={getAvatarUrl(user.avatar_url)}
-                      alt="Profile"
-                      className="w-full h-full object-cover aspect-square"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLElement).style.display = "none";
-                        const parent = e.currentTarget.parentElement;
-                        if (parent && !parent.querySelector(".fallback-char")) {
-                          const span = document.createElement("span");
-                          span.className = "text-lg sm:text-xl font-black text-white fallback-char";
-                          span.textContent = greetingName[0] || "S";
-                          parent.appendChild(span);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <span className="text-lg sm:text-xl font-black text-indigo-200">
-                      {greetingName[0] || "S"}
-                    </span>
-                  )}
-                </div>
-                <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-slate-900"></span>
-                </span>
-              </div>
+      {/* 2. COMMAND CENTER HERO BANNER */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950/95 to-slate-900 text-white border border-indigo-500/20 shadow-xl p-5 sm:p-6 lg:p-7">
+        {/* Ambient atmospheric glows */}
+        <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-purple-500/15 blur-3xl pointer-events-none" />
 
-              <div className="min-w-0 space-y-0.5">
-                <h2 className="text-base sm:text-xl font-black tracking-tight text-white flex items-center gap-1.5 flex-wrap">
-                  <span>{greeting}, {greetingName}!</span>
-                  <span>👋</span>
-                </h2>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 sm:gap-6">
+          {/* Left: Avatar + Identity + Status */}
+          <div className="flex items-center gap-4 sm:gap-5 min-w-0">
+            {/* Student Avatar with online status */}
+            <div className="relative shrink-0">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl ring-2 ring-indigo-400/30 overflow-hidden bg-slate-800 flex items-center justify-center shadow-md">
+                {user?.avatar_url ? (
+                  <img
+                    src={getAvatarUrl(user.avatar_url)}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = "none";
+                      const parent = e.currentTarget.parentElement;
+                      if (parent && !parent.querySelector(".fallback-char")) {
+                        const span = document.createElement("span");
+                        span.className = "text-xl sm:text-2xl font-black text-white fallback-char";
+                        span.textContent = greetingName[0] || "S";
+                        parent.appendChild(span);
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="text-xl sm:text-2xl font-black text-indigo-200">
+                    {greetingName[0] || "S"}
+                  </span>
+                )}
+              </div>
+              <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-slate-900" />
+              </span>
+            </div>
+
+            {/* Greetings & Info */}
+            <div className="min-w-0 space-y-1">
+              <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold">
+                <TimeIcon className="h-3.5 w-3.5" />
+                <span>{greeting}</span>
+              </div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white truncate">
+                {greetingName}
+              </h1>
+              <div className="flex items-center gap-2 flex-wrap pt-0.5">
                 {user?.student_class && (
-                  <div>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-white/10 text-white/90 border border-white/15 shadow-2xs">
-                      Class {user.student_class}
-                    </span>
-                  </div>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/10 text-white border border-white/15">
+                    Class {user.student_class}
+                  </span>
+                )}
+                {user?.admission_number && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-white/5 text-white/80 border border-white/10">
+                    ADM #{user.admission_number}
+                  </span>
+                )}
+                {streakData && streakData.currentStreak > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <Flame className="h-3 w-3 fill-amber-300" />
+                    <span>{streakData.currentStreak}d Streak</span>
+                  </span>
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Gamified XP & Rank Badges */}
-            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-              <button
-                onClick={() => navigate("/points-history")}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white backdrop-blur-md transition-all active:scale-95 shadow-2xs"
-                title="View Points History"
-              >
-                <Zap className="h-3.5 w-3.5 fill-amber-300 text-amber-300 shrink-0" />
-                <div className="text-left">
-                  <p className="text-xs sm:text-sm font-black leading-tight text-amber-300">
-                    {(user?.points || 0).toLocaleString()}
-                  </p>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-white/70">
-                    Total XP
-                  </p>
-                </div>
-              </button>
+          {/* Right: Gamified HUD Stats (Total XP, Class Rank, Catalog Shortcut) */}
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+            {/* Total XP Button */}
+            <button
+              onClick={() => navigate("/points-history")}
+              className="flex-1 sm:flex-none flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md transition-all active:scale-95 shadow-xs group"
+              title="View Points Ledger"
+            >
+              <div className="w-8 h-8 rounded-xl bg-amber-400/20 flex items-center justify-center text-amber-300 shrink-0 group-hover:scale-110 transition-transform">
+                <Zap className="h-4 w-4 fill-amber-300" />
+              </div>
+              <div className="text-left">
+                <p className="text-base sm:text-lg font-black leading-tight text-white">
+                  {(user?.points || 0).toLocaleString()}
+                </p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">
+                  Total XP
+                </p>
+              </div>
+            </button>
 
-              <button
-                onClick={() => setActiveTab("rankings")}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white backdrop-blur-md transition-all active:scale-95 shadow-2xs"
-                title="View Class Rankings"
-              >
-                <Trophy className="h-3.5 w-3.5 text-indigo-300 shrink-0" />
-                <div className="text-left">
-                  <p className="text-xs sm:text-sm font-black leading-tight text-indigo-200">
-                    #{classRank}
-                  </p>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-white/70">
-                    Class Rank
-                  </p>
+            {/* Class Rank Button */}
+            <button
+              onClick={() => setActiveTab("rankings")}
+              className="flex-1 sm:flex-none flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md transition-all active:scale-95 shadow-xs group"
+              title="View Class Leaderboard"
+            >
+              <div className="w-8 h-8 rounded-xl bg-indigo-400/20 flex items-center justify-center text-indigo-300 shrink-0 group-hover:scale-110 transition-transform">
+                <Trophy className="h-4 w-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-base sm:text-lg font-black leading-tight text-indigo-200">
+                  #{classRank}
+                </p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">
+                  Class Rank
+                </p>
+              </div>
+            </button>
+
+            {/* Quick Browse Catalog Button */}
+            <Button
+              onClick={() => navigate("/catalog")}
+              className="w-full sm:w-auto h-11 px-4 rounded-2xl font-bold bg-white text-slate-900 hover:bg-white/90 shadow-md gap-1.5"
+            >
+              <Compass className="h-4 w-4 text-indigo-600" />
+              <span>Explore Books</span>
+              <ArrowUpRight className="h-3.5 w-3.5 text-slate-500" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. LIVE QUIZ LEAGUE NOTICES (if available) */}
+      {handleJoinQuizLeague && (
+        <div className="space-y-3">
+          <UpcomingQuizLeagueCard
+            userId={user?.id}
+            userClass={user?.student_class}
+            onJoinLeague={handleJoinQuizLeague}
+          />
+          <LiveQuizAlert onJoinLeague={handleJoinQuizLeague} />
+        </div>
+      )}
+
+      {/* 4. ACTIVE CAMPAIGN SPOTLIGHT (Vacation Banner) */}
+      <VacationOverviewBanner onOpen={() => setActiveTab("vacation")} />
+
+      {/* 5. SECONDARY QUESTS & SPECIAL EVENTS (Wrap, Bug Bounty, UI Reform) */}
+      {hasSecondaryCampaigns && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* Monthly Wrap Card */}
+          {hasWrapActive && (
+            <Card
+              className="overflow-hidden border border-purple-500/30 bg-gradient-to-br from-slate-900 via-purple-950/70 to-indigo-950 text-white shadow-xs hover:shadow-md transition-all cursor-pointer group rounded-2xl"
+              onClick={() => setShowMemoryCapsule?.(true)}
+            >
+              <CardContent className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 via-pink-500 to-indigo-500 p-0.5 shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                      <Sparkles className="h-5 w-5 text-amber-300 animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge className="bg-gradient-to-r from-pink-500 to-purple-600 text-white border-0 text-[9px] font-black px-1.5 py-0.5">
+                        {isWrapFirst7Days ? `${bannerMonth.toUpperCase()} WRAP` : "CAPSULE"}
+                      </Badge>
+                      <span className="text-[10px] font-bold text-emerald-400">READY</span>
+                    </div>
+                    <p className="text-xs sm:text-sm font-bold text-white truncate mt-0.5">
+                      {isWrapFirst7Days ? `${bannerMonth} Reading Wrap 🚀` : "Memory Capsule ✨"}
+                    </p>
+                  </div>
                 </div>
-              </button>
+                <Button size="sm" className="gradient-primary text-white border-0 font-bold rounded-xl shrink-0 h-8 text-xs px-3 shadow-xs">
+                  <span>Open →</span>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Bug Bounty Quest Card */}
+          {hasBountyActive && (
+            <Card
+              className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card shadow-xs hover:shadow-md transition-all cursor-pointer group"
+              onClick={() => setActiveTab("bounty")}
+            >
+              <CardContent className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    <Bug className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-foreground truncate">Bug Hunter Quest</span>
+                      <Badge variant="outline" className="text-[9px] font-bold border-amber-500/40 text-amber-600 bg-amber-500/10 px-1.5 py-0.2">
+                        +100 XP
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">Report bugs to earn library XP</p>
+                  </div>
+                </div>
+                <Button size="sm" className="h-8 px-3 text-xs rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shrink-0">
+                  <span>Report →</span>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* UI Reform Challenge Card */}
+          {hasReformActive && (
+            <Card
+              className="rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-500/10 via-card to-card shadow-xs hover:shadow-md transition-all cursor-pointer group"
+              onClick={() => setActiveTab("ui-reform")}
+            >
+              <CardContent className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    <Palette className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-foreground truncate">UI Reform Challenge</span>
+                      <Badge variant="outline" className="text-[9px] font-bold border-purple-500/40 text-purple-600 bg-purple-500/10 px-1.5 py-0.2">
+                        +{activeReformCampaign.reward_points || 1000} XP
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">Submit layout ideas & wireframes</p>
+                  </div>
+                </div>
+                <Button size="sm" className="h-8 px-3 text-xs rounded-xl font-bold bg-purple-600 hover:bg-purple-700 text-white shrink-0">
+                  <span>Submit →</span>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* 6. KEY METRIC STRIP (4 Refined Executive KPI Cards) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Metric 1: Books Reading */}
+        <div
+          onClick={() => setActiveTab("books")}
+          className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 hover:bg-card hover:border-sky-500/40 hover:shadow-md p-4 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-2xs"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span>My Books</span>
+              <ChevronRight className="h-3 w-3" />
+            </span>
+          </div>
+          <div>
+            <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{currentBooksCount}</p>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
+              {currentBooksCount === 1 ? "Active book reading" : "Active books reading"}
+            </p>
+          </div>
+        </div>
+
+        {/* Metric 2: Monthly Reading Goal */}
+        <div
+          onClick={() => setActiveTab("portfolio")}
+          className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 hover:bg-card hover:border-emerald-500/40 hover:shadow-md p-4 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-2xs"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Target className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-bold font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+              {goalPercentage}% Done
+            </span>
+          </div>
+          <div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{monthlyBooksRead}</span>
+              <span className="text-xs font-semibold text-muted-foreground">/{schoolReadingGoal} goal</span>
+            </div>
+            <div className="mt-2">
+              <Progress value={goalPercentage} className="h-1.5 bg-muted rounded-full" />
             </div>
           </div>
         </div>
 
-        {/* Championship live / upcoming banner (directly beneath Good afternoon box) */}
-        {handleJoinQuizLeague && (
-          <div className="space-y-2.5">
-            <UpcomingQuizLeagueCard
-              userId={user?.id}
-              userClass={user?.student_class}
-              onJoinLeague={handleJoinQuizLeague}
-            />
-            <LiveQuizAlert onJoinLeague={handleJoinQuizLeague} />
+        {/* Metric 3: Quizzes Completed */}
+        <div
+          onClick={() => setActiveTab("quizzes")}
+          className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 hover:bg-card hover:border-purple-500/40 hover:shadow-md p-4 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-2xs"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Brain className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span>Quizzes</span>
+              <ChevronRight className="h-3 w-3" />
+            </span>
           </div>
-        )}
+          <div>
+            <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{quizResultsCount}</p>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
+              Completed quizzes
+            </p>
+          </div>
+        </div>
+
+        {/* Metric 4: Badges Unlocked */}
+        <div
+          onClick={() => setActiveTab("badges")}
+          className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 hover:bg-card hover:border-amber-500/40 hover:shadow-md p-4 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-2xs"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+              <Award className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span>Badge Vault</span>
+              <ChevronRight className="h-3 w-3" />
+            </span>
+          </div>
+          <div>
+            <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{badgesEarnedCount}</p>
+            <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
+              Unlocked honors
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* 3. MOBILE VIEW (< lg): EXACT SEQUENCE REQUESTED:
-             1. Event banner
-             2. Level
-             3. Streak
-             4. Invite
-             5. Launchpad
-             6. The stat box
-             7. Recommendation
-             8. History */}
-      <div className="flex flex-col gap-4 lg:hidden">
-        {/* 1. Event banner */}
-        <EventBannerSection />
+      {/* 7. BALANCED 2-COLUMN DESKTOP LAYOUT (AND POLISHED MOBILE ORDER) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* MAIN COLUMN (8 cols on desktop) */}
+        <div className="lg:col-span-8 space-y-6 min-w-0">
+          {/* PRIMARY STUDENT LAUNCHPAD */}
+          <Card className="border border-border/70 rounded-3xl overflow-hidden bg-card/60 backdrop-blur-md shadow-xs">
+            <CardHeader className="p-4 sm:p-5 pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm sm:text-base font-extrabold flex items-center gap-2 text-foreground">
+                  <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Compass className="h-4 w-4" />
+                  </div>
+                  <span>Student Launchpad</span>
+                </CardTitle>
+                <span className="text-xs text-muted-foreground font-medium">
+                  Direct Library Hubs
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-5 pt-0 space-y-4">
+              {/* 8 Primary Cards Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                {primaryHubs.map((hub) => {
+                  const Icon = hub.icon;
+                  return (
+                    <button
+                      key={hub.id}
+                      onClick={hub.action}
+                      className={`relative flex flex-col text-left p-3 sm:p-3.5 rounded-2xl border border-border/60 bg-card hover:bg-muted/40 ${hub.border} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95 group shadow-2xs`}
+                    >
+                      {hub.badge && (
+                        <span className="absolute top-2 right-2 px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                          {hub.badge}
+                        </span>
+                      )}
+                      <div className={`w-9 h-9 rounded-xl ${hub.bg} ${hub.color} flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                        {hub.label}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                        {hub.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
 
-        {/* 2. Level */}
-        <LevelSection />
-
-        {/* 3. Streak */}
-        <StreakSection />
-
-        {/* 4. Invite */}
-        <InviteSection />
-
-        {/* 5. Launchpad */}
-        <LaunchpadSection />
-
-        {/* 6. The stat box */}
-        <StatsSection />
-
-        {/* Class competitions (if enrolled) */}
-        {user?.student_class && <ClassCompetitions userClass={user.student_class} />}
-
-        {/* 7. Recommendation */}
-        <RecommendationsSection />
-
-        {/* 8. History */}
-        <HistorySection />
-
-        {/* Pending friend requests */}
-        <FriendRequestsSection />
-      </div>
-
-      {/* 4. DESKTOP VIEW (>= lg): CLEAN, UNCLUTTERED TWO-COLUMN BALANCED LAYOUT */}
-      <div className="hidden lg:grid lg:grid-cols-12 lg:gap-6 items-start">
-        {/* Left / Main Column (8 cols) */}
-        <div className="lg:col-span-8 space-y-5 min-w-0">
-          {/* Active Event Banner */}
-          <EventBannerSection />
-
-          {/* At-a-Glance Stat Box */}
-          <StatsSection />
-
-          {/* Student Launchpad */}
-          <LaunchpadSection />
+              {/* Secondary Quick Action Chips Strip */}
+              <div className="pt-2 border-t border-border/40">
+                <p className="text-[11px] font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Sparkles className="h-3 w-3 text-amber-500" />
+                  <span>Quick Access Shortcuts</span>
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {secondaryQuickChips.map((chip) => {
+                    const ChipIcon = chip.icon;
+                    return (
+                      <button
+                        key={chip.tab}
+                        onClick={() => setActiveTab(chip.tab)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border/60 bg-background/60 hover:bg-muted text-xs font-semibold text-foreground hover:border-primary/30 transition-all active:scale-95 shadow-2xs"
+                      >
+                        <ChipIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{chip.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Class Competitions (if enrolled) */}
           {user?.student_class && <ClassCompetitions userClass={user.student_class} />}
 
           {/* Personalized Book Recommendations */}
-          <RecommendationsSection />
+          {user?.id && (
+            <div className="pt-1">
+              <Recommendations userId={user.id} studentClass={user.student_class} />
+            </div>
+          )}
         </div>
 
-        {/* Right / Sidebar Column (4 cols) */}
+        {/* SIDEBAR COLUMN (4 cols on desktop) */}
         <div className="lg:col-span-4 space-y-5 min-w-0">
-          {/* 1. Daily Login Streak */}
-          <StreakSection />
+          {/* Daily Login Streak */}
+          {streakData && !streakData.loading && (
+            <LoginStreakCard
+              currentStreak={streakData.currentStreak}
+              longestStreak={streakData.longestStreak}
+              totalLoginDays={streakData.totalLoginDays}
+              onPointsClaimed={checkAuth}
+            />
+          )}
 
-          {/* 2. Level Progress */}
-          <LevelSection />
+          {/* Level Progress */}
+          <LevelProgress userPoints={user?.points || 0} />
 
-          {/* 3. Invite Friends */}
-          <InviteSection />
+          {/* Invite Classmates Box */}
+          <Card className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 via-card to-purple-500/5 shadow-2xs overflow-hidden">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <UserPlus className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-bold text-foreground">Invite Classmates</h3>
+                    <p className="text-[10px] text-muted-foreground">Grow your library squad</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-[10px] font-bold px-2 py-0.5">
+                  <Sparkles className="h-2.5 w-2.5 mr-1" /> +250 XP
+                </Badge>
+              </div>
 
-          {/* 4. Pending Friend Requests */}
-          <FriendRequestsSection />
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Earn <strong>+250 XP</strong> for every friend who signs in with your student invite link!
+              </p>
 
-          {/* 5. Recent Activity Timeline */}
-          <HistorySection />
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={handleCopyInvite}
+                  className="flex-1 h-8 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-2xs"
+                >
+                  {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  <span>{copiedLink ? "Copied Link!" : "Copy Link"}</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleWhatsAppShare}
+                  className="h-8 rounded-xl text-xs font-semibold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 px-3"
+                >
+                  WhatsApp
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setActiveTab("invite")}
+                  className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-foreground shrink-0"
+                  title="Open Invite Center"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pending Friend Requests (if any) */}
+          {pendingFriendRequests && pendingFriendRequests.length > 0 && handleRespondFriendRequest && (
+            <Card className="rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/40 via-purple-50/20 to-card dark:from-indigo-950/20 dark:via-card dark:to-card shadow-2xs p-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <Users className="h-3.5 w-3.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground">
+                      Friend Requests ({pendingFriendRequests.length})
+                    </h4>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveTab("network")}
+                  className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 h-6 px-1.5"
+                >
+                  View All →
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {pendingFriendRequests.slice(0, 2).map((req) => (
+                  <div
+                    key={req.id}
+                    className="p-2.5 rounded-xl bg-card border border-border/40 flex items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar className="h-8 w-8 border border-border shrink-0">
+                        <AvatarImage src={req.avatar_url} />
+                        <AvatarFallback className="text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                          {req.name?.slice(0, 2).toUpperCase() || "FR"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-foreground truncate">{req.name}</p>
+                        {req.student_class && (
+                          <p className="text-[10px] text-muted-foreground">Class {req.student_class}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={() => handleRespondFriendRequest(req.id, "accepted")}
+                        className="h-7 px-2.5 text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold"
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRespondFriendRequest(req.id, "rejected")}
+                        className="h-7 px-2 text-[10px] rounded-lg font-medium text-muted-foreground"
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Recent Activity Timeline */}
+          <Card className="border border-border/60 rounded-2xl overflow-hidden shadow-2xs">
+            <CardHeader className="p-4 pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs sm:text-sm font-extrabold flex items-center gap-2 text-foreground">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <span>Recent Activity</span>
+                </CardTitle>
+                <button
+                  onClick={() => navigate("/points-history")}
+                  className="text-xs text-primary font-bold hover:underline flex items-center gap-1"
+                >
+                  <Zap className="h-3 w-3" /> Ledger
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              {recentActivities && recentActivities.length > 0 ? (
+                <div className="space-y-2">
+                  {recentActivities.slice(0, 5).map((item, i) => {
+                    const style = getActivityStyle(item.type);
+                    const Icon = style.icon;
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all border border-border/30"
+                      >
+                        <div className={`w-8 h-8 rounded-lg ${style.bg} ${style.color} flex items-center justify-center shrink-0`}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">{item.title}</p>
+                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                            {item.score !== undefined && item.score !== null && (
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                                Score: {item.score}%
+                              </span>
+                            )}
+                            {item.points && (
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+                                +{item.points} XP
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
+                          {formatTimeAgo(item.time)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-7 text-muted-foreground space-y-1.5">
+                  <Calendar className="h-8 w-8 mx-auto opacity-30 text-muted-foreground" />
+                  <p className="text-xs font-semibold text-foreground">No recent activity</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Borrow books or complete daily quizzes to see your journey!
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
-
     </div>
   );
 }
