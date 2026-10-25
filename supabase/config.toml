@@ -26,6 +26,10 @@ entrypoint = "./functions/library-bot/index.ts"
 # static_files = [ "./functions/library-bot/*.html" ]
 
 
+[functions.chess-duel]
+enabled = true
+verify_jwt = false
+
 [auth]
 site_url = "https://dlms.kvsulur.in"
 additional_redirect_urls = ["https://dlms.kvsulur.in/**", "http://localhost:5173/**", "http://localhost:3000/**"]

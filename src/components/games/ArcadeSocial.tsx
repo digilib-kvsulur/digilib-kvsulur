@@ -14,7 +14,7 @@ type ClassStanding = { student_class: string; total_xp: number; students: number
 type Room = { id: string; room_code: string; status: string; game_key: string; winner_id: string | null; expires_at: string };
 type OnlineStudent = { user_id: string; name: string };
 type DuelInvite = { room_code: string; game_key: string; game_name: string; inviter_name: string };
-const VERIFIED_DUEL_GAMES = new Set(["logic-grid", "map-quest", "science-sprint", "code-breakers", "eco-sort", "ping-pong", "snake", "tic-tac-toe", "snakes-ladders"]);
+const VERIFIED_DUEL_GAMES = new Set(["logic-grid", "map-quest", "science-sprint", "code-breakers", "eco-sort", "ping-pong", "snake", "tic-tac-toe", "snakes-ladders", "ludo-dash", "chess"]);
 const ONLINE_TOPIC = "arcade_online_students";
 
 export default function ArcadeSocial({ userId, games, onStartDuel }: { userId: string; games: GameDef[]; onStartDuel: (gameKey: string, roomId: string) => void }) {
@@ -173,7 +173,7 @@ export default function ArcadeSocial({ userId, games, onStartDuel }: { userId: s
     <Card className="overflow-hidden rounded-2xl border-sky-500/20">
       <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Swords className="h-4 w-4 text-sky-600" /> Head-to-head <Badge variant="secondary" className="ml-auto"><Circle className="mr-1 h-2 w-2 fill-emerald-500 text-emerald-500" />{online.length} online</Badge></CardTitle></CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground">Invite someone playing right now, or share a room code with a friend.</p>
+        <p className="text-xs text-muted-foreground">Invite a friend for a live board match or race to a better score in arcade games.</p>
         <Select value={selectedGame} onValueChange={setSelectedGame}><SelectTrigger aria-label="Choose a game for your duel"><SelectValue placeholder="Choose a game" /></SelectTrigger><SelectContent>{gameChoices.map((g) => <SelectItem key={g.key} value={g.key}>{g.name}</SelectItem>)}</SelectContent></Select>
         {online.length > 0 ? <div className="max-h-40 space-y-1 overflow-y-auto rounded-xl border p-2" aria-label="Online players">{online.map((student) => <div key={student.user_id} className="flex items-center gap-2 rounded-lg px-2 py-1.5"><Circle className="h-2 w-2 shrink-0 fill-emerald-500 text-emerald-500" /><span className="min-w-0 flex-1 truncate text-sm">{student.name || "Student"}</span><Button size="sm" variant="outline" onClick={() => void inviteStudent(student)} disabled={busy || !selectedGame}><Send className="mr-1 h-3.5 w-3.5" />Invite</Button></div>)}</div> : <p className="rounded-xl bg-muted/50 px-3 py-2 text-center text-xs text-muted-foreground">No other players online right now. Create a room and share the code.</p>}
         <div className="flex gap-2"><Input aria-label="Room code" placeholder="Enter 6-character code" value={roomCode} onChange={(event) => setRoomCode(event.target.value.toUpperCase())} maxLength={6} /><Button variant="outline" onClick={() => void joinRoom()} disabled={busy || roomCode.trim().length < 6}>Join</Button></div>

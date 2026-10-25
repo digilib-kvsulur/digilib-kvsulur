@@ -179,5 +179,6 @@ export default function ArcadeMiniGame(props: Props) {
   if (props.gameKey === "snake") return <Snake {...props} />;
   if (props.gameKey === "tic-tac-toe") return <TicTacToe {...props} />;
   if (props.gameKey === "snakes-ladders") return <SnakesAndLadders {...props} />;
+  if (props.gameKey === "ludo-dash") return <div className="mx-auto max-w-sm space-y-3 py-8 text-center"><CircleDot className="mx-auto h-10 w-10 text-primary" /><h3 className="text-xl font-bold">Ludo Dash is a live match</h3><p className="text-sm text-muted-foreground">Close this game and invite a friend from the Head-to-head panel to start your race.</p><Button variant="outline" onClick={props.onExit}>Back to arcade</Button></div>;
   return <div className="space-y-3 text-center"><CircleDot className="mx-auto h-10 w-10 text-primary" /><p>This game is coming soon.</p><Button variant="ghost" onClick={props.onExit}><Zap className="mr-2 h-4 w-4" />Back to arcade</Button></div>;
 }

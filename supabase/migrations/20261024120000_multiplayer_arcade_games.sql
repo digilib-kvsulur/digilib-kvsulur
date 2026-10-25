@@ -6,7 +6,8 @@ VALUES
   ('ping-pong', 'Ping Pong', 'Rally against the arcade bot and race to five points.', 'Gamepad2', 'arcade', true, 15, 45, 3, 30),
   ('snake', 'Snake', 'Guide your growing snake, collect fruit and beat your best run.', 'Gamepad2', 'arcade', true, 12, 48, 4, 31),
   ('tic-tac-toe', 'Tic-Tac-Toe', 'Practice against the computer or challenge a friend live.', 'Grid3x3', 'strategy', true, 10, 40, 4, 32),
-  ('snakes-ladders', 'Snakes & Ladders', 'Race up the ladders and dodge the snakes. Play against a friend live.', 'Grid2x2', 'strategy', true, 12, 48, 3, 33)
+  ('snakes-ladders', 'Snakes & Ladders', 'Race up the ladders and dodge the snakes. Play against a friend live.', 'Grid2x2', 'strategy', true, 12, 48, 3, 33),
+  ('ludo-dash', 'Ludo Dash', 'Race your token home in a quick live Ludo match.', 'Flag', 'strategy', true, 15, 45, 3, 34)
 ON CONFLICT (key) DO NOTHING;
 
 ALTER TABLE public.game_duel_rooms
@@ -23,7 +24,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = v_uid AND role = 'student' AND COALESCE(is_approved,true)) THEN
     RAISE EXCEPTION 'Approved students only';
   END IF;
-  IF p_game_key NOT IN ('logic-grid','map-quest','science-sprint','code-breakers','eco-sort','ping-pong','snake','tic-tac-toe','snakes-ladders') THEN
+  IF p_game_key NOT IN ('logic-grid','map-quest','science-sprint','code-breakers','eco-sort','ping-pong','snake','tic-tac-toe','snakes-ladders','ludo-dash') THEN
     RAISE EXCEPTION 'Choose an available head-to-head game';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.games WHERE key = p_game_key AND is_enabled) THEN RAISE EXCEPTION 'Game unavailable'; END IF;
@@ -47,6 +48,8 @@ BEGIN
     v_state := jsonb_build_object('board',jsonb_build_array('','','','','','','','',''),'moves',0);
   ELSIF r.game_key='snakes-ladders' THEN
     v_state := jsonb_build_object('players',jsonb_build_object('host',0,'guest',0),'last_roll',NULL);
+  ELSIF r.game_key='ludo-dash' THEN
+    v_state := jsonb_build_object('players',jsonb_build_object('host',0,'guest',0),'last_roll',NULL,'captured',false);
   END IF;
   UPDATE public.game_duel_rooms
   SET guest_id=v_uid,status='active',activated_at=now(),turn_user_id=r.host_id,board_state=v_state,
@@ -62,7 +65,7 @@ DECLARE
   v_uid uuid := auth.uid(); r public.game_duel_rooms%ROWTYPE; v_state jsonb; v_status text := 'active';
   v_turn uuid; v_winner uuid; v_role text; v_mark text; v_index integer; v_marks text[];
   v_moves integer; v_won boolean := false; v_draw boolean := false;
-  v_roll integer; v_old_pos integer; v_new_pos integer; v_players jsonb;
+  v_roll integer; v_old_pos integer; v_new_pos integer; v_players jsonb; v_other_role text; v_other_pos integer; v_cell integer; v_start_offset integer;
 BEGIN
   IF v_uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
   SELECT * INTO r FROM public.game_duel_rooms WHERE id=p_room_id FOR UPDATE;
@@ -72,7 +75,7 @@ BEGIN
   v_state := r.board_state;
 
   IF r.game_key='tic-tac-toe' THEN
-    IF p_action->>'type' <> 'place' OR (p_action->>'index') !~ '^[0-8]$' THEN RAISE EXCEPTION 'Choose a square on the board'; END IF;
+    IF p_action->>'type' IS DISTINCT FROM 'place' OR COALESCE(p_action->>'index','') !~ '^[0-8]$' THEN RAISE EXCEPTION 'Choose a square on the board'; END IF;
     v_index := (p_action->>'index')::integer;
     v_marks := ARRAY(SELECT jsonb_array_elements_text(v_state->'board'));
     IF array_length(v_marks,1) <> 9 THEN RAISE EXCEPTION 'The board is not ready'; END IF;
@@ -96,23 +99,43 @@ BEGIN
     ELSIF v_draw THEN v_status:='completed'; v_winner:=NULL; v_turn:=NULL;
     ELSE v_turn:=CASE WHEN v_uid=r.host_id THEN r.guest_id ELSE r.host_id END;
     END IF;
-  ELSIF r.game_key='snakes-ladders' THEN
-    IF p_action->>'type' <> 'roll' THEN RAISE EXCEPTION 'Roll the dice to take your turn'; END IF;
+  ELSIF r.game_key IN ('snakes-ladders','ludo-dash') THEN
+    IF p_action->>'type' IS DISTINCT FROM 'roll' THEN RAISE EXCEPTION 'Roll the dice to take your turn'; END IF;
     v_role := CASE WHEN v_uid=r.host_id THEN 'host' ELSE 'guest' END;
     v_old_pos := COALESCE((v_state->'players'->>v_role)::integer,0);
     v_roll := floor(random()*6)::integer+1;
     v_new_pos := v_old_pos;
-    IF v_old_pos+v_roll <= 100 THEN
+    IF r.game_key='snakes-ladders' AND v_old_pos+v_roll <= 100 THEN
       v_new_pos := v_old_pos+v_roll;
       v_new_pos := CASE v_new_pos
         WHEN 4 THEN 14 WHEN 9 THEN 31 WHEN 20 THEN 38 WHEN 28 THEN 84 WHEN 40 THEN 59 WHEN 51 THEN 67 WHEN 63 THEN 81 WHEN 71 THEN 91
         WHEN 17 THEN 7 WHEN 54 THEN 34 WHEN 62 THEN 19 WHEN 64 THEN 60 WHEN 87 THEN 36 WHEN 93 THEN 73 WHEN 95 THEN 75 WHEN 99 THEN 78
         ELSE v_new_pos END;
+    ELSIF r.game_key='ludo-dash' THEN
+      IF v_old_pos=0 THEN
+        IF v_roll=6 THEN v_new_pos:=1; END IF;
+      ELSIF v_old_pos+v_roll<=57 THEN
+        v_new_pos:=v_old_pos+v_roll;
+      END IF;
     END IF;
     v_players := jsonb_set(v_state->'players',ARRAY[v_role],to_jsonb(v_new_pos),true);
+    IF r.game_key='ludo-dash' THEN
+      v_other_role := CASE WHEN v_role='host' THEN 'guest' ELSE 'host' END;
+      v_other_pos := COALESCE((v_state->'players'->>v_other_role)::integer,0);
+      v_start_offset := CASE WHEN v_role='host' THEN 0 ELSE 13 END;
+      v_cell := ((v_new_pos-1+v_start_offset)%52)+1;
+      IF v_new_pos BETWEEN 1 AND 52 AND v_other_pos BETWEEN 1 AND 52
+         AND v_cell=((v_other_pos-1+(CASE WHEN v_other_role='host' THEN 0 ELSE 13 END))%52)+1
+         AND v_cell NOT IN (1,9,14,22,27,35,40,48) THEN
+        v_players := jsonb_set(v_players,ARRAY[v_other_role],to_jsonb(0),true);
+        v_state := jsonb_set(v_state,'{captured}',to_jsonb(true),true);
+      ELSE
+        v_state := jsonb_set(v_state,'{captured}',to_jsonb(false),true);
+      END IF;
+    END IF;
     v_state := jsonb_set(v_state,'{players}',v_players,true);
     v_state := jsonb_set(v_state,'{last_roll}',to_jsonb(v_roll),true);
-    IF v_new_pos=100 THEN v_status:='completed'; v_winner:=v_uid; v_turn:=NULL;
+    IF (r.game_key='snakes-ladders' AND v_new_pos=100) OR (r.game_key='ludo-dash' AND v_new_pos=57) THEN v_status:='completed'; v_winner:=v_uid; v_turn:=NULL;
     ELSE v_turn:=CASE WHEN v_uid=r.host_id THEN r.guest_id ELSE r.host_id END;
     END IF;
   ELSE

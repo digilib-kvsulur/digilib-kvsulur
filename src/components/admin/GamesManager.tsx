@@ -60,7 +60,9 @@ const DEVELOPED_GAMES = [
   { key: "ping-pong", name: "Ping Pong", description: "Rally against the arcade bot and race to five points.", icon_name: "Gamepad2", category: "arcade", points_per_win: 15, max_points_per_day: 45, daily_play_limit: 3, sort_order: 30 },
   { key: "snake", name: "Snake", description: "Guide your growing snake, collect fruit and beat your best run.", icon_name: "Gamepad2", category: "arcade", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 31 },
   { key: "tic-tac-toe", name: "Tic-Tac-Toe", description: "Practice against the computer or challenge a friend live.", icon_name: "Grid3x3", category: "strategy", points_per_win: 10, max_points_per_day: 40, daily_play_limit: 4, sort_order: 32 },
-  { key: "snakes-ladders", name: "Snakes & Ladders", description: "Race up the ladders and dodge the snakes. Play against a friend live.", icon_name: "Grid2x2", category: "strategy", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 3, sort_order: 33 }
+  { key: "snakes-ladders", name: "Snakes & Ladders", description: "Race up the ladders and dodge the snakes. Play against a friend live.", icon_name: "Grid2x2", category: "strategy", points_per_win: 12, max_points_per_day: 48, daily_play_limit: 3, sort_order: 33 },
+  { key: "ludo-dash", name: "Ludo Dash", description: "Race your token home in a quick live Ludo match.", icon_name: "Flag", category: "strategy", points_per_win: 15, max_points_per_day: 45, daily_play_limit: 3, sort_order: 34 },
+  { key: "chess", name: "Chess", description: "Challenge a friend to a live chess match. Every move is checked on the server.", icon_name: "Crown", category: "strategy", points_per_win: 20, max_points_per_day: 40, daily_play_limit: 2, sort_order: 35 }
 ];
 
 export default function GamesManager() {

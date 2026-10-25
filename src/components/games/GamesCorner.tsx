@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import {
-  Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles, Users, Brain, Map as MapIcon, FlaskConical, Code2, Leaf, Flame, Star, LockKeyhole, Moon, Clock3,
+  Gamepad2, Layers, Grid3x3, Shuffle, Puzzle, Spade, Grid2x2, Trophy, Zap, Play, Sparkles, Users, Brain, Map as MapIcon, FlaskConical, Code2, Leaf, Flame, Star, LockKeyhole, Moon, Clock3, Flag,
 } from "lucide-react";
 import { GameDef, GameBook, GameContentItem, ArcadeQuestion } from "./gameTypes";
 import BookMatch from "./BookMatch";
@@ -45,11 +45,11 @@ import LiveArcadeBoard from "./LiveArcadeBoard";
 
 const GAME_CONTENT_CACHE_MS = 5 * 60 * 1000;
 const SERVER_ARCADE_KEYS = new Set(["logic-grid", "map-quest", "science-sprint", "code-breakers", "eco-sort"]);
-const LIVE_BOARD_KEYS = new Set(["tic-tac-toe", "snakes-ladders"]);
+const LIVE_BOARD_KEYS = new Set(["tic-tac-toe", "snakes-ladders", "ludo-dash", "chess"]);
 const gameContentCache = new Map<string, { items: GameContentItem[]; cachedAt: number }>();
 
 const ICONS: Record<string, React.ElementType> = {
-  Layers, Grid3x3, Shuffle, PuzzleIcon: Puzzle, Puzzle, Spade, Grid2x2, Gamepad2, Zap, Sparkles, Trophy, Users, Brain, Map: MapIcon, FlaskConical, Code2, Leaf,
+  Layers, Grid3x3, Shuffle, PuzzleIcon: Puzzle, Puzzle, Spade, Grid2x2, Gamepad2, Zap, Sparkles, Trophy, Users, Brain, Map: MapIcon, FlaskConical, Code2, Leaf, Flag,
 };
 
 const ACCENTS: Record<string, string> = {
@@ -86,6 +86,7 @@ const ACCENTS: Record<string, string> = {
   snake: "from-lime-500 to-emerald-600",
   "tic-tac-toe": "from-violet-500 to-sky-600",
   "snakes-ladders": "from-amber-500 to-rose-500",
+  "ludo-dash": "from-rose-500 to-indigo-600",
 };
 
 const FALLBACK_GAMES: GameDef[] = [
@@ -121,7 +122,8 @@ const FALLBACK_GAMES: GameDef[] = [
   { id: "ping-pong", key: "ping-pong", name: "Ping Pong", description: "Rally against the arcade bot and race to five points.", icon_name: "Gamepad2", category: "arcade", is_enabled: true, points_per_win: 15, max_points_per_day: 45, daily_play_limit: 3, sort_order: 30 },
   { id: "snake", key: "snake", name: "Snake", description: "Guide your growing snake, collect fruit and beat your best run.", icon_name: "Gamepad2", category: "arcade", is_enabled: true, points_per_win: 12, max_points_per_day: 48, daily_play_limit: 4, sort_order: 31 },
   { id: "tic-tac-toe", key: "tic-tac-toe", name: "Tic-Tac-Toe", description: "Practice against the computer or challenge a friend live.", icon_name: "Grid3x3", category: "strategy", is_enabled: true, points_per_win: 10, max_points_per_day: 40, daily_play_limit: 4, sort_order: 32 },
-  { id: "snakes-ladders", key: "snakes-ladders", name: "Snakes & Ladders", description: "Race up the ladders and dodge the snakes. Play against a friend live.", icon_name: "Grid2x2", category: "strategy", is_enabled: true, points_per_win: 12, max_points_per_day: 48, daily_play_limit: 3, sort_order: 33 }
+  { id: "snakes-ladders", key: "snakes-ladders", name: "Snakes & Ladders", description: "Race up the ladders and dodge the snakes. Play against a friend live.", icon_name: "Grid2x2", category: "strategy", is_enabled: true, points_per_win: 12, max_points_per_day: 48, daily_play_limit: 3, sort_order: 33 },
+  { id: "ludo-dash", key: "ludo-dash", name: "Ludo Dash", description: "Race your token home in a quick live Ludo match.", icon_name: "Flag", category: "strategy", is_enabled: true, points_per_win: 15, max_points_per_day: 45, daily_play_limit: 3, sort_order: 34 }
 ];
 
 export default function GamesCorner({ userId, onPointsEarned }: { userId: string; onPointsEarned?: () => void }) {
@@ -383,7 +385,9 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       case "ping-pong":
       case "snake": return <ArcadeMiniGame {...props} gameKey={active.key} />;
       case "tic-tac-toe":
-      case "snakes-ladders": return duelRoomId ? <LiveArcadeBoard gameKey={active.key} roomId={duelRoomId} userId={userId} onExit={() => setActive(null)} /> : <ArcadeMiniGame {...props} gameKey={active.key} />;
+      case "snakes-ladders":
+      case "ludo-dash":
+      case "chess": return duelRoomId ? <LiveArcadeBoard gameKey={active.key} roomId={duelRoomId} userId={userId} onExit={() => setActive(null)} /> : <Card className="mx-auto max-w-md"><CardContent className="space-y-3 p-6 text-center"><div className="text-4xl" aria-hidden="true">♟</div><h3 className="text-lg font-bold">Play live chess</h3><p className="text-sm text-muted-foreground">Choose Chess in the Head-to-head panel, then invite an online friend or join their room.</p><Button onClick={props.onExit}>Back to Games Corner</Button></CardContent></Card>;
       case "logic-grid":
       case "map-quest":
       case "science-sprint":
