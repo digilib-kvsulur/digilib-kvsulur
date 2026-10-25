@@ -279,33 +279,33 @@ export default function Overview({
 
   // Reusable Invite Component
   const InviteCard = () => (
-    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-xs hover:border-violet-500/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-3.5">
+    <div className="rounded-2xl sm:rounded-3xl border border-violet-500/20 bg-gradient-to-b from-violet-500/[0.04] via-card to-card p-3.5 sm:p-5 shadow-sm hover:border-violet-500/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-3 sm:space-y-3.5">
       {/* Top Header: Icon + Title + XP Badge */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
-            <UserPlus className="h-5 w-5" />
+      <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+            <UserPlus className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
           <div className="min-w-0">
-            <h4 className="text-sm font-bold text-foreground truncate">
+            <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
               Invite Classmates
             </h4>
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
               Earn bonus XP when friends join DLMS
             </p>
           </div>
         </div>
-        <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+        <span className="shrink-0 inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-black bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
           <Sparkles className="h-3 w-3 text-amber-500" /> +250 XP
         </span>
       </div>
 
       {/* Action Buttons: 2 Equal-Width Buttons side-by-side */}
-      <div className="grid grid-cols-2 gap-2.5 pt-0.5">
+      <div className="grid grid-cols-2 gap-2 sm:gap-2.5 pt-0.5">
         <Button
           size="sm"
           onClick={handleCopyInvite}
-          className="h-9 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-xs active:scale-[0.98]"
+          className="h-8.5 sm:h-9 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-xs active:scale-[0.98]"
         >
           {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
@@ -315,7 +315,7 @@ export default function Overview({
           size="sm"
           variant="outline"
           onClick={handleWhatsAppShare}
-          className="h-9 rounded-xl text-xs font-bold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-1.5 active:scale-[0.98]"
+          className="h-8.5 sm:h-9 rounded-xl text-xs font-bold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-1.5 active:scale-[0.98]"
         >
           <Share2 className="h-3.5 w-3.5" />
           <span>WhatsApp</span>
@@ -325,7 +325,7 @@ export default function Overview({
   );
 
   return (
-    <div className="space-y-4 sm:space-y-5 w-full max-w-full pb-8">
+    <div className="space-y-5 sm:space-y-6 w-full max-w-full pb-10">
       {/* 1. URGENT NOTIFICATIONS BAR (Fines) */}
       {pendingFines > 0 && (
         <div
@@ -602,24 +602,24 @@ export default function Overview({
       )}
 
       {/* 7. KEY METRIC STRIP (4 Refined Executive KPI Cards) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4.5">
         {/* Metric 1: Books Reading */}
         <div
           onClick={() => setActiveTab("books")}
-          className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 hover:bg-card hover:border-sky-500/40 hover:shadow-md p-4 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-2xs"
+          className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-sky-500/20 bg-gradient-to-b from-sky-500/[0.05] via-card to-card hover:border-sky-500/40 hover:shadow-md p-4 sm:p-5 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-sm flex flex-col justify-between"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-xl sm:rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <BookOpen className="h-5 w-5" />
             </div>
-            <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span className="text-[10px] sm:text-xs font-bold text-sky-600 dark:text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1">
               <span>My Books</span>
               <ChevronRight className="h-3 w-3" />
             </span>
           </div>
           <div>
             <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{currentBooksCount}</p>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
+            <p className="text-xs text-muted-foreground font-medium mt-1 truncate">
               {currentBooksCount === 1 ? "Active book reading" : "Active books reading"}
             </p>
           </div>
@@ -628,13 +628,13 @@ export default function Overview({
         {/* Metric 2: Monthly Reading Goal */}
         <div
           onClick={() => setActiveTab("portfolio")}
-          className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 hover:bg-card hover:border-emerald-500/40 hover:shadow-md p-4 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-2xs"
+          className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-emerald-500/20 bg-gradient-to-b from-emerald-500/[0.05] via-card to-card hover:border-emerald-500/40 hover:shadow-md p-4 sm:p-5 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-sm flex flex-col justify-between"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-xl sm:rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Target className="h-5 w-5" />
             </div>
-            <span className="text-[10px] font-bold font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] sm:text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 sm:px-2.5 py-0.5 rounded-full">
               {goalPercentage}% Done
             </span>
           </div>
@@ -643,7 +643,7 @@ export default function Overview({
               <span className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{monthlyBooksRead}</span>
               <span className="text-xs font-semibold text-muted-foreground">/{schoolReadingGoal} goal</span>
             </div>
-            <div className="mt-2">
+            <div className="mt-2.5">
               <Progress value={goalPercentage} className="h-1.5 bg-muted rounded-full" />
             </div>
           </div>
@@ -652,20 +652,20 @@ export default function Overview({
         {/* Metric 3: Quizzes Completed */}
         <div
           onClick={() => setActiveTab("quizzes")}
-          className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 hover:bg-card hover:border-purple-500/40 hover:shadow-md p-4 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-2xs"
+          className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-purple-500/20 bg-gradient-to-b from-purple-500/[0.05] via-card to-card hover:border-purple-500/40 hover:shadow-md p-4 sm:p-5 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-sm flex flex-col justify-between"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-xl sm:rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Brain className="h-5 w-5" />
             </div>
-            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span className="text-[10px] sm:text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1">
               <span>Quizzes</span>
               <ChevronRight className="h-3 w-3" />
             </span>
           </div>
           <div>
             <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{quizResultsCount}</p>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
+            <p className="text-xs text-muted-foreground font-medium mt-1 truncate">
               Completed quizzes
             </p>
           </div>
@@ -674,20 +674,20 @@ export default function Overview({
         {/* Metric 4: Badges Unlocked */}
         <div
           onClick={() => setActiveTab("badges")}
-          className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/80 hover:bg-card hover:border-amber-500/40 hover:shadow-md p-4 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-2xs"
+          className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-amber-500/20 bg-gradient-to-b from-amber-500/[0.05] via-card to-card hover:border-amber-500/40 hover:shadow-md p-4 sm:p-5 transition-all duration-200 cursor-pointer group active:scale-[0.98] shadow-sm flex flex-col justify-between"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            <div className="w-10 h-10 rounded-xl sm:rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <Award className="h-5 w-5" />
             </div>
-            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span className="text-[10px] sm:text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1">
               <span>Badge Vault</span>
               <ChevronRight className="h-3 w-3" />
             </span>
           </div>
           <div>
             <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{badgesEarnedCount}</p>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
+            <p className="text-xs text-muted-foreground font-medium mt-1 truncate">
               Unlocked honors
             </p>
           </div>
@@ -699,11 +699,11 @@ export default function Overview({
         {/* MAIN COLUMN (8 cols on desktop) */}
         <div className="lg:col-span-8 space-y-6 min-w-0">
           {/* PRIMARY STUDENT LAUNCHPAD */}
-          <Card className="border border-border/70 rounded-3xl overflow-hidden bg-card/60 backdrop-blur-md shadow-xs">
-            <CardHeader className="p-4 sm:p-5 pb-3">
+          <Card className="border border-border/80 rounded-3xl overflow-hidden bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="p-4 sm:p-6 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm sm:text-base font-extrabold flex items-center gap-2 text-foreground">
-                  <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                     <Compass className="h-4 w-4" />
                   </div>
                   <span>Student Launchpad</span>
@@ -713,19 +713,19 @@ export default function Overview({
                 </span>
               </div>
             </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-0 space-y-4">
+            <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
               {/* 8 Primary Cards Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
                 {primaryHubs.map((hub) => {
                   const Icon = hub.icon;
                   return (
                     <button
                       key={hub.id}
                       onClick={hub.action}
-                      className={`relative flex flex-col text-left p-3 sm:p-3.5 rounded-2xl border border-border/60 bg-card hover:bg-muted/40 ${hub.border} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95 group shadow-2xs`}
+                      className={`relative flex flex-col text-left p-3.5 sm:p-4 rounded-2xl border border-border/70 bg-card hover:bg-muted/40 ${hub.border} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95 group shadow-sm`}
                     >
                       {hub.badge && (
-                        <span className="absolute top-2 right-2 px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                        <span className="absolute top-2.5 right-2.5 px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
                           {hub.badge}
                         </span>
                       )}
@@ -780,7 +780,7 @@ export default function Overview({
         </div>
 
         {/* SIDEBAR COLUMN (4 cols on desktop; on desktop it sits right next to the hero & main content) */}
-        <div className="space-y-5 min-w-0 lg:col-span-4">
+        <div className="space-y-5 lg:space-y-6 min-w-0 lg:col-span-4">
           {/* Daily Login Streak (Desktop) */}
           <div className="hidden lg:block">
             {streakData && !streakData.loading ? (
@@ -805,14 +805,14 @@ export default function Overview({
 
           {/* Pending Friend Requests (if any - Visible on both mobile and desktop) */}
           {pendingFriendRequests && pendingFriendRequests.length > 0 && handleRespondFriendRequest && (
-            <Card className="rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/40 via-purple-50/20 to-card dark:from-indigo-950/20 dark:via-card dark:to-card shadow-2xs p-4">
+            <Card className="rounded-3xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/40 via-purple-50/20 to-card dark:from-indigo-950/20 dark:via-card dark:to-card shadow-sm hover:shadow-md transition-shadow p-4 sm:p-5">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                    <Users className="h-3.5 w-3.5" />
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Users className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-foreground">
+                    <h4 className="text-xs sm:text-sm font-bold text-foreground">
                       Friend Requests ({pendingFriendRequests.length})
                     </h4>
                   </div>
@@ -821,7 +821,7 @@ export default function Overview({
                   variant="ghost"
                   size="sm"
                   onClick={() => setActiveTab("network")}
-                  className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 h-6 px-1.5"
+                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 h-7 px-2"
                 >
                   View All →
                 </Button>
@@ -830,7 +830,7 @@ export default function Overview({
                 {pendingFriendRequests.slice(0, 2).map((req) => (
                   <div
                     key={req.id}
-                    className="p-2.5 rounded-xl bg-card border border-border/40 flex items-center justify-between gap-2"
+                    className="p-3 rounded-2xl bg-card border border-border/60 shadow-xs flex items-center justify-between gap-2"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Avatar className="h-8 w-8 border border-border shrink-0">
@@ -870,8 +870,8 @@ export default function Overview({
           )}
 
           {/* Recent Activity Timeline */}
-          <Card className="border border-border/60 rounded-2xl overflow-hidden shadow-2xs">
-            <CardHeader className="p-4 pb-3">
+          <Card className="border border-border/80 rounded-3xl overflow-hidden shadow-sm hover:shadow-md bg-card transition-shadow">
+            <CardHeader className="p-4 sm:p-5 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xs sm:text-sm font-extrabold flex items-center gap-2 text-foreground">
                   <TrendingUp className="h-4 w-4 text-primary" />
@@ -885,7 +885,7 @@ export default function Overview({
                 </button>
               </div>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent className="p-4 sm:p-5 pt-0">
               {recentActivities && recentActivities.length > 0 ? (
                 <div className="space-y-2">
                   {recentActivities.slice(0, 5).map((item, i) => {
