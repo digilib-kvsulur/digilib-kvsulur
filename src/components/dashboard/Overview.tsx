@@ -446,12 +446,6 @@ export default function Overview({
                     ADM #{user.admission_number}
                   </span>
                 )}
-                {streakData && streakData.currentStreak > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    <Flame className="h-3 w-3 fill-amber-300" />
-                    <span>{streakData.currentStreak}d Streak</span>
-                  </span>
-                )}
               </div>
             </div>
           </div>
