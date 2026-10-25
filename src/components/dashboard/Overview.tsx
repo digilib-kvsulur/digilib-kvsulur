@@ -19,7 +19,7 @@ import {
   Calendar, CalendarDays, Gamepad2, Timer, FileText, BookCheck, Users,
   UserPlus, Copy, Bug, Palette, AlertTriangle, ChevronRight, Compass,
   CheckCircle2, Medal, Network, MessageSquare, Flame, ArrowUpRight,
-  Sun, Moon, Check, MapPin, BookMarked
+  Sun, Moon, Check, MapPin, Share2
 } from "lucide-react";
 
 export interface OverviewProps {
@@ -299,8 +299,63 @@ export default function Overview({
   const wrapPrevMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() - 1, 1).toLocaleString("default", { month: "long" });
   const bannerMonth = isWrapFirst7Days ? wrapPrevMonth : nowDate.toLocaleString("default", { month: "long" });
 
+  // Reusable Invite Component
+  const InviteCard = () => (
+    <div className="relative overflow-hidden rounded-2xl border border-violet-500/25 bg-gradient-to-br from-violet-500/10 via-card to-purple-500/10 p-4 shadow-2xs hover:border-violet-500/40 hover:shadow-md transition-all duration-200">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <UserPlus className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-foreground truncate">Invite Classmates</h3>
+              <Badge className="border-0 text-[10px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.2 shadow-2xs">
+                <Sparkles className="h-2.5 w-2.5 mr-1" /> +250 XP
+              </Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+              Earn +250 XP whenever friends sign in using your invite link
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+          <Button
+            size="sm"
+            onClick={handleCopyInvite}
+            className="flex-1 sm:flex-none h-8.5 px-3 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-xs"
+          >
+            {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleWhatsAppShare}
+            className="flex-1 sm:flex-none h-8.5 px-3 rounded-xl text-xs font-semibold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-1.5"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            <span>WhatsApp</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setActiveTab("invite")}
+            className="h-8.5 w-8.5 p-0 rounded-xl text-muted-foreground hover:text-foreground shrink-0"
+            title="Open Full Invite Hub"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-5 sm:space-y-6 w-full max-w-full pb-8">
+    <div className="space-y-4 sm:space-y-5 w-full max-w-full pb-8">
       {/* 1. URGENT NOTIFICATIONS BAR (Fines) */}
       {pendingFines > 0 && (
         <div
@@ -331,7 +386,7 @@ export default function Overview({
         </div>
       )}
 
-      {/* 2. COMMAND CENTER HERO BANNER */}
+      {/* 2. COMMAND CENTER HERO BANNER (WELCOME MESSAGE BOX) */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950/95 to-slate-900 text-white border border-indigo-500/20 shadow-xl p-5 sm:p-6 lg:p-7">
         {/* Ambient atmospheric glows */}
         <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none" />
@@ -454,7 +509,27 @@ export default function Overview({
         </div>
       </div>
 
-      {/* 3. LIVE QUIZ LEAGUE NOTICES (if available) */}
+      {/* 3. MOBILE HERO COMPANION (STREAK + LEVEL + INVITE IMMEDIATELY NEXT TO WELCOME BOX ON MOBILE) */}
+      <div className="block lg:hidden space-y-3">
+        {/* Streak & Level Duo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {streakData && !streakData.loading ? (
+            <LoginStreakCard
+              currentStreak={streakData.currentStreak}
+              longestStreak={streakData.longestStreak}
+              totalLoginDays={streakData.totalLoginDays}
+              onPointsClaimed={checkAuth}
+            />
+          ) : null}
+
+          <LevelProgress userPoints={user?.points || 0} />
+        </div>
+
+        {/* Invite Classmates Box */}
+        <InviteCard />
+      </div>
+
+      {/* 4. LIVE QUIZ LEAGUE NOTICES (if available) */}
       {handleJoinQuizLeague && (
         <div className="space-y-3">
           <UpcomingQuizLeagueCard
@@ -466,10 +541,10 @@ export default function Overview({
         </div>
       )}
 
-      {/* 4. ACTIVE CAMPAIGN SPOTLIGHT (Vacation Banner) */}
+      {/* 5. ACTIVE CAMPAIGN SPOTLIGHT (Vacation Banner) */}
       <VacationOverviewBanner onOpen={() => setActiveTab("vacation")} />
 
-      {/* 5. SECONDARY QUESTS & SPECIAL EVENTS (Wrap, Bug Bounty, UI Reform) */}
+      {/* 6. SECONDARY QUESTS & SPECIAL EVENTS (Wrap, Bug Bounty, UI Reform) */}
       {hasSecondaryCampaigns && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {/* Monthly Wrap Card */}
@@ -562,7 +637,7 @@ export default function Overview({
         </div>
       )}
 
-      {/* 6. KEY METRIC STRIP (4 Refined Executive KPI Cards) */}
+      {/* 7. KEY METRIC STRIP (4 Refined Executive KPI Cards) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Metric 1: Books Reading */}
         <div
@@ -655,7 +730,7 @@ export default function Overview({
         </div>
       </div>
 
-      {/* 7. BALANCED 2-COLUMN DESKTOP LAYOUT (AND POLISHED MOBILE ORDER) */}
+      {/* 8. BALANCED 2-COLUMN DESKTOP LAYOUT (AND POLISHED LOWER MOBILE FLOW) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* MAIN COLUMN (8 cols on desktop) */}
         <div className="lg:col-span-8 space-y-6 min-w-0">
@@ -740,74 +815,31 @@ export default function Overview({
           )}
         </div>
 
-        {/* SIDEBAR COLUMN (4 cols on desktop) */}
-        <div className="lg:col-span-4 space-y-5 min-w-0">
-          {/* Daily Login Streak */}
-          {streakData && !streakData.loading && (
-            <LoginStreakCard
-              currentStreak={streakData.currentStreak}
-              longestStreak={streakData.longestStreak}
-              totalLoginDays={streakData.totalLoginDays}
-              onPointsClaimed={checkAuth}
-            />
-          )}
+        {/* SIDEBAR COLUMN (4 cols on desktop; on desktop it sits right next to the hero & main content) */}
+        <div className="space-y-5 min-w-0 lg:col-span-4">
+          {/* Daily Login Streak (Desktop) */}
+          <div className="hidden lg:block">
+            {streakData && !streakData.loading ? (
+              <LoginStreakCard
+                currentStreak={streakData.currentStreak}
+                longestStreak={streakData.longestStreak}
+                totalLoginDays={streakData.totalLoginDays}
+                onPointsClaimed={checkAuth}
+              />
+            ) : null}
+          </div>
 
-          {/* Level Progress */}
-          <LevelProgress userPoints={user?.points || 0} />
+          {/* Level Progress (Desktop) */}
+          <div className="hidden lg:block">
+            <LevelProgress userPoints={user?.points || 0} />
+          </div>
 
-          {/* Invite Classmates Box */}
-          <Card className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 via-card to-purple-500/5 shadow-2xs overflow-hidden">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <UserPlus className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-bold text-foreground">Invite Classmates</h3>
-                    <p className="text-[10px] text-muted-foreground">Grow your library squad</p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-[10px] font-bold px-2 py-0.5">
-                  <Sparkles className="h-2.5 w-2.5 mr-1" /> +250 XP
-                </Badge>
-              </div>
+          {/* Invite Classmates Box (Desktop) */}
+          <div className="hidden lg:block">
+            <InviteCard />
+          </div>
 
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Earn <strong>+250 XP</strong> for every friend who signs in with your student invite link!
-              </p>
-
-              <div className="flex items-center gap-2 pt-1">
-                <Button
-                  size="sm"
-                  onClick={handleCopyInvite}
-                  className="flex-1 h-8 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-2xs"
-                >
-                  {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                  <span>{copiedLink ? "Copied Link!" : "Copy Link"}</span>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleWhatsAppShare}
-                  className="h-8 rounded-xl text-xs font-semibold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 px-3"
-                >
-                  WhatsApp
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setActiveTab("invite")}
-                  className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-foreground shrink-0"
-                  title="Open Invite Center"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Pending Friend Requests (if any) */}
+          {/* Pending Friend Requests (if any - Visible on both mobile and desktop) */}
           {pendingFriendRequests && pendingFriendRequests.length > 0 && handleRespondFriendRequest && (
             <Card className="rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/40 via-purple-50/20 to-card dark:from-indigo-950/20 dark:via-card dark:to-card shadow-2xs p-4">
               <div className="flex items-center justify-between gap-3 mb-3">

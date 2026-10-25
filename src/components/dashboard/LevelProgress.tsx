@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { getUserLevel } from "@/lib/userLevelCache";
-import { Star, TrendingUp } from "lucide-react";
+import { Star, TrendingUp, Sparkles, Award } from "lucide-react";
 import * as Icons from "lucide-react";
 
 interface LevelProgressProps {
@@ -39,66 +39,111 @@ const LevelProgress = ({ userPoints }: LevelProgressProps) => {
   }, [userPoints]);
 
   if (loading) return (
-    <Card className="border-border/50">
-      <CardContent className="p-5">
+    <Card className="border border-border/60 rounded-2xl bg-card/60 backdrop-blur-sm shadow-2xs">
+      <CardContent className="p-4 sm:p-4.5">
         <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-muted rounded w-24"></div>
-          <div className="h-8 bg-muted rounded w-32"></div>
-          <div className="h-2 bg-muted rounded w-full"></div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-muted/60" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-4 bg-muted/60 rounded w-24" />
+              <div className="h-3 bg-muted/40 rounded w-16" />
+            </div>
+          </div>
+          <div className="h-2 bg-muted/40 rounded-full w-full" />
         </div>
       </CardContent>
     </Card>
   );
 
-  if (!levelInfo) return (
-    <Card className="border-border/50">
-      <CardContent className="p-5 text-sm text-muted-foreground">Level info unavailable</CardContent>
-    </Card>
-  );
+  if (!levelInfo) return null;
 
   const IconComponent = Icons[levelInfo.icon_name as keyof typeof Icons] as React.ComponentType<any>;
+  const levelColor = levelInfo.color || "#6366f1";
 
   return (
-    <Card className="border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 via-card to-card rounded-3xl overflow-hidden h-full flex flex-col shadow-sm">
-      <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${levelInfo.color}, ${levelInfo.color}88)` }} />
-      <CardContent className="p-4 sm:p-5 flex-1 flex flex-col justify-center gap-3">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${levelInfo.color}15` }}>
-            {IconComponent ? (
-              <IconComponent className="h-6 w-6" style={{ color: levelInfo.color }} />
-            ) : (
-              <Star className="h-6 w-6" style={{ color: levelInfo.color }} />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-2xl font-extrabold text-foreground">Lv.{levelInfo.level_number}</span>
-              <Badge variant="secondary" className="text-[10px] font-semibold">{levelInfo.name}</Badge>
+    <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-indigo-500/10 via-card to-card hover:border-indigo-500/40 hover:shadow-md transition-all duration-200 shadow-2xs group flex flex-col justify-between">
+      {/* Top accent glow line */}
+      <div
+        className="h-1 w-full"
+        style={{
+          background: `linear-gradient(90deg, ${levelColor}, ${levelColor}88)`,
+        }}
+      />
+
+      <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between gap-3">
+        {/* Top: Icon + Level info */}
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform"
+              style={{
+                backgroundColor: `${levelColor}18`,
+                border: `1px solid ${levelColor}35`,
+              }}
+            >
+              {IconComponent ? (
+                <IconComponent className="h-5 w-5" style={{ color: levelColor }} />
+              ) : (
+                <Award className="h-5 w-5" style={{ color: levelColor }} />
+              )}
             </div>
-            <p className="text-sm font-semibold text-foreground">{userPoints} XP</p>
-          </div>
-        </div>
-        
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5">{levelInfo.description}</p>
-          {levelInfo.points_to_next > 0 ? (
-            <>
-              <Progress value={levelInfo.progress_to_next} className="h-2 mb-1.5" />
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" /> {levelInfo.points_to_next} XP to Level {levelInfo.level_number + 1}
-                </p>
-                <p className="text-xs font-medium text-foreground">{Math.round(levelInfo.progress_to_next)}%</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                  Lv.{levelInfo.level_number}
+                </span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold px-1.5 py-0.2 rounded-md"
+                  style={{
+                    color: levelColor,
+                    borderColor: `${levelColor}40`,
+                    backgroundColor: `${levelColor}12`,
+                  }}
+                >
+                  {levelInfo.name}
+                </Badge>
               </div>
-            </>
-          ) : (
-            <div className="text-xs font-medium text-success flex items-center gap-1">
-              <Star className="h-3 w-3" /> Maximum level achieved! 🎉
+              <p className="text-xs font-bold text-muted-foreground truncate">
+                {(userPoints || 0).toLocaleString()} <span className="text-[10px] uppercase font-semibold">Total XP</span>
+              </p>
             </div>
-          )}
+          </div>
+
+          <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full shrink-0">
+            {Math.round(levelInfo.progress_to_next)}%
+          </span>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Level description & progress bar */}
+        <div className="space-y-1.5">
+          <div className="relative">
+            <Progress
+              value={levelInfo.progress_to_next}
+              className="h-2 bg-muted/70 rounded-full overflow-hidden"
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+            {levelInfo.points_to_next > 0 ? (
+              <span className="flex items-center gap-1 text-foreground/80 truncate">
+                <TrendingUp className="h-3 w-3 text-indigo-500 shrink-0" />
+                <span>
+                  <strong>{levelInfo.points_to_next} XP</strong> to Lv.{levelInfo.level_number + 1}
+                </span>
+              </span>
+            ) : (
+              <span className="text-emerald-500 font-bold flex items-center gap-1">
+                <Sparkles className="h-3 w-3" /> Max rank reached!
+              </span>
+            )}
+            <span className="text-[10px] text-muted-foreground truncate">
+              Tier {levelInfo.level_number}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
