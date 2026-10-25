@@ -343,20 +343,20 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-dvh w-full overflow-x-hidden bg-background">
+    <div className="flex min-h-dvh w-full overflow-x-hidden bg-background lg:h-dvh lg:overflow-hidden">
       {/* Left Panel - Premium Brand Showcase (Desktop >= lg) */}
-      <div className="hidden lg:flex lg:w-[50%] xl:w-[52%] relative overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white select-none">
+      <div className="hidden lg:flex lg:w-[48%] xl:w-[50%] lg:h-full lg:overflow-hidden relative bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white select-none">
         {/* Subtle grid texture & glowing mesh background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:28px_28px] opacity-40" />
         <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 left-1/3 w-80 h-80 rounded-full bg-sky-500/10 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-12 w-full">
+        <div className="relative z-10 flex h-full flex-col justify-between p-6 xl:p-8 w-full">
           {/* School Header & Dual Logos */}
-          <div className="flex items-center gap-3.5">
-            <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 p-2 shadow-lg backdrop-blur-md">
-              <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-xs" title="PM SHRI Logo">
+          <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 p-1.5 shadow-lg backdrop-blur-md">
+              <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-xs" title="PM SHRI Logo">
                 <img
                   src="/logos/pm-shri.png"
                   alt="PM SHRI"
@@ -366,9 +366,9 @@ const Login = () => {
                     (e.target as HTMLElement).nextElementSibling?.classList.remove("hidden");
                   }}
                 />
-                <Sparkles className="absolute hidden h-5 w-5 text-amber-500" />
+                <Sparkles className="absolute hidden h-4 w-4 text-amber-500" />
               </div>
-              <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-xs" title="KV Logo">
+              <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-xs" title="KV Logo">
                 <img
                   src="/logos/kv.png"
                   alt="KV"
@@ -378,40 +378,40 @@ const Login = () => {
                     (e.target as HTMLElement).nextElementSibling?.classList.remove("hidden");
                   }}
                 />
-                <BookOpen className="absolute hidden h-5 w-5 text-indigo-600" />
+                <BookOpen className="absolute hidden h-4 w-4 text-indigo-600" />
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-sm font-black tracking-wider uppercase text-white">PM SHRI KV AFS SULUR</h1>
-                <span className="text-[10px] font-bold bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 px-2 py-0.2 rounded-full">
+                <h1 className="text-xs font-black tracking-wider uppercase text-white">PM SHRI KV AFS SULUR</h1>
+                <span className="text-[9px] font-bold bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.2 rounded-full">
                   DLMS
                 </span>
               </div>
-              <p className="text-xs text-white/70">Digital Library Management System</p>
+              <p className="text-[11px] text-white/70">Digital Library Management System</p>
             </div>
           </div>
 
           {/* Core Visual Value Pitch */}
-          <div className="max-w-lg py-8 space-y-6">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-indigo-200 border border-white/15 backdrop-blur-md">
-                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+          <div className="max-w-md py-4 space-y-4">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white/10 text-indigo-200 border border-white/15 backdrop-blur-md">
+                <Sparkles className="h-3 w-3 text-amber-400" />
                 <span>Next-Gen Academic Super-App</span>
               </div>
-              <h2 className="text-3xl xl:text-4xl font-black text-white tracking-tight leading-tight">
+              <h2 className="text-2xl xl:text-3xl font-black text-white tracking-tight leading-tight">
                 Read. Compete.<br />
                 <span className="bg-gradient-to-r from-amber-300 via-indigo-200 to-sky-300 bg-clip-text text-transparent">
                   Earn Prestige.
                 </span>
               </h2>
-              <p className="text-white/70 text-sm xl:text-base leading-relaxed">
+              <p className="text-white/70 text-xs xl:text-sm leading-relaxed">
                 Connect your admission credentials to log reading hours, earn streak multipliers, and join school-wide quiz leagues.
               </p>
             </div>
 
             {/* Feature Highlights Grid */}
-            <div className="space-y-3 pt-2">
+            <div className="space-y-2 pt-1">
               {[
                 {
                   icon: Flame,
@@ -436,14 +436,14 @@ const Login = () => {
                 return (
                   <div
                     key={i}
-                    className="flex items-start gap-3.5 p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
+                    className="flex items-start gap-3 p-2.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
                   >
-                    <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${feat.color}`}>
+                    <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${feat.color}`}>
                       <Icon className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className="text-xs sm:text-sm font-bold text-white">{feat.title}</h3>
-                      <p className="text-[11px] text-white/60 leading-snug">{feat.desc}</p>
+                      <h3 className="text-xs font-bold text-white">{feat.title}</h3>
+                      <p className="text-[10px] text-white/60 leading-tight">{feat.desc}</p>
                     </div>
                   </div>
                 );
@@ -452,13 +452,13 @@ const Login = () => {
           </div>
 
           {/* Social Proof Footer */}
-          <div className="flex items-center gap-4 pt-4 border-t border-white/10">
+          <div className="flex items-center gap-3 pt-3 border-t border-white/10">
             <div className="flex -space-x-2">
               {recentUsers.length > 0
                 ? recentUsers.slice(0, 5).map((u, i) => (
                     <div
                       key={i}
-                      className={`w-8 h-8 rounded-full ${u.color} border-2 border-slate-900 flex items-center justify-center text-[10px] font-black text-white shadow-xs`}
+                      className={`w-7 h-7 rounded-full ${u.color} border-2 border-slate-900 flex items-center justify-center text-[9px] font-black text-white shadow-xs`}
                     >
                       {u.initials}
                     </div>
@@ -466,13 +466,13 @@ const Login = () => {
                 : ["KV", "AF", "SU", "LU", "R"].map((initials, i) => (
                     <div
                       key={i}
-                      className="w-8 h-8 rounded-full bg-indigo-600 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold text-white"
+                      className="w-7 h-7 rounded-full bg-indigo-600 border-2 border-slate-900 flex items-center justify-center text-[9px] font-bold text-white"
                     >
                       {initials}
                     </div>
                   ))}
             </div>
-            <p className="text-xs text-white/70">
+            <p className="text-[11px] text-white/70">
               Join <strong className="text-white font-bold">1,200+ students & staff</strong> active on DLMS
             </p>
           </div>
@@ -480,35 +480,35 @@ const Login = () => {
       </div>
 
       {/* Right Panel - Sign In Form */}
-      <div className="flex-1 flex flex-col justify-center items-center px-4 py-8 sm:px-8 sm:py-12 lg:px-12 relative overflow-y-auto min-h-dvh">
+      <div className="flex-1 flex flex-col justify-center items-center px-4 py-4 sm:px-6 relative lg:h-full lg:overflow-hidden overflow-y-auto">
         {/* Subtle decorative radial glow behind form */}
         <div className="absolute top-1/4 right-1/4 w-80 h-80 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
-        <div className="w-full max-w-[420px] space-y-6">
+        <div className="w-full max-w-[400px] space-y-3.5 my-auto">
           {/* Mobile Header (Hidden on lg) */}
-          <div className="flex flex-col items-center text-center gap-2.5 lg:hidden">
-            <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-muted/60 border border-border/80 shadow-xs">
-              <div className="h-9 w-9 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
+          <div className="flex flex-col items-center text-center gap-2 lg:hidden">
+            <div className="flex items-center gap-2 p-1 rounded-2xl bg-muted/60 border border-border/80 shadow-xs">
+              <div className="h-8 w-8 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
                 <img src="/logos/pm-shri.png" alt="PM SHRI" className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
               </div>
-              <div className="h-9 w-9 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
+              <div className="h-8 w-8 p-0.5 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
                 <img src="/logos/kv.png" alt="KV" className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
               </div>
             </div>
             <div>
-              <h2 className="text-base font-black text-foreground uppercase tracking-tight">PM SHRI KV AFS SULUR</h2>
-              <p className="text-xs text-muted-foreground">Digital Library Management System</p>
+              <h2 className="text-sm font-black text-foreground uppercase tracking-tight">PM SHRI KV AFS SULUR</h2>
+              <p className="text-[11px] text-muted-foreground">Digital Library Management System</p>
             </div>
           </div>
 
           {/* Form Card Container */}
-          <div className="rounded-3xl border border-border/70 bg-card/80 p-6 sm:p-7 shadow-xl shadow-primary/5 backdrop-blur-xl">
+          <div className="rounded-3xl border border-border/70 bg-card/80 p-5 sm:p-6 shadow-xl shadow-primary/5 backdrop-blur-xl">
             {!showForgotPassword && (
-              <div className="mb-5 space-y-1">
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+              <div className="mb-4 space-y-0.5">
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
                   Sign In
                 </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Welcome back! Enter your credentials to access your dashboard.
                 </p>
               </div>
@@ -529,18 +529,18 @@ const Login = () => {
                 }}
               />
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Google Sign-in Option */}
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleGoogleSignIn}
                   disabled={isLoading || isGoogleLoading}
-                  className="h-11 sm:h-12 w-full rounded-2xl border border-border/80 bg-background hover:bg-muted font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2.5 active:scale-[0.99]"
+                  className="h-10 sm:h-11 w-full rounded-2xl border border-border/80 bg-background hover:bg-muted font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2 active:scale-[0.99]"
                 >
                   {isGoogleLoading ? (
                     <span className="flex items-center gap-2 text-foreground">
-                      <span className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
+                      <span className="w-3.5 h-3.5 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
                       Connecting Google...
                     </span>
                   ) : (
@@ -557,29 +557,29 @@ const Login = () => {
                 </Button>
 
                 {/* Divider */}
-                <div className="relative my-3 flex items-center justify-center">
+                <div className="relative my-2.5 flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-border/70" />
                   </div>
-                  <div className="relative bg-card px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="relative bg-card px-2.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                     Or sign in with ID
                   </div>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-3">
                   {authUnavailable && (
-                    <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 rounded-2xl">
-                      <AlertCircle className="h-4 w-4 text-amber-500" />
-                      <AlertDescription className="text-xs leading-relaxed">
+                    <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 rounded-2xl py-2">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                      <AlertDescription className="text-[11px] leading-relaxed">
                         Sign-in service is temporarily busy. Please wait a minute and retry.
                       </AlertDescription>
                     </Alert>
                   )}
 
                   {/* Admission / Identifier Field */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <Label htmlFor="identifier" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                      <User className="h-3 w-3 text-muted-foreground" />
                       <span>Admission No. / Email / Phone</span>
                     </Label>
                     <div className="relative">
@@ -589,23 +589,23 @@ const Login = () => {
                         placeholder="5-digit Admission No. (e.g. 13412)"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
-                        className="h-11 sm:h-12 rounded-2xl bg-background/80 border-border/80 text-sm focus-visible:ring-primary shadow-2xs pl-3.5"
+                        className="h-10 sm:h-11 rounded-2xl bg-background/80 border-border/80 text-xs sm:text-sm focus-visible:ring-primary shadow-2xs pl-3.5"
                         required
                       />
                     </div>
                   </div>
 
                   {/* Password Field */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                        <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Lock className="h-3 w-3 text-muted-foreground" />
                         <span>Password</span>
                       </Label>
                       <button
                         type="button"
                         onClick={() => setShowForgotPassword(true)}
-                        className="text-[11px] font-semibold text-primary hover:underline"
+                        className="text-[10px] font-semibold text-primary hover:underline"
                       >
                         Forgot password?
                       </button>
@@ -617,7 +617,7 @@ const Login = () => {
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="h-11 sm:h-12 rounded-2xl bg-background/80 border-border/80 pr-11 text-sm focus-visible:ring-primary shadow-2xs pl-3.5"
+                        className="h-10 sm:h-11 rounded-2xl bg-background/80 border-border/80 pr-10 text-xs sm:text-sm focus-visible:ring-primary shadow-2xs pl-3.5"
                         required
                       />
                       <button
@@ -626,17 +626,9 @@ const Login = () => {
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                       </button>
                     </div>
-                  </div>
-
-                  {/* Student Quick Helper Tip */}
-                  <div className="rounded-xl bg-primary/5 border border-primary/15 p-2.5 flex items-start gap-2 text-[11px] text-muted-foreground leading-snug">
-                    <HelpCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                    <span>
-                      First time login? Use your <strong>5-digit Admission No.</strong> as username and default password <strong>Welcome@123</strong>.
-                    </span>
                   </div>
 
                   {/* Turnstile Captcha */}
@@ -645,12 +637,12 @@ const Login = () => {
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    className="h-11 sm:h-12 w-full rounded-2xl gradient-primary border-0 text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] text-white"
+                    className="h-10 sm:h-11 w-full rounded-2xl gradient-primary border-0 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] text-white"
                     disabled={isLoading || !captchaToken}
                   >
                     {isLoading ? (
                       <span className="flex items-center gap-2">
-                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         Signing in...
                       </span>
                     ) : (
@@ -662,7 +654,7 @@ const Login = () => {
             )}
 
             {/* Bottom Account Links */}
-            <div className="mt-5 pt-4 border-t border-border/60 text-center space-y-2">
+            <div className="mt-3.5 pt-3 border-t border-border/60 text-center space-y-1.5">
               <p className="text-xs text-muted-foreground">
                 Don't have an account?{" "}
                 <button
@@ -678,9 +670,9 @@ const Login = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate("/")}
-                  className="h-8 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground rounded-xl"
                 >
-                  <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to Home
+                  <ArrowLeft className="h-3 w-3 mr-1" /> Back to Home
                 </Button>
               </div>
             </div>

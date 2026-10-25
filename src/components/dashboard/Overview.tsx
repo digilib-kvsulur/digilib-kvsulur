@@ -279,33 +279,33 @@ export default function Overview({
 
   // Reusable Invite Component
   const InviteCard = () => (
-    <div className="relative overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/15 via-card to-purple-500/10 p-3 sm:p-3.5 shadow-xs hover:border-violet-500/50 hover:shadow-md transition-all duration-200">
+    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-xs hover:border-violet-500/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-3.5">
       {/* Top Header: Icon + Title + XP Badge */}
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-            <UserPlus className="h-4 w-4" />
+          <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+            <UserPlus className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
+            <h4 className="text-sm font-bold text-foreground truncate">
               Invite Classmates
             </h4>
-            <p className="text-[10px] text-muted-foreground truncate">
-              Earn +250 XP when friends sign in with your link
+            <p className="text-xs text-muted-foreground truncate">
+              Earn bonus XP when friends join DLMS
             </p>
           </div>
         </div>
-        <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs">
-          <Sparkles className="h-2.5 w-2.5" /> +250 XP
+        <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+          <Sparkles className="h-3 w-3 text-amber-500" /> +250 XP
         </span>
       </div>
 
       {/* Action Buttons: 2 Equal-Width Buttons side-by-side */}
-      <div className="grid grid-cols-2 gap-2 pt-0.5">
+      <div className="grid grid-cols-2 gap-2.5 pt-0.5">
         <Button
           size="sm"
           onClick={handleCopyInvite}
-          className="h-8 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-2xs active:scale-[0.98]"
+          className="h-9 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-xs active:scale-[0.98]"
         >
           {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
@@ -315,7 +315,7 @@ export default function Overview({
           size="sm"
           variant="outline"
           onClick={handleWhatsAppShare}
-          className="h-8 rounded-xl text-xs font-bold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-1.5 active:scale-[0.98]"
+          className="h-9 rounded-xl text-xs font-bold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-1.5 active:scale-[0.98]"
         >
           <Share2 className="h-3.5 w-3.5" />
           <span>WhatsApp</span>

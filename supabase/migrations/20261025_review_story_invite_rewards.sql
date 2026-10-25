@@ -105,7 +105,49 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.admin_review_story_submission(p_submission uuid, p_decision text)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_sub public.instagram_story_submissions%rowtype;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'teacher')) THEN
+    RAISE EXCEPTION 'Staff access required';
+  END IF;
+  IF p_decision IS NULL OR p_decision NOT IN ('accept', 'reject') THEN
+    RAISE EXCEPTION 'Decision must be accept or reject';
+  END IF;
+
+  SELECT * INTO v_sub
+  FROM public.instagram_story_submissions
+  WHERE id = p_submission
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'reason', 'not_found');
+  END IF;
+  IF v_sub.status <> 'approved' THEN
+    RETURN json_build_object('success', false, 'reason', 'already_reviewed');
+  END IF;
+
+  IF p_decision = 'reject' THEN
+    RETURN public.admin_revoke_story_reward(p_submission);
+  END IF;
+
+  UPDATE public.instagram_story_submissions
+  SET status = 'verified'
+  WHERE id = p_submission;
+
+  RETURN json_build_object('success', true, 'points_revoked', 0);
+END;
+$$;
+
 REVOKE ALL ON FUNCTION public.admin_revoke_story_reward(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.admin_revoke_invite_reward(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.admin_review_story_submission(uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.admin_revoke_story_reward(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_revoke_invite_reward(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_review_story_submission(uuid, text) TO authenticated;
