@@ -86,35 +86,13 @@ export default function Overview({
     return { greeting: "Good evening", timeIcon: Moon };
   }, []);
 
-  // Compute clean greeting name
-  const greetingName = useMemo(() => {
+  // Student full display name: first_name + last_name
+  const fullName = useMemo(() => {
     if (!user) return "Scholar";
     const firstName = (user.first_name || "").trim();
     const lastName = (user.last_name || "").trim();
-    const fullName = `${firstName} ${lastName}`.trim() || user.name || "Scholar";
-
-    const words = fullName.split(/\s+/).filter(Boolean);
-    if (words.length === 0) return "Scholar";
-
-    const formatWord = (w: string) => {
-      if (w.length <= 2) return w.toUpperCase();
-      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-    };
-
-    if (words[0].length <= 2 && words.length > 1) {
-      const parts: string[] = [];
-      for (let i = 0; i < Math.min(words.length, 3); i++) {
-        parts.push(formatWord(words[i]));
-        if (words[i].length > 2 && i >= 1) break;
-      }
-      return parts.join(" ");
-    }
-
-    if (words[0].length <= 3 && words.length > 1) {
-      return `${formatWord(words[0])} ${formatWord(words[1])}`;
-    }
-
-    return formatWord(words[0]);
+    const name = `${firstName} ${lastName}`.trim();
+    return name || user.name || "Scholar";
   }, [user?.first_name, user?.last_name, user?.name]);
 
   // Format relative time helper
@@ -301,55 +279,47 @@ export default function Overview({
 
   // Reusable Invite Component
   const InviteCard = () => (
-    <div className="relative overflow-hidden rounded-2xl border border-violet-500/25 bg-gradient-to-br from-violet-500/10 via-card to-purple-500/10 p-4 shadow-2xs hover:border-violet-500/40 hover:shadow-md transition-all duration-200">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <UserPlus className="h-5 w-5" />
+    <div className="relative overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/15 via-card to-purple-500/10 p-3 sm:p-3.5 shadow-xs hover:border-violet-500/50 hover:shadow-md transition-all duration-200">
+      {/* Top Header: Icon + Title + XP Badge */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+            <UserPlus className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-foreground truncate">Invite Classmates</h3>
-              <Badge className="border-0 text-[10px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.2 shadow-2xs">
-                <Sparkles className="h-2.5 w-2.5 mr-1" /> +250 XP
-              </Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-              Earn +250 XP whenever friends sign in using your invite link
+            <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
+              Invite Classmates
+            </h4>
+            <p className="text-[10px] text-muted-foreground truncate">
+              Earn +250 XP when friends sign in with your link
             </p>
           </div>
         </div>
+        <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs">
+          <Sparkles className="h-2.5 w-2.5" /> +250 XP
+        </span>
+      </div>
 
-        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-          <Button
-            size="sm"
-            onClick={handleCopyInvite}
-            className="flex-1 sm:flex-none h-8.5 px-3 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-xs"
-          >
-            {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
-          </Button>
+      {/* Action Buttons: 2 Equal-Width Buttons side-by-side */}
+      <div className="grid grid-cols-2 gap-2 pt-0.5">
+        <Button
+          size="sm"
+          onClick={handleCopyInvite}
+          className="h-8 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-2xs active:scale-[0.98]"
+        >
+          {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
+        </Button>
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleWhatsAppShare}
-            className="flex-1 sm:flex-none h-8.5 px-3 rounded-xl text-xs font-semibold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-1.5"
-          >
-            <Share2 className="h-3.5 w-3.5" />
-            <span>WhatsApp</span>
-          </Button>
-
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setActiveTab("invite")}
-            className="h-8.5 w-8.5 p-0 rounded-xl text-muted-foreground hover:text-foreground shrink-0"
-            title="Open Full Invite Hub"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleWhatsAppShare}
+          className="h-8 rounded-xl text-xs font-bold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-1.5 active:scale-[0.98]"
+        >
+          <Share2 className="h-3.5 w-3.5" />
+          <span>WhatsApp</span>
+        </Button>
       </div>
     </div>
   );
@@ -409,14 +379,14 @@ export default function Overview({
                       if (parent && !parent.querySelector(".fallback-char")) {
                         const span = document.createElement("span");
                         span.className = "text-xl sm:text-2xl font-black text-white fallback-char";
-                        span.textContent = greetingName[0] || "S";
+                        span.textContent = fullName[0] || "S";
                         parent.appendChild(span);
                       }
                     }}
                   />
                 ) : (
                   <span className="text-xl sm:text-2xl font-black text-indigo-200">
-                    {greetingName[0] || "S"}
+                    {fullName[0] || "S"}
                   </span>
                 )}
               </div>
@@ -433,7 +403,7 @@ export default function Overview({
                 <span>{greeting}</span>
               </div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white truncate">
-                {greetingName}
+                {fullName}
               </h1>
               <div className="flex items-center gap-2 flex-wrap pt-0.5">
                 {user?.student_class && (
@@ -504,9 +474,9 @@ export default function Overview({
       </div>
 
       {/* 3. MOBILE HERO COMPANION (STREAK + LEVEL + INVITE IMMEDIATELY NEXT TO WELCOME BOX ON MOBILE) */}
-      <div className="block lg:hidden space-y-3">
-        {/* Streak & Level Duo */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="block lg:hidden space-y-2.5">
+        {/* Streak & Level Duo - Side-by-Side 2 Columns */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 items-stretch">
           {streakData && !streakData.loading ? (
             <LoginStreakCard
               currentStreak={streakData.currentStreak}
