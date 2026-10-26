@@ -290,8 +290,8 @@ export default function Overview({
             <h4 className="text-sm sm:text-base font-bold text-foreground">
               Invite Classmates
             </h4>
-            <p className="text-xs text-muted-foreground truncate">
-              Share link & earn +250 XP per friend
+            <p className="text-xs text-muted-foreground">
+              Invite friends to earn +250 XP
             </p>
           </div>
         </div>

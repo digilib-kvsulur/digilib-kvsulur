@@ -103,18 +103,18 @@ const LevelProgress = ({ userPoints }: LevelProgressProps) => {
 
       {/* Progress to next level bar (Height 44px to match claim button) */}
       <div className="pt-0.5">
-        <div className="h-10.5 sm:h-11 rounded-xl bg-indigo-500/5 dark:bg-indigo-950/20 border border-indigo-500/20 px-3 flex flex-col justify-center space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
-            <span className="flex items-center gap-1">
+        <div className="h-10.5 sm:h-11 rounded-xl bg-indigo-500/5 dark:bg-indigo-950/20 border border-indigo-500/20 px-2.5 sm:px-3 flex flex-col justify-center space-y-1.5">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground gap-1">
+            <span className="flex items-center gap-1 whitespace-nowrap shrink-0">
               <TrendingUp className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-              <span>Next Lv.{levelInfo.level_number + 1}</span>
+              <span>Lv.{levelInfo.level_number + 1} Goal</span>
             </span>
             {levelInfo.points_to_next > 0 ? (
-              <span className="text-foreground font-bold font-mono text-xs">
+              <span className="text-foreground font-bold font-mono text-[11px] whitespace-nowrap shrink-0">
                 +{levelInfo.points_to_next} XP
               </span>
             ) : (
-              <span className="text-emerald-500 font-bold text-xs flex items-center gap-1">
+              <span className="text-emerald-500 font-bold text-xs flex items-center gap-1 whitespace-nowrap">
                 <Sparkles className="h-3 w-3" /> Max
               </span>
             )}
