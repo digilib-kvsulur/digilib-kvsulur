@@ -12,15 +12,15 @@ export interface MaintenanceConfig {
 }
 
 export const MAINTENANCE_CONFIG: MaintenanceConfig = {
-  enabled: false,
+  enabled: true,
   idle: false,
-  until: "1970-01-01T00:00:00.000Z",
-  displayUntil: "Disabled",
+  until: "2026-10-26T08:25:51.363Z",
+  displayUntil: "today, 1:55 PM IST",
   heading: "Site Under Maintenance",
   subheading:
-    "System is currently online and operational.",
+    "DLMS is currently undergoing scheduled maintenance for essential system updates and improvements. We'll be back online by: today, 1:55 PM IST.",
   modalBody:
-    "No maintenance scheduled.",
+    "DLMS is currently undergoing scheduled maintenance for essential system updates and improvements.\n\nThe site will be back online smoothly by today, 1:55 PM IST.\n\nThank you for your patience and cooperation. 🙏",
   author: "G V Tanish Vettrivel",
   authorRole: "Developer · PM SHRI KV AFS Sulur",
   supportEmail: "dlms@kvsulur.in",
