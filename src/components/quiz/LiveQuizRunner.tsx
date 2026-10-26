@@ -393,8 +393,14 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
 
     channel
       .on("broadcast", { event: "show_leaderboard" }, () => {
+        setShowAnswerSplash(false);
         setShowInterBoard(true);
         setInterBoardTimer(5);
+      })
+      .on("broadcast", { event: "answer_reveal" }, () => {
+        if (isHost) return;
+        setShowResult(true);
+        setShowAnswerSplash(true);
       })
       .on("broadcast", { event: "question_timer_request" }, (payload) => {
         if (!isHost || !payload.payload?.user_id) return;
@@ -541,7 +547,10 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
       setStreak(0);
       quizAudio.playIncorrect();
     }
-    // Transition to Inter-Question Leaderboard after 2 seconds (Kahoot style)
+    if (channelRef.current && isHost) {
+      void channelRef.current.send({ type: "broadcast", event: "answer_reveal", payload: {} });
+    }
+    // Keep the explanation visible briefly, then move every player together.
     setTimeout(() => {
       setShowAnswerSplash(false);
       setShowInterBoard(true);
@@ -605,19 +614,7 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
     // current score and strike count accurate without a database read per round.
     publishMyScore();
 
-    // Automatically transition from answer splash to inter-question leaderboard after 1.8s
-    setTimeout(() => {
-      setShowAnswerSplash(false);
-      setShowInterBoard(true);
-      setInterBoardTimer(5);
-      if (channelRef.current && isHost) {
-        channelRef.current.send({
-          type: "broadcast",
-          event: "show_leaderboard",
-          payload: {},
-        });
-      }
-    }, 1800);
+    // Students remain on answer feedback until the host reveals the leaderboard.
   };
 
   const handleNextQuestion = async () => {
@@ -1298,6 +1295,13 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
                   </p>
                 </div>
               </>
+            )}
+
+            {question.explanation?.trim() && (
+              <div className="bg-indigo-500/10 border border-indigo-400/25 rounded-2xl p-3 text-left">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-indigo-200 mb-1">Explanation</p>
+                <p className="text-xs leading-relaxed text-white/85">{question.explanation}</p>
+              </div>
             )}
 
             {/* Live Rank indicator */}
