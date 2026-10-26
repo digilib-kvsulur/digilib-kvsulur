@@ -1437,6 +1437,7 @@ const QuizManager = () => {
                   onChange={(e) => setTimePerQuestion(Number(e.target.value))}
                   className="w-full h-11 px-3 rounded-xl border border-input bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
                 >
+                  <option value={10}>10 Seconds (Lightning)</option>
                   <option value={15}>15 Seconds (Blitz)</option>
                   <option value={20}>20 Seconds (Fast)</option>
                   <option value={30}>30 Seconds (Standard Quizizz)</option>
