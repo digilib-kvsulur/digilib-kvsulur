@@ -525,6 +525,43 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
     setTimeLeft(Math.max(0, Math.ceil((questionStartedAtRef.current + totalTime * 1000 - Date.now()) / 1000)));
   }, [currentIndex, totalTime]);
 
+  useEffect(() => {
+    if (isHost || isFinished || showInterBoard) return;
+    const expectedEnd = questionStartedAtRef.current + totalTime * 1000;
+    const recoveryTimer = window.setTimeout(async () => {
+      if (isFinished || showInterBoard) return;
+      try {
+        const { data, error } = await supabase
+          .from("quiz_sessions")
+          .select("current_question_index, status")
+          .eq("id", sessionId)
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) return;
+        if (data.status === "finished") {
+          finishQuiz();
+        } else if (typeof data.current_question_index === "number" && data.current_question_index > currentIndex) {
+          const safeIndex = Math.min(data.current_question_index, questions.length - 1);
+          questionIndexRef.current = safeIndex;
+          questionStartedAtRef.current = Date.now();
+          setCurrentIndex(safeIndex);
+          setShowAnswerSplash(false);
+          setShowInterBoard(false);
+        } else {
+          setShowAnswerSplash(false);
+          setShowInterBoard(true);
+          setInterBoardTimer(5);
+        }
+      } catch (error) {
+        console.warn("Could not recover a delayed quiz transition:", error);
+        setShowAnswerSplash(false);
+        setShowInterBoard(true);
+        setInterBoardTimer(5);
+      }
+    }, Math.max(0, expectedEnd - Date.now()) + 6000);
+    return () => window.clearTimeout(recoveryTimer);
+  }, [showAnswerSplash, showInterBoard, currentIndex, totalTime, isHost, isFinished, sessionId, questions.length]);
+
   // Countdown timer
   useEffect(() => {
     if (!question || showResult || isFinished) return;
@@ -625,41 +662,50 @@ export const LiveQuizRunner = ({ quiz, sessionId, isHost, onFinish, initialSessi
     setShowResult(false);
     setSelectedAnswer(null);
 
-    if (currentIndex < questions.length - 1) {
-      const nextIdx = currentIndex + 1;
-      await supabase
-        .from("quiz_sessions")
-        .update({ current_question_index: nextIdx })
-        .eq("id", sessionId);
+    try {
+      if (currentIndex < questions.length - 1) {
+        const nextIdx = currentIndex + 1;
+        const { error } = await supabase
+          .from("quiz_sessions")
+          .update({ current_question_index: nextIdx })
+          .eq("id", sessionId);
+        if (error) throw error;
 
-      const startedAt = Date.now();
-      if (channelRef.current) {
-        await channelRef.current.send({
-          type: "broadcast",
-          event: "next_question",
-          payload: { index: nextIdx, remaining_ms: totalTime * 1000 },
-        });
+        const startedAt = Date.now();
+        if (channelRef.current) {
+          await channelRef.current.send({
+            type: "broadcast",
+            event: "next_question",
+            payload: { index: nextIdx, remaining_ms: totalTime * 1000 },
+          });
+        }
+        questionIndexRef.current = nextIdx;
+        questionStartedAtRef.current = startedAt;
+        timeUpHandledRef.current = false;
+        questionTransitionInProgressRef.current = false;
+        setCurrentIndex(nextIdx);
+        setTimeLeft(totalTime);
+      } else {
+        const { error } = await supabase
+          .from("quiz_sessions")
+          .update({ status: "finished" })
+          .eq("id", sessionId);
+        if (error) throw error;
+
+        if (channelRef.current) {
+          await channelRef.current.send({
+            type: "broadcast",
+            event: "end_quiz",
+            payload: {},
+          });
+        }
+        finishQuiz();
       }
-      questionIndexRef.current = nextIdx;
-      questionStartedAtRef.current = startedAt;
-      timeUpHandledRef.current = false;
+    } catch (error: any) {
       questionTransitionInProgressRef.current = false;
-      setCurrentIndex(nextIdx);
-      setTimeLeft(totalTime);
-    } else {
-      await supabase
-        .from("quiz_sessions")
-        .update({ status: "finished" })
-        .eq("id", sessionId);
-
-      if (channelRef.current) {
-        await channelRef.current.send({
-          type: "broadcast",
-          event: "end_quiz",
-          payload: {},
-        });
-      }
-      finishQuiz();
+      setShowInterBoard(true);
+      setInterBoardTimer(5);
+      toast.error("Could not advance the quiz. Please try again.", { description: error?.message || "Connection error" });
     }
   };
 
