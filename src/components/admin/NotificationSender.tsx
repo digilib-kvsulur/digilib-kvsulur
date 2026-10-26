@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Bell, Send, Trash2, Users, User, Info, AlertTriangle, CheckCircle, GraduationCap, Mail, ShieldAlert, UserX } from "lucide-react";
+import { Bell, Send, Trash2, Info, AlertTriangle, CheckCircle, Mail, ShieldAlert, UserX, Search, RefreshCw, Eye, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,6 +52,10 @@ const NotificationSender = () => {
   const [sending, setSending] = useState(false);
   const [sendAsEmail, setSendAsEmail] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [historyType, setHistoryType] = useState("all");
+  const [historyRead, setHistoryRead] = useState("all");
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     loadStudents();
@@ -72,13 +76,24 @@ const NotificationSender = () => {
   };
 
   const loadNotifications = async () => {
+    setHistoryLoading(true);
     const { data } = await supabase
       .from("notifications")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
     if (data) setNotifications(data as Notification[]);
+    setHistoryLoading(false);
   };
+
+  const history = useMemo(() => notifications.filter(n => {
+    const q = historyQuery.trim().toLowerCase();
+    return (!q || `${n.title} ${n.message}`.toLowerCase().includes(q))
+      && (historyType === "all" || n.type === historyType)
+      && (historyRead === "all" || (historyRead === "read" ? n.is_read : !n.is_read));
+  }), [notifications, historyQuery, historyType, historyRead]);
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const sentTodayCount = notifications.filter(n => Date.now() - new Date(n.created_at).getTime() < 24 * 60 * 60 * 1000).length;
 
   // Suspension & deactivation calculations
   const communitySuspendedCount = students.filter(
@@ -213,6 +228,17 @@ const NotificationSender = () => {
     setSelectedUserIds(next);
   };
 
+  const selectVisibleStudents = () => {
+    const visibleIds = filteredStudents.map(s => s.id);
+    setSelectedUserIds(current => {
+      const next = new Set(current);
+      const allSelected = visibleIds.length > 0 && visibleIds.every(id => next.has(id));
+      visibleIds.forEach(id => allSelected ? next.delete(id) : next.add(id));
+      return next;
+    });
+  };
+
+
   const typeIcon = (t: string) => {
     if (t === "warning") return <AlertTriangle className="h-4 w-4 text-warning" />;
     if (t === "success") return <CheckCircle className="h-4 w-4 text-success" />;
@@ -241,7 +267,8 @@ const NotificationSender = () => {
             </div>
             <div>
               <Label>Message</Label>
-              <Textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Write your message..." rows={3} />
+              <Textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Write your message..." rows={3} maxLength={1000} />
+              <p className="text-right text-[11px] text-muted-foreground">{message.length}/1000</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -306,6 +333,7 @@ const NotificationSender = () => {
                   <span className="text-[11px] text-muted-foreground">{selectedUserIds.size} selected</span>
                 </div>
                 <Input placeholder="Filter students by name or roll..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="h-9 mb-2" />
+                <Button type="button" size="sm" variant="outline" className="mb-2 h-8" onClick={selectVisibleStudents}><Users className="h-3.5 w-3.5 mr-2" />Select / clear visible ({filteredStudents.length})</Button>
                 <div className="max-h-56 overflow-y-auto border rounded-lg divide-y divide-border bg-muted/10 p-1">
                   {filteredStudents.map(s => {
                     const checked = selectedUserIds.has(s.id);
@@ -393,8 +421,13 @@ const NotificationSender = () => {
               </label>
             </div>
 
-            <Button onClick={handleSend} disabled={sending} className="w-full gradient-primary border-0">
-              <Send className="h-4 w-4 mr-2" /> {sending ? "Sending..." : "Dispatch Notification"}
+            {(title || message) && <div className="rounded-xl border bg-muted/20 p-3" aria-label="Notification preview">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Eye className="h-3.5 w-3.5" /> Recipient preview · {type}</div>
+              <p className="mt-2 font-semibold">{title || "Notification title"}</p><p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{message || "Your message will appear here."}</p>
+              {actionLink.trim() && <span className="mt-2 inline-block text-xs text-primary">Action: {actionLink}</span>}
+            </div>}
+            <Button onClick={handleSend} disabled={sending || !title.trim() || !message.trim()} className="w-full gradient-primary border-0">
+              <Send className="h-4 w-4 mr-2" /> {sending ? "Sending..." : `Send to ${targetType === "all" ? students.filter(s => s.is_approved !== false).length : targetType === "class" ? students.filter(s => s.student_class === targetClass).length : targetType === "specific" ? selectedUserIds.size : targetType === "suspended_community" ? communitySuspendedCount : targetType === "deactivated_dlms" ? deactivatedCount : allSuspendedCount} recipients`}
             </Button>
           </CardContent>
         </Card>
@@ -403,23 +436,30 @@ const NotificationSender = () => {
         <Card className="border-border/50 bg-white">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" /> Dispatched Notifications ({notifications.length})
+              <Bell className="h-5 w-5 text-primary" /> Notification activity
             </CardTitle>
-            <CardDescription>Recently sent broadcasts and alerts</CardDescription>
+            <CardDescription>Latest 50 records · {sentTodayCount} in the last 24 hours · {unreadCount} unread</CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="flex flex-wrap gap-2 mb-3">
+              <div className="relative flex-1 min-w-[150px]"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input className="pl-8" placeholder="Search title or message" value={historyQuery} onChange={e => setHistoryQuery(e.target.value)} /></div>
+              <Select value={historyType} onValueChange={setHistoryType}><SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All types</SelectItem><SelectItem value="info">Info</SelectItem><SelectItem value="warning">Warning</SelectItem><SelectItem value="success">Success</SelectItem><SelectItem value="award">Award</SelectItem></SelectContent></Select>
+              <Select value={historyRead} onValueChange={setHistoryRead}><SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Read status</SelectItem><SelectItem value="unread">Unread</SelectItem><SelectItem value="read">Read</SelectItem></SelectContent></Select>
+              <Button size="icon" variant="outline" title="Refresh" onClick={() => void loadNotifications()} disabled={historyLoading}><RefreshCw className={`h-4 w-4 ${historyLoading ? "animate-spin" : ""}`} /></Button>
+            </div>
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
-              {notifications.length === 0 && (
+              {history.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-8">No notifications sent yet.</p>
               )}
-              {notifications.map(n => (
-                <div key={n.id} className="p-3.5 rounded-xl border border-border/60 hover:border-border transition-colors bg-muted/20 flex items-start justify-between gap-3">
+              {history.map(n => (
+                <div key={n.id} className={`p-3.5 rounded-xl border border-border/60 hover:border-border transition-colors flex items-start justify-between gap-3 ${n.is_read ? "bg-muted/20" : "bg-primary/[0.04] border-primary/20"}`}>
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="mt-0.5 shrink-0">{typeIcon(n.type)}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold text-sm text-foreground truncate">{n.title}</p>
                         <Badge variant="outline" className="text-[10px] capitalize py-0">{n.type}</Badge>
+                        {!n.is_read && <Badge className="text-[10px] py-0">Unread</Badge>}
                         {n.target_user_id ? (
                           <Badge variant="secondary" className="text-[10px] py-0">Targeted</Badge>
                         ) : (
@@ -443,6 +483,5 @@ const NotificationSender = () => {
       </div>
     </div>
   );
-};
-
+  };
 export default NotificationSender;
