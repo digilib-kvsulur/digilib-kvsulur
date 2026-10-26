@@ -84,27 +84,25 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
   };
 
   return (
-    <div className="rounded-2xl sm:rounded-3xl border border-amber-500/20 bg-gradient-to-b from-amber-500/[0.04] via-card to-card p-3.5 sm:p-5 shadow-sm hover:border-amber-500/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full space-y-3 sm:space-y-3.5">
+    <div className="rounded-2xl sm:rounded-3xl border border-amber-500/20 bg-gradient-to-b from-amber-500/[0.04] via-card to-card p-3.5 sm:p-5 shadow-sm hover:border-amber-500/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full space-y-3">
       {/* Top Header: Flame Badge + Multiplier Pill */}
-      <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
-            <Flame className="h-4 w-4 sm:h-5 sm:w-5 fill-amber-500" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+            <Flame className="h-5 w-5 fill-amber-500" />
           </div>
-          <div className="min-w-0">
-            <h4 className="text-[11px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate">
-              Daily Streak
-            </h4>
-          </div>
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider hidden sm:inline">
+            Daily Streak
+          </span>
         </div>
 
         {multiplier > 1 ? (
-          <span className="text-[10px] sm:text-[11px] font-black tracking-tight px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1 shrink-0">
+          <span className="text-[11px] sm:text-xs font-black tracking-tight px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1 shrink-0">
             <Zap className="h-3 w-3 fill-amber-500 text-amber-500" />
             <span>{multiplierLabel} Boost</span>
           </span>
         ) : (
-          <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground shrink-0">
+          <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground px-2 py-0.5 rounded-full bg-muted/60 shrink-0">
             Active
           </span>
         )}
@@ -117,18 +115,13 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
             {currentStreak}
           </span>
           <span className="text-xs sm:text-sm font-bold text-muted-foreground">
-            {currentStreak === 1 ? "day" : "days"} streak
+            {currentStreak === 1 ? "day streak" : "days streak"}
           </span>
         </div>
-        <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 flex items-center gap-1.5 sm:gap-2 flex-wrap">
-          <span className="flex items-center gap-1">
-            <Trophy className="h-3 w-3 text-amber-500" /> Best: <strong className="text-foreground">{longestStreak}d</strong>
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3 text-indigo-500" /> {totalLoginDays}d total
-          </span>
-        </p>
+        <div className="flex items-center justify-between text-[11px] sm:text-xs text-muted-foreground mt-2 pt-1.5 border-t border-border/40">
+          <span>Best: <strong className="text-foreground font-bold">{longestStreak}d</strong></span>
+          <span>Total: <strong className="text-foreground font-bold">{totalLoginDays}d</strong></span>
+        </div>
       </div>
 
       {/* Action / Claim Button */}
@@ -137,29 +130,26 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
           <Button
             onClick={handleClaim}
             disabled={claimedToday || claiming}
-            size="sm"
-            className={`w-full h-8.5 sm:h-9 rounded-xl text-xs font-bold transition-all shadow-xs ${
+            className={`w-full h-10.5 sm:h-11 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs ${
               claimedToday
                 ? "bg-muted text-muted-foreground hover:bg-muted cursor-default border border-border/60"
-                : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-amber-500/20 active:scale-[0.98]"
+                : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md shadow-amber-500/20 active:scale-[0.98]"
             }`}
           >
             {claimedToday ? (
               <>
-                <Check className="h-3.5 w-3.5 mr-1 text-emerald-500" />
-                <span className="hidden sm:inline">Bonus Claimed Today</span>
-                <span className="sm:hidden">Claimed Today</span>
+                <Check className="h-4 w-4 mr-1 text-emerald-500 shrink-0" />
+                <span>Claimed Today</span>
               </>
             ) : (
               <>
-                <Sparkles className="h-3.5 w-3.5 mr-1.5 animate-pulse" />
-                <span className="hidden sm:inline">Claim Bonus (+{effectivePoints} XP)</span>
-                <span className="sm:hidden">Claim +{effectivePoints} XP</span>
+                <Sparkles className="h-4 w-4 mr-1.5 animate-pulse text-amber-200 shrink-0" />
+                <span>Claim +{effectivePoints} XP</span>
               </>
             )}
           </Button>
         ) : (
-          <div className="h-8.5 sm:h-9 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-[11px] sm:text-xs text-muted-foreground font-medium">
+          <div className="h-10.5 sm:h-11 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-[11px] sm:text-xs text-muted-foreground font-medium">
             Login daily to ignite streak 🔥
           </div>
         )}
