@@ -826,7 +826,7 @@ const Index = () => {
                 {settings.school_location || "Coimbatore"}<br />
                 {settings.school_contact_phone && <>Phone: {settings.school_contact_phone}<br /></>}
                 Official Site: <a href="https://sulur.kvs.ac.in" target="_blank" rel="noopener noreferrer" className="text-indigo-300 hover:underline">sulur.kvs.ac.in</a><br />
-                Principal: <a href="mailto:sulurkvprincipal@gmail.com" className="text-indigo-300 hover:underline">sulurkvprincipal@gmail.com</a><br />
+                Principal: Shri V. Meganathan (<a href="mailto:sulurkvprincipal@gmail.com" className="text-indigo-300 hover:underline">sulurkvprincipal@gmail.com</a>)<br />
                 DLMS Desk: <a href="mailto:dlms@kvsulur.in" className="text-indigo-300 hover:underline">dlms@kvsulur.in</a>
               </p>
               <button
