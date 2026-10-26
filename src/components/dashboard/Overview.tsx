@@ -419,62 +419,65 @@ export default function Overview({
           </div>
 
           {/* Right: Gamified HUD Stats (Total XP, Class Rank, Catalog Shortcut) */}
-          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-            {/* Total XP Button */}
-            <button
-              onClick={() => navigate("/points-history")}
-              className="flex-1 sm:flex-none flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md transition-all active:scale-95 shadow-xs group"
-              title="View Points Ledger"
-            >
-              <div className="w-8 h-8 rounded-xl bg-amber-400/20 flex items-center justify-center text-amber-300 shrink-0 group-hover:scale-110 transition-transform">
-                <Zap className="h-4 w-4 fill-amber-300" />
-              </div>
-              <div className="text-left">
-                <p className="text-base sm:text-lg font-black leading-tight text-white">
-                  {(user?.points || 0).toLocaleString()}
-                </p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">
-                  Total XP
-                </p>
-              </div>
-            </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+            {/* XP & Rank Duo: Guaranteed Equal Height Side-by-Side */}
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 items-stretch sm:flex sm:items-center">
+              {/* Total XP Button */}
+              <button
+                onClick={() => navigate("/points-history")}
+                className="h-[58px] sm:h-[60px] flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md transition-all active:scale-95 shadow-xs group"
+                title="View Points Ledger"
+              >
+                <div className="w-8 h-8 rounded-xl bg-amber-400/20 flex items-center justify-center text-amber-300 shrink-0 group-hover:scale-110 transition-transform">
+                  <Zap className="h-4 w-4 fill-amber-300" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="text-base sm:text-lg font-black leading-tight text-white truncate">
+                    {(user?.points || 0).toLocaleString()}
+                  </p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 whitespace-nowrap">
+                    Total XP
+                  </p>
+                </div>
+              </button>
 
-            {/* Class Rank Button */}
-            <button
-              onClick={() => setActiveTab("rankings")}
-              className="flex-1 sm:flex-none flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md transition-all active:scale-95 shadow-xs group"
-              title="View Class Leaderboard"
-            >
-              <div className="w-8 h-8 rounded-xl bg-indigo-400/20 flex items-center justify-center text-indigo-300 shrink-0 group-hover:scale-110 transition-transform">
-                <Trophy className="h-4 w-4" />
-              </div>
-              <div className="text-left">
-                <p className="text-base sm:text-lg font-black leading-tight text-indigo-200">
-                  #{classRank}
-                </p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">
-                  Class Rank
-                </p>
-              </div>
-            </button>
+              {/* Class Rank Button */}
+              <button
+                onClick={() => setActiveTab("rankings")}
+                className="h-[58px] sm:h-[60px] flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md transition-all active:scale-95 shadow-xs group"
+                title="View Class Leaderboard"
+              >
+                <div className="w-8 h-8 rounded-xl bg-indigo-400/20 flex items-center justify-center text-indigo-300 shrink-0 group-hover:scale-110 transition-transform">
+                  <Trophy className="h-4 w-4" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="text-base sm:text-lg font-black leading-tight text-indigo-200 truncate">
+                    #{classRank}
+                  </p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 whitespace-nowrap">
+                    Class Rank
+                  </p>
+                </div>
+              </button>
+            </div>
 
             {/* Quick Browse Catalog Button */}
             <Button
               onClick={() => navigate("/catalog")}
-              className="w-full sm:w-auto h-11 px-4 rounded-2xl font-bold bg-white text-slate-900 hover:bg-white/90 shadow-md gap-1.5"
+              className="w-full sm:w-auto h-[50px] sm:h-[60px] px-4 rounded-2xl font-bold bg-white text-slate-900 hover:bg-white/90 shadow-md gap-2"
             >
-              <Compass className="h-4 w-4 text-indigo-600" />
+              <Compass className="h-4.5 w-4.5 text-indigo-600" />
               <span>Explore Books</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-slate-500" />
+              <ArrowUpRight className="h-4 w-4 text-slate-500" />
             </Button>
           </div>
         </div>
       </div>
 
       {/* 3. MOBILE HERO COMPANION (STREAK + LEVEL + INVITE IMMEDIATELY NEXT TO WELCOME BOX ON MOBILE) */}
-      <div className="block lg:hidden space-y-2.5">
+      <div className="block lg:hidden space-y-3">
         {/* Streak & Level Duo - Side-by-Side 2 Columns */}
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 items-stretch">
+        <div className="grid grid-cols-2 gap-3 items-stretch">
           {streakData && !streakData.loading ? (
             <LoginStreakCard
               currentStreak={streakData.currentStreak}
