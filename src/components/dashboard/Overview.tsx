@@ -279,45 +279,43 @@ export default function Overview({
 
   // Reusable Invite Component
   const InviteCard = () => (
-    <div className="rounded-2xl sm:rounded-3xl border border-violet-500/20 bg-gradient-to-b from-violet-500/[0.04] via-card to-card p-3.5 sm:p-5 shadow-sm hover:border-violet-500/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-3 sm:space-y-3.5">
+    <div className="rounded-2xl sm:rounded-3xl border border-violet-500/20 bg-gradient-to-b from-violet-500/[0.04] via-card to-card p-4 sm:p-5 shadow-sm hover:border-violet-500/40 hover:shadow-md transition-all duration-200 space-y-3.5">
       {/* Top Header: Icon + Title + XP Badge */}
-      <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
-            <UserPlus className="h-4 w-4 sm:h-5 sm:w-5" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl sm:rounded-2xl bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+            <UserPlus className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
+            <h4 className="text-sm sm:text-base font-bold text-foreground">
               Invite Classmates
             </h4>
-            <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
-              Earn bonus XP when friends join DLMS
+            <p className="text-xs text-muted-foreground truncate">
+              Share link & earn +250 XP per friend
             </p>
           </div>
         </div>
-        <span className="shrink-0 inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-black bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-          <Sparkles className="h-3 w-3 text-amber-500" /> +250 XP
+        <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+          <Sparkles className="h-3.5 w-3.5 text-amber-500" /> +250 XP
         </span>
       </div>
 
-      {/* Action Buttons: 2 Equal-Width Buttons side-by-side */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-2.5 pt-0.5">
+      {/* Action Buttons: 2 Equal-Width Prominent Buttons */}
+      <div className="grid grid-cols-2 gap-2.5 pt-0.5">
         <Button
-          size="sm"
           onClick={handleCopyInvite}
-          className="h-8.5 sm:h-9 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white gap-1.5 shadow-xs active:scale-[0.98]"
+          className="h-10.5 sm:h-11 rounded-xl text-xs sm:text-sm font-bold bg-violet-600 hover:bg-violet-700 text-white gap-2 shadow-xs active:scale-[0.98]"
         >
-          {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          {copiedLink ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
         </Button>
 
         <Button
-          size="sm"
           variant="outline"
           onClick={handleWhatsAppShare}
-          className="h-8.5 sm:h-9 rounded-xl text-xs font-bold border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-1.5 active:scale-[0.98]"
+          className="h-10.5 sm:h-11 rounded-xl text-xs sm:text-sm font-bold border-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 gap-2 active:scale-[0.98]"
         >
-          <Share2 className="h-3.5 w-3.5" />
+          <Share2 className="h-4 w-4" />
           <span>WhatsApp</span>
         </Button>
       </div>
