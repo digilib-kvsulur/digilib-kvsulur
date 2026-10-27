@@ -19,8 +19,7 @@ AS $$
     FROM public.event_winners ew
     WHERE ew.scheduled_release_at IS NOT NULL
       AND (
-        ew.scheduled_release_at > now()
-        OR (ew.is_published = true AND ew.scheduled_release_at >= now() - interval '7 days')
+      ew.scheduled_release_at >= now() - interval '7 days'
       )
     GROUP BY ew.event_id, ew.scheduled_release_at
   ), release_state AS (
