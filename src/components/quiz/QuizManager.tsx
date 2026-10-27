@@ -31,6 +31,7 @@ interface QuizResult {
   quizzes?: {
     title: string;
     subject: string;
+    questions?: any[];
   };
   profiles?: {
     first_name: string;
@@ -119,6 +120,7 @@ const QuizManager = () => {
   const [leagueStandings, setLeagueStandings] = useState<LeagueStanding[]>([]);
   const [leagueStandingsLoading, setLeagueStandingsLoading] = useState(false);
   const [repairingQuizDuplicates, setRepairingQuizDuplicates] = useState(false);
+  const [analysisQuizId, setAnalysisQuizId] = useState("all");
 
   useEffect(() => {
     loadLeagueSessions();
@@ -126,7 +128,10 @@ const QuizManager = () => {
 
   useEffect(() => {
     if (activeTab === "quizzes" && !quizzesLoaded) void loadQuizzes();
-    if (activeTab === "results" && !resultsLoaded) void loadQuizResults();
+    if (activeTab === "results" && !resultsLoaded) {
+      void loadQuizResults();
+      if (!quizzesLoaded) void loadQuizzes();
+    }
   }, [activeTab, quizzesLoaded, resultsLoaded]);
 
   const loadQuizzes = async () => {
@@ -177,7 +182,7 @@ const QuizManager = () => {
     try {
       const { data, error } = await supabase
         .from('quiz_results')
-        .select("id, score, points_earned, completed_at, answers, quiz_id, user_id, quizzes(title, subject)")
+        .select("id, score, points_earned, completed_at, answers, quiz_id, user_id, quizzes(title, subject, questions)")
         .order('completed_at', { ascending: false });
 
       if (error) {
@@ -658,6 +663,47 @@ const QuizManager = () => {
     } catch (err: any) {
       sonnerToast.error("Failed to export results: " + err.message);
     }
+  };
+
+  const analysisQuiz = quizzes.find((quiz) => quiz.id === analysisQuizId);
+  const analysisResults = analysisQuizId === "all"
+    ? quizResults
+    : quizResults.filter((result) => result.quiz_id === analysisQuizId);
+  const questionAnalysis = (analysisQuiz?.questions || []).map((question, index) => {
+    const answered = analysisResults.filter((result) => Array.isArray(result.answers) && result.answers[index] !== undefined && result.answers[index] !== -1);
+    const correct = answered.filter((result) => result.answers[index] === question.correctAnswer).length;
+    return { question, index, answered: answered.length, correct, accuracy: answered.length ? Math.round((correct / answered.length) * 100) : 0 };
+  });
+  const exportSelectedQuizCSV = () => {
+    if (!analysisQuiz || analysisResults.length === 0) {
+      sonnerToast.warning("Select a quiz with results before exporting.");
+      return;
+    }
+    const escapeCsv = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const questionHeaders = (analysisQuiz.questions || []).map((_, index) => `Q${index + 1} Answer`);
+    const headers = ["Student Name", "Admission Number", "Class", "Quiz Title", "Subject", "Score (%)", "Points Earned", "Completed Date", ...questionHeaders];
+    const rows = analysisResults.map((result) => {
+      const answers = Array.isArray(result.answers) ? result.answers : [];
+      return [
+        `${result.profiles?.first_name || ""} ${result.profiles?.last_name || ""}`.trim() || "Student",
+        result.profiles?.admission_number || "", result.profiles?.student_class || "", analysisQuiz.title,
+        analysisQuiz.subject, result.score, result.points_earned, new Date(result.completed_at).toLocaleString(),
+        ...(analysisQuiz.questions || []).map((question, index) => {
+          const answerIndex = answers[index];
+          return answerIndex === undefined || answerIndex === -1 ? "Not answered" : `${String.fromCharCode(65 + answerIndex)}${answerIndex === question.correctAnswer ? " (Correct)" : " (Incorrect)"}`;
+        }),
+      ].map(escapeCsv).join(",");
+    });
+    const csv = [headers.map(escapeCsv).join(","), ...rows].join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${analysisQuiz.title.replace(/[^a-z0-9-_]+/gi, "_")}_results_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    sonnerToast.success("Quiz results CSV downloaded.");
   };
 
   const handleCreateQuiz = () => {
@@ -1270,9 +1316,16 @@ const QuizManager = () => {
                   <Trophy className="h-5 w-5" />
                   Quiz Results
                 </CardTitle>
-                <CardDescription>View all quiz attempts and scores</CardDescription>
+                <CardDescription>Review performance by quiz, inspect question accuracy, and export one quiz’s results.</CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <select value={analysisQuizId} onChange={(event) => setAnalysisQuizId(event.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm" aria-label="Select quiz for analysis">
+                  <option value="all">All quizzes</option>
+                  {quizzes.map((quiz) => <option key={quiz.id} value={quiz.id}>{quiz.title}</option>)}
+                </select>
+                <Button variant="outline" size="sm" onClick={exportSelectedQuizCSV} disabled={!analysisQuiz || analysisResults.length === 0}>
+                  <Download className="h-4 w-4 mr-1" /> Export Selected Quiz CSV
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
