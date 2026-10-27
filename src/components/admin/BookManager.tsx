@@ -99,16 +99,28 @@ const BookManager = () => {
         q = q.eq("category", categoryFilter);
       }
 
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-
-      const { data, count, error } = await q
-        .order(accessionAscending ? "accession_number" : "created_at", { ascending: accessionAscending ? true : false, nullsFirst: false })
-        .range(from, to);
-
-      if (error) throw error;
-      setBooks(data || []);
-      setTotalCount(count || 0);
+      if (accessionAscending) {
+        // Fetch the complete filtered set before sorting so numeric ordering and page boundaries stay correct.
+        const allBooks: Book[] = [];
+        const batchSize = 1000;
+        for (let from = 0; ; from += batchSize) {
+          const { data, error } = await q.order("created_at", { ascending: false }).range(from, from + batchSize - 1);
+          if (error) throw error;
+          allBooks.push(...((data || []) as Book[]));
+          if (!data || data.length < batchSize) break;
+        }
+        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+        allBooks.sort((a, b) => collator.compare(a.accession_number || "", b.accession_number || "") || collator.compare(a.title, b.title));
+        setTotalCount(allBooks.length);
+        const from = (page - 1) * pageSize;
+        setBooks(allBooks.slice(from, from + pageSize));
+      } else {
+        const from = (page - 1) * pageSize;
+        const { data, count, error } = await q.order("created_at", { ascending: false }).range(from, from + pageSize - 1);
+        if (error) throw error;
+        setBooks((data || []) as Book[]);
+        setTotalCount(count || 0);
+      }
     } catch (error) {
       toast({ title: "Error", description: "Failed to load books", variant: "destructive" });
     } finally {
