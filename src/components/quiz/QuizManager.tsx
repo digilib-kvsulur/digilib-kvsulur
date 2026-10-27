@@ -1354,6 +1354,21 @@ const QuizManager = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               ) : (
+                <div className="space-y-6">
+                {analysisQuizId !== "all" && <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Attempts</p><p className="text-2xl font-bold">{analysisResults.length}</p></CardContent></Card>
+                    <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Average score</p><p className="text-2xl font-bold">{analysisResults.length ? Math.round(analysisResults.reduce((sum, result) => sum + result.score, 0) / analysisResults.length) : 0}%</p></CardContent></Card>
+                    <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Unique students</p><p className="text-2xl font-bold">{new Set(analysisResults.map((result) => result.user_id)).size}</p></CardContent></Card>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2">Question-wise analysis</h3>
+                    {questionAnalysis.length ? <Table>
+                      <TableHeader><TableRow><TableHead>Question</TableHead><TableHead>Answered</TableHead><TableHead>Correct</TableHead><TableHead>Accuracy</TableHead></TableRow></TableHeader>
+                      <TableBody>{questionAnalysis.map(({ question, index, answered, correct, accuracy }) => <TableRow key={index}><TableCell className="max-w-xl">{index + 1}. {question.question}</TableCell><TableCell>{answered}</TableCell><TableCell>{correct}</TableCell><TableCell>{accuracy}%</TableCell></TableRow>)}</TableBody>
+                    </Table> : <p className="text-sm text-muted-foreground">This quiz has no saved question data to analyze.</p>}
+                  </div>
+                </>}
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1366,7 +1381,7 @@ const QuizManager = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {quizResults.map((result) => (
+                    {analysisResults.map((result) => (
                       <TableRow key={result.id}>
                         <TableCell>
                           <div>
@@ -1396,7 +1411,7 @@ const QuizManager = () => {
                         <TableCell>{new Date(result.completed_at).toLocaleDateString()}</TableCell>
                       </TableRow>
                     ))}
-                    {quizResults.length === 0 && (
+                    {analysisResults.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-4 text-gray-500">
                           No quiz results found
@@ -1405,6 +1420,7 @@ const QuizManager = () => {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
