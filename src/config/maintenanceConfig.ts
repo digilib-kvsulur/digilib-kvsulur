@@ -14,13 +14,13 @@ export interface MaintenanceConfig {
 export const MAINTENANCE_CONFIG: MaintenanceConfig = {
   enabled: true,
   idle: false,
-  until: "2026-10-27T16:26:13.517Z",
-  displayUntil: "today, 9:56 PM IST",
+  until: "2026-10-27T16:31:42.396Z",
+  displayUntil: "today, 10:01 PM IST",
   heading: "Site Under Maintenance",
   subheading:
-    "DLMS is currently undergoing scheduled maintenance for essential system updates and improvements. We'll be back online by: today, 9:56 PM IST.",
+    "DLMS is currently undergoing scheduled maintenance for essential system updates and improvements. We'll be back online by: today, 10:01 PM IST.",
   modalBody:
-    "DLMS is currently undergoing scheduled maintenance for essential system updates and improvements.\n\nThe site will be back online smoothly by today, 9:56 PM IST.\n\nThank you for your patience and cooperation. 🙏",
+    "DLMS is currently undergoing scheduled maintenance for essential system updates and improvements.\n\nThe site will be back online smoothly by today, 10:01 PM IST.\n\nThank you for your patience and cooperation. 🙏",
   author: "G V Tanish Vettrivel",
   authorRole: "Developer · PM SHRI KV AFS Sulur",
   supportEmail: "dlms@kvsulur.in",
