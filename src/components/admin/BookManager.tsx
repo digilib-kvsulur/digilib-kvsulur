@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare, Wand2, Loader2, ShieldAlert, AlertTriangle, GitMerge } from "lucide-react";
+import { Plus, Edit, Trash2, BookOpen, Search, CheckSquare, Wand2, Loader2, ShieldAlert, AlertTriangle, GitMerge, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BulkImportBooks from "./BulkImportBooks";
@@ -60,6 +60,7 @@ const BookManager = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
   const [accessionAscending, setAccessionAscending] = useState(false);
+  const [selectedGapAccessions, setSelectedGapAccessions] = useState<Set<string>>(new Set());
   const [duplicatesOnly, setDuplicatesOnly] = useState(false);
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
   const [showBulkEdit, setShowBulkEdit] = useState(false);
@@ -532,6 +533,50 @@ const BookManager = () => {
     }
     return gaps;
   });
+  const downloadAccessionGaps = () => {
+    if (!accessionGaps.length) return;
+    const csv = ["Missing Accession Number,Review Status", ...accessionGaps.map(accession => `${JSON.stringify(accession)},Needs physical verification`)].join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `accession-series-gaps-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const markSelectedGapsCondemned = async () => {
+    const selected = accessionGaps.filter(accession => selectedGapAccessions.has(accession));
+    if (!selected.length) return;
+    if (!confirm(`Record ${selected.length} missing accession number(s) as condemned? This creates condemnation records without changing a catalog book's copy count.`)) return;
+    setBulkBusy(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const batchNumber = `COND-GAPS-${new Date().toISOString().replace(/\D/g, "").slice(0, 14)}`;
+      const { data: batch, error: batchError } = await supabase.from("condemnation_batches").insert({ batch_number: batchNumber, fund_source: "SCHOOL_FUND", created_by: user?.id }).select("id").single();
+      if (batchError) throw batchError;
+      let succeeded = 0;
+      const failures: string[] = [];
+      for (const accession of selected) {
+        const { error } = await supabase.rpc("condemn_book_v2", {
+          p_batch_id: batch.id,
+          p_book_id: null,
+          p_accession_number: accession,
+          p_title: "Accession gap — not found in catalog",
+          p_year: new Date().getFullYear(),
+          p_cost: 0,
+          p_reason: "Missing during stock verification",
+          p_fund: "SCHOOL_FUND",
+        });
+        if (error) failures.push(`${accession}: ${error.message}`);
+        else succeeded++;
+      }
+      toast({ title: "Condemnation review saved", description: `${succeeded} accession gap(s) recorded in batch ${batchNumber}.${failures.length ? ` ${failures.length} failed: ${failures.slice(0, 2).join("; ")}` : ""}`, variant: failures.length ? "destructive" : "default" });
+      if (!failures.length) setSelectedGapAccessions(new Set());
+    } catch (error: any) {
+      toast({ title: "Could not record condemnation", description: error.message || "Failed to create condemnation records.", variant: "destructive" });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
   const multiCopyBooks = books.filter(b => b.total_copies > 1);
   const filteredBooks = books.filter(b => {
     if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
@@ -909,8 +954,13 @@ const BookManager = () => {
 
             <TabsContent value="gaps" className="space-y-3 pt-3">
               <p className="text-xs text-muted-foreground">Potential gaps between numbered accessions in the loaded results. Check the shelf, issue records, and condemnation records before treating a gap as a missing book.</p>
-              {accessionGaps.length === 0 ? <div className="text-center py-8 text-muted-foreground text-sm">No accession gaps found in the loaded books.</div> : <div className="flex flex-wrap gap-2">{accessionGaps.map(gap => <Badge key={gap} variant="outline" className="font-mono">{gap}</Badge>)}</div>}
-              <p className="text-[11px] text-muted-foreground">Use the Missing tab to add an accession to a catalog record. Record confirmed condemned copies in the Condemnation section.</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" variant="outline" onClick={downloadAccessionGaps} disabled={!accessionGaps.length}><Download className="h-4 w-4 mr-1.5" />Download gaps CSV</Button>
+                <Button size="sm" variant="destructive" onClick={markSelectedGapsCondemned} disabled={!selectedGapAccessions.size || bulkBusy}>{bulkBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <ShieldAlert className="h-4 w-4 mr-1.5" />}Mark selected condemned ({selectedGapAccessions.size})</Button>
+                {accessionGaps.length > 0 && <Button size="sm" variant="ghost" onClick={() => setSelectedGapAccessions(selectedGapAccessions.size === accessionGaps.length ? new Set() : new Set(accessionGaps))}>{selectedGapAccessions.size === accessionGaps.length ? "Clear selection" : "Select all"}</Button>}
+              </div>
+              {accessionGaps.length === 0 ? <div className="text-center py-8 text-muted-foreground text-sm">No accession gaps found in the loaded books.</div> : <div className="border rounded-lg divide-y max-h-[45vh] overflow-y-auto">{accessionGaps.map(gap => <label key={gap} className="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-muted/40"><Checkbox checked={selectedGapAccessions.has(gap)} onCheckedChange={checked => setSelectedGapAccessions(current => { const next = new Set(current); if (checked) next.add(gap); else next.delete(gap); return next; })} /><span className="font-mono">{gap}</span><span className="text-xs text-muted-foreground">Potentially missing — verify physically before recording</span></label>)}</div>}
+              <p className="text-[11px] text-muted-foreground">Condemnation records created here will be grouped into a new batch and will not change catalog copy counts because no catalog record exists for a gap. Use the Missing tab to assign an accession to an existing book.</p>
             </TabsContent>
 
             <TabsContent value="by_accession" className="pt-3">
