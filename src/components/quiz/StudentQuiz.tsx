@@ -47,11 +47,13 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
       if (!user) return;
       const { data } = await supabase
         .from('quiz_results')
-        .select('id, completed_at, score, points_earned')
+        .select('id, completed_at, score, points_earned, answers')
         .eq('quiz_id', quiz.id)
         .eq('user_id', user.id)
-        .maybeSingle();
-      if (data) { setAlreadyTaken(true); setAlreadyTakenData(data); }
+        .order('completed_at', { ascending: true })
+        .limit(100);
+      const firstAttempt = data?.find((row) => row.answers?.league !== true && row.answers?.league !== 'true');
+      if (firstAttempt) { setAlreadyTaken(true); setAlreadyTakenData(firstAttempt); }
     } catch (e) { console.error(e); }
     finally { setCheckingAttempt(false); }
   };
@@ -199,12 +201,12 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
       // Race-condition guard
       const { data: existing } = await supabase
         .from('quiz_results')
-        .select('id')
+        .select('id, answers')
         .eq('quiz_id', quiz.id)
         .eq('user_id', user.id)
-        .maybeSingle();
+        .limit(100);
 
-      if (existing) { setAlreadyTaken(true); setSubmitting(false); return; }
+      if (existing?.some((row) => row.answers?.league !== true && row.answers?.league !== 'true')) { setAlreadyTaken(true); setSubmitting(false); return; }
 
       // Save result
       const { error: insertErr } = await supabase.from('quiz_results').insert({
@@ -216,11 +218,7 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
       });
       if (insertErr) throw insertErr;
 
-      // Award points
-      const { data: prof } = await supabase.from('profiles').select('points').eq('id', user.id).single();
-      if (prof && result.totalPointsAwarded > 0) {
-        await supabase.from('profiles').update({ points: (Number(prof.points) || 0) + result.totalPointsAwarded }).eq('id', user.id);
-      }
+      // Points are awarded by the database trigger only for the first attempt.
 
       setQuizResult(result);
       setShowResult(true);
@@ -273,7 +271,7 @@ export const StudentQuiz = ({ quiz, onComplete, onBack }: StudentQuizProps) => {
                 <p className="text-xs text-muted-foreground mt-1">Your previous score</p>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">Each quiz can only be attempted once.</p>
+            <p className="text-xs text-muted-foreground">Each quiz can only be attempted once. Retakes are disabled.</p>
             <Button onClick={onBack} className="mt-2 w-full rounded-xl">
               <Home className="h-4 w-4 mr-2" /> Back to Quizzes
             </Button>

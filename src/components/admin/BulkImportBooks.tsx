@@ -66,7 +66,7 @@ const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
         // Track accession duplicates
         rawData.forEach((r) => {
           const acc = (r.accession_number || r.accession || "")?.trim();
-          if (acc) accessionCounts[acc] = (accessionCounts[acc] || 0) + 1;
+          if (acc) accessionCounts[acc.toLowerCase()] = (accessionCounts[acc.toLowerCase()] || 0) + 1;
         });
 
         const validatedRows: ParsedBookRow[] = rawData.map((r) => {
@@ -85,9 +85,9 @@ const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
             status = "error";
             notes.push("Missing Author Name");
           }
-          if (acc && accessionCounts[acc] > 1) {
-            if (status !== "error") status = "warning";
-            notes.push(`Duplicate accession "${acc}" in CSV`);
+          if (acc && accessionCounts[acc.toLowerCase()] > 1) {
+            status = "error";
+            notes.push(`Duplicate accession "${acc}" in CSV; each accession must be unique`);
           }
           if (r.total_copies && isNaN(Number(r.total_copies))) {
             if (status !== "error") status = "warning";
@@ -154,7 +154,28 @@ const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
     setLoading(true);
     const out: { title: string; success: boolean; error?: string }[] = [];
 
+    // Recheck against the live catalog at import time so stale previews cannot create duplicates.
+    const accessions = Array.from(new Set(importableRows.map(row => row.accession_number?.trim()).filter((value): value is string => Boolean(value))));
+    const existingAccessions = new Set<string>();
+    if (accessions.length) {
+      const { data, error } = await supabase.from("books").select("accession_number, accession_numbers");
+      if (error) {
+        setLoading(false);
+        toast({ title: "Import could not be checked", description: error.message, variant: "destructive" });
+        return;
+      }
+      for (const book of data || []) {
+        if (book.accession_number?.trim()) existingAccessions.add(book.accession_number.trim().toLowerCase());
+        for (const accession of book.accession_numbers || []) if (accession?.trim()) existingAccessions.add(accession.trim().toLowerCase());
+      }
+    }
+    const duplicateInCatalog = new Set(accessions.filter(accession => existingAccessions.has(accession.toLowerCase())));
+
     for (const r of importableRows) {
+      if (r.accession_number && duplicateInCatalog.has(r.accession_number.trim())) {
+        out.push({ title: r.title, success: false, error: `Accession ${r.accession_number} already exists in the catalog` });
+        continue;
+      }
       const copies = Math.max(1, parseInt(r.total_copies || "1") || 1);
       const accession = r.accession_number || null;
 
@@ -184,6 +205,10 @@ const BulkImportBooks = ({ onImported }: { onImported?: () => void }) => {
 
       if (existing) {
         const currentAccs = Array.isArray(existing.accession_numbers) ? existing.accession_numbers : [];
+        if (accession && currentAccs.some(value => value.trim().toLowerCase() === accession.toLowerCase())) {
+          out.push({ title: r.title, success: false, error: `Accession ${accession} already exists for this title` });
+          continue;
+        }
         const newAccs = accession && !currentAccs.includes(accession) ? [...currentAccs, accession] : currentAccs;
         const copiesToAdd = Math.max(1, copies);
         const { error } = await supabase

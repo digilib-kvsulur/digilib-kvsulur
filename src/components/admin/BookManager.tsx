@@ -59,6 +59,7 @@ const BookManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
+  const [accessionAscending, setAccessionAscending] = useState(false);
   const [duplicatesOnly, setDuplicatesOnly] = useState(false);
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
   const [showBulkEdit, setShowBulkEdit] = useState(false);
@@ -75,7 +76,7 @@ const BookManager = () => {
 
   useEffect(() => {
     loadBooks();
-  }, [page, pageSize, categoryFilter]);
+  }, [page, pageSize, categoryFilter, accessionAscending]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -102,7 +103,7 @@ const BookManager = () => {
       const to = from + pageSize - 1;
 
       const { data, count, error } = await q
-        .order("created_at", { ascending: false })
+        .order(accessionAscending ? "accession_number" : "created_at", { ascending: accessionAscending ? true : false, nullsFirst: false })
         .range(from, to);
 
       if (error) throw error;
@@ -502,6 +503,23 @@ const BookManager = () => {
     .map(([title, list]) => ({ title, books: list }));
 
   const missingAccessions = books.filter(b => !b.accession_number?.trim());
+  const accessionSeries = new Map<string, { value: number; accession: string }[]>();
+  books.forEach(book => {
+    const accession = book.accession_number?.trim();
+    const match = accession?.match(/^(.*?)(\d+)$/);
+    if (!match) return;
+    accessionSeries.set(match[1], [...(accessionSeries.get(match[1]) || []), { value: Number(match[2]), accession: accession! }]);
+  });
+  const accessionGaps = Array.from(accessionSeries.entries()).flatMap(([prefix, entries]) => {
+    const sorted = [...new Map(entries.map(entry => [entry.value, entry])).values()].sort((a, b) => a.value - b.value);
+    const gaps: string[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      for (let missing = sorted[i - 1].value + 1; missing < sorted[i].value; missing++) {
+        gaps.push(`${prefix}${String(missing).padStart(sorted[i - 1].accession.match(/\d+$/)?.[0].length || 1, "0")}`);
+      }
+    }
+    return gaps;
+  });
   const multiCopyBooks = books.filter(b => b.total_copies > 1);
   const filteredBooks = books.filter(b => {
     if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
@@ -554,6 +572,9 @@ const BookManager = () => {
                 <SelectItem value="issued">Issued only</SelectItem>
               </SelectContent>
             </Select>
+            <Button type="button" variant={accessionAscending ? "default" : "outline"} onClick={() => { setPage(1); setAccessionAscending(value => !value); }} className="md:col-span-4 justify-self-start">
+              {accessionAscending ? "Accession: ascending (1 → …)" : "Sort by accession number ↑"}
+            </Button>
           </div>
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-md border bg-muted/30 p-3 text-sm">
             <div className="flex flex-col gap-0.5">
@@ -865,13 +886,20 @@ const BookManager = () => {
           </DialogHeader>
 
           <Tabs defaultValue="duplicates" className="mt-4">
-            <TabsList className="grid grid-cols-5">
+            <TabsList className="grid grid-cols-6">
               <TabsTrigger value="by_accession">By Accession</TabsTrigger>
+              <TabsTrigger value="gaps">Series Gaps ({accessionGaps.length})</TabsTrigger>
               <TabsTrigger value="duplicates">Duplicates ({duplicatesList.length})</TabsTrigger>
               <TabsTrigger value="missing">Missing ({missingAccessions.length})</TabsTrigger>
               <TabsTrigger value="multicopy">Multi-Copy ({multiCopyBooks.length})</TabsTrigger>
               <TabsTrigger value="same_titles">Same Titles ({sameTitleList.length})</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="gaps" className="space-y-3 pt-3">
+              <p className="text-xs text-muted-foreground">Potential gaps between numbered accessions in the loaded results. Check the shelf, issue records, and condemnation records before treating a gap as a missing book.</p>
+              {accessionGaps.length === 0 ? <div className="text-center py-8 text-muted-foreground text-sm">No accession gaps found in the loaded books.</div> : <div className="flex flex-wrap gap-2">{accessionGaps.map(gap => <Badge key={gap} variant="outline" className="font-mono">{gap}</Badge>)}</div>}
+              <p className="text-[11px] text-muted-foreground">Use the Missing tab to add an accession to a catalog record. Record confirmed condemned copies in the Condemnation section.</p>
+            </TabsContent>
 
             <TabsContent value="by_accession" className="pt-3">
               <p className="text-xs text-muted-foreground mb-3">Manage each physical copy by its own accession number.</p>

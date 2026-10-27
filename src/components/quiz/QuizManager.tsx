@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Edit3, Trash2, Play, Pause, Trophy, Award, FileText, Upload, Users, Calendar, Clock, Zap, Flame, Sparkles, Download, Share2, Copy } from "lucide-react";
+import { Plus, Edit, Edit3, Trash2, Play, Pause, Trophy, Award, FileText, Upload, Users, Calendar, Clock, Zap, Flame, Sparkles, Download, Share2, Copy, ShieldCheck } from "lucide-react";
 import { Quiz } from "@/types/quiz";
 import { QuizForm } from "./QuizForm";
 import BulkImportQuiz from "./BulkImportQuiz";
@@ -118,6 +118,7 @@ const QuizManager = () => {
   const [viewingLeagueResults, setViewingLeagueResults] = useState<LeagueSession | null>(null);
   const [leagueStandings, setLeagueStandings] = useState<LeagueStanding[]>([]);
   const [leagueStandingsLoading, setLeagueStandingsLoading] = useState(false);
+  const [repairingQuizDuplicates, setRepairingQuizDuplicates] = useState(false);
 
   useEffect(() => {
     loadLeagueSessions();
@@ -221,6 +222,35 @@ const QuizManager = () => {
       setResultsLoading(false);
     }
   };
+
+  const repairDuplicateQuizAttempts = async (silentIfClean = false) => {
+    setRepairingQuizDuplicates(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("admin_repair_duplicate_quiz_attempts");
+      if (error) throw error;
+      const summary = data as { removed_attempts?: number; students_notified?: number; points_reversed?: number } | null;
+      const removed = Number(summary?.removed_attempts) || 0;
+      if (removed || !silentIfClean) {
+        toast({
+          title: removed ? "Duplicate attempts cleaned up" : "No duplicate attempts found",
+          description: removed
+            ? `Removed ${removed} extra result(s), reversed ${Number(summary?.points_reversed) || 0} XP, and notified ${Number(summary?.students_notified) || 0} student(s).`
+            : "All student quiz results are already limited to one attempt per quiz.",
+        });
+      }
+      await loadQuizResults();
+    } catch (error: any) {
+      toast({ title: "Could not check quiz attempts", description: error?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setRepairingQuizDuplicates(false);
+    }
+  };
+
+  useEffect(() => {
+    void repairDuplicateQuizAttempts(true);
+    // Run an automatic integrity check when an admin opens Quiz Manager.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadLeagueSessions = async (append = false) => {
     try {
@@ -1242,16 +1272,28 @@ const QuizManager = () => {
                 </CardTitle>
                 <CardDescription>View all quiz attempts and scores</CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportAllQuizResultsCSV}
-                className="font-bold text-xs gap-1.5"
-                disabled={quizResults.length === 0}
-              >
-                <Download className="h-4 w-4 text-primary" />
-                Export All (CSV)
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void repairDuplicateQuizAttempts()}
+                  className="font-bold text-xs gap-1.5"
+                  disabled={repairingQuizDuplicates}
+                >
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  {repairingQuizDuplicates ? "Checking…" : "Check & fix duplicates"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportAllQuizResultsCSV}
+                  className="font-bold text-xs gap-1.5"
+                  disabled={quizResults.length === 0}
+                >
+                  <Download className="h-4 w-4 text-primary" />
+                  Export All (CSV)
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {resultsLoading ? (
