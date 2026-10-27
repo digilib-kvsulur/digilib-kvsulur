@@ -69,6 +69,9 @@ const BookManager = () => {
   const [formData, setFormData] = useState<BookFormData>(emptyForm);
   const [fetchingDetails, setFetchingDetails] = useState(false);
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifierBooks, setVerifierBooks] = useState<Book[] | null>(null);
+  const [verifierLoading, setVerifierLoading] = useState(false);
+  const [verifierLoadError, setVerifierLoadError] = useState("");
   const [missingAccessionInputs, setMissingAccessionInputs] = useState<Record<string, string>>({});
   const [newAccessionInput, setNewAccessionInput] = useState("");
   const [selectedTitleKeys, setSelectedTitleKeys] = useState<Set<string>>(new Set());
@@ -126,6 +129,36 @@ const BookManager = () => {
       toast({ title: "Error", description: "Failed to load books", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openAccessionVerifier = async () => {
+    setVerifyOpen(true);
+    setVerifierLoading(true);
+    setVerifierBooks(null);
+    setVerifierLoadError("");
+    try {
+      let query = supabase.from("books").select("*");
+      if (searchQuery.trim()) {
+        const term = `%${searchQuery.trim()}%`;
+        query = query.or(`title.ilike.${term},author.ilike.${term},accession_number.ilike.${term}`);
+      }
+      if (categoryFilter !== "all") query = query.eq("category", categoryFilter);
+      const all: Book[] = [];
+      const batchSize = 1000;
+      for (let from = 0; ; from += batchSize) {
+        const { data, error } = await query.order("created_at", { ascending: false }).range(from, from + batchSize - 1);
+        if (error) throw error;
+        all.push(...((data || []) as Book[]));
+        if (!data || data.length < batchSize) break;
+      }
+      setVerifierBooks(all);
+    } catch (error: any) {
+      setVerifierBooks([]);
+      setVerifierLoadError(error.message || "Could not load the full filtered catalog.");
+      toast({ title: "Verifier load failed", description: error.message || "Could not load the full filtered catalog.", variant: "destructive" });
+    } finally {
+      setVerifierLoading(false);
     }
   };
 
@@ -485,27 +518,28 @@ const BookManager = () => {
   if (loading) return <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
   const categories = Array.from(new Set(books.map(b => b.category).filter(Boolean))) as string[];
+  const inventoryBooks = verifierBooks ?? books;
   const duplicateAccessionNumbers = new Set(
-    Object.entries(books.reduce<Record<string, number>>((counts, book) => {
-      const accession = book.accession_number?.trim().toLowerCase();
-      if (accession) counts[accession] = (counts[accession] || 0) + 1;
+    Object.entries(inventoryBooks.reduce<Record<string, number>>((counts, book) => {
+      const accessions = new Set([...(book.accession_numbers || []), book.accession_number || ""].map(value => value.trim().toLowerCase()).filter(Boolean));
+      accessions.forEach(accession => { counts[accession] = (counts[accession] || 0) + 1; });
       return counts;
     }, {})).filter(([, count]) => count > 1).map(([accession]) => accession)
   );
 
   const duplicateAccessionMap = new Map<string, Book[]>();
-  books.forEach(b => {
-    const acc = b.accession_number?.trim().toLowerCase();
-    if (acc) {
+  inventoryBooks.forEach(b => {
+    const accessions = new Set([...(b.accession_numbers || []), b.accession_number || ""].map(value => value.trim().toLowerCase()).filter(Boolean));
+    accessions.forEach(acc => {
       duplicateAccessionMap.set(acc, [...(duplicateAccessionMap.get(acc) || []), b]);
-    }
+    });
   });
   const duplicatesList = Array.from(duplicateAccessionMap.entries())
     .filter(([, list]) => list.length > 1)
     .map(([acc, list]) => ({ accession: acc, books: list }));
 
   const sameTitleMap = new Map<string, Book[]>();
-  books.forEach(b => {
+  inventoryBooks.forEach(b => {
     const titleKey = b.title.trim().toLowerCase();
     if (titleKey) {
       sameTitleMap.set(titleKey, [...(sameTitleMap.get(titleKey) || []), b]);
@@ -515,16 +549,20 @@ const BookManager = () => {
     .filter(([, list]) => list.length > 1)
     .map(([title, list]) => ({ title, books: list }));
 
-  const missingAccessions = books.filter(b => !b.accession_number?.trim());
+  const missingAccessions = inventoryBooks.filter(b => !b.accession_number?.trim());
   const accessionSeries = new Map<string, { value: number; accession: string }[]>();
-  books.forEach(book => {
-    const accession = book.accession_number?.trim();
-    const match = accession?.match(/^(.*?)(\d+)$/);
-    if (!match) return;
-    accessionSeries.set(match[1], [...(accessionSeries.get(match[1]) || []), { value: Number(match[2]), accession: accession! }]);
+  inventoryBooks.forEach(book => {
+    const copyAccessions = new Set([...(book.accession_numbers || []), book.accession_number || ""].map(value => value.trim()).filter(Boolean));
+    copyAccessions.forEach(accession => {
+      const match = accession.match(/^(.*?)(\d+)$/);
+      if (!match) return;
+      const prefix = match[1].toLocaleLowerCase();
+      accessionSeries.set(prefix, [...(accessionSeries.get(prefix) || []), { value: Number(match[2]), accession }]);
+    });
   });
-  const accessionGaps = Array.from(accessionSeries.entries()).flatMap(([prefix, entries]) => {
+  const accessionGaps = Array.from(accessionSeries.entries()).flatMap(([, entries]) => {
     const sorted = [...new Map(entries.map(entry => [entry.value, entry])).values()].sort((a, b) => a.value - b.value);
+    const prefix = sorted[0]?.accession.match(/^(.*?)(\d+)$/)?.[1] || "";
     const gaps: string[] = [];
     for (let i = 1; i < sorted.length; i++) {
       for (let missing = sorted[i - 1].value + 1; missing < sorted[i].value; missing++) {
@@ -577,7 +615,7 @@ const BookManager = () => {
       setBulkBusy(false);
     }
   };
-  const multiCopyBooks = books.filter(b => b.total_copies > 1);
+  const multiCopyBooks = inventoryBooks.filter(b => b.total_copies > 1);
   const filteredBooks = books.filter(b => {
     if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
     if (availabilityFilter === "available" && b.available_copies <= 0) return false;
@@ -639,7 +677,7 @@ const BookManager = () => {
               <span className="text-[10px] text-muted-foreground">Verify physical copy counts and format alignment.</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800" onClick={() => setVerifyOpen(true)}>
+              <Button type="button" size="sm" variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800" onClick={openAccessionVerifier}>
                 <ShieldAlert className="h-4 w-4 mr-1.5" /> Accession Verifier
               </Button>
               <Button type="button" size="sm" variant={duplicatesOnly ? "default" : "outline"} onClick={() => setDuplicatesOnly(value => !value)}>{duplicatesOnly ? "Show all books" : "Find duplicates"}</Button>
@@ -953,13 +991,13 @@ const BookManager = () => {
             </TabsList>
 
             <TabsContent value="gaps" className="space-y-3 pt-3">
-              <p className="text-xs text-muted-foreground">Potential gaps between numbered accessions in the loaded results. Check the shelf, issue records, and condemnation records before treating a gap as a missing book.</p>
+              <p className="text-xs text-muted-foreground">Potential gaps across the full filtered catalog, including all accession numbers linked to additional copies. Check the shelf, issue records, and condemnation records before treating a gap as a missing book.</p>
               <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="outline" onClick={downloadAccessionGaps} disabled={!accessionGaps.length}><Download className="h-4 w-4 mr-1.5" />Download gaps CSV</Button>
-                <Button size="sm" variant="destructive" onClick={markSelectedGapsCondemned} disabled={!selectedGapAccessions.size || bulkBusy}>{bulkBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <ShieldAlert className="h-4 w-4 mr-1.5" />}Mark selected condemned ({selectedGapAccessions.size})</Button>
-                {accessionGaps.length > 0 && <Button size="sm" variant="ghost" onClick={() => setSelectedGapAccessions(selectedGapAccessions.size === accessionGaps.length ? new Set() : new Set(accessionGaps))}>{selectedGapAccessions.size === accessionGaps.length ? "Clear selection" : "Select all"}</Button>}
+                <Button size="sm" variant="outline" onClick={downloadAccessionGaps} disabled={verifierLoading || Boolean(verifierLoadError) || !accessionGaps.length}><Download className="h-4 w-4 mr-1.5" />Download gaps CSV</Button>
+                <Button size="sm" variant="destructive" onClick={markSelectedGapsCondemned} disabled={verifierLoading || Boolean(verifierLoadError) || !selectedGapAccessions.size || bulkBusy}>{bulkBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <ShieldAlert className="h-4 w-4 mr-1.5" />}Mark selected condemned ({selectedGapAccessions.size})</Button>
+                {accessionGaps.length > 0 && <Button size="sm" variant="ghost" disabled={verifierLoading || Boolean(verifierLoadError)} onClick={() => setSelectedGapAccessions(selectedGapAccessions.size === accessionGaps.length ? new Set() : new Set(accessionGaps))}>{selectedGapAccessions.size === accessionGaps.length ? "Clear selection" : "Select all"}</Button>}
               </div>
-              {accessionGaps.length === 0 ? <div className="text-center py-8 text-muted-foreground text-sm">No accession gaps found in the loaded books.</div> : <div className="border rounded-lg divide-y max-h-[45vh] overflow-y-auto">{accessionGaps.map(gap => <label key={gap} className="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-muted/40"><Checkbox checked={selectedGapAccessions.has(gap)} onCheckedChange={checked => setSelectedGapAccessions(current => { const next = new Set(current); if (checked) next.add(gap); else next.delete(gap); return next; })} /><span className="font-mono">{gap}</span><span className="text-xs text-muted-foreground">Potentially missing — verify physically before recording</span></label>)}</div>}
+              {verifierLoading ? <div className="text-center py-8 text-muted-foreground text-sm">Loading full filtered catalog…</div> : verifierLoadError ? <div className="text-center py-8 text-destructive text-sm">Full catalog could not be loaded. Close and reopen the verifier to retry.</div> : accessionGaps.length === 0 ? <div className="text-center py-8 text-muted-foreground text-sm">No accession gaps found in the full filtered catalog.</div> : <div className="border rounded-lg divide-y max-h-[45vh] overflow-y-auto">{accessionGaps.map(gap => <label key={gap} className="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-muted/40"><Checkbox checked={selectedGapAccessions.has(gap)} onCheckedChange={checked => setSelectedGapAccessions(current => { const next = new Set(current); if (checked) next.add(gap); else next.delete(gap); return next; })} /><span className="font-mono">{gap}</span><span className="text-xs text-muted-foreground">Potentially missing — verify physically before recording</span></label>)}</div>}
               <p className="text-[11px] text-muted-foreground">Condemnation records created here will be grouped into a new batch and will not change catalog copy counts because no catalog record exists for a gap. Use the Missing tab to assign an accession to an existing book.</p>
             </TabsContent>
 
@@ -969,7 +1007,7 @@ const BookManager = () => {
                 <Table>
                   <TableHeader><TableRow><TableHead>Accession #</TableHead><TableHead>Book</TableHead><TableHead>Copy</TableHead><TableHead>Update</TableHead></TableRow></TableHeader>
                   <TableBody>
-                    {books.flatMap(book => Array.from({ length: Math.max(book.total_copies, book.accession_numbers?.length || 0, 1) }, (_, index) => {
+                    {inventoryBooks.flatMap(book => Array.from({ length: Math.max(book.total_copies, book.accession_numbers?.length || 0, 1) }, (_, index) => {
                       const accession = book.accession_numbers?.[index] || (index === 0 ? book.accession_number : "") || "";
                       return <TableRow key={`${book.id}-${index}`}>
                         <TableCell><Input className="h-8 w-40 font-mono text-xs" value={multiCopyManualAccessions[`${book.id}:${index}`]?.[0] ?? accession} placeholder="Missing accession" onChange={event => setMultiCopyManualAccessions(prev => ({ ...prev, [`${book.id}:${index}`]: [event.target.value] }))} /></TableCell>
