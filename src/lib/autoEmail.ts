@@ -132,8 +132,8 @@ export async function sendEventWinnerEmail(
   const note = [
     `Event: "${details.eventTitle}"`,
     `Award: ${details.positionTitle}`,
-    `Physical Collection Date: ${formattedDate}`,
-    `Venue: ${details.collectionVenue || "Central Library Counter"}`,
+    details.collectionDate ? `Physical Collection Date: ${formattedDate}` : "",
+    details.collectionVenue ? `Venue: ${details.collectionVenue}` : "",
     details.librarianNote ? `Note: ${details.librarianNote}` : "",
   ]
     .filter(Boolean)
