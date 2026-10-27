@@ -59,17 +59,6 @@ export default function EventWinnersManager() {
   const [resendingAll, setResendingAll] = useState(false);
   const [isEventPublished, setIsEventPublished] = useState(false);
 
-  const defaultCollectionDate = useMemo(
-    () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    []
-  );
-
-  const [globalCollectionDate, setGlobalCollectionDate] = useState(defaultCollectionDate);
-  const [globalCollectionVenue, setGlobalCollectionVenue] = useState("Central Library Counter");
-  const [globalLibrarianNote, setGlobalLibrarianNote] = useState(
-    "Bring your student ID card to collect your certificate & award trophy during lunch break / zero period."
-  );
-
   const [certCustomization, setCertCustomization] = useState({
     generateCertificates: true,
     duringText: "",
@@ -119,7 +108,7 @@ export default function EventWinnersManager() {
         .insert({
           title: newEventTitle.trim(),
           description: newEventDesc.trim() || null,
-          event_date: newEventDate ? new Date(newEventDate).toISOString() : new Date().toISOString(),
+          event_date: new Date(`${newEventDate}T12:00:00`).toISOString(),
           location: newEventLocation.trim() || "Central Library",
           is_published: true,
           created_by: user?.id || null,
@@ -213,17 +202,14 @@ export default function EventWinnersManager() {
               position: w.position,
               positionTitle: w.positionTitle,
               positionTitleHindi: w.positionTitleHindi,
-              collectionDate: w.collectionDate || defaultCollectionDate,
-              collectionVenue: w.collectionVenue || "Central Library Counter",
-              librarianNote: w.librarianNote || globalLibrarianNote,
+              collectionDate: w.collectionDate,
+              collectionVenue: w.collectionVenue,
+              librarianNote: w.librarianNote,
               certificateId: w.certificateId,
               popupPreset: w.popupPreset || "classic",
               scheduledReleaseAt: w.scheduledReleaseAt || null,
             }))
           );
-          if (existing[0].collectionDate) setGlobalCollectionDate(existing[0].collectionDate);
-          if (existing[0].collectionVenue) setGlobalCollectionVenue(existing[0].collectionVenue);
-          if (existing[0].librarianNote) setGlobalLibrarianNote(existing[0].librarianNote);
         } else {
           setIsEventPublished(false);
           setScheduledReleaseLocal("");
@@ -282,9 +268,6 @@ export default function EventWinnersManager() {
       positionTitle: preset.titleEng,
       positionTitleHindi: preset.titleHin,
       popupPreset: bulkPopupPreset,
-      collectionDate: globalCollectionDate,
-      collectionVenue: globalCollectionVenue,
-      librarianNote: globalLibrarianNote,
     };
 
     setWinnerInputs((prev) => [...prev, newWinner]);
@@ -347,9 +330,6 @@ export default function EventWinnersManager() {
           position: preset.position as any,
           positionTitle: row.position_title?.trim() || preset.titleEng,
           positionTitleHindi: row.position_title_hindi?.trim() || preset.titleHin,
-          collectionDate: globalCollectionDate,
-          collectionVenue: globalCollectionVenue,
-          librarianNote: globalLibrarianNote,
           popupPreset: bulkPopupPreset,
         });
       }
@@ -394,9 +374,6 @@ export default function EventWinnersManager() {
       }
       const preparedInputs = winnerInputs.map((w) => ({
         ...w,
-        collectionDate: globalCollectionDate,
-        collectionVenue: globalCollectionVenue,
-        librarianNote: globalLibrarianNote,
       }));
 
       if (isRelease) {
@@ -405,7 +382,8 @@ export default function EventWinnersManager() {
           activeEvent.title,
           preparedInputs,
           certCustomization,
-          scheduledReleaseAt
+          scheduledReleaseAt,
+          autoEmailNotify
         );
 
         if (res.success) {
@@ -413,8 +391,8 @@ export default function EventWinnersManager() {
           toast({
             title: scheduledReleaseAt ? "Event Results Scheduled" : "🎉 Event Winners Released & Published!",
             description: scheduledReleaseAt
-              ? `${res.releasedCount} result(s) will become visible on ${new Date(scheduledReleaseAt).toLocaleString("en-IN")}. In-app notifications will be created at release.`
-              : `Successfully published ${res.releasedCount} winner(s). Issued ${res.certsIssued} e-certificates, sent in-app notifications and dispatched celebratory emails!`,
+              ? `${res.releasedCount} result(s) will be revealed on ${new Date(scheduledReleaseAt).toLocaleString("en-IN")}.${autoEmailNotify ? " Celebratory emails will be sent after the announcement." : " Email sending is turned off."} In-app notifications will be created at release.`
+              : `Successfully published ${res.releasedCount} winner(s). Issued ${res.certsIssued} e-certificates and sent in-app notifications.${autoEmailNotify ? " Celebratory emails were dispatched." : " Email sending is turned off."}`,
           });
         } else {
           throw new Error(res.error);
@@ -424,15 +402,13 @@ export default function EventWinnersManager() {
           activeEvent.id,
           activeEvent.title,
           preparedInputs,
-          autoEmailNotify
+          false
         );
 
         if (res.success) {
           toast({
             title: "Draft Winners Saved",
-            description: autoEmailNotify
-              ? "Winners saved and notification emails dispatched!"
-              : "Draft winner list saved. Click 'Release & Publish' when ready to publish publicly.",
+            description: "Draft winner list saved. No winner email is sent until results are released.",
           });
         } else {
           throw new Error(res.error);
@@ -447,6 +423,10 @@ export default function EventWinnersManager() {
 
   const handleSendSingleEmail = async (winner: EventWinnerInput) => {
     if (!activeEvent) return;
+    if (!isEventPublished) {
+      toast({ title: "Email sends after release", description: "Winner emails are available after the results are announced." });
+      return;
+    }
     setSendingSingleEmailId(winner.userId);
     try {
       const ok = await sendSingleWinnerEmail(winner, activeEvent.title);
@@ -470,6 +450,10 @@ export default function EventWinnersManager() {
 
   const handleResendAllEmails = async () => {
     if (!activeEvent || winnerInputs.length === 0) return;
+    if (!isEventPublished) {
+      toast({ title: "Email sends after release", description: "Winner emails are available after the results are announced." });
+      return;
+    }
     setResendingAll(true);
     try {
       let count = 0;
@@ -653,7 +637,7 @@ export default function EventWinnersManager() {
                       size="sm"
                       variant="outline"
                       onClick={handleResendAllEmails}
-                      disabled={resendingAll || winnerInputs.length === 0}
+                      disabled={resendingAll || winnerInputs.length === 0 || !isEventPublished}
                       className="h-8 text-xs rounded-xl border-amber-300 text-amber-800 dark:text-amber-300"
                     >
                       <Mail className="h-3.5 w-3.5 mr-1.5" />
@@ -673,49 +657,6 @@ export default function EventWinnersManager() {
                 </div>
 
                 <CardContent className="p-5 space-y-6">
-                  {/* Collection Settings & Options */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-muted/30 border">
-                    <div>
-                      <Label className="text-xs font-bold flex items-center gap-1.5 mb-1 text-slate-700 dark:text-slate-200">
-                        <Calendar className="h-3.5 w-3.5 text-amber-600" />
-                        Physical Collection Date
-                      </Label>
-                      <Input
-                        type="date"
-                        value={globalCollectionDate}
-                        onChange={(e) => setGlobalCollectionDate(e.target.value)}
-                        className="h-8 text-xs font-semibold rounded-lg"
-                      />
-                      <span className="text-[10px] text-muted-foreground mt-1 block">Trophy &amp; certificate collection day</span>
-                    </div>
-
-                    <div>
-                      <Label className="text-xs font-bold flex items-center gap-1.5 mb-1 text-slate-700 dark:text-slate-200">
-                        <FileText className="h-3.5 w-3.5 text-amber-600" />
-                        Collection Venue
-                      </Label>
-                      <Input
-                        value={globalCollectionVenue}
-                        onChange={(e) => setGlobalCollectionVenue(e.target.value)}
-                        className="h-8 text-xs rounded-lg"
-                        placeholder="e.g. Central Library Counter"
-                      />
-                    </div>
-
-                    <div>
-                      <Label className="text-xs font-bold flex items-center gap-1.5 mb-1 text-slate-700 dark:text-slate-200">
-                        <FileText className="h-3.5 w-3.5 text-amber-600" />
-                        Librarian Instructions
-                      </Label>
-                      <Input
-                        value={globalLibrarianNote}
-                        onChange={(e) => setGlobalLibrarianNote(e.target.value)}
-                        className="h-8 text-xs rounded-lg"
-                        placeholder="Instructions for winners"
-                      />
-                    </div>
-                  </div>
-
                   <div className="flex flex-col sm:flex-row sm:items-end gap-3 rounded-xl border border-indigo-200 bg-indigo-500/5 p-4">
                     <div className="flex-1 space-y-1">
                       <Label className="text-xs font-bold">Schedule results release</Label>
@@ -742,7 +683,7 @@ export default function EventWinnersManager() {
                           Send Celebratory Email to Winners
                         </Label>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Dispatches an official celebratory email with KV Sulur DP, award details, and trophy collection date.
+                          {scheduledReleaseLocal ? "Sends the congratulatory email after the scheduled announcement." : "Sends the congratulatory email when the winners are published."}
                         </p>
                       </div>
                     </div>
@@ -993,7 +934,7 @@ export default function EventWinnersManager() {
                                       size="sm"
                                       variant="ghost"
                                       title="Dispatch Award Email"
-                                      disabled={sendingSingleEmailId === w.userId}
+                                      disabled={sendingSingleEmailId === w.userId || !isEventPublished}
                                       onClick={() => handleSendSingleEmail(w)}
                                       className="h-7 w-7 p-0 rounded-lg text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                     >
@@ -1078,13 +1019,14 @@ export default function EventWinnersManager() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="newEventDate" className="text-xs font-bold text-foreground">
-                  Event / Conduct Date
+                  Event Conduct Date <span className="text-rose-500">*</span>
                 </Label>
                 <Input
                   id="newEventDate"
                   type="date"
                   value={newEventDate}
                   onChange={(e) => setNewEventDate(e.target.value)}
+                  required
                   className="h-9 text-xs rounded-xl"
                 />
               </div>
@@ -1130,7 +1072,7 @@ export default function EventWinnersManager() {
               <Button
                 type="submit"
                 size="sm"
-                disabled={creatingEvent || !newEventTitle.trim()}
+                disabled={creatingEvent || !newEventTitle.trim() || !newEventDate}
                 className="rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
               >
                 {creatingEvent ? "Creating..." : "Create & Start Adding Winners"}

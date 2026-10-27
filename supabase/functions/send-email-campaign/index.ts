@@ -450,19 +450,32 @@ Deno.serve(async (request) => {
     const url = Deno.env.get("SUPABASE_URL")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    if (!token) throw new Error("Unauthorized");
-
-    const caller = createClient(url, anon, { global: { headers: { Authorization: `Bearer ${token}` } } });
-    const { data: { user } } = await caller.auth.getUser(token);
-    if (!user) throw new Error("Unauthorized");
-
     const admin = createClient(url, service, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data: adminProfile } = await admin.from("profiles").select("role").eq("id", user.id).single();
-    const { recipientIds, preset, customMessage, customSubject, details } = await request.json();
+    const payload = await request.json();
+    const webhookSecret = Deno.env.get("SCHEDULED_EMAIL_WEBHOOK_SECRET") || Deno.env.get("PUSH_WEBHOOK_SECRET");
+    const webhookHeader = request.headers.get("x-scheduled-email-secret");
+    const isScheduledWebhook = Boolean(webhookSecret && webhookHeader && webhookHeader === webhookSecret);
+
+    let callerId: string | null = null;
+    if (isScheduledWebhook) {
+      callerId = payload.sentBy || null;
+    } else {
+      if (!token) throw new Error("Unauthorized");
+      const caller = createClient(url, anon, { global: { headers: { Authorization: `Bearer ${token}` } } });
+      const { data: { user } } = await caller.auth.getUser(token);
+      if (!user) throw new Error("Unauthorized");
+      callerId = user.id;
+    }
+
+    let adminProfile: { role: string } | null = null;
+    if (callerId) {
+      const { data } = await admin.from("profiles").select("role").eq("id", callerId).single();
+      adminProfile = data;
+    }
+    const { recipientIds, preset, customMessage, customSubject, details } = payload;
 
     const isStaff = adminProfile?.role === "admin" || adminProfile?.role === "teacher" || adminProfile?.role === "librarian";
-    const isSelfNotification = Array.isArray(recipientIds) && recipientIds.length === 1 && recipientIds[0] === user.id;
+    const isSelfNotification = Array.isArray(recipientIds) && recipientIds.length === 1 && recipientIds[0] === callerId;
 
     if (!isStaff && !isSelfNotification) throw new Error("Forbidden");
 

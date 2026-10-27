@@ -232,7 +232,8 @@ export async function releaseEventWinners(
   eventTitle: string,
   inputs: EventWinnerInput[],
   certOptions: CertCustomizationOptions,
-  scheduledReleaseAt?: string | null
+  scheduledReleaseAt?: string | null,
+  sendEmails = true
 ): Promise<{ success: boolean; releasedCount: number; certsIssued: number; error?: string }> {
   try {
     const { data: authUser } = await supabase.auth.getUser();
@@ -315,6 +316,7 @@ export async function releaseEventWinners(
       is_published: !scheduledReleaseAt,
       scheduled_release_at: scheduledReleaseAt || null,
       scheduled_release_by: scheduledReleaseAt ? adminId : null,
+      scheduled_send_email: Boolean(scheduledReleaseAt && sendEmails),
       popup_preset: inp.popupPreset || "classic",
       published_at: scheduledReleaseAt || nowIso,
     }));
@@ -385,7 +387,7 @@ export async function releaseEventWinners(
     }
 
     // 4. Send Automated Emails to Winners (Fire and forget or async)
-    if (!scheduledReleaseAt) for (const w of updatedInputs) {
+    if (!scheduledReleaseAt && sendEmails) for (const w of updatedInputs) {
       sendEventWinnerEmail(w.userId, {
         eventTitle,
         positionTitle: w.positionTitle,
