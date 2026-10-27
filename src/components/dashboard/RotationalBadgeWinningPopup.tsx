@@ -20,6 +20,25 @@ import {
   EventWinnerRecord 
 } from "@/lib/eventWinnersService";
 
+const MAX_WINNING_POPUPS_PER_SESSION = 2;
+const winningPopupSessionKey = (userId: string) => `winning-popups:${userId}`;
+const activeWinningPopupUsers = new Set<string>();
+
+function reserveWinningPopup(userId: string): boolean {
+  if (activeWinningPopupUsers.has(userId)) return false;
+  try {
+    const key = winningPopupSessionKey(userId);
+    const count = Number(sessionStorage.getItem(key) || "0");
+    if (count >= MAX_WINNING_POPUPS_PER_SESSION) return false;
+    sessionStorage.setItem(key, String(count + 1));
+    activeWinningPopupUsers.add(userId);
+    return true;
+  } catch {
+    activeWinningPopupUsers.add(userId);
+    return true;
+  }
+}
+
 interface RotationalBadgeWinningPopupProps {
   userId?: string;
 }
@@ -69,6 +88,7 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
         // 1. Check Rotational Badge Awards
         const rotInfo = await getStudentRotationalAwardInfo(userId);
         if (rotInfo.isWinner && !rotInfo.hasAcknowledged && rotInfo.winnerRecord && rotInfo.cycle) {
+          if (!reserveWinningPopup(userId)) return;
           setRotationalWinner(rotInfo.winnerRecord);
           setRotationalCycle(rotInfo.cycle);
           setAwardType("rotational");
@@ -79,6 +99,7 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
         // 2. Check Other Event Winners
         const evtInfo = await getStudentEventWinnersInfo(userId);
         if (evtInfo.hasUnacknowledged && evtInfo.unacknowledgedWinner) {
+          if (!reserveWinningPopup(userId)) return;
           setEventWinner(evtInfo.unacknowledgedWinner);
           setAwardType("event");
           setOpen(true);
@@ -147,6 +168,7 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
       setOpen(false);
     } finally {
       setAcknowledging(false);
+      activeWinningPopupUsers.delete(userId);
     }
   };
 
@@ -294,7 +316,11 @@ export const RotationalBadgeWinningPopup: React.FC<RotationalBadgeWinningPopupPr
         <div className={`p-5 sm:p-6 text-center text-white relative overflow-hidden ${
           awardType === "rotational"
             ? (isClassAward ? "bg-gradient-to-br from-amber-500 via-orange-500 to-amber-700" : "bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700")
-            : "bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-600"
+            : eventWinner?.popupPreset === "royal"
+              ? "bg-gradient-to-br from-violet-800 via-purple-700 to-indigo-900"
+              : eventWinner?.popupPreset === "modern"
+                ? "bg-gradient-to-br from-cyan-600 via-teal-600 to-emerald-700"
+                : "bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-600"
         }`}>
           {/* Subtle star particle shapes */}
           <div className="absolute top-2 left-4 text-white/30 animate-pulse text-xs">✨</div>

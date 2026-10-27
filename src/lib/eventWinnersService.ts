@@ -21,6 +21,8 @@ export interface EventWinnerRecord {
   createdAt?: string;
   publishedAt?: string;
   acknowledgedUserIds?: string[];
+  popupPreset?: "classic" | "royal" | "modern";
+  scheduledReleaseAt?: string | null;
 }
 
 export interface EventWinnerInput {
@@ -36,6 +38,7 @@ export interface EventWinnerInput {
   collectionVenue?: string;
   librarianNote?: string;
   certificateId?: string | null;
+  popupPreset?: "classic" | "royal" | "modern";
 }
 
 export interface CertCustomizationOptions {
@@ -99,6 +102,8 @@ export async function getEventWinners(eventId: string, eventTitle?: string): Pro
           createdAt: w.created_at,
           publishedAt: w.published_at,
           acknowledgedUserIds: w.acknowledged_user_ids || [],
+          popupPreset: w.popup_preset || "classic",
+          scheduledReleaseAt: w.scheduled_release_at || null,
         };
       });
     }
@@ -144,6 +149,7 @@ export async function saveEventWinners(
       librarian_note: inp.librarianNote || null,
       certificate_id: inp.certificateId || null,
       is_published: false,
+      popup_preset: inp.popupPreset || "classic",
     }));
 
     // Try inserting into event_winners table first
@@ -168,6 +174,7 @@ export async function saveEventWinners(
         certificateId: inp.certificateId,
         isPublished: false,
         acknowledgedUserIds: [],
+        popupPreset: inp.popupPreset || "classic",
       }));
 
       await supabase.from("system_settings").upsert({
@@ -224,7 +231,8 @@ export async function releaseEventWinners(
   eventId: string,
   eventTitle: string,
   inputs: EventWinnerInput[],
-  certOptions: CertCustomizationOptions
+  certOptions: CertCustomizationOptions,
+  scheduledReleaseAt?: string | null
 ): Promise<{ success: boolean; releasedCount: number; certsIssued: number; error?: string }> {
   try {
     const { data: authUser } = await supabase.auth.getUser();
@@ -304,8 +312,10 @@ export async function releaseEventWinners(
       collection_venue: inp.collectionVenue || "Central Library Counter",
       librarian_note: inp.librarianNote || null,
       certificate_id: inp.certificateId || null,
-      is_published: true,
-      published_at: nowIso,
+      is_published: !scheduledReleaseAt,
+      scheduled_release_at: scheduledReleaseAt || null,
+      popup_preset: inp.popupPreset || "classic",
+      published_at: scheduledReleaseAt || nowIso,
     }));
 
     const { error: dbErr } = await supabase
@@ -333,9 +343,11 @@ export async function releaseEventWinners(
       collectionVenue: inp.collectionVenue || "Central Library Counter",
       librarianNote: inp.librarianNote || "",
       certificateId: inp.certificateId,
-      isPublished: true,
-      publishedAt: nowIso,
+      isPublished: !scheduledReleaseAt,
+      publishedAt: scheduledReleaseAt || nowIso,
       acknowledgedUserIds: [],
+      popupPreset: inp.popupPreset || "classic",
+      scheduledReleaseAt: scheduledReleaseAt || null,
     }));
 
     await supabase.from("system_settings").upsert({
@@ -344,7 +356,7 @@ export async function releaseEventWinners(
     });
 
     // 3. Insert Notifications for every winner
-    const notifications = updatedInputs.map((w) => {
+    const notifications = scheduledReleaseAt ? [] : updatedInputs.map((w) => {
       const formattedDate = w.collectionDate
         ? new Date(w.collectionDate).toLocaleDateString("en-IN", {
             weekday: "long",
@@ -369,7 +381,7 @@ export async function releaseEventWinners(
     }
 
     // 4. Send Automated Emails to Winners (Fire and forget or async)
-    for (const w of updatedInputs) {
+    if (!scheduledReleaseAt) for (const w of updatedInputs) {
       sendEventWinnerEmail(w.userId, {
         eventTitle,
         positionTitle: w.positionTitle,
@@ -517,6 +529,7 @@ export async function getStudentEventWinnersInfo(userId: string): Promise<{
           position: cand.position,
           positionTitle: cand.position_title || cand.positionTitle,
           positionTitleHindi: cand.position_title_hindi || cand.positionTitleHindi,
+          popupPreset: cand.popup_preset || cand.popupPreset || "classic",
           collectionDate: cand.collection_date || cand.collectionDate,
           collectionVenue: cand.collection_venue || cand.collectionVenue || "Central Library Counter",
           librarianNote: cand.librarian_note || cand.librarianNote || "",

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import Papa from "papaparse";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { 
   Trophy, Calendar, Award, Medal, Search, Plus, Trash2, Mail, 
   CheckCircle2, FileText, Sparkles, Send, RefreshCw, AlertCircle, 
-  ExternalLink, UserPlus, Eye
+  ExternalLink, UserPlus, Eye, FileDown
 } from "lucide-react";
 import { 
   getEventWinners, 
@@ -33,6 +34,12 @@ const EVENT_WINNER_PRESETS = [
   { position: "special", titleEng: "🌟 Special Outstanding Performance", titleHin: "विशेष प्रदर्शन पुरस्कार" },
   { position: "participation", titleEng: "📜 Certificate of Participation", titleHin: "सहभागिता प्रमाण-पत्र" },
 ];
+
+const WINNER_POPUP_PRESETS = [
+  { id: "classic", label: "Classic Gold", description: "Warm gold celebration" },
+  { id: "royal", label: "Royal Purple", description: "Rich purple award style" },
+  { id: "modern", label: "Modern Teal", description: "Fresh teal celebration" },
+] as const;
 
 export default function EventWinnersManager() {
   const { toast } = useToast();
@@ -71,6 +78,9 @@ export default function EventWinnersManager() {
   });
 
   const [autoEmailNotify, setAutoEmailNotify] = useState(true);
+  const [bulkPopupPreset, setBulkPopupPreset] = useState<"classic" | "royal" | "modern">("classic");
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [scheduledReleaseLocal, setScheduledReleaseLocal] = useState("");
 
   // Certificate customization modal
   const [evtCertModalOpen, setEvtCertModalOpen] = useState(false);
@@ -200,6 +210,7 @@ export default function EventWinnersManager() {
               collectionVenue: w.collectionVenue || "Central Library Counter",
               librarianNote: w.librarianNote || globalLibrarianNote,
               certificateId: w.certificateId,
+              popupPreset: w.popupPreset || "classic",
             }))
           );
           if (existing[0].collectionDate) setGlobalCollectionDate(existing[0].collectionDate);
@@ -261,6 +272,7 @@ export default function EventWinnersManager() {
       position: preset.position as any,
       positionTitle: preset.titleEng,
       positionTitleHindi: preset.titleHin,
+      popupPreset: bulkPopupPreset,
       collectionDate: globalCollectionDate,
       collectionVenue: globalCollectionVenue,
       librarianNote: globalLibrarianNote,
@@ -288,6 +300,74 @@ export default function EventWinnersManager() {
     setWinnerInputs((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const handleBulkResultsFile = async (file: File) => {
+    if (!activeEvent) return;
+    setBulkUploading(true);
+    try {
+      const parsed = Papa.parse<Record<string, string>>(await file.text(), {
+        header: true,
+        skipEmptyLines: "greedy",
+        transformHeader: (header) => header.trim().toLowerCase().replace(/[\s-]+/g, "_"),
+      });
+      if (parsed.errors.length) throw new Error(parsed.errors[0].message);
+      const columns = parsed.meta.fields || [];
+      const idColumn = ["admission_number", "admission_no", "admission", "student_uid"].find((c) => columns.includes(c));
+      if (!idColumn || !columns.includes("position")) {
+        throw new Error("CSV needs admission_number and position columns. Optional columns: position_title, position_title_hindi.");
+      }
+
+      const mapped: EventWinnerInput[] = [];
+      const skipped: string[] = [];
+      const addedIds = new Set(winnerInputs.map((w) => w.userId));
+      for (const [index, row] of parsed.data.entries()) {
+        const admission = (row[idColumn] || "").trim().toLowerCase();
+        const student = allStudents.find((s) => (s.admission_number || "").trim().toLowerCase() === admission);
+        const positionRaw = (row.position || "").trim().toLowerCase();
+        const normalizedPosition = ({ "1": "1st", first: "1st", "2": "2nd", second: "2nd", "3": "3rd", third: "3rd" } as Record<string, string>)[positionRaw] || positionRaw;
+        const preset = EVENT_WINNER_PRESETS.find((p) => p.position.toLowerCase() === normalizedPosition || p.titleEng.toLowerCase() === positionRaw);
+        if (!admission || !student || !preset || addedIds.has(student.id)) {
+          skipped.push(`Row ${index + 2}: ${!student ? `student ${row[idColumn] || "(blank)"} not found` : !preset ? `unknown position ${row.position || "(blank)"}` : "duplicate student"}`);
+          continue;
+        }
+        addedIds.add(student.id);
+        mapped.push({
+          userId: student.id,
+          studentName: `${student.first_name || ""} ${student.last_name || ""}`.trim(),
+          admissionNumber: student.admission_number || "—",
+          studentClass: student.student_class || "—",
+          position: preset.position as any,
+          positionTitle: row.position_title?.trim() || preset.titleEng,
+          positionTitleHindi: row.position_title_hindi?.trim() || preset.titleHin,
+          collectionDate: globalCollectionDate,
+          collectionVenue: globalCollectionVenue,
+          librarianNote: globalLibrarianNote,
+          popupPreset: bulkPopupPreset,
+        });
+      }
+      if (!mapped.length) throw new Error(skipped.length ? skipped.slice(0, 3).join("; ") : "No result rows found.");
+      setWinnerInputs((prev) => [...prev, ...mapped]);
+      toast({
+        title: `Added ${mapped.length} event result${mapped.length === 1 ? "" : "s"}`,
+        description: skipped.length ? `${skipped.length} row(s) skipped. ${skipped.slice(0, 2).join("; ")}` : "Review the rows below, then save or publish.",
+        variant: skipped.length ? "destructive" : "default",
+      });
+    } catch (err: any) {
+      toast({ title: "Could not import results", description: err.message || "Check the CSV format and try again.", variant: "destructive" });
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+
+  const downloadResultsTemplate = () => {
+    const csv = "admission_number,position,position_title,position_title_hindi\n2026001,1st,🥇 First Position,प्रथम स्थान\n2026002,2nd,🥈 Second Position,द्वितीय स्थान";
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "event-results-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleSaveWinners = async (isRelease: boolean) => {
     if (!activeEvent) return;
     if (winnerInputs.length === 0) {
@@ -297,6 +377,12 @@ export default function EventWinnersManager() {
 
     setSavingWinners(true);
     try {
+      const scheduledReleaseAt = isRelease && scheduledReleaseLocal
+        ? new Date(scheduledReleaseLocal).toISOString()
+        : null;
+      if (scheduledReleaseAt && new Date(scheduledReleaseAt).getTime() <= Date.now()) {
+        throw new Error("Choose a release time in the future.");
+      }
       const preparedInputs = winnerInputs.map((w) => ({
         ...w,
         collectionDate: globalCollectionDate,
@@ -309,14 +395,17 @@ export default function EventWinnersManager() {
           activeEvent.id,
           activeEvent.title,
           preparedInputs,
-          certCustomization
+          certCustomization,
+          scheduledReleaseAt
         );
 
         if (res.success) {
-          setIsEventPublished(true);
+          if (!scheduledReleaseAt) setIsEventPublished(true);
           toast({
-            title: "🎉 Event Winners Released & Published!",
-            description: `Successfully published ${res.releasedCount} winner(s). Issued ${res.certsIssued} e-certificates, sent in-app notifications and dispatched celebratory emails!`,
+            title: scheduledReleaseAt ? "Event Results Scheduled" : "🎉 Event Winners Released & Published!",
+            description: scheduledReleaseAt
+              ? `${res.releasedCount} result(s) will become visible on ${new Date(scheduledReleaseAt).toLocaleString("en-IN")}. In-app notifications will be created at release.`
+              : `Successfully published ${res.releasedCount} winner(s). Issued ${res.certsIssued} e-certificates, sent in-app notifications and dispatched celebratory emails!`,
           });
         } else {
           throw new Error(res.error);
@@ -618,6 +707,15 @@ export default function EventWinnersManager() {
                     </div>
                   </div>
 
+                  <div className="flex flex-col sm:flex-row sm:items-end gap-3 rounded-xl border border-indigo-200 bg-indigo-500/5 p-4">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs font-bold">Schedule results release</Label>
+                      <Input type="datetime-local" value={scheduledReleaseLocal} onChange={(e) => setScheduledReleaseLocal(e.target.value)} className="h-9 max-w-xs text-xs" />
+                      <p className="text-[11px] text-muted-foreground">Leave blank to publish immediately. Scheduled results and student notifications release automatically at this time.</p>
+                    </div>
+                    {scheduledReleaseLocal && <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setScheduledReleaseLocal("")}>Clear schedule</Button>}
+                  </div>
+
                   {/* Automated Email & Certificate Options */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Auto-Email Toggle */}
@@ -685,6 +783,29 @@ export default function EventWinnersManager() {
                       </div>
                     </div>
                   )}
+
+                  {/* Add Winner Search Box */}
+                  <div className="rounded-xl border border-dashed border-amber-300 bg-amber-500/5 p-4 space-y-3">
+                    <div>
+                      <h4 className="text-sm font-bold">Bulk upload event results</h4>
+                      <p className="text-xs text-muted-foreground mt-1">CSV columns: admission_number, position. Optional: position_title, position_title_hindi. Positions: 1st, 2nd, 3rd, merit, special, participation.</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Winner popup design</Label>
+                        <select value={bulkPopupPreset} onChange={(e) => setBulkPopupPreset(e.target.value as any)} className="h-9 rounded-lg border border-input bg-background px-3 text-xs">
+                          {WINNER_POPUP_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label} — {preset.description}</option>)}
+                        </select>
+                      </div>
+                      <Button type="button" variant="outline" className="h-9 text-xs" onClick={downloadResultsTemplate}>
+                        <FileDown className="h-3.5 w-3.5 mr-1.5" /> CSV template
+                      </Button>
+                      <label className={`inline-flex h-9 items-center justify-center rounded-lg bg-amber-600 px-3 text-xs font-bold text-white cursor-pointer hover:bg-amber-700 ${bulkUploading ? "opacity-60 pointer-events-none" : ""}`}>
+                        {bulkUploading ? "Importing…" : "Choose results CSV"}
+                        <input type="file" accept=".csv,text/csv" className="hidden" disabled={bulkUploading || allStudents.length === 0} onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleBulkResultsFile(file); e.currentTarget.value = ""; }} />
+                      </label>
+                    </div>
+                  </div>
 
                   {/* Add Winner Search Box */}
                   <div className="space-y-3 pt-2">

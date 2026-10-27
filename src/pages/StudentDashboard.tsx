@@ -963,7 +963,6 @@ const StudentDashboard = () => {
 
   return (
     <div className="h-dvh overflow-hidden bg-background flex">
-      <RotationalBadgeWinningPopup userId={user?.id} />
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-64 bg-card border-r border-border flex-col fixed h-full z-40">
         <div className="p-5 border-b border-border">
