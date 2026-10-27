@@ -196,6 +196,13 @@ export default function EventWinnersManager() {
         const existing = await getEventWinners(selectedEventId, ev?.title);
         if (existing && existing.length > 0) {
           setIsEventPublished(existing.some((w) => w.isPublished));
+          const scheduled = existing.find((w) => w.scheduledReleaseAt && !w.isPublished)?.scheduledReleaseAt;
+          if (scheduled) {
+            const localDate = new Date(new Date(scheduled).getTime() - new Date(scheduled).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            setScheduledReleaseLocal(localDate);
+          } else {
+            setScheduledReleaseLocal("");
+          }
           setWinnerInputs(
             existing.map((w) => ({
               id: w.id,
@@ -211,6 +218,7 @@ export default function EventWinnersManager() {
               librarianNote: w.librarianNote || globalLibrarianNote,
               certificateId: w.certificateId,
               popupPreset: w.popupPreset || "classic",
+              scheduledReleaseAt: w.scheduledReleaseAt || null,
             }))
           );
           if (existing[0].collectionDate) setGlobalCollectionDate(existing[0].collectionDate);
@@ -218,6 +226,7 @@ export default function EventWinnersManager() {
           if (existing[0].librarianNote) setGlobalLibrarianNote(existing[0].librarianNote);
         } else {
           setIsEventPublished(false);
+          setScheduledReleaseLocal("");
           setWinnerInputs([]);
         }
 
@@ -658,7 +667,7 @@ export default function EventWinnersManager() {
                       className="h-8 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-xs hover:from-amber-600 hover:to-orange-600"
                     >
                       <Send className="h-3.5 w-3.5 mr-1.5" />
-                      {savingWinners ? "Publishing..." : "Release & Publish"}
+                          {savingWinners ? (scheduledReleaseLocal ? "Scheduling..." : "Publishing...") : scheduledReleaseLocal ? "Schedule Release" : "Release & Publish"}
                     </Button>
                   </div>
                 </div>

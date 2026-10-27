@@ -270,7 +270,7 @@ export async function releaseEventWinners(
           description: certOptions.description || `Winner of ${inp.positionTitle} in ${eventTitle}`,
           certificate_no: certNo,
           issued_at: new Date().toISOString().slice(0, 10),
-          unlock_at: certOptions.unlockAt || null,
+          unlock_at: certOptions.unlockAt || scheduledReleaseAt || null,
           template_url: certOptions.templateUrl || null,
           common_text: certOptions.commonText || null,
           bilingual_data: {
@@ -314,6 +314,7 @@ export async function releaseEventWinners(
       certificate_id: inp.certificateId || null,
       is_published: !scheduledReleaseAt,
       scheduled_release_at: scheduledReleaseAt || null,
+      scheduled_release_by: scheduledReleaseAt ? adminId : null,
       popup_preset: inp.popupPreset || "classic",
       published_at: scheduledReleaseAt || nowIso,
     }));
@@ -321,11 +322,14 @@ export async function releaseEventWinners(
     const { error: dbErr } = await supabase
       .from("event_winners" as any)
       .upsert(finalRows, { onConflict: "id" });
+    if (scheduledReleaseAt && dbErr) throw dbErr;
 
     // Also ensure library_events is marked published so students can query the event title
-    try {
-      await supabase.from("library_events").update({ is_published: true }).eq("id", eventId);
-    } catch (_) {}
+    if (!scheduledReleaseAt) {
+      try {
+        await supabase.from("library_events").update({ is_published: true }).eq("id", eventId);
+      } catch (_) {}
+    }
 
     // Fallback: store in system_settings
     const systemWinners: EventWinnerRecord[] = updatedInputs.map((inp, idx) => ({
