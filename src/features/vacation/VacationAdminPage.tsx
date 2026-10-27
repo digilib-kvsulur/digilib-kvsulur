@@ -102,6 +102,7 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   const [queue, setQueue] = useState<VacationSubmission[]>([]);
   const [board, setBoard] = useState<VacationLeaderboardRow[]>([]);
   const [stats, setStats] = useState<VacationParticipationStats | null>(null);
+  const [resultSearch, setResultSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [dayFilter, setDayFilter] = useState<string>("all");
   const [studentFilter, setStudentFilter] = useState("");
@@ -230,6 +231,44 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
   const pendingFiltered = filteredQueue.filter((row) => row.status === "pending");
   const selectedPending = pendingFiltered.filter((row) => selectedSubmissionIds.includes(row.id));
   const selectedReviewed = filteredQueue.filter((row) => (row.status === "approved" || row.status === "rejected") && selectedSubmissionIds.includes(row.id));
+
+  const studentResults = useMemo(() => {
+    const grouped = new Map<string, { student_id: string; student_name: string; total_points: number; approved: number; pending: number; rejected: number; submissions: number }>();
+    for (const submission of queue) {
+      const result = grouped.get(submission.student_id) || {
+        student_id: submission.student_id,
+        student_name: submission.student_name || "Student",
+        total_points: 0,
+        approved: 0,
+        pending: 0,
+        rejected: 0,
+        submissions: 0,
+      };
+      result.submissions += 1;
+      if (submission.status === "approved") {
+        result.approved += 1;
+        result.total_points += submission.points_awarded || 0;
+      } else if (submission.status === "pending") result.pending += 1;
+      else result.rejected += 1;
+      grouped.set(submission.student_id, result);
+    }
+    return [...grouped.values()]
+      .sort((a, b) => b.total_points - a.total_points || b.approved - a.approved || a.student_name.localeCompare(b.student_name))
+      .map((row, index) => ({ ...row, rank: index + 1 }))
+      .filter((row) => row.student_name.toLowerCase().includes(resultSearch.trim().toLowerCase()));
+  }, [queue, resultSearch]);
+
+  const downloadResultsCsv = () => {
+    const csv = Papa.unparse(studentResults.map(({ rank, student_name, total_points, approved, pending, rejected, submissions }) => ({
+      rank, student_name, approved_points: total_points, approved_activities: approved, pending_reviews: pending, rejected_activities: rejected, total_submissions: submissions,
+    })), { escapeFormulae: true });
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${campaign?.title || "vacation"}-results.csv`.replace(/[^a-z0-9-_]+/gi, "-");
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   const downloadSubmissionCsv = () => {
     const rows = filteredQueue.map((row) => ({
@@ -1587,6 +1626,42 @@ export default function VacationAdminPage({ canConfigure = true }: VacationAdmin
                     ))}
                   </TableBody>
                 </Table>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle>Student result sheet</CardTitle>
+                <CardDescription>Approved points only; pending work is shown separately and does not count toward rank.</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Input aria-label="Search student results" placeholder="Find a student" value={resultSearch} onChange={(event) => setResultSearch(event.target.value)} className="w-44" />
+                <Button variant="outline" size="sm" onClick={downloadResultsCsv} disabled={!studentResults.length}>
+                  <Download className="mr-1 h-4 w-4" /> Results CSV
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!studentResults.length ? (
+                <p className="text-sm text-muted-foreground">No student results match this search.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Rank</TableHead><TableHead>Student</TableHead><TableHead>Approved points</TableHead><TableHead>Approved</TableHead><TableHead>Pending</TableHead><TableHead>Rejected</TableHead><TableHead>Submissions</TableHead></TableRow></TableHeader>
+                    <TableBody>{studentResults.map((row) => (
+                      <TableRow key={row.student_id}>
+                        <TableCell className="font-semibold">{row.rank}</TableCell>
+                        <TableCell>{row.student_name}</TableCell>
+                        <TableCell className="font-bold">{row.total_points}</TableCell>
+                        <TableCell>{row.approved}</TableCell>
+                        <TableCell>{row.pending}</TableCell>
+                        <TableCell>{row.rejected}</TableCell>
+                        <TableCell>{row.submissions}</TableCell>
+                      </TableRow>
+                    ))}</TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
