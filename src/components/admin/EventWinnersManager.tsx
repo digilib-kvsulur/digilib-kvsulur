@@ -84,7 +84,9 @@ export default function EventWinnersManager() {
   // New unscheduled event creation state
   const [createEventOpen, setCreateEventOpen] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState("");
-  const [newEventDate, setNewEventDate] = useState(new Date().toISOString().split("T")[0]);
+  const localToday = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+  const [newEventDate, setNewEventDate] = useState(localToday);
+  const [newEventEndDate, setNewEventEndDate] = useState("");
   const [newEventLocation, setNewEventLocation] = useState("Central Library");
   const [newEventDesc, setNewEventDesc] = useState("");
   const [creatingEvent, setCreatingEvent] = useState(false);
@@ -99,6 +101,10 @@ export default function EventWinnersManager() {
       });
       return;
     }
+    if (newEventEndDate && newEventEndDate < newEventDate) {
+      toast({ title: "Invalid conduct date range", description: "The final date must be on or after the first date.", variant: "destructive" });
+      return;
+    }
 
     setCreatingEvent(true);
     try {
@@ -109,11 +115,12 @@ export default function EventWinnersManager() {
           title: newEventTitle.trim(),
           description: newEventDesc.trim() || null,
           event_date: new Date(`${newEventDate}T12:00:00`).toISOString(),
+          end_date: newEventEndDate ? new Date(`${newEventEndDate}T12:00:00`).toISOString() : null,
           location: newEventLocation.trim() || "Central Library",
           is_published: true,
           created_by: user?.id || null,
         })
-        .select("id, title, description, event_date, location, image_url, is_published")
+        .select("id, title, description, event_date, end_date, location, image_url, is_published")
         .single();
 
       if (error) throw error;
@@ -127,6 +134,8 @@ export default function EventWinnersManager() {
       setSelectedEventId(created.id);
       setCreateEventOpen(false);
       setNewEventTitle("");
+      setNewEventDate(localToday);
+      setNewEventEndDate("");
       setNewEventDesc("");
     } catch (err: any) {
       toast({
@@ -1030,6 +1039,18 @@ export default function EventWinnersManager() {
                   value={newEventDate}
                   onChange={(e) => setNewEventDate(e.target.value)}
                   required
+                  className="h-9 text-xs rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="newEventEndDate" className="text-xs font-bold text-foreground">Final Conduct Date <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                <Input
+                  id="newEventEndDate"
+                  type="date"
+                  min={newEventDate}
+                  value={newEventEndDate}
+                  onChange={(e) => setNewEventEndDate(e.target.value)}
                   className="h-9 text-xs rounded-xl"
                 />
               </div>
