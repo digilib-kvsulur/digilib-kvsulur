@@ -304,8 +304,11 @@ export default function EventWinnersManager() {
       if (parsed.errors.length) throw new Error(parsed.errors[0].message);
       const columns = parsed.meta.fields || [];
       const idColumn = ["admission_number", "admission_no", "admission", "student_uid"].find((c) => columns.includes(c));
-      if (!idColumn || !columns.includes("position")) {
-        throw new Error("CSV needs admission_number and position columns. Optional columns: position_title, position_title_hindi.");
+      const positionColumn = ["position", "rank", "award", "result", "prize"].find((c) => columns.includes(c));
+      if (!idColumn || !positionColumn) {
+        const found = columns.length ? `Found columns: ${columns.join(", ")}.` : "No columns detected — is the file empty or not a CSV?";
+        const missing = [!idColumn && "admission_number (or admission_no / admission / student_uid)", !positionColumn && "position (or rank / award / result / prize)"].filter(Boolean).join(" and ");
+        throw new Error(`CSV is missing required column(s): ${missing}. ${found} Optional columns: position_title, position_title_hindi.`);
       }
 
       const mapped: EventWinnerInput[] = [];
@@ -314,11 +317,11 @@ export default function EventWinnersManager() {
       for (const [index, row] of parsed.data.entries()) {
         const admission = (row[idColumn] || "").trim().toLowerCase();
         const student = allStudents.find((s) => (s.admission_number || "").trim().toLowerCase() === admission);
-        const positionRaw = (row.position || "").trim().toLowerCase();
+        const positionRaw = (row[positionColumn] || "").trim().toLowerCase();
         const normalizedPosition = ({ "1": "1st", first: "1st", "2": "2nd", second: "2nd", "3": "3rd", third: "3rd" } as Record<string, string>)[positionRaw] || positionRaw;
         const preset = EVENT_WINNER_PRESETS.find((p) => p.position.toLowerCase() === normalizedPosition || p.titleEng.toLowerCase() === positionRaw);
         if (!admission || !student || !preset || addedIds.has(student.id)) {
-          skipped.push(`Row ${index + 2}: ${!student ? `student ${row[idColumn] || "(blank)"} not found` : !preset ? `unknown position ${row.position || "(blank)"}` : "duplicate student"}`);
+          skipped.push(`Row ${index + 2}: ${!student ? `student ${row[idColumn] || "(blank)"} not found` : !preset ? `unknown position ${row[positionColumn] || "(blank)"}` : "duplicate student"}`);
           continue;
         }
         addedIds.add(student.id);
