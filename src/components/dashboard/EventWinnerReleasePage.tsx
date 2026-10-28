@@ -16,6 +16,24 @@ type WinnerReleasePlan = {
   winners: { name: string; student_class?: string | null; position?: string; title?: string; title_hindi?: string | null }[];
 };
 
+const categoryPriority = (prize: WinnerReleasePlan["prizes"][number]) => {
+  const label = `${prize.position || ""} ${prize.title || ""}`.toLowerCase();
+  if (/\b(1st|first)\b/.test(label)) return 0;
+  if (/\b(2nd|second)\b/.test(label)) return 1;
+  if (/\b(3rd|third)\b/.test(label)) return 2;
+  if (/merit/.test(label)) return 3;
+  if (/special/.test(label)) return 4;
+  if (/participation/.test(label)) return 5;
+  return 6;
+};
+
+const orderedPrizes = (prizes: WinnerReleasePlan["prizes"] = []) =>
+  [...prizes].sort((a, b) => {
+    const priorityDifference = categoryPriority(a) - categoryPriority(b);
+    if (priorityDifference) return priorityDifference;
+    return (a.title || a.position || "Award").localeCompare(b.title || b.position || "Award", "en", { sensitivity: "base" });
+  });
+
 export function useEventWinnerReleasePlans() {
   const [plans, setPlans] = useState<WinnerReleasePlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,8 +167,13 @@ export default function EventWinnerReleasePage() {
                 <CardContent className="min-w-0 space-y-4 p-4 sm:p-5">
                   <div>
                     <h3 className="mb-2 text-xs font-black uppercase tracking-wider text-muted-foreground">Prizes planned · {plan.total_awards} award{plan.total_awards === 1 ? "" : "s"}</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {(plan.prizes || []).map((prize, index) => <Badge key={`${prize.position}-${index}`} variant="outline" className="max-w-full whitespace-normal break-words rounded-lg border-amber-300 bg-amber-500/5 px-2.5 py-1.5 text-left text-[11px] leading-snug sm:px-3 sm:text-xs">{prize.title || prize.position || "Award"}</Badge>)}
+                    <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+                      {orderedPrizes(plan.prizes).map((prize, index) => (
+                        <div key={`${prize.title || prize.position}-${index}`} className="flex min-w-0 items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-500/[0.04] px-3 py-2.5">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-[10px] font-black text-amber-800 dark:text-amber-300">{String(index + 1).padStart(2, "0")}</span>
+                          <span className="min-w-0 break-words text-xs font-semibold leading-snug text-foreground">{prize.title || prize.position || "Award"}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                   {released ? (
