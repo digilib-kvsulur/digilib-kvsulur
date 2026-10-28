@@ -8,6 +8,7 @@ import { Loader2, Sparkles, KeyRound, Mail, Phone, UserCheck, User } from "lucid
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { sendFirstLoginEmail, sendEmailVerifiedEmail } from "@/lib/autoEmail";
+import { ALLOWED_EMAIL_HINT, isAllowedEmail } from "@/lib/emailValidation";
 
 interface TeacherProfileCompletionDialogProps {
   open: boolean;
@@ -33,6 +34,10 @@ export default function TeacherProfileCompletionDialog({ open, user, onComplete 
 
     if (!firstName.trim() || !phone.trim() || !email.trim() || !username.trim() || !password.trim()) {
       setErrorMsg("Please fill in all required fields.");
+      return;
+    }
+    if (!isAllowedEmail(email)) {
+      setErrorMsg(ALLOWED_EMAIL_HINT);
       return;
     }
 
@@ -154,8 +159,8 @@ export default function TeacherProfileCompletionDialog({ open, user, onComplete 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> Email *</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your.email@example.com" />
-                <p className="text-[10px] text-muted-foreground">Used for library notices and newsletter updates.</p>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your.email@gmail.com" />
+                <p className="text-[10px] text-muted-foreground">{ALLOWED_EMAIL_HINT}</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> Phone Number *</Label>

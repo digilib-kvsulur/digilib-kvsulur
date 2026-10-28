@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { User, Edit, Save, X, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ALLOWED_EMAIL_HINT, isAllowedEmail, normalizeEmail } from "@/lib/emailValidation";
 import { useToast } from "@/hooks/use-toast";
 import { getAvatarUrl } from "@/lib/utils";
 import ProfilePasswordResetCard from "@/components/dashboard/ProfilePasswordResetCard";
@@ -135,9 +136,9 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
       return;
     }
 
-    const newEmail = formData.email.trim().toLowerCase();
-    if (!newEmail || !newEmail.includes("@")) {
-      toast({ title: "Validation Error", description: "Please enter a valid email address", variant: "destructive" });
+    const newEmail = normalizeEmail(formData.email);
+    if (!isAllowedEmail(newEmail)) {
+      toast({ title: "Email not accepted", description: ALLOWED_EMAIL_HINT, variant: "destructive" });
       return;
     }
 
@@ -165,7 +166,9 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
         .update({
           first_name: formData.first_name.trim(),
           last_name: formData.last_name.trim(),
-          ...(newEmail === oldEmail ? { email: newEmail, notification_email: newEmail } : {}),
+          email: newEmail,
+          notification_email: newEmail,
+          notification_email_confirmed_at: new Date().toISOString(),
           phone: formData.phone.trim(),
           username: formData.username.trim(),
           bio: formData.bio.trim(),
@@ -184,7 +187,8 @@ const AdminProfile = ({ user, onProfileUpdate }: AdminProfileProps) => {
             ...parsed,
             first_name: formData.first_name.trim(),
             last_name: formData.last_name.trim(),
-            ...(newEmail === oldEmail ? { email: newEmail, notification_email: newEmail } : {}),
+            email: newEmail,
+            notification_email: newEmail,
             phone: formData.phone.trim(),
             username: formData.username.trim(),
           }));

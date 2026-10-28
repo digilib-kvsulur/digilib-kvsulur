@@ -12,6 +12,7 @@ import {
   User, Edit, Save, X, Camera, Settings, Star, GraduationCap, BookOpen, Sparkles, Trophy, Flame
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ALLOWED_EMAIL_HINT, isAllowedEmail, normalizeEmail } from "@/lib/emailValidation";
 import { getUserLevel } from "@/lib/userLevelCache";
 import { useToast } from "@/hooks/use-toast";
 import * as Icons from "lucide-react";
@@ -187,9 +188,9 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       return;
     }
 
-    const newEmail = formData.email.trim().toLowerCase();
-    if (!newEmail || !newEmail.includes("@")) {
-      toast({ title: "Validation Error", description: "Please enter a valid email address", variant: "destructive" });
+    const newEmail = normalizeEmail(formData.email);
+    if (!isAllowedEmail(newEmail)) {
+      toast({ title: "Email not accepted", description: ALLOWED_EMAIL_HINT, variant: "destructive" });
       return;
     }
 
@@ -215,7 +216,9 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
       const { error } = await supabase.from('profiles').update({
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
-        ...(newEmail === oldEmail ? { email: newEmail, notification_email: newEmail } : {}),
+        email: newEmail,
+        notification_email: newEmail,
+        notification_email_confirmed_at: new Date().toISOString(),
         phone: formData.phone.trim(),
         student_class: formData.student_class.trim(),
         roll_number: formData.roll_number.trim(),
@@ -236,7 +239,8 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
             ...parsed,
             first_name: formData.first_name.trim(),
             last_name: formData.last_name.trim(),
-            ...(newEmail === oldEmail ? { email: newEmail, notification_email: newEmail } : {}),
+            email: newEmail,
+            notification_email: newEmail,
             phone: formData.phone.trim(),
             username: formData.username.trim(),
           }));
@@ -491,7 +495,7 @@ const StudentProfile = ({ user, onProfileUpdate }: StudentProfileProps) => {
                 placeholder="e.g. student@gmail.com"
               />
               <p className="text-[10px] text-muted-foreground mt-1">
-                {isEditing ? "Updates your sign-in email & notifications." : "Used for account sign-in & notifications."}
+                {isEditing ? ALLOWED_EMAIL_HINT : "Used for account sign-in & notifications."}
               </p>
             </div>
             <div>

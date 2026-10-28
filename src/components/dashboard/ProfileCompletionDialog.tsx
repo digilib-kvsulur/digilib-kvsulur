@@ -8,6 +8,7 @@ import { Loader2, Sparkles, KeyRound, Mail, Phone, GraduationCap, Hash, UserChec
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { sendFirstLoginEmail, sendEmailVerifiedEmail } from "@/lib/autoEmail";
+import { ALLOWED_EMAIL_HINT, isAllowedEmail } from "@/lib/emailValidation";
 
 interface ProfileCompletionDialogProps {
   open: boolean;
@@ -35,6 +36,10 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
 
     if (!firstName.trim() || !studentClass.trim() || !rollNumber.trim() || !phone.trim() || !email.trim() || !username.trim() || !password.trim()) {
       setErrorMsg("Please fill in all required fields.");
+      return;
+    }
+    if (!isAllowedEmail(email)) {
+      setErrorMsg(ALLOWED_EMAIL_HINT);
       return;
     }
 
@@ -241,7 +246,7 @@ export default function ProfileCompletionDialog({ open, user, onComplete }: Prof
               required
             />
             <p className="text-[10px] text-muted-foreground leading-normal">
-              Used for account recovery, library notices, and newsletter updates.
+              {ALLOWED_EMAIL_HINT} Used for account recovery, library notices, and newsletter updates.
             </p>
           </div>
 
