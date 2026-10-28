@@ -68,6 +68,8 @@ export default function EventWinnersManager() {
 
   const [autoEmailNotify, setAutoEmailNotify] = useState(true);
   const [bulkPopupPreset, setBulkPopupPreset] = useState<"classic" | "royal" | "modern">("classic");
+  const [customAwardCategory, setCustomAwardCategory] = useState("");
+  const [customAwardCategories, setCustomAwardCategories] = useState<string[]>([]);
   const [bulkUploading, setBulkUploading] = useState(false);
   const [scheduledReleaseLocal, setScheduledReleaseLocal] = useState("");
 
@@ -219,6 +221,13 @@ export default function EventWinnersManager() {
               scheduledReleaseAt: w.scheduledReleaseAt || null,
             }))
           );
+          setCustomAwardCategories((prev) => Array.from(new Set([
+            ...prev,
+            ...existing
+              .filter((winner) => !EVENT_WINNER_PRESETS.some((preset) => preset.titleEng.toLowerCase() === winner.positionTitle.toLowerCase()))
+              .map((winner) => winner.positionTitle)
+              .filter(Boolean),
+          ])));
         } else {
           setIsEventPublished(false);
           setScheduledReleaseLocal("");
@@ -260,6 +269,37 @@ export default function EventWinnersManager() {
       })
       .slice(0, 10);
   }, [allStudents, studentSearch]);
+
+  const addCustomAwardCategory = () => {
+    const category = customAwardCategory.trim();
+    if (!category) return;
+    if (EVENT_WINNER_PRESETS.some((preset) => preset.titleEng.toLowerCase() === category.toLowerCase()) ||
+        customAwardCategories.some((existing) => existing.toLowerCase() === category.toLowerCase())) {
+      toast({ title: "Category already exists" });
+      return;
+    }
+    setCustomAwardCategories((prev) => [...prev, category]);
+    setCustomAwardCategory("");
+  };
+
+  const addStudentWithCustomCategory = (student: any, category: string) => {
+    if (winnerInputs.some((winner) => winner.userId === student.id)) {
+      toast({ title: "Student already added as a winner" });
+      return;
+    }
+    const winner: EventWinnerInput = {
+      userId: student.id,
+      studentName: `${student.first_name || ""} ${student.last_name || ""}`.trim(),
+      admissionNumber: student.admission_number || "—",
+      studentClass: student.student_class || "—",
+      position: "special",
+      positionTitle: category,
+      popupPreset: bulkPopupPreset,
+    };
+    setWinnerInputs((prev) => [...prev, winner]);
+    setStudentSearch("");
+    toast({ title: "Custom award added", description: `${winner.studentName} · ${category}` });
+  };
 
   const addStudentAsWinner = (student: any, preset = EVENT_WINNER_PRESETS[0]) => {
     if (winnerInputs.some((w) => w.userId === student.id)) {
@@ -329,8 +369,9 @@ export default function EventWinnersManager() {
         const positionRaw = (row[positionColumn] || "").trim().toLowerCase();
         const normalizedPosition = ({ "1": "1st", first: "1st", "2": "2nd", second: "2nd", "3": "3rd", third: "3rd" } as Record<string, string>)[positionRaw] || positionRaw;
         const preset = EVENT_WINNER_PRESETS.find((p) => p.position.toLowerCase() === normalizedPosition || p.titleEng.toLowerCase() === positionRaw);
-        if (!admission || !student || !preset || addedIds.has(student.id)) {
-          skipped.push(`Row ${index + 2}: ${!student ? `student ${row[idColumn] || "(blank)"} not found` : !preset ? `unknown position ${row[positionColumn] || "(blank)"}` : "duplicate student"}`);
+        const customCategory = !preset && positionRaw ? (row.position_title?.trim() || row[positionColumn]?.trim()) : "";
+        if (!admission || !student || (!preset && !customCategory) || addedIds.has(student.id)) {
+          skipped.push(`Row ${index + 2}: ${!student ? `student ${row[idColumn] || "(blank)"} not found` : "duplicate student"}`);
           continue;
         }
         addedIds.add(student.id);
@@ -339,9 +380,9 @@ export default function EventWinnersManager() {
           studentName: `${student.first_name || ""} ${student.last_name || ""}`.trim(),
           admissionNumber: student.admission_number || "—",
           studentClass: student.student_class || "—",
-          position: preset.position as any,
-          positionTitle: row.position_title?.trim() || preset.titleEng,
-          positionTitleHindi: row.position_title_hindi?.trim() || preset.titleHin,
+          position: (preset?.position || "special") as any,
+          positionTitle: row.position_title?.trim() || preset?.titleEng || customCategory,
+          positionTitleHindi: row.position_title_hindi?.trim() || preset?.titleHin,
           popupPreset: bulkPopupPreset,
         });
       }
@@ -360,7 +401,7 @@ export default function EventWinnersManager() {
   };
 
   const downloadResultsTemplate = () => {
-    const csv = "admission_number,position,position_title,position_title_hindi\n2026001,1st,🥇 First Position,प्रथम स्थान\n2026002,2nd,🥈 Second Position,द्वितीय स्थान";
+    const csv = "admission_number,position,position_title,position_title_hindi\n2026001,1st,🥇 First Position,प्रथम स्थान\n2026002,2nd,🥈 Second Position,द्वितीय स्थान\n2026003,Best Speaker,Best Speaker,सर्वश्रेष्ठ वक्ता";
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
@@ -750,7 +791,7 @@ export default function EventWinnersManager() {
                   <div className="rounded-xl border border-dashed border-amber-300 bg-amber-500/5 p-4 space-y-3">
                     <div>
                       <h4 className="text-sm font-bold">Bulk upload event results</h4>
-                      <p className="text-xs text-muted-foreground mt-1">CSV columns: admission_number, position. Optional: position_title, position_title_hindi. Positions: 1st, 2nd, 3rd, merit, special, participation.</p>
+        <p className="text-xs text-muted-foreground mt-1">CSV columns: admission_number, position. Use a standard position or any custom award category. Optional: position_title, position_title_hindi.</p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
                       <div className="space-y-1">
@@ -784,6 +825,20 @@ export default function EventWinnersManager() {
                         onChange={(e) => setStudentSearch(e.target.value)}
                         className="pl-9 h-9 text-xs rounded-xl"
                       />
+                    </div>
+
+                    <div className="flex flex-col gap-2 rounded-xl border bg-muted/20 p-3 sm:flex-row sm:items-end">
+                      <div className="flex-1 space-y-1">
+                        <Label className="text-xs font-semibold">Add a custom award category</Label>
+                        <Input
+                          value={customAwardCategory}
+                          onChange={(e) => setCustomAwardCategory(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomAwardCategory(); } }}
+                          placeholder="e.g. Best Speaker, House Champion, Creative Writing"
+                          className="h-9 text-xs"
+                        />
+                      </div>
+                      <Button type="button" variant="outline" size="sm" className="h-9 text-xs" onClick={addCustomAwardCategory}>Add category</Button>
                     </div>
 
                     {filteredStudents.length > 0 && (
@@ -821,6 +876,17 @@ export default function EventWinnersManager() {
                               >
                                 🌟 Special
                               </Button>
+                              {customAwardCategories.map((category) => (
+                                <Button
+                                  key={category}
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-[11px] rounded-lg border-violet-300"
+                                  onClick={() => addStudentWithCustomCategory(st, category)}
+                                >
+                                  {category}
+                                </Button>
+                              ))}
                             </div>
                           </div>
                         ))}
@@ -881,27 +947,23 @@ export default function EventWinnersManager() {
                                 <TableCell>
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <select
-                                      value={w.position}
+                                      value={w.positionTitle}
                                       onChange={(e) => {
-                                        const found = EVENT_WINNER_PRESETS.find((p) => p.position === e.target.value);
-                                        if (found) {
-                                          const next = [...winnerInputs];
-                                          next[idx] = {
-                                            ...next[idx],
-                                            position: found.position as any,
-                                            positionTitle: found.titleEng,
-                                            positionTitleHindi: found.titleHin,
-                                          };
-                                          setWinnerInputs(next);
-                                        }
+                                        const found = EVENT_WINNER_PRESETS.find((p) => p.titleEng === e.target.value);
+                                        const next = [...winnerInputs];
+                                        next[idx] = found
+                                          ? { ...next[idx], position: found.position, positionTitle: found.titleEng, positionTitleHindi: found.titleHin }
+                                          : { ...next[idx], position: "special", positionTitle: e.target.value, positionTitleHindi: undefined };
+                                        setWinnerInputs(next);
                                       }}
                                       className="text-xs font-bold rounded-lg border border-input bg-background px-2 py-1 focus:ring-1 focus:ring-amber-500"
                                     >
                                       {EVENT_WINNER_PRESETS.map((p) => (
-                                        <option key={p.position} value={p.position}>
+                                        <option key={p.titleEng} value={p.titleEng}>
                                           {p.titleEng}
                                         </option>
                                       ))}
+                                      {customAwardCategories.map((category) => <option key={`custom-${category}`} value={category}>{category}</option>)}
                                     </select>
                                   </div>
                                 </TableCell>

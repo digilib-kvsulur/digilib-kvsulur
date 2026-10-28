@@ -10,7 +10,7 @@ export interface EventWinnerRecord {
   studentName: string;
   admissionNumber?: string;
   studentClass?: string;
-  position: "1st" | "2nd" | "3rd" | "merit" | "participation" | "special";
+  position: string;
   positionTitle: string; // e.g. "🥇 First Position"
   positionTitleHindi?: string; // e.g. "प्रथम स्थान"
   collectionDate?: string; // YYYY-MM-DD
@@ -31,7 +31,7 @@ export interface EventWinnerInput {
   studentName: string;
   admissionNumber?: string;
   studentClass?: string;
-  position: "1st" | "2nd" | "3rd" | "merit" | "participation" | "special";
+  position: string;
   positionTitle: string;
   positionTitleHindi?: string;
   collectionDate?: string;
