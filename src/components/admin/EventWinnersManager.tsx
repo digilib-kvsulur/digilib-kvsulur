@@ -388,6 +388,12 @@ export default function EventWinnersManager() {
       }
       if (!mapped.length) throw new Error(skipped.length ? skipped.slice(0, 3).join("; ") : "No result rows found.");
       setWinnerInputs((prev) => [...prev, ...mapped]);
+      setCustomAwardCategories((prev) => Array.from(new Set([
+        ...prev,
+        ...mapped
+          .filter((winner) => winner.position === "special" && !EVENT_WINNER_PRESETS.some((preset) => preset.titleEng === winner.positionTitle))
+          .map((winner) => winner.positionTitle),
+      ])));
       toast({
         title: `Added ${mapped.length} event result${mapped.length === 1 ? "" : "s"}`,
         description: skipped.length ? `${skipped.length} row(s) skipped. ${skipped.slice(0, 2).join("; ")}` : "Review the rows below, then save or publish.",
