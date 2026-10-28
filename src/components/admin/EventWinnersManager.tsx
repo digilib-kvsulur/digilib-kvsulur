@@ -353,10 +353,11 @@ export default function EventWinnersManager() {
       if (parsed.errors.length) throw new Error(parsed.errors[0].message);
       const columns = parsed.meta.fields || [];
       const idColumn = ["admission_number", "admission_no", "admission", "student_uid"].find((c) => columns.includes(c));
+      const nameColumn = ["student_name", "student", "name", "participant_name"].find((c) => columns.includes(c));
       const positionColumn = ["position", "rank", "award", "result", "prize"].find((c) => columns.includes(c));
-      if (!idColumn || !positionColumn) {
+      if ((!idColumn && !nameColumn) || !positionColumn) {
         const found = columns.length ? `Found columns: ${columns.join(", ")}.` : "No columns detected — is the file empty or not a CSV?";
-        const missing = [!idColumn && "admission_number (or admission_no / admission / student_uid)", !positionColumn && "position (or rank / award / result / prize)"].filter(Boolean).join(" and ");
+        const missing = [(!idColumn && !nameColumn) && "admission_number or student_name", !positionColumn && "position (or rank / award / result / prize)"].filter(Boolean).join(" and ");
         throw new Error(`CSV is missing required column(s): ${missing}. ${found} Optional columns: position_title, position_title_hindi.`);
       }
 
@@ -364,14 +365,20 @@ export default function EventWinnersManager() {
       const skipped: string[] = [];
       const addedIds = new Set(winnerInputs.map((w) => w.userId));
       for (const [index, row] of parsed.data.entries()) {
-        const admission = (row[idColumn] || "").trim().toLowerCase();
-        const student = allStudents.find((s) => (s.admission_number || "").trim().toLowerCase() === admission);
+        const admission = idColumn ? (row[idColumn] || "").trim().toLowerCase() : "";
+        const studentName = nameColumn ? (row[nameColumn] || "").trim().toLowerCase().replace(/\s+/g, " ") : "";
+        const matchedStudents = admission
+          ? allStudents.filter((s) => (s.admission_number || "").trim().toLowerCase() === admission)
+          : allStudents.filter((s) => `${s.first_name || ""} ${s.last_name || ""}`.trim().toLowerCase().replace(/\s+/g, " ") === studentName);
+        const student = matchedStudents.length === 1 ? matchedStudents[0] : null;
         const positionRaw = (row[positionColumn] || "").trim().toLowerCase();
         const normalizedPosition = ({ "1": "1st", first: "1st", "2": "2nd", second: "2nd", "3": "3rd", third: "3rd" } as Record<string, string>)[positionRaw] || positionRaw;
         const preset = EVENT_WINNER_PRESETS.find((p) => p.position.toLowerCase() === normalizedPosition || p.titleEng.toLowerCase() === positionRaw);
         const customCategory = !preset && positionRaw ? (row.position_title?.trim() || row[positionColumn]?.trim()) : "";
-        if (!admission || !student || (!preset && !customCategory) || addedIds.has(student.id)) {
-          skipped.push(`Row ${index + 2}: ${!student ? `student ${row[idColumn] || "(blank)"} not found` : "duplicate student"}`);
+        if ((!admission && !studentName) || !student || (!preset && !customCategory) || addedIds.has(student.id)) {
+          const submittedStudent = admission || studentName || "(blank)";
+          const reason = matchedStudents.length > 1 ? "name matches multiple approved students; add admission_number to identify the student" : !student ? "student not found" : "duplicate student";
+          skipped.push(`Row ${index + 2}: ${submittedStudent} — ${reason}`);
           continue;
         }
         addedIds.add(student.id);
