@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { 
   Trophy, Calendar, Award, Medal, Search, Plus, Trash2, Mail, 
   CheckCircle2, FileText, Sparkles, Send, RefreshCw, AlertCircle, 
-  ExternalLink, UserPlus, Eye, FileDown
+  ExternalLink, UserPlus, Eye, FileDown, Users
 } from "lucide-react";
 import { 
   getEventWinners, 
@@ -51,6 +51,7 @@ export default function EventWinnersManager() {
 
   // Selected event winners state
   const [winnerInputs, setWinnerInputs] = useState<EventWinnerInput[]>([]);
+  const [winnerListSearch, setWinnerListSearch] = useState("");
   const [allStudents, setAllStudents] = useState<any[]>([]);
   const [studentSearch, setStudentSearch] = useState("");
   const [loadingWinners, setLoadingWinners] = useState(false);
@@ -82,6 +83,15 @@ export default function EventWinnersManager() {
     () => events.find((e) => e.id === selectedEventId) || null,
     [events, selectedEventId]
   );
+
+  const filteredWinnerInputs = useMemo(() => {
+    const query = winnerListSearch.trim().toLowerCase();
+    if (!query) return winnerInputs.map((winner, index) => ({ winner, index }));
+    return winnerInputs
+      .map((winner, index) => ({ winner, index }))
+      .filter(({ winner }) => [winner.studentName, winner.admissionNumber, winner.studentClass, winner.positionTitle]
+        .some((value) => (value || "").toLowerCase().includes(query)));
+  }, [winnerInputs, winnerListSearch]);
 
   // New unscheduled event creation state
   const [createEventOpen, setCreateEventOpen] = useState(false);
@@ -548,7 +558,7 @@ export default function EventWinnersManager() {
             Manage Event Winners &amp; Awards
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Dedicated station to award event winners, generate bilingual certificates, configure physical trophy handovers, and dispatch celebratory emails.
+            Prepare event results, choose award categories, and publish or schedule the announcement for students.
           </p>
         </div>
 
@@ -586,18 +596,9 @@ export default function EventWinnersManager() {
                     Select Event
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Choose an event or add an unscheduled one
+                    {events.length} event{events.length === 1 ? "" : "s"} available
                   </CardDescription>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setCreateEventOpen(true)}
-                  className="h-8 text-xs font-semibold rounded-xl border-amber-400/70 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 shrink-0"
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  New
-                </Button>
               </div>
               <div className="relative mt-2">
                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -642,15 +643,9 @@ export default function EventWinnersManager() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-bold text-xs text-foreground line-clamp-2">{ev.title}</p>
-                        {ev.is_published ? (
-                          <Badge variant="outline" className="text-[9px] border-emerald-400 text-emerald-700 bg-emerald-50 shrink-0">
-                            Live
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[9px] border-slate-300 text-slate-600 shrink-0">
-                            Draft
-                          </Badge>
-                        )}
+                        <Badge variant="outline" className={`text-[9px] shrink-0 ${isSelected && isEventPublished ? "border-emerald-400 text-emerald-700 bg-emerald-50" : "border-slate-300 text-slate-600"}`}>
+                          {isSelected ? (isEventPublished ? "Results live" : winnerInputs.length ? "Results draft" : "No results") : "Event"}
+                        </Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
                         <Calendar className="h-3 w-3 shrink-0" />
@@ -696,6 +691,9 @@ export default function EventWinnersManager() {
                         : "Event Date"}
                       {activeEvent.location ? ` · ${activeEvent.location}` : ""}
                     </p>
+                    {activeEvent.end_date && activeEvent.event_date && new Date(activeEvent.end_date).toDateString() !== new Date(activeEvent.event_date).toDateString() && (
+                      <p className="text-xs text-muted-foreground mt-1">Conducted through {new Date(activeEvent.end_date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
@@ -722,7 +720,21 @@ export default function EventWinnersManager() {
                   </div>
                 </div>
 
-                <CardContent className="p-5 space-y-6">
+                <div className="grid grid-cols-2 gap-3 border-b bg-background p-4 sm:grid-cols-4">
+                  {[
+                    { label: "Winners", value: winnerInputs.length, icon: Users, tone: "text-amber-600 bg-amber-500/10" },
+                    { label: "Certificates", value: winnerInputs.filter((winner) => winner.certificateId).length, icon: CheckCircle2, tone: "text-emerald-600 bg-emerald-500/10" },
+                    { label: "Award categories", value: new Set(winnerInputs.map((winner) => winner.positionTitle).filter(Boolean)).size, icon: Award, tone: "text-violet-600 bg-violet-500/10" },
+                    { label: "Release", value: isEventPublished ? "Published" : scheduledReleaseLocal ? "Scheduled" : "Draft", icon: Calendar, tone: isEventPublished ? "text-emerald-600 bg-emerald-500/10" : "text-blue-600 bg-blue-500/10" },
+                  ].map((stat) => (
+                    <div key={stat.label} className="flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5">
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${stat.tone}`}><stat.icon className="h-4 w-4" /></span>
+                      <div className="min-w-0"><p className="text-[10px] font-semibold text-muted-foreground">{stat.label}</p><p className="truncate text-sm font-black text-foreground">{stat.value}</p></div>
+                    </div>
+                  ))}
+                </div>
+
+                <CardContent className="p-5 space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-end gap-3 rounded-xl border border-indigo-200 bg-indigo-500/5 p-4">
                     <div className="flex-1 space-y-1">
                       <Label className="text-xs font-bold">Schedule results release</Label>
@@ -909,11 +921,13 @@ export default function EventWinnersManager() {
 
                   {/* Current Winners Table */}
                   <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                         <Award className="h-4 w-4 text-amber-500" />
                         Selected Winners ({winnerInputs.length})
                       </h4>
+                      <div className="flex items-center gap-2">
+                        {winnerInputs.length > 0 && <Input value={winnerListSearch} onChange={(e) => setWinnerListSearch(e.target.value)} placeholder="Filter winners…" className="h-8 w-44 text-xs" />}
                       {winnerInputs.length > 0 && (
                         <Button
                           size="sm"
@@ -925,6 +939,7 @@ export default function EventWinnersManager() {
                           Save as Draft
                         </Button>
                       )}
+                      </div>
                     </div>
 
                     {loadingWinners ? (
@@ -937,6 +952,8 @@ export default function EventWinnersManager() {
                         <p className="text-sm font-bold">No winners added for this event yet</p>
                         <p className="text-xs mt-1">Search students above to assign 1st, 2nd, 3rd, or special awards.</p>
                       </div>
+                    ) : filteredWinnerInputs.length === 0 ? (
+                      <div className="rounded-xl border border-dashed py-8 text-center text-sm text-muted-foreground">No winners match “{winnerListSearch}”.</div>
                     ) : (
                       <div className="border rounded-2xl overflow-hidden">
                         <Table>
@@ -950,7 +967,7 @@ export default function EventWinnersManager() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {winnerInputs.map((w, idx) => (
+                            {filteredWinnerInputs.map(({ winner: w, index: idx }) => (
                               <TableRow key={w.userId || idx} className="hover:bg-muted/20">
                                 <TableCell>
                                   <div className="font-bold text-xs text-foreground">{w.studentName}</div>

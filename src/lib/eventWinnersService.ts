@@ -324,7 +324,12 @@ export async function releaseEventWinners(
     const { error: dbErr } = await supabase
       .from("event_winners" as any)
       .upsert(finalRows, { onConflict: "id" });
-    if (scheduledReleaseAt && dbErr) throw dbErr;
+    if (scheduledReleaseAt && dbErr) {
+      if (/scheduled_send_email|schema cache/i.test(dbErr.message || "")) {
+        throw new Error("The database is missing the scheduled winner email setting. Apply migration 20261028100000_refresh_scheduled_event_winner_schema.sql, then retry scheduling.");
+      }
+      throw dbErr;
+    }
 
     // Also ensure library_events is marked published so students can query the event title
     if (!scheduledReleaseAt) {
