@@ -762,7 +762,7 @@ export async function verifyAndPublishRotationalCycle(
         title: `${icon} Congratulations! You won ${w.badgeName}!`,
         message: `Outstanding achievement! You have been awarded "${w.badgeName}" for ${w.scopeValue} (${cycleLabel}) with ${w.points} XP and ${w.booksIssuedCount} books borrowed. Please collect your physical badge on ${formattedCollectionDate} at ${settings.collectionVenue}. ${settings.librarianNote}`,
         type: "award",
-        action_link: "/student-dashboard?tab=badges"
+        action_link: "/student-dashboard?tab=rotational-results"
       };
     });
 
@@ -1006,7 +1006,7 @@ export async function addExtraRotationalWinnerToActiveCycle(
       title: `${isClassAward ? "👑" : "📚"} Congratulations! You won ${badgeName}!`,
       message: `Outstanding achievement! You have been awarded an honour: "${badgeName}" (${extraWinner.extraReason || extraWinner.scopeValue}) for ${cycle.cycleLabel}. Please collect your physical badge on ${formattedDate} at ${cycle.settings.collectionVenue}.`,
       type: "award",
-      action_link: "/student-dashboard?tab=badges",
+      action_link: "/student-dashboard?tab=rotational-results",
     });
 
     // 3. Email

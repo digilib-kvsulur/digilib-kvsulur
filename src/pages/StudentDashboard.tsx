@@ -499,13 +499,13 @@ const StudentDashboard = () => {
     };
   }, []);
 
-  // Handle URL query parameters (e.g. ?room=UXE6P0 or ?tab=quizzes) for league links
+  // Handle URL query parameters (e.g. ?tab=rotational-results or ?room=UXE6P0)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const roomParam = params.get("room");
     const tabParam = params.get("tab") as Tab | null;
 
-    if (tabParam && navItems.some(n => n.id === tabParam)) {
+    if (tabParam && (navItems.some(n => n.id === tabParam) || tabParam === "rotational-results" || tabParam === "event-results")) {
       setActiveTab(tabParam);
     }
 
@@ -1116,8 +1116,8 @@ const StudentDashboard = () => {
       <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 pb-40 lg:pb-8 lg:ml-64 lg:pt-1">
         <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-5 lg:p-6 lg:pt-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
-          <EventWinnerReleaseBanner onAvailabilityChange={setHasEventWinnerRelease} onOpen={() => setActiveTab("event-results")} />
-          <RotationalWinnerReleaseBanner onAvailabilityChange={setHasRotationalRelease} onOpen={() => setActiveTab("rotational-results")} />
+          <EventWinnerReleaseBanner onAvailabilityChange={setHasEventWinnerRelease} onOpen={() => { setActiveTab("event-results"); navigate("?tab=event-results", { replace: true }); }} />
+          <RotationalWinnerReleaseBanner onAvailabilityChange={setHasRotationalRelease} onOpen={() => { setActiveTab("rotational-results"); navigate("?tab=rotational-results", { replace: true }); }} />
           {activeTab !== "vacation" && activeTab !== "overview" && (
             <VacationPromoStrip onOpen={() => setActiveTab("vacation")} />
           )}
