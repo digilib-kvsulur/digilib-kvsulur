@@ -41,6 +41,7 @@ export interface RotationalBadgeSettings {
   collectionDate: string; // e.g. "2026-09-15"
   collectionVenue: string; // e.g. "Central Library Counter"
   librarianNote: string; // e.g. "Bring your student ID to collect your physical badge"
+  scheduledAnnouncementAt?: string; // ISO datetime or YYYY-MM-DDTHH:mm
 }
 
 export interface VerifiedWinnerRecord {
@@ -57,6 +58,8 @@ export interface VerifiedWinnerRecord {
   booksIssuedCount: number;
   compositeScore: number;
   certificateId?: string;
+  isExtra?: boolean;
+  extraReason?: string;
 }
 
 export interface RotationalBulkCertConfig {
@@ -643,7 +646,8 @@ export async function verifyAndPublishRotationalCycle(
   settings: RotationalBadgeSettings,
   classAwards: RotationalAwardCandidate[],
   sectionAwards: RotationalAwardCandidate[],
-  certConfig?: RotationalBulkCertConfig
+  certConfig?: RotationalBulkCertConfig,
+  extraAwards?: RotationalAwardCandidate[]
 ): Promise<{ success: boolean; winnersCount: number; certsCount?: number; error?: string }> {
   try {
     const { data: authUser } = await supabase.auth.getUser();
@@ -888,6 +892,14 @@ export async function getStudentRotationalAwardInfo(userId: string): Promise<{
       return { isWinner: false, hasAcknowledged: false, winnerRecord: null, cycle: null };
     }
 
+    // Check if winner announcement is scheduled for a future date/time
+    if (cycle.settings?.scheduledAnnouncementAt) {
+      const announceTime = new Date(cycle.settings.scheduledAnnouncementAt).getTime();
+      if (!isNaN(announceTime) && Date.now() < announceTime) {
+        return { isWinner: false, hasAcknowledged: false, winnerRecord: null, cycle };
+      }
+    }
+
     const winnerRecord = cycle.winners.find((w) => w.studentId === userId) || null;
     if (!winnerRecord) {
       return { isWinner: false, hasAcknowledged: false, winnerRecord: null, cycle };
@@ -930,5 +942,104 @@ export async function acknowledgeStudentRotationalAward(userId: string, cycleId:
     }
   } catch (err) {
     console.error("Error acknowledging rotational award:", err);
+  }
+}
+
+/**
+ * Manually add an extra "Reader of the Month" or "Best Library User" to an active cycle
+ */
+export async function addExtraRotationalWinnerToActiveCycle(
+  extraWinner: {
+    studentId: string;
+    studentName: string;
+    admissionNumber: string;
+    studentClass: string;
+    standard: string;
+    section: string;
+    badgeType: "best_library_user" | "reader_of_the_month";
+    scopeValue: string;
+    points: number;
+    booksIssuedCount: number;
+    compositeScore: number;
+    extraReason?: string;
+  },
+  certConfig?: RotationalBulkCertConfig
+): Promise<{ success: boolean; winner?: VerifiedWinnerRecord; error?: string }> {
+  try {
+    const cycle = await getActiveRotationalCycle();
+    if (!cycle) return { success: false, error: "No active cycle found." };
+
+    const { data: authUser } = await supabase.auth.getUser();
+    const adminId = authUser?.user?.id;
+    const { bestUserBadgeId, readerMonthBadgeId } = await ensureRotationalBadgeDefinitions();
+
+    const badgeName = extraWinner.badgeType === "best_library_user" ? "Best Library User" : "Reader of the Month";
+
+    const winnerRecord: VerifiedWinnerRecord = {
+      ...extraWinner,
+      badgeName,
+      isExtra: true,
+    };
+
+    // 1. Award badge in badge_awards table
+    const { error: awardErr } = await supabase.from("badge_awards").insert({
+      user_id: extraWinner.studentId,
+      badge_id: extraWinner.badgeType === "best_library_user" ? bestUserBadgeId : readerMonthBadgeId,
+      awarded_by: adminId,
+      award_type: "rotational_award",
+      note: `Extra Rotational ${badgeName} for ${extraWinner.scopeValue} (${cycle.cycleLabel})${extraWinner.extraReason ? ` - ${extraWinner.extraReason}` : ""}. Collection Date: ${cycle.settings.collectionDate} at ${cycle.settings.collectionVenue}`
+    });
+    if (awardErr) throw awardErr;
+
+    // 2. Notification
+    const formattedDate = new Date(cycle.settings.collectionDate).toLocaleDateString("en-IN", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const isClassAward = extraWinner.badgeType === "best_library_user";
+    await supabase.from("notifications").insert({
+      target_user_id: extraWinner.studentId,
+      sent_by: adminId,
+      title: `${isClassAward ? "👑" : "📚"} Congratulations! You won ${badgeName}!`,
+      message: `Outstanding achievement! You have been awarded an honour: "${badgeName}" (${extraWinner.extraReason || extraWinner.scopeValue}) for ${cycle.cycleLabel}. Please collect your physical badge on ${formattedDate} at ${cycle.settings.collectionVenue}.`,
+      type: "award",
+      action_link: "/student-dashboard?tab=badges",
+    });
+
+    // 3. Email
+    sendRotationalBadgeEmail(extraWinner.studentId, {
+      badgeName,
+      scopeValue: extraWinner.scopeValue,
+      cycleLabel: cycle.cycleLabel,
+      collectionDate: cycle.settings.collectionDate,
+      collectionVenue: cycle.settings.collectionVenue,
+      librarianNote: `${extraWinner.extraReason ? `Special Award: ${extraWinner.extraReason}. ` : ""}${cycle.settings.librarianNote}`,
+    });
+
+    // 4. Issue certificate if config provided
+    if (certConfig?.issueCertificates) {
+      await bulkIssueRotationalCertificates([winnerRecord], certConfig);
+    }
+
+    // 5. Append to cycle and update system_settings
+    const updatedWinners = [...(cycle.winners || []), winnerRecord];
+    const updatedCycle: VerifiedRotationalCycle = {
+      ...cycle,
+      winners: updatedWinners,
+    };
+
+    const { error: cycleErr } = await supabase.from("system_settings").upsert(
+      { key: "rotational_badge_active_cycle", value: updatedCycle as any },
+      { onConflict: "key" }
+    );
+    if (cycleErr) throw cycleErr;
+
+    return { success: true, winner: winnerRecord };
+  } catch (err: any) {
+    console.error("Error adding extra winner:", err);
+    return { success: false, error: err?.message || "Failed to add extra winner." };
   }
 }

@@ -20,11 +20,13 @@ import {
   getActiveRotationalCycle,
   updateRotationalCollectionDetails,
   bulkIssueRotationalCertificates,
+  addExtraRotationalWinnerToActiveCycle,
   RotationalAwardCandidate, 
   StudentScoreCandidate,
   RotationalBadgeSettings, 
   DEFAULT_ROTATIONAL_SETTINGS, 
   VerifiedRotationalCycle,
+  VerifiedWinnerRecord,
   RotationalBulkCertConfig,
   DEFAULT_ROTATIONAL_CERT_CONFIG
 } from "@/lib/rotationalBadgeService";
@@ -39,7 +41,7 @@ import {
   type CertificateLayout,
 } from "@/lib/librarySettings";
 import { OFFICIAL_KV_TEMPLATE_URL } from "@/components/certificates/BuiltinTemplates";
-import { Eye, Sliders, CheckSquare, Settings2 } from "lucide-react";
+import { Eye, Sliders, CheckSquare, Settings2, Search } from "lucide-react";
 
 interface RotationalBadgeManagerProps {
   open: boolean;
@@ -93,6 +95,20 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   const [templateUrl, setTemplateUrl] = useState<string>(OFFICIAL_KV_TEMPLATE_URL);
   const [layout, setLayout] = useState<CertificateLayout>(DEFAULT_CERTIFICATE_LAYOUT);
   const [commonText, setCommonText] = useState<string>("");
+
+  // Winner Announcement Schedule
+  const [scheduledAnnouncementAt, setScheduledAnnouncementAt] = useState<string>("");
+  const [savingSchedule, setSavingSchedule] = useState(false);
+
+  // Add Extra Winner
+  const [extraWinnerPanelOpen, setExtraWinnerPanelOpen] = useState(false);
+  const [extraWinnerSearch, setExtraWinnerSearch] = useState("");
+  const [extraWinnerSearchResults, setExtraWinnerSearchResults] = useState<StudentScoreCandidate[]>([]);
+  const [extraWinnerSelected, setExtraWinnerSelected] = useState<StudentScoreCandidate | null>(null);
+  const [extraWinnerBadgeType, setExtraWinnerBadgeType] = useState<"best_library_user" | "reader_of_the_month">("reader_of_the_month");
+  const [extraWinnerScopeValue, setExtraWinnerScopeValue] = useState("");
+  const [extraWinnerReason, setExtraWinnerReason] = useState("");
+  const [addingExtraWinner, setAddingExtraWinner] = useState(false);
 
   const sendIndividualWinnerEmail = async (studentId: string, badgeName: string, scopeValue: string) => {
     try {
@@ -283,6 +299,108 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
     }
   };
 
+  const saveAnnouncementSchedule = async (clear?: boolean) => {
+    if (!activeCycle) return;
+    setSavingSchedule(true);
+    try {
+      const updatedCycle = {
+        ...activeCycle,
+        settings: {
+          ...activeCycle.settings,
+          scheduledAnnouncementAt: clear ? undefined : (scheduledAnnouncementAt || undefined),
+        },
+      };
+      const { error } = await supabase.from("system_settings").upsert(
+        { key: "rotational_badge_active_cycle", value: updatedCycle as any },
+        { onConflict: "key" }
+      );
+      if (error) throw error;
+      setActiveCycle(updatedCycle);
+      if (clear) setScheduledAnnouncementAt("");
+      toast({
+        title: clear ? "🔔 Announcement is live!" : "⏰ Announcement scheduled!",
+        description: clear
+          ? "Winners can now see their winning popup immediately."
+          : `Winners will see their popup from ${new Date(scheduledAnnouncementAt).toLocaleString("en-IN")}.`,
+      });
+    } catch (err: any) {
+      toast({ title: "Failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const searchStudentsForExtra = async (query: string) => {
+    if (!query || query.length < 2) { setExtraWinnerSearchResults([]); return; }
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name, student_class, section, admission_number, points")
+      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,admission_number.ilike.%${query}%`)
+      .eq("role", "student")
+      .limit(10);
+
+    if (data) {
+      const results: StudentScoreCandidate[] = data.map((p: any) => ({
+        id: p.id,
+        first_name: p.first_name || "",
+        last_name: p.last_name || null,
+        student_class: p.student_class || "",
+        standard: p.student_class ? p.student_class.replace(/[A-Z]$/, "") : "",
+        section: p.section || (p.student_class ? (p.student_class.match(/[A-Z]$/)?.[0] || "") : ""),
+        admission_number: p.admission_number || null,
+        points: p.points || 0,
+        booksIssuedCount: 0,
+        compositeScore: p.points || 0,
+        isEligible: true,
+      }));
+      setExtraWinnerSearchResults(results);
+    }
+  };
+
+  const handleAddExtraWinner = async () => {
+    if (!extraWinnerSelected || !activeCycle) return;
+    if (!extraWinnerScopeValue.trim()) {
+      toast({ title: "Scope required", description: "Enter a scope (e.g. Class 10 or Section 10A)", variant: "destructive" });
+      return;
+    }
+    setAddingExtraWinner(true);
+    try {
+      const res = await addExtraRotationalWinnerToActiveCycle(
+        {
+          studentId: extraWinnerSelected.id,
+          studentName: `${extraWinnerSelected.first_name} ${extraWinnerSelected.last_name || ""}`.trim(),
+          admissionNumber: extraWinnerSelected.admission_number || "—",
+          studentClass: extraWinnerSelected.student_class,
+          standard: extraWinnerSelected.standard,
+          section: extraWinnerSelected.section,
+          badgeType: extraWinnerBadgeType,
+          scopeValue: extraWinnerScopeValue.trim(),
+          points: extraWinnerSelected.points,
+          booksIssuedCount: extraWinnerSelected.booksIssuedCount,
+          compositeScore: extraWinnerSelected.compositeScore,
+          extraReason: extraWinnerReason.trim() || undefined,
+        },
+        bulkCertConfig.issueCertificates ? bulkCertConfig : undefined
+      );
+      if (!res.success) throw new Error(res.error);
+      toast({
+        title: "🌟 Extra winner added!",
+        description: `${extraWinnerSelected.first_name} has been awarded ${extraWinnerBadgeType === "best_library_user" ? "Best Library User" : "Reader of the Month"} and notified.`,
+      });
+      setExtraWinnerSelected(null);
+      setExtraWinnerSearch("");
+      setExtraWinnerSearchResults([]);
+      setExtraWinnerScopeValue("");
+      setExtraWinnerReason("");
+      setExtraWinnerPanelOpen(false);
+      await loadActiveCycle();
+    } catch (err: any) {
+      toast({ title: "Failed", description: err?.message, variant: "destructive" });
+    } finally {
+      setAddingExtraWinner(false);
+    }
+  };
+
   const manageWinner = async (winner: any, action: "reissue" | "remove") => {
     if (!activeCycle) return;
     if (action === "remove" && !window.confirm(`Remove ${winner.studentName}'s rotational badge from this active cycle?`)) return;
@@ -314,6 +432,7 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
         setEditDate(cycle.settings.collectionDate || "");
         setEditVenue(cycle.settings.collectionVenue || "");
         setEditNote(cycle.settings.librarianNote || "");
+        setScheduledAnnouncementAt(cycle.settings.scheduledAnnouncementAt || "");
       }
       if (cycle?.settings?.collectionDate) {
         setSettings((prev) => ({
@@ -322,6 +441,7 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
           collectionVenue: cycle.settings.collectionVenue || prev.collectionVenue,
           librarianNote: cycle.settings.librarianNote || prev.librarianNote,
           minPointsThreshold: cycle.settings.minPointsThreshold ?? prev.minPointsThreshold,
+          scheduledAnnouncementAt: cycle.settings.scheduledAnnouncementAt,
         }));
       }
     } catch (err) {
@@ -1222,9 +1342,15 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                     {activeCycle.winners.map((w) => (
                       <div key={w.studentId + w.badgeType} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-muted/20">
                         <div>
-                          <p className="font-bold text-foreground text-sm">{w.studentName}</p>
+                          <p className="font-bold text-foreground text-sm">
+                            {w.studentName}
+                            {(w as any).isExtra && (
+                              <span className="ml-2 text-[10px] font-semibold bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 rounded px-1.5 py-0.5">⭐ Extra</span>
+                            )}
+                          </p>
                           <p className="text-muted-foreground text-[11px]">
                             {w.scopeValue} · Admn #{w.admissionNumber} · {w.points} XP · {w.booksIssuedCount} Books Borrowed
+                            {(w as any).extraReason && <span className="ml-1 italic">· {(w as any).extraReason}</span>}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap sm:justify-end">
@@ -1274,6 +1400,218 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                       </div>
                     ))}
                   </div>
+
+                  {/* ── Announcement Schedule Card ── */}
+                  <Card className="border border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/10">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                        <Calendar className="h-4 w-4 text-amber-500" />
+                        Winner Announcement Schedule
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Control <strong>when</strong> the celebratory popup appears to winners. Keep it hidden until the official announcement assembly / date.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-3">
+                      {activeCycle.settings?.scheduledAnnouncementAt ? (
+                        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800">
+                          <Calendar className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-amber-800 dark:text-amber-200">Announcement scheduled for:</p>
+                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                              {new Date(activeCycle.settings.scheduledAnnouncementAt).toLocaleString("en-IN", {
+                                weekday: "long", year: "numeric", month: "long",
+                                day: "numeric", hour: "2-digit", minute: "2-digit"
+                              })}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-[11px] font-bold border-amber-400 text-amber-800 hover:bg-amber-100"
+                            disabled={savingSchedule}
+                            onClick={() => saveAnnouncementSchedule(true)}
+                          >
+                            {savingSchedule ? <RefreshCw className="h-3 w-3 animate-spin" /> : "🔔 Go Live Now"}
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                          <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+                            Winners can see their announcement <strong>immediately</strong> (no schedule set).
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-end">
+                        <div>
+                          <Label className="text-[10px] font-bold text-muted-foreground">Schedule Announcement Date &amp; Time</Label>
+                          <Input
+                            type="datetime-local"
+                            value={scheduledAnnouncementAt}
+                            onChange={(e) => setScheduledAnnouncementAt(e.target.value)}
+                            className="h-9 text-xs mt-0.5"
+                          />
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Winners will only see the popup after this date &amp; time.
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            disabled={!scheduledAnnouncementAt || savingSchedule}
+                            onClick={() => saveAnnouncementSchedule(false)}
+                            className="h-9 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white flex-1"
+                          >
+                            {savingSchedule ? <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1" /> : <Calendar className="h-3.5 w-3.5 mr-1" />}
+                            Schedule
+                          </Button>
+                          {activeCycle.settings?.scheduledAnnouncementAt && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={savingSchedule}
+                              onClick={() => saveAnnouncementSchedule(true)}
+                              className="h-9 text-xs"
+                            >
+                              Clear
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* ── Add Extra Winner Card ── */}
+                  <Card className="border border-violet-200 dark:border-violet-900/40 bg-violet-50/30 dark:bg-violet-950/10">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-sm font-bold flex items-center justify-between">
+                        <span className="flex items-center gap-2 text-violet-800 dark:text-violet-200">
+                          <UserCheck className="h-4 w-4 text-violet-500" />
+                          Add Extra Awardee
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[11px] font-bold border-violet-300 text-violet-700 hover:bg-violet-100 dark:text-violet-300"
+                          onClick={() => setExtraWinnerPanelOpen((v) => !v)}
+                        >
+                          {extraWinnerPanelOpen ? "▲ Collapse" : "▼ Expand & Add"}
+                        </Button>
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Honour an additional student with <strong>Best Library User</strong> or <strong>Reader of the Month</strong> outside the auto-computed list.
+                      </CardDescription>
+                    </CardHeader>
+
+                    {extraWinnerPanelOpen && (
+                      <CardContent className="p-4 space-y-3">
+                        {/* Badge type selector */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            size="sm"
+                            variant={extraWinnerBadgeType === "best_library_user" ? "default" : "outline"}
+                            onClick={() => setExtraWinnerBadgeType("best_library_user")}
+                            className={`h-9 text-xs font-bold ${extraWinnerBadgeType === "best_library_user" ? "bg-amber-500 hover:bg-amber-600 text-white" : "border-amber-300 text-amber-700"}`}
+                          >
+                            👑 Best Library User
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={extraWinnerBadgeType === "reader_of_the_month" ? "default" : "outline"}
+                            onClick={() => setExtraWinnerBadgeType("reader_of_the_month")}
+                            className={`h-9 text-xs font-bold ${extraWinnerBadgeType === "reader_of_the_month" ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "border-indigo-300 text-indigo-700"}`}
+                          >
+                            📚 Reader of the Month
+                          </Button>
+                        </div>
+
+                        {/* Student Search */}
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] font-bold text-muted-foreground">Search Student</Label>
+                          <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input
+                              value={extraWinnerSearch}
+                              onChange={(e) => {
+                                setExtraWinnerSearch(e.target.value);
+                                searchStudentsForExtra(e.target.value);
+                              }}
+                              placeholder="Name or Admission Number..."
+                              className="h-9 pl-8 text-xs"
+                            />
+                          </div>
+                          {extraWinnerSearchResults.length > 0 && !extraWinnerSelected && (
+                            <div className="border rounded-lg divide-y max-h-40 overflow-y-auto bg-background shadow-sm">
+                              {extraWinnerSearchResults.map((s) => (
+                                <button
+                                  key={s.id}
+                                  className="w-full text-left px-3 py-2 text-xs hover:bg-muted/60 transition-colors"
+                                  onClick={() => {
+                                    setExtraWinnerSelected(s);
+                                    setExtraWinnerSearch(`${s.first_name} ${s.last_name || ""}`.trim());
+                                    setExtraWinnerSearchResults([]);
+                                    if (!extraWinnerScopeValue) setExtraWinnerScopeValue(s.student_class || "");
+                                  }}
+                                >
+                                  <span className="font-semibold">{s.first_name} {s.last_name || ""}</span>
+                                  <span className="text-muted-foreground ml-2">· Class {s.student_class} · #{s.admission_number}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {extraWinnerSelected && (
+                            <div className="flex items-center gap-2 p-2 bg-violet-50 dark:bg-violet-950/30 rounded-lg border border-violet-200 dark:border-violet-900">
+                              <CheckCircle2 className="h-4 w-4 text-violet-600 flex-shrink-0" />
+                              <div className="flex-1 text-xs">
+                                <span className="font-bold text-foreground">{extraWinnerSelected.first_name} {extraWinnerSelected.last_name || ""}</span>
+                                <span className="text-muted-foreground ml-1">· Class {extraWinnerSelected.student_class} · {extraWinnerSelected.points} XP</span>
+                              </div>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                onClick={() => { setExtraWinnerSelected(null); setExtraWinnerSearch(""); }}>
+                                ✕
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Scope & Reason */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Scope / Award Category *</Label>
+                            <Input
+                              value={extraWinnerScopeValue}
+                              onChange={(e) => setExtraWinnerScopeValue(e.target.value)}
+                              placeholder="e.g. Class 10 or Section 10A"
+                              className="h-8 text-xs mt-0.5"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Reason / Note (optional)</Label>
+                            <Input
+                              value={extraWinnerReason}
+                              onChange={(e) => setExtraWinnerReason(e.target.value)}
+                              placeholder="e.g. Special initiative, tie-break..."
+                              className="h-8 text-xs mt-0.5"
+                            />
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          disabled={!extraWinnerSelected || !extraWinnerScopeValue.trim() || addingExtraWinner}
+                          onClick={handleAddExtraWinner}
+                          className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold h-9"
+                        >
+                          {addingExtraWinner
+                            ? <><RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Adding…</>
+                            : <><UserCheck className="h-3.5 w-3.5 mr-1.5" /> Award Extra {extraWinnerBadgeType === "best_library_user" ? "👑 Best Library User" : "📚 Reader of Month"}</>
+                          }
+                        </Button>
+                      </CardContent>
+                    )}
+                  </Card>
                 </div>
               ) : (
                 <div className="p-12 text-center text-muted-foreground space-y-3">
@@ -1331,6 +1669,23 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                       className="mt-1.5 text-xs"
                       placeholder="Special note or instructions for the winners..."
                     />
+                  </div>
+
+                  {/* Announcement Schedule in Settings */}
+                  <div className="p-3 bg-amber-50/60 dark:bg-amber-950/10 rounded-xl border border-amber-200 dark:border-amber-900/40 space-y-2">
+                    <Label className="text-xs font-bold flex items-center gap-1.5 text-amber-800 dark:text-amber-200">
+                      <Calendar className="h-3.5 w-3.5 text-amber-500" />
+                      Scheduled Announcement Date &amp; Time (pre-publish)
+                    </Label>
+                    <Input
+                      type="datetime-local"
+                      value={settings.scheduledAnnouncementAt || ""}
+                      onChange={(e) => setSettings({ ...settings, scheduledAnnouncementAt: e.target.value || undefined })}
+                      className="h-9 text-xs"
+                    />
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                      Set a future time to delay winner popups. Leave blank to show winners immediately after badge issuance. This can also be changed from the Active Cycle tab after publishing.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
