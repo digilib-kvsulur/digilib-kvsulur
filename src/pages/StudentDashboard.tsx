@@ -82,8 +82,9 @@ import UIReformChallengeView from "@/components/community/UIReformChallengeView"
 import { VacationOverviewBanner, VacationPromoStrip, VacationStudentPage, useActiveVacationCampaign } from "@/features/vacation";
 import { InviteTab } from "@/features/invite";
 import EventWinnerReleasePage, { EventWinnerReleaseBanner } from "@/components/dashboard/EventWinnerReleasePage";
+import RotationalWinnerReleasePage, { RotationalWinnerReleaseBanner } from "@/components/dashboard/RotationalWinnerReleasePage";
 
-type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "event-results" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "chat" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation" | "invite";
+type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "event-results" | "rotational-results" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "chat" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation" | "invite";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -118,6 +119,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [hasEventWinnerRelease, setHasEventWinnerRelease] = useState(false);
+  const [hasRotationalRelease, setHasRotationalRelease] = useState(false);
   const loadedStudentTabData = useRef(new Set<string>());
   const [tabHistory, setTabHistory] = useState<Tab[]>(["overview"]);
   const [showBookRequest, setShowBookRequest] = useState(false);
@@ -455,6 +457,7 @@ const StudentDashboard = () => {
       items: [
         { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
         ...(hasEventWinnerRelease ? [{ id: "event-results" as Tab, label: "Event Awards", icon: Award }] : []),
+        ...(hasRotationalRelease ? [{ id: "rotational-results" as Tab, label: "Monthly Honours", icon: Crown }] : []),
         { id: "badges" as Tab, label: "Badge Cabinet", icon: Award },
         ...(hasCertificates ? [{ id: "certificates" as Tab, label: "Certificates", icon: Award }] : []),
         { id: "rankings" as Tab, label: "Rankings", icon: Medal },
@@ -477,7 +480,7 @@ const StudentDashboard = () => {
         { id: "profile" as Tab, label: "My Profile", icon: User },
       ],
     },
-  ], [periodicalsVisible, hasCertificates, bountyVisible, uiReformVisible, hasEventWinnerRelease]);
+  ], [periodicalsVisible, hasCertificates, bountyVisible, uiReformVisible, hasEventWinnerRelease, hasRotationalRelease]);
 
   const navItems = useMemo(() => {
     return navSections.flatMap((s) => s.items);
@@ -1114,6 +1117,7 @@ const StudentDashboard = () => {
         <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-5 lg:p-6 lg:pt-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
           <EventWinnerReleaseBanner onAvailabilityChange={setHasEventWinnerRelease} onOpen={() => setActiveTab("event-results")} />
+          <RotationalWinnerReleaseBanner onAvailabilityChange={setHasRotationalRelease} onOpen={() => setActiveTab("rotational-results")} />
           {activeTab !== "vacation" && activeTab !== "overview" && (
             <VacationPromoStrip onOpen={() => setActiveTab("vacation")} />
           )}
@@ -1147,6 +1151,7 @@ const StudentDashboard = () => {
 
           {activeTab === "events" && user?.id && <EventsList userId={user.id} />}
           {activeTab === "event-results" && <EventWinnerReleasePage />}
+          {activeTab === "rotational-results" && <RotationalWinnerReleasePage />}
 
           {/* Books Tab — reading history + issue history */}
           {activeTab === "books" && (

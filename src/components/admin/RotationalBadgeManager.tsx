@@ -21,6 +21,7 @@ import {
   updateRotationalCollectionDetails,
   bulkIssueRotationalCertificates,
   addExtraRotationalWinnerToActiveCycle,
+  parseStudentClass,
   RotationalAwardCandidate, 
   StudentScoreCandidate,
   RotationalBadgeSettings, 
@@ -109,6 +110,7 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   const [extraWinnerScopeValue, setExtraWinnerScopeValue] = useState("");
   const [extraWinnerReason, setExtraWinnerReason] = useState("");
   const [addingExtraWinner, setAddingExtraWinner] = useState(false);
+  const [searchingExtraStudent, setSearchingExtraStudent] = useState(false);
 
   const sendIndividualWinnerEmail = async (studentId: string, badgeName: string, scopeValue: string) => {
     try {
@@ -331,29 +333,62 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   };
 
   const searchStudentsForExtra = async (query: string) => {
-    if (!query || query.length < 2) { setExtraWinnerSearchResults([]); return; }
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, first_name, last_name, student_class, section, admission_number, points")
-      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,admission_number.ilike.%${query}%`)
-      .eq("role", "student")
-      .limit(10);
+    const q = (query || "").trim().toLowerCase();
+    if (!q) {
+      setExtraWinnerSearchResults([]);
+      return;
+    }
 
-    if (data) {
-      const results: StudentScoreCandidate[] = data.map((p: any) => ({
-        id: p.id,
-        first_name: p.first_name || "",
-        last_name: p.last_name || null,
-        student_class: p.student_class || "",
-        standard: p.student_class ? p.student_class.replace(/[A-Z]$/, "") : "",
-        section: p.section || (p.student_class ? (p.student_class.match(/[A-Z]$/)?.[0] || "") : ""),
-        admission_number: p.admission_number || null,
-        points: p.points || 0,
-        booksIssuedCount: 0,
-        compositeScore: p.points || 0,
-        isEligible: true,
-      }));
-      setExtraWinnerSearchResults(results);
+    // 1. Search in-memory candidates immediately
+    const inMemMatches = allCandidates
+      .filter((c) => {
+        const fullName = `${c.first_name} ${c.last_name || ""}`.toLowerCase();
+        const admn = (c.admission_number || "").toLowerCase();
+        const stdClass = (c.student_class || "").toLowerCase();
+        return fullName.includes(q) || admn.includes(q) || stdClass.includes(q);
+      })
+      .slice(0, 10);
+
+    setExtraWinnerSearchResults(inMemMatches);
+
+    // 2. Query database profiles table (profiles does NOT have section column)
+    try {
+      setSearchingExtraStudent(true);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, student_class, admission_number, points, role")
+        .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,admission_number.ilike.%${q}%,student_class.ilike.%${q}%`)
+        .eq("role", "student")
+        .limit(15);
+
+      if (!error && data) {
+        const dbMatches: StudentScoreCandidate[] = data.map((p: any) => {
+          const { standard, section } = parseStudentClass(p.student_class || "");
+          return {
+            id: p.id,
+            first_name: p.first_name || "Student",
+            last_name: p.last_name || null,
+            student_class: p.student_class || "",
+            standard: standard || (p.student_class ? `Class ${p.student_class.replace(/[A-Za-z\s-]/g, "")}` : ""),
+            section: section || (p.student_class || ""),
+            admission_number: p.admission_number || null,
+            points: p.points || 0,
+            booksIssuedCount: 0,
+            compositeScore: p.points || 0,
+            isEligible: true,
+          };
+        });
+
+        // Merge memory and database matches, deduplicating by ID
+        const merged = new Map<string, StudentScoreCandidate>();
+        inMemMatches.forEach((s) => merged.set(s.id, s));
+        dbMatches.forEach((s) => merged.set(s.id, s));
+        setExtraWinnerSearchResults(Array.from(merged.values()).slice(0, 15));
+      }
+    } catch (err) {
+      console.error("Error searching students for extra award:", err);
+    } finally {
+      setSearchingExtraStudent(false);
     }
   };
 
@@ -1531,34 +1566,47 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                         <div className="space-y-1.5">
                           <Label className="text-[10px] font-bold text-muted-foreground">Search Student</Label>
                           <div className="relative">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            {searchingExtraStudent ? (
+                              <RefreshCw className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-indigo-500 animate-spin" />
+                            ) : (
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            )}
                             <Input
                               value={extraWinnerSearch}
                               onChange={(e) => {
                                 setExtraWinnerSearch(e.target.value);
                                 searchStudentsForExtra(e.target.value);
                               }}
-                              placeholder="Name or Admission Number..."
+                              placeholder="Type name, class, or admission no..."
                               className="h-9 pl-8 text-xs"
                             />
                           </div>
                           {extraWinnerSearchResults.length > 0 && !extraWinnerSelected && (
-                            <div className="border rounded-lg divide-y max-h-40 overflow-y-auto bg-background shadow-sm">
+                            <div className="border rounded-lg divide-y max-h-48 overflow-y-auto bg-background shadow-md">
                               {extraWinnerSearchResults.map((s) => (
                                 <button
                                   key={s.id}
-                                  className="w-full text-left px-3 py-2 text-xs hover:bg-muted/60 transition-colors"
+                                  type="button"
+                                  className="w-full text-left px-3 py-2 text-xs hover:bg-violet-50 dark:hover:bg-violet-950/40 transition-colors flex items-center justify-between"
                                   onClick={() => {
                                     setExtraWinnerSelected(s);
                                     setExtraWinnerSearch(`${s.first_name} ${s.last_name || ""}`.trim());
                                     setExtraWinnerSearchResults([]);
-                                    if (!extraWinnerScopeValue) setExtraWinnerScopeValue(s.student_class || "");
+                                    setExtraWinnerScopeValue(s.student_class ? `Class ${s.student_class}` : (s.standard || "Class Standard"));
                                   }}
                                 >
-                                  <span className="font-semibold">{s.first_name} {s.last_name || ""}</span>
-                                  <span className="text-muted-foreground ml-2">· Class {s.student_class} · #{s.admission_number}</span>
+                                  <div>
+                                    <span className="font-bold text-foreground">{s.first_name} {s.last_name || ""}</span>
+                                    <span className="text-muted-foreground ml-2 text-[11px]">· Class {s.student_class || "—"} · Admn #{s.admission_number || "—"}</span>
+                                  </div>
+                                  <Badge variant="outline" className="text-[10px] h-5">{s.points} XP</Badge>
                                 </button>
                               ))}
+                            </div>
+                          )}
+                          {extraWinnerSearchResults.length === 0 && extraWinnerSearch.trim().length > 1 && !extraWinnerSelected && !searchingExtraStudent && (
+                            <div className="border rounded-lg p-2.5 text-center text-xs text-muted-foreground bg-muted/20">
+                              No students found matching &quot;{extraWinnerSearch}&quot;
                             </div>
                           )}
                           {extraWinnerSelected && (
