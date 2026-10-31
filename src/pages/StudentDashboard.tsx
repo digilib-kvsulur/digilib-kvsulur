@@ -11,7 +11,7 @@ import { getAvatarUrl } from "@/lib/utils";
 import {
   BookOpen, LogOut, Target, User, BookPlus, Home, Brain,
   Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
-  StickyNote, Users, GraduationCap, FileText, Bookmark, BookmarkCheck, CalendarDays, Award,
+  StickyNote, Users, GraduationCap, FileText, Bookmark, BookmarkCheck, CalendarDays, Award, Crown,
   LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug, Palette, Sun, UserPlus, Copy
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
