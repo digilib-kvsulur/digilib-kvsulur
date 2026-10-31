@@ -89,6 +89,8 @@ interface CertificateRow {
 }
 
 const AWARD_PRESETS = [
+  { label: "👑 Best Library User", titleEng: "Best Library User", titleHin: "सर्वश्रेष्ठ पुस्तकालय उपयोगकर्ता" },
+  { label: "📖 Reader of the Month", titleEng: "Reader of the Month", titleHin: "महीने का पाठक" },
   { label: "🥇 1st Position", titleEng: "First Position", titleHin: "प्रथम स्थान" },
   { label: "🥈 2nd Position", titleEng: "Second Position", titleHin: "द्वितीय स्थान" },
   { label: "🥉 3rd Position", titleEng: "Third Position", titleHin: "तृतीय स्थान" },

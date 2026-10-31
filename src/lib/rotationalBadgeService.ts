@@ -1,5 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { sendAutoEmail, sendRotationalBadgeEmail } from "@/lib/autoEmail";
+import {
+  fetchCertificateTemplateUrl,
+  fetchCertificateCommonText,
+} from "@/lib/librarySettings";
+import { OFFICIAL_KV_TEMPLATE_URL } from "@/components/certificates/BuiltinTemplates";
 
 export interface StudentScoreCandidate {
   id: string;
@@ -51,7 +56,36 @@ export interface VerifiedWinnerRecord {
   points: number;
   booksIssuedCount: number;
   compositeScore: number;
+  certificateId?: string;
 }
+
+export interface RotationalBulkCertConfig {
+  issueCertificates: boolean;
+  bestUserTitle: string; // "Best Library User"
+  bestUserTitleHindi: string; // "सर्वश्रेष्ठ पुस्तकालय उपयोगकर्ता"
+  readerMonthTitle: string; // "Reader of the Month"
+  readerMonthTitleHindi: string; // "महीने का पाठक"
+  eventSubtitle: string; // "Reading Promotion Events"
+  eventSubtitleHindi: string; // "पढ़ने का प्रचार गतिविधियाँ"
+  duringText: string; // "वर्ष 2026-2027 / Year 2026-2027"
+  description: string; // "September-October Month"
+  issuedAt: string; // YYYY-MM-DD
+  unlockAt?: string;
+}
+
+export const DEFAULT_ROTATIONAL_CERT_CONFIG: RotationalBulkCertConfig = {
+  issueCertificates: true,
+  bestUserTitle: "Best Library User",
+  bestUserTitleHindi: "सर्वश्रेष्ठ पुस्तकालय उपयोगकर्ता",
+  readerMonthTitle: "Reader of the Month",
+  readerMonthTitleHindi: "महीने का पाठक",
+  eventSubtitle: "Reading Promotion Events",
+  eventSubtitleHindi: "पढ़ने का प्रचार गतिविधियाँ",
+  duringText: "वर्ष 2026-2027 / Year 2026-2027",
+  description: "September-October Month",
+  issuedAt: new Date().toISOString().slice(0, 10),
+  unlockAt: "",
+};
 
 export interface VerifiedRotationalCycle {
   cycleId: string; // e.g. "2026-09" or "lifetime-2026"
@@ -471,6 +505,135 @@ export async function getActiveRotationalCycle(): Promise<VerifiedRotationalCycl
 }
 
 /**
+ * Bulk Issue Bilingual E-Certificates for Rotational Badge Winners
+ */
+export async function bulkIssueRotationalCertificates(
+  winners: VerifiedWinnerRecord[],
+  config: RotationalBulkCertConfig
+): Promise<{ success: boolean; count: number; error?: string }> {
+  try {
+    if (!winners || winners.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    const { data: authUser } = await supabase.auth.getUser();
+    const adminId = authUser?.user?.id;
+
+    const [templateUrl, commonText] = await Promise.all([
+      fetchCertificateTemplateUrl().catch(() => OFFICIAL_KV_TEMPLATE_URL),
+      fetchCertificateCommonText().catch(() => ""),
+    ]);
+
+    // Fetch Hindi names for students
+    const studentIds = winners.map((w) => w.studentId);
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, hindi_name")
+      .in("id", studentIds);
+
+    const hindiMap = new Map<string, string>();
+    (profiles || []).forEach((p) => {
+      if (p.hindi_name) hindiMap.set(p.id, p.hindi_name);
+    });
+
+    const certRows = winners.map((w, idx) => {
+      const isBest = w.badgeType === "best_library_user";
+      const certTitle = isBest ? config.bestUserTitle : config.readerMonthTitle;
+      const certTitleHindi = isBest ? config.bestUserTitleHindi : config.readerMonthTitleHindi;
+      const certNo = `KVS-LIB-2026-${Math.floor(1000 + Math.random() * 9000)}-${String(idx + 1).padStart(3, "0")}`;
+
+      return {
+        user_id: w.studentId,
+        title: certTitle,
+        title_hindi: certTitleHindi || null,
+        name_hindi: hindiMap.get(w.studentId) || null,
+        class_hindi: w.studentClass || null,
+        event_name: config.eventSubtitle || null,
+        event_hindi: config.eventSubtitleHindi || null,
+        during_text: config.duringText || null,
+        description: config.description || null,
+        issued_at: new Date(config.issuedAt).toISOString(),
+        unlock_at: config.unlockAt ? new Date(config.unlockAt).toISOString() : null,
+        template_url: templateUrl || OFFICIAL_KV_TEMPLATE_URL,
+        common_text: commonText || null,
+        certificate_no: certNo,
+        issued_by: adminId || null,
+        bilingual_data: {
+          event_name: config.eventSubtitle || null,
+          event_hindi: config.eventSubtitleHindi || null,
+          award_title: certTitle,
+          award_title_hindi: certTitleHindi,
+        },
+      };
+    });
+
+    let { data: inserted, error } = await supabase
+      .from("issued_certificates")
+      .insert(certRows)
+      .select("id, user_id");
+
+    if (error && (error.message?.includes("event_name") || error.message?.includes("unlock_at") || (error as any).code === "PGRST204")) {
+      const fallback = certRows.map(({ unlock_at, event_name, ...rest }: any) => rest);
+      ({ data: inserted, error } = await supabase
+        .from("issued_certificates")
+        .insert(fallback)
+        .select("id, user_id"));
+    }
+
+    if (error) throw error;
+
+    // Attach certificate IDs to winner records if returned
+    if (inserted && inserted.length > 0) {
+      const certMap = new Map<string, string>();
+      inserted.forEach((c: any) => certMap.set(c.user_id, c.id));
+      winners.forEach((w) => {
+        const id = certMap.get(w.studentId);
+        if (id) w.certificateId = id;
+      });
+    }
+
+    // Dispatch in-app notifications
+    const notifs = winners.map((w) => {
+      const isBest = w.badgeType === "best_library_user";
+      const certTitle = isBest ? config.bestUserTitle : config.readerMonthTitle;
+      return {
+        target_user_id: w.studentId,
+        sent_by: adminId || w.studentId,
+        title: `📜 E-Certificate Awarded: ${certTitle}`,
+        message: `Congratulations! Your official bilingual e-certificate for "${certTitle}" (${config.eventSubtitle}) has been issued. View and download it from your student dashboard!`,
+        type: "award",
+        action_link: "/student-dashboard?tab=certificates",
+      };
+    });
+
+    if (notifs.length > 0) {
+      await supabase.from("notifications").insert(notifs);
+    }
+
+    // Send emails
+    winners.forEach((w) => {
+      const isBest = w.badgeType === "best_library_user";
+      const certTitle = isBest ? config.bestUserTitle : config.readerMonthTitle;
+      sendAutoEmail({
+        recipientId: w.studentId,
+        preset: "certificate_notice",
+        customMessage: `Certificate Issued: "${certTitle}" for ${config.eventSubtitle}. Log in to view and download your bilingual e-certificate!`,
+        details: {
+          title: certTitle,
+          event: config.eventSubtitle,
+          issuedAt: config.issuedAt,
+        },
+      });
+    });
+
+    return { success: true, count: certRows.length };
+  } catch (err: any) {
+    console.error("Error bulk issuing rotational certificates:", err);
+    return { success: false, count: 0, error: err?.message || "Failed to bulk issue certificates." };
+  }
+}
+
+/**
  * Admin Verification and Badge Issuance
  * Writes verified cycle to system_settings, badge_awards table, and notifications table
  */
@@ -479,8 +642,9 @@ export async function verifyAndPublishRotationalCycle(
   cycleLabel: string,
   settings: RotationalBadgeSettings,
   classAwards: RotationalAwardCandidate[],
-  sectionAwards: RotationalAwardCandidate[]
-): Promise<{ success: boolean; winnersCount: number; error?: string }> {
+  sectionAwards: RotationalAwardCandidate[],
+  certConfig?: RotationalBulkCertConfig
+): Promise<{ success: boolean; winnersCount: number; certsCount?: number; error?: string }> {
   try {
     const { data: authUser } = await supabase.auth.getUser();
     const adminId = authUser?.user?.id;
@@ -614,7 +778,21 @@ export async function verifyAndPublishRotationalCycle(
       });
     });
 
-    return { success: true, winnersCount: winners.length };
+    // 8. Bulk generate & issue certificates if requested
+    let certsCount = 0;
+    if (certConfig?.issueCertificates && winners.length > 0) {
+      const certRes = await bulkIssueRotationalCertificates(winners, certConfig);
+      if (certRes.success) {
+        certsCount = certRes.count;
+        // Update the active cycle record with certificateIds
+        await supabase.from("system_settings").upsert(
+          { key: "rotational_badge_active_cycle", value: verifiedCycle as any },
+          { onConflict: "key" }
+        );
+      }
+    }
+
+    return { success: true, winnersCount: winners.length, certsCount };
   } catch (err: any) {
     console.error("Error verifying rotational cycle:", err);
     return { success: false, winnersCount: 0, error: err?.message || "Verification failed" };

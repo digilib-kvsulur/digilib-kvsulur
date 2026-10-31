@@ -58,13 +58,20 @@ export default function InviteInstagramManager() {
       if (!data?.success) throw new Error(data?.reason === "already_reviewed" ? "This reward has already been reviewed." : "The reward could not be reviewed.");
       toast(decision === "accept"
         ? { title: "Screenshot accepted", description: "The student keeps the awarded XP." }
-        : { title: "Reward revoked", description: `${Number(data.points_revoked || 0).toLocaleString()} XP removed.` });
+        : { title: "All Instagram Story rewards revoked", description: `${Number(data.points_revoked || 0).toLocaleString()} XP removed from this student's Story submissions.` });
       if (kind === "story") {
-        setStories((items) => items.map((story) => story.id !== id ? story : {
-          ...story,
-          status: decision === "accept" ? "verified" : "rejected",
-          points_revoked: decision === "reject" ? Number(data.points_revoked || 0) : 0,
-          points_awarded: decision === "reject" ? 0 : story.points_awarded,
+        const selectedStory = stories.find((story) => story.id === id);
+        setStories((items) => items.map((story) => {
+          if (story.id === id && decision === "accept") return { ...story, status: "verified" };
+          if (decision === "reject" && selectedStory && story.user_id === selectedStory.user_id) {
+            return {
+              ...story,
+              status: "rejected",
+              points_revoked: Number(story.points_revoked || 0) + Number(story.points_awarded || 0),
+              points_awarded: 0,
+            };
+          }
+          return story;
         }));
       } else {
         await loadData();
@@ -72,7 +79,7 @@ export default function InviteInstagramManager() {
     } catch (error: any) {
       toast({ title: "Review failed", description: error?.message || "Please refresh and try again.", variant: "destructive" });
     } finally { setReviewing(null); }
-  }, [loadData, toast]);
+  }, [loadData, stories, toast]);
 
   const leaderboard = useMemo(() => {
     const grouped = new Map<string, { id: string; profile: any; count: number; points: number; latest: string }>();
@@ -162,7 +169,7 @@ export default function InviteInstagramManager() {
       </TabsContent>
       <TabsContent value="instagram" className="space-y-4">
         <SearchBox value={search} onChange={setSearch} placeholder="Search student by name, admission number, or date" />
-        <Card><CardHeader><CardTitle className="text-base">Instagram Story quick review</CardTitle><CardDescription>Use ← to reject and → to accept. The next screenshot loads before a decision advances the queue.</CardDescription></CardHeader><CardContent>
+        <Card><CardHeader><CardTitle className="text-base">Instagram Story quick review</CardTitle><CardDescription>Use ← to reject and → to accept. Rejecting one fake proof revokes all Instagram Story XP for that student. The next screenshot loads before a decision advances the queue.</CardDescription></CardHeader><CardContent>
           {loading && !stories.length ? <Loading /> : currentReviewStory ? <div className="mx-auto max-w-md">
             <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground"><span>{fullName(currentReviewStory.student)}{currentReviewStory.student?.admission_number ? ` · ${currentReviewStory.student.admission_number}` : ""}</span><span>{(reviewIndex % pendingStories.length) + 1} / {pendingStories.length}</span></div>
             <div className="overflow-hidden rounded-xl border bg-muted/30" onTouchStart={(event) => { swipeStartX.current = event.touches[0]?.clientX ?? null; }} onTouchEnd={(event) => { const start = swipeStartX.current; swipeStartX.current = null; if (start === null || !isReviewReady || reviewing) return; const delta = event.changedTouches[0]?.clientX - start; if (Math.abs(delta) > 40) void reviewReward("story", currentReviewStory.id, delta > 0 ? "accept" : "reject"); }}>

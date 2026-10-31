@@ -19,14 +19,27 @@ import {
   verifyAndPublishRotationalCycle, 
   getActiveRotationalCycle,
   updateRotationalCollectionDetails,
+  bulkIssueRotationalCertificates,
   RotationalAwardCandidate, 
   StudentScoreCandidate,
   RotationalBadgeSettings, 
   DEFAULT_ROTATIONAL_SETTINGS, 
-  VerifiedRotationalCycle 
+  VerifiedRotationalCycle,
+  RotationalBulkCertConfig,
+  DEFAULT_ROTATIONAL_CERT_CONFIG
 } from "@/lib/rotationalBadgeService";
 import { sendAutoEmail, sendRotationalBadgeEmail } from "@/lib/autoEmail";
 import { WinnerCertificateModal, WinnerCertModalData } from "./WinnerCertificateModal";
+import CertificateCanvas, { CertificateRenderData } from "@/components/certificates/CertificateCanvas";
+import {
+  fetchCertificateTemplateUrl,
+  fetchCertificateLayout,
+  fetchCertificateCommonText,
+  DEFAULT_CERTIFICATE_LAYOUT,
+  type CertificateLayout,
+} from "@/lib/librarySettings";
+import { OFFICIAL_KV_TEMPLATE_URL } from "@/components/certificates/BuiltinTemplates";
+import { Eye, Sliders, CheckSquare, Settings2 } from "lucide-react";
 
 interface RotationalBadgeManagerProps {
   open: boolean;
@@ -68,6 +81,18 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
   const [certModalOpen, setCertModalOpen] = useState(false);
   const [certModalData, setCertModalData] = useState<WinnerCertModalData | null>(null);
   const [sendingEmails, setSendingEmails] = useState(false);
+
+  // Bulk Certificate State
+  const [bulkCertConfig, setBulkCertConfig] = useState<RotationalBulkCertConfig>({
+    ...DEFAULT_ROTATIONAL_CERT_CONFIG,
+    description: "September-October Month",
+  });
+  const [bulkCertModalOpen, setBulkCertModalOpen] = useState(false);
+  const [bulkIssuingCerts, setBulkIssuingCerts] = useState(false);
+  const [previewAwardType, setPreviewAwardType] = useState<"best_library_user" | "reader_of_the_month">("best_library_user");
+  const [templateUrl, setTemplateUrl] = useState<string>(OFFICIAL_KV_TEMPLATE_URL);
+  const [layout, setLayout] = useState<CertificateLayout>(DEFAULT_CERTIFICATE_LAYOUT);
+  const [commonText, setCommonText] = useState<string>("");
 
   const sendIndividualWinnerEmail = async (studentId: string, badgeName: string, scopeValue: string) => {
     try {
@@ -156,8 +181,81 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
     if (open) {
       loadActiveCycle();
       runAnalysis();
+      fetchCertificateTemplateUrl().then((tpl) => setTemplateUrl(tpl || OFFICIAL_KV_TEMPLATE_URL)).catch(() => {});
+      fetchCertificateLayout().then((l) => setLayout(l)).catch(() => {});
+      fetchCertificateCommonText().then((txt) => setCommonText(txt)).catch(() => {});
     }
   }, [open, selectedYear, selectedMonth, evalMode, customStartDate, customEndDate]);
+
+  const previewRenderData: CertificateRenderData = useMemo(() => {
+    const isBest = previewAwardType === "best_library_user";
+    const title = isBest ? bulkCertConfig.bestUserTitle : bulkCertConfig.readerMonthTitle;
+    const titleHindi = isBest ? bulkCertConfig.bestUserTitleHindi : bulkCertConfig.readerMonthTitleHindi;
+
+    let studentName = isBest ? "Priya Sharma" : "Rahul Verma";
+    let studentClass = isBest ? "11-A" : "10-B";
+    let nameHindi = isBest ? "प्रिया शर्मा" : "राहुल वर्मा";
+
+    if (activeCycle?.winners?.length) {
+      const match = activeCycle.winners.find((w) => w.badgeType === previewAwardType);
+      if (match) {
+        studentName = match.studentName;
+        studentClass = match.studentClass || match.scopeValue;
+      }
+    } else {
+      const match = (isBest ? classAwards : sectionAwards).find((a) => a.status === "awarded" && a.winner);
+      if (match?.winner) {
+        studentName = `${match.winner.first_name} ${match.winner.last_name || ""}`.trim();
+        studentClass = match.winner.student_class || match.scopeValue;
+      }
+    }
+
+    return {
+      certNumber: "KVS-LIB-2026-0001",
+      issuedAt: bulkCertConfig.issuedAt,
+      studentName,
+      nameHindi,
+      studentClass: `Class ${studentClass}`,
+      classHindi: `Class ${studentClass}`,
+      eventName: bulkCertConfig.eventSubtitle,
+      eventHindi: bulkCertConfig.eventSubtitleHindi || bulkCertConfig.eventSubtitle,
+      during: bulkCertConfig.duringText,
+      title,
+      titleHindi,
+      description: bulkCertConfig.description,
+      commonText: commonText || undefined,
+      templateUrl,
+    };
+  }, [previewAwardType, bulkCertConfig, activeCycle, classAwards, sectionAwards, commonText, templateUrl]);
+
+  const handleBulkIssueActiveCycleCerts = async () => {
+    if (!activeCycle || !activeCycle.winners?.length) {
+      toast({ title: "No winners", description: "No active winners found in this cycle.", variant: "destructive" });
+      return;
+    }
+    setBulkIssuingCerts(true);
+    try {
+      const res = await bulkIssueRotationalCertificates(activeCycle.winners, bulkCertConfig);
+      if (res.success) {
+        toast({
+          title: "🎉 E-Certificates Generated!",
+          description: `Successfully issued & updated ${res.count} e-certificates for ${activeCycle.cycleLabel}.`,
+        });
+        setBulkCertModalOpen(false);
+        await loadActiveCycle();
+      } else {
+        toast({
+          title: "Certificate Issuance Error",
+          description: res.error || "Failed to generate certificates.",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
+    } finally {
+      setBulkIssuingCerts(false);
+    }
+  };
 
   const saveCollectionDetails = async (notify: boolean) => {
     if (!editDate) {
@@ -306,13 +404,14 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
         cycleLabel,
         currentSettings,
         effectiveClassAwards,
-        effectiveSectionAwards
+        effectiveSectionAwards,
+        bulkCertConfig
       );
 
       if (result.success) {
         toast({
-          title: "🎉 Badges Verified & Issued!",
-          description: `Successfully awarded ${result.winnersCount} rotational badges for ${cycleLabel}. Students have been notified with the badge collection date!`,
+          title: "🎉 Badges & Certificates Issued!",
+          description: `Successfully awarded ${result.winnersCount} rotational badges${result.certsCount ? ` and issued ${result.certsCount} bilingual e-certificates` : ""} for ${cycleLabel}. Students have been notified with the badge collection date!`,
         });
         setVerifyConfirmOpen(false);
         await loadActiveCycle();
@@ -1094,6 +1193,16 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                           <Button
                             size="sm"
                             variant="outline"
+                            disabled={bulkIssuingCerts}
+                            onClick={() => setBulkCertModalOpen(true)}
+                            className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold dark:text-emerald-300"
+                          >
+                            <FileText className="h-4 w-4 mr-1.5 text-emerald-600" />
+                            📜 Bulk Edit &amp; Issue Certificates ({activeCycle.winners.length})
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             disabled={savingCollection}
                             onClick={() => saveCollectionDetails(false)}
                           >
@@ -1126,16 +1235,21 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                             variant="outline"
                             className="h-7 px-2 text-[11px] font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50"
                             onClick={() => {
+                              const isBestUser = w.badgeType === "best_library_user";
                               setCertModalData({
                                 userId: w.studentId,
                                 studentName: w.studentName,
                                 studentClass: w.studentClass,
                                 admissionNumber: w.admissionNumber,
-                                awardTitle: w.badgeName,
-                                awardTitleHindi: w.badgeType === "best_library_user" ? "सर्वश्रेष्ठ पुस्तकालय उपयोगकर्ता" : "माह का श्रेष्ठ पाठक",
-                                eventSubtitle: `Rotational Award · ${activeCycle.cycleLabel}`,
-                                description: `Awarded for outstanding reading achievement in ${w.scopeValue} (${activeCycle.cycleLabel}).`,
-                                issuedAt: new Date().toISOString().slice(0, 10),
+                                awardTitle: isBestUser ? bulkCertConfig.bestUserTitle : bulkCertConfig.readerMonthTitle,
+                                awardTitleHindi: isBestUser ? bulkCertConfig.bestUserTitleHindi : bulkCertConfig.readerMonthTitleHindi,
+                                eventSubtitle: bulkCertConfig.eventSubtitle,
+                                eventSubtitleHindi: bulkCertConfig.eventSubtitleHindi,
+                                duringText: bulkCertConfig.duringText,
+                                description: bulkCertConfig.description,
+                                certificateId: w.certificateId || null,
+                                issuedAt: bulkCertConfig.issuedAt,
+                                unlockAt: bulkCertConfig.unlockAt,
                               });
                               setCertModalOpen(true);
                             }}
@@ -1334,30 +1448,245 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
           </div>
         </div>
 
-        {/* Confirmation Dialog */}
+        {/* Confirmation & Bulk Certificate Issuance Dialog */}
         <Dialog open={verifyConfirmOpen} onOpenChange={setVerifyConfirmOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-foreground">
+          <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-0 border-2 border-indigo-500/30 rounded-2xl">
+            <DialogHeader className="p-5 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-amber-500/5 border-b">
+              <DialogTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
                 <Crown className="h-5 w-5 text-amber-500" />
-                Confirm Badge Verification &amp; Issuance
+                Confirm Rotational Badges &amp; Bulk E-Certificates: {cycleLabel}
               </DialogTitle>
-              <DialogDescription className="text-xs space-y-2 pt-2">
-                <p>
-                  You are about to verify and publish the Rotational Badges for <strong>{cycleLabel}</strong>.
-                </p>
-                <div className="p-3 bg-muted rounded-lg space-y-1 text-foreground text-xs">
-                  <p>• <strong>Total Badges:</strong> {stats.totalBadgesAwarded}</p>
-                  <p>• <strong>Single Badge Rule:</strong> Strictly 1 badge per user (Class Toppers prioritized, Section runner-ups promoted).</p>
-                  <p>• <strong>Physical Badge Collection Date:</strong> {settings.collectionDate}</p>
-                  <p>• <strong>Venue:</strong> {settings.collectionVenue}</p>
-                </div>
-                <p className="text-emerald-700 dark:text-emerald-300 font-medium">
-                  Winning students will receive notifications and a celebratory badge winning popup upon their next login!
-                </p>
+              <DialogDescription className="text-xs text-muted-foreground mt-1">
+                Verify monthly winners, set badge collection schedule, and bulk-customise bilingual e-certificates.
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="gap-2">
+
+            <div className="p-5 space-y-4">
+              <div className="p-3 bg-muted/50 rounded-xl space-y-1 text-xs border">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground font-semibold block">Total Badges</span>
+                    <strong className="text-sm font-bold text-foreground">{stats.totalBadgesAwarded} Awards</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground font-semibold block">Class Toppers</span>
+                    <strong className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                      {classAwards.filter((ca) => ca.status === "awarded" && ca.winner).length} Best Users
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground font-semibold block">Collection Date</span>
+                    <strong className="text-xs font-bold text-foreground">{settings.collectionDate}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground font-semibold block">Collection Venue</span>
+                    <strong className="text-xs font-bold text-foreground truncate block">{settings.collectionVenue}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bulk Certificate Customizer Form */}
+              <div className="space-y-3">
+                <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-200 dark:border-indigo-900/50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-indigo-600" />
+                      <Label htmlFor="issue-certs-toggle" className="text-xs font-bold text-foreground cursor-pointer">
+                        Generate &amp; Issue Bilingual E-Certificates for All Winners in Bulk
+                      </Label>
+                    </div>
+                    <input
+                      id="issue-certs-toggle"
+                      type="checkbox"
+                      checked={bulkCertConfig.issueCertificates}
+                      onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, issueCertificates: e.target.checked })}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Automatically issues tamper-evident bilingual e-certificates to all awarded students, saves them to portfolios, and dispatches email notifications.
+                  </p>
+                </div>
+
+                {bulkCertConfig.issueCertificates && (
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-1">
+                    {/* Left Form Inputs */}
+                    <div className="lg:col-span-6 space-y-3">
+                      {/* Award 1: Best Library User */}
+                      <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40 space-y-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                          <Crown className="h-3.5 w-3.5 text-amber-500" />
+                          1. Best Library User (Class Awards)
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Award Title (English)</Label>
+                            <Input
+                              value={bulkCertConfig.bestUserTitle}
+                              onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, bestUserTitle: e.target.value })}
+                              placeholder="Best Library User"
+                              className="h-8 text-xs mt-0.5 font-semibold"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Award Title (Hindi / हिंदी)</Label>
+                            <Input
+                              value={bulkCertConfig.bestUserTitleHindi}
+                              onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, bestUserTitleHindi: e.target.value })}
+                              placeholder="सर्वश्रेष्ठ पुस्तकालय उपयोगकर्ता"
+                              className="h-8 text-xs mt-0.5 font-semibold text-amber-950 dark:text-amber-200"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Award 2: Reader of the Month */}
+                      <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-200 dark:border-indigo-900/40 space-y-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1">
+                          <Medal className="h-3.5 w-3.5 text-indigo-500" />
+                          2. Reader of the Month (Section Awards)
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Award Title (English)</Label>
+                            <Input
+                              value={bulkCertConfig.readerMonthTitle}
+                              onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, readerMonthTitle: e.target.value })}
+                              placeholder="Reader of the Month"
+                              className="h-8 text-xs mt-0.5 font-semibold"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Award Title (Hindi / हिंदी)</Label>
+                            <Input
+                              value={bulkCertConfig.readerMonthTitleHindi}
+                              onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, readerMonthTitleHindi: e.target.value })}
+                              placeholder="महीने का पाठक"
+                              className="h-8 text-xs mt-0.5 font-semibold text-indigo-950 dark:text-indigo-200"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Event Subtitle & Period Details */}
+                      <div className="p-3 bg-muted/30 rounded-xl border space-y-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-amber-500" />
+                          Event Subtitle &amp; Period Details
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Event / Subtitle (English)</Label>
+                            <Input
+                              value={bulkCertConfig.eventSubtitle}
+                              onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, eventSubtitle: e.target.value })}
+                              placeholder="Reading Promotion Events"
+                              className="h-8 text-xs mt-0.5"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Event / Subtitle (Hindi / प्रतियोगिता)</Label>
+                            <Input
+                              value={bulkCertConfig.eventSubtitleHindi}
+                              onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, eventSubtitleHindi: e.target.value })}
+                              placeholder="पढ़ने का प्रचार गतिविधियाँ"
+                              className="h-8 text-xs mt-0.5"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">During Text / Academic Year</Label>
+                            <Input
+                              value={bulkCertConfig.duringText}
+                              onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, duringText: e.target.value })}
+                              placeholder="e.g. वर्ष 2026-2027 / Year 2026-2027"
+                              className="h-8 text-xs mt-0.5"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Certificate Description</Label>
+                            <Input
+                              value={bulkCertConfig.description}
+                              onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, description: e.target.value })}
+                              placeholder="September-October Month"
+                              className="h-8 text-xs mt-0.5"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Issued Date</Label>
+                            <Input
+                              type="date"
+                              value={bulkCertConfig.issuedAt}
+                              onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, issuedAt: e.target.value })}
+                              className="h-8 text-xs mt-0.5"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Unlock Date (optional)</Label>
+                            <Input
+                              type="datetime-local"
+                              value={bulkCertConfig.unlockAt}
+                              onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, unlockAt: e.target.value })}
+                              className="h-8 text-xs mt-0.5"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Live Canvas Preview */}
+                    <div className="lg:col-span-6 space-y-2 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <Eye className="h-3.5 w-3.5 text-indigo-500" />
+                            Live Certificate Preview
+                          </span>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant={previewAwardType === "best_library_user" ? "default" : "outline"}
+                              className="h-6 text-[10px] px-2 font-bold"
+                              onClick={() => setPreviewAwardType("best_library_user")}
+                            >
+                              👑 Best User
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={previewAwardType === "reader_of_the_month" ? "default" : "outline"}
+                              className="h-6 text-[10px] px-2 font-bold"
+                              onClick={() => setPreviewAwardType("reader_of_the_month")}
+                            >
+                              📚 Reader of Month
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="border-2 border-indigo-200 dark:border-indigo-900 rounded-xl overflow-hidden bg-slate-900 shadow-sm p-1.5 flex items-center justify-center min-h-[220px]">
+                          <div className="w-full transform scale-90 origin-center">
+                            <CertificateCanvas
+                              data={previewRenderData}
+                              layout={layout}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] text-muted-foreground bg-muted/40 p-2.5 rounded-lg border">
+                        <span className="font-semibold text-foreground">💡 Bilingual Certificate Guarantee:</span> Students with recorded Hindi names will automatically have their names displayed in both English and Hindi on official certificates.
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="p-4 bg-muted/30 border-t flex items-center justify-between gap-2">
               <Button variant="outline" size="sm" onClick={() => setVerifyConfirmOpen(false)}>
                 Cancel
               </Button>
@@ -1365,15 +1694,229 @@ export const RotationalBadgeManager: React.FC<RotationalBadgeManagerProps> = ({
                 size="sm"
                 onClick={handleVerifyAndPublish}
                 disabled={verifying}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md"
               >
-                {verifying ? "Issuing..." : "Confirm & Issue Badges"}
+                {verifying
+                  ? "Issuing Badges & Certificates..."
+                  : bulkCertConfig.issueCertificates
+                  ? `📜 Confirm & Issue ${stats.totalBadgesAwarded} Badges + E-Certificates`
+                  : `Confirm & Issue ${stats.totalBadgesAwarded} Badges`}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Winner E-Certificate Generation & Preview Modal */}
+        {/* Dedicated Bulk Edit & Issue E-Certificates Modal for Active Cycle */}
+        <Dialog open={bulkCertModalOpen} onOpenChange={setBulkCertModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-0 border-2 border-emerald-500/30 rounded-2xl">
+            <DialogHeader className="p-5 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/5 border-b">
+              <DialogTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
+                <FileText className="h-5 w-5 text-emerald-600" />
+                Bulk Edit &amp; Issue E-Certificates: {activeCycle?.cycleLabel}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-1">
+                Customise award titles, Hindi translations, and event details for all {activeCycle?.winners.length || 0} active winners at once.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                {/* Left Form Inputs */}
+                <div className="lg:col-span-6 space-y-3">
+                  {/* Award 1: Best Library User */}
+                  <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40 space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                      <Crown className="h-3.5 w-3.5 text-amber-500" />
+                      1. Best Library User (Class Awards)
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Award Title (English)</Label>
+                        <Input
+                          value={bulkCertConfig.bestUserTitle}
+                          onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, bestUserTitle: e.target.value })}
+                          placeholder="Best Library User"
+                          className="h-8 text-xs mt-0.5 font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Award Title (Hindi / हिंदी)</Label>
+                        <Input
+                          value={bulkCertConfig.bestUserTitleHindi}
+                          onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, bestUserTitleHindi: e.target.value })}
+                          placeholder="सर्वश्रेष्ठ पुस्तकालय उपयोगकर्ता"
+                          className="h-8 text-xs mt-0.5 font-semibold text-amber-950 dark:text-amber-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Award 2: Reader of the Month */}
+                  <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-200 dark:border-indigo-900/40 space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 flex items-center gap-1">
+                      <Medal className="h-3.5 w-3.5 text-indigo-500" />
+                      2. Reader of the Month (Section Awards)
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Award Title (English)</Label>
+                        <Input
+                          value={bulkCertConfig.readerMonthTitle}
+                          onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, readerMonthTitle: e.target.value })}
+                          placeholder="Reader of the Month"
+                          className="h-8 text-xs mt-0.5 font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Award Title (Hindi / हिंदी)</Label>
+                        <Input
+                          value={bulkCertConfig.readerMonthTitleHindi}
+                          onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, readerMonthTitleHindi: e.target.value })}
+                          placeholder="महीने का पाठक"
+                          className="h-8 text-xs mt-0.5 font-semibold text-indigo-950 dark:text-indigo-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Event Subtitle & Period Details */}
+                  <div className="p-3 bg-muted/30 rounded-xl border space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-amber-500" />
+                      Event Subtitle &amp; Period Details
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Event / Subtitle (English)</Label>
+                        <Input
+                          value={bulkCertConfig.eventSubtitle}
+                          onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, eventSubtitle: e.target.value })}
+                          placeholder="Reading Promotion Events"
+                          className="h-8 text-xs mt-0.5"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Event / Subtitle (Hindi / प्रतियोगिता)</Label>
+                        <Input
+                          value={bulkCertConfig.eventSubtitleHindi}
+                          onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, eventSubtitleHindi: e.target.value })}
+                          placeholder="पढ़ने का प्रचार गतिविधियाँ"
+                          className="h-8 text-xs mt-0.5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">During Text / Academic Year</Label>
+                        <Input
+                          value={bulkCertConfig.duringText}
+                          onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, duringText: e.target.value })}
+                          placeholder="e.g. वर्ष 2026-2027 / Year 2026-2027"
+                          className="h-8 text-xs mt-0.5"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Certificate Description</Label>
+                        <Input
+                          value={bulkCertConfig.description}
+                          onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, description: e.target.value })}
+                          placeholder="September-October Month"
+                          className="h-8 text-xs mt-0.5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Issued Date</Label>
+                        <Input
+                          type="date"
+                          value={bulkCertConfig.issuedAt}
+                          onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, issuedAt: e.target.value })}
+                          className="h-8 text-xs mt-0.5"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Unlock Date (optional)</Label>
+                        <Input
+                          type="datetime-local"
+                          value={bulkCertConfig.unlockAt}
+                          onChange={(e) => setBulkCertConfig({ ...bulkCertConfig, unlockAt: e.target.value })}
+                          className="h-8 text-xs mt-0.5"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Live Canvas Preview */}
+                <div className="lg:col-span-6 space-y-2 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Eye className="h-3.5 w-3.5 text-indigo-500" />
+                        Live Certificate Preview
+                      </span>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant={previewAwardType === "best_library_user" ? "default" : "outline"}
+                          className="h-6 text-[10px] px-2 font-bold"
+                          onClick={() => setPreviewAwardType("best_library_user")}
+                        >
+                          👑 Best User
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={previewAwardType === "reader_of_the_month" ? "default" : "outline"}
+                          className="h-6 text-[10px] px-2 font-bold"
+                          onClick={() => setPreviewAwardType("reader_of_the_month")}
+                        >
+                          📚 Reader of Month
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="border-2 border-emerald-200 dark:border-emerald-900 rounded-xl overflow-hidden bg-slate-900 shadow-sm p-1.5 flex items-center justify-center min-h-[220px]">
+                      <div className="w-full transform scale-90 origin-center">
+                        <CertificateCanvas
+                          data={previewRenderData}
+                          layout={layout}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-muted-foreground bg-muted/40 p-2.5 rounded-lg border">
+                    <span className="font-semibold text-foreground">💡 Bulk Update:</span> Generating will update all {activeCycle?.winners.length || 0} winners' certificates with these parameters and send automated e-certificate email notifications.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="p-4 bg-muted/30 border-t flex items-center justify-between gap-2">
+              <Button variant="outline" size="sm" onClick={() => setBulkCertModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleBulkIssueActiveCycleCerts}
+                disabled={bulkIssuingCerts || !activeCycle?.winners?.length}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md"
+              >
+                {bulkIssuingCerts ? (
+                  <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-1.5" />
+                )}
+                {bulkIssuingCerts ? "Generating Certificates..." : `Generate & Save ${activeCycle?.winners?.length || 0} E-Certificates`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Individual Winner E-Certificate Generation & Preview Modal */}
         <WinnerCertificateModal
           open={certModalOpen}
           onOpenChange={setCertModalOpen}

@@ -32,15 +32,22 @@ BEGIN
     RETURN json_build_object('success', false, 'reason', 'already_reviewed');
   END IF;
 
-  v_points := greatest(coalesce(v_sub.points_awarded, 0), 0);
+  -- A single fake proof invalidates every Instagram Story reward for this student.
+  SELECT coalesce(sum(greatest(coalesce(points_awarded, 0), 0)), 0)::integer
+  INTO v_points
+  FROM public.instagram_story_submissions
+  WHERE user_id = v_sub.user_id;
+
   UPDATE public.profiles
   SET points = greatest(coalesce(points, 0) - v_points, 0),
       monthly_points = greatest(coalesce(monthly_points, 0) - v_points, 0)
   WHERE id = v_sub.user_id;
 
   UPDATE public.instagram_story_submissions
-  SET status = 'rejected', points_revoked = v_points, points_awarded = 0
-  WHERE id = p_submission;
+  SET status = 'rejected',
+      points_revoked = points_revoked + greatest(coalesce(points_awarded, 0), 0),
+      points_awarded = 0
+  WHERE user_id = v_sub.user_id;
 
   RETURN json_build_object('success', true, 'points_revoked', v_points);
 END;

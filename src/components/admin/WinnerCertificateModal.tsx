@@ -34,6 +34,7 @@ export interface WinnerCertModalData {
   awardTitleHindi?: string;
   eventSubtitle?: string;
   eventSubtitleHindi?: string;
+  duringText?: string;
   description?: string;
   certificateId?: string | null;
   issuedAt?: string;
@@ -81,13 +82,13 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
     if (open && data) {
       loadTemplateAndLayout();
       setForm({
-        title: data.awardTitle || "First Position",
-        title_hindi: data.awardTitleHindi || "प्रथम स्थान",
+        title: data.awardTitle || "Best Library User",
+        title_hindi: data.awardTitleHindi || "सर्वश्रेष्ठ पुस्तकालय उपयोगकर्ता",
         name_hindi: "",
-        event_name: data.eventSubtitle || "Digital Library Activity",
-        event_hindi: data.eventSubtitleHindi || data.eventSubtitle || "डिजिटल लाइब्रेरी गतिविधि",
-        during_text: `वर्ष 2026-2027 / ${data.eventSubtitle || "Year 2026-2027"}`,
-        description: data.description || `Awarded to ${data.studentName} for outstanding excellence.`,
+        event_name: data.eventSubtitle || "Reading Promotion Events",
+        event_hindi: data.eventSubtitleHindi || "पढ़ने का प्रचार गतिविधियाँ",
+        during_text: data.duringText || "वर्ष 2026-2027 / Year 2026-2027",
+        description: data.description || "September-October Month",
         certificate_no: generateCertNo(),
         issued_at: data.issuedAt || new Date().toISOString().slice(0, 10),
         unlock_at: data.unlockAt || "",
@@ -287,7 +288,7 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
                 <Input
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="e.g. First Position / Best Library User"
+                  placeholder="Best Library User"
                   className="h-8 text-xs mt-1 font-semibold"
                 />
               </div>
@@ -297,7 +298,7 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
                 <Input
                   value={form.title_hindi}
                   onChange={(e) => setForm({ ...form, title_hindi: e.target.value })}
-                  placeholder="e.g. प्रथम स्थान / श्रेष्ठ पाठक"
+                  placeholder="सर्वश्रेष्ठ पुस्तकालय उपयोगकर्ता"
                   className="h-8 text-xs mt-1"
                 />
               </div>
@@ -317,7 +318,7 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
                 <Input
                   value={form.event_name}
                   onChange={(e) => setForm({ ...form, event_name: e.target.value })}
-                  placeholder="e.g. Annual Reading Month Competition"
+                  placeholder="Reading Promotion Events"
                   className="h-8 text-xs mt-1"
                 />
               </div>
@@ -327,7 +328,7 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
                 <Input
                   value={form.event_hindi}
                   onChange={(e) => setForm({ ...form, event_hindi: e.target.value })}
-                  placeholder="e.g. राष्ट्रीय पठन माह प्रतियोगिता"
+                  placeholder="पढ़ने का प्रचार गतिविधियाँ"
                   className="h-8 text-xs mt-1"
                 />
               </div>
@@ -347,6 +348,7 @@ export const WinnerCertificateModal: React.FC<WinnerCertificateModalProps> = ({
                 <Textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="September-October Month"
                   rows={2}
                   className="text-xs mt-1"
                 />
