@@ -22,7 +22,7 @@ export const PAUSE_CONFIG: PauseConfig = {
   salutation: "Dear students and teachers,",
   paragraphs: [
     "DLMS was built for all of us, to learn, share and grow together. Recently, a comment was posted on the platform that hurt a fellow member of our school family. This goes against the spirit of DLMS.",
-    "Because we care about every one of you, the school has decided to pause DLMS for one week, until Saturday, 28 November 2026. We'll use this time to make the platform safer.",
+    "Because we care about every one of you, the school has decided to pause DLMS for one week. It will be back in a week, and we'll use this time to make the platform safer.",
     "A single unkind comment can stay with someone long after it's deleted. Kindness costs nothing, and it is what makes a community strong.",
     "To everyone who uses DLMS respectfully, thank you. This break isn't a punishment for you. It's a promise that this space will be safe for you.",
     "If anything on DLMS ever upsets you, please tell a teacher or the school counsellor. Please also keep your passwords private.",
