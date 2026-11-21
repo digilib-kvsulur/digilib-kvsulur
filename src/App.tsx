@@ -51,6 +51,7 @@ const StudentPortfolio = lazy(() => import("./pages/StudentPortfolio"));
 const Feedback = lazy(() => import("./pages/Feedback"));
 const Download = lazy(() => import("./pages/Download"));
 const Maintenance = lazy(() => import("./pages/Maintenance"));
+const PlatformPause = lazy(() => import("./pages/PlatformPause"));
 const SuperAdminPage = lazy(() => import("./pages/SuperAdminPage"));
 const OnboardingWizard = lazy(() => import("./pages/OnboardingWizard"));
 const SuspendedPage = lazy(() => import("./pages/SuspendedPage"));
@@ -67,6 +68,7 @@ const TEACHER_ROLES = ["teacher", "admin"] as const;
 const POINT_HISTORY_ROLES = ["student", "teacher", "admin"] as const;
 
 import { isMaintenanceActive, getMaintenanceRemainingMs } from "@/config/maintenanceConfig";
+import { isPauseActive, getPauseRemainingMs } from "@/config/pauseConfig";
 
 const PageLoader = () => {
   const [show, setShow] = useState(false);
@@ -268,6 +270,12 @@ import { backNavigation } from "@/lib/backNavigation";
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(isNative); // only show splash in native apps by default
+  const [isPaused, setIsPaused] = useState(() => {
+    if (typeof window !== "undefined" && (window.location.search.includes("bypass=dlms_dev") || window.location.search.includes("bypass=dlms_pause"))) {
+      return false;
+    }
+    return isPauseActive();
+  });
     const [isMaintenance, setIsMaintenance] = useState(() => {
     if (typeof window !== "undefined" && window.location.search.includes("bypass=dlms_dev")) {
       return false;
@@ -279,6 +287,15 @@ const App = () => {
     recoverInvalidAuthSession();
     backNavigation.init();
   }, []);
+
+  // Lift community pause automatically once the window passes
+  useEffect(() => {
+    if (!isPaused) return;
+    const remaining = getPauseRemainingMs();
+    if (remaining <= 0) { setIsPaused(false); return; }
+    const timer = setTimeout(() => setIsPaused(false), remaining);
+    return () => clearTimeout(timer);
+  }, [isPaused]);
 
   // Lift maintenance mode automatically once the window passes
   useEffect(() => {
@@ -299,6 +316,14 @@ const App = () => {
 
   if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
+  if (isPaused) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PlatformPause />
+      </Suspense>
+    );
   }
 
   if (isMaintenance) {
