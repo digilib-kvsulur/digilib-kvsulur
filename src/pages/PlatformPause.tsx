@@ -148,13 +148,13 @@ export default function PlatformPause() {
         {/* Top Header Badge & Headline */}
         <div className="flex flex-col items-center text-center gap-2.5 sm:gap-3 w-full px-1">
           {/* School Emblem / Icon */}
-          <div className="relative group">
+          <div className="relative group flex-shrink-0">
             <div className="absolute inset-0 rounded-2xl blur-lg bg-blue-500/30 group-hover:bg-blue-500/50 transition-all duration-500" />
-            <div className="relative flex items-center justify-center w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-card border border-blue-500/30 shadow-xl overflow-hidden p-2">
+            <div className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-card border border-blue-500/30 shadow-xl overflow-hidden p-2 flex-shrink-0">
               <img
                 src="/logos/kv-square.png"
                 alt="KV Sulur"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain max-w-full max-h-full"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                   e.currentTarget.parentElement?.classList.add("bg-blue-600");
