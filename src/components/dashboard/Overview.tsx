@@ -14,6 +14,7 @@ import ClassCompetitions from "@/components/student/ClassCompetitions";
 import { UpcomingQuizLeagueCard } from "@/components/quiz/UpcomingQuizLeagueCard";
 import { LiveQuizAlert } from "@/components/quiz/LiveQuizAlert";
 import { VacationOverviewBanner } from "@/features/vacation";
+import StudentTaskInbox from "@/components/student/StudentTaskInbox";
 import {
   BookOpen, Brain, Target, Award, Zap, Trophy, TrendingUp, Sparkles,
   Calendar, CalendarDays, Gamepad2, Timer, FileText, BookCheck, Users,
@@ -493,6 +494,8 @@ export default function Overview({
         {/* Invite Classmates Box */}
         <InviteCard />
       </div>
+
+      {user?.id && <StudentTaskInbox userId={user.id} setActiveTab={setActiveTab} />}
 
       {/* 4. LIVE QUIZ LEAGUE NOTICES (if available) */}
       {handleJoinQuizLeague && (
