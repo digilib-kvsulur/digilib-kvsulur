@@ -97,7 +97,7 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "catalog", label: "Books Catalog", icon: BookOpen },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
-  { id: "study-resources", label: "Study Resources", icon: BookMarked },
+  { id: "study-resources", label: "Study", icon: BookMarked },
   { id: "doubt-solver", label: "AI Doubt Solver", icon: Sparkles },
   { id: "ncert", label: "NCERT Books", icon: BookOpen },
   { id: "study", label: "Study Tracker", icon: Timer },
@@ -439,7 +439,7 @@ const StudentDashboard = () => {
       title: "Learning",
       items: [
         { id: "materials" as Tab, label: "Study Materials", icon: FileText },
-        { id: "study-resources" as Tab, label: "Study Resources", icon: BookMarked },
+        { id: "study-resources" as Tab, label: "Study", icon: BookMarked },
         { id: "doubt-solver" as Tab, label: "AI Doubt Solver", icon: Sparkles },
         { id: "ncert" as Tab, label: "NCERT Books", icon: BookOpen },
         { id: "study" as Tab, label: "Study Tracker", icon: Timer },
@@ -1224,7 +1224,7 @@ const StudentDashboard = () => {
 
           {/* Study Materials */}
           {activeTab === "materials" && <StudyMaterials studentClass={user?.student_class} />}
-          {activeTab === "study-resources" && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading study resources…</div>}><StudyResources studentClass={user?.student_class} userId={user?.id} /></Suspense>}
+          {activeTab === "study-resources" && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading Study…</div>}><StudyResources studentClass={user?.student_class} userId={user?.id} onOpenDoubt={() => setActiveTab("doubt-solver")} /></Suspense>}
           {activeTab === "doubt-solver" && user?.id && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading doubt solver…</div>}><StudyDoubtSolver userId={user.id} studentClass={user?.student_class} onOpenResources={() => setActiveTab("study-resources")} /></Suspense>}
 
           {/* NCERT Books */}

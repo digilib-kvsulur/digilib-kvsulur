@@ -110,7 +110,7 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
     title: "Learning",
     items: [
       { id: "materials", label: "Study Materials", icon: GraduationCap },
-      { id: "study-resources", label: "Study Resources", icon: BookOpen },
+      { id: "study-resources", label: "Study", icon: BookOpen },
       { id: "doubt-solver", label: "Doubt Solver", icon: Sparkles },
       { id: "ncert", label: "NCERT Books", icon: BookOpen },
       { id: "study-guide", label: "Chapter Study", icon: Sparkles },
