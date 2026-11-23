@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, ReactNode } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Analytics } from '@vercel/analytics/react';
 
@@ -174,7 +174,7 @@ const PWAInstallBanner = () => {
 
 const AppRouter = isNative ? HashRouter : BrowserRouter;
 
-const DashboardRedirect = () => {
+const DashboardRedirect = ({ isPaused }: { isPaused?: boolean }) => {
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const location = useLocation();
 
@@ -189,6 +189,7 @@ const DashboardRedirect = () => {
         const parsed = JSON.parse(cached);
         if (parsed?.role) {
           if (parsed.role === "admin") setRedirectTo(`/admin-dashboard${search}`);
+          else if (isPaused) setRedirectTo(`/${search}`);
           else if (parsed.role === "teacher") setRedirectTo(`/teacher-dashboard${search}`);
           else setRedirectTo(`/student-dashboard${search}`);
           return;
@@ -204,35 +205,53 @@ const DashboardRedirect = () => {
             .then(({ data }) => {
               if (!mounted) return;
               if (data?.role === "admin") setRedirectTo(`/admin-dashboard${search}`);
+              else if (isPaused) setRedirectTo(`/${search}`);
               else if (data?.role === "teacher") setRedirectTo(`/teacher-dashboard${search}`);
               else setRedirectTo(`/student-dashboard${search}`);
             })
             .catch(() => {
               // Profile fetch failed — fall back to student dashboard
-              if (mounted) setRedirectTo(`/student-dashboard${search}`);
+              if (mounted) setRedirectTo(isPaused ? `/${search}` : `/student-dashboard${search}`);
             });
         } else {
           const hasStoredToken = typeof window !== "undefined" && Object.keys(window.localStorage || {}).some(
             (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
           );
           if (!hasStoredToken) {
-            setRedirectTo(`/login${search ? `?redirect=${encodeURIComponent(location.pathname + search)}` : ""}`);
+            setRedirectTo(isPaused ? `/${search}` : `/login${search ? `?redirect=${encodeURIComponent(location.pathname + search)}` : ""}`);
           } else {
-            setRedirectTo(`/student-dashboard${search}`);
+            setRedirectTo(isPaused ? `/${search}` : `/student-dashboard${search}`);
           }
         }
       })
       .catch(() => {
-        if (mounted) setRedirectTo(`/student-dashboard${search}`);
+        if (mounted) setRedirectTo(isPaused ? `/${search}` : `/student-dashboard${search}`);
       });
     return () => { mounted = false; };
-  }, [location.search, location.pathname]);
+  }, [location.search, location.pathname, isPaused]);
 
   if (!redirectTo) return <PageLoader />;
   return <Navigate to={redirectTo} replace />;
 };
 
-const RootRoute = () => {
+const RootRoute = ({ isPaused }: { isPaused?: boolean }) => {
+  // If platform pause is active, allow admins through to admin-dashboard, everyone else sees PlatformPause
+  if (isPaused) {
+    try {
+      const cached = localStorage.getItem("dlms_user_profile");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.role === "admin") {
+          return <Navigate to="/admin-dashboard" replace />;
+        }
+      }
+    } catch {}
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PlatformPause />
+      </Suspense>
+    );
+  }
   // If running in PWA standalone or Native app, check if logged in for instant direct dashboard routing
   const isPWAOrNative = typeof window !== "undefined" && (
     window.matchMedia?.("(display-mode: standalone)")?.matches ||
@@ -264,6 +283,23 @@ const RootRoute = () => {
   }
 
   return <Index />;
+};
+
+const PauseRestrictedRoute = ({
+  isPaused,
+  children,
+}: {
+  isPaused?: boolean;
+  children: ReactNode;
+}) => {
+  if (isPaused) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PlatformPause />
+      </Suspense>
+    );
+  }
+  return <>{children}</>;
 };
 
 import { backNavigation } from "@/lib/backNavigation";
