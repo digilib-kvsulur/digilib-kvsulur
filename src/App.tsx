@@ -414,12 +414,10 @@ const App = () => {
                     element={(
                       <SetupRedirectGuard>
                         <PauseRestrictedRoute isPaused={isPaused}>
-                        <PauseRestrictedRoute isPaused={isPaused}>
-                        <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                          <StudentDashboard />
-                        </ProtectedRoute>
-                      </PauseRestrictedRoute>
-                      </PauseRestrictedRoute>
+                          <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                            <StudentDashboard />
+                          </ProtectedRoute>
+                        </PauseRestrictedRoute>
                       </SetupRedirectGuard>
                     )}
                   />
@@ -449,9 +447,11 @@ const App = () => {
                     path="/student-portfolio"
                     element={(
                       <SetupRedirectGuard>
-                        <ProtectedRoute allowedRoles={STUDENT_ROLES}>
-                          <StudentPortfolio embedded={false} />
-                        </ProtectedRoute>
+                        <PauseRestrictedRoute isPaused={isPaused}>
+                          <ProtectedRoute allowedRoles={STUDENT_ROLES}>
+                            <StudentPortfolio embedded={false} />
+                          </ProtectedRoute>
+                        </PauseRestrictedRoute>
                       </SetupRedirectGuard>
                     )}
                   />

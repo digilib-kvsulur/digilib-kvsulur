@@ -19,6 +19,7 @@ import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
 import { LinkGoogleAccountModal } from "@/components/auth/LinkGoogleAccountModal";
 import { LibraryBot } from "@/components/chat/LibraryBot";
 import { getAvatarUrl } from "@/lib/utils";
+import { isPauseActive } from "@/config/pauseConfig";
 
 const isTemporaryServiceFailure = (error: any) => {
   const rawStatus = error?.status ?? error?.context?.status;
@@ -76,9 +77,19 @@ const Login = () => {
             localStorage.setItem("dlms_user_profile", JSON.stringify(profile));
           } catch {}
 
-          if (profile.role === "admin") navigate("/admin-dashboard", { replace: true });
-          else if (profile.role === "teacher") navigate("/teacher-dashboard", { replace: true });
-          else navigate("/student-dashboard", { replace: true });
+          if (profile.role === "admin") {
+            navigate("/admin-dashboard", { replace: true });
+          } else if (isPauseActive()) {
+            toast({
+              title: "DLMS is Taking a Break 💙",
+              description: "The platform is temporarily paused for students. Only administrators can access right now.",
+            });
+            navigate("/", { replace: true });
+          } else if (profile.role === "teacher") {
+            navigate("/teacher-dashboard", { replace: true });
+          } else {
+            navigate("/student-dashboard", { replace: true });
+          }
         } else {
           // Google/OAuth session detected but not linked with a student admission number!
           const userEmail = session.user.email;
@@ -368,11 +379,20 @@ const Login = () => {
       }
 
       const continueToDashboard = () => {
-        switch (profile?.role) {
-          case "admin": navigate("/admin-dashboard", { replace: true }); break;
-          case "teacher": navigate("/teacher-dashboard", { replace: true }); break;
-          case "student": navigate("/student-dashboard", { replace: true }); break;
-          default: navigate("/", { replace: true });
+        if (profile?.role === "admin") {
+          navigate("/admin-dashboard", { replace: true });
+        } else if (isPauseActive()) {
+          toast({
+            title: "DLMS is Taking a Break 💙",
+            description: "The platform is temporarily paused for students. Only administrators can access right now.",
+          });
+          navigate("/", { replace: true });
+        } else {
+          switch (profile?.role) {
+            case "teacher": navigate("/teacher-dashboard", { replace: true }); break;
+            case "student": navigate("/student-dashboard", { replace: true }); break;
+            default: navigate("/", { replace: true });
+          }
         }
       };
       toast({ title: "Login Successful", description: "Welcome back!" });
