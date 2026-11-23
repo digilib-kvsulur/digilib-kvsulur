@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Heart,
   ShieldCheck,
@@ -288,13 +289,13 @@ export default function PlatformPause() {
 
         {/* Administrator Portal Link */}
         <div className="pt-0.5">
-          <a
-            href="/admin-dashboard"
+          <Link
+            to="/admin-dashboard"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground/75 hover:text-foreground hover:bg-muted/50 transition-colors"
           >
             <Lock className="w-3.5 h-3.5 text-blue-500" />
             <span>Administrator Access</span>
-          </a>
+          </Link>
         </div>
 
         {/* Footer Brand Strip */}

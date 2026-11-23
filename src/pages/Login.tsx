@@ -591,6 +591,19 @@ const Login = () => {
 
           {/* Form Card Container */}
           <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 xl:p-8 shadow-xl shadow-slate-900/5 dark:shadow-black/20 backdrop-blur-xl">
+            {isPauseActive() && (
+              <div className="mb-4 p-3 rounded-2xl bg-blue-500/10 border border-blue-500/25 flex items-start gap-2.5">
+                <div className="p-1 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
+                  <Lock className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-xs leading-snug">
+                  <p className="font-bold text-foreground">Community Pause Active</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    DLMS is currently taking a short break for students. Administrator access is open.
+                  </p>
+                </div>
+              </div>
+            )}
             {!showForgotPassword && (
               <div className="mb-4 sm:mb-5 space-y-1">
                 <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
@@ -813,10 +826,17 @@ const Login = () => {
           onComplete={() => {
             const role = pendingNotificationEmail.role;
             setPendingNotificationEmail(null);
-            if (role === "admin") navigate("/admin-dashboard", { replace: true });
-            else if (role === "teacher") navigate("/teacher-dashboard", { replace: true });
-            else if (role === "student") navigate("/student-dashboard", { replace: true });
-            else navigate("/", { replace: true });
+            if (role === "admin") {
+              navigate("/admin-dashboard", { replace: true });
+            } else if (isPauseActive()) {
+              navigate("/", { replace: true });
+            } else if (role === "teacher") {
+              navigate("/teacher-dashboard", { replace: true });
+            } else if (role === "student") {
+              navigate("/student-dashboard", { replace: true });
+            } else {
+              navigate("/", { replace: true });
+            }
           }}
         />
       )}
@@ -829,9 +849,15 @@ const Login = () => {
           onSuccess={(studentProfile) => {
             setUnlinkedGoogleSession(null);
             const role = studentProfile?.role || "student";
-            if (role === "admin") navigate("/admin-dashboard", { replace: true });
-            else if (role === "teacher") navigate("/teacher-dashboard", { replace: true });
-            else navigate("/student-dashboard", { replace: true });
+            if (role === "admin") {
+              navigate("/admin-dashboard", { replace: true });
+            } else if (isPauseActive()) {
+              navigate("/", { replace: true });
+            } else if (role === "teacher") {
+              navigate("/teacher-dashboard", { replace: true });
+            } else {
+              navigate("/student-dashboard", { replace: true });
+            }
           }}
           onCancel={async () => {
             try {
