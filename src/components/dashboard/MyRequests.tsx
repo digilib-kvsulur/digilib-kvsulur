@@ -12,6 +12,7 @@ type RequestItem = {
   status: string;
   created_at: string;
   note?: string | null;
+  timeline?: { label: string; date?: string | null; state: "complete" | "current" | "upcoming" | "rejected" }[];
 };
 
 type FilterKey = "all" | "pending" | "approved" | "rejected";
@@ -55,10 +56,10 @@ export default function MyRequests({ userId, hideWaitlist = false }: { userId: s
   const loadRequests = async () => {
     setLoading(true);
     try {
-      const [bookRequests, renewals, reservations] = await Promise.all([
+      const [bookRequests, renewals, reservations, issues] = await Promise.all([
         supabase
           .from("book_requests")
-          .select("id, status, created_at, admin_notes, requested_title, requested_author, books(title, author)")
+          .select("id, book_id, status, created_at, admin_notes, requested_title, requested_author, books(title, author)")
           .eq("user_id", userId)
           .order("created_at", { ascending: false }),
         supabase
@@ -73,17 +74,33 @@ export default function MyRequests({ userId, hideWaitlist = false }: { userId: s
               .select("*, books(title, author)")
               .eq("user_id", userId)
               .order("created_at", { ascending: false }),
+        supabase.from("book_issues").select("id,book_id,issue_date,due_date,return_date,status").eq("user_id", userId).order("issue_date", { ascending: false }),
       ]);
 
-      const bookItems: RequestItem[] = (bookRequests.data || []).map((r: any) => ({
-        id: `book-${r.id}`,
-        type: "book",
-        title: r.books?.title || r.requested_title || "Book request",
-        subtitle: r.books?.author || r.requested_author || "Requested title",
-        status: r.status || "pending",
-        created_at: r.created_at,
-        note: r.admin_notes,
-      }));
+      const bookItems: RequestItem[] = (bookRequests.data || []).map((r: any) => {
+        const status = String(r.status || "pending").toLowerCase();
+        const issue = r.book_id ? (issues.data || []).find((row: any) => row.book_id === r.book_id && new Date(row.issue_date) >= new Date(r.created_at)) : null;
+        const rejected = status === "rejected" || status === "cancelled";
+        const approved = status === "approved" || status === "fulfilled" || Boolean(issue);
+        const returned = issue?.status === "returned" || Boolean(issue?.return_date);
+        return {
+          id: `book-${r.id}`,
+          type: "book",
+          title: r.books?.title || r.requested_title || "Book request",
+          subtitle: r.books?.author || r.requested_author || "Requested title",
+          status: r.status || "pending",
+          created_at: r.created_at,
+          note: r.admin_notes,
+          timeline: [
+            { label: "Requested", date: r.created_at, state: "complete" as const },
+            { label: rejected ? "Not approved" : approved ? "Approved" : "Library review", state: rejected ? "rejected" as const : approved ? "complete" as const : "current" as const },
+            { label: "Issued", date: issue?.issue_date, state: issue ? "complete" as const : rejected ? "upcoming" as const : approved ? "current" as const : "upcoming" as const },
+            ...(issue ? [
+              { label: returned ? "Returned" : "Due date", date: returned ? issue.return_date : issue.due_date, state: returned ? "complete" as const : "current" as const },
+            ] : []),
+          ],
+        };
+      });
 
       const renewalItems: RequestItem[] = (renewals.data || []).map((r: any) => ({
         id: `renewal-${r.id}`,
@@ -93,6 +110,11 @@ export default function MyRequests({ userId, hideWaitlist = false }: { userId: s
         status: r.status || "pending",
         created_at: r.created_at,
         note: r.admin_note || r.student_note,
+        timeline: [
+          { label: "Renewal requested", date: r.created_at, state: "complete" as const },
+          { label: r.status === "approved" ? "Renewal approved" : r.status === "rejected" ? "Renewal declined" : "Review", date: r.decided_at, state: r.status === "approved" ? "complete" as const : r.status === "rejected" ? "rejected" as const : "current" as const },
+          { label: "New due date", date: r.book_issues?.due_date, state: r.status === "approved" ? "complete" as const : "upcoming" as const },
+        ],
       }));
 
       const waitlistItems: RequestItem[] = hideWaitlist
@@ -225,6 +247,7 @@ export default function MyRequests({ userId, hideWaitlist = false }: { userId: s
                     </div>
                   </div>
                 </div>
+                {item.timeline?.length ? <ol aria-label="Loan timeline" className="grid grid-cols-2 gap-2 border-t pt-3 sm:grid-cols-4">{item.timeline.map((step, index) => <li key={`${step.label}-${index}`} className="relative min-w-0"><div className="flex items-center gap-1.5"><span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", step.state === "complete" ? "bg-emerald-500" : step.state === "current" ? "bg-primary ring-2 ring-primary/20" : step.state === "rejected" ? "bg-destructive" : "bg-muted-foreground/30")} /><span className={cn("truncate text-[11px] font-semibold", step.state === "upcoming" && "text-muted-foreground", step.state === "rejected" && "text-destructive")}>{step.label}</span></div>{step.date && <p className="ml-4 mt-1 text-[10px] text-muted-foreground">{new Date(step.date).toLocaleDateString()}</p>}</li>)}</ol> : null}
                 {item.note && (
                   <div
                     className={cn(
