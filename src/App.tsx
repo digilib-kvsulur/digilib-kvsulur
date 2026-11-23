@@ -407,7 +407,7 @@ const App = () => {
                   <Route path="/feedback" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><Feedback /></PauseRestrictedRoute></SetupRedirectGuard>} />
                   <Route path="/download" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><Download /></PauseRestrictedRoute></SetupRedirectGuard>} />
                   <Route path="/invite" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><InvitePage /></PauseRestrictedRoute></SetupRedirectGuard>} />
-                  <Route path="/invite/:code" element={<SetupRedirectGuard><InvitePage /></SetupRedirectGuard>} />
+                  <Route path="/invite/:code" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><InvitePage /></PauseRestrictedRoute></SetupRedirectGuard>} />
                   <Route path="/i/:code" element={<SetupRedirectGuard><InvitePage /></SetupRedirectGuard>} />
                   <Route
                     path="/student-dashboard"
