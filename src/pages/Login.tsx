@@ -81,8 +81,8 @@ const Login = () => {
             navigate("/admin-dashboard", { replace: true });
           } else if (isPauseActive()) {
             toast({
-              title: "DLMS is Taking a Break 💙",
-              description: "The platform is temporarily paused for students. Only administrators can access right now.",
+              title: "DLMS 2.0 is coming soon ✨",
+              description: "Student and teacher access is paused while we prepare the updated DLMS experience. Administrators can still sign in.",
             });
             navigate("/", { replace: true });
           } else if (profile.role === "teacher") {
@@ -383,8 +383,8 @@ const Login = () => {
           navigate("/admin-dashboard", { replace: true });
         } else if (isPauseActive()) {
           toast({
-            title: "DLMS is Taking a Break 💙",
-            description: "The platform is temporarily paused for students. Only administrators can access right now.",
+            title: "DLMS 2.0 is coming soon ✨",
+            description: "Student and teacher access is paused while we prepare the updated DLMS experience. Administrators can still sign in.",
           });
           navigate("/", { replace: true });
         } else {

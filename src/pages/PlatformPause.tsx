@@ -173,12 +173,12 @@ export default function PlatformPause() {
 
           {/* Main Headline */}
           <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-foreground leading-[1.2] mt-1 text-balance">
-            DLMS is taking a short break <span className="inline-block animate-pulse">💙</span>
+            DLMS 2.0 is coming soon <span className="inline-block animate-pulse">✨</span>
           </h1>
 
           <p className="text-xs sm:text-sm md:text-base text-muted-foreground max-w-lg leading-relaxed px-2 text-balance">
-            Our school platform is temporarily paused while we make DLMS a safer, kinder space for
-            every student and teacher.
+            We’re preparing a refreshed DLMS with a better experience and new ways to learn, read,
+            and explore. Student and teacher access is paused while we get it ready.
           </p>
         </div>
 
@@ -203,7 +203,7 @@ export default function PlatformPause() {
                   A Message from Team DLMS
                 </h2>
                 <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
-                  To all students, teachers, and staff
+                  To our students and teachers
                 </p>
               </div>
             </div>
@@ -219,32 +219,29 @@ export default function PlatformPause() {
             </p>
 
             <p>
-              DLMS was built for all of us, to learn, share and grow together. Recently, a comment was
-              posted on the platform that hurt a fellow member of our school family. This goes
-              against the spirit of DLMS.
+              We are rebuilding DLMS with a refreshed experience and new ways to learn, read, and
+              explore. The updated platform will be available soon.
             </p>
 
             <p>
-              Because we care about every one of you, the school has decided to pause DLMS for one
-              week. It will be back in a week, and we&apos;ll use this time to make the platform safer.
+              During this preparation period, student and teacher access is paused. Your existing
+              account and learning data will be available when DLMS reopens.
             </p>
 
             {/* Inspiring Highlight Box */}
             <div className="my-3 sm:my-5 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border-l-4 border-blue-500 border-y border-r border-border/60">
               <p className="italic font-medium text-xs sm:text-base md:text-lg text-blue-950 dark:text-blue-100 leading-relaxed">
-                &ldquo;A single unkind comment can stay with someone long after it&apos;s deleted.
-                Kindness costs nothing, and it is what makes a community strong.&rdquo;
+                &ldquo;A better library and learning experience is on the way. Thank you for being part
+                of DLMS.&rdquo;
               </p>
             </div>
 
             <p>
-              To everyone who uses DLMS respectfully, thank you. This break isn&apos;t a punishment
-              for you. It&apos;s a promise that this space will be safe for you.
+              We look forward to welcoming you back soon.
             </p>
 
             <p>
-              If anything on DLMS ever upsets you, please tell a teacher or the school counsellor.
-              Please also keep your passwords private.
+              Your account and learning data remain in place during the upgrade.
             </p>
 
             {/* Streak Reassurance Callout */}
@@ -253,8 +250,7 @@ export default function PlatformPause() {
                 <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <p className="text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-200 leading-snug">
-                Your daily streak will be preserved and will resume on the reopening day. Don&apos;t
-                worry!
+                Only administrators can access DLMS during this preparation period.
               </p>
             </div>
           </div>

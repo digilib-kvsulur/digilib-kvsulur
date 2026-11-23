@@ -328,6 +328,7 @@ const App = () => {
   useEffect(() => {
     if (!isPaused) return;
     const remaining = getPauseRemainingMs();
+    if (!Number.isFinite(remaining)) return;
     if (remaining <= 0) { setIsPaused(false); return; }
     const timer = setTimeout(() => setIsPaused(false), remaining);
     return () => clearTimeout(timer);
