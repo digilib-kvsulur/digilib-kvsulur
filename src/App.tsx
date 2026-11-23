@@ -401,12 +401,12 @@ const App = () => {
                   <Route path="/community" element={<SetupRedirectGuard><DashboardRedirect isPaused={isPaused} /></SetupRedirectGuard>} />
                   <Route path="/reels" element={<SetupRedirectGuard><DashboardRedirect isPaused={isPaused} /></SetupRedirectGuard>} />
                   <Route path="/login" element={<SetupRedirectGuard><Login /></SetupRedirectGuard>} />
-                  <Route path="/register" element={<SetupRedirectGuard><Register /></SetupRedirectGuard>} />
-                  <Route path="/catalog" element={<SetupRedirectGuard><Catalog /></SetupRedirectGuard>} />
-                  <Route path="/support" element={<SetupRedirectGuard><Support /></SetupRedirectGuard>} />
-                  <Route path="/feedback" element={<SetupRedirectGuard><Feedback /></SetupRedirectGuard>} />
-                  <Route path="/download" element={<SetupRedirectGuard><Download /></SetupRedirectGuard>} />
-                  <Route path="/invite" element={<SetupRedirectGuard><InvitePage /></SetupRedirectGuard>} />
+                  <Route path="/register" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><Register /></PauseRestrictedRoute></SetupRedirectGuard>} />
+                  <Route path="/catalog" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><Catalog /></PauseRestrictedRoute></SetupRedirectGuard>} />
+                  <Route path="/support" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><Support /></PauseRestrictedRoute></SetupRedirectGuard>} />
+                  <Route path="/feedback" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><Feedback /></PauseRestrictedRoute></SetupRedirectGuard>} />
+                  <Route path="/download" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><Download /></PauseRestrictedRoute></SetupRedirectGuard>} />
+                  <Route path="/invite" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><InvitePage /></PauseRestrictedRoute></SetupRedirectGuard>} />
                   <Route path="/invite/:code" element={<SetupRedirectGuard><InvitePage /></SetupRedirectGuard>} />
                   <Route path="/i/:code" element={<SetupRedirectGuard><InvitePage /></SetupRedirectGuard>} />
                   <Route
