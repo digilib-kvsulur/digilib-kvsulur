@@ -413,9 +413,13 @@ const App = () => {
                     path="/student-dashboard"
                     element={(
                       <SetupRedirectGuard>
+                        <PauseRestrictedRoute isPaused={isPaused}>
+                        <PauseRestrictedRoute isPaused={isPaused}>
                         <ProtectedRoute allowedRoles={STUDENT_ROLES}>
                           <StudentDashboard />
                         </ProtectedRoute>
+                      </PauseRestrictedRoute>
+                      </PauseRestrictedRoute>
                       </SetupRedirectGuard>
                     )}
                   />
@@ -433,9 +437,11 @@ const App = () => {
                     path="/points-history"
                     element={(
                       <SetupRedirectGuard>
+                        <PauseRestrictedRoute isPaused={isPaused}>
                         <ProtectedRoute allowedRoles={POINT_HISTORY_ROLES}>
                           <PointsHistory />
                         </ProtectedRoute>
+                      </PauseRestrictedRoute>
                       </SetupRedirectGuard>
                     )}
                   />
@@ -449,18 +455,20 @@ const App = () => {
                       </SetupRedirectGuard>
                     )}
                   />
-                  <Route path="/portfolio/:username" element={<SetupRedirectGuard><StudentPortfolio embedded={false} /></SetupRedirectGuard>} />
+                  <Route path="/portfolio/:username" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><StudentPortfolio embedded={false} /></PauseRestrictedRoute></SetupRedirectGuard>} />
                   <Route
                     path="/teacher-dashboard"
                     element={(
                       <SetupRedirectGuard>
+                        <PauseRestrictedRoute isPaused={isPaused}>
                         <ProtectedRoute allowedRoles={TEACHER_ROLES}>
                           <TeacherDashboard />
                         </ProtectedRoute>
+                      </PauseRestrictedRoute>
                       </SetupRedirectGuard>
                     )}
                   />
-                  <Route path="/book/:id" element={<SetupRedirectGuard><BookDetails /></SetupRedirectGuard>} />
+                  <Route path="/book/:id" element={<SetupRedirectGuard><PauseRestrictedRoute isPaused={isPaused}><BookDetails /></PauseRestrictedRoute></SetupRedirectGuard>} />
                   <Route path="/reset-password" element={<SetupRedirectGuard><ResetPassword /></SetupRedirectGuard>} />
                   <Route path="/CL0/*" element={<EmailTrackingRedirect />} />
                   <Route path="/CL1/*" element={<EmailTrackingRedirect />} />
