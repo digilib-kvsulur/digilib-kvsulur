@@ -192,6 +192,12 @@ export default function IssuedBooksHub({ userId, currentBooks }: Props) {
                   )}
                   {allIssues.map((i) => {
                     const overdue = i.status === "issued" && i.due_date && new Date(i.due_date) < new Date();
+                    const returned = Boolean(i.return_date) || i.status === "returned";
+                    const milestones = [
+                      { label: "Issued", date: i.issue_date, state: "complete" },
+                      { label: overdue ? "Overdue" : returned ? "Due date" : "Due", date: i.due_date, state: overdue ? "alert" : returned ? "complete" : "current" },
+                      ...(returned ? [{ label: "Returned", date: i.return_date, state: "complete" }] : [{ label: "Return", date: null, state: "upcoming" }]),
+                    ];
                     return (
                       <div
                         key={i.id}
@@ -203,11 +209,12 @@ export default function IssuedBooksHub({ userId, currentBooks }: Props) {
                             {i.books?.author || "—"}
                             {i.accession_number ? ` · Acc ${i.accession_number}` : ""}
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-1">
-                            Issued {i.issue_date ? new Date(i.issue_date).toLocaleDateString() : "—"}
-                            {i.due_date ? ` · Due ${new Date(i.due_date).toLocaleDateString()}` : ""}
-                            {i.return_date ? ` · Returned ${new Date(i.return_date).toLocaleDateString()}` : ""}
-                          </p>
+                          <ol aria-label="Loan timeline" className="mt-3 grid grid-cols-3 gap-2">
+                            {milestones.map((step, index) => <li key={`${step.label}-${index}`} className="min-w-0">
+                              <div className="flex items-center gap-1.5"><span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", step.state === "complete" ? "bg-emerald-500" : step.state === "current" ? "bg-primary ring-2 ring-primary/20" : step.state === "alert" ? "bg-destructive ring-2 ring-destructive/20" : "bg-muted-foreground/30")} /><span className={cn("truncate text-[10px] font-semibold sm:text-[11px]", step.state === "alert" && "text-destructive", step.state === "upcoming" && "text-muted-foreground")}>{step.label}</span></div>
+                              <p className="ml-4 mt-1 text-[10px] text-muted-foreground">{step.date ? new Date(step.date).toLocaleDateString() : "Next"}</p>
+                            </li>)}
+                          </ol>
                         </div>
                         <Badge
                           variant={overdue ? "destructive" : i.status === "returned" ? "secondary" : "default"}
