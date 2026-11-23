@@ -376,10 +376,10 @@ const App = () => {
               <GlobalNotificationsProvider>
                 <CommandPalette />
                 <Seo />
-                <UpdateBanner />
-                <PWAInstallBanner />
-                <DomainMigrationBanner />
-                <MigrationInstallGuide />
+                {!isPaused && <UpdateBanner />}
+                {!isPaused && <PWAInstallBanner />}
+                {!isPaused && <DomainMigrationBanner />}
+                {!isPaused && <MigrationInstallGuide />}
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                   {/* Standalone Multi-Tenant Routes */}
