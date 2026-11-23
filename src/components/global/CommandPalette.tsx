@@ -48,6 +48,7 @@ export const CommandPalette: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [bookResults, setBookResults] = useState<any[]>([]);
+  const [learningResults, setLearningResults] = useState<{ id: string; title: string; detail: string; kind: "resource" | "quiz" | "event"; href?: string }[]>([]);
   const navigate = useNavigate();
   const { setTheme, theme } = useTheme();
 
@@ -69,36 +70,59 @@ export const CommandPalette: React.FC = () => {
   useEffect(() => {
     if (!searchTerm.trim() || searchTerm.length < 2) {
       setBookResults([]);
+      setLearningResults([]);
       return;
     }
 
+    let active = true;
     const timer = setTimeout(async () => {
       try {
-        const query = searchTerm.trim();
-        const [{ data, error }, { data: categoryMatches, error: categoryError }] = await Promise.all([
+        const query = searchTerm.trim().replace(/[^\p{L}\p{N}\s-]/gu, "").slice(0, 80);
+        if (query.length < 2) return;
+        const [{ data }, { data: categoryMatches }, { data: materials }, { data: quizzes }, { data: events }] = await Promise.all([
           supabase.rpc("search_books", { search_query: query, p_limit: 6 }),
           supabase.from("books")
             .select("id, title, author, category, accession_number")
             .ilike("category", `%${query}%`)
             .limit(6),
+          (supabase as any).from("study_materials").select("id,title,subject,student_class,chapter_title,resource_type,source_url,file_url").or(`title.ilike.%${query}%,subject.ilike.%${query}%,chapter_title.ilike.%${query}%`).limit(6),
+          supabase.from("quizzes").select("id,title,subject,difficulty").eq("is_active", true).or(`title.ilike.%${query}%,subject.ilike.%${query}%,description.ilike.%${query}%`).limit(5),
+          supabase.from("library_events").select("id,title,description,event_date").eq("is_published", true).or(`title.ilike.%${query}%,description.ilike.%${query}%`).limit(5),
         ]);
-        if (error) throw error;
-        if (categoryError) throw categoryError;
         const unique = new Map<string, any>();
         [...(data || []), ...(categoryMatches || [])].forEach((book) => unique.set(book.id, book));
+        if (!active) return;
         setBookResults([...unique.values()].slice(0, 6));
+        setLearningResults([
+          ...(materials || []).map((item: any) => ({ id: `resource-${item.id}`, title: item.title, detail: [item.subject, item.chapter_title, item.student_class && `Class ${item.student_class}`, item.resource_type?.replaceAll("_", " ")].filter(Boolean).join(" · "), kind: "resource" as const, href: item.source_url || item.file_url || undefined })),
+          ...(quizzes || []).map((item) => ({ id: `quiz-${item.id}`, title: item.title, detail: [item.subject, item.difficulty, "Quiz"].filter(Boolean).join(" · "), kind: "quiz" as const })),
+          ...(events || []).map((item) => ({ id: `event-${item.id}`, title: item.title, detail: ["Event", new Date(item.event_date).toLocaleDateString()].join(" · "), kind: "event" as const })),
+        ].slice(0, 12));
       } catch (e) {
-        console.error("Book search error in palette:", e);
+        if (active) console.error("Unified search error in palette:", e);
       }
     }, 200);
 
-    return () => clearTimeout(timer);
+    return () => { active = false; clearTimeout(timer); };
   }, [searchTerm]);
 
   const runCommand = (command: () => void) => {
     setOpen(false);
     setSearchTerm("");
     command();
+  };
+
+  const openLearningResult = (result: (typeof learningResults)[number]) => {
+    if (result.href) {
+      window.open(result.href, "_blank", "noopener,noreferrer");
+      return;
+    }
+    const destination = result.kind === "resource"
+      ? "/student-dashboard?tab=study-resources"
+      : result.kind === "quiz"
+        ? "/student-dashboard?tab=quizzes"
+        : "/";
+    navigate(destination);
   };
 
   const triggerTestNotification = async () => {
@@ -145,6 +169,17 @@ export const CommandPalette: React.FC = () => {
                     #{book.accession_number}
                   </span>
                 )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {learningResults.length > 0 && (
+          <CommandGroup heading="Study, quizzes & events">
+            {learningResults.map((result) => (
+              <CommandItem key={result.id} value={`${result.title} ${result.detail}`} onSelect={() => runCommand(() => openLearningResult(result))} className="flex cursor-pointer items-center gap-2 py-2">
+                {result.kind === "resource" ? <FileText className="h-4 w-4 shrink-0 text-blue-500" /> : result.kind === "quiz" ? <Brain className="h-4 w-4 shrink-0 text-violet-500" /> : <CalendarDays className="h-4 w-4 shrink-0 text-rose-500" />}
+                <div className="min-w-0 flex-1"><span className="block truncate font-semibold text-foreground">{result.title}</span><span className="block truncate text-xs text-muted-foreground">{result.detail}</span></div>
               </CommandItem>
             ))}
           </CommandGroup>
@@ -210,7 +245,7 @@ export const CommandPalette: React.FC = () => {
             <Sparkles className="h-4 w-4 text-indigo-500" />
             <span>AI Chapter Study Guide &amp; Practice</span>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate("/student-dashboard?tab=community"))} className="gap-2.5 cursor-pointer">
+          <CommandItem onSelect={() => runCommand(() => navigate("/student-dashboard?tab=doubt-solver"))} className="gap-2.5 cursor-pointer">
             <HelpCircle className="h-4 w-4 text-amber-500" />
             <span>Academic Doubts &amp; Solution Clearing</span>
           </CommandItem>
