@@ -292,6 +292,13 @@ const PauseRestrictedRoute = ({
   isPaused?: boolean;
   children: ReactNode;
 }) => {
+  if (isPaused) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PlatformPause />
+      </Suspense>
+    );
+  }
   return <>{children}</>;
 };
 
