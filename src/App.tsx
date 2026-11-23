@@ -292,13 +292,6 @@ const PauseRestrictedRoute = ({
   isPaused?: boolean;
   children: ReactNode;
 }) => {
-  if (isPaused) {
-    return (
-      <Suspense fallback={<PageLoader />}>
-        <PlatformPause />
-      </Suspense>
-    );
-  }
   return <>{children}</>;
 };
 
@@ -354,13 +347,6 @@ const App = () => {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
-  if (isPaused) {
-    return (
-      <Suspense fallback={<PageLoader />}>
-        <PlatformPause />
-      </Suspense>
-    );
-  }
 
   if (isMaintenance) {
     return (
