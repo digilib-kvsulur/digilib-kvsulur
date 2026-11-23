@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +11,7 @@ import {
   HelpCircle, ChevronDown, ChevronRight, Loader2, RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
-import { getCurriculumFallback } from "@/data/curriculumGuides";
+import { getCuratedCurriculumGuide, listCurriculumGuides } from "@/data/curriculumGuides";
 
 const CLASSES = ["1","2","3","4","5","6","7","8","9","10","11","12"];
 
@@ -76,15 +75,19 @@ export default function StudyGuide({ userId, studentClass }: { userId?: string; 
   const [expandedMcq, setExpandedMcq] = useState<number | null>(null);
   const [revealedAnswers, setRevealedAnswers] = useState<number[]>([]);
 
-  const subjects = SUBJECTS_BY_CLASS[selectedClass] || [];
-  const chapterKey = `${selectedClass}_${selectedSubject}`;
-  const chapters = CHAPTER_SUGGESTIONS[chapterKey] || [];
-
-  const chapterToUse = selectedChapter === "__custom__" ? customChapter.trim() : (selectedChapter || customChapter.trim());
+  const guidesForClass = listCurriculumGuides(selectedClass);
+  const subjects = Array.from(new Set(guidesForClass.map((item) => item.subject)));
+  const chapters = guidesForClass.filter((item) => item.subject === selectedSubject);
+  const chapterToUse = selectedChapter;
 
   const generateGuide = async () => {
     if (!selectedSubject || !chapterToUse) {
       toast.error("Please select a subject and chapter first");
+      return;
+    }
+    const curatedGuide = getCuratedCurriculumGuide(selectedClass, selectedSubject, chapterToUse);
+    if (!curatedGuide) {
+      toast.info("This chapter does not have a DLMS guide yet. Choose a chapter marked as available.");
       return;
     }
     setLoading(true);
@@ -92,77 +95,9 @@ export default function StudyGuide({ userId, studentClass }: { userId?: string; 
     setExpandedMcq(null);
     setRevealedAnswers([]);
 
-    const prompt = `You are an expert NCERT/CBSE tutor for Class ${selectedClass} students in India.
-
-Generate a comprehensive study guide for the following:
-- Class: ${selectedClass}
-- Subject: ${selectedSubject}  
-- Chapter/Topic: ${chapterToUse}
-
-Respond ONLY with a valid JSON object in this exact format (no extra text, no markdown):
-{
-  "summary": "2-3 sentence overview of the chapter",
-  "keyTopics": ["topic 1", "topic 2", "topic 3", "topic 4", "topic 5"],
-  "importantConcepts": ["concept with brief explanation 1", "concept 2", "concept 3"],
-  "formulasOrFacts": ["formula or key fact 1", "formula 2", "formula 3"],
-  "studyTips": ["actionable study tip 1", "tip 2", "tip 3"],
-  "mcqs": [
-    {"q": "question text", "options": ["option A", "option B", "option C", "option D"], "answer": 0},
-    {"q": "question text", "options": ["option A", "option B", "option C", "option D"], "answer": 2},
-    {"q": "question text", "options": ["option A", "option B", "option C", "option D"], "answer": 1},
-    {"q": "question text", "options": ["option A", "option B", "option C", "option D"], "answer": 3},
-    {"q": "question text", "options": ["option A", "option B", "option C", "option D"], "answer": 0}
-  ]
-}
-
-The "answer" field should be the 0-based index of the correct option. Focus on NCERT curriculum.`;
-
-    try {
-      let parsedData: StudyGuideData | null = null;
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-
-        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/library-bot`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session?.access_token || ""}`,
-          },
-          body: JSON.stringify({ messages: [{ role: "user", content: prompt }] }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const result = await res.json();
-          const text: string = result.reply || result.content || result.message || "";
-          const jsonMatch = text.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            parsedData = JSON.parse(jsonMatch[0]);
-          }
-        }
-      } catch (networkOrAiErr) {
-        console.warn("AI generation note:", networkOrAiErr);
-      }
-
-      // If AI succeeded, use it; otherwise use our verified NCERT curriculum fallback
-      if (parsedData && parsedData.summary && Array.isArray(parsedData.mcqs)) {
-        setGuideData(parsedData);
-        toast.success("AI Study Guide generated successfully!");
-      } else {
-        const fallback = getCurriculumFallback(selectedClass, selectedSubject, chapterToUse);
-        setGuideData(fallback);
-        toast.info("Study Guide loaded from NCERT syllabus vault!");
-      }
-    } catch (err) {
-      console.error(err);
-      const fallback = getCurriculumFallback(selectedClass, selectedSubject, chapterToUse);
-      setGuideData(fallback);
-    } finally {
-      setLoading(false);
-    }
+    setGuideData(curatedGuide);
+    setLoading(false);
+    toast.success("DLMS chapter guide opened.");
   };
 
   const toggleAnswer = (idx: number) => {
@@ -175,10 +110,10 @@ The "answer" field should be the 0-based index of the correct option. Focus on N
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-indigo-500" />
-            AI Study Guide
+            <BookOpen className="w-6 h-6 text-indigo-500" />
+            Chapter Study
           </h2>
-          <p className="text-sm text-muted-foreground">Get AI-powered chapter summaries, key concepts, MCQs &amp; tips.</p>
+          <p className="text-sm text-muted-foreground">Study available DLMS chapter guides, review key facts, and practise with feedback.</p>
         </div>
       </div>
 
@@ -216,26 +151,15 @@ The "answer" field should be the 0-based index of the correct option. Focus on N
                     <SelectValue placeholder="Select chapter" />
                   </SelectTrigger>
                   <SelectContent>
-                    {chapters.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    <SelectItem value="__custom__">✏️ Type custom chapter...</SelectItem>
+                    {chapters.map((item) => <SelectItem key={item.chapter} value={item.chapter}>{item.chapter}</SelectItem>)}
                   </SelectContent>
                 </Select>
               ) : (
-                <Input
-                  placeholder="e.g., Chapter 3 - Cell Structure"
-                  value={customChapter}
-                  onChange={e => setCustomChapter(e.target.value)}
-                  className="bg-white dark:bg-slate-900"
-                />
+                <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">No authored chapter guides are available for this class and subject yet.</div>
               )}
             </div>
           </div>
-          {selectedChapter === "__custom__" && (
-            <div className="space-y-1.5">
-              <Label>Custom Chapter Name</Label>
-              <Input placeholder="Enter chapter name..." value={customChapter} onChange={e => setCustomChapter(e.target.value)} />
-            </div>
-          )}
+          {chapters.length > 0 && <p className="text-xs text-muted-foreground">Showing chapters with guide content currently available in DLMS. Coverage will expand as reviewed material is added.</p>}
           <Button
             onClick={generateGuide}
             disabled={loading || !selectedSubject || !chapterToUse}
@@ -245,7 +169,7 @@ The "answer" field should be the 0-based index of the correct option. Focus on N
             {loading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Generating Guide...</>
             ) : (
-              <><Sparkles className="w-4 h-4" /> Generate Study Guide</>
+              <><BookOpen className="w-4 h-4" /> Open Chapter Guide</>
             )}
           </Button>
         </CardContent>
@@ -256,8 +180,7 @@ The "answer" field should be the 0-based index of the correct option. Focus on N
         <Card className="border-border/50">
           <CardContent className="py-16 text-center">
             <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mx-auto mb-3" />
-            <p className="text-slate-600 dark:text-slate-400 font-medium">AI is preparing your study guide...</p>
-            <p className="text-xs text-muted-foreground mt-1">This may take 10–15 seconds</p>
+            <p className="text-slate-600 dark:text-slate-400 font-medium">Opening chapter guide...</p>
           </CardContent>
         </Card>
       )}

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
 import { LibraryLoader } from "@/components/global/LibraryLoader";
 import { loadingManager } from "@/lib/loadingManager";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -83,8 +83,11 @@ import { VacationOverviewBanner, VacationPromoStrip, VacationStudentPage, useAct
 import { InviteTab } from "@/features/invite";
 import EventWinnerReleasePage, { EventWinnerReleaseBanner } from "@/components/dashboard/EventWinnerReleasePage";
 import RotationalWinnerReleasePage, { RotationalWinnerReleaseBanner } from "@/components/dashboard/RotationalWinnerReleasePage";
+import { FEATURE_FLAGS } from "@/config/featureFlags";
+const StudyResources = lazy(() => import("@/components/student/StudyResources"));
+const StudyDoubtSolver = lazy(() => import("@/components/student/StudyDoubtSolver"));
 
-type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "event-results" | "rotational-results" | "ncert" | "materials" | "study" | "study-guide" | "games" | "notes" | "community" | "chat" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation" | "invite";
+type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "event-results" | "rotational-results" | "ncert" | "materials" | "study-resources" | "doubt-solver" | "study" | "study-guide" | "games" | "notes" | "community" | "chat" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation" | "invite";
 
 const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -94,13 +97,13 @@ const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "catalog", label: "Books Catalog", icon: BookOpen },
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "materials", label: "Study Materials", icon: FileText },
+  { id: "study-resources", label: "Study Resources", icon: BookMarked },
+  { id: "doubt-solver", label: "AI Doubt Solver", icon: Sparkles },
   { id: "ncert", label: "NCERT Books", icon: BookOpen },
   { id: "study", label: "Study Tracker", icon: Timer },
-  { id: "study-guide", label: "AI Study Guide", icon: Sparkles },
+  { id: "study-guide", label: "Chapter Study", icon: Sparkles },
   { id: "games", label: "Games Corner", icon: Gamepad2 },
   { id: "notes", label: "My Notes", icon: StickyNote },
-  { id: "community", label: "Community", icon: Users },
-  { id: "chat", label: "Friends Chat", icon: MessageSquare },
   { id: "invite", label: "Invite Friends", icon: UserPlus },
   { id: "quizzes", label: "Quizzes", icon: Brain },
   { id: "badges", label: "Badge Cabinet", icon: Award },
@@ -436,9 +439,11 @@ const StudentDashboard = () => {
       title: "Learning",
       items: [
         { id: "materials" as Tab, label: "Study Materials", icon: FileText },
+        { id: "study-resources" as Tab, label: "Study Resources", icon: BookMarked },
+        { id: "doubt-solver" as Tab, label: "AI Doubt Solver", icon: Sparkles },
         { id: "ncert" as Tab, label: "NCERT Books", icon: BookOpen },
         { id: "study" as Tab, label: "Study Tracker", icon: Timer },
-        { id: "study-guide" as Tab, label: "AI Study Guide", icon: Sparkles },
+        { id: "study-guide" as Tab, label: "Chapter Study", icon: Sparkles },
         { id: "notes" as Tab, label: "My Notes", icon: StickyNote },
       ],
     },
@@ -453,7 +458,7 @@ const StudentDashboard = () => {
       ],
     },
     {
-      title: "Community & Rewards",
+      title: "Explore & Rewards",
       items: [
         { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
         ...(hasEventWinnerRelease ? [{ id: "event-results" as Tab, label: "Event Awards", icon: Award }] : []),
@@ -462,8 +467,6 @@ const StudentDashboard = () => {
         ...(hasCertificates ? [{ id: "certificates" as Tab, label: "Certificates", icon: Award }] : []),
         { id: "rankings" as Tab, label: "Rankings", icon: Medal },
         { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
-        { id: "community" as Tab, label: "Community", icon: Users },
-        { id: "chat" as Tab, label: "Friends Chat", icon: MessageSquare },
         { id: "invite" as Tab, label: "Invite Friends (+250 XP)", icon: UserPlus },
         { id: "network" as Tab, label: "Network", icon: Users },
         { id: "vacation" as Tab, label: "Vacation Campaign", icon: Sun },
@@ -505,6 +508,7 @@ const StudentDashboard = () => {
     const roomParam = params.get("room");
     const tabParam = params.get("tab") as Tab | null;
 
+    if (tabParam && !FEATURE_FLAGS.communityAndFriendsChat && ["community", "chat"].includes(tabParam)) return;
     if (tabParam && (navItems.some(n => n.id === tabParam) || tabParam === "rotational-results" || tabParam === "event-results")) {
       setActiveTab(tabParam);
     }
@@ -1220,6 +1224,8 @@ const StudentDashboard = () => {
 
           {/* Study Materials */}
           {activeTab === "materials" && <StudyMaterials studentClass={user?.student_class} />}
+          {activeTab === "study-resources" && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading study resources…</div>}><StudyResources studentClass={user?.student_class} userId={user?.id} /></Suspense>}
+          {activeTab === "doubt-solver" && user?.id && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading doubt solver…</div>}><StudyDoubtSolver userId={user.id} studentClass={user?.student_class} onOpenResources={() => setActiveTab("study-resources")} /></Suspense>}
 
           {/* NCERT Books */}
           {activeTab === "ncert" && <NCERTBooks studentClass={user?.student_class} />}
@@ -1242,14 +1248,14 @@ const StudentDashboard = () => {
             </div>
           )}
 
-          {/* AI Study Guide Tab */}
+          {/* Chapter Study */}
           {activeTab === "study-guide" && user?.id && (
             <StudyGuide userId={user.id} studentClass={user?.student_class} />
           )}
 
           {/* Community (includes Book Clubs tab) */}
-          {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={false} onOpenChat={() => setActiveTab("chat")} />}
-          {activeTab === "chat" && user?.id && <FriendsChat userId={user.id} />}
+          {FEATURE_FLAGS.communityAndFriendsChat && activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={false} onOpenChat={() => setActiveTab("chat")} />}
+          {FEATURE_FLAGS.communityAndFriendsChat && activeTab === "chat" && user?.id && <FriendsChat userId={user.id} />}
 
           {/* Quizzes Tab */}
           {activeTab === "quizzes" && (

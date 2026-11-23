@@ -357,6 +357,39 @@ export const CURRICULUM_GUIDES: Record<string, CurriculumGuide> = {
   }
 };
 
+export interface CurriculumGuideIndexEntry {
+  classNum: string;
+  subject: string;
+  chapter: string;
+  guide: CurriculumGuide;
+}
+
+/** Chapters with authored guide material currently present in the local DLMS library. */
+export function listCurriculumGuides(classNum?: string): CurriculumGuideIndexEntry[] {
+  const knownSubjects = ["Social Science", "Mathematics", "Science", "History", "Physics"];
+  return Object.entries(CURRICULUM_GUIDES)
+    .flatMap(([key, guide]) => {
+      const separator = key.indexOf("_");
+      const entryClass = key.slice(0, separator);
+      const remainder = key.slice(separator + 1);
+      if (classNum && entryClass !== classNum) return [];
+      const subject = knownSubjects.find((candidate) => remainder.startsWith(`${candidate}_`))
+        ?? remainder.slice(0, remainder.indexOf("_"));
+      const chapter = remainder.slice(subject.length + 1);
+      if (!entryClass || !subject || !chapter) return [];
+      return [{ classNum: entryClass, subject, chapter, guide }];
+    })
+    .sort((a, b) => a.classNum.localeCompare(b.classNum, undefined, { numeric: true }) || a.subject.localeCompare(b.subject) || a.chapter.localeCompare(b.chapter));
+}
+
+export function getCuratedCurriculumGuide(classNum: string, subject: string, chapter: string): CurriculumGuide | null {
+  const entry = listCurriculumGuides(classNum).find(
+    (item) => item.subject.toLowerCase() === subject.trim().toLowerCase()
+      && item.chapter.toLowerCase() === chapter.trim().toLowerCase(),
+  );
+  return entry?.guide ?? null;
+}
+
 export function getCurriculumFallback(classNum: string, subject: string, chapter: string): CurriculumGuide {
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const normClass = norm(classNum);

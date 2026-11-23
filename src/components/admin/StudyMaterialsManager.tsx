@@ -24,6 +24,14 @@ interface Material {
   file_url: string;
   file_name: string | null;
   file_type: string | null;
+  chapter_title?: string | null;
+  resource_type?: string;
+  academic_session?: string;
+  exam_year?: number | null;
+  marks?: number | null;
+  source_label?: string | null;
+  source_url?: string | null;
+  markdown_content?: string | null;
   created_at: string;
 }
 
@@ -129,8 +137,10 @@ const StudyMaterialsManager = () => {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loadingMats, setLoadingMats] = useState(true);
   const [uploadingMats, setUploadingMats] = useState(false);
-  const [matsForm, setMatsForm] = useState({ title: "", description: "", subject: "General", student_class: "All" });
+  const [matsForm, setMatsForm] = useState({ title: "", description: "", subject: "General", student_class: "All", chapter_title: "", resource_type: "short_notes", academic_session: "2026-27", exam_year: "", marks: "", source_label: "", source_url: "", markdown_content: "" });
   const [matsFile, setMatsFile] = useState<File | null>(null);
+  const [materialToEdit, setMaterialToEdit] = useState<Material | null>(null);
+  const [editMaterialForm, setEditMaterialForm] = useState<any>({});
 
   // NCERT chapters states
   const [ncertChapters, setNcertChapters] = useState<NcertBookChapter[]>([]);
@@ -210,6 +220,28 @@ const StudyMaterialsManager = () => {
     if (error) toast({ title: "Failed to load materials", description: error.message, variant: "destructive" });
     else setMaterials((data as Material[]) || []);
     setLoadingMats(false);
+  };
+
+  const beginEditMaterial = (material: Material) => {
+    setMaterialToEdit(material);
+    setEditMaterialForm({ ...material, exam_year: material.exam_year?.toString() || "", marks: material.marks?.toString() || "" });
+  };
+
+  const saveMaterialEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!materialToEdit) return;
+    const { error } = await supabase.from("study_materials").update({
+      title: editMaterialForm.title.trim(), description: editMaterialForm.description?.trim() || null,
+      subject: editMaterialForm.subject, student_class: editMaterialForm.student_class,
+      chapter_title: editMaterialForm.chapter_title?.trim() || null, resource_type: editMaterialForm.resource_type,
+      academic_session: editMaterialForm.academic_session?.trim() || "2026-27",
+      exam_year: editMaterialForm.exam_year ? Number(editMaterialForm.exam_year) : null,
+      marks: editMaterialForm.marks ? Number(editMaterialForm.marks) : null,
+      source_label: editMaterialForm.source_label?.trim() || null, source_url: editMaterialForm.source_url?.trim() || null,
+      markdown_content: editMaterialForm.markdown_content?.trim() || null,
+    }).eq("id", materialToEdit.id);
+    if (error) { toast({ title: "Could not update resource", description: error.message, variant: "destructive" }); return; }
+    setMaterialToEdit(null); toast({ title: "Resource updated" }); loadMaterials();
   };
 
   const loadNcertChapters = async () => {
@@ -381,8 +413,8 @@ const StudyMaterialsManager = () => {
 
   const handleUploadMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!matsFile || !matsForm.title.trim()) {
-      toast({ title: "Missing info", description: "Title and a file are required", variant: "destructive" });
+    if ((!matsFile && !matsForm.markdown_content.trim()) || !matsForm.title.trim()) {
+      toast({ title: "Missing info", description: "Add a title and either a file or Markdown content", variant: "destructive" });
       return;
     }
     setUploadingMats(true);
@@ -390,31 +422,37 @@ const StudyMaterialsManager = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in");
 
-      const ext = matsFile.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-      const { error: upErr } = await supabase.storage.from("study-materials").upload(path, matsFile, {
-        contentType: matsFile.type, upsert: false,
-        cacheControl: "31536000",
-      });
-      if (upErr) throw upErr;
-
-      const { data: pub } = supabase.storage.from("study-materials").getPublicUrl(path);
+      let publicUrl = "";
+      if (matsFile) {
+        const ext = matsFile.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("study-materials").upload(path, matsFile, { contentType: matsFile.type, upsert: false, cacheControl: "31536000" });
+        if (upErr) throw upErr;
+        publicUrl = supabase.storage.from("study-materials").getPublicUrl(path).data.publicUrl;
+      }
 
       const { error: insErr } = await supabase.from("study_materials").insert({
         title: matsForm.title.trim(),
         description: matsForm.description.trim() || null,
         subject: matsForm.subject,
         student_class: matsForm.student_class,
-        file_url: pub.publicUrl,
-        file_name: matsFile.name,
-        file_type: matsFile.type,
+        chapter_title: matsForm.chapter_title.trim() || null,
+        resource_type: matsForm.resource_type,
+        academic_session: matsForm.academic_session.trim() || "2026-27",
+        exam_year: matsForm.exam_year ? Number(matsForm.exam_year) : null,
+        marks: matsForm.marks ? Number(matsForm.marks) : null,
+        source_label: matsForm.source_label.trim() || null,
+        source_url: matsForm.source_url.trim() || null,
+        file_url: publicUrl,
+        file_name: matsFile?.name || null,
+        file_type: matsFile?.type || "text/markdown",
+        markdown_content: matsForm.markdown_content.trim() || null,
         uploaded_by: user.id,
       });
       if (insErr) throw insErr;
 
       toast({ title: "Uploaded!", description: `${matsForm.title} is now available to students.` });
-      setMatsForm({ title: "", description: "", subject: "General", student_class: "All" });
+      setMatsForm({ title: "", description: "", subject: "General", student_class: "All", chapter_title: "", resource_type: "short_notes", academic_session: "2026-27", exam_year: "", marks: "", source_label: "", source_url: "", markdown_content: "" });
       setMatsFile(null);
       const fileInput = document.getElementById("sm-file") as HTMLInputElement;
       if (fileInput) fileInput.value = "";
@@ -598,6 +636,27 @@ const StudyMaterialsManager = () => {
         </div>
       </div>
 
+      <Dialog open={Boolean(materialToEdit)} onOpenChange={(open) => !open && setMaterialToEdit(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Edit study resource</DialogTitle></DialogHeader>
+          <form onSubmit={saveMaterialEdit} className="grid max-h-[70dvh] grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
+            <div><Label>Title</Label><Input required value={editMaterialForm.title || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, title: e.target.value })} /></div>
+            <div><Label>Class</Label><Select value={editMaterialForm.student_class || "All"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, student_class: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CLASSES.map((c) => <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Subject</Label><Select value={editMaterialForm.subject || "General"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, subject: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{SUBJECTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Chapter</Label><Input value={editMaterialForm.chapter_title || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, chapter_title: e.target.value })} /></div>
+            <div><Label>Resource type</Label><Select value={editMaterialForm.resource_type || "short_notes"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, resource_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[["short_notes","Short Notes"],["formula_sheet","Formula Sheet"],["pyq","PYQ"],["quick_revision","Quick Revision"],["textbook","Textbook / Syllabus"],["other","Other"]].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Session</Label><Input value={editMaterialForm.academic_session || "2026-27"} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, academic_session: e.target.value })} /></div>
+            <div><Label>Exam year</Label><Input type="number" value={editMaterialForm.exam_year || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, exam_year: e.target.value })} /></div>
+            <div><Label>Marks</Label><Input type="number" value={editMaterialForm.marks || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, marks: e.target.value })} /></div>
+            <div><Label>Source label</Label><Input value={editMaterialForm.source_label || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, source_label: e.target.value })} /></div>
+            <div><Label>Source URL</Label><Input type="url" value={editMaterialForm.source_url || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, source_url: e.target.value })} /></div>
+            <div className="sm:col-span-2"><Label>Description</Label><Textarea value={editMaterialForm.description || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, description: e.target.value })} rows={2} /></div>
+            <div className="sm:col-span-2"><Label>Markdown content</Label><Textarea value={editMaterialForm.markdown_content || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, markdown_content: e.target.value })} rows={8} /></div>
+            <div className="sm:col-span-2 flex justify-end"><Button type="submit">Save resource</Button></div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Tabs defaultValue="materials" className="space-y-6">
         <TabsList className="bg-slate-100 p-1 rounded-xl flex-wrap h-auto gap-1">
           <TabsTrigger value="materials">Reference Materials</TabsTrigger>
@@ -641,9 +700,38 @@ const StudyMaterialsManager = () => {
                     <SelectContent>{CLASSES.map(c => <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label>Chapter</Label>
+                  <Input value={matsForm.chapter_title} onChange={e => setMatsForm({ ...matsForm, chapter_title: e.target.value })} placeholder="Chapter or unit title" />
+                </div>
+                <div>
+                  <Label>Resource Type</Label>
+                  <Select value={matsForm.resource_type} onValueChange={v => setMatsForm({ ...matsForm, resource_type: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="short_notes">Short Notes</SelectItem>
+                      <SelectItem value="formula_sheet">Formula Sheet</SelectItem>
+                      <SelectItem value="pyq">Previous Year Question</SelectItem>
+                      <SelectItem value="quick_revision">Quick Revision</SelectItem>
+                      <SelectItem value="textbook">Textbook / Syllabus</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Academic Session</Label><Input value={matsForm.academic_session} onChange={e => setMatsForm({ ...matsForm, academic_session: e.target.value })} placeholder="2026-27" /></div>
+                {matsForm.resource_type === "pyq" && <>
+                  <div><Label>Exam Year</Label><Input type="number" min="1990" max="2100" value={matsForm.exam_year} onChange={e => setMatsForm({ ...matsForm, exam_year: e.target.value })} /></div>
+                  <div><Label>Marks</Label><Input type="number" min="1" max="100" value={matsForm.marks} onChange={e => setMatsForm({ ...matsForm, marks: e.target.value })} /></div>
+                </>}
+                <div><Label>Source Label</Label><Input value={matsForm.source_label} onChange={e => setMatsForm({ ...matsForm, source_label: e.target.value })} placeholder="CBSE 2025 board paper" /></div>
+                <div><Label>Source URL</Label><Input type="url" value={matsForm.source_url} onChange={e => setMatsForm({ ...matsForm, source_url: e.target.value })} placeholder="Official source page" /></div>
                 <div className="md:col-span-2">
-                  <Label>File * (PDF, Word doc, image, etc.)</Label>
-                  <Input id="sm-file" type="file" onChange={e => setMatsFile(e.target.files?.[0] || null)} required />
+                  <Label>Markdown Content</Label>
+                  <Textarea value={matsForm.markdown_content} onChange={e => setMatsForm({ ...matsForm, markdown_content: e.target.value })} placeholder="Optional: author short notes, formulas, or quick revision in Markdown. Add either this or a file." rows={7} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Resource File (PDF, Word doc, image, etc.)</Label>
+                  <Input id="sm-file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" onChange={e => setMatsFile(e.target.files?.[0] || null)} />
                 </div>
                 <div className="md:col-span-2">
                   <Button type="submit" disabled={uploadingMats} className="gradient-primary border-0 font-bold">
@@ -675,12 +763,15 @@ const StudyMaterialsManager = () => {
                           {m.description && ` · ${m.description}`}
                         </p>
                       </div>
-                      <Button size="sm" variant="outline" className="h-8" title="Preview Material" onClick={() => handleOpenMaterial(m.title, m.file_url)}>
+                      <Button size="sm" variant="outline" className="h-8" title="Edit resource metadata and Markdown" onClick={() => beginEditMaterial(m)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      {m.file_url && <Button size="sm" variant="outline" className="h-8" title="Preview Material" onClick={() => handleOpenMaterial(m.title, m.file_url)}>
                         <BookOpen className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:text-foreground" title="Open directly in new tab" onClick={() => window.open(m.file_url, "_blank", "noopener,noreferrer")}>
+                      </Button>}
+                      {m.file_url && <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:text-foreground" title="Open directly in new tab" onClick={() => window.open(m.file_url, "_blank", "noopener,noreferrer")}>
                         <ExternalLink className="h-4 w-4" />
-                      </Button>
+                      </Button>}
                       <Button onClick={() => handleDeleteMaterial(m)} variant="ghost" size="sm" className="text-destructive h-8">
                         <Trash2 className="h-4 w-4" />
                       </Button>

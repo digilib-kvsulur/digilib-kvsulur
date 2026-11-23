@@ -25,6 +25,10 @@ entrypoint = "./functions/library-bot/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/library-bot/*.html" ]
 
+[functions.solve-study-doubt]
+enabled = true
+verify_jwt = false
+
 
 [functions.chess-duel]
 enabled = true

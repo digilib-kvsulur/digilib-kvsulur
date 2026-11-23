@@ -32,6 +32,7 @@ import TeacherProfileCompletionDialog from "@/components/dashboard/TeacherProfil
 import { VacationAdminPage } from "@/features/vacation";
 
 import { useBackHandler } from "@/hooks/useBackHandler";
+import { FEATURE_FLAGS } from "@/config/featureFlags";
 
 type TeacherTab = "progress" | "badges" | "reading-lists" | "recommendations" | "materials" | "community" | "network" | "book-requests" | "profile" | "vacation";
 
@@ -49,7 +50,7 @@ const TeacherDashboard = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get("tab") as TeacherTab | null;
-    if (tabParam) {
+    if (tabParam && (FEATURE_FLAGS.communityAndFriendsChat || tabParam !== "community")) {
       setActiveTab(tabParam);
     }
   }, [location.search]);
@@ -549,7 +550,7 @@ const TeacherDashboard = () => {
             <TabsTrigger value="reading-lists" className="flex items-center gap-2"><ListChecks className="h-4 w-4" /> Reading Lists</TabsTrigger>
             <TabsTrigger value="recommendations" className="flex items-center gap-2"><Star className="h-4 w-4" /> Recommendations</TabsTrigger>
             <TabsTrigger value="vacation" className="flex items-center gap-2"><Sun className="h-4 w-4" /> Vacation</TabsTrigger>
-            <TabsTrigger value="community" className="flex items-center gap-2"><Users className="h-4 w-4" /> Community</TabsTrigger>
+            {FEATURE_FLAGS.communityAndFriendsChat && <TabsTrigger value="community" className="flex items-center gap-2"><Users className="h-4 w-4" /> Community</TabsTrigger>}
             <TabsTrigger value="network" className="flex items-center gap-2"><Star className="h-4 w-4" /> Network</TabsTrigger>
             <TabsTrigger value="book-requests" className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> Requests</TabsTrigger>
             <TabsTrigger value="materials" className="flex items-center gap-2"><BookMarked className="h-4 w-4" /> Study Materials</TabsTrigger>
@@ -778,9 +779,9 @@ const TeacherDashboard = () => {
             <VacationAdminPage canConfigure={false} />
           </TabsContent>
 
-          <TabsContent value="community">
+          {FEATURE_FLAGS.communityAndFriendsChat && <TabsContent value="community">
             {teacher?.id && <Community currentUserId={teacher.id} isAdmin={false} />}
-          </TabsContent>
+          </TabsContent>}
 
           <TabsContent value="network">
             {teacher?.id && <NetworkTab user={teacher} />}

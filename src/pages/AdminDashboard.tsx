@@ -147,9 +147,7 @@ const navSections = [
       { id: "levels" as Tab, label: "Levels", icon: Layers },
       { id: "notifications" as Tab, label: "Notifications", icon: Bell },
       { id: "email" as Tab, label: "Email Centre", icon: Mail },
-      { id: "community" as Tab, label: "Community", icon: MessageSquare },
       { id: "book-suggestions" as Tab, label: "Book Suggestions", icon: Lightbulb },
-      { id: "chat" as Tab, label: "Friends Chat", icon: MessageSquare },
       { id: "bug-bounty" as Tab, label: "Bug Bounty", icon: ShieldAlert },
       { id: "ui-reform" as Tab, label: "UI Reform Challenge", icon: Palette },
       { id: "vacation" as Tab, label: "Vacation Campaign", icon: Sun },
@@ -168,6 +166,7 @@ const navSections = [
 ];
 
 import { useBackHandler } from "@/hooks/useBackHandler";
+import { FEATURE_FLAGS } from "@/config/featureFlags";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -198,7 +197,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get("tab") as Tab | null;
-    if (tabParam) {
+    if (tabParam && (!(["community", "chat"].includes(tabParam)) || FEATURE_FLAGS.communityAndFriendsChat)) {
       setActiveTab(tabParam);
     }
   }, [location.search]);
@@ -716,8 +715,8 @@ const AdminDashboard = () => {
           {activeTab === "analytics" && <ClassAnalytics />}
           {activeTab === "notifications" && <NotificationSender />}
           {activeTab === "email" && <EmailCampaignManager />}
-          {activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
-          {activeTab === "chat" && <FriendsChatAdmin />}
+          {FEATURE_FLAGS.communityAndFriendsChat && activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
+          {FEATURE_FLAGS.communityAndFriendsChat && activeTab === "chat" && <FriendsChatAdmin />}
           {activeTab === "materials" && <StudyMaterialsManager />}
           {activeTab === "barcodes" && <BarcodeGenerator />}
           {activeTab === "student-barcodes" && <StudentBarcodeGenerator />}

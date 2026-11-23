@@ -19,14 +19,12 @@ const primaryTabs: { id: Tab; label: string; icon: React.ElementType; center?: b
   { id: "issued", label: "Books", icon: BookOpen },
   { id: "quizzes", label: "Quizzes", icon: Brain },
   { id: "games", label: "Games", icon: Gamepad2 },
-  { id: "community", label: "Community", icon: Users },
 ];
 
 const vacationPrimaryTabs: { id: Tab; label: string; icon: React.ElementType; center?: boolean }[] = [
   { id: "overview", label: "Home", icon: Home },
   { id: "games", label: "Games", icon: Gamepad2 },
   { id: "vacation", label: "Vacation", icon: Sun, center: true },
-  { id: "community", label: "Community", icon: Users },
 ];
 
 export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, showVacationCenter }: MobileBottomNavProps) {
@@ -112,8 +110,10 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
     title: "Learning",
     items: [
       { id: "materials", label: "Study Materials", icon: GraduationCap },
+      { id: "study-resources", label: "Study Resources", icon: BookOpen },
+      { id: "doubt-solver", label: "Doubt Solver", icon: Sparkles },
       { id: "ncert", label: "NCERT Books", icon: BookOpen },
-      { id: "study-guide", label: "AI Study Guide", icon: Sparkles },
+      { id: "study-guide", label: "Chapter Study", icon: Sparkles },
       { id: "study", label: "Study Tracker", icon: Timer },
       { id: "quizzes", label: "Quizzes", icon: Brain },
       { id: "badges", label: "Badge Cabinet", icon: Award },
@@ -122,12 +122,10 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
     ],
   },
   {
-    title: "Community",
+    title: "Explore",
     items: [
       { id: "events", label: "Events", icon: CalendarDays },
       { id: "periodicals", label: "Periodicals", icon: BookOpen },
-      { id: "community", label: "Community", icon: Users },
-      { id: "chat", label: "Friends Chat", icon: MessageSquare },
       { id: "invite", label: "Invite Friends", icon: UserPlus },
       { id: "vacation", label: "Vacation Campaign", icon: Sun },
       { id: "bounty", label: "Bug Bounty", icon: Trophy },

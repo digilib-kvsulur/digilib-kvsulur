@@ -2610,12 +2610,20 @@ export type Database = {
       }
       study_materials: {
         Row: {
+          academic_session: string
+          chapter_title: string | null
           created_at: string
           description: string | null
           file_name: string | null
           file_type: string | null
           file_url: string
           id: string
+          exam_year: number | null
+          marks: number | null
+          markdown_content: string | null
+          resource_type: string
+          source_label: string | null
+          source_url: string | null
           student_class: string | null
           subject: string | null
           title: string
@@ -2623,12 +2631,20 @@ export type Database = {
           uploaded_by: string
         }
         Insert: {
+          academic_session?: string
+          chapter_title?: string | null
           created_at?: string
           description?: string | null
           file_name?: string | null
           file_type?: string | null
           file_url: string
           id?: string
+          exam_year?: number | null
+          marks?: number | null
+          markdown_content?: string | null
+          resource_type?: string
+          source_label?: string | null
+          source_url?: string | null
           student_class?: string | null
           subject?: string | null
           title: string
@@ -2636,12 +2652,20 @@ export type Database = {
           uploaded_by: string
         }
         Update: {
+          academic_session?: string
+          chapter_title?: string | null
           created_at?: string
           description?: string | null
           file_name?: string | null
           file_type?: string | null
           file_url?: string
           id?: string
+          exam_year?: number | null
+          marks?: number | null
+          markdown_content?: string | null
+          resource_type?: string
+          source_label?: string | null
+          source_url?: string | null
           student_class?: string | null
           subject?: string | null
           title?: string
