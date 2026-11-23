@@ -13,7 +13,7 @@ export interface PauseConfig {
 }
 
 export const PAUSE_CONFIG: PauseConfig = {
-  enabled: true,
+  enabled: false,
   until: "2026-11-28T02:30:00.000Z", // Saturday, 28 Nov 2026, 8:00 AM IST
   displayDate: "Saturday, 28 November 2026",
   displayTime: "8:00 AM IST",
