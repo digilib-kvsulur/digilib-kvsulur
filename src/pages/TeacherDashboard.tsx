@@ -23,6 +23,7 @@ import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import Community from "@/components/community/Community";
+import ReadingAssignmentsManager from "@/components/teacher/ReadingAssignmentsManager";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 import MyRequests from "@/components/dashboard/MyRequests";
 import SupportCenter from "@/components/support/SupportCenter";
@@ -669,6 +670,8 @@ const TeacherDashboard = () => {
 
           {/* TAB 3: Reading Lists */}
           <TabsContent value="reading-lists">
+            {teacher?.id && <ReadingAssignmentsManager classLevel={selectedClass} assignedClass={teacher?.student_class} teacherId={teacher.id} books={allBooks} canAdminister={teacher?.role === "admin"} />}
+            <div className="h-4" />
             <Card className="border-border/50 bg-white">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div>
