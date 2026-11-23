@@ -398,8 +398,8 @@ const App = () => {
                   {/* Normal DLMS routes wrapped with SetupRedirectGuard */}
                   <Route path="/" element={<SetupRedirectGuard><RootRoute isPaused={isPaused} /></SetupRedirectGuard>} />
                   <Route path="/dashboard" element={<SetupRedirectGuard><DashboardRedirect isPaused={isPaused} /></SetupRedirectGuard>} />
-                  <Route path="/community" element={<SetupRedirectGuard><DashboardRedirect /></SetupRedirectGuard>} />
-                  <Route path="/reels" element={<SetupRedirectGuard><DashboardRedirect /></SetupRedirectGuard>} />
+                  <Route path="/community" element={<SetupRedirectGuard><DashboardRedirect isPaused={isPaused} /></SetupRedirectGuard>} />
+                  <Route path="/reels" element={<SetupRedirectGuard><DashboardRedirect isPaused={isPaused} /></SetupRedirectGuard>} />
                   <Route path="/login" element={<SetupRedirectGuard><Login /></SetupRedirectGuard>} />
                   <Route path="/register" element={<SetupRedirectGuard><Register /></SetupRedirectGuard>} />
                   <Route path="/catalog" element={<SetupRedirectGuard><Catalog /></SetupRedirectGuard>} />
