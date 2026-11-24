@@ -34,6 +34,13 @@ export default function StudyDoubtSolver({ userId, studentClass, onOpenResources
 
   useEffect(() => { setClassValue(defaultClass); }, [defaultClass]);
   useEffect(() => {
+    const prefill = window.sessionStorage.getItem("dlms-doubt-prefill");
+    if (prefill) {
+      setQuestion(prefill);
+      window.sessionStorage.removeItem("dlms-doubt-prefill");
+    }
+  }, []);
+  useEffect(() => {
     let alive = true;
     (supabase as any).from("study_doubt_history").select("id,student_class,subject,question_text,answer_text,formulas,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(20).then(({ data }: any) => { if (alive) setHistory(data || []); });
     return () => { alive = false; };
