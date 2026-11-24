@@ -167,6 +167,7 @@ const navSections = [
 
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { FEATURE_FLAGS } from "@/config/featureFlags";
+import AdminActionCenter from "@/components/admin/AdminActionCenter";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -635,23 +636,7 @@ const AdminDashboard = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="border-border/50">
-                  <CardHeader><CardTitle className="text-lg">Recent Alerts</CardTitle></CardHeader>
-                  <CardContent className="space-y-2">
-                    {[
-                      { label: "New book request pending", icon: BookOpen },
-                      { label: "Low stock alert: Fiction", icon: AlertCircle },
-                    ].map((action, i) => (
-                      <button key={i} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors group">
-                        <div className="flex items-center gap-3">
-                          <action.icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                          <span className="text-sm font-medium text-foreground">{action.label}</span>
-                        </div>
-                        <span className="text-muted-foreground group-hover:text-primary transition-colors">→</span>
-                      </button>
-                    ))}
-                  </CardContent>
-                </Card>
+                <AdminActionCenter onNavigate={(tab) => setActiveTab(tab as Tab)} />
 
                 <Card className="border-border/50">
                   <CardHeader><CardTitle className="text-lg">System Status</CardTitle></CardHeader>
