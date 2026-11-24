@@ -1,4 +1,4 @@
-﻿-- Include ISBN in search_books so catalog can resolve Open Library covers
+-- Include ISBN in search_books so catalog can resolve Open Library covers
 -- and support edition-aware grouping in the client.
 DROP FUNCTION IF EXISTS public.search_books(text, text, text, text, text, text, text, text, integer);
 
