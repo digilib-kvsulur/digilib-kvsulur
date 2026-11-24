@@ -136,6 +136,11 @@ const buildNcertUrl = (code: string, chapter: number) => {
   return `https://ncert.nic.in/textbook/pdf/${code}${ch}.pdf`;
 };
 
+const normalizeStudySubject = (value: string | null | undefined) => (value || "")
+  .replace(/(_Part\d| Part \d)/gi, "").replace(/_/g, " ").trim().toLocaleLowerCase();
+const normalizeStudyChapter = (value: string | null | undefined) => (value || "")
+  .replace(/^(chapter|unit|lesson)\s*\d+\s*[-–:.)]?\s*/i, "").trim().toLocaleLowerCase();
+
 const StudyMaterialsManager = () => {
   const { toast } = useToast();
   
@@ -147,6 +152,9 @@ const StudyMaterialsManager = () => {
   const [loadingMats, setLoadingMats] = useState(true);
   const [uploadingMats, setUploadingMats] = useState(false);
   const [matsForm, setMatsForm] = useState({ title: "", description: "", subject: "General", student_class: "All", chapter_title: "", resource_type: "short_notes", academic_session: "2026-27", exam_year: "", marks: "", source_label: "", source_url: "", markdown_content: "" });
+  const [activeHubTab, setActiveHubTab] = useState("materials");
+  const [coverageClass, setCoverageClass] = useState("All");
+  const [coverageSubject, setCoverageSubject] = useState("All");
   const [matsFile, setMatsFile] = useState<File | null>(null);
   const [materialToEdit, setMaterialToEdit] = useState<Material | null>(null);
   const [editMaterialForm, setEditMaterialForm] = useState<any>({});
@@ -216,11 +224,13 @@ const StudyMaterialsManager = () => {
   const loadMaterials = async () => {
     setLoadingMats(true);
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) { setLoadingMats(false); return; }
     const { data: profile } = await supabase.from("profiles").select("role,student_class").eq("id", session.user.id).single();
     setCurrentUserId(session.user.id);
     setCurrentUserRole(profile?.role || "");
     setCurrentUserClass(profile?.student_class || "");
+    const profileClassNumber = String(profile?.student_class || "").match(/\d+/)?.[0] || "";
+    if (profile?.role === "teacher" && profileClassNumber) setCoverageClass(profileClassNumber);
 
     let query = (supabase as any).from("study_materials").select("*").order("created_at", { ascending: false });
     
@@ -642,6 +652,44 @@ const StudyMaterialsManager = () => {
     }
   };
 
+  const curriculumSubjects = Array.from(new Set(ncertChapters
+    .filter((chapter) => coverageClass === "All" || chapter.class_number === coverageClass)
+    .map((chapter) => chapter.subject))).sort((a, b) => a.localeCompare(b));
+  const coverageRows = ncertChapters
+    .filter((chapter) => (coverageClass === "All" || chapter.class_number === coverageClass)
+      && (coverageSubject === "All" || chapter.subject === coverageSubject))
+    .map((chapter) => {
+      const normalizedClass = String(Number(chapter.class_number));
+      const subjectKey = normalizeStudySubject(chapter.subject);
+      const chapterKey = normalizeStudyChapter(chapter.chapter_title);
+      const matching = materials.filter((material) =>
+        (material.student_class === normalizedClass || material.student_class === "All")
+        && normalizeStudySubject(material.subject) === subjectKey
+        && normalizeStudyChapter(material.chapter_title) === chapterKey);
+      const formulaSubject = ["mathematics", "science", "physics", "chemistry"].includes(subjectKey);
+      const competitiveSubject = ["mathematics", "physics", "chemistry", "biology"].includes(subjectKey);
+      const classNumber = Number(chapter.class_number);
+      const requiredTypes = ["short_notes", ...(formulaSubject ? ["formula_sheet"] : []), "quick_revision",
+        ...(classNumber === 10 || classNumber === 12 || (classNumber >= 11 && classNumber <= 12 && competitiveSubject) ? ["pyq"] : [])];
+      const resourcesByType = new Map(requiredTypes.map((type) => [type, {
+        approved: matching.filter((resource) => resource.resource_type === type && resource.review_status === "approved").length,
+        pending: matching.filter((resource) => resource.resource_type === type && resource.review_status === "pending").length,
+        needsRevision: matching.filter((resource) => resource.resource_type === type && resource.review_status === "needs_revision").length,
+      }]));
+      const completeCount = requiredTypes.filter((type) => (resourcesByType.get(type)?.approved || 0) > 0).length;
+      const firstUnstartedType = requiredTypes.find((type) => {
+        const count = resourcesByType.get(type);
+        return !count?.approved && !count?.pending && !count?.needsRevision;
+      });
+      return { chapter, requiredTypes, resourcesByType, completeCount, firstUnstartedType };
+    });
+  const totalCoverageRequirements = coverageRows.reduce((sum, row) => sum + row.requiredTypes.length, 0);
+  const approvedCoverageRequirements = coverageRows.reduce((sum, row) => sum + row.completeCount, 0);
+  const teacherCoverageClass = currentUserClass.match(/\d+/)?.[0] || "";
+  const resourceTypeLabels: Record<string, string> = {
+    short_notes: "Short notes", formula_sheet: "Formula sheet", quick_revision: "Quick revision", pyq: "PYQs",
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -674,13 +722,68 @@ const StudyMaterialsManager = () => {
         </DialogContent>
       </Dialog>
 
-      <Tabs defaultValue="materials" className="space-y-6">
+      <Tabs value={activeHubTab} onValueChange={setActiveHubTab} className="space-y-6">
         <TabsList className="bg-slate-100 p-1 rounded-xl flex-wrap h-auto gap-1">
+          <TabsTrigger value="coverage">Chapter Coverage</TabsTrigger>
           <TabsTrigger value="materials">Reference Materials</TabsTrigger>
           <TabsTrigger value="ncert">NCERT Books</TabsTrigger>
           <TabsTrigger value="cbse">CBSE Curriculum</TabsTrigger>
           <TabsTrigger value="review">NCERT & CBSE Link Review</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="coverage" className="space-y-5 mt-0">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Chapter resource coverage</CardTitle>
+              <CardDescription>Coverage is based on the NCERT chapter index and approved DLMS materials in this school database. Pending drafts do not count as available to students.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Select value={coverageClass} onValueChange={(value) => { setCoverageClass(value); setCoverageSubject("All"); }}>
+                  <SelectTrigger className="min-h-11 sm:w-52" aria-label="Filter coverage by class"><SelectValue placeholder="Select class" /></SelectTrigger>
+                  <SelectContent>{(currentUserRole === "teacher" && teacherCoverageClass ? [teacherCoverageClass] : CLASSES.filter((value) => value !== "All")).map((value) => <SelectItem key={value} value={value}>Class {value}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={coverageSubject} onValueChange={setCoverageSubject}>
+                  <SelectTrigger className="min-h-11 sm:w-64" aria-label="Filter coverage by subject"><SelectValue placeholder="Select subject" /></SelectTrigger>
+                  <SelectContent><SelectItem value="All">All subjects</SelectItem>{curriculumSubjects.map((subject) => <SelectItem key={subject} value={subject}>{subject}</SelectItem>)}</SelectContent>
+                </Select>
+                <div className="flex min-h-11 items-center rounded-lg border bg-muted/30 px-3 text-sm font-medium">
+                  {loadingNcert || loadingMats ? "Loading coverage…" : `${approvedCoverageRequirements} of ${totalCoverageRequirements} required resource types approved`}
+                </div>
+              </div>
+              {loadingNcert || loadingMats ? <div className="py-10 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />Reading chapter and review data…</div> : coverageRows.length === 0 ? (
+                <div className="rounded-xl border border-dashed p-8 text-center">
+                  <BookOpen className="mx-auto h-8 w-8 text-muted-foreground/60" />
+                  <h3 className="mt-3 font-semibold">No NCERT chapters in this class index</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Import or refresh the official chapter links before planning materials for this class.</p>
+                  <Button className="mt-3" variant="outline" onClick={() => setActiveHubTab("ncert")}>Open NCERT chapter index</Button>
+                </div>
+              ) : <div className="space-y-3">{coverageRows.map(({ chapter, requiredTypes, resourcesByType, completeCount, firstUnstartedType }) => (
+                <Card key={`${chapter.class_number}-${chapter.subject}-${chapter.book_name}-${chapter.chapter_number}`} className="border-border/70">
+                  <CardContent className="flex flex-col gap-3 p-4 sm:p-5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Class {chapter.class_number} · {chapter.subject} · {chapter.book_name}</p>
+                        <h3 className="mt-1 font-semibold leading-snug">{chapter.chapter_title}</h3>
+                        <p className="mt-1 text-xs text-muted-foreground">{completeCount}/{requiredTypes.length} applicable resource types approved</p>
+                      </div>
+                      <Button size="sm" variant={firstUnstartedType ? "outline" : "ghost"} className="min-h-10 shrink-0" onClick={() => {
+                        if (firstUnstartedType) setMatsForm((current) => ({ ...current, title: `${resourceTypeLabels[firstUnstartedType]} — ${chapter.chapter_title}`, student_class: chapter.class_number, subject: chapter.subject, chapter_title: chapter.chapter_title, resource_type: firstUnstartedType }));
+                        setActiveHubTab("materials");
+                      }}>{firstUnstartedType ? "Add missing resource" : "Review resources"}</Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">{requiredTypes.map((type) => {
+                      const counts = resourcesByType.get(type)!;
+                      const statusText = counts.approved ? `${counts.approved} approved` : counts.pending ? `${counts.pending} pending review` : counts.needsRevision ? `${counts.needsRevision} needs revision` : "Missing";
+                      const variant = counts.approved ? "default" : counts.needsRevision ? "destructive" : counts.pending ? "secondary" : "outline";
+                      return <Badge key={type} variant={variant}>{resourceTypeLabels[type]} · {statusText}</Badge>;
+                    })}</div>
+                  </CardContent>
+                </Card>
+              ))}</div>}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Tab 1: Reference Materials */}
         <TabsContent value="materials" className="space-y-6 mt-0">
@@ -691,7 +794,7 @@ const StudyMaterialsManager = () => {
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2"><Upload className="h-5 w-5 text-indigo-500" /> Add Reference / CBSE Material</CardTitle>
-              <CardDescription>Upload notes or curriculum details immediately visible to students.</CardDescription>
+              <CardDescription>Submit notes and curriculum resources for review. Students see them after approval.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleUploadMaterial} className="grid grid-cols-1 md:grid-cols-2 gap-4">
