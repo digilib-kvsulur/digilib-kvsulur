@@ -748,7 +748,7 @@ export default function Overview({
                       <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
                         {hub.label}
                       </p>
-                      <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                         {hub.description}
                       </p>
                     </button>

@@ -413,7 +413,7 @@ const StudentDashboard = () => {
       ],
     },
     {
-      title: "Learning",
+      title: "Study",
       items: [
         { id: "study-resources" as Tab, label: "Study", icon: BookMarked },
         { id: "doubt-solver" as Tab, label: "AI Doubt Solver", icon: Sparkles },
@@ -432,7 +432,7 @@ const StudentDashboard = () => {
       ],
     },
     {
-      title: "Explore & Rewards",
+      title: "Rewards",
       items: [
         { id: "quizzes" as Tab, label: "Quizzes", icon: Brain },
         ...(hasEventWinnerRelease ? [{ id: "event-results" as Tab, label: "Event Awards", icon: Award }] : []),
@@ -452,7 +452,7 @@ const StudentDashboard = () => {
       ],
     },
     {
-      title: "Help & Account",
+      title: "Profile",
       items: [
         { id: "support" as Tab, label: "Help & Support", icon: LifeBuoy },
         { id: "feedback" as Tab, label: "Feedback", icon: MessageSquare },
@@ -1034,18 +1034,16 @@ const StudentDashboard = () => {
 
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-2">
-            <button onClick={() => setMobileNavOpen(!mobileNavOpen)} className="p-1.5 rounded-lg hover:bg-muted">
+        <div className="flex items-center justify-between gap-2 px-3 h-14">
+          <div className="flex min-w-0 items-center gap-2">
+            <button aria-label={mobileNavOpen ? "Close menu" : "Open menu"} onClick={() => setMobileNavOpen(!mobileNavOpen)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg hover:bg-muted">
               {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <span className="font-bold text-sm text-foreground">DLMS KV Sulur</span>
+            <span className="truncate font-bold text-sm text-foreground">DLMS <span className="hidden xs:inline">KV Sulur</span></span>
           </div>
-          <div className="flex items-center gap-1">
-            <PWAControls userId={user?.id} />
+          <div className="flex shrink-0 items-center gap-1">
             <NotificationBell />
-            <Button variant="ghost" size="sm" onClick={() => navigate('/catalog')}><Search className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4" /></Button>
+            <Button aria-label="Search library catalog" variant="ghost" size="icon" className="h-11 w-11" onClick={() => navigate('/catalog')}><Search className="h-4 w-4" /></Button>
           </div>
         </div>
         {mobileNavOpen && (
@@ -1054,7 +1052,7 @@ const StudentDashboard = () => {
               className="fixed inset-0 top-14 bg-black/50 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
               onClick={() => setMobileNavOpen(false)}
             />
-            <div className="relative z-50 bg-card border-b border-border px-4 pb-3 max-h-[65vh] overflow-y-auto space-y-3 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+            <div className="relative z-50 bg-card border-b border-border px-4 pb-3 max-h-[75vh] overflow-y-auto space-y-3 shadow-2xl animate-in slide-in-from-top-2 duration-200">
               {mobileNavSections.map((section) => {
                 const sectionItems = section.items.filter((item) =>
                   navItems.some((n) => n.id === item.id) || item.id === "locator" || item.id === "challenges"
@@ -1088,6 +1086,12 @@ const StudentDashboard = () => {
                   </div>
                 );
               })}
+              <div className="space-y-2 border-t border-border pt-3">
+                <PWAControls userId={user?.id} showText />
+                <Button variant="outline" size="sm" className="min-h-11 w-full" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" /> Log out
+                </Button>
+              </div>
             </div>
           </>
         )}
@@ -1346,7 +1350,7 @@ const StudentDashboard = () => {
       {user?.id && <RotationalBadgeWinningPopup userId={user.id} />}
 
       {/* Keep the assistant out of social chat screens. */}
-      {activeTab !== "community" && activeTab !== "chat" && <LibraryBot />}
+      {activeTab !== "community" && activeTab !== "chat" && !mobileNavOpen && <LibraryBot />}
 
       <MobileBottomNav
         activeTab={activeTab}

@@ -120,6 +120,20 @@ Use content-driven breakpoints. Validate portrait and landscape phones and table
 
 Target WCAG 2.2 AA for contrast, keyboard operation, visible focus, labels, and error identification. Use plain language and consistent verbs. Provide semantic headings, screen-reader names, logical focus order, and accessible alternatives for charts and tables. Every core flow needs loading, empty, no-results, offline, permission-denied, recoverable-error, success, and confirmation states as appropriate.
 
+### Catalog and dashboard audit actions
+
+- Keep catalog discovery focused: search, Genre, Class, and Availability are the primary controls; place subject, language, author, and sorting in a clearly named “More filters” sheet/dialog. Show active filters and a clear-all action when the filter state is redesigned.
+- Use “Available” and “All issued” status labels, show “NEW” only for titles added in the past 14 days, and make rating, issue-count, and save controls readable and touch accessible.
+- Replace repeated grey/title placeholders with deterministic, DLMS-themed cover art keyed by the book record. Show each title once in its card. Add ISBN-based real-cover lookup only after validating ISBN quality, image rights, source reliability, and a safe fallback. Normalize author display after checking catalog data.
+- Group editions only when ISBN/edition metadata establishes that they are the same work. Preserve edition-specific inventory, issue history, and availability when a student selects a copy or requests a title.
+- Use a horizontal featured row with a clear reason for inclusion. Exclude featured records from the first catalog grid page, and make pagination/loading states clear without loading a large unbounded catalog.
+- On student home, prioritize Continue studying, current tasks, Today/next steps, a small set of meaningful stats, then launchpad shortcuts. Define every count and avoid repeating one pending book-request task per title.
+- In Study, lead with class and subject selection, show chapter counts and private completion/recency, keep a one-tap resume path, and show missing-resource guidance once at the relevant chapter or empty state rather than repeating it on every subject card.
+- Keep a compact mobile header with search and one notification entry point. Put logout and optional notification setup in More/Profile. Use five consistent groups—Home, Study, Library, Rewards, Profile—on desktop and mobile. Keep the assistant button clear of the bottom navigation and hide it while the mobile menu is open.
+- Use skeletons while loading, specific retry guidance for errors, and helpful empty states that link to the next action. Recheck contrast, minimum 44 px touch targets, keyboard focus, reduced motion, and safe-area spacing on every device size.
+
+The first audit pass is implemented in V2: the Study hero is shorter on phones, subject cards prioritize progress and recent chapter context, pending requests are grouped, the catalog has fewer primary filters, featured books scroll horizontally, placeholder covers are deterministic, key status labels and touch targets are clearer, and mobile navigation/account actions are simplified. The next pass should validate ISBN/edition grouping against the real catalog, add active-filter chips and meaningful featured reasons, reorder the full student overview hierarchy, and visually review real phone/tablet/desktop layouts before launch.
+
 ## Core journeys to redesign first
 
 1. Discover a book, understand availability, and request or borrow it.

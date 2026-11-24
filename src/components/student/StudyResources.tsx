@@ -4,7 +4,8 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import { ArrowLeft, BookMarked, Bookmark, BookmarkCheck, BookOpen, ExternalLink, FileText, Search, Sparkles } from "lucide-react";
+import { ArrowLeft, Atom, Bookmark, BookmarkCheck, BookOpen, Calculator, ChevronDown, CircleHelp, ExternalLink, FileText, FlaskConical, Leaf, Monitor, NotebookText, Search } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,17 @@ const normalizeSubject = (subject: string) => subject.replace(/(_Part\d| Part \d
 const normalizeChapter = (title: string) => title.replace(/^(chapter|unit|lesson)\s*\d+\s*[-–:.)]?\s*/i, "").trim().toLocaleLowerCase();
 const progressKey = (classNumber: string, subject: string, chapterTitle: string) => `${classNumber}|${subject.trim().toLocaleLowerCase()}|${chapterTitle.trim().toLocaleLowerCase()}`;
 const progressLabel: Record<ChapterProgressStatus, string> = { in_progress: "In progress", needs_revision: "Needs revision", completed: "Completed" };
+const SUBJECT_STORAGE_KEY = "dlms-study-last-subject";
+
+const subjectTheme = (subject: string): { color: string; tint: string; icon: LucideIcon } => {
+  const normalized = subject.toLowerCase();
+  if (normalized.includes("physics")) return { color: "#EF5350", tint: "#FFF0EF", icon: Atom };
+  if (normalized.includes("chemistry")) return { color: "#FFA726", tint: "#FFF4E5", icon: FlaskConical };
+  if (normalized.includes("math")) return { color: "#26C6DA", tint: "#E8FAFC", icon: Calculator };
+  if (normalized.includes("biology")) return { color: "#5C9CE6", tint: "#EEF5FF", icon: Leaf };
+  if (normalized.includes("computer")) return { color: "#7C4DFF", tint: "#F2EDFF", icon: Monitor };
+  return { color: "#4F73C8", tint: "#EEF3FF", icon: BookOpen };
+};
 
 export default function StudyResources({ studentClass, userId, onOpenDoubt, initialChapter, onInitialChapterOpened }: { studentClass?: string | number | null; userId?: string; onOpenDoubt?: () => void; initialChapter?: { classNumber: string; subject: string; chapterTitle: string } | null; onInitialChapterOpened?: () => void }) {
   const parsedClass = Number(String(studentClass ?? "").match(/\d+/)?.[0] || 6);
@@ -42,6 +54,8 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedChapter, setSelectedChapter] = useState("");
+  const [chapterSearchOpen, setChapterSearchOpen] = useState(false);
+  const [chapterSearch, setChapterSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
@@ -93,7 +107,20 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
   const subjects = useMemo(() => Array.from(new Set([
     ...ncertChapters.map((chapter) => normalizeSubject(chapter.subject)),
     ...resources.map((resource) => resource.subject ? normalizeSubject(resource.subject) : "General"),
-  ])).filter(Boolean).sort((a, b) => a.localeCompare(b)), [ncertChapters, resources]);
+  ])).filter(Boolean).sort((a, b) => {
+    const latestFor = (subject: string) => Object.values(chapterProgress)
+      .filter((row) => row.subject.toLowerCase() === subject.toLowerCase())
+      .reduce((latest, row) => Math.max(latest, new Date(row.updated_at).getTime()), 0);
+    return latestFor(b) - latestFor(a) || a.localeCompare(b);
+  }), [ncertChapters, resources, chapterProgress]);
+
+  useEffect(() => {
+    if (loading || initialChapter || !subjects.length) return;
+    if (selectedSubject && subjects.some((subject) => subject.toLowerCase() === selectedSubject.toLowerCase())) return;
+    const remembered = window.localStorage.getItem(SUBJECT_STORAGE_KEY);
+    const nextSubject = subjects.find((subject) => subject.toLowerCase() === remembered?.toLowerCase()) || subjects[0];
+    setSelectedSubject(nextSubject);
+  }, [loading, initialChapter, selectedSubject, subjects]);
 
   const chapters = useMemo<Chapter[]>(() => {
     if (!selectedSubject) return [];
@@ -137,7 +164,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
 
   const activeChapter = chapters.find((item) => item.title === selectedChapter);
   const activeProgress = activeChapter && userId ? chapterProgress[progressKey(classFilter, selectedSubject, activeChapter.title)] : undefined;
-  const resumableChapter = Object.values(chapterProgress).find((item) => item.status === "in_progress");
+  const filteredChapters = chapters.filter((chapter) => chapter.title.toLowerCase().includes(chapterSearch.trim().toLowerCase()));
   const visibleResources = (activeChapter?.resources || []).filter((resource) => {
     if (bookmarkedOnly && !bookmarks.has(resource.id)) return false;
     if (resourceType !== "all" && resource.resource_type !== resourceType) return false;
@@ -190,37 +217,23 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
   };
 
   const resetNavigation = () => { setSelectedChapter(""); setQuery(""); setResourceType("all"); setBookmarkedOnly(false); };
+  const chooseSubject = (subject: string) => {
+    setSelectedSubject(subject);
+    setSelectedChapter("");
+    setChapterSearch("");
+    window.localStorage.setItem(SUBJECT_STORAGE_KEY, subject);
+  };
   const openResourceFile = async (url: string) => { try { await openStudyMaterial(url); } catch { /* RLS may have changed since the list loaded. */ } };
 
-  return <div className="mx-auto w-full max-w-6xl space-y-5">
-    <header className="rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-violet-600 p-5 text-white shadow-lg sm:p-7">
-      <div className="flex items-center gap-2 text-sm font-semibold text-blue-100"><BookMarked className="h-4 w-4" /> STUDY</div>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="mt-2 text-2xl font-black sm:text-3xl">Study by subject and chapter</h1><p className="mt-2 max-w-2xl text-sm text-blue-50">Choose a subject, open a chapter, then find its NCERT book link and all available notes, formulas, revision sheets, and questions in one place.</p></div>{onOpenDoubt && <Button variant="secondary" className="min-h-11 shrink-0 gap-2" onClick={onOpenDoubt}><Sparkles className="h-4 w-4" /> Ask a doubt</Button>}</div>
+  return <div className="study-v2 mx-auto w-full max-w-[1200px] pb-24">
+    <header className="study-v2-header">
+      <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={selectedChapter ? "Back to chapters" : "Go back"} onClick={() => selectedChapter ? resetNavigation() : window.history.back()}><ArrowLeft className="h-5 w-5" /></Button>
+      <Select value={classFilter} onValueChange={setClassFilter}><SelectTrigger className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 text-left text-sm font-bold shadow-none focus:ring-0" aria-label="Select class"><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: 7 }, (_, i) => String(i + 6)).map((c) => <SelectItem key={c} value={c}>Class {c}{c === ownClass ? " · My class" : ""}</SelectItem>)}</SelectContent></Select>
+      <ChevronDown aria-hidden="true" className="pointer-events-none -ml-8 mr-2 h-4 w-4 text-muted-foreground" />
+      <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label="Search chapters" onClick={() => setChapterSearchOpen((open) => !open)}><Search className="h-5 w-5" /></Button>
     </header>
 
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <Select value={classFilter} onValueChange={setClassFilter}><SelectTrigger className="w-full sm:w-48" aria-label="Select class"><SelectValue placeholder="Select class" /></SelectTrigger><SelectContent>{Array.from({ length: 7 }, (_, i) => String(i + 6)).map((c) => <SelectItem key={c} value={c}>Class {c}{c === ownClass ? " · My class" : ""}</SelectItem>)}</SelectContent></Select>
-      <a href="https://cbseacademic.nic.in/curriculum_2027.html" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-primary hover:underline"><ExternalLink className="h-4 w-4" /> Official CBSE curriculum 2026–27</a>
-    </div>
-
-    {selectedSubject && <nav aria-label="Study navigation" className="flex flex-wrap items-center gap-2 text-sm">
-      <Button variant="ghost" size="sm" onClick={() => { resetNavigation(); setSelectedSubject(""); }}><ArrowLeft className="mr-1 h-4 w-4" /> Subjects</Button>
-      <span aria-hidden="true" className="text-muted-foreground">/</span>
-      <Button variant={selectedChapter ? "ghost" : "secondary"} size="sm" onClick={() => resetNavigation()}>{selectedSubject}</Button>
-      {selectedChapter && <><span aria-hidden="true" className="text-muted-foreground">/</span><span className="max-w-[65vw] truncate font-semibold" aria-current="page">{selectedChapter}</span></>}
-    </nav>}
-
-    {loading ? <p role="status" className="py-10 text-center text-sm text-muted-foreground">Loading Class {classFilter} subjects and chapters…</p> : loadError ? <Card><CardContent className="py-10 text-center"><p role="alert" className="text-sm text-destructive">{loadError}</p><Button className="mt-3" variant="outline" onClick={() => setReloadKey((key) => key + 1)}>Try again</Button></CardContent></Card> : !selectedSubject ? <section aria-label="Subjects" className="space-y-3"><div><h2 className="text-lg font-bold">Choose a subject</h2><p className="text-sm text-muted-foreground">Class {classFilter} · Select a subject first, then open any chapter to see its complete study pack.</p></div>{resumableChapter && <Card className="border-primary/30 bg-primary/5"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Continue studying</p><h3 className="mt-1 font-bold">{resumableChapter.subject} · {resumableChapter.chapter_title}</h3><p className="mt-1 text-sm text-muted-foreground">Class {classFilter} · In progress</p></div><Button className="min-h-11" onClick={() => { setSelectedSubject(resumableChapter.subject); setSelectedChapter(resumableChapter.chapter_title); }}>Resume chapter</Button></CardContent></Card>}{subjects.length ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{subjects.map((item) => {
-      const chapterCount = ncertChapters.filter((chapter) => normalizeSubject(chapter.subject).toLowerCase() === item.toLowerCase()).length;
-      const materialCount = resources.filter((resource) => normalizeSubject(resource.subject || "General").toLowerCase() === item.toLowerCase()).length;
-      const subjectProgress = Object.values(chapterProgress).filter((row) => row.subject.toLowerCase() === item.toLowerCase());
-      const completedCount = subjectProgress.filter((row) => row.status === "completed").length;
-      return <button key={item} type="button" onClick={() => setSelectedSubject(item)} className="group min-h-32 rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="flex items-start justify-between gap-3"><div><h3 className="font-bold">{item}</h3><p className="mt-1 text-sm text-muted-foreground">{chapterCount ? `${chapterCount} NCERT chapters` : "Study resources"}</p></div><BookOpen className="h-5 w-5 text-primary transition-transform group-hover:translate-x-0.5" /></div><p className="mt-3 text-xs text-muted-foreground">{materialCount ? `${materialCount} teacher-reviewed DLMS resource${materialCount === 1 ? "" : "s"} across this subject` : "Teacher-reviewed DLMS materials are not added yet"}</p>{chapterCount > 0 && subjectProgress.length > 0 && <p className="mt-1 text-xs font-medium text-primary">{completedCount} of {chapterCount} chapters completed</p>}<span className="mt-3 inline-flex items-center text-sm font-semibold text-primary">View chapters <ArrowLeft className="ml-1 h-4 w-4 rotate-180" /></span></button>;
-    })}</div> : <Card><CardContent className="py-10 text-center"><BookOpen className="mx-auto h-8 w-8 text-muted-foreground/60" /><h3 className="mt-3 font-semibold">Class chapter list is not available yet</h3><p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground">DLMS has not loaded NCERT chapter links or teacher resources for this class. Ask a teacher or librarian to import the class NCERT chapter index and add reviewed notes.</p><a className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline" href="https://ncert.nic.in/textbook.php" target="_blank" rel="noreferrer">Open NCERT textbook catalogue <ExternalLink className="h-4 w-4" /></a></CardContent></Card>}</section> : !selectedChapter ? <section aria-label={`${selectedSubject} chapters`} className="space-y-3"><div><h2 className="text-lg font-bold">{selectedSubject} chapters</h2><p className="text-sm text-muted-foreground">Select a chapter to open the NCERT text and matching DLMS materials.</p></div>{chapters.length ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{chapters.map((item) => {
-        const kindCounts = Object.entries(KIND).filter(([kind]) => kind !== "textbook" && kind !== "other").map(([kind, label]) => ({ label, count: item.resources.filter((resource) => resource.resource_type === kind).length })).filter((entry) => entry.count > 0);
-        const progress = chapterProgress[progressKey(classFilter, selectedSubject, item.title)];
-        return <button key={item.title} type="button" onClick={() => setSelectedChapter(item.title)} className="flex min-h-28 items-center justify-between gap-4 rounded-2xl border bg-card p-4 text-left transition hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{item.chapterNumber ? `Chapter ${item.chapterNumber}` : item.bookName || "Topic"}</p><h3 className="mt-1 font-bold leading-snug">{item.title}</h3><div className="mt-2 flex flex-wrap gap-1.5">{item.textbookUrl && <Badge variant="outline">NCERT book</Badge>}{kindCounts.length ? kindCounts.map((entry) => <Badge key={entry.label} variant="secondary">{entry.label} · {entry.count}</Badge>) : <span className="text-xs text-muted-foreground">{item.textbookUrl ? "No DLMS materials yet" : "Chapter materials not added yet"}</span>}{progress && <Badge variant={progress.status === "completed" ? "default" : "outline"}>{progressLabel[progress.status]}</Badge>}</div></div><BookOpen className="h-5 w-5 shrink-0 text-primary" /></button>;
-      })}</div> : <Card><CardContent className="py-10 text-center"><p className="font-semibold">No chapters found for {selectedSubject} yet</p><p className="mt-1 text-sm text-muted-foreground">The chapter index can be imported from the official NCERT catalogue.</p></CardContent></Card>}</section> : <section aria-label={`${selectedChapter} materials`} className="space-y-4">
+    {loading ? <div className="study-v2-skeletons" role="status" aria-label="Loading study chapters">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="study-v2-skeleton" />)}</div> : loadError ? <Card className="m-4 rounded-[var(--radius-card)]"><CardContent className="p-6 text-center"><p role="alert" className="text-sm text-destructive">{loadError}</p><Button className="mt-4 min-h-11" variant="outline" onClick={() => setReloadKey((key) => key + 1)}>Try again</Button></CardContent></Card> : selectedChapter ? <section aria-label={`${selectedChapter} materials`} className="space-y-4 px-4 pt-4">
       <div><h2 className="text-xl font-bold">{selectedChapter}</h2><p className="mt-1 text-sm text-muted-foreground">Class {classFilter} · {selectedSubject} · {activeChapter?.bookName || "Chapter resources"}</p></div>
       {userId && activeChapter && <Card><CardContent className="space-y-3 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-semibold">Chapter progress</h3><p className="text-sm text-muted-foreground">Opening a chapter does not mark it complete. Update your progress when you are ready.</p></div>{activeProgress && <Badge variant={activeProgress.status === "completed" ? "default" : "outline"}>{progressLabel[activeProgress.status]}</Badge>}</div><div className="flex flex-wrap gap-2"><Button type="button" size="sm" variant={activeProgress?.status === "in_progress" ? "default" : "outline"} disabled={savingProgress} onClick={() => updateChapterProgress("in_progress")}>{activeProgress?.status === "completed" ? "Study again" : activeProgress?.status === "in_progress" ? "Continue studying" : "Start studying"}</Button><Button type="button" size="sm" variant={activeProgress?.status === "needs_revision" ? "default" : "outline"} disabled={savingProgress} onClick={() => updateChapterProgress("needs_revision")}>Needs revision</Button><Button type="button" size="sm" variant={activeProgress?.status === "completed" ? "default" : "outline"} disabled={savingProgress || activeProgress?.status === "completed"} onClick={() => updateChapterProgress("completed")}>{savingProgress ? "Saving…" : activeProgress?.status === "completed" ? "Completed" : "Mark complete"}</Button></div>{progressError && <p role="status" className="text-sm text-destructive">{progressError}</p>}</CardContent></Card>}
       {activeChapter?.textbookUrl ? <Card className="border-primary/30 bg-primary/5"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><h3 className="font-semibold">NCERT textbook chapter</h3><p className="text-sm text-muted-foreground">Open the official chapter PDF. The book remains hosted by NCERT.</p></div></div><Button asChild className="min-h-11"><a href={activeChapter.textbookUrl} target="_blank" rel="noreferrer">Open NCERT chapter <ExternalLink className="ml-2 h-4 w-4" /></a></Button></CardContent></Card> : <Card><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold">NCERT chapter link not added</h3><p className="text-sm text-muted-foreground">Open the official catalogue and choose Class {classFilter} · {selectedSubject}.</p></div><Button variant="outline" asChild><a href="https://ncert.nic.in/textbook.php" target="_blank" rel="noreferrer">NCERT catalogue <ExternalLink className="ml-2 h-4 w-4" /></a></Button></CardContent></Card>}
@@ -230,6 +243,44 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
         {resource.resource_type === "chapter_practice" ? <ChapterPracticeSet resourceId={resource.id} content={resource.markdown_content} /> : resource.markdown_content && <details open={resource.resource_type === "chapter_lesson"} className="rounded-xl border bg-muted/30 p-3"><summary className="cursor-pointer text-sm font-semibold">{resource.resource_type === "chapter_lesson" ? "Start lesson" : "Read resource"}</summary><div className="prose prose-sm mt-3 max-w-none dark:prose-invert"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{resource.markdown_content}</ReactMarkdown></div></details>}
         <div className="mt-auto flex flex-wrap items-center gap-2 border-t pt-3">{resource.file_url && <Button size="sm" onClick={() => openResourceFile(resource.file_url)}>Open resource <ExternalLink className="ml-1 h-3.5 w-3.5" /></Button>}{resource.source_url && <a className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-primary hover:underline" href={resource.source_url} target="_blank" rel="noreferrer">Source <ExternalLink className="h-3.5 w-3.5" /></a>}</div>
       </CardContent></Card>)}</div> : <Card><CardContent className="py-10 text-center"><FileText className="mx-auto h-8 w-8 text-muted-foreground/60" /><h3 className="mt-3 font-semibold">{bookmarkedOnly ? "No bookmarked materials in this chapter" : "No reviewed DLMS materials for this chapter yet"}</h3><p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground">{bookmarkedOnly ? "Turn off My bookmarks to see all available materials." : activeChapter?.textbookUrl ? "The official NCERT chapter is ready above. DLMS notes, formula sheets, quick revision and PYQs appear here after staff add and review them; they are not auto-generated." : "Staff can add sourced notes, formula sheets, quick revision and PYQs after checking the current syllabus. Open the official NCERT catalogue for the textbook in the meantime."}</p>{!bookmarkedOnly && !activeChapter?.textbookUrl && <a className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline" href="https://ncert.nic.in/textbook.php" target="_blank" rel="noreferrer">Browse official NCERT textbooks <ExternalLink className="h-4 w-4" /></a>}</CardContent></Card>}
+    </section> : <section aria-label="Study subjects and chapters" className="study-v2-list">
+      {chapterSearchOpen && <div className="px-4 pt-4"><div className="relative"><Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input autoFocus className="min-h-11 rounded-[var(--radius-card)] pl-11 text-sm" value={chapterSearch} onChange={(event) => setChapterSearch(event.target.value)} placeholder={`Search ${selectedSubject || "chapters"}`} aria-label="Search chapters" /></div></div>}
+      <div className="study-v2-tabs no-scrollbar" role="tablist" aria-label="Subjects">
+        {subjects.map((subject) => {
+          const theme = subjectTheme(subject);
+          const Icon = theme.icon;
+          const active = selectedSubject === subject;
+          return <button key={subject} type="button" role="tab" aria-selected={active} onClick={() => chooseSubject(subject)} className={`study-v2-tab ${active ? "study-v2-tab-active" : ""}`}>
+            <span className="study-v2-subject-icon" style={{ backgroundColor: active ? theme.color : theme.tint, color: active ? "#ffffff" : theme.color }}><Icon className="h-6 w-6" /></span>
+            <span className="study-v2-tab-label">{subject}</span>
+          </button>;
+        })}
+      </div>
+
+      {selectedSubject && <div className="study-v2-action" style={{ backgroundColor: subjectTheme(selectedSubject).tint }}>
+        <div className="min-w-0"><p className="text-sm font-bold text-slate-800">Stuck on something?</p><p className="mt-1 text-xs text-slate-600">Ask the AI Doubt Solver</p></div>
+        <Button type="button" disabled={!onOpenDoubt} onClick={() => onOpenDoubt?.()} className="h-11 shrink-0 rounded-[var(--radius-chip)] bg-white px-4 text-xs font-bold text-slate-900 shadow-sm hover:bg-white/90">Ask a doubt</Button>
+      </div>}
+
+      {selectedSubject ? <div className="study-v2-chapter-grid">
+        {filteredChapters.length ? filteredChapters.map((chapter) => {
+          const theme = subjectTheme(selectedSubject);
+          const progress = chapterProgress[progressKey(classFilter, selectedSubject, chapter.title)];
+          const progressPercent = progress?.status === "completed" ? 100 : progress?.status === "needs_revision" ? 70 : progress?.status === "in_progress" ? 40 : 0;
+          const progressText = progress?.status === "completed" ? "Completed ✓" : progress?.status === "in_progress" ? "In progress 40%" : progress?.status === "needs_revision" ? "Needs revision" : "Yet to start";
+          const chips = [
+            { label: "Notes", count: chapter.resources.filter((resource) => ["short_notes", "chapter_lesson"].includes(resource.resource_type)).length, icon: NotebookText },
+            { label: "Formulas", count: chapter.resources.filter((resource) => resource.resource_type === "formula_sheet").length, icon: Calculator },
+            { label: "Revision", count: chapter.resources.filter((resource) => resource.resource_type === "quick_revision").length, icon: FileText },
+            { label: "Questions", count: chapter.resources.filter((resource) => ["chapter_practice", "pyq"].includes(resource.resource_type)).length, icon: CircleHelp },
+          ].filter((chip) => chip.count > 0);
+          return <button key={chapter.title} type="button" onClick={() => setSelectedChapter(chapter.title)} className="study-v2-chapter-card">
+            <div className="flex min-w-0 items-start gap-3"><span className="pt-0.5 text-sm font-black" style={{ color: theme.color }}>{String(chapter.chapterNumber || 0).padStart(2, "0")}</span><h2 className="min-w-0 line-clamp-2 text-left text-sm font-bold leading-5 text-slate-900">{chapter.title}</h2></div>
+            <div className="mt-3 flex min-h-6 flex-wrap gap-2">{chips.length ? chips.map((chip) => { const Icon = chip.icon; return <span key={chip.label} className="study-v2-content-chip"><Icon className="h-3.5 w-3.5" />{chip.label} {chip.count}</span>; }) : <><span className="study-v2-content-chip text-slate-600">Notes coming soon</span>{chapter.textbookUrl && <span className="study-v2-ncert-icon" title="NCERT chapter available"><BookOpen className="h-4 w-4" /></span>}</>}</div>
+            <div className="mt-auto flex items-center gap-3 pt-3"><div className="h-1 flex-1 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-label={`${chapter.title} progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent}><div className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: theme.color }} /></div><span className="shrink-0 text-xs font-semibold text-slate-600">{progressText}</span></div>
+          </button>;
+        }) : <div className="study-v2-empty"><BookOpen className="mx-auto h-6 w-6 text-muted-foreground" /><p className="mt-3 text-sm font-semibold">No matching chapters</p><p className="mt-1 text-xs text-muted-foreground">Try another search or subject.</p></div>}
+      </div> : <div className="study-v2-empty"><BookOpen className="mx-auto h-6 w-6 text-muted-foreground" /><p className="mt-3 text-sm font-semibold">Class chapter list is not available yet</p><a className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline" href="https://ncert.nic.in/textbook.php" target="_blank" rel="noreferrer">Open NCERT textbook catalogue</a></div>}
     </section>}
   </div>;
 }

@@ -96,43 +96,48 @@ export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, sh
 
 export const mobileNavSections: { title: string; items: { id: Tab; label: string; icon: React.ElementType }[] }[] = [
   {
-    title: "Reading",
+    title: "Home",
     items: [
       { id: "overview", label: "Overview", icon: Home },
       { id: "portfolio", label: "My Portfolio", icon: FileText },
+    ],
+  },
+  {
+    title: "Study",
+    items: [
+      { id: "study-resources", label: "Study by Subject", icon: BookOpen },
+      { id: "doubt-solver", label: "Doubt Solver", icon: Sparkles },
+      { id: "study", label: "Study Tracker", icon: Timer },
+      { id: "notes", label: "My Notes", icon: StickyNote },
+    ],
+  },
+  {
+    title: "Library",
+    items: [
       { id: "books", label: "My Books", icon: BookCheck },
       { id: "issued", label: "Book Issued", icon: BookCheck },
       { id: "catalog", label: "Books Catalog", icon: BookOpen },
       { id: "locator", label: "Library Map", icon: Compass },
+      { id: "periodicals", label: "Periodicals", icon: BookOpen },
     ],
   },
   {
-    title: "Learning",
+    title: "Rewards",
     items: [
-      { id: "study-resources", label: "Study", icon: BookOpen },
-      { id: "doubt-solver", label: "Doubt Solver", icon: Sparkles },
-      { id: "study", label: "Study Tracker", icon: Timer },
       { id: "quizzes", label: "Quizzes", icon: Brain },
       { id: "badges", label: "Badge Cabinet", icon: Award },
       { id: "certificates", label: "Certificates", icon: Award },
       { id: "rankings", label: "Rankings", icon: Medal },
-    ],
-  },
-  {
-    title: "Explore",
-    items: [
       { id: "events", label: "Events", icon: CalendarDays },
-      { id: "periodicals", label: "Periodicals", icon: BookOpen },
       { id: "vacation", label: "Vacation Campaign", icon: Sun },
       { id: "bounty", label: "Bug Bounty", icon: Trophy },
-      { id: "ui-reform", label: "UI Reform", icon: Palette },
       { id: "games", label: "Games Corner", icon: Gamepad2 },
+      { id: "ui-reform", label: "UI Reform", icon: Palette },
     ],
   },
   {
-    title: "Account",
+    title: "Profile",
     items: [
-      { id: "notes", label: "My Notes", icon: StickyNote },
       { id: "support", label: "Help & Support", icon: LifeBuoy },
       { id: "feedback", label: "Feedback", icon: MessageSquare },
       { id: "profile", label: "Profile", icon: User },

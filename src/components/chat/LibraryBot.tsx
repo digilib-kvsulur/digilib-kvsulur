@@ -939,7 +939,7 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-3.5 md:right-6 z-40">
+    <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 md:bottom-6 md:right-6 z-40">
       {isOpen ? (
         <div className="bg-background border shadow-2xl rounded-2xl w-[360px] sm:w-[400px] max-w-[calc(100vw-1.5rem)] h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 border-border/60">
 
@@ -1116,7 +1116,7 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
         <div className="relative">
           <Button onClick={() => setIsOpen(true)}
             aria-label="Open library assistant chat"
-            className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-transform animate-in zoom-in border border-primary-foreground/20 p-0 flex items-center justify-center">
+            className="h-11 w-11 sm:h-14 sm:w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-transform animate-in zoom-in border border-primary-foreground/20 p-0 flex items-center justify-center">
             <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
           </Button>
           <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-emerald-500 border-2 border-background shadow-sm flex items-center justify-center">

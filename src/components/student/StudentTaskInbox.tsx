@@ -27,9 +27,18 @@ export default function StudentTaskInbox({ userId, setActiveTab }: { userId: str
         const dayDelta = Math.ceil((new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime() - todayDate.getTime()) / 86400000);
         if (dayDelta <= 7) next.push({ id: `loan-${issue.id}`, title: dayDelta < 0 ? `Return ${issue.books?.title || "your library book"}` : `Your book is due ${dayDelta === 0 ? "today" : `in ${dayDelta} day${dayDelta === 1 ? "" : "s"}`}`, detail: `${issue.books?.title || "Issued book"} · Due ${due.toLocaleDateString()}`, priority: dayDelta < 0 ? 0 : dayDelta <= 2 ? 1 : 2, tab: "issued", icon: AlertCircle });
       });
-      (requests.data || []).forEach((request: any) => {
+      const pendingRequests = (requests.data || []).filter((request: any) => String(request.status || "pending").toLowerCase() === "pending");
+      if (pendingRequests.length) next.push({
+        id: "requests-pending",
+        title: `${pendingRequests.length} book request${pendingRequests.length === 1 ? "" : "s"} awaiting review`,
+        detail: pendingRequests.slice(0, 2).map((request: any) => request.books?.title).filter(Boolean).join(" · ") || "Your requests are with the library team",
+        priority: 3,
+        tab: "issued",
+        icon: BookOpen,
+      });
+      (requests.data || []).filter((request: any) => String(request.status || "pending").toLowerCase() !== "pending").forEach((request: any) => {
         const status = String(request.status || "pending").toLowerCase();
-        if (["pending", "approved", "ready", "rejected"].includes(status)) next.push({ id: `request-${request.id}`, title: status === "pending" ? "Book request awaiting review" : status === "rejected" ? "Check your book request update" : "Book request approved — check next steps", detail: request.books?.title || "Open your request details", priority: status === "pending" ? 3 : 1, tab: "issued", icon: BookOpen });
+        if (["approved", "ready", "rejected"].includes(status)) next.push({ id: `request-${request.id}`, title: status === "rejected" ? "Check your book request update" : "Book request approved — check next steps", detail: request.books?.title || "Open your request details", priority: 1, tab: "issued", icon: BookOpen });
       });
       const nextEvent: any = events.data?.[0];
       if (nextEvent) {

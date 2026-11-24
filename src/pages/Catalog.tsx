@@ -12,6 +12,17 @@ import BookRequestForm from "@/components/BookRequestForm";
 import BookDetailDialog from "@/components/catalog/BookDetailDialog";
 import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
 
+const BookCoverPlaceholder = ({ seed }: { seed: string }) => {
+  const hash = Array.from(seed).reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 7);
+  const hue = 218 + (hash % 84);
+  return <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-br p-3 text-center text-white" style={{ backgroundImage: `linear-gradient(145deg, hsl(${hue} 68% 42%), hsl(${(hue + 34) % 360} 68% 28%))` }}>
+    <span aria-hidden="true" className="absolute -right-8 -top-6 h-28 w-28 rounded-full border border-white/20" />
+    <span aria-hidden="true" className="absolute -bottom-10 -left-8 h-32 w-32 rounded-full border border-white/15" />
+    <BookOpen className="relative z-10 mb-2 h-8 w-8 text-white/90" />
+    <span className="relative z-10 text-[10px] font-black tracking-[0.2em] text-white/90">DLMS LIBRARY</span>
+  </div>;
+};
+
 const Catalog = () => {
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
@@ -148,10 +159,12 @@ const Catalog = () => {
           p_limit: 1000 // Grab enough to virtualize locally or paginate
         });
         if (searchErr) throw searchErr;
-        count = searchResults?.length || 0;
+        const arrivalCutoff = Date.now() - 14 * 86400_000;
+        const matchingResults = (searchResults || []).filter((book: any) => availability !== "new" || new Date(book.first_added_at || book.created_at).getTime() >= arrivalCutoff);
+        count = matchingResults.length;
         const from = (currentPage - 1) * pageSize;
         const to = from + pageSize;
-        data = (searchResults || []).slice(from, to);
+        data = matchingResults.slice(from, to);
       } else {
         let query = supabase
           .from("books")
@@ -167,8 +180,8 @@ const Catalog = () => {
         if (availability === "available") {
           query = query.gt("available_copies", 0);
         } else if (availability === "new") {
-          const oneMonthAgoIso = new Date(Date.now() - 30 * 86400_000).toISOString();
-          query = query.gte("first_added_at", oneMonthAgoIso);
+          const arrivalCutoffIso = new Date(Date.now() - 14 * 86400_000).toISOString();
+          query = query.or(`first_added_at.gte.${arrivalCutoffIso},and(first_added_at.is.null,created_at.gte.${arrivalCutoffIso})`);
         }
 
         if (sortBy === "newest") {
@@ -226,7 +239,7 @@ const Catalog = () => {
     } finally { setLoading(false); }
   };
 
-  const oneMonthAgo = Date.now() - 30 * 86400_000;
+  const oneMonthAgo = Date.now() - 14 * 86400_000;
   const displayedBooks = useMemo(() => {
     // Both database and full-text paths already return the active page in the
     // requested order. Re-slicing search results here skipped pages after page 1.
@@ -410,9 +423,10 @@ const Catalog = () => {
             <Button 
               variant="outline" 
               onClick={() => setShowMobileFilters(true)}
-              className="lg:hidden rounded-xl border-slate-200 px-3 h-10 bg-slate-50/50 hover:bg-slate-100"
+              aria-label="Open catalog filters"
+              className="lg:hidden rounded-xl border-slate-200 px-3 h-11 bg-slate-50/50 hover:bg-slate-100"
             >
-              <SlidersHorizontal className="h-4 w-4" />
+              <SlidersHorizontal className="h-4 w-4" /><span className="ml-1.5 text-xs">Filters</span>
             </Button>
           </div>
 
@@ -420,10 +434,7 @@ const Catalog = () => {
           <div className="hidden lg:flex flex-wrap justify-center gap-2">
             {[
               { val: selectedGenre, set: setSelectedGenre, lbl: "Genre", opts: genres },
-              { val: selectedSubject, set: setSelectedSubject, lbl: "Subject", opts: subjects },
               { val: selectedClass, set: setSelectedClass, lbl: "Class", opts: classLevels, format: (v: string) => `Class ${v}` },
-              { val: selectedLang, set: setSelectedLang, lbl: "Language", opts: languages },
-              { val: selectedAuthor, set: setSelectedAuthor, lbl: "Author", opts: authors }
             ].map((filter, i) => (
               <Select key={i} value={filter.val} onValueChange={filter.set}>
                 <SelectTrigger className="w-36 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-xs h-9 text-xs">
@@ -442,32 +453,19 @@ const Catalog = () => {
                 <SelectValue placeholder="Availability" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
-                <SelectItem value="all">All books</SelectItem>
+                <SelectItem value="all">Any availability</SelectItem>
                 <SelectItem value="available">Available now</SelectItem>
                 <SelectItem value="new">New arrivals</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-              <SelectTrigger className="w-36 rounded-xl border-slate-200 bg-white font-medium text-slate-700 shadow-xs h-9 text-xs">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="newest">Recently added</SelectItem>
-                <SelectItem value="most_borrowed">Most borrowed</SelectItem>
-                <SelectItem value="most_recommended">Popular (most borrowed)</SelectItem>
-                <SelectItem value="title_az">Title A-Z</SelectItem>
-              </SelectContent>
-            </Select>
+            <Button variant="outline" onClick={() => setShowMobileFilters(true)} className="h-9 rounded-xl text-xs"><SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />More filters</Button>
           </div>
 
           {/* Quick Filter Chips */}
           <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
             {[
-              { label: "All Books", action: () => { setSelectedGenre("all"); setSelectedClass("all"); setAvailability("all"); setSearchTerm(""); } },
               { label: "🔥 Popular", action: () => setSortBy("most_borrowed") },
               { label: "📘 Reference Material", action: () => setSelectedGenre("Reference Material") },
-              { label: "📖 Fiction & Novels", action: () => setSelectedGenre("Fiction") },
-              { label: "🎓 Class 10 - 12", action: () => setSelectedClass("12") },
               { label: "⚡ Available Now", action: () => setAvailability("available") },
             ].map((chip, idx) => (
               <button
@@ -479,6 +477,17 @@ const Catalog = () => {
               </button>
             ))}
           </div>
+          {(selectedGenre !== "all" || selectedClass !== "all" || availability !== "all" || selectedSubject !== "all" || selectedLang !== "all" || selectedAuthor !== "all" || debouncedSearch.trim()) && <div className="flex flex-wrap items-center justify-center gap-2 border-t border-slate-100 pt-3" aria-label="Active catalog filters">
+            <span className="text-xs font-semibold text-slate-500">Showing:</span>
+            {debouncedSearch.trim() && <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800">Search: {debouncedSearch}</span>}
+            {selectedGenre !== "all" && <button type="button" onClick={() => setSelectedGenre("all")} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800">{selectedGenre} ×</button>}
+            {selectedSubject !== "all" && <button type="button" onClick={() => setSelectedSubject("all")} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800">{selectedSubject} ×</button>}
+            {selectedClass !== "all" && <button type="button" onClick={() => setSelectedClass("all")} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800">Class {selectedClass} ×</button>}
+            {selectedLang !== "all" && <button type="button" onClick={() => setSelectedLang("all")} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800">{selectedLang} ×</button>}
+            {selectedAuthor !== "all" && <button type="button" onClick={() => setSelectedAuthor("all")} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800">{selectedAuthor} ×</button>}
+            {availability !== "all" && <button type="button" onClick={() => setAvailability("all")} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800">{availability === "available" ? "Available now" : "New arrivals"} ×</button>}
+            <button type="button" onClick={() => { setSearchTerm(""); setSelectedGenre("all"); setSelectedSubject("all"); setSelectedClass("all"); setSelectedLang("all"); setSelectedAuthor("all"); setAvailability("all"); }} className="inline-flex min-h-10 items-center gap-1 px-2 text-xs font-semibold text-indigo-700 underline-offset-2 hover:underline"><X className="h-3.5 w-3.5" />Clear all</button>
+          </div>}
         </div>
       </div>
 
@@ -487,7 +496,7 @@ const Catalog = () => {
         <DialogContent className="max-w-md w-[90%] rounded-2xl p-5 gap-4">
           <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b">
             <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-indigo-600" /> Filter & Sort Books
+              <SlidersHorizontal className="h-4 w-4 text-indigo-600" /> More filters and sorting
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
@@ -521,7 +530,7 @@ const Catalog = () => {
                   <SelectValue placeholder="Availability" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="all">All books</SelectItem>
+                  <SelectItem value="all">Any availability</SelectItem>
                   <SelectItem value="available">Available now</SelectItem>
                   <SelectItem value="new">New arrivals</SelectItem>
                 </SelectContent>
@@ -586,12 +595,12 @@ const Catalog = () => {
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
+                <div className="flex gap-3 overflow-x-auto pb-2 sm:gap-4">
                   {featuredList.map((b) => (
                     <div
                       key={b.id}
                       onClick={() => navigate(`/book/${b.id}`)}
-                      className="group cursor-pointer bg-slate-50/80 hover:bg-white rounded-xl p-2 border border-slate-200/70 hover:border-indigo-300 transition-all duration-200 hover:shadow-md flex flex-col justify-between"
+                      className="group w-32 shrink-0 cursor-pointer bg-slate-50/80 hover:bg-white rounded-xl p-2 border border-slate-200/70 hover:border-indigo-300 transition-all duration-200 hover:shadow-md flex flex-col justify-between sm:w-40"
                     >
                       <div className="aspect-[2/3] w-full rounded-lg overflow-hidden mb-2 bg-slate-200/80 relative shadow-xs">
                         {b.cover_url && !failedImages.has(`feat-${b.id}`) ? (
@@ -602,10 +611,7 @@ const Catalog = () => {
                             onError={() => setFailedImages((prev) => new Set(prev).add(`feat-${b.id}`))}
                           />
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-slate-100 text-slate-600">
-                            <BookOpen className="h-5 w-5 text-indigo-500 mb-1" />
-                            <span className="text-[9px] font-bold line-clamp-2 text-slate-800">{b.title}</span>
-                          </div>
+                          <BookCoverPlaceholder seed={b.id} />
                         )}
                       </div>
                       <div>
@@ -630,7 +636,7 @@ const Catalog = () => {
                 <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
                   {catalogGridBooks.map(book => {
                     const r = ratings[book.id];
-                    const isNew = book.first_added_at && new Date(book.first_added_at).getTime() > oneMonthAgo;
+                    const isNew = new Date(book.first_added_at || book.created_at).getTime() > oneMonthAgo;
                     return (
                       <div
                         key={book.id}
@@ -647,17 +653,14 @@ const Catalog = () => {
                                 onError={() => setFailedImages((prev) => new Set(prev).add(book.id))}
                               />
                             ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-indigo-50 to-slate-100">
-                                <BookOpen className="h-7 w-7 text-indigo-500/70 mb-1.5" />
-                                <span className="text-[11px] font-bold text-slate-800 line-clamp-3 leading-snug">{book.title}</span>
-                              </div>
+                              <BookCoverPlaceholder seed={book.id} />
                             )}
                             {/* Status indicator badge */}
                             <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1 pointer-events-none">
                               <div className="flex flex-wrap gap-1">
-                                {isNew && <span className="bg-indigo-600 text-white text-[9px] px-2 py-0.5 rounded-md font-extrabold uppercase tracking-wider shadow-sm">NEW</span>}
-                                <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold shadow-sm ${book.available_copies > 0 ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-200"}`}>
-                                  {book.available_copies > 0 ? `${book.available_copies} Available` : "Borrowed"}
+                                {isNew && <span className="bg-indigo-700 text-white text-xs px-2 py-1 rounded-md font-extrabold uppercase tracking-wide shadow-sm">NEW</span>}
+                                <span className={`text-xs px-2 py-1 rounded-md font-bold shadow-sm ${book.available_copies > 0 ? "bg-emerald-700 text-white" : "bg-slate-900 text-white"}`}>
+                                  {book.available_copies > 0 ? "Available" : "All issued"}
                                 </span>
                               </div>
                               {user?.role === 'admin' && (
@@ -687,7 +690,7 @@ const Catalog = () => {
                                   <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {r.avg.toFixed(1)}
                                 </div>
                               ) : <span />}
-                              {borrowCounts[book.id] > 0 && <span className="text-[10px] text-slate-400 font-medium">{borrowCounts[book.id]} issue{borrowCounts[book.id] > 1 ? "s" : ""}</span>}
+                              {borrowCounts[book.id] > 0 && <span className="text-xs text-slate-600 font-medium">{borrowCounts[book.id]} issue{borrowCounts[book.id] > 1 ? "s" : ""}</span>}
                             </div>
                           )}
                           
@@ -701,7 +704,7 @@ const Catalog = () => {
                                 Waitlist
                               </Button>
                             )}
-                            <Button size="sm" variant="outline" className={`h-8.5 w-8.5 p-0 rounded-xl shrink-0 border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
+                            <Button size="icon" variant="outline" aria-label={wishlist.has(book.id) ? `Remove ${book.title} from saved books` : `Save ${book.title}`} className={`h-11 w-11 rounded-xl shrink-0 border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
                               {wishlist.has(book.id) ? <BookmarkCheck className="h-4 w-4 text-indigo-600" /> : <Bookmark className="h-4 w-4" />}
                             </Button>
                           </div>

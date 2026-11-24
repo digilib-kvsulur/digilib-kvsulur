@@ -81,7 +81,7 @@ const NotificationBell = () => {
       if (nextOpen) void loadNotifications();
     }}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full hover:bg-primary/10 transition-colors">
+        <Button variant="ghost" size="icon" aria-label={`${unreadCount ? `${unreadCount} unread ` : ""}Notifications`} className="relative h-11 w-11 rounded-full hover:bg-primary/10 transition-colors">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-destructive text-destructive-foreground rounded-full text-[10px] font-extrabold flex items-center justify-center animate-pulse">
