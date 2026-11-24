@@ -15,6 +15,29 @@ Student learning currently appears as separate navigation entries for Study, Stu
 
 Older `?tab=materials`, `?tab=ncert`, and `?tab=study-guide` links remain valid during transition, but those screens should not compete with Study in primary navigation. The Study page should clearly distinguish official textbook links from DLMS-authored material and state when teacher-reviewed resources have not been added.
 
+### Canonical Study flow
+
+The student flow is deliberately linear: **Study → class (preselected to the student's class) → subject → chapter → chapter pack**. Subject is the first learning choice. Do not put separate NCERT, notes, formula-sheet, PYQ, or chapter-study destinations beside Study in student navigation. The selected chapter page combines:
+
+- the official NCERT chapter link, clearly marked as NCERT;
+- all approved DLMS resources for that class, subject, chapter, and academic session;
+- visible resource-type counts on chapter cards, so students can tell what exists before opening it;
+- a useful empty state that keeps the textbook link available and explains that DLMS notes appear only after a teacher or admin adds and approves them.
+
+Keep Ask a doubt as a secondary action from Study, with a return path to the resource page. Keep Study Tracker and My Notes as personal tools, not alternate content catalogs. Old tabs can continue resolving to their existing screens for bookmarked links, but should route students toward the canonical flow when those screens are next revised.
+
+### Full reform backlog and acceptance order
+
+1. **Learning navigation and content discovery:** make Study the single catalog entry; show class, subject, chapter, textbook, resource availability, and a clear back path; verify no parallel links remain in home shortcuts, mobile navigation, or desktop navigation.
+2. **Learning chapter experience:** group materials by type, keep the NCERT link at the top, support bookmarks and search, render math, preserve chapter context when returning from the doubt solver, and show an explicit progress state.
+3. **Student home and mobile shell:** prioritize the next useful action, active loans, resume-study, and current tasks; use a five-item mobile bar with consistent labels, safe areas, and no horizontal overflow.
+4. **Teacher workbench:** prioritize assigned classes, assignments, pending reviews, and chapter coverage; let staff add/edit resources with source, academic session, review status, and class/subject/chapter tags visible together.
+5. **Admin workbench:** prioritize approvals, overdue circulation, requests, study-content review, and operational alerts; move infrequent setup into settings and make bulk-action scope explicit.
+6. **Shared interaction and accessibility pass:** standardize page headers, filters, cards, badges, forms, loading/error/empty/success states, dialogs, and notifications; verify keyboard and screen-reader use, contrast, 44 px touch targets, browser zoom, reduced motion, and long text/math.
+7. **Journey validation:** walk the same student, teacher, and admin tasks at 360, 390, 768, 1024, and 1440 px, then verify on real Android and Windows targets. Record failed steps and fix those before decorative polish.
+
+Each stage is accepted by task completion rather than appearance alone: a student can reach and open the correct chapter pack; a teacher can find and review missing coverage; an admin can process a real queue item and understand the result. Retain the DLMS blue/violet visual identity throughout.
+
 ## Role navigation and home screens
 
 ### Student
@@ -104,5 +127,7 @@ Link to official NCERT chapter files rather than uploading or republishing their
 - The repository has an NCERT chapter-index migration, but the tenant must have applied it for rows to appear.
 - The `study_materials` table has no general chapter pack seeded. Approved materials appear only after teachers/admins add and approve them.
 - Before claiming broad coverage, verify the live tenant's class/subject/chapter matrix and whether the content migrations are applied.
+- If Study shows no subjects or NCERT chapters, first apply the v2 migrations to the v2 tenant and verify the `ncert_books` rows for the student's class. If chapters appear but DLMS notes/formulas/PYQs do not, that is expected until a staff-reviewed content batch is imported and approved; generating drafts alone does not publish them.
 - Keep all content writes behind teacher/admin permissions and the existing review gate. Do not use student-profile data to create or train content models.
+- Use Claude or another model only to draft original, source-cited resources from a fixed coverage template. Start with one class and one subject, teacher-check the output, second-check formulas and exam answers, import as pending review, then approve. Do not ask a model to make a full unverified corpus or reproduce NCERT books, diagrams, sample papers, PYQs, or marking schemes. The current drafting guide is `docs/ai-study-content-drafting-prompt.md`.
 - Release only after empty states explain the gap, the seeded official chapter index is verified, and the initial content batch has teacher review.
