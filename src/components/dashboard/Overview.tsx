@@ -17,6 +17,7 @@ import { LiveQuizAlert } from "@/components/quiz/LiveQuizAlert";
 import { VacationOverviewBanner } from "@/features/vacation";
 import StudentTaskInbox from "@/components/student/StudentTaskInbox";
 import StudentReadingAssignments from "@/components/student/StudentReadingAssignments";
+import StudyResumeCard, { type StudyChapterTarget } from "@/components/student/StudyResumeCard";
 import {
   BookOpen, Brain, Target, Award, Zap, Trophy, TrendingUp, Sparkles,
   Calendar, CalendarDays, Gamepad2, Timer, FileText, BookCheck, Users,
@@ -52,6 +53,7 @@ export interface OverviewProps {
   setShowMemoryCapsule?: (show: boolean) => void;
   handleJoinQuizLeague?: (session: any) => Promise<void>;
   setActiveTab: (tab: any) => void;
+  onResumeChapter?: (target: StudyChapterTarget) => void;
 }
 
 export default function Overview({
@@ -76,6 +78,7 @@ export default function Overview({
   setShowMemoryCapsule,
   handleJoinQuizLeague,
   setActiveTab,
+  onResumeChapter,
 }: OverviewProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -170,14 +173,14 @@ export default function Overview({
     },
     {
       id: "ncert",
-      label: "NCERT Textbooks",
-      description: "Class 1-12 official e-books",
+      label: "Study by Subject",
+      description: "NCERT books and chapter resources",
       icon: BookOpen,
-      badge: "E-BOOKS",
+      badge: "STUDY",
       color: "text-sky-500",
       bg: "bg-sky-500/10 hover:bg-sky-500/15",
       border: "hover:border-sky-500/30",
-      action: () => setActiveTab("ncert"),
+      action: () => setActiveTab("study-resources"),
     },
     {
       id: "quizzes",
@@ -478,6 +481,8 @@ export default function Overview({
           </div>
         </div>
       </div>
+
+      {user?.id && onResumeChapter && <StudyResumeCard userId={user.id} studentClass={user.student_class} onResume={onResumeChapter} />}
 
       {/* 3. MOBILE HERO COMPANION (STREAK + LEVEL + INVITE IMMEDIATELY NEXT TO WELCOME BOX ON MOBILE) */}
       <div className="block lg:hidden space-y-3">

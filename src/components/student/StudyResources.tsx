@@ -27,7 +27,7 @@ const normalizeChapter = (title: string) => title.replace(/^(chapter|unit|lesson
 const progressKey = (classNumber: string, subject: string, chapterTitle: string) => `${classNumber}|${subject.trim().toLocaleLowerCase()}|${chapterTitle.trim().toLocaleLowerCase()}`;
 const progressLabel: Record<ChapterProgressStatus, string> = { in_progress: "In progress", needs_revision: "Needs revision", completed: "Completed" };
 
-export default function StudyResources({ studentClass, userId, onOpenDoubt }: { studentClass?: string | number | null; userId?: string; onOpenDoubt?: () => void }) {
+export default function StudyResources({ studentClass, userId, onOpenDoubt, initialChapter, onInitialChapterOpened }: { studentClass?: string | number | null; userId?: string; onOpenDoubt?: () => void; initialChapter?: { classNumber: string; subject: string; chapterTitle: string } | null; onInitialChapterOpened?: () => void }) {
   const parsedClass = Number(String(studentClass ?? "").match(/\d+/)?.[0] || 6);
   const ownClass = String(Math.min(12, Math.max(6, parsedClass)));
   const [classFilter, setClassFilter] = useState(ownClass);
@@ -115,6 +115,25 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt }: { 
     });
     return Array.from(byTitle.values()).sort((a, b) => (a.chapterNumber ?? 999) - (b.chapterNumber ?? 999) || a.title.localeCompare(b.title));
   }, [ncertChapters, resources, selectedSubject]);
+
+  useEffect(() => {
+    if (!initialChapter || loading) return;
+    if (classFilter !== initialChapter.classNumber) {
+      setClassFilter(initialChapter.classNumber);
+      return;
+    }
+    const subject = subjects.find((item) => item.toLocaleLowerCase() === initialChapter.subject.toLocaleLowerCase());
+    if (subject && subject !== selectedSubject) setSelectedSubject(subject);
+  }, [initialChapter, loading, classFilter, subjects, selectedSubject]);
+
+  useEffect(() => {
+    if (!initialChapter || loading || selectedSubject.toLocaleLowerCase() !== initialChapter.subject.toLocaleLowerCase()) return;
+    const chapter = chapters.find((item) => item.title === initialChapter.chapterTitle)
+      || chapters.find((item) => normalizeChapter(item.title) === normalizeChapter(initialChapter.chapterTitle));
+    if (!chapter) return;
+    setSelectedChapter(chapter.title);
+    onInitialChapterOpened?.();
+  }, [initialChapter, loading, selectedSubject, chapters, onInitialChapterOpened]);
 
   const activeChapter = chapters.find((item) => item.title === selectedChapter);
   const activeProgress = activeChapter && userId ? chapterProgress[progressKey(classFilter, selectedSubject, activeChapter.title)] : undefined;

@@ -61,6 +61,7 @@ import Recommendations from "@/components/dashboard/Recommendations";
 import BadgeCabinet from "@/components/rewards/BadgeCabinet";
 import NetworkTab from "@/components/dashboard/NetworkTab";
 import ProfileCompletionDialog from "@/components/dashboard/ProfileCompletionDialog";
+import { type StudyChapterTarget } from "@/components/student/StudyResumeCard";
 import RotationalBadgeWinningPopup from "@/components/dashboard/RotationalBadgeWinningPopup";
 import { RotationalWinnerBadge } from "@/components/rewards/RotationalWinnerBadge";
 import SupportCenter from "@/components/support/SupportCenter";
@@ -96,6 +97,7 @@ const StudentDashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [studyResumeTarget, setStudyResumeTarget] = useState<StudyChapterTarget | null>(null);
   const [hasEventWinnerRelease, setHasEventWinnerRelease] = useState(false);
   const [hasRotationalRelease, setHasRotationalRelease] = useState(false);
   const loadedStudentTabData = useRef(new Set<string>());
@@ -1125,6 +1127,7 @@ const StudentDashboard = () => {
               setShowMemoryCapsule={setShowMemoryCapsule}
               handleJoinQuizLeague={handleJoinQuizLeague}
               setActiveTab={setActiveTab}
+              onResumeChapter={(target) => { setStudyResumeTarget(target); setActiveTab("study-resources"); }}
             />
           )}
 
@@ -1199,7 +1202,7 @@ const StudentDashboard = () => {
 
           {/* Study Materials */}
           {activeTab === "materials" && <StudyMaterials studentClass={user?.student_class} />}
-          {activeTab === "study-resources" && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading Study…</div>}><StudyResources studentClass={user?.student_class} userId={user?.id} onOpenDoubt={() => setActiveTab("doubt-solver")} /></Suspense>}
+          {activeTab === "study-resources" && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading Study…</div>}><StudyResources studentClass={user?.student_class} userId={user?.id} initialChapter={studyResumeTarget} onInitialChapterOpened={() => setStudyResumeTarget(null)} onOpenDoubt={() => setActiveTab("doubt-solver")} /></Suspense>}
           {activeTab === "doubt-solver" && user?.id && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading doubt solver…</div>}><StudyDoubtSolver userId={user.id} studentClass={user?.student_class} onOpenResources={() => setActiveTab("study-resources")} /></Suspense>}
 
           {/* NCERT Books */}
