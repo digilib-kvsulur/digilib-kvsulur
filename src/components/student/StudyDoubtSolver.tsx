@@ -56,7 +56,23 @@ export default function StudyDoubtSolver({ userId, studentClass, onOpenResources
         const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(",")[1] || ""); reader.onerror = () => reject(new Error("Could not read that image.")); reader.readAsDataURL(image);
       });
       const { data, error: invokeError } = await supabase.functions.invoke("solve-study-doubt", { body: { studentClass: classValue, subject, question: action === "solve" ? question : answer?.extracted_question || question, previousAnswer: action === "solve" ? undefined : answer?.answer, action, imageBase64: action === "solve" ? imageBase64 : undefined, mimeType: action === "solve" ? image?.type : undefined } });
-      if (invokeError || data?.error) throw new Error(data?.error || invokeError?.message || "Could not answer this question.");
+      if (invokeError) {
+        const response = (invokeError as any)?.context as Response | undefined;
+        let message = invokeError.message || "Could not answer this question.";
+        if (response && typeof response.clone === "function") {
+          try {
+            const body = await response.clone().json();
+            if (body?.error) message = String(body.error);
+          } catch {
+            try {
+              const text = await response.clone().text();
+              if (text) message = text.slice(0, 300);
+            } catch { /* keep fallback */ }
+          }
+        }
+        throw new Error(message);
+      }
+      if (data?.error) throw new Error(String(data.error));
       setAnswer(data); setQuestion(data.extracted_question || question); setImage(null);
     } catch (e: any) { setError(e.message || "Could not solve this doubt."); }
     finally { setLoading(false); }
