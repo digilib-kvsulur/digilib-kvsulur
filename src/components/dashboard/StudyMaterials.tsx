@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExternalLink, BookOpen, Search, FileText, Download, Loader2, ChevronRight, GraduationCap, Timer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatGoogleDriveUrl, isGoogleDriveFolder } from "@/lib/utils";
+import { getStudyMaterialAccessUrl, openStudyMaterial } from "@/lib/studyMaterialAccess";
 
 interface Material {
   id: string;
@@ -550,7 +551,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                       </div>
                       {m.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{m.description}</p>}
                       <div className="mt-3">
-                        <Button size="sm" variant="outline" className="h-8 text-xs font-semibold px-3" onClick={() => setViewMaterial({ title: m.title, url: m.file_url, id: m.id })}>
+                        <Button size="sm" variant="outline" className="h-8 text-xs font-semibold px-3" onClick={async () => setViewMaterial({ title: m.title, url: await getStudyMaterialAccessUrl(m.file_url), id: m.id })}>
                           <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Open
                         </Button>
                       </div>
@@ -669,7 +670,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                     size="sm"
                     variant="outline"
                     className="shrink-0 h-8 text-xs font-semibold"
-                    onClick={() => window.open(res.url, "_blank")}
+                    onClick={() => openStudyMaterial(res.url)}
                   >
                     <ExternalLink className="h-3.5 w-3.5 mr-1" /> View PDF
                   </Button>

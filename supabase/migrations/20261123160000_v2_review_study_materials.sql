@@ -110,3 +110,21 @@ USING (
     p.role = 'admin' OR (p.role = 'teacher' AND p.student_class = study_materials.student_class AND study_materials.uploaded_by = auth.uid())
   ))
 );
+
+-- Keep uploaded review drafts private; approved students receive short-lived signed URLs.
+UPDATE storage.buckets SET public = false WHERE id = 'study-materials';
+DROP POLICY IF EXISTS "Anyone can view study material files" ON storage.objects;
+DROP POLICY IF EXISTS "Read approved or assigned study material files" ON storage.objects;
+CREATE POLICY "Read approved or assigned study material files" ON storage.objects FOR SELECT TO authenticated
+USING (
+  bucket_id = 'study-materials' AND EXISTS (
+    SELECT 1 FROM public.study_materials m
+    WHERE right(m.file_url, length('/storage/v1/object/public/study-materials/' || storage.objects.name)) = '/storage/v1/object/public/study-materials/' || storage.objects.name
+      AND (
+        m.review_status = 'approved'
+        OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND (
+          p.role = 'admin' OR (p.role = 'teacher' AND (m.student_class = p.student_class OR m.student_class = 'All'))
+        ))
+      )
+  )
+);

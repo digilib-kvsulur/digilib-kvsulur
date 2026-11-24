@@ -101,7 +101,7 @@ Previous explanation to clarify (if any):\n${previousAnswer || "None."}\n\nDLMS 
     const formulas = Array.isArray(answer.formulas) ? answer.formulas.map((item: unknown) => String(item).slice(0, 500)).slice(0, 20) : [];
     const { error: saveError } = await serviceClient.from("study_doubt_history").insert({ user_id: user.id, student_class: studentClass, subject, question_text: extractedQuestion, answer_text: answerText, formulas, related_resource_ids: citedSources.map((resource) => resource.id), model_id: Deno.env.get("GEMINI_VISION_MODEL") || "gemini-2.5-flash" });
     if (saveError) console.error("Could not save study doubt history", saveError.message);
-    return json({ ...answer, extracted_question: extractedQuestion, formulas, sources: citedSources.map((resource) => ({ id: resource.id, title: resource.title, source_label: resource.source_label, source_url: resource.source_url || resource.file_url })) });
+    return json({ ...answer, extracted_question: extractedQuestion, formulas, sources: citedSources.map((resource) => ({ id: resource.id, title: resource.title, source_label: resource.source_label, source_url: resource.source_url || undefined })) });
   } catch (error) {
     console.error("Study doubt request failed", error instanceof Error ? error.message : "Unknown error");
     return json({ error: "The question could not be processed. Check the image and try again." }, 500);

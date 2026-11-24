@@ -15,6 +15,7 @@ import BulkImportMaterials from "./BulkImportMaterials";
 import BulkImportCbse from "./BulkImportCbse";
 import NcertCbseReview from "./NcertCbseReview";
 import { formatGoogleDriveUrl, isGoogleDriveUrl, isGoogleDriveFolder } from "@/lib/utils";
+import { getStudyMaterialAccessUrl, openStudyMaterial } from "@/lib/studyMaterialAccess";
 
 interface Material {
   id: string;
@@ -192,16 +193,17 @@ const StudyMaterialsManager = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [viewMaterial, setViewMaterial] = useState<{title: string, url: string} | null>(null);
 
-  const handleOpenMaterial = (title: string, rawUrl: string) => {
+  const handleOpenMaterial = async (title: string, rawUrl: string) => {
     if (!rawUrl) return;
+    const accessUrl = await getStudyMaterialAccessUrl(rawUrl);
     if (
       rawUrl.includes("ncert.nic.in") ||
       rawUrl.includes("cbseacademic.nic.in") ||
       isGoogleDriveFolder(rawUrl)
     ) {
-      window.open(rawUrl, "_blank", "noopener,noreferrer");
+      window.open(accessUrl, "_blank", "noopener,noreferrer");
     } else {
-      setViewMaterial({ title, url: rawUrl });
+      setViewMaterial({ title, url: accessUrl });
     }
   };
 
@@ -786,7 +788,7 @@ const StudyMaterialsManager = () => {
                       {m.file_url && <Button size="sm" variant="outline" className="h-8" title="Preview Material" onClick={() => handleOpenMaterial(m.title, m.file_url)}>
                         <BookOpen className="h-4 w-4" />
                       </Button>}
-                      {m.file_url && <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:text-foreground" title="Open directly in new tab" onClick={() => window.open(m.file_url, "_blank", "noopener,noreferrer")}>
+                      {m.file_url && <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:text-foreground" title="Open directly in new tab" onClick={() => openStudyMaterial(m.file_url)}>
                         <ExternalLink className="h-4 w-4" />
                       </Button>}
                       <Button onClick={() => handleDeleteMaterial(m)} variant="ghost" size="sm" className="text-destructive h-8">

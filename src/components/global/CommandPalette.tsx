@@ -94,7 +94,7 @@ export const CommandPalette: React.FC = () => {
         if (!active) return;
         setBookResults([...unique.values()].slice(0, 6));
         setLearningResults([
-          ...(materials || []).map((item: any) => ({ id: `resource-${item.id}`, title: item.title, detail: [item.subject, item.chapter_title, item.student_class && `Class ${item.student_class}`, item.resource_type?.replaceAll("_", " ")].filter(Boolean).join(" · "), kind: "resource" as const, href: item.source_url || item.file_url || undefined })),
+          ...(materials || []).map((item: any) => ({ id: `resource-${item.id}`, title: item.title, detail: [item.subject, item.chapter_title, item.student_class && `Class ${item.student_class}`, item.resource_type?.replaceAll("_", " ")].filter(Boolean).join(" · "), kind: "resource" as const, href: item.source_url || undefined })),
           ...(quizzes || []).map((item) => ({ id: `quiz-${item.id}`, title: item.title, detail: [item.subject, item.difficulty, "Quiz"].filter(Boolean).join(" · "), kind: "quiz" as const })),
           ...(events || []).map((item) => ({ id: `event-${item.id}`, title: item.title, detail: ["Event", new Date(item.event_date).toLocaleDateString()].join(" · "), kind: "event" as const })),
         ].slice(0, 12));
