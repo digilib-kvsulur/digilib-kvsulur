@@ -34,6 +34,8 @@ const normaliseAuthorName = (author?: string | null) => {
   return /^geronimo$/i.test(cleaned) ? "Geronimo Stilton" : cleaned;
 };
 
+const allFilterLabel = (label: string) => label === "Class" ? "All Classes" : `All ${label}s`;
+
 const Catalog = () => {
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
@@ -452,7 +454,7 @@ const Catalog = () => {
                   <SelectValue placeholder={filter.lbl} />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl max-h-[300px]">
-                  <SelectItem value="all" className="font-semibold text-indigo-600">All {filter.lbl}s</SelectItem>
+                  <SelectItem value="all" className="font-semibold text-indigo-600">{allFilterLabel(filter.lbl)}</SelectItem>
                   {sortedOptions(filter.opts).map((opt: string) => (
                     <SelectItem key={opt} value={opt}>{filter.format ? filter.format(opt) : opt}</SelectItem>
                   ))}
@@ -504,7 +506,7 @@ const Catalog = () => {
 
       {/* Mobile Filters Drawer / Modal */}
       <Dialog open={showMobileFilters} onOpenChange={setShowMobileFilters}>
-        <DialogContent className="max-w-md w-[90%] rounded-2xl p-5 gap-4">
+        <DialogContent className="catalog-filter-sheet max-w-md w-[90%] rounded-2xl p-5 gap-4">
           <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b">
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4 text-indigo-600" /> More filters and sorting
@@ -525,7 +527,7 @@ const Catalog = () => {
                     <SelectValue placeholder={`Select ${filter.lbl}`} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl max-h-[250px]">
-                    <SelectItem value="all" className="font-semibold text-indigo-600">All {filter.lbl}s</SelectItem>
+                    <SelectItem value="all" className="font-semibold text-indigo-600">{allFilterLabel(filter.lbl)}</SelectItem>
                     {sortedOptions(filter.opts).map((opt: string) => (
                       <SelectItem key={opt} value={opt}>{filter.format ? filter.format(opt) : opt}</SelectItem>
                     ))}

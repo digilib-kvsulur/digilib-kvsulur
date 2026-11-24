@@ -180,6 +180,20 @@
   }
 }
 
+@media (max-width: 639px) {
+  .catalog-filter-sheet {
+    top: auto !important;
+    bottom: 0;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: min(82dvh, 680px);
+    transform: none !important;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
