@@ -139,8 +139,10 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
             {claimedToday ? (
               <>
                 <Check className="h-4 w-4 mr-1 text-emerald-500 shrink-0" />
-                <span>Claimed Today</span>
+                <span>Claimed ✓ (Back tomorrow)</span>
               </>
+            ) : claiming ? (
+              <span>Claiming XP…</span>
             ) : (
               <>
                 <Sparkles className="h-4 w-4 mr-1.5 animate-pulse text-amber-200 shrink-0" />
@@ -150,7 +152,7 @@ const LoginStreakCard = ({ currentStreak, longestStreak, totalLoginDays, onPoint
           </Button>
         ) : (
           <div className="h-10.5 sm:h-11 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-[11px] sm:text-xs text-muted-foreground font-medium">
-            Login daily to ignite streak 🔥
+            Come back tomorrow to ignite streak 🔥
           </div>
         )}
       </div>

@@ -83,7 +83,23 @@ export default function BookDetailDialog({ book, userId, open, onOpenChange }: {
           {book.cupboard_number && <Badge variant="outline" className="border-emerald-200 text-emerald-700 bg-emerald-50">Cupboard {book.cupboard_number}</Badge>}
           {book.shelf_number && <Badge variant="outline" className="border-emerald-200 text-emerald-700 bg-emerald-50">Shelf {book.shelf_number}</Badge>}
           {book.language && <Badge variant="outline">{book.language}</Badge>}
+          {(book.editionCount || 1) > 1 && <Badge variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50">{book.editionCount} editions grouped</Badge>}
+          {book.isbn && <Badge variant="outline">ISBN {book.isbn}</Badge>}
         </div>
+
+        {(book.editions?.length || 0) > 1 && (
+          <div className="rounded-lg border p-3 space-y-2">
+            <p className="text-sm font-medium">Editions / copies in this group</p>
+            <div className="space-y-1">
+              {book.editions.map((ed: any) => (
+                <div key={ed.id} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span className="truncate">{ed.accession_number || ed.id}{ed.isbn ? ` • ISBN ${ed.isbn}` : ""}</span>
+                  <span className={ed.available_copies > 0 ? "text-emerald-600 font-medium" : "text-slate-500"}>{ed.available_copies > 0 ? "Available" : "All issued"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
            <Button variant="outline" size="sm" className="rounded-xl border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold" onClick={() => setShowMap(true)}>

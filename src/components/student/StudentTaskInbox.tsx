@@ -27,11 +27,21 @@ export default function StudentTaskInbox({ userId, setActiveTab }: { userId: str
         const dayDelta = Math.ceil((new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime() - todayDate.getTime()) / 86400000);
         if (dayDelta <= 7) next.push({ id: `loan-${issue.id}`, title: dayDelta < 0 ? `Return ${issue.books?.title || "your library book"}` : `Your book is due ${dayDelta === 0 ? "today" : `in ${dayDelta} day${dayDelta === 1 ? "" : "s"}`}`, detail: `${issue.books?.title || "Issued book"} · Due ${due.toLocaleDateString()}`, priority: dayDelta < 0 ? 0 : dayDelta <= 2 ? 1 : 2, tab: "issued", icon: AlertCircle });
       });
-      const pendingRequests = (requests.data || []).filter((request: any) => String(request.status || "pending").toLowerCase() === "pending");
-      if (pendingRequests.length) next.push({
+      const seenTitles = new Set<string>();
+      const uniquePending: any[] = [];
+      (requests.data || []).forEach((r: any) => {
+        if (String(r.status || "pending").toLowerCase() === "pending") {
+          const key = r.books?.title || r.id;
+          if (!seenTitles.has(key)) {
+            seenTitles.add(key);
+            uniquePending.push(r);
+          }
+        }
+      });
+      if (uniquePending.length) next.push({
         id: "requests-pending",
-        title: `${pendingRequests.length} book request${pendingRequests.length === 1 ? "" : "s"} awaiting review`,
-        detail: pendingRequests.slice(0, 2).map((request: any) => request.books?.title).filter(Boolean).join(" · ") || "Your requests are with the library team",
+        title: `${uniquePending.length} book request${uniquePending.length === 1 ? "" : "s"} awaiting review`,
+        detail: uniquePending.slice(0, 2).map((request: any) => request.books?.title).filter(Boolean).join(" · ") || "Your requests are with the library team",
         priority: 3,
         tab: "issued",
         icon: BookOpen,
@@ -46,7 +56,7 @@ export default function StudentTaskInbox({ userId, setActiveTab }: { userId: str
         const days = Math.ceil((eventDate.getTime() - todayDate.getTime()) / 86400000);
         next.push({ id: `event-${nextEvent.id}`, title: `Upcoming: ${nextEvent.title}`, detail: days === 0 ? "Today" : `In ${days} day${days === 1 ? "" : "s"} · ${eventDate.toLocaleDateString()}`, priority: 4, tab: "events", icon: CalendarDays });
       }
-      if (alive) { setTasks(next.sort((a, b) => a.priority - b.priority).slice(0, 4)); setLoading(false); }
+      if (alive) { setTasks(next.sort((a, b) => a.priority - b.priority).slice(0, 3)); setLoading(false); }
     })();
     return () => { alive = false; };
   }, [userId]);
@@ -56,7 +66,9 @@ export default function StudentTaskInbox({ userId, setActiveTab }: { userId: str
   return <Card className="border-border/70">
     <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-3">
       <div><CardTitle className="text-base">Your next steps</CardTitle><p className="mt-1 text-xs text-muted-foreground">Loans, requests, and upcoming library events</p></div>
-      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{loading ? "Updating" : countLabel}</span>
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={() => setActiveTab("issued")} className="text-xs font-semibold text-primary h-8 px-2 hover:bg-primary/10">View all →</Button>
+      </div>
     </CardHeader>
     <CardContent className="space-y-2">
       {loading ? <div role="status" className="flex items-center gap-2 py-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Checking your updates…</div> : tasks.length ? tasks.map((task) => {

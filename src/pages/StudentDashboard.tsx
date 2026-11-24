@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/utils";
 import {
   BookOpen, LogOut, Target, User, BookPlus, Home, Brain,
-  Flame, Medal, Search, ChevronRight, Star, Calendar, TrendingUp, Menu, X,
+  Flame, Medal, Search, ChevronRight, ChevronDown, Star, Calendar, TrendingUp, Menu, X,
   StickyNote, Users, GraduationCap, FileText, Bookmark, BookmarkCheck, CalendarDays, Award, Crown,
   LifeBuoy, AlertTriangle, Newspaper, BookCheck, BookMarked, Timer, Gamepad2, Zap, MessageSquare, Compass, Sparkles, Bug, Palette, Sun, UserPlus, Copy
 } from "lucide-react";
@@ -119,6 +119,13 @@ const StudentDashboard = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showMemoryCapsule, setShowMemoryCapsule] = useState(false);
   const [capsuleMonth, setCapsuleMonth] = useState<string | undefined>(undefined);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
+    Home: false,
+    Study: true,
+    Library: true,
+    Rewards: true,
+    Profile: true,
+  });
 
   // Track tab history stack
   useEffect(() => {
@@ -415,17 +422,15 @@ const StudentDashboard = () => {
     {
       title: "Study",
       items: [
-        { id: "study-resources" as Tab, label: "Study", icon: BookMarked },
+        { id: "study-resources" as Tab, label: "Study (NCERT & Notes)", icon: BookMarked },
         { id: "doubt-solver" as Tab, label: "AI Doubt Solver", icon: Sparkles },
-        { id: "study" as Tab, label: "Study Tracker", icon: Timer },
         { id: "notes" as Tab, label: "My Notes", icon: StickyNote },
       ],
     },
     {
       title: "Library",
       items: [
-        { id: "books" as Tab, label: "My Books", icon: BookMarked },
-        { id: "issued" as Tab, label: "Book Issued", icon: BookCheck },
+        { id: "issued" as Tab, label: "My Books & Issues", icon: BookCheck },
         { id: "catalog" as Tab, label: "Books Catalog", icon: BookOpen },
         { id: "locator" as Tab, label: "Library Map", icon: Compass },
         ...(periodicalsVisible ? [{ id: "periodicals" as Tab, label: "Periodicals", icon: Newspaper }] : []),
@@ -485,9 +490,15 @@ const StudentDashboard = () => {
     const tabParam = params.get("tab") as Tab | null;
 
     if (tabParam && !FEATURE_FLAGS.communityAndFriendsChat && ["community", "chat", "network", "invite"].includes(tabParam)) return;
-    const legacyLearningTabs: Tab[] = ["materials", "ncert", "study-guide"];
+    const legacyLearningTabs: Tab[] = ["materials", "ncert", "study-guide", "study", "books"];
     if (tabParam && (navItems.some(n => n.id === tabParam) || legacyLearningTabs.includes(tabParam) || tabParam === "rotational-results" || tabParam === "event-results")) {
-      setActiveTab(tabParam);
+      if (tabParam === "books") {
+        setActiveTab("issued");
+      } else if (tabParam === "study") {
+        setActiveTab("study-resources");
+      } else {
+        setActiveTab(tabParam);
+      }
     }
 
     if (roomParam) {
@@ -510,6 +521,13 @@ const StudentDashboard = () => {
       fetchRoomSession();
     }
   }, [location.search, navItems]);
+
+  useEffect(() => {
+    const activeSec = navSections.find((s) => s.items.some((i) => i.id === activeTab));
+    if (activeSec && collapsedGroups[activeSec.title]) {
+      setCollapsedGroups((prev) => ({ ...prev, [activeSec.title]: false }));
+    }
+  }, [activeTab, navSections]);
 
   const checkAuth = async () => {
     try {
@@ -979,34 +997,50 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        <nav className="flex-1 min-h-0 p-3 space-y-4 overflow-y-auto">
-          {navSections.map(sec => (
-            <div key={sec.title} className="space-y-1">
-              <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider px-3 mb-1">
-                {sec.title}
-              </p>
-              {sec.items.map(item => (
+        <nav className="flex-1 min-h-0 p-3 space-y-3 overflow-y-auto">
+          {navSections.map(sec => {
+            const isCollapsed = Boolean(collapsedGroups[sec.title]);
+            const hasActive = sec.items.some(i => i.id === activeTab);
+            return (
+              <div key={sec.title} className="space-y-1">
                 <button
-                  key={item.id}
-                  onClick={() => {
-                    if (item.id === "catalog") {
-                      navigate("/catalog");
-                    } else {
-                      setActiveTab(item.id);
-                    }
-                  }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                    activeTab === item.id
-                      ? 'gradient-primary text-primary-foreground shadow-sm shadow-primary/25 font-bold'
-                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
-                  }`}
+                  type="button"
+                  onClick={() => setCollapsedGroups(prev => ({ ...prev, [sec.title]: !prev[sec.title] }))}
+                  className="w-full flex items-center justify-between text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider px-3 py-1.5 hover:text-foreground transition-colors group"
+                  aria-expanded={!isCollapsed}
                 >
-                  <item.icon className={`h-4 w-4 shrink-0 ${activeTab === item.id ? 'text-white' : 'text-muted-foreground'}`} />
-                  <span className="truncate">{item.label}</span>
+                  <span className={hasActive ? "text-primary font-black" : ""}>{sec.title}</span>
+                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${isCollapsed ? "-rotate-90" : "rotate-0"}`} />
                 </button>
-              ))}
-            </div>
-          ))}
+                {!isCollapsed && (
+                  <div className="space-y-0.5 animate-in fade-in-50 duration-150">
+                    {sec.items.map(item => (
+                      <button
+                        key={item.id}
+                        title={item.label}
+                        aria-label={item.label}
+                        onClick={() => {
+                          if (item.id === "catalog") {
+                            navigate("/catalog");
+                          } else {
+                            setActiveTab(item.id);
+                          }
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                          activeTab === item.id
+                            ? 'gradient-primary text-primary-foreground shadow-sm shadow-primary/25 font-bold'
+                            : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
+                        }`}
+                      >
+                        <item.icon className={`h-4 w-4 shrink-0 ${activeTab === item.id ? 'text-white' : 'text-muted-foreground'}`} />
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="shrink-0 p-4 border-t border-border space-y-3">
@@ -1052,18 +1086,23 @@ const StudentDashboard = () => {
               className="fixed inset-0 top-14 bg-black/50 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
               onClick={() => setMobileNavOpen(false)}
             />
-            <div className="relative z-50 bg-card border-b border-border px-4 pb-3 max-h-[75vh] overflow-y-auto space-y-3 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+            <div className="relative z-50 bg-card border-b border-border p-4 pb-6 max-h-[80vh] overflow-y-auto space-y-5 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">All Library Apps & Hubs</h3>
+                <span className="text-[11px] text-muted-foreground">Tap an option</span>
+              </div>
               {mobileNavSections.map((section) => {
                 const sectionItems = section.items.filter((item) =>
                   navItems.some((n) => n.id === item.id) || item.id === "locator" || item.id === "challenges"
                 );
                 if (sectionItems.length === 0) return null;
                 return (
-                  <div key={section.title}>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">{section.title}</p>
-                    <div className="space-y-0.5">
+                  <div key={section.title} className="space-y-2">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">{section.title}</p>
+                    <div className="grid grid-cols-3 xs:grid-cols-4 gap-2.5">
                       {sectionItems.map((item) => {
                         const navItem = navItems.find((n) => n.id === item.id) || item;
+                        const active = activeTab === item.id;
                         return (
                           <button
                             key={item.id}
@@ -1076,9 +1115,20 @@ const StudentDashboard = () => {
                                 setActiveTab(item.id as Tab);
                               }
                             }}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeTab === item.id ? "gradient-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:bg-muted"}`}
+                            className={`flex flex-col items-center justify-center text-center p-3 rounded-2xl border transition-all active:scale-95 ${
+                              active
+                                ? "bg-primary/10 border-primary/40 text-primary font-bold shadow-xs"
+                                : "bg-card hover:bg-muted/60 border-border/70 text-foreground"
+                            }`}
                           >
-                            <navItem.icon className="h-4 w-4 shrink-0" /> {navItem.label || item.label}
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-1.5 ${
+                              active ? "bg-primary text-primary-foreground shadow-xs" : "bg-muted text-muted-foreground"
+                            }`}>
+                              <navItem.icon className="h-5 w-5" />
+                            </div>
+                            <span className="text-[11px] font-semibold leading-tight line-clamp-1 w-full text-center">
+                              {navItem.label || item.label}
+                            </span>
                           </button>
                         );
                       })}
@@ -1086,9 +1136,9 @@ const StudentDashboard = () => {
                   </div>
                 );
               })}
-              <div className="space-y-2 border-t border-border pt-3">
+              <div className="space-y-2 border-t border-border pt-4">
                 <PWAControls userId={user?.id} showText />
-                <Button variant="outline" size="sm" className="min-h-11 w-full" onClick={handleLogout}>
+                <Button variant="outline" size="sm" className="min-h-11 w-full rounded-xl font-bold" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" /> Log out
                 </Button>
               </div>

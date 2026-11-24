@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BookOpen, Clock, CheckCircle2, XCircle, RefreshCw, BookmarkPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 type RequestItem = {
   id: string;
+  rawId: string;
   type: "book" | "renewal" | "waitlist";
   title: string;
   subtitle: string;
@@ -49,9 +52,42 @@ const iconFor = (type: RequestItem["type"], status: string) => {
 };
 
 export default function MyRequests({ userId, hideWaitlist = false }: { userId: string; hideWaitlist?: boolean }) {
+  const { toast } = useToast();
   const [items, setItems] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
+
+  const handleCancelRequest = async (item: RequestItem) => {
+    setCancellingId(item.id);
+    try {
+      if (item.type === "book") {
+        const { error } = await supabase
+          .from("book_requests")
+          .update({ status: "cancelled" })
+          .eq("id", item.rawId);
+        if (error) throw error;
+      } else if (item.type === "renewal") {
+        const { error } = await supabase
+          .from("book_renewals")
+          .update({ status: "cancelled" })
+          .eq("id", item.rawId);
+        if (error) throw error;
+      } else if (item.type === "waitlist") {
+        const { error } = await supabase
+          .from("book_reservations")
+          .delete()
+          .eq("id", item.rawId);
+        if (error) throw error;
+      }
+      toast({ title: "Request cancelled", description: "Your request has been cancelled." });
+      await loadRequests();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to cancel request", variant: "destructive" });
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   const loadRequests = async () => {
     setLoading(true);
@@ -77,14 +113,24 @@ export default function MyRequests({ userId, hideWaitlist = false }: { userId: s
         supabase.from("book_issues").select("id,book_id,issue_date,due_date,return_date,status").eq("user_id", userId).order("issue_date", { ascending: false }),
       ]);
 
-      const bookItems: RequestItem[] = (bookRequests.data || []).map((r: any) => {
+      const seenPendingBooks = new Set<string>();
+      const bookItems: RequestItem[] = [];
+      for (const r of (bookRequests.data || [])) {
         const status = String(r.status || "pending").toLowerCase();
+        const bookKey = `${r.book_id || r.requested_title || r.id}`;
+        if (status === "pending") {
+          if (seenPendingBooks.has(bookKey)) {
+            continue; // Deduplicate repeated pending requests for the same book
+          }
+          seenPendingBooks.add(bookKey);
+        }
         const issue = r.book_id ? (issues.data || []).find((row: any) => row.book_id === r.book_id && new Date(row.issue_date) >= new Date(r.created_at)) : null;
         const rejected = status === "rejected" || status === "cancelled";
         const approved = status === "approved" || status === "fulfilled" || Boolean(issue);
         const returned = issue?.status === "returned" || Boolean(issue?.return_date);
-        return {
+        bookItems.push({
           id: `book-${r.id}`,
+          rawId: r.id,
           type: "book",
           title: r.books?.title || r.requested_title || "Book request",
           subtitle: r.books?.author || r.requested_author || "Requested title",
@@ -99,11 +145,12 @@ export default function MyRequests({ userId, hideWaitlist = false }: { userId: s
               { label: returned ? "Returned" : "Due date", date: returned ? issue.return_date : issue.due_date, state: returned ? "complete" as const : "current" as const },
             ] : []),
           ],
-        };
-      });
+        });
+      }
 
       const renewalItems: RequestItem[] = (renewals.data || []).map((r: any) => ({
         id: `renewal-${r.id}`,
+        rawId: r.id,
         type: "renewal",
         title: r.book_issues?.books?.title || "Renewal request",
         subtitle: `+${r.requested_days || 0} days${r.book_issues?.due_date ? ` · due ${new Date(r.book_issues.due_date).toLocaleDateString()}` : ""}`,
@@ -121,6 +168,7 @@ export default function MyRequests({ userId, hideWaitlist = false }: { userId: s
         ? []
         : (reservations.data || []).map((r: any) => ({
             id: `waitlist-${r.id}`,
+            rawId: r.id,
             type: "waitlist" as const,
             title: r.books?.title || "Waitlist request",
             subtitle: r.books?.author || "Reserved book",
@@ -239,11 +287,24 @@ export default function MyRequests({ userId, hideWaitlist = false }: { userId: s
                       {statusBadge(item.status)}
                     </div>
                     <p className="text-xs text-muted-foreground break-words">{item.subtitle}</p>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-                      <span className="rounded-md bg-muted px-1.5 py-0.5 font-medium text-foreground/80">
-                        {typeLabel(item.type)}
-                      </span>
-                      <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-md bg-muted px-1.5 py-0.5 font-medium text-foreground/80">
+                          {typeLabel(item.type)}
+                        </span>
+                        <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                      </div>
+                      {item.status === "pending" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={cancellingId === item.id}
+                          className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive font-medium"
+                          onClick={() => handleCancelRequest(item)}
+                        >
+                          {cancellingId === item.id ? "Cancelling…" : "Cancel request"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

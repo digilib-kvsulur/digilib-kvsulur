@@ -58,13 +58,13 @@ const LevelProgress = ({ userPoints }: LevelProgressProps) => {
   return (
     <div className="rounded-2xl sm:rounded-3xl border border-indigo-500/20 bg-gradient-to-b from-indigo-500/[0.04] via-card to-card p-3.5 sm:p-5 shadow-sm hover:border-indigo-500/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full space-y-3">
       {/* Top Header: Level Icon + Rank Badge */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+      <div className="flex items-center justify-between gap-1.5 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 shrink-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
             {IconComponent ? (
-              <IconComponent className="h-5 w-5" style={{ color: levelColor }} />
+              <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: levelColor }} />
             ) : (
-              <Award className="h-5 w-5 text-indigo-600" />
+              <Award className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
             )}
           </div>
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider hidden sm:inline">
@@ -74,7 +74,7 @@ const LevelProgress = ({ userPoints }: LevelProgressProps) => {
 
         <Badge
           variant="outline"
-          className="text-[11px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full border-indigo-500/30 text-indigo-700 dark:text-indigo-300 bg-indigo-500/10 shrink-0 truncate max-w-[120px]"
+          className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border-indigo-500/30 text-indigo-700 dark:text-indigo-300 bg-indigo-500/10 min-w-0 truncate max-w-[90px] xs:max-w-[110px] sm:max-w-[130px]"
         >
           {levelInfo.name}
         </Badge>

@@ -408,7 +408,7 @@ export default function Overview({
                 <TimeIcon className="h-3.5 w-3.5" />
                 <span>{greeting}</span>
               </div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white truncate">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white line-clamp-2 break-words">
                 {fullName}
               </h1>
               <div className="flex items-center gap-2 flex-wrap pt-0.5">
@@ -472,11 +472,11 @@ export default function Overview({
             {/* Quick Browse Catalog Button */}
             <Button
               onClick={() => navigate("/catalog")}
-              className="w-full sm:w-auto h-[50px] sm:h-[60px] px-4 rounded-2xl font-bold bg-white text-slate-900 hover:bg-white/90 shadow-md gap-2"
+              className="w-full sm:w-auto h-[50px] sm:h-[60px] px-5 rounded-2xl font-extrabold bg-white text-slate-900 hover:bg-slate-100 shadow-lg border-2 border-white gap-2 transition-all active:scale-95"
             >
-              <Compass className="h-4.5 w-4.5 text-indigo-600" />
-              <span>Explore Books</span>
-              <ArrowUpRight className="h-4 w-4 text-slate-500" />
+              <Compass className="h-5 w-5 text-indigo-600 shrink-0" />
+              <span className="text-sm font-bold text-slate-900">Explore Books</span>
+              <ArrowUpRight className="h-4 w-4 text-slate-500 shrink-0" />
             </Button>
           </div>
         </div>
@@ -652,8 +652,11 @@ export default function Overview({
           <div>
             <div className="flex items-baseline gap-1">
               <span className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{monthlyBooksRead}</span>
-              <span className="text-xs font-semibold text-muted-foreground">/{schoolReadingGoal} goal</span>
+              <span className="text-xs font-semibold text-muted-foreground">/{schoolReadingGoal} days</span>
             </div>
+            <p className="text-xs text-muted-foreground font-medium mt-1 truncate">
+              Weekly reading goal: {monthlyBooksRead} of {schoolReadingGoal} days
+            </p>
             <div className="mt-2.5">
               <Progress value={goalPercentage} className="h-1.5 bg-muted rounded-full" />
             </div>
@@ -709,7 +712,7 @@ export default function Overview({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* MAIN COLUMN (8 cols on desktop) */}
         <div className="lg:col-span-8 space-y-6 min-w-0">
-          {/* PRIMARY STUDENT LAUNCHPAD */}
+          {/* PRIMARY STUDENT QUICK ACTIONS */}
           <Card className="border border-border/80 rounded-3xl overflow-hidden bg-card shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="p-4 sm:p-6 pb-3">
               <div className="flex items-center justify-between">
@@ -717,17 +720,58 @@ export default function Overview({
                   <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                     <Compass className="h-4 w-4" />
                   </div>
-                  <span>Student Launchpad</span>
+                  <span>Quick Actions</span>
                 </CardTitle>
                 <span className="text-xs text-muted-foreground font-medium">
-                  Direct Library Hubs
+                  Direct Library Shortcuts
                 </span>
               </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
-              {/* 8 Primary Cards Grid */}
+              {/* 4 Clean Quick Actions Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
-                {primaryHubs.map((hub) => {
+                {[
+                  {
+                    id: "catalog",
+                    label: "Books Catalog",
+                    description: "Browse 5,000+ library titles",
+                    icon: Compass,
+                    color: "text-indigo-600 dark:text-indigo-400",
+                    bg: "bg-indigo-500/10 hover:bg-indigo-500/15",
+                    border: "hover:border-indigo-500/30",
+                    action: () => navigate("/catalog"),
+                  },
+                  {
+                    id: "ncert",
+                    label: "Study by Subject",
+                    description: "NCERT books and chapter resources",
+                    icon: BookOpen,
+                    color: "text-sky-600 dark:text-sky-400",
+                    bg: "bg-sky-500/10 hover:bg-sky-500/15",
+                    border: "hover:border-sky-500/30",
+                    action: () => setActiveTab("study-resources"),
+                  },
+                  {
+                    id: "quizzes",
+                    label: "Daily Quizzes",
+                    description: "Compete in live quiz leagues",
+                    icon: Brain,
+                    color: "text-purple-600 dark:text-purple-400",
+                    bg: "bg-purple-500/10 hover:bg-purple-500/15",
+                    border: "hover:border-purple-500/30",
+                    action: () => setActiveTab("quizzes"),
+                  },
+                  {
+                    id: "issued",
+                    label: "My Books & Issues",
+                    description: "Active borrowings & requests",
+                    icon: BookCheck,
+                    color: "text-emerald-600 dark:text-emerald-400",
+                    bg: "bg-emerald-500/10 hover:bg-emerald-500/15",
+                    border: "hover:border-emerald-500/30",
+                    action: () => setActiveTab("issued"),
+                  },
+                ].map((hub) => {
                   const Icon = hub.icon;
                   return (
                     <button
@@ -735,11 +779,6 @@ export default function Overview({
                       onClick={hub.action}
                       className={`relative flex flex-col text-left p-3.5 sm:p-4 rounded-2xl border border-border/70 bg-card hover:bg-muted/40 ${hub.border} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95 group shadow-sm`}
                     >
-                      {hub.badge && (
-                        <span className="absolute top-2.5 right-2.5 px-1.5 py-0.2 rounded-md text-[8px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                          {hub.badge}
-                        </span>
-                      )}
                       <div className={`w-9 h-9 rounded-xl ${hub.bg} ${hub.color} flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform`}>
                         <Icon className="h-4 w-4" />
                       </div>

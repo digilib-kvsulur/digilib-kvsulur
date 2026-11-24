@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import BookRequestForm from "@/components/BookRequestForm";
 import BookDetailDialog from "@/components/catalog/BookDetailDialog";
 import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
-import { normalizeAuthorName, displayGenre } from "@/lib/catalogDisplay";
+import { catalogWorkKey, displayGenre, isbnCoverUrl, normalizeAuthorName, normalizeIsbn } from "@/lib/catalogDisplay";
 
 const BookCoverPlaceholder = ({ seed, category, subject }: { seed: string; category?: string | null; subject?: string | null }) => {
   const hash = Array.from(seed).reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 7);
@@ -28,15 +28,6 @@ const BookCoverPlaceholder = ({ seed, category, subject }: { seed: string; categ
     <BookOpen className="relative z-10 mb-2 h-7 w-7 text-white/90" />
     <span className="relative z-10 text-[10px] font-black tracking-[0.2em] text-white/90">DLMS LIBRARY</span>
   </div>;
-};
-
-const isbnCoverUrl = (isbn?: string | null) => {
-  const cleanIsbn = String(isbn || "").replace(/[^0-9X]/gi, "");
-  return /^(?:\d{10}|\d{13})$/i.test(cleanIsbn) ? `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg?default=false` : "";
-};
-
-const normaliseAuthorName = (author?: string | null) => {
-  return normalizeAuthorName(author);
 };
 
 const allFilterLabel = (label: string) => label === "Class" ? "All Classes" : `All ${label}s`;
@@ -188,7 +179,7 @@ const Catalog = () => {
         count = matchingResults.length;
         const from = (currentPage - 1) * pageSize;
         const to = from + pageSize;
-        data = matchingResults.slice(from, to);
+        data = matchingResults.slice(from, to).map((book: any) => ({ ...book, isbn: normalizeIsbn(book.isbn) || book.isbn || null }));
       } else {
         let query = supabase
           .from("books")
@@ -229,7 +220,7 @@ const Catalog = () => {
         count = dbCount || 0;
       }
 
-      setBooks(data || []);
+      setBooks((data || []).map((b: any) => ({ ...b, isbn: normalizeIsbn(b.isbn) || b.isbn || null })));
       setTotalCount(count);
       setLoading(false);
 
@@ -282,23 +273,25 @@ const Catalog = () => {
   const featuredList = useMemo(() => (withCovers.length >= 4 ? withCovers : books).slice(0, 6), [withCovers, books]);
   const featuredIdSet = useMemo(() => new Set(featuredList.map(b => b.id)), [featuredList]);
 
-  // Group duplicate titles/editions so catalog does not repeat exact duplicates
+  // Group duplicate titles/editions. Prefer ISBN when valid; otherwise group by
+  // normalized title+author+language as a conservative work key.
   const deduplicatedBooks = useMemo(() => {
     const map = new Map<string, any>();
     for (const b of displayedBooks) {
-      const titleKey = (b.title || "").trim().toLowerCase();
-      const authorKey = (b.author || "").trim().toLowerCase();
-      const key = `${titleKey}::${authorKey}`;
+      const key = catalogWorkKey(b);
+      const cleanIsbn = normalizeIsbn(b.isbn);
       if (!map.has(key)) {
-        map.set(key, { ...b, editionCount: 1 });
+        map.set(key, { ...b, isbn: cleanIsbn || b.isbn, editionCount: 1, editions: [b], groupedByIsbn: Boolean(cleanIsbn) });
       } else {
         const existing = map.get(key)!;
-        existing.editionCount = (existing.editionCount || 1) + 1;
+        existing.editions = [...(existing.editions || [existing]), b];
+        existing.editionCount = existing.editions.length;
         existing.available_copies = (existing.available_copies || 0) + (b.available_copies || 0);
         existing.total_copies = (existing.total_copies || 0) + (b.total_copies || 0);
         existing.issue_count = Math.max(existing.issue_count || 0, b.issue_count || 0);
         if (!existing.cover_url && b.cover_url) existing.cover_url = b.cover_url;
-        if (!existing.isbn && b.isbn) existing.isbn = b.isbn;
+        if (!normalizeIsbn(existing.isbn) && cleanIsbn) existing.isbn = cleanIsbn;
+        existing.groupedByIsbn = Boolean(existing.groupedByIsbn || cleanIsbn);
       }
     }
     return Array.from(map.values());
@@ -741,6 +734,11 @@ const Catalog = () => {
                               <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 truncate max-w-full">
                                 {displayGenre(book.category, book.title, book.author)}
                               </span>
+                              {(book.editionCount || 1) > 1 && (
+                                <span className="text-[9px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 truncate max-w-full">
+                                  {book.editionCount} editions
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>

@@ -105,17 +105,15 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
   {
     title: "Study",
     items: [
-      { id: "study-resources", label: "Study by Subject", icon: BookOpen },
-      { id: "doubt-solver", label: "Doubt Solver", icon: Sparkles },
-      { id: "study", label: "Study Tracker", icon: Timer },
+      { id: "study-resources", label: "Study (NCERT & Notes)", icon: BookOpen },
+      { id: "doubt-solver", label: "AI Doubt Solver", icon: Sparkles },
       { id: "notes", label: "My Notes", icon: StickyNote },
     ],
   },
   {
     title: "Library",
     items: [
-      { id: "books", label: "My Books", icon: BookCheck },
-      { id: "issued", label: "Book Issued", icon: BookCheck },
+      { id: "issued", label: "My Books & Issues", icon: BookCheck },
       { id: "catalog", label: "Books Catalog", icon: BookOpen },
       { id: "locator", label: "Library Map", icon: Compass },
       { id: "periodicals", label: "Periodicals", icon: BookOpen },
@@ -138,9 +136,9 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
   {
     title: "Profile",
     items: [
+      { id: "profile", label: "Profile", icon: User },
       { id: "support", label: "Help & Support", icon: LifeBuoy },
       { id: "feedback", label: "Feedback", icon: MessageSquare },
-      { id: "profile", label: "Profile", icon: User },
     ],
   },
 ];
