@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Upload, Trash2, Download, BookOpen, Loader2, Plus, GraduationCap, Link2, Edit2, RefreshCw, Save, X, Database, ExternalLink } from "lucide-react";
+import { FileText, Upload, Trash2, Download, BookOpen, Loader2, Plus, GraduationCap, Link2, Edit2, RefreshCw, Save, X, Database, ExternalLink, CheckCircle2, RotateCcw } from "lucide-react";
 import BulkImportMaterials from "./BulkImportMaterials";
 import BulkImportCbse from "./BulkImportCbse";
 import NcertCbseReview from "./NcertCbseReview";
@@ -32,6 +33,10 @@ interface Material {
   source_label?: string | null;
   source_url?: string | null;
   markdown_content?: string | null;
+  review_status?: "pending" | "approved" | "needs_revision";
+  review_note?: string | null;
+  reviewed_at?: string | null;
+  uploaded_by: string;
   created_at: string;
 }
 
@@ -135,6 +140,9 @@ const StudyMaterialsManager = () => {
   
   // General study materials states
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [currentUserRole, setCurrentUserRole] = useState("");
+  const [currentUserClass, setCurrentUserClass] = useState("");
   const [loadingMats, setLoadingMats] = useState(true);
   const [uploadingMats, setUploadingMats] = useState(false);
   const [matsForm, setMatsForm] = useState({ title: "", description: "", subject: "General", student_class: "All", chapter_title: "", resource_type: "short_notes", academic_session: "2026-27", exam_year: "", marks: "", source_label: "", source_url: "", markdown_content: "" });
@@ -207,14 +215,12 @@ const StudyMaterialsManager = () => {
     setLoadingMats(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", session.user.id).single();
+    const { data: profile } = await supabase.from("profiles").select("role,student_class").eq("id", session.user.id).single();
+    setCurrentUserId(session.user.id);
+    setCurrentUserRole(profile?.role || "");
+    setCurrentUserClass(profile?.student_class || "");
 
-    let query = supabase.from("study_materials").select("*").order("created_at", { ascending: false });
-    
-    // If teacher, only show their own uploads
-    if (profile?.role === "teacher") {
-      query = query.eq("uploaded_by", session.user.id);
-    }
+    let query = (supabase as any).from("study_materials").select("*").order("created_at", { ascending: false });
     
     const { data, error } = await query;
     if (error) toast({ title: "Failed to load materials", description: error.message, variant: "destructive" });
@@ -230,7 +236,7 @@ const StudyMaterialsManager = () => {
   const saveMaterialEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!materialToEdit) return;
-    const { error } = await supabase.from("study_materials").update({
+    const { error } = await (supabase as any).from("study_materials").update({
       title: editMaterialForm.title.trim(), description: editMaterialForm.description?.trim() || null,
       subject: editMaterialForm.subject, student_class: editMaterialForm.student_class,
       chapter_title: editMaterialForm.chapter_title?.trim() || null, resource_type: editMaterialForm.resource_type,
@@ -239,9 +245,17 @@ const StudyMaterialsManager = () => {
       marks: editMaterialForm.marks ? Number(editMaterialForm.marks) : null,
       source_label: editMaterialForm.source_label?.trim() || null, source_url: editMaterialForm.source_url?.trim() || null,
       markdown_content: editMaterialForm.markdown_content?.trim() || null,
+      review_status: "pending", review_note: null, reviewed_by: null, reviewed_at: null,
     }).eq("id", materialToEdit.id);
     if (error) { toast({ title: "Could not update resource", description: error.message, variant: "destructive" }); return; }
     setMaterialToEdit(null); toast({ title: "Resource updated" }); loadMaterials();
+  };
+
+  const setMaterialReview = async (material: Material, status: "approved" | "needs_revision") => {
+    const { error } = await supabase.from("study_materials").update({ review_status: status, review_note: status === "needs_revision" ? "Please revise this resource and resubmit for review." : null } as any).eq("id", material.id);
+    if (error) { toast({ title: "Review update failed", description: error.message, variant: "destructive" }); return; }
+    toast({ title: status === "approved" ? "Resource approved" : "Revision requested", description: status === "approved" ? "Students can now see this resource." : "The uploader can edit and resubmit this resource." });
+    loadMaterials();
   };
 
   const loadNcertChapters = async () => {
@@ -431,7 +445,7 @@ const StudyMaterialsManager = () => {
         publicUrl = supabase.storage.from("study-materials").getPublicUrl(path).data.publicUrl;
       }
 
-      const { error: insErr } = await supabase.from("study_materials").insert({
+      const { error: insErr } = await (supabase as any).from("study_materials").insert({
         title: matsForm.title.trim(),
         description: matsForm.description.trim() || null,
         subject: matsForm.subject,
@@ -447,11 +461,12 @@ const StudyMaterialsManager = () => {
         file_name: matsFile?.name || null,
         file_type: matsFile?.type || "text/markdown",
         markdown_content: matsForm.markdown_content.trim() || null,
+        review_status: "pending",
         uploaded_by: user.id,
       });
       if (insErr) throw insErr;
 
-      toast({ title: "Uploaded!", description: `${matsForm.title} is now available to students.` });
+      toast({ title: "Submitted for review", description: `${matsForm.title} will appear to students after a teacher or admin approves it.` });
       setMatsForm({ title: "", description: "", subject: "General", student_class: "All", chapter_title: "", resource_type: "short_notes", academic_session: "2026-27", exam_year: "", marks: "", source_label: "", source_url: "", markdown_content: "" });
       setMatsFile(null);
       const fileInput = document.getElementById("sm-file") as HTMLInputElement;
@@ -641,7 +656,7 @@ const StudyMaterialsManager = () => {
           <DialogHeader><DialogTitle>Edit study resource</DialogTitle></DialogHeader>
           <form onSubmit={saveMaterialEdit} className="grid max-h-[70dvh] grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
             <div><Label>Title</Label><Input required value={editMaterialForm.title || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, title: e.target.value })} /></div>
-            <div><Label>Class</Label><Select value={editMaterialForm.student_class || "All"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, student_class: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CLASSES.map((c) => <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Class</Label><Select value={editMaterialForm.student_class || "All"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, student_class: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CLASSES.filter((c) => currentUserRole !== "teacher" || c === "All" || c === currentUserClass).map((c) => <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Subject</Label><Select value={editMaterialForm.subject || "General"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, subject: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{SUBJECTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Chapter</Label><Input value={editMaterialForm.chapter_title || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, chapter_title: e.target.value })} /></div>
             <div><Label>Resource type</Label><Select value={editMaterialForm.resource_type || "short_notes"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, resource_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[["short_notes","Short Notes"],["formula_sheet","Formula Sheet"],["pyq","PYQ"],["quick_revision","Quick Revision"],["textbook","Textbook / Syllabus"],["other","Other"]].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></div>
@@ -697,7 +712,7 @@ const StudyMaterialsManager = () => {
                   <Label>Target Class</Label>
                   <Select value={matsForm.student_class} onValueChange={v => setMatsForm({ ...matsForm, student_class: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{CLASSES.map(c => <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>)}</SelectContent>
+                    <SelectContent>{CLASSES.filter((c) => currentUserRole !== "teacher" || c === "All" || c === currentUserClass).map(c => <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -752,7 +767,7 @@ const StudyMaterialsManager = () => {
               ) : (
                 <div className="space-y-2">
                   {materials.map(m => (
-                    <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl border border-border/60 hover:bg-muted/30 transition-colors">
+                    <div key={m.id} className="flex flex-wrap items-center gap-3 p-3 rounded-xl border border-border/60 hover:bg-muted/30 transition-colors">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                         <FileText className="h-5 w-5 text-primary" />
                       </div>
@@ -762,7 +777,9 @@ const StudyMaterialsManager = () => {
                           {m.subject} · {m.student_class === "All" ? "All Classes" : `Class ${m.student_class}`}
                           {m.description && ` · ${m.description}`}
                         </p>
+                        <div className="mt-1"><Badge variant={m.review_status === "approved" ? "default" : m.review_status === "needs_revision" ? "destructive" : "secondary"}>{m.review_status === "approved" ? "Approved for students" : m.review_status === "needs_revision" ? "Revision requested" : "Pending review"}</Badge>{m.review_note && <span className="ml-2 text-xs text-muted-foreground">{m.review_note}</span>}</div>
                       </div>
+                      {m.review_status !== "approved" && (currentUserRole === "admin" || m.uploaded_by !== currentUserId) ? <><Button onClick={() => setMaterialReview(m, "approved")} variant="outline" size="sm" className="h-9" title="Approve for students"><CheckCircle2 className="mr-1 h-4 w-4" /> Approve</Button><Button onClick={() => setMaterialReview(m, "needs_revision")} variant="ghost" size="sm" className="h-9" title="Request revisions"><RotateCcw className="mr-1 h-4 w-4" /> Revise</Button></> : m.review_status !== "approved" ? <span className="px-2 text-xs text-muted-foreground">Awaiting peer review</span> : null}
                       <Button size="sm" variant="outline" className="h-8" title="Edit resource metadata and Markdown" onClick={() => beginEditMaterial(m)}>
                         <Edit2 className="h-4 w-4" />
                       </Button>

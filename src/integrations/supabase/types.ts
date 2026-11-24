@@ -2622,6 +2622,11 @@ export type Database = {
           marks: number | null
           markdown_content: string | null
           resource_type: string
+          review_status: string
+          review_note: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          content_version: number
           source_label: string | null
           source_url: string | null
           student_class: string | null
@@ -2643,6 +2648,11 @@ export type Database = {
           marks?: number | null
           markdown_content?: string | null
           resource_type?: string
+          review_status?: string
+          review_note?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          content_version?: number
           source_label?: string | null
           source_url?: string | null
           student_class?: string | null
@@ -2664,6 +2674,11 @@ export type Database = {
           marks?: number | null
           markdown_content?: string | null
           resource_type?: string
+          review_status?: string
+          review_note?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          content_version?: number
           source_label?: string | null
           source_url?: string | null
           student_class?: string | null

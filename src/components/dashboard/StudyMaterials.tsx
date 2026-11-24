@@ -409,7 +409,7 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
   useEffect(() => {
     (async () => {
       // 1. Fetch teacher materials
-      const { data: mats } = await supabase.from("study_materials").select("*").order("created_at", { ascending: false });
+      const { data: mats } = await supabase.from("study_materials").select("*").eq("review_status", "approved").order("created_at", { ascending: false });
       const allMats = (mats as Material[]) || [];
       const filteredMats = studentClass
         ? allMats.filter(m => !m.student_class || m.student_class === "All" || m.student_class === studentClass || m.student_class === baseClass)

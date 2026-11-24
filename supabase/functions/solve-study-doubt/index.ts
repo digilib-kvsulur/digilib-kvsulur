@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     const serviceClient = createClient(supabaseUrl, serviceKey);
     const { data: classResources } = await serviceClient.from("study_materials")
       .select("id,title,chapter_title,resource_type,source_label,source_url,description,markdown_content,exam_year,marks,file_url")
-      .in("student_class", [studentClass, "All"]).eq("subject", subject).limit(100);
+      .eq("review_status", "approved").in("student_class", [studentClass, "All"]).eq("subject", subject).limit(100);
     const normalizedQuestion = `${question} ${String(payload?.previousQuestion || "")}`.toLowerCase();
     const terms = new Set(normalizedQuestion.split(/[^a-z0-9]+/).filter((word) => word.length > 3));
     const scoredResources = (classResources || []).map((resource) => {

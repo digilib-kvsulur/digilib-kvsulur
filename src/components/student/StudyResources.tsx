@@ -45,7 +45,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt }: { 
     setSelectedChapter("");
     (async () => {
       const [materialsResult, chaptersResult] = await Promise.all([
-        (supabase as any).from("study_materials").select("id,title,description,subject,student_class,chapter_title,resource_type,academic_session,exam_year,marks,source_label,source_url,markdown_content,file_url,file_type").in("student_class", [classFilter, "All"]).order("subject").order("chapter_title"),
+        (supabase as any).from("study_materials").select("id,title,description,subject,student_class,chapter_title,resource_type,academic_session,exam_year,marks,source_label,source_url,markdown_content,file_url,file_type").eq("review_status", "approved").in("student_class", [classFilter, "All"]).order("subject").order("chapter_title"),
         supabase.from("ncert_books").select("id,subject,book_name,chapter_number,chapter_title,file_url").eq("class_number", classFilter).order("chapter_number", { ascending: true }),
       ]);
       if (!alive) return;
