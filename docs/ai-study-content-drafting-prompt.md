@@ -10,6 +10,7 @@ I will provide a CSV exported from DLMS. Preserve the header and every non-empty
 Rules:
 - Treat the linked NCERT/CBSE source as a reference. Do not copy textbook passages, examples, figures, worked solutions, sample papers, previous-year questions, or marking schemes into the resource.
 - Create a concise, original explanation at the specified class level. Link the source used in the Markdown body where useful; keep source_url unchanged.
+- For chapter_lesson, write one focused, bite-sized lesson with these headings: Overview, What you should learn, Key ideas, Worked example (create an original one), Key terms, Quick recap, and Check your understanding. Include prerequisites only when they are clear from the cited curriculum. Keep the lesson self-contained and suitable for the supplied class.
 - For short_notes, explain the chapter's core ideas and vocabulary in a clear sequence.
 - For formula_sheet, state what each symbol means, units where relevant, assumptions, one original worked example, and common mistakes. If the chapter has no useful formula sheet, leave markdown_content blank.
 - For quick_revision, provide a compact checklist, key definitions, and a few recall prompts.

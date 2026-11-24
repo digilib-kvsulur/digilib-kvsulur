@@ -669,7 +669,7 @@ const StudyMaterialsManager = () => {
       const formulaSubject = ["mathematics", "science", "physics", "chemistry"].includes(subjectKey);
       const competitiveSubject = ["mathematics", "physics", "chemistry", "biology"].includes(subjectKey);
       const classNumber = Number(chapter.class_number);
-      const requiredTypes = ["short_notes", ...(formulaSubject ? ["formula_sheet"] : []), "quick_revision",
+      const requiredTypes = ["chapter_lesson", "short_notes", ...(formulaSubject ? ["formula_sheet"] : []), "quick_revision",
         ...(classNumber === 10 || classNumber === 12 || (classNumber >= 11 && classNumber <= 12 && competitiveSubject) ? ["pyq"] : [])];
       const resourcesByType = new Map(requiredTypes.map((type) => [type, {
         approved: matching.filter((resource) => resource.resource_type === type && resource.review_status === "approved").length,
@@ -691,7 +691,7 @@ const StudyMaterialsManager = () => {
   }).length, 0);
   const teacherCoverageClass = currentUserClass.match(/\d+/)?.[0] || "";
   const resourceTypeLabels: Record<string, string> = {
-    short_notes: "Short notes", formula_sheet: "Formula sheet", quick_revision: "Quick revision", pyq: "PYQs",
+    chapter_lesson: "Chapter lesson", short_notes: "Short notes", formula_sheet: "Formula sheet", quick_revision: "Quick revision", pyq: "PYQs",
   };
   const downloadCoverageTemplate = () => {
     const columns = ["title", "description", "subject", "student_class", "chapter_title", "resource_type", "academic_session", "exam_year", "marks", "file_url", "source_label", "source_url", "markdown_content"];
@@ -744,7 +744,7 @@ const StudyMaterialsManager = () => {
             <div><Label>Class</Label><Select value={editMaterialForm.student_class || "All"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, student_class: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CLASSES.filter((c) => currentUserRole !== "teacher" || c === "All" || c === currentUserClass).map((c) => <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Subject</Label><Select value={editMaterialForm.subject || "General"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, subject: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{SUBJECTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Chapter</Label><Input value={editMaterialForm.chapter_title || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, chapter_title: e.target.value })} /></div>
-            <div><Label>Resource type</Label><Select value={editMaterialForm.resource_type || "short_notes"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, resource_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[["short_notes","Short Notes"],["formula_sheet","Formula Sheet"],["pyq","PYQ"],["quick_revision","Quick Revision"],["textbook","Textbook / Syllabus"],["other","Other"]].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Resource type</Label><Select value={editMaterialForm.resource_type || "short_notes"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, resource_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[["chapter_lesson","Chapter Lesson"],["short_notes","Short Notes"],["formula_sheet","Formula Sheet"],["pyq","PYQ"],["quick_revision","Quick Revision"],["textbook","Textbook / Syllabus"],["other","Other"]].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Session</Label><Input value={editMaterialForm.academic_session || "2026-27"} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, academic_session: e.target.value })} /></div>
             <div><Label>Exam year</Label><Input type="number" value={editMaterialForm.exam_year || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, exam_year: e.target.value })} /></div>
             <div><Label>Marks</Label><Input type="number" value={editMaterialForm.marks || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, marks: e.target.value })} /></div>
@@ -867,6 +867,7 @@ const StudyMaterialsManager = () => {
                   <Select value={matsForm.resource_type} onValueChange={v => setMatsForm({ ...matsForm, resource_type: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="chapter_lesson">Chapter Lesson</SelectItem>
                       <SelectItem value="short_notes">Short Notes</SelectItem>
                       <SelectItem value="formula_sheet">Formula Sheet</SelectItem>
                       <SelectItem value="pyq">Previous Year Question</SelectItem>

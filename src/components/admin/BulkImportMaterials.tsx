@@ -50,7 +50,7 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
       complete: (res) => {
         try {
           const raw = (res.data as any[]).filter((r) => r.title && (r.file_url || r.markdown_content));
-          const allowedTypes = new Set(["short_notes", "formula_sheet", "pyq", "quick_revision", "textbook", "other"]);
+          const allowedTypes = new Set(["chapter_lesson", "short_notes", "formula_sheet", "pyq", "quick_revision", "textbook", "other"]);
           const cleaned = raw.map((r) => {
           const fileUrl = String(r.file_url || "").trim();
           const markdown = String(r.markdown_content || "").trim();
@@ -202,7 +202,7 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
               <li>Required: <code className="bg-slate-200 px-1 rounded font-mono font-bold">title</code> and either <code className="bg-slate-200 px-1 rounded font-mono font-bold">file_url</code> or <code className="bg-slate-200 px-1 rounded font-mono font-bold">markdown_content</code>.</li>
               <li>Curriculum fields: <code className="font-mono">student_class</code>, <code className="font-mono">subject</code>, <code className="font-mono">chapter_title</code>, <code className="font-mono">resource_type</code>, and <code className="font-mono">academic_session</code>.</li>
               <li>Use <code className="font-mono">source_label</code> and <code className="font-mono">source_url</code> for provenance. Imported rows are always pending review.</li>
-              <li>Class values: 6–12 or <code className="font-mono">All</code>. Resource types: short_notes, formula_sheet, pyq, quick_revision, textbook, other.</li>
+              <li>Class values: 6–12 or <code className="font-mono">All</code>. Resource types: chapter_lesson, short_notes, formula_sheet, pyq, quick_revision, textbook, other.</li>
             </ul>
             <Button size="sm" variant="outline" className="h-8 rounded-lg text-xs" onClick={downloadSample}>
               <FileDown className="h-3.5 w-3.5 mr-1" /> Download Sample CSV
