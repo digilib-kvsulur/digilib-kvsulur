@@ -94,7 +94,8 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
   };
   const prompts = suggestedPrompts && suggestedPrompts.length > 0 ? suggestedPrompts : contextPrompts[context];
   const [isOpen, setIsOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isEnabled, setIsEnabled] = useState(true);
+  const [isScrollVisible, setIsScrollVisible] = useState(true);
   const [botName, setBotName] = useState("Avenyx");
   const [customBotMessages, setCustomBotMessages] = useState<any[] | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -134,7 +135,7 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
       const target = event.target as Document | HTMLElement;
       const scrollTop = target instanceof HTMLElement ? target.scrollTop : window.scrollY;
       if (Math.abs(scrollTop - lastScrollTop) < 8) return;
-      setIsVisible(scrollTop <= lastScrollTop || scrollTop < 24);
+      setIsScrollVisible(scrollTop <= lastScrollTop || scrollTop < 24);
       lastScrollTop = scrollTop;
     };
     document.addEventListener("scroll", handleScroll, true);
@@ -266,7 +267,7 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
           const visibleRow = res.data.find(r => r.key === "library_bot_visible");
           if (visibleRow !== undefined) {
             const v = visibleRow.value;
-            setIsVisible(v === "true" || v === true || v === "1" || v === 1);
+            setIsEnabled(v === "true" || v === true || v === "1" || v === 1);
           }
           const nameRow = res.data.find(r => r.key === "library_bot_name");
           if (nameRow?.value) {
@@ -950,8 +951,10 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
     });
   };
 
+  if (!isEnabled) return null;
+
   return (
-    <div className={`fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 md:bottom-6 md:right-6 z-40 transition-all duration-200 ${!isVisible && !isOpen ? "pointer-events-none translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
+    <div className={`fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 md:bottom-6 md:right-6 z-40 transition-all duration-200 ${!isScrollVisible && !isOpen ? "pointer-events-none translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
       {isOpen ? (
         <div className="bg-background border shadow-2xl rounded-2xl w-[360px] sm:w-[400px] max-w-[calc(100vw-1.5rem)] h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 border-border/60">
 
