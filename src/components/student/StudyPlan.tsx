@@ -42,6 +42,7 @@ export default function StudyPlan({ userId, studentClass }: { userId?: string; s
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState<string>("");
+  const [claimedTaskTypes, setClaimedTaskTypes] = useState<Set<Task["type"]>>(new Set());
 
   const getBaseClass = (cls?: string) => (cls ? cls.replace(/[^0-9]/g, "") : "");
 
@@ -215,11 +216,11 @@ export default function StudyPlan({ userId, studentClass }: { userId?: string; s
         id: id++,
         title: quiz ? `Attempt the "${quiz.title}" quiz` : "Attempt any library quiz",
         detail: quiz
-          ? `${quiz.subject} · ${quiz.difficulty} · +${quiz.points_reward ?? 5} XP`
+          ? `${quiz.subject} · ${quiz.difficulty} · Complete the quiz to receive its quiz reward.`
           : "Open the Quizzes tab and try one to earn XP.",
         type: "quiz",
         duration: 15,
-        xp: quiz?.points_reward ?? 5,
+        xp: 0,
         priority: "normal",
         slot: "evening",
         completed: false,
@@ -261,6 +262,21 @@ export default function StudyPlan({ userId, studentClass }: { userId?: string; s
      
   }, [userId, studentClass]);
 
+  useEffect(() => {
+    let alive = true;
+    if (!userId) {
+      setClaimedTaskTypes(new Set());
+      return;
+    }
+    const planDate = new Date().toISOString().split("T")[0];
+    (supabase as any).from("study_plan_reward_claims").select("task_type")
+      .eq("user_id", userId).eq("plan_date", planDate)
+      .then(({ data, error }: any) => {
+        if (alive && !error) setClaimedTaskTypes(new Set((data || []).map((row: any) => row.task_type)));
+      });
+    return () => { alive = false; };
+  }, [userId]);
+
   const persist = (updated: Task[]) => {
     setTasks(updated);
     if (userId) localStorage.setItem(storageKey(userId), JSON.stringify({ tasks: updated, note }));
@@ -273,26 +289,17 @@ export default function StudyPlan({ userId, studentClass }: { userId?: string; s
     const updated = tasks.map((t) => (t.id === id ? { ...t, completed: isNowCompleted } : t));
     persist(updated);
 
-    if (isNowCompleted && target.xp > 0 && userId) {
+    if (isNowCompleted && target.xp > 0 && userId && ["reading", "study", "revision", "write"].includes(target.type)) {
       try {
-        const { error } = await (supabase.rpc as any)("award_user_points", {
-          _user_id: userId,
-          _points: target.xp,
-          _reason: `Daily Study Plan: ${target.title}`
-        });
-        if (error) {
-          // Fallback: fetch current and increment
-          const { data: prof } = await supabase.from("profiles").select("points").eq("id", userId).maybeSingle();
-          if (prof) {
-            await supabase.from("profiles").update({ points: (prof.points || 0) + target.xp }).eq("id", userId);
-          }
-        }
-        toast({
-          title: `+${target.xp} XP awarded! 🎉`,
-          description: `Completed: "${target.title}"`,
-        });
+        const { data, error } = await (supabase.rpc as any)("claim_study_plan_reward", { p_task_type: target.type });
+        if (error) throw error;
+        setClaimedTaskTypes((current) => new Set(current).add(target.type));
+        toast(data?.awarded
+          ? { title: `+${data.points} XP awarded! 🎉`, description: `Completed: "${target.title}"` }
+          : { title: "Task completed", description: "Today's reward for this task type was already claimed." });
       } catch (err) {
-        console.warn("Could not record XP for study plan task:", err);
+        console.warn("Could not claim study plan reward:", err);
+        toast({ title: "Task completed, XP not confirmed", description: "Try again by unchecking and completing this task once more.", variant: "destructive" });
       }
     }
   };
@@ -300,7 +307,7 @@ export default function StudyPlan({ userId, studentClass }: { userId?: string; s
   const done = tasks.filter((t) => t.completed);
   const progress = tasks.length ? (done.length / tasks.length) * 100 : 0;
   const totalMinutes = tasks.reduce((s, t) => s + t.duration, 0);
-  const earnedXp = done.reduce((s, t) => s + t.xp, 0);
+  const earnedXp = tasks.reduce((s, t) => s + (claimedTaskTypes.has(t.type) ? t.xp : 0), 0);
   const totalXp = tasks.reduce((s, t) => s + t.xp, 0);
 
   const slots: Array<Task["slot"]> = ["morning", "afternoon", "evening"];
