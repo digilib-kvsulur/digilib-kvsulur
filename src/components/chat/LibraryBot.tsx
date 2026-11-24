@@ -127,6 +127,20 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
     };
   }, []);
 
+  useEffect(() => {
+    let lastScrollTop = 0;
+    const handleScroll = (event: Event) => {
+      if (isOpen) return;
+      const target = event.target as Document | HTMLElement;
+      const scrollTop = target instanceof HTMLElement ? target.scrollTop : window.scrollY;
+      if (Math.abs(scrollTop - lastScrollTop) < 8) return;
+      setIsVisible(scrollTop <= lastScrollTop || scrollTop < 24);
+      lastScrollTop = scrollTop;
+    };
+    document.addEventListener("scroll", handleScroll, true);
+    return () => document.removeEventListener("scroll", handleScroll, true);
+  }, [isOpen]);
+
   const toggleSpeechRecognition = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -936,10 +950,8 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
     });
   };
 
-  if (!isVisible) return null;
-
   return (
-    <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 md:bottom-6 md:right-6 z-40">
+    <div className={`fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 md:bottom-6 md:right-6 z-40 transition-all duration-200 ${!isVisible && !isOpen ? "pointer-events-none translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
       {isOpen ? (
         <div className="bg-background border shadow-2xl rounded-2xl w-[360px] sm:w-[400px] max-w-[calc(100vw-1.5rem)] h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 border-border/60">
 

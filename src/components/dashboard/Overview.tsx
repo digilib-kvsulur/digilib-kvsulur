@@ -632,9 +632,7 @@ export default function Overview({
           </div>
           <div>
             <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{currentBooksCount}</p>
-            <p className="text-xs text-muted-foreground font-medium mt-1 truncate">
-              {currentBooksCount === 1 ? "Active book reading" : "Active books reading"}
-            </p>
+            <p className="text-xs text-muted-foreground font-medium mt-1 truncate">Books reading now</p>
           </div>
         </div>
 

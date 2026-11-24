@@ -23,6 +23,17 @@ const BookCoverPlaceholder = ({ seed }: { seed: string }) => {
   </div>;
 };
 
+const isbnCoverUrl = (isbn?: string | null) => {
+  const cleanIsbn = String(isbn || "").replace(/[^0-9X]/gi, "");
+  return /^(?:\d{10}|\d{13})$/i.test(cleanIsbn) ? `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-L.jpg?default=false` : "";
+};
+
+const normaliseAuthorName = (author?: string | null) => {
+  const cleaned = String(author || "").trim().replace(/\s+/g, " ");
+  if (!cleaned) return "Unknown Author";
+  return /^geronimo$/i.test(cleaned) ? "Geronimo Stilton" : cleaned;
+};
+
 const Catalog = () => {
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
@@ -168,7 +179,7 @@ const Catalog = () => {
       } else {
         let query = supabase
           .from("books")
-          .select("id,title,author,category,subject,class_level,language,cover_url,total_copies,available_copies,first_added_at,created_at,accession_number,issue_count,shelf_number,cupboard_number", { count: "estimated" })
+          .select("id,title,author,category,subject,class_level,language,cover_url,isbn,total_copies,available_copies,first_added_at,created_at,accession_number,issue_count,shelf_number,cupboard_number", { count: "estimated" })
           .gt("total_copies", 0);
 
         if (selectedGenre !== "all") query = query.eq("category", selectedGenre);
@@ -252,7 +263,7 @@ const Catalog = () => {
 
   const showFeatured = !debouncedSearch && selectedGenre === "all" && selectedSubject === "all" && selectedClass === "all" && currentPage === 1 && books.length > 0;
   const withCovers = useMemo(() => {
-    const valid = books.filter((b) => b.cover_url && b.cover_url.trim().length > 5);
+    const valid = books.filter((b) => (b.cover_url && b.cover_url.trim().length > 5) || isbnCoverUrl(b.isbn));
     return [...valid].sort((a, b) => (b.issue_count || 0) - (a.issue_count || 0));
   }, [books]);
   const featuredList = useMemo(() => (withCovers.length >= 4 ? withCovers : books).slice(0, 6), [withCovers, books]);
@@ -603,10 +614,11 @@ const Catalog = () => {
                       className="group w-32 shrink-0 cursor-pointer bg-slate-50/80 hover:bg-white rounded-xl p-2 border border-slate-200/70 hover:border-indigo-300 transition-all duration-200 hover:shadow-md flex flex-col justify-between sm:w-40"
                     >
                       <div className="aspect-[2/3] w-full rounded-lg overflow-hidden mb-2 bg-slate-200/80 relative shadow-xs">
-                        {b.cover_url && !failedImages.has(`feat-${b.id}`) ? (
+                        {(b.cover_url || isbnCoverUrl(b.isbn)) && !failedImages.has(`feat-${b.id}`) ? (
                           <img
-                            src={b.cover_url}
+                            src={b.cover_url || isbnCoverUrl(b.isbn)}
                             alt={b.title}
+                            loading="lazy"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={() => setFailedImages((prev) => new Set(prev).add(`feat-${b.id}`))}
                           />
@@ -616,7 +628,7 @@ const Catalog = () => {
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">{b.title}</h4>
-                        <p className="text-[10px] text-slate-500 truncate">by {b.author || "Unknown"}</p>
+                        <p className="text-[10px] text-slate-500 truncate">by {normaliseAuthorName(b.author)}</p>
                       </div>
                     </div>
                   ))}
@@ -645,10 +657,11 @@ const Catalog = () => {
                       >
                         <div>
                           <div className="aspect-[2/3] w-full rounded-xl bg-slate-100 overflow-hidden relative shadow-inner mb-3">
-                            {book.cover_url && !failedImages.has(book.id) ? (
+                            {(book.cover_url || isbnCoverUrl(book.isbn)) && !failedImages.has(book.id) ? (
                               <img
-                                src={book.cover_url}
+                                src={book.cover_url || isbnCoverUrl(book.isbn)}
                                 alt={book.title}
+                                loading="lazy"
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 onError={() => setFailedImages((prev) => new Set(prev).add(book.id))}
                               />
@@ -673,7 +686,7 @@ const Catalog = () => {
                           
                           <div>
                             <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1">{book.title}</h4>
-                            <p className="text-[11px] text-slate-500 truncate mb-2 font-medium">by {book.author || "Unknown Author"}</p>
+                            <p className="text-[11px] text-slate-500 truncate mb-2 font-medium">by {normaliseAuthorName(book.author)}</p>
                             
                             <div className="flex flex-wrap gap-1 mb-2.5">
                               {book.category && <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 truncate max-w-[110px]">{book.category}</span>}
