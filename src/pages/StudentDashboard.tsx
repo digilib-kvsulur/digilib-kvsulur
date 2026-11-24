@@ -438,12 +438,9 @@ const StudentDashboard = () => {
     {
       title: "Learning",
       items: [
-        { id: "materials" as Tab, label: "Study Materials", icon: FileText },
         { id: "study-resources" as Tab, label: "Study", icon: BookMarked },
         { id: "doubt-solver" as Tab, label: "AI Doubt Solver", icon: Sparkles },
-        { id: "ncert" as Tab, label: "NCERT Books", icon: BookOpen },
         { id: "study" as Tab, label: "Study Tracker", icon: Timer },
-        { id: "study-guide" as Tab, label: "Chapter Study", icon: Sparkles },
         { id: "notes" as Tab, label: "My Notes", icon: StickyNote },
       ],
     },
@@ -509,7 +506,8 @@ const StudentDashboard = () => {
     const tabParam = params.get("tab") as Tab | null;
 
     if (tabParam && !FEATURE_FLAGS.communityAndFriendsChat && ["community", "chat"].includes(tabParam)) return;
-    if (tabParam && (navItems.some(n => n.id === tabParam) || tabParam === "rotational-results" || tabParam === "event-results")) {
+    const legacyLearningTabs: Tab[] = ["materials", "ncert", "study-guide"];
+    if (tabParam && (navItems.some(n => n.id === tabParam) || legacyLearningTabs.includes(tabParam) || tabParam === "rotational-results" || tabParam === "event-results")) {
       setActiveTab(tabParam);
     }
 
