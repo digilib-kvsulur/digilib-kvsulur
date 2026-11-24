@@ -12,9 +12,15 @@ import BookRequestForm from "@/components/BookRequestForm";
 import BookDetailDialog from "@/components/catalog/BookDetailDialog";
 import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
 
-const BookCoverPlaceholder = ({ seed }: { seed: string }) => {
+const BookCoverPlaceholder = ({ seed, category, subject }: { seed: string; category?: string | null; subject?: string | null }) => {
   const hash = Array.from(seed).reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 7);
-  const hue = 218 + (hash % 84);
+  const theme = `${category || ""} ${subject || ""}`.toLowerCase();
+  const hue = theme.includes("science") || theme.includes("physics") || theme.includes("chemistry") ? 218
+    : theme.includes("math") ? 188
+      : theme.includes("history") || theme.includes("social") ? 28
+        : theme.includes("fiction") || theme.includes("novel") ? 274
+          : theme.includes("computer") ? 252
+            : 218 + (hash % 42);
   return <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-br p-3 text-center text-white" style={{ backgroundImage: `linear-gradient(145deg, hsl(${hue} 68% 42%), hsl(${(hue + 34) % 360} 68% 28%))` }}>
     <span aria-hidden="true" className="absolute -right-8 -top-6 h-28 w-28 rounded-full border border-white/20" />
     <span aria-hidden="true" className="absolute -bottom-10 -left-8 h-32 w-32 rounded-full border border-white/15" />
@@ -631,7 +637,7 @@ const Catalog = () => {
                             onError={() => setFailedImages((prev) => new Set(prev).add(`feat-${b.id}`))}
                           />
                         ) : (
-                          <BookCoverPlaceholder seed={b.id} />
+                          <BookCoverPlaceholder seed={b.id} category={b.category} subject={b.subject} />
                         )}
                       </div>
                       <div>
@@ -675,7 +681,7 @@ const Catalog = () => {
                                 onError={() => setFailedImages((prev) => new Set(prev).add(book.id))}
                               />
                             ) : (
-                              <BookCoverPlaceholder seed={book.id} />
+                              <BookCoverPlaceholder seed={book.id} category={book.category} subject={book.subject} />
                             )}
                             {/* Status indicator badge */}
                             <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1 pointer-events-none">
