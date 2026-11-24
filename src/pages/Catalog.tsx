@@ -36,6 +36,12 @@ const normaliseAuthorName = (author?: string | null) => {
 
 const allFilterLabel = (label: string) => label === "Class" ? "All Classes" : `All ${label}s`;
 
+const featuredReason = (book: { issue_count?: number | null; available_copies?: number | null }) => {
+  if ((book.issue_count || 0) >= 10) return "Popular with readers";
+  if ((book.available_copies || 0) > 0) return "Available to borrow";
+  return "Library pick";
+};
+
 const Catalog = () => {
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
@@ -631,6 +637,7 @@ const Catalog = () => {
                       <div>
                         <h4 className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">{b.title}</h4>
                         <p className="text-[10px] text-slate-500 truncate">by {normaliseAuthorName(b.author)}</p>
+                        <p className="mt-1 text-[10px] font-semibold text-indigo-600">{featuredReason(b)}</p>
                       </div>
                     </div>
                   ))}
