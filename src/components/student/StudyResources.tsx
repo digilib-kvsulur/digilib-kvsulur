@@ -16,10 +16,14 @@ import { openStudyMaterial } from "@/lib/studyMaterialAccess";
 type Resource = { id: string; title: string; description: string | null; subject: string | null; student_class: string | null; chapter_title: string | null; resource_type: string; academic_session: string; exam_year: number | null; marks: number | null; source_label: string | null; source_url: string | null; markdown_content: string | null; file_url: string; file_type: string | null };
 type NcertChapter = { id: string; subject: string; book_name: string; chapter_number: number | null; chapter_title: string; file_url: string };
 type Chapter = { title: string; chapterNumber?: number | null; textbookUrl?: string; bookName?: string; resources: Resource[] };
+type ChapterProgressStatus = "in_progress" | "needs_revision" | "completed";
+type ChapterProgress = { user_id: string; class_number: string; subject: string; chapter_title: string; status: ChapterProgressStatus; started_at: string; completed_at: string | null; updated_at: string };
 const KIND: Record<string, string> = { short_notes: "Short Notes", formula_sheet: "Formula Sheet", pyq: "PYQ", quick_revision: "Quick Revision", textbook: "Textbook / Syllabus", other: "Other" };
 
 const normalizeSubject = (subject: string) => subject.replace(/(_Part\d| Part \d)/gi, "").replace(/_/g, " ").trim();
 const normalizeChapter = (title: string) => title.replace(/^(chapter|unit|lesson)\s*\d+\s*[-–:.)]?\s*/i, "").trim().toLocaleLowerCase();
+const progressKey = (classNumber: string, subject: string, chapterTitle: string) => `${classNumber}|${subject.trim().toLocaleLowerCase()}|${chapterTitle.trim().toLocaleLowerCase()}`;
+const progressLabel: Record<ChapterProgressStatus, string> = { in_progress: "In progress", needs_revision: "Needs revision", completed: "Completed" };
 
 export default function StudyResources({ studentClass, userId, onOpenDoubt }: { studentClass?: string | number | null; userId?: string; onOpenDoubt?: () => void }) {
   const parsedClass = Number(String(studentClass ?? "").match(/\d+/)?.[0] || 6);
@@ -28,6 +32,9 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt }: { 
   const [resources, setResources] = useState<Resource[]>([]);
   const [ncertChapters, setNcertChapters] = useState<NcertChapter[]>([]);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const [chapterProgress, setChapterProgress] = useState<Record<string, ChapterProgress>>({});
+  const [progressError, setProgressError] = useState("");
+  const [savingProgress, setSavingProgress] = useState(false);
   const [query, setQuery] = useState("");
   const [resourceType, setResourceType] = useState("all");
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
@@ -54,8 +61,27 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt }: { 
       setNcertChapters(chaptersResult.error ? [] : ((chaptersResult.data || []) as NcertChapter[]));
       if (materialsResult.error && chaptersResult.error) setLoadError("Study materials could not be loaded. Please try again in a moment.");
       if (userId) {
-        const { data: saved } = await (supabase as any).from("study_resource_bookmarks").select("resource_id").eq("user_id", userId);
-        if (alive) setBookmarks(new Set((saved || []).map((row: any) => row.resource_id)));
+        const [bookmarksResult, progressResult] = await Promise.all([
+          (supabase as any).from("study_resource_bookmarks").select("resource_id").eq("user_id", userId),
+          (supabase as any).from("study_chapter_progress").select("user_id,class_number,subject,chapter_title,status,started_at,completed_at,updated_at").eq("user_id", userId).eq("class_number", classFilter).order("updated_at", { ascending: false }),
+        ]);
+        if (!alive) return;
+        setBookmarks(new Set((bookmarksResult.data || []).map((row: any) => row.resource_id)));
+        if (progressResult.error) {
+          setChapterProgress({});
+          setProgressError("Chapter progress could not be loaded. Your study materials are still available.");
+        } else {
+          const progressMap = (progressResult.data || []).reduce((map: Record<string, ChapterProgress>, row: ChapterProgress) => {
+            map[progressKey(row.class_number, row.subject, row.chapter_title)] = row;
+            return map;
+          }, {});
+          setChapterProgress(progressMap);
+          setProgressError("");
+        }
+      } else {
+        setBookmarks(new Set());
+        setChapterProgress({});
+        setProgressError("");
       }
       if (alive) setLoading(false);
     })();
@@ -89,6 +115,8 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt }: { 
   }, [ncertChapters, resources, selectedSubject]);
 
   const activeChapter = chapters.find((item) => item.title === selectedChapter);
+  const activeProgress = activeChapter && userId ? chapterProgress[progressKey(classFilter, selectedSubject, activeChapter.title)] : undefined;
+  const resumableChapter = Object.values(chapterProgress).find((item) => item.status === "in_progress");
   const visibleResources = (activeChapter?.resources || []).filter((resource) => {
     if (bookmarkedOnly && !bookmarks.has(resource.id)) return false;
     if (resourceType !== "all" && resource.resource_type !== resourceType) return false;
@@ -104,6 +132,40 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt }: { 
       ? await (supabase as any).from("study_resource_bookmarks").delete().eq("user_id", userId).eq("resource_id", id)
       : await (supabase as any).from("study_resource_bookmarks").insert({ user_id: userId, resource_id: id });
     if (result.error) setBookmarks((current) => { const next = new Set(current); saved ? next.add(id) : next.delete(id); return next; });
+  };
+
+  const updateChapterProgress = async (status: ChapterProgressStatus) => {
+    if (!userId || !activeChapter || savingProgress) return;
+    const key = progressKey(classFilter, selectedSubject, activeChapter.title);
+    const previous = chapterProgress[key];
+    const now = new Date().toISOString();
+    const next: ChapterProgress = {
+      user_id: userId,
+      class_number: classFilter,
+      subject: selectedSubject,
+      chapter_title: activeChapter.title,
+      status,
+      started_at: previous?.started_at || now,
+      completed_at: status === "completed" ? now : null,
+      updated_at: now,
+    };
+    setSavingProgress(true);
+    setProgressError("");
+    setChapterProgress((current) => ({ ...current, [key]: next }));
+    try {
+      const { error } = await (supabase as any).from("study_chapter_progress").upsert(next, { onConflict: "user_id,class_number,subject,chapter_title" });
+      if (error) throw error;
+    } catch {
+      setChapterProgress((current) => {
+        const restored = { ...current };
+        if (previous) restored[key] = previous;
+        else delete restored[key];
+        return restored;
+      });
+      setProgressError("Progress could not be saved. Please try again.");
+    } finally {
+      setSavingProgress(false);
+    }
   };
 
   const resetNavigation = () => { setSelectedChapter(""); setQuery(""); setResourceType("all"); setBookmarkedOnly(false); };
@@ -127,15 +189,19 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt }: { 
       {selectedChapter && <><span aria-hidden="true" className="text-muted-foreground">/</span><span className="max-w-[65vw] truncate font-semibold" aria-current="page">{selectedChapter}</span></>}
     </nav>}
 
-    {loading ? <p role="status" className="py-10 text-center text-sm text-muted-foreground">Loading Class {classFilter} subjects and chapters…</p> : loadError ? <Card><CardContent className="py-10 text-center"><p role="alert" className="text-sm text-destructive">{loadError}</p><Button className="mt-3" variant="outline" onClick={() => setReloadKey((key) => key + 1)}>Try again</Button></CardContent></Card> : !selectedSubject ? <section aria-label="Subjects" className="space-y-3"><div><h2 className="text-lg font-bold">Choose a subject</h2><p className="text-sm text-muted-foreground">Class {classFilter} · Select a subject first, then open any chapter to see its complete study pack.</p></div>{subjects.length ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{subjects.map((item) => {
+    {loading ? <p role="status" className="py-10 text-center text-sm text-muted-foreground">Loading Class {classFilter} subjects and chapters…</p> : loadError ? <Card><CardContent className="py-10 text-center"><p role="alert" className="text-sm text-destructive">{loadError}</p><Button className="mt-3" variant="outline" onClick={() => setReloadKey((key) => key + 1)}>Try again</Button></CardContent></Card> : !selectedSubject ? <section aria-label="Subjects" className="space-y-3"><div><h2 className="text-lg font-bold">Choose a subject</h2><p className="text-sm text-muted-foreground">Class {classFilter} · Select a subject first, then open any chapter to see its complete study pack.</p></div>{resumableChapter && <Card className="border-primary/30 bg-primary/5"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Continue studying</p><h3 className="mt-1 font-bold">{resumableChapter.subject} · {resumableChapter.chapter_title}</h3><p className="mt-1 text-sm text-muted-foreground">Class {classFilter} · In progress</p></div><Button className="min-h-11" onClick={() => { setSelectedSubject(resumableChapter.subject); setSelectedChapter(resumableChapter.chapter_title); }}>Resume chapter</Button></CardContent></Card>}{subjects.length ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{subjects.map((item) => {
       const chapterCount = ncertChapters.filter((chapter) => normalizeSubject(chapter.subject).toLowerCase() === item.toLowerCase()).length;
       const materialCount = resources.filter((resource) => normalizeSubject(resource.subject || "General").toLowerCase() === item.toLowerCase()).length;
-      return <button key={item} type="button" onClick={() => setSelectedSubject(item)} className="group min-h-32 rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="flex items-start justify-between gap-3"><div><h3 className="font-bold">{item}</h3><p className="mt-1 text-sm text-muted-foreground">{chapterCount ? `${chapterCount} NCERT chapters` : "Study resources"}</p></div><BookOpen className="h-5 w-5 text-primary transition-transform group-hover:translate-x-0.5" /></div><p className="mt-3 text-xs text-muted-foreground">{materialCount ? `${materialCount} teacher-reviewed DLMS resource${materialCount === 1 ? "" : "s"} across this subject` : "Teacher-reviewed DLMS materials are not added yet"}</p><span className="mt-3 inline-flex items-center text-sm font-semibold text-primary">View chapters <ArrowLeft className="ml-1 h-4 w-4 rotate-180" /></span></button>;
+      const subjectProgress = Object.values(chapterProgress).filter((row) => row.subject.toLowerCase() === item.toLowerCase());
+      const completedCount = subjectProgress.filter((row) => row.status === "completed").length;
+      return <button key={item} type="button" onClick={() => setSelectedSubject(item)} className="group min-h-32 rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="flex items-start justify-between gap-3"><div><h3 className="font-bold">{item}</h3><p className="mt-1 text-sm text-muted-foreground">{chapterCount ? `${chapterCount} NCERT chapters` : "Study resources"}</p></div><BookOpen className="h-5 w-5 text-primary transition-transform group-hover:translate-x-0.5" /></div><p className="mt-3 text-xs text-muted-foreground">{materialCount ? `${materialCount} teacher-reviewed DLMS resource${materialCount === 1 ? "" : "s"} across this subject` : "Teacher-reviewed DLMS materials are not added yet"}</p>{chapterCount > 0 && subjectProgress.length > 0 && <p className="mt-1 text-xs font-medium text-primary">{completedCount} of {chapterCount} chapters completed</p>}<span className="mt-3 inline-flex items-center text-sm font-semibold text-primary">View chapters <ArrowLeft className="ml-1 h-4 w-4 rotate-180" /></span></button>;
     })}</div> : <Card><CardContent className="py-10 text-center"><BookOpen className="mx-auto h-8 w-8 text-muted-foreground/60" /><h3 className="mt-3 font-semibold">Class chapter list is not available yet</h3><p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground">DLMS has not loaded NCERT chapter links or teacher resources for this class. Ask a teacher or librarian to import the class NCERT chapter index and add reviewed notes.</p><a className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline" href="https://ncert.nic.in/textbook.php" target="_blank" rel="noreferrer">Open NCERT textbook catalogue <ExternalLink className="h-4 w-4" /></a></CardContent></Card>}</section> : !selectedChapter ? <section aria-label={`${selectedSubject} chapters`} className="space-y-3"><div><h2 className="text-lg font-bold">{selectedSubject} chapters</h2><p className="text-sm text-muted-foreground">Select a chapter to open the NCERT text and matching DLMS materials.</p></div>{chapters.length ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{chapters.map((item) => {
         const kindCounts = Object.entries(KIND).filter(([kind]) => kind !== "textbook" && kind !== "other").map(([kind, label]) => ({ label, count: item.resources.filter((resource) => resource.resource_type === kind).length })).filter((entry) => entry.count > 0);
-        return <button key={item.title} type="button" onClick={() => setSelectedChapter(item.title)} className="flex min-h-28 items-center justify-between gap-4 rounded-2xl border bg-card p-4 text-left transition hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{item.chapterNumber ? `Chapter ${item.chapterNumber}` : item.bookName || "Topic"}</p><h3 className="mt-1 font-bold leading-snug">{item.title}</h3><div className="mt-2 flex flex-wrap gap-1.5">{item.textbookUrl && <Badge variant="outline">NCERT book</Badge>}{kindCounts.length ? kindCounts.map((entry) => <Badge key={entry.label} variant="secondary">{entry.label} · {entry.count}</Badge>) : <span className="text-xs text-muted-foreground">{item.textbookUrl ? "No DLMS materials yet" : "Chapter materials not added yet"}</span>}</div></div><BookOpen className="h-5 w-5 shrink-0 text-primary" /></button>;
+        const progress = chapterProgress[progressKey(classFilter, selectedSubject, item.title)];
+        return <button key={item.title} type="button" onClick={() => setSelectedChapter(item.title)} className="flex min-h-28 items-center justify-between gap-4 rounded-2xl border bg-card p-4 text-left transition hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{item.chapterNumber ? `Chapter ${item.chapterNumber}` : item.bookName || "Topic"}</p><h3 className="mt-1 font-bold leading-snug">{item.title}</h3><div className="mt-2 flex flex-wrap gap-1.5">{item.textbookUrl && <Badge variant="outline">NCERT book</Badge>}{kindCounts.length ? kindCounts.map((entry) => <Badge key={entry.label} variant="secondary">{entry.label} · {entry.count}</Badge>) : <span className="text-xs text-muted-foreground">{item.textbookUrl ? "No DLMS materials yet" : "Chapter materials not added yet"}</span>}{progress && <Badge variant={progress.status === "completed" ? "default" : "outline"}>{progressLabel[progress.status]}</Badge>}</div></div><BookOpen className="h-5 w-5 shrink-0 text-primary" /></button>;
       })}</div> : <Card><CardContent className="py-10 text-center"><p className="font-semibold">No chapters found for {selectedSubject} yet</p><p className="mt-1 text-sm text-muted-foreground">The chapter index can be imported from the official NCERT catalogue.</p></CardContent></Card>}</section> : <section aria-label={`${selectedChapter} materials`} className="space-y-4">
       <div><h2 className="text-xl font-bold">{selectedChapter}</h2><p className="mt-1 text-sm text-muted-foreground">Class {classFilter} · {selectedSubject} · {activeChapter?.bookName || "Chapter resources"}</p></div>
+      {userId && activeChapter && <Card><CardContent className="space-y-3 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-semibold">Chapter progress</h3><p className="text-sm text-muted-foreground">Opening a chapter does not mark it complete. Update your progress when you are ready.</p></div>{activeProgress && <Badge variant={activeProgress.status === "completed" ? "default" : "outline"}>{progressLabel[activeProgress.status]}</Badge>}</div><div className="flex flex-wrap gap-2"><Button type="button" size="sm" variant={activeProgress?.status === "in_progress" ? "default" : "outline"} disabled={savingProgress} onClick={() => updateChapterProgress("in_progress")}>{activeProgress?.status === "completed" ? "Study again" : activeProgress?.status === "in_progress" ? "Continue studying" : "Start studying"}</Button><Button type="button" size="sm" variant={activeProgress?.status === "needs_revision" ? "default" : "outline"} disabled={savingProgress} onClick={() => updateChapterProgress("needs_revision")}>Needs revision</Button><Button type="button" size="sm" variant={activeProgress?.status === "completed" ? "default" : "outline"} disabled={savingProgress || activeProgress?.status === "completed"} onClick={() => updateChapterProgress("completed")}>{savingProgress ? "Saving…" : activeProgress?.status === "completed" ? "Completed" : "Mark complete"}</Button></div>{progressError && <p role="status" className="text-sm text-destructive">{progressError}</p>}</CardContent></Card>}
       {activeChapter?.textbookUrl ? <Card className="border-primary/30 bg-primary/5"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><h3 className="font-semibold">NCERT textbook chapter</h3><p className="text-sm text-muted-foreground">Open the official chapter PDF. The book remains hosted by NCERT.</p></div></div><Button asChild className="min-h-11"><a href={activeChapter.textbookUrl} target="_blank" rel="noreferrer">Open NCERT chapter <ExternalLink className="ml-2 h-4 w-4" /></a></Button></CardContent></Card> : <Card><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold">NCERT chapter link not added</h3><p className="text-sm text-muted-foreground">Open the official catalogue and choose Class {classFilter} · {selectedSubject}.</p></div><Button variant="outline" asChild><a href="https://ncert.nic.in/textbook.php" target="_blank" rel="noreferrer">NCERT catalogue <ExternalLink className="ml-2 h-4 w-4" /></a></Button></CardContent></Card>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_220px_220px]"><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="min-h-11 pl-9" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search this chapter" aria-label="Search chapter resources" /></div><Select value={resourceType} onValueChange={setResourceType}><SelectTrigger className="min-h-11" aria-label="Filter by resource type"><SelectValue placeholder="All resource types" /></SelectTrigger><SelectContent><SelectItem value="all">All resource types</SelectItem>{Object.entries(KIND).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select><Button type="button" className="min-h-11 gap-2" variant={bookmarkedOnly ? "default" : "outline"} onClick={() => setBookmarkedOnly((current) => !current)}><Bookmark className="h-4 w-4" />{bookmarkedOnly ? "Bookmarks only" : "My bookmarks"}</Button></div>
       {visibleResources.length ? <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">{visibleResources.map((resource) => <Card key={resource.id} className="flex min-w-0 flex-col border-border/70"><CardContent className="flex flex-1 flex-col gap-3 p-4 sm:p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap gap-1.5"><Badge variant="secondary">{KIND[resource.resource_type] || "Resource"}</Badge><Badge variant="outline">{resource.academic_session}</Badge>{resource.exam_year && <Badge variant="outline">{resource.exam_year}</Badge>}{resource.marks && <Badge variant="outline">{resource.marks} marks</Badge>}</div><h3 className="mt-2 font-bold leading-snug">{resource.title}</h3></div><button type="button" onClick={() => toggleBookmark(resource.id)} aria-label={bookmarks.has(resource.id) ? "Remove bookmark" : "Bookmark resource"} className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{bookmarks.has(resource.id) ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}</button></div>
