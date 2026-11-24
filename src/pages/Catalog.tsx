@@ -11,20 +11,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import BookRequestForm from "@/components/BookRequestForm";
 import BookDetailDialog from "@/components/catalog/BookDetailDialog";
 import LibraryMapExplorer from "@/components/student/LibraryMapExplorer";
+import { normalizeAuthorName, displayGenre } from "@/lib/catalogDisplay";
 
 const BookCoverPlaceholder = ({ seed, category, subject }: { seed: string; category?: string | null; subject?: string | null }) => {
   const hash = Array.from(seed).reduce((value, character) => (value * 31 + character.charCodeAt(0)) >>> 0, 7);
-  const theme = `${category || ""} ${subject || ""}`.toLowerCase();
-  const hue = theme.includes("science") || theme.includes("physics") || theme.includes("chemistry") ? 218
-    : theme.includes("math") ? 188
-      : theme.includes("history") || theme.includes("social") ? 28
-        : theme.includes("fiction") || theme.includes("novel") ? 274
-          : theme.includes("computer") ? 252
-            : 218 + (hash % 42);
+  const genre = displayGenre(category, undefined, undefined).toLowerCase();
+  const hue = genre.includes("science") || genre.includes("physics") || genre.includes("chemistry") ? 218
+    : genre.includes("math") ? 188
+    : genre.includes("history") || genre.includes("social") || genre.includes("biography") ? 28
+    : genre.includes("fiction") || genre.includes("fantasy") ? 274
+    : genre.includes("computer") ? 252
+    : 218 + (hash % 42);
   return <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-br p-3 text-center text-white" style={{ backgroundImage: `linear-gradient(145deg, hsl(${hue} 68% 42%), hsl(${(hue + 34) % 360} 68% 28%))` }}>
     <span aria-hidden="true" className="absolute -right-8 -top-6 h-28 w-28 rounded-full border border-white/20" />
     <span aria-hidden="true" className="absolute -bottom-10 -left-8 h-32 w-32 rounded-full border border-white/15" />
-    <BookOpen className="relative z-10 mb-2 h-8 w-8 text-white/90" />
+    <BookOpen className="relative z-10 mb-2 h-7 w-7 text-white/90" />
     <span className="relative z-10 text-[10px] font-black tracking-[0.2em] text-white/90">DLMS LIBRARY</span>
   </div>;
 };
@@ -35,9 +36,7 @@ const isbnCoverUrl = (isbn?: string | null) => {
 };
 
 const normaliseAuthorName = (author?: string | null) => {
-  const cleaned = String(author || "").trim().replace(/\s+/g, " ");
-  if (!cleaned) return "Unknown Author";
-  return /^geronimo$/i.test(cleaned) ? "Geronimo Stilton" : cleaned;
+  return normalizeAuthorName(author);
 };
 
 const allFilterLabel = (label: string) => label === "Class" ? "All Classes" : `All ${label}s`;
@@ -283,14 +282,36 @@ const Catalog = () => {
   const featuredList = useMemo(() => (withCovers.length >= 4 ? withCovers : books).slice(0, 6), [withCovers, books]);
   const featuredIdSet = useMemo(() => new Set(featuredList.map(b => b.id)), [featuredList]);
 
+  // Group duplicate titles/editions so catalog does not repeat exact duplicates
+  const deduplicatedBooks = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const b of displayedBooks) {
+      const titleKey = (b.title || "").trim().toLowerCase();
+      const authorKey = (b.author || "").trim().toLowerCase();
+      const key = `${titleKey}::${authorKey}`;
+      if (!map.has(key)) {
+        map.set(key, { ...b, editionCount: 1 });
+      } else {
+        const existing = map.get(key)!;
+        existing.editionCount = (existing.editionCount || 1) + 1;
+        existing.available_copies = (existing.available_copies || 0) + (b.available_copies || 0);
+        existing.total_copies = (existing.total_copies || 0) + (b.total_copies || 0);
+        existing.issue_count = Math.max(existing.issue_count || 0, b.issue_count || 0);
+        if (!existing.cover_url && b.cover_url) existing.cover_url = b.cover_url;
+        if (!existing.isbn && b.isbn) existing.isbn = b.isbn;
+      }
+    }
+    return Array.from(map.values());
+  }, [displayedBooks]);
+
   // Exclude featured books from the catalog grid on page 1 so the exact same books aren't repeated right below
   const catalogGridBooks = useMemo(() => {
     if (showFeatured && featuredList.length > 0) {
-      const filtered = displayedBooks.filter(b => !featuredIdSet.has(b.id));
-      return filtered.length > 0 ? filtered : displayedBooks;
+      const filtered = deduplicatedBooks.filter(b => !featuredIdSet.has(b.id));
+      return filtered.length > 0 ? filtered : deduplicatedBooks;
     }
-    return displayedBooks;
-  }, [showFeatured, displayedBooks, featuredIdSet, featuredList.length]);
+    return deduplicatedBooks;
+  }, [showFeatured, deduplicatedBooks, featuredIdSet, featuredList.length]);
 
   const requireAuth = () => { if (!user) { toast({ title: "Sign in required", variant: "destructive" }); navigate("/login"); return false; } return true; };
 
@@ -369,14 +390,20 @@ const Catalog = () => {
   };
 
   const skeletonGrid = (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 sm:gap-6">
+    <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
       {Array.from({ length: 12 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-2.5xl border border-slate-200/80 p-1.5 animate-pulse">
-          <div className="aspect-[2/3] w-full rounded-2xl bg-slate-200/70 mb-3" />
-          <div className="px-1.5 space-y-2 pb-2">
-            <div className="h-3 rounded bg-slate-200/70" />
-            <div className="h-3 w-2/3 rounded bg-slate-200/70" />
-            <div className="h-7 rounded-lg bg-slate-100" />
+        <div key={i} className="bg-white rounded-2xl border border-slate-200/80 p-3 animate-pulse flex flex-col justify-between">
+          <div>
+            <div className="aspect-[3/4] w-full rounded-xl bg-slate-200/70 mb-3" />
+            <div className="space-y-2 pb-2">
+              <div className="h-3.5 rounded bg-slate-200/70" />
+              <div className="h-3 w-2/3 rounded bg-slate-200/70" />
+              <div className="h-4 w-1/3 rounded bg-slate-100" />
+            </div>
+          </div>
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <div className="h-3 w-1/2 rounded bg-slate-100" />
+            <div className="h-9 rounded-xl bg-slate-100" />
           </div>
         </div>
       ))}
@@ -625,9 +652,9 @@ const Catalog = () => {
                     <div
                       key={b.id}
                       onClick={() => navigate(`/book/${b.id}`)}
-                      className="group w-32 shrink-0 cursor-pointer bg-slate-50/80 hover:bg-white rounded-xl p-2 border border-slate-200/70 hover:border-indigo-300 transition-all duration-200 hover:shadow-md flex flex-col justify-between sm:w-40"
+                      className="group w-32 shrink-0 cursor-pointer bg-slate-50/80 hover:bg-white rounded-xl p-2.5 border border-slate-200/70 hover:border-indigo-300 transition-all duration-200 hover:shadow-md flex flex-col justify-between sm:w-40"
                     >
-                      <div className="aspect-[2/3] w-full rounded-lg overflow-hidden mb-2 bg-slate-200/80 relative shadow-xs">
+                      <div className="aspect-[3/4] w-full rounded-lg overflow-hidden mb-2 bg-slate-200/80 relative shadow-xs">
                         {(b.cover_url || isbnCoverUrl(b.isbn)) && !failedImages.has(`feat-${b.id}`) ? (
                           <img
                             src={b.cover_url || isbnCoverUrl(b.isbn)}
@@ -641,8 +668,8 @@ const Catalog = () => {
                         )}
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">{b.title}</h4>
-                        <p className="text-[10px] text-slate-500 truncate">by {normaliseAuthorName(b.author)}</p>
+                        <h4 className="text-xs font-bold text-slate-900 line-clamp-2 min-h-[2rem] group-hover:text-indigo-600 transition-colors">{b.title}</h4>
+                        <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">by {normalizeAuthorName(b.author)}</p>
                         <p className="mt-1 text-[10px] font-semibold text-indigo-600">{featuredReason(b)}</p>
                       </div>
                     </div>
@@ -663,7 +690,7 @@ const Catalog = () => {
                 <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
                   {catalogGridBooks.map(book => {
                     const r = ratings[book.id];
-                    const isNew = new Date(book.first_added_at || book.created_at).getTime() > oneMonthAgo;
+                    const issueCount = borrowCounts[book.id] ?? book.issue_count ?? 0;
                     return (
                       <div
                         key={book.id}
@@ -671,7 +698,8 @@ const Catalog = () => {
                         className="group cursor-pointer flex flex-col bg-white rounded-2xl shadow-xs hover:shadow-xl hover:-translate-y-1 border border-slate-200/90 hover:border-indigo-300 transition-all duration-300 overflow-hidden p-3 h-full justify-between"
                       >
                         <div>
-                          <div className="aspect-[2/3] w-full rounded-xl bg-slate-100 overflow-hidden relative shadow-inner mb-3">
+                          {/* 3/4 Cover with clean crop and no title-obscuring badge */}
+                          <div className="aspect-[3/4] w-full rounded-xl bg-slate-100 overflow-hidden relative shadow-inner mb-3">
                             {(book.cover_url || isbnCoverUrl(book.isbn)) && !failedImages.has(book.id) ? (
                               <img
                                 src={book.cover_url || isbnCoverUrl(book.isbn)}
@@ -683,56 +711,64 @@ const Catalog = () => {
                             ) : (
                               <BookCoverPlaceholder seed={book.id} category={book.category} subject={book.subject} />
                             )}
-                            {/* Status indicator badge */}
-                            <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1 pointer-events-none">
-                              <div className="flex flex-wrap gap-1">
-                                {isNew && <span className="bg-indigo-700 text-white text-xs px-2 py-1 rounded-md font-extrabold uppercase tracking-wide shadow-sm">NEW</span>}
-                                <span className={`text-xs px-2 py-1 rounded-md font-bold shadow-sm ${book.available_copies > 0 ? "bg-emerald-700 text-white" : "bg-slate-900 text-white"}`}>
-                                  {book.available_copies > 0 ? "Available" : "All issued"}
-                                </span>
-                              </div>
-                              {user?.role === 'admin' && (
-                                <Button size="icon" variant="secondary" className="h-6 w-6 rounded-md bg-white/95 shadow-xs hover:bg-white hover:text-indigo-700 text-indigo-600 z-10 pointer-events-auto shrink-0" onClick={(e) => { e.stopPropagation(); navigate('/admin-dashboard'); }}>
+                            {user?.role === 'admin' && (
+                              <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  size="icon"
+                                  variant="secondary"
+                                  aria-label={`Edit ${book.title}`}
+                                  className="h-6 w-6 rounded-md bg-white/95 shadow-xs hover:bg-white hover:text-indigo-700 text-indigo-600 shrink-0"
+                                  onClick={() => navigate('/admin-dashboard')}
+                                >
                                   <Edit className="h-3 w-3" />
                                 </Button>
-                              )}
-                            </div>
+                              </div>
+                            )}
                           </div>
                           
                           <div>
-                            <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors mb-1">{book.title}</h4>
-                            <p className="text-[11px] text-slate-500 truncate mb-2 font-medium">by {normaliseAuthorName(book.author)}</p>
+                            {/* Title (2 lines) */}
+                            <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-indigo-600 transition-colors mb-1">
+                              {book.title}
+                            </h4>
+                            {/* Author (1 line normalized) */}
+                            <p className="text-[11px] text-slate-500 line-clamp-1 mb-2 font-medium">
+                              by {normalizeAuthorName(book.author)}
+                            </p>
                             
+                            {/* Single Genre Chip */}
                             <div className="flex flex-wrap gap-1 mb-2.5">
-                              {book.category && <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 truncate max-w-[110px]">{book.category}</span>}
-                              {book.class_level && <span className="text-[9px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">Class {book.class_level}</span>}
+                              <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 truncate max-w-full">
+                                {displayGenre(book.category, book.title, book.author)}
+                              </span>
                             </div>
                           </div>
                         </div>
                         
                         <div>
-                          {!!(r || borrowCounts[book.id] > 0) && (
-                            <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium mb-2.5 pt-1">
-                              {r ? (
-                                <div className="flex items-center gap-1 text-amber-600 font-extrabold bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/60 text-[10px]">
-                                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {r.avg.toFixed(1)}
-                                </div>
-                              ) : <span />}
-                              {borrowCounts[book.id] > 0 && <span className="text-xs text-slate-600 font-medium">{borrowCounts[book.id]} issue{borrowCounts[book.id] > 1 ? "s" : ""}</span>}
-                            </div>
-                          )}
+                          {/* Standardized footer row: Status + Issue Count on every card for uniform height */}
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium mb-2 pt-1">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
+                              book.available_copies > 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600 border border-slate-200"
+                            }`}>
+                              {book.available_copies > 0 ? "Available" : "All issued"}
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              {issueCount} issue{issueCount === 1 ? "" : "s"}
+                            </span>
+                          </div>
                           
                           <div className="flex gap-1.5 pt-2 border-t border-slate-100 relative z-20" onClick={(e) => e.stopPropagation()}>
                             {book.available_copies > 0 ? (
-                              <Button size="sm" className="h-8.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-xs border-0 flex-1 transition-all" onClick={() => requestBook(book.id)}>
+                              <Button size="sm" className="h-9 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-xs border-0 flex-1 transition-all" onClick={() => requestBook(book.id)}>
                                 Borrow
                               </Button>
                             ) : (
-                              <Button size="sm" variant="secondary" className="h-8.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex-1 transition-all" onClick={() => reserveBook(book.id)}>
+                              <Button size="sm" variant="secondary" className="h-9 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 flex-1 transition-all" onClick={() => reserveBook(book.id)}>
                                 Waitlist
                               </Button>
                             )}
-                            <Button size="icon" variant="outline" aria-label={wishlist.has(book.id) ? `Remove ${book.title} from saved books` : `Save ${book.title}`} className={`h-11 w-11 rounded-xl shrink-0 border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
+                            <Button size="icon" variant="outline" aria-label={wishlist.has(book.id) ? `Remove ${book.title} from saved books` : `Save ${book.title}`} className={`h-9 w-9 rounded-xl shrink-0 border-slate-200 ${wishlist.has(book.id) ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'hover:bg-slate-100 text-slate-700'}`} onClick={() => toggleWishlist(book.id)}>
                               {wishlist.has(book.id) ? <BookmarkCheck className="h-4 w-4 text-indigo-600" /> : <Bookmark className="h-4 w-4" />}
                             </Button>
                           </div>

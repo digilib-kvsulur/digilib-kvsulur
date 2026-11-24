@@ -106,10 +106,10 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
   }
 
   return (
-    <div className="w-full flex flex-col items-center justify-center py-0.5">
+    <div className="w-full min-w-0 overflow-hidden rounded-xl flex items-center justify-center py-0.5">
       <div
         ref={containerRef}
-        className={`flex w-full justify-center overflow-x-hidden ${widgetSize === "compact" ? "min-h-[140px]" : "min-h-[65px]"}`}
+        className="w-full min-h-[65px] min-w-0 overflow-hidden flex justify-center"
       />
       {loadError && (
         <p role="alert" className="mt-1 text-xs text-destructive text-center">

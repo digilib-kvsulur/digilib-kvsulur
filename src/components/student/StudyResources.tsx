@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import { ArrowLeft, Atom, Bookmark, BookmarkCheck, BookOpen, Calculator, ChevronDown, CircleHelp, ExternalLink, FileText, FlaskConical, Leaf, Monitor, NotebookText, Search } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, BookOpen, Calculator, ChevronDown, ChevronRight, CircleHelp, ExternalLink, FileText, NotebookText, Search, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { openStudyMaterial } from "@/lib/studyMaterialAccess";
 import ChapterPracticeSet from "@/components/student/ChapterPracticeSet";
+import {
+  displayChapterTitle,
+  shortSubjectName,
+  subjectTheme,
+  writeLastStudy,
+} from "@/lib/subjectTheme";
 
 type Resource = { id: string; title: string; description: string | null; subject: string | null; student_class: string | null; chapter_title: string | null; resource_type: string; academic_session: string; exam_year: number | null; marks: number | null; source_label: string | null; source_url: string | null; markdown_content: string | null; file_url: string; file_type: string | null };
 type NcertChapter = { id: string; subject: string; book_name: string; chapter_number: number | null; chapter_title: string; file_url: string };
@@ -28,16 +33,6 @@ const normalizeChapter = (title: string) => title.replace(/^(chapter|unit|lesson
 const progressKey = (classNumber: string, subject: string, chapterTitle: string) => `${classNumber}|${subject.trim().toLocaleLowerCase()}|${chapterTitle.trim().toLocaleLowerCase()}`;
 const progressLabel: Record<ChapterProgressStatus, string> = { in_progress: "In progress", needs_revision: "Needs revision", completed: "Completed" };
 const SUBJECT_STORAGE_KEY = "dlms-study-last-subject";
-
-const subjectTheme = (subject: string): { color: string; tint: string; icon: LucideIcon } => {
-  const normalized = subject.toLowerCase();
-  if (normalized.includes("physics")) return { color: "#EF5350", tint: "#FFF0EF", icon: Atom };
-  if (normalized.includes("chemistry")) return { color: "#FFA726", tint: "#FFF4E5", icon: FlaskConical };
-  if (normalized.includes("math")) return { color: "#26C6DA", tint: "#E8FAFC", icon: Calculator };
-  if (normalized.includes("biology")) return { color: "#5C9CE6", tint: "#EEF5FF", icon: Leaf };
-  if (normalized.includes("computer")) return { color: "#7C4DFF", tint: "#F2EDFF", icon: Monitor };
-  return { color: "#4F73C8", tint: "#EEF3FF", icon: BookOpen };
-};
 
 export default function StudyResources({ studentClass, userId, onOpenDoubt, initialChapter, onInitialChapterOpened }: { studentClass?: string | number | null; userId?: string; onOpenDoubt?: () => void; initialChapter?: { classNumber: string; subject: string; chapterTitle: string } | null; onInitialChapterOpened?: () => void }) {
   const parsedClass = Number(String(studentClass ?? "").match(/\d+/)?.[0] || 6);
@@ -59,6 +54,13 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const activeSubjectRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (activeSubjectRef.current) {
+      activeSubjectRef.current.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
+    }
+  }, [selectedSubject, classFilter]);
 
   useEffect(() => { setClassFilter(ownClass); }, [ownClass]);
   useEffect(() => {
@@ -216,6 +218,14 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
     }
   };
 
+  const continueChapter = useMemo(() => {
+    if (!selectedSubject || !chapters.length) return null;
+    return chapters.find((chapter) => {
+      const progress = chapterProgress[progressKey(classFilter, selectedSubject, chapter.title)];
+      return progress?.status === "in_progress" || progress?.status === "needs_revision";
+    });
+  }, [chapters, chapterProgress, classFilter, selectedSubject]);
+
   const resetNavigation = () => { setSelectedChapter(""); setQuery(""); setResourceType("all"); setBookmarkedOnly(false); };
   const chooseSubject = (subject: string) => {
     setSelectedSubject(subject);
@@ -223,18 +233,69 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
     setChapterSearch("");
     window.localStorage.setItem(SUBJECT_STORAGE_KEY, subject);
   };
+  const openChapter = (title: string) => {
+    setSelectedChapter(title);
+    writeLastStudy({
+      classNumber: classFilter,
+      subject: selectedSubject,
+      chapterTitle: title,
+      ts: Date.now(),
+    });
+  };
   const openResourceFile = async (url: string) => { try { await openStudyMaterial(url); } catch { /* RLS may have changed since the list loaded. */ } };
 
   return <div className="study-v2 mx-auto w-full max-w-[1200px] pb-24">
-    <header className="study-v2-header">
-      <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={selectedChapter ? "Back to chapters" : "Go back"} onClick={() => selectedChapter ? resetNavigation() : window.history.back()}><ArrowLeft className="h-5 w-5" /></Button>
-      <Select value={classFilter} onValueChange={setClassFilter}><SelectTrigger className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 text-left text-sm font-bold shadow-none focus:ring-0" aria-label="Select class"><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: 7 }, (_, i) => String(i + 6)).map((c) => <SelectItem key={c} value={c}>Class {c}{c === ownClass ? " · My class" : ""}</SelectItem>)}</SelectContent></Select>
-      <ChevronDown aria-hidden="true" className="pointer-events-none -ml-8 mr-2 h-4 w-4 text-muted-foreground" />
-      <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label="Search chapters" onClick={() => setChapterSearchOpen((open) => !open)}><Search className="h-5 w-5" /></Button>
-    </header>
+    {selectedChapter ? (
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card/60">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 shrink-0 rounded-xl"
+          aria-label="Back to chapters"
+          onClick={resetNavigation}
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base sm:text-lg font-black truncate text-foreground">
+            {displayChapterTitle(selectedChapter, activeChapter?.chapterNumber)}
+          </h2>
+          <p className="text-xs text-muted-foreground truncate">
+            Class {classFilter} · {selectedSubject} · {activeChapter?.bookName || "NCERT & DLMS Pack"}
+          </p>
+        </div>
+      </header>
+    ) : (
+      <header className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border bg-card/40">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <h1 className="text-lg sm:text-xl font-black text-foreground">Study</h1>
+          <Select value={classFilter} onValueChange={setClassFilter}>
+            <SelectTrigger className="h-7 rounded-full bg-primary/10 hover:bg-primary/15 border-0 text-primary text-xs font-bold px-2.5 shadow-none gap-1 focus:ring-0" aria-label="Select class">
+              <SelectValue placeholder={`Class ${classFilter}`} />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              {Array.from({ length: 7 }, (_, i) => String(i + 6)).map((c) => (
+                <SelectItem key={c} value={c}>Class {c}{c === ownClass ? " · My class" : ""}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 shrink-0 rounded-xl text-muted-foreground hover:text-foreground"
+          aria-label="Search chapters"
+          onClick={() => setChapterSearchOpen((open) => !open)}
+        >
+          <Search className="h-4.5 w-4.5" />
+        </Button>
+      </header>
+    )}
 
     {loading ? <div className="study-v2-skeletons" role="status" aria-label="Loading study chapters">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="study-v2-skeleton" />)}</div> : loadError ? <Card className="m-4 rounded-[var(--radius-card)]"><CardContent className="p-6 text-center"><p role="alert" className="text-sm text-destructive">{loadError}</p><Button className="mt-4 min-h-11" variant="outline" onClick={() => setReloadKey((key) => key + 1)}>Try again</Button></CardContent></Card> : selectedChapter ? <section aria-label={`${selectedChapter} materials`} className="space-y-4 px-4 pt-4">
-      <div><h2 className="text-xl font-bold">{selectedChapter}</h2><p className="mt-1 text-sm text-muted-foreground">Class {classFilter} · {selectedSubject} · {activeChapter?.bookName || "Chapter resources"}</p></div>
+      <div><h2 className="text-xl font-bold">{displayChapterTitle(selectedChapter, activeChapter?.chapterNumber)}</h2><p className="mt-1 text-sm text-muted-foreground">Class {classFilter} · {selectedSubject} · {activeChapter?.bookName || "Chapter resources"}</p></div>
       {userId && activeChapter && <Card><CardContent className="space-y-3 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-semibold">Chapter progress</h3><p className="text-sm text-muted-foreground">Opening a chapter does not mark it complete. Update your progress when you are ready.</p></div>{activeProgress && <Badge variant={activeProgress.status === "completed" ? "default" : "outline"}>{progressLabel[activeProgress.status]}</Badge>}</div><div className="flex flex-wrap gap-2"><Button type="button" size="sm" variant={activeProgress?.status === "in_progress" ? "default" : "outline"} disabled={savingProgress} onClick={() => updateChapterProgress("in_progress")}>{activeProgress?.status === "completed" ? "Study again" : activeProgress?.status === "in_progress" ? "Continue studying" : "Start studying"}</Button><Button type="button" size="sm" variant={activeProgress?.status === "needs_revision" ? "default" : "outline"} disabled={savingProgress} onClick={() => updateChapterProgress("needs_revision")}>Needs revision</Button><Button type="button" size="sm" variant={activeProgress?.status === "completed" ? "default" : "outline"} disabled={savingProgress || activeProgress?.status === "completed"} onClick={() => updateChapterProgress("completed")}>{savingProgress ? "Saving…" : activeProgress?.status === "completed" ? "Completed" : "Mark complete"}</Button></div>{progressError && <p role="status" className="text-sm text-destructive">{progressError}</p>}</CardContent></Card>}
       {activeChapter?.textbookUrl ? <Card className="border-primary/30 bg-primary/5"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><h3 className="font-semibold">NCERT textbook chapter</h3><p className="text-sm text-muted-foreground">Open the official chapter PDF. The book remains hosted by NCERT.</p></div></div><Button asChild className="min-h-11"><a href={activeChapter.textbookUrl} target="_blank" rel="noreferrer">Open NCERT chapter <ExternalLink className="ml-2 h-4 w-4" /></a></Button></CardContent></Card> : <Card><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold">NCERT chapter link not added</h3><p className="text-sm text-muted-foreground">Open the official catalogue and choose Class {classFilter} · {selectedSubject}.</p></div><Button variant="outline" asChild><a href="https://ncert.nic.in/textbook.php" target="_blank" rel="noreferrer">NCERT catalogue <ExternalLink className="ml-2 h-4 w-4" /></a></Button></CardContent></Card>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_220px_220px]"><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="min-h-11 pl-9" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search this chapter" aria-label="Search chapter resources" /></div><Select value={resourceType} onValueChange={setResourceType}><SelectTrigger className="min-h-11" aria-label="Filter by resource type"><SelectValue placeholder="All resource types" /></SelectTrigger><SelectContent><SelectItem value="all">All resource types</SelectItem>{Object.entries(KIND).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select><Button type="button" className="min-h-11 gap-2" variant={bookmarkedOnly ? "default" : "outline"} onClick={() => setBookmarkedOnly((current) => !current)}><Bookmark className="h-4 w-4" />{bookmarkedOnly ? "Bookmarks only" : "My bookmarks"}</Button></div>
@@ -249,13 +310,36 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
         {subjects.map((subject) => {
           const theme = subjectTheme(subject);
           const Icon = theme.icon;
-          const active = selectedSubject === subject;
-          return <button key={subject} type="button" role="tab" aria-selected={active} onClick={() => chooseSubject(subject)} className={`study-v2-tab ${active ? "study-v2-tab-active" : ""}`}>
-            <span className="study-v2-subject-icon" style={{ backgroundColor: active ? theme.color : theme.tint, color: active ? "#ffffff" : theme.color }}><Icon className="h-6 w-6" /></span>
-            <span className="study-v2-tab-label">{subject}</span>
+          const active = selectedSubject.toLowerCase() === subject.toLowerCase();
+          return <button
+            key={subject}
+            ref={active ? activeSubjectRef : undefined}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => chooseSubject(subject)}
+            className={`study-v2-tab ${active ? "study-v2-tab-active" : ""}`}
+          >
+            <span
+              className="study-v2-subject-icon"
+              style={{
+                backgroundColor: active ? theme.color : theme.tint,
+                color: active ? "#ffffff" : theme.color,
+              }}
+            >
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="study-v2-tab-label">{shortSubjectName(subject)}</span>
           </button>;
         })}
       </div>
+
+      {selectedSubject && (
+        <div className="mx-4 mt-3 mb-2 rounded-2xl border border-amber-200/80 bg-amber-50/80 dark:bg-amber-950/20 dark:border-amber-900/50 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2.5">
+          <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
+          <span>DLMS notes are being added. NCERT books are available now.</span>
+        </div>
+      )}
 
       {selectedSubject && <div className="study-v2-action" style={{ backgroundColor: subjectTheme(selectedSubject).tint }}>
         <div className="min-w-0"><p className="text-sm font-bold text-slate-800">Stuck on something?</p><p className="mt-1 text-xs text-slate-600">Ask the AI Doubt Solver</p></div>
@@ -263,24 +347,62 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
       </div>}
 
       {selectedSubject ? <div className="study-v2-chapter-grid">
-        {filteredChapters.length ? filteredChapters.map((chapter) => {
+        {filteredChapters.length ? filteredChapters.map((chapter, index) => {
           const theme = subjectTheme(selectedSubject);
           const progress = chapterProgress[progressKey(classFilter, selectedSubject, chapter.title)];
           const progressPercent = progress?.status === "completed" ? 100 : progress?.status === "needs_revision" ? 70 : progress?.status === "in_progress" ? 40 : 0;
-          const progressText = progress?.status === "completed" ? "Completed ✓" : progress?.status === "in_progress" ? "In progress 40%" : progress?.status === "needs_revision" ? "Needs revision" : "Yet to start";
+          const progressText = progress?.status === "completed" ? "Done ✓" : progress?.status === "in_progress" ? "40%" : progress?.status === "needs_revision" ? "Needs revision" : "Yet to start";
           const chips = [
             { label: "Notes", count: chapter.resources.filter((resource) => ["short_notes", "chapter_lesson"].includes(resource.resource_type)).length, icon: NotebookText },
             { label: "Formulas", count: chapter.resources.filter((resource) => resource.resource_type === "formula_sheet").length, icon: Calculator },
             { label: "Revision", count: chapter.resources.filter((resource) => resource.resource_type === "quick_revision").length, icon: FileText },
             { label: "Questions", count: chapter.resources.filter((resource) => ["chapter_practice", "pyq"].includes(resource.resource_type)).length, icon: CircleHelp },
           ].filter((chip) => chip.count > 0);
-          return <button key={chapter.title} type="button" onClick={() => setSelectedChapter(chapter.title)} className="study-v2-chapter-card">
-            <div className="flex min-w-0 items-start gap-3"><span className="pt-0.5 text-sm font-black" style={{ color: theme.color }}>{String(chapter.chapterNumber || 0).padStart(2, "0")}</span><h2 className="min-w-0 line-clamp-2 text-left text-sm font-bold leading-5 text-slate-900">{chapter.title}</h2></div>
-            <div className="mt-3 flex min-h-6 flex-wrap gap-2">{chips.length ? chips.map((chip) => { const Icon = chip.icon; return <span key={chip.label} className="study-v2-content-chip"><Icon className="h-3.5 w-3.5" />{chip.label} {chip.count}</span>; }) : <><span className="study-v2-content-chip text-slate-600">Notes coming soon</span>{chapter.textbookUrl && <span className="study-v2-ncert-icon" title="NCERT chapter available"><BookOpen className="h-4 w-4" /></span>}</>}</div>
-            <div className="mt-auto flex items-center gap-3 pt-3"><div className="h-1 flex-1 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-label={`${chapter.title} progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent}><div className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: theme.color }} /></div><span className="shrink-0 text-xs font-semibold text-slate-600">{progressText}</span></div>
+          const cleanTitle = displayChapterTitle(chapter.title, chapter.chapterNumber);
+          return <button key={chapter.title} type="button" onClick={() => openChapter(chapter.title)} className="study-v2-chapter-card">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="pt-0.5 text-sm font-black" style={{ color: theme.color }}>
+                {String(chapter.chapterNumber || index + 1).padStart(2, "0")}
+              </span>
+              <h2 className="min-w-0 line-clamp-2 text-left text-sm font-bold leading-5 text-slate-900 dark:text-slate-100">
+                {cleanTitle}
+              </h2>
+            </div>
+            <div className="mt-3 flex min-h-6 flex-wrap gap-2">
+              {chips.length ? chips.map((chip) => {
+                const ChipIcon = chip.icon;
+                return <span key={chip.label} className="study-v2-content-chip"><ChipIcon className="h-3.5 w-3.5" />{chip.label} {chip.count}</span>;
+              }) : chapter.textbookUrl ? (
+                <span className="study-v2-ncert-icon" title="NCERT chapter available"><BookOpen className="h-4 w-4" /></span>
+              ) : null}
+            </div>
+            <div className="mt-auto flex items-center gap-3 pt-3">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-label={`${cleanTitle} progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent}>
+                <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progressPercent}%`, backgroundColor: theme.color }} />
+              </div>
+              <span className="shrink-0 text-xs font-semibold text-slate-600 dark:text-slate-400">{progressText}</span>
+            </div>
           </button>;
         }) : <div className="study-v2-empty"><BookOpen className="mx-auto h-6 w-6 text-muted-foreground" /><p className="mt-3 text-sm font-semibold">No matching chapters</p><p className="mt-1 text-xs text-muted-foreground">Try another search or subject.</p></div>}
       </div> : <div className="study-v2-empty"><BookOpen className="mx-auto h-6 w-6 text-muted-foreground" /><p className="mt-3 text-sm font-semibold">Class chapter list is not available yet</p><a className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline" href="https://ncert.nic.in/textbook.php" target="_blank" rel="noreferrer">Open NCERT textbook catalogue</a></div>}
+
+      {continueChapter && !selectedChapter && (
+        <div className="sticky bottom-20 md:bottom-6 z-20 mx-4 mt-4 rounded-2xl border border-border bg-card/95 p-3.5 shadow-lg backdrop-blur flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Continue studying</p>
+            <p className="truncate text-sm font-bold text-foreground">
+              {displayChapterTitle(continueChapter.title, continueChapter.chapterNumber)}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            className="h-10 shrink-0 rounded-xl gradient-primary text-white font-bold"
+            onClick={() => openChapter(continueChapter.title)}
+          >
+            Resume <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </section>}
   </div>;
 }

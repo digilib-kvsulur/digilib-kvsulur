@@ -17,9 +17,9 @@ import { ForgotPasswordView } from "@/components/auth/ForgotPasswordView";
 import NotificationEmailDialog from "@/components/auth/NotificationEmailDialog";
 import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
 import { LinkGoogleAccountModal } from "@/components/auth/LinkGoogleAccountModal";
-import { LibraryBot } from "@/components/chat/LibraryBot";
 import { getAvatarUrl } from "@/lib/utils";
 import { isPauseActive } from "@/config/pauseConfig";
+import { fetchCatalogTitleCount } from "@/lib/libraryStats";
 
 const isTemporaryServiceFailure = (error: any) => {
   const rawStatus = error?.status ?? error?.context?.status;
@@ -46,6 +46,8 @@ const Login = () => {
   const { toast } = useToast();
   const [recentUsers, setRecentUsers] = useState<{ name: string; initials: string; avatar_url?: string | null; color: string }[]>([]);
   const [activeUsersCount, setActiveUsersCount] = useState<number | null>(null);
+  const [catalogTitleCount, setCatalogTitleCount] = useState<number | null>(null);
+  const [fieldErrors, setFieldErrors] = useState({ identifier: "", password: "" });
   const [pendingNotificationEmail, setPendingNotificationEmail] = useState<{ id: string; email?: string | null; role?: string } | null>(null);
   const [authUnavailable, setAuthUnavailable] = useState(false);
   const [unlinkedGoogleSession, setUnlinkedGoogleSession] = useState<{ email: string; id: string } | null>(null);
@@ -216,6 +218,9 @@ const Login = () => {
       }
     };
     loadRecentUsers();
+    fetchCatalogTitleCount().then((count) => {
+      if (count) setCatalogTitleCount(count);
+    }).catch(() => {});
   }, []);
 
   const handleGoogleSignIn = async () => {
@@ -254,16 +259,19 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthUnavailable(false);
+    const nextErrors = {
+      identifier: identifier ? "" : "Enter your admission number, email, or phone.",
+      password: password ? "" : "Enter your password.",
+    };
+    setFieldErrors(nextErrors);
+    if (nextErrors.identifier || nextErrors.password) {
+      return;
+    }
     if (!captchaToken) {
       toast({ title: "Verification required", description: "Complete the verification challenge before signing in.", variant: "destructive" });
       return;
     }
     setIsLoading(true);
-    if (!identifier || !password) {
-      toast({ title: "Missing Information", description: "Please fill in all fields", variant: "destructive" });
-      setIsLoading(false);
-      return;
-    }
     try {
       const { data: userData, error: userError } = await supabase.rpc('find_user_by_identifier', { identifier });
       if (userError && isTemporaryServiceFailure(userError)) {
@@ -425,7 +433,7 @@ const Login = () => {
         <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 left-1/3 w-80 h-80 rounded-full bg-sky-500/10 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex h-full flex-col justify-between p-8 xl:p-12 2xl:p-14 w-full max-w-xl mx-auto">
+        <div className="relative z-10 flex h-full flex-col justify-center gap-8 p-8 xl:p-12 2xl:p-14 w-full max-w-xl mx-auto">
           {/* School Header & Dual Logos */}
           <div className="flex items-center gap-3.5">
             <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 p-2 shadow-lg backdrop-blur-md">
@@ -466,7 +474,7 @@ const Login = () => {
           </div>
 
           {/* Core Visual Value Pitch */}
-          <div className="space-y-6 my-auto py-4">
+          <div className="space-y-6 py-2">
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-indigo-200 border border-white/15 backdrop-blur-md">
                 <Sparkles className="h-3.5 w-3.5 text-amber-400" />
@@ -494,7 +502,7 @@ const Login = () => {
                 },
                 {
                   icon: BookOpen,
-                  title: "5,000+ Books & NCERT E-Books",
+                  title: catalogTitleCount ? `${catalogTitleCount.toLocaleString()} Books & NCERT E-Books` : "6,850+ Books & NCERT E-Books",
                   desc: "Full library search, issue history, and curriculum textbooks",
                   color: "text-sky-400 bg-sky-400/15 border-sky-400/30",
                 },
@@ -525,43 +533,9 @@ const Login = () => {
           </div>
 
           {/* Social Proof Footer */}
-          <div className="flex items-center gap-3.5 pt-4 border-t border-white/10">
-            <div className="flex -space-x-2.5">
-              {recentUsers.length > 0
-                ? recentUsers.slice(0, 5).map((u, i) => (
-                    <div
-                      key={i}
-                      className={`relative w-8 h-8 xl:w-9 xl:h-9 rounded-full ${u.color} border-2 border-slate-900 overflow-hidden flex items-center justify-center text-[10px] xl:text-xs font-black text-white shadow-xs shrink-0 select-none`}
-                      title={u.name}
-                    >
-                      {u.avatar_url ? (
-                        <img
-                          src={getAvatarUrl(u.avatar_url) || ""}
-                          alt={u.name}
-                          className="absolute inset-0 w-full h-full object-cover z-10"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLElement).style.display = "none";
-                          }}
-                        />
-                      ) : null}
-                      <span className="relative z-0">{u.initials}</span>
-                    </div>
-                  ))
-                : ["KV", "AF", "SU", "LU", "R"].map((initials, i) => (
-                    <div
-                      key={i}
-                      className="w-8 h-8 xl:w-9 xl:h-9 rounded-full bg-indigo-600 border-2 border-slate-900 flex items-center justify-center text-[10px] xl:text-xs font-bold text-white shrink-0"
-                    >
-                      {initials}
-                    </div>
-                  ))}
-            </div>
-            <p className="text-xs xl:text-sm text-white/80">
-              Join{" "}
-              <strong className="text-white font-bold">
-                {activeUsersCount ? `${activeUsersCount.toLocaleString()}+ students & staff` : "1,200+ students & staff"}
-              </strong>{" "}
-              active on DLMS
+          <div className="pt-4 border-t border-white/10 text-left">
+            <p className="text-xs xl:text-sm text-white/90 font-medium">
+              Join <strong className="text-white font-bold">{activeUsersCount ? `${activeUsersCount.toLocaleString()}+ students & staff` : "1,607+ students and staff"}</strong> active on DLMS
             </p>
           </div>
         </div>
@@ -572,7 +546,7 @@ const Login = () => {
         {/* Subtle decorative radial glow behind form */}
         <div className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
 
-        <div className="w-full max-w-[420px] sm:max-w-[450px] space-y-3 my-auto">
+        <div className="w-full max-w-[440px] space-y-4 my-auto">
           {/* Mobile Header (Hidden on lg) */}
           <div className="flex flex-col items-center text-center gap-1.5 lg:hidden mb-1">
             <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-card border border-border shadow-xs">
@@ -590,7 +564,7 @@ const Login = () => {
           </div>
 
           {/* Form Card Container */}
-          <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 xl:p-8 shadow-xl shadow-slate-900/5 dark:shadow-black/20 backdrop-blur-xl">
+          <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-8 xl:p-9 shadow-xl shadow-slate-900/5 dark:shadow-black/20 backdrop-blur-xl">
             {isPauseActive() && (
               <div className="mb-4 p-3 rounded-2xl bg-blue-500/10 border border-blue-500/25 flex items-start gap-2.5">
                 <div className="p-1 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
@@ -689,11 +663,17 @@ const Login = () => {
                         type="text"
                         placeholder="5-digit Admission No. (e.g. 13412)"
                         value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
-                        className="h-10.5 sm:h-11 rounded-xl bg-background border-border/80 text-sm focus-visible:ring-primary shadow-xs pl-3.5"
+                        onChange={(e) => {
+                          setIdentifier(e.target.value);
+                          if (fieldErrors.identifier) setFieldErrors((prev) => ({ ...prev, identifier: "" }));
+                        }}
+                        className={`h-10.5 sm:h-11 rounded-xl bg-background border-border/80 text-sm focus-visible:ring-primary shadow-xs pl-3.5 ${fieldErrors.identifier ? "border-destructive focus-visible:ring-destructive" : ""}`}
                         required
                       />
                     </div>
+                    {fieldErrors.identifier && (
+                      <p className="text-xs text-destructive mt-1 font-medium">{fieldErrors.identifier}</p>
+                    )}
                   </div>
 
                   {/* Password Field */}
@@ -717,8 +697,11 @@ const Login = () => {
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="h-10.5 sm:h-11 rounded-xl bg-background border-border/80 pr-10 text-sm focus-visible:ring-primary shadow-xs pl-3.5"
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: "" }));
+                        }}
+                        className={`h-10.5 sm:h-11 rounded-xl bg-background border-border/80 pr-10 text-sm focus-visible:ring-primary shadow-xs pl-3.5 ${fieldErrors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
                         required
                       />
                       <button
@@ -730,6 +713,9 @@ const Login = () => {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    {fieldErrors.password && (
+                      <p className="text-xs text-destructive mt-1 font-medium">{fieldErrors.password}</p>
+                    )}
                   </div>
 
                   {/* Turnstile Captcha */}
@@ -740,11 +726,16 @@ const Login = () => {
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    className="h-11 sm:h-11.5 w-full rounded-xl gradient-primary border-0 text-sm sm:text-base font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] text-white"
+                    className="h-11 sm:h-11.5 w-full rounded-xl gradient-primary border-0 text-sm sm:text-base font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] text-white disabled:opacity-90"
                     disabled={isLoading || !captchaToken}
                   >
-                    {isLoading ? (
-                      <span className="flex items-center gap-2">
+                    {!captchaToken ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/70 border-t-white rounded-full animate-spin" />
+                        Verifying security check…
+                      </span>
+                    ) : isLoading ? (
+                      <span className="flex items-center justify-center gap-2">
                         <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         Signing in...
                       </span>
@@ -867,20 +858,6 @@ const Login = () => {
           }}
         />
       )}
-
-      <LibraryBot
-        context="login"
-        suggestedPrompts={[
-          "Show me the login steps",
-          "I need my 5-digit admission number",
-          "Forgot my password",
-          "Sign in is not working",
-          "Check service status",
-          "About the Developer",
-          "Who is the Principal?",
-          "Who is the Librarian?"
-        ]}
-      />
     </div>
   );
 };

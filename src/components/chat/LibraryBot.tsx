@@ -951,10 +951,19 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
     });
   };
 
-  if (!isEnabled) return null;
+  const isAuthOrQuizRoute = typeof window !== "undefined" && (
+    context === "login" ||
+    window.location.pathname.startsWith("/login") ||
+    window.location.pathname.startsWith("/register") ||
+    window.location.pathname.startsWith("/reset-password") ||
+    window.location.pathname.includes("/quiz/") ||
+    window.location.pathname.includes("/live-quiz")
+  );
+
+  if (!isEnabled || isAuthOrQuizRoute) return null;
 
   return (
-    <div className={`fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 md:bottom-6 md:right-6 z-40 transition-all duration-200 ${!isScrollVisible && !isOpen ? "pointer-events-none translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
+    <div className={`fixed bottom-[calc(4rem+16px+env(safe-area-inset-bottom))] right-4 md:bottom-6 md:right-6 z-40 transition-all duration-200 ${!isScrollVisible && !isOpen ? "pointer-events-none translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
       {isOpen ? (
         <div className="bg-background border shadow-2xl rounded-2xl w-[360px] sm:w-[400px] max-w-[calc(100vw-1.5rem)] h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 border-border/60">
 
