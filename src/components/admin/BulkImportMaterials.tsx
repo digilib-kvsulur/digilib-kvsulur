@@ -9,9 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { parseChapterPracticeSet } from "@/lib/chapterPractice";
 
 const SAMPLE_CSV = `title,description,subject,student_class,chapter_title,resource_type,academic_session,exam_year,marks,file_url,source_label,source_url,markdown_content
-"Class 6 Mathematics · Chapter 1 · Short Notes","Original explanation for teacher review","Mathematics","6","Chapter 1 – Patterns in Mathematics","short_notes","2026-27","","","","NCERT textbook for reference","https://ncert.nic.in/textbook.php","## Main idea\nAdd an original, age-appropriate explanation here. Do not copy textbook passages.\n\n## Worked example\nAdd a checked example and explain each step."`;
+"Class 6 Mathematics · Chapter 1 · Short Notes","Original explanation for teacher review","Mathematics","6","Chapter 1 – Patterns in Mathematics","short_notes","2026-27","","","","NCERT textbook for reference","https://ncert.nic.in/textbook.php","## Main idea\nAdd an original, age-appropriate explanation here. Do not copy textbook passages.\n\n## Worked example\nAdd a checked example and explain each step."
+"Class 6 Mathematics · Chapter 1 · Practice","Original teacher-reviewed practice questions","Mathematics","6","Chapter 1 – Patterns in Mathematics","chapter_practice","2026-27","","","","NCERT textbook for reference","https://ncert.nic.in/textbook.php","{""instructions"":""Choose one answer."",""questions"":[{""prompt"":""A pattern starts 2, 4, 6, ... Which number comes next?"",""options"":[""7"",""8"",""9""],""correct_index"":1,""explanation"":""The pattern adds 2 each time, so 8 comes next.""}]}`;
 
 interface ResultRow { title: string; success: boolean; error?: string }
 
@@ -50,7 +52,7 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
       complete: (res) => {
         try {
           const raw = (res.data as any[]).filter((r) => r.title && (r.file_url || r.markdown_content));
-          const allowedTypes = new Set(["chapter_lesson", "short_notes", "formula_sheet", "pyq", "quick_revision", "textbook", "other"]);
+          const allowedTypes = new Set(["chapter_lesson", "chapter_practice", "short_notes", "formula_sheet", "pyq", "quick_revision", "textbook", "other"]);
           const cleaned = raw.map((r) => {
           const fileUrl = String(r.file_url || "").trim();
           const markdown = String(r.markdown_content || "").trim();
@@ -59,6 +61,10 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
           const sourceUrl = String(r.source_url || "").trim();
           if (parsedClass !== "All" && !/^(6|7|8|9|10|11|12)$/.test(parsedClass)) throw new Error(`Invalid class '${parsedClass}' for ${r.title}`);
           if (!allowedTypes.has(resourceType)) throw new Error(`Invalid resource_type '${resourceType}' for ${r.title}`);
+          if (resourceType === "chapter_practice") {
+            const practice = parseChapterPracticeSet(markdown);
+            if (practice.error) throw new Error(`Practice set '${r.title}': ${practice.error}`);
+          }
           if (markdown && (!String(r.subject || "").trim() || !String(r.student_class || "").trim() || !String(r.chapter_title || "").trim() || !String(r.academic_session || "").trim() || !String(r.source_label || "").trim() || !sourceUrl)) {
             throw new Error(`Markdown resource '${r.title}' needs class, subject, chapter, session, and source details.`);
           }
@@ -202,7 +208,8 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
               <li>Required: <code className="bg-slate-200 px-1 rounded font-mono font-bold">title</code> and either <code className="bg-slate-200 px-1 rounded font-mono font-bold">file_url</code> or <code className="bg-slate-200 px-1 rounded font-mono font-bold">markdown_content</code>.</li>
               <li>Curriculum fields: <code className="font-mono">student_class</code>, <code className="font-mono">subject</code>, <code className="font-mono">chapter_title</code>, <code className="font-mono">resource_type</code>, and <code className="font-mono">academic_session</code>.</li>
               <li>Use <code className="font-mono">source_label</code> and <code className="font-mono">source_url</code> for provenance. Imported rows are always pending review.</li>
-              <li>Class values: 6–12 or <code className="font-mono">All</code>. Resource types: chapter_lesson, short_notes, formula_sheet, pyq, quick_revision, textbook, other.</li>
+              <li>Class values: 6–12 or <code className="font-mono">All</code>. Resource types: chapter_lesson, chapter_practice, short_notes, formula_sheet, pyq, quick_revision, textbook, other.</li>
+              <li><code className="font-mono">chapter_practice</code> Markdown content must be a JSON set with 1–20 original questions, 2–6 options, a zero-based <code className="font-mono">correct_index</code>, and a checked explanation for each answer.</li>
             </ul>
             <Button size="sm" variant="outline" className="h-8 rounded-lg text-xs" onClick={downloadSample}>
               <FileDown className="h-3.5 w-3.5 mr-1" /> Download Sample CSV

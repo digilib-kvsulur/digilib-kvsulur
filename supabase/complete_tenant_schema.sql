@@ -14410,3 +14410,12 @@ ALTER TABLE public.study_materials
 CREATE INDEX IF NOT EXISTS study_materials_lesson_lookup_idx
   ON public.study_materials (student_class, subject, chapter_title, academic_session)
   WHERE resource_type = 'chapter_lesson' AND review_status = 'approved';
+
+-- >>> FILE: 20261124160000_study_chapter_practice.sql
+-- Add teacher-reviewed, interactive multiple-choice practice to chapter packs.
+ALTER TABLE public.study_materials
+  DROP CONSTRAINT IF EXISTS study_materials_resource_type_check;
+
+ALTER TABLE public.study_materials
+  ADD CONSTRAINT study_materials_resource_type_check
+  CHECK (resource_type IN ('chapter_lesson', 'chapter_practice', 'short_notes', 'formula_sheet', 'pyq', 'quick_revision', 'textbook', 'other'));

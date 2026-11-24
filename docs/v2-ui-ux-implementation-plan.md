@@ -21,6 +21,7 @@ The student flow is deliberately linear: **Study → class (preselected to the s
 
 - the official NCERT chapter link, clearly marked as NCERT;
 - all approved DLMS resources for that class, subject, chapter, and academic session;
+- interactive chapter practice with per-question answer checks and explanations, kept separate from scored quizzes and points;
 - visible resource-type counts on chapter cards, so students can tell what exists before opening it;
 - a useful empty state that keeps the textbook link available and explains that DLMS notes appear only after a teacher or admin adds and approves them.
 
@@ -29,7 +30,7 @@ Keep Ask a doubt as a secondary action from Study, with a return path to the res
 ### Full reform backlog and acceptance order
 
 1. **Learning navigation and content discovery:** make Study the single catalog entry; show class, subject, chapter, textbook, resource availability, and a clear back path; verify no parallel links remain in home shortcuts, mobile navigation, or desktop navigation.
-2. **Learning chapter experience:** group materials by type, keep the NCERT link at the top, support bookmarks and search, render math, preserve chapter context when returning from the doubt solver, and show an explicit progress state.
+2. **Learning chapter experience:** group materials by type, keep the NCERT link at the top, support bookmarks and search, render math, provide interactive practice with answer explanations, preserve chapter context when returning from the doubt solver, and show an explicit progress state.
 3. **Student home and mobile shell:** prioritize the next useful action, active loans, resume-study, and current tasks; use a five-item mobile bar with consistent labels, safe areas, and no horizontal overflow.
 4. **Teacher workbench:** prioritize assigned classes, assignments, pending reviews, and chapter coverage; let staff add/edit resources with source, academic session, review status, and class/subject/chapter tags visible together.
 5. **Admin workbench:** prioritize approvals, overdue circulation, requests, study-content review, and operational alerts; move infrequent setup into settings and make bulk-action scope explicit.

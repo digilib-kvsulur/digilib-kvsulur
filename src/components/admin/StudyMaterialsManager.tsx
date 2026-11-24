@@ -16,6 +16,7 @@ import BulkImportCbse from "./BulkImportCbse";
 import NcertCbseReview from "./NcertCbseReview";
 import { formatGoogleDriveUrl, isGoogleDriveUrl, isGoogleDriveFolder } from "@/lib/utils";
 import { getStudyMaterialAccessUrl, openStudyMaterial } from "@/lib/studyMaterialAccess";
+import { parseChapterPracticeSet } from "@/lib/chapterPractice";
 
 interface Material {
   id: string;
@@ -248,6 +249,10 @@ const StudyMaterialsManager = () => {
   const saveMaterialEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!materialToEdit) return;
+    if (editMaterialForm.resource_type === "chapter_practice") {
+      const practice = parseChapterPracticeSet(editMaterialForm.markdown_content);
+      if (practice.error) { toast({ title: "Invalid practice set", description: practice.error, variant: "destructive" }); return; }
+    }
     const { error } = await (supabase as any).from("study_materials").update({
       title: editMaterialForm.title.trim(), description: editMaterialForm.description?.trim() || null,
       subject: editMaterialForm.subject, student_class: editMaterialForm.student_class,
@@ -442,6 +447,13 @@ const StudyMaterialsManager = () => {
     if ((!matsFile && !matsForm.markdown_content.trim()) || !matsForm.title.trim()) {
       toast({ title: "Missing info", description: "Add a title and either a file or Markdown content", variant: "destructive" });
       return;
+    }
+    if (matsForm.resource_type === "chapter_practice") {
+      const practice = parseChapterPracticeSet(matsForm.markdown_content);
+      if (practice.error || matsFile) {
+        toast({ title: "Invalid practice set", description: practice.error || "Interactive practice must be entered as JSON, not a file.", variant: "destructive" });
+        return;
+      }
     }
     setUploadingMats(true);
     try {
@@ -669,7 +681,7 @@ const StudyMaterialsManager = () => {
       const formulaSubject = ["mathematics", "science", "physics", "chemistry"].includes(subjectKey);
       const competitiveSubject = ["mathematics", "physics", "chemistry", "biology"].includes(subjectKey);
       const classNumber = Number(chapter.class_number);
-      const requiredTypes = ["chapter_lesson", "short_notes", ...(formulaSubject ? ["formula_sheet"] : []), "quick_revision",
+      const requiredTypes = ["chapter_lesson", "short_notes", ...(formulaSubject ? ["formula_sheet"] : []), "quick_revision", "chapter_practice",
         ...(classNumber === 10 || classNumber === 12 || (classNumber >= 11 && classNumber <= 12 && competitiveSubject) ? ["pyq"] : [])];
       const resourcesByType = new Map(requiredTypes.map((type) => [type, {
         approved: matching.filter((resource) => resource.resource_type === type && resource.review_status === "approved").length,
@@ -691,7 +703,7 @@ const StudyMaterialsManager = () => {
   }).length, 0);
   const teacherCoverageClass = currentUserClass.match(/\d+/)?.[0] || "";
   const resourceTypeLabels: Record<string, string> = {
-    chapter_lesson: "Chapter lesson", short_notes: "Short notes", formula_sheet: "Formula sheet", quick_revision: "Quick revision", pyq: "PYQs",
+    chapter_lesson: "Chapter lesson", chapter_practice: "Practice set", short_notes: "Short notes", formula_sheet: "Formula sheet", quick_revision: "Quick revision", pyq: "PYQs",
   };
   const downloadCoverageTemplate = () => {
     const columns = ["title", "description", "subject", "student_class", "chapter_title", "resource_type", "academic_session", "exam_year", "marks", "file_url", "source_label", "source_url", "markdown_content"];
@@ -744,14 +756,14 @@ const StudyMaterialsManager = () => {
             <div><Label>Class</Label><Select value={editMaterialForm.student_class || "All"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, student_class: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CLASSES.filter((c) => currentUserRole !== "teacher" || c === "All" || c === currentUserClass).map((c) => <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Subject</Label><Select value={editMaterialForm.subject || "General"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, subject: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{SUBJECTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Chapter</Label><Input value={editMaterialForm.chapter_title || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, chapter_title: e.target.value })} /></div>
-            <div><Label>Resource type</Label><Select value={editMaterialForm.resource_type || "short_notes"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, resource_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[["chapter_lesson","Chapter Lesson"],["short_notes","Short Notes"],["formula_sheet","Formula Sheet"],["pyq","PYQ"],["quick_revision","Quick Revision"],["textbook","Textbook / Syllabus"],["other","Other"]].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Resource type</Label><Select value={editMaterialForm.resource_type || "short_notes"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, resource_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[["chapter_lesson","Chapter Lesson"],["chapter_practice","Chapter Practice"],["short_notes","Short Notes"],["formula_sheet","Formula Sheet"],["pyq","PYQ"],["quick_revision","Quick Revision"],["textbook","Textbook / Syllabus"],["other","Other"]].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Session</Label><Input value={editMaterialForm.academic_session || "2026-27"} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, academic_session: e.target.value })} /></div>
             <div><Label>Exam year</Label><Input type="number" value={editMaterialForm.exam_year || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, exam_year: e.target.value })} /></div>
             <div><Label>Marks</Label><Input type="number" value={editMaterialForm.marks || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, marks: e.target.value })} /></div>
             <div><Label>Source label</Label><Input value={editMaterialForm.source_label || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, source_label: e.target.value })} /></div>
             <div><Label>Source URL</Label><Input type="url" value={editMaterialForm.source_url || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, source_url: e.target.value })} /></div>
             <div className="sm:col-span-2"><Label>Description</Label><Textarea value={editMaterialForm.description || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, description: e.target.value })} rows={2} /></div>
-            <div className="sm:col-span-2"><Label>Markdown content</Label><Textarea value={editMaterialForm.markdown_content || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, markdown_content: e.target.value })} rows={8} /></div>
+            <div className="sm:col-span-2"><Label>{editMaterialForm.resource_type === "chapter_practice" ? "Practice Set JSON" : "Markdown content"}</Label><Textarea value={editMaterialForm.markdown_content || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, markdown_content: e.target.value })} placeholder={editMaterialForm.resource_type === "chapter_practice" ? '{ "questions": [{ "prompt": "Question", "options": ["A", "B"], "correct_index": 0, "explanation": "Explain why." }] }' : "Markdown content"} rows={8} />{editMaterialForm.resource_type === "chapter_practice" && <p className="text-xs text-muted-foreground">Use 1–20 original multiple-choice questions, 2–6 options each, a zero-based correct_index, and an explanation.</p>}</div>
             <div className="sm:col-span-2 flex justify-end"><Button type="submit">Save resource</Button></div>
           </form>
         </DialogContent>
@@ -868,6 +880,7 @@ const StudyMaterialsManager = () => {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="chapter_lesson">Chapter Lesson</SelectItem>
+                      <SelectItem value="chapter_practice">Chapter Practice</SelectItem>
                       <SelectItem value="short_notes">Short Notes</SelectItem>
                       <SelectItem value="formula_sheet">Formula Sheet</SelectItem>
                       <SelectItem value="pyq">Previous Year Question</SelectItem>
@@ -885,8 +898,9 @@ const StudyMaterialsManager = () => {
                 <div><Label>Source Label</Label><Input value={matsForm.source_label} onChange={e => setMatsForm({ ...matsForm, source_label: e.target.value })} placeholder="CBSE 2025 board paper" /></div>
                 <div><Label>Source URL</Label><Input type="url" value={matsForm.source_url} onChange={e => setMatsForm({ ...matsForm, source_url: e.target.value })} placeholder="Official source page" /></div>
                 <div className="md:col-span-2">
-                  <Label>Markdown Content</Label>
-                  <Textarea value={matsForm.markdown_content} onChange={e => setMatsForm({ ...matsForm, markdown_content: e.target.value })} placeholder="Optional: author short notes, formulas, or quick revision in Markdown. Add either this or a file." rows={7} />
+                  <Label>{matsForm.resource_type === "chapter_practice" ? "Practice Set JSON" : "Markdown Content"}</Label>
+                  <Textarea value={matsForm.markdown_content} onChange={e => setMatsForm({ ...matsForm, markdown_content: e.target.value })} placeholder={matsForm.resource_type === "chapter_practice" ? '{ "questions": [{ "prompt": "Question", "options": ["A", "B"], "correct_index": 0, "explanation": "Explain why." }] }' : "Optional: author a chapter lesson, short notes, formula sheet, or quick revision in Markdown. Add either this or a file."} rows={7} />
+                  {matsForm.resource_type === "chapter_practice" && <p className="text-xs text-muted-foreground md:col-span-2">Use 1–20 original multiple-choice questions, 2–6 options each, a zero-based correct_index, and an explanation. The set remains pending review.</p>}
                 </div>
                 <div className="md:col-span-2">
                   <Label>Resource File (PDF, Word doc, image, etc.)</Label>
