@@ -89,31 +89,6 @@ const StudyDoubtSolver = lazy(() => import("@/components/student/StudyDoubtSolve
 
 type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "event-results" | "rotational-results" | "ncert" | "materials" | "study-resources" | "doubt-solver" | "study" | "study-guide" | "games" | "notes" | "community" | "chat" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation" | "invite";
 
-const baseNavItems: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: "overview", label: "Overview", icon: Home },
-  { id: "portfolio", label: "My Portfolio", icon: FileText },
-  { id: "books", label: "My Books", icon: BookMarked },
-  { id: "issued", label: "Book Issued", icon: BookCheck },
-  { id: "catalog", label: "Books Catalog", icon: BookOpen },
-  { id: "events", label: "Events", icon: CalendarDays },
-  { id: "materials", label: "Study Materials", icon: FileText },
-  { id: "study-resources", label: "Study", icon: BookMarked },
-  { id: "doubt-solver", label: "AI Doubt Solver", icon: Sparkles },
-  { id: "ncert", label: "NCERT Books", icon: BookOpen },
-  { id: "study", label: "Study Tracker", icon: Timer },
-  { id: "study-guide", label: "Chapter Study", icon: Sparkles },
-  { id: "games", label: "Games Corner", icon: Gamepad2 },
-  { id: "notes", label: "My Notes", icon: StickyNote },
-  { id: "invite", label: "Invite Friends", icon: UserPlus },
-  { id: "quizzes", label: "Quizzes", icon: Brain },
-  { id: "badges", label: "Badge Cabinet", icon: Award },
-  { id: "rankings", label: "Rankings", icon: Medal },
-  { id: "network", label: "Network", icon: Users },
-  { id: "support", label: "Help & Support", icon: LifeBuoy },
-  { id: "profile", label: "Profile", icon: User },
-  { id: "feedback", label: "Feedback", icon: MessageSquare },
-];
-
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -464,8 +439,10 @@ const StudentDashboard = () => {
         ...(hasCertificates ? [{ id: "certificates" as Tab, label: "Certificates", icon: Award }] : []),
         { id: "rankings" as Tab, label: "Rankings", icon: Medal },
         { id: "games" as Tab, label: "Games Corner", icon: Gamepad2 },
-        { id: "invite" as Tab, label: "Invite Friends (+250 XP)", icon: UserPlus },
-        { id: "network" as Tab, label: "Network", icon: Users },
+        ...(FEATURE_FLAGS.communityAndFriendsChat ? [
+          { id: "invite" as Tab, label: "Invite Friends (+250 XP)", icon: UserPlus },
+          { id: "network" as Tab, label: "Network", icon: Users },
+        ] : []),
         { id: "vacation" as Tab, label: "Vacation Campaign", icon: Sun },
         ...(bountyVisible ? [{ id: "bounty" as Tab, label: "Bug Bounty", icon: Target }] : []),
         ...(uiReformVisible ? [{ id: "ui-reform" as Tab, label: "UI Reform Challenge", icon: Palette }] : []),
@@ -505,7 +482,7 @@ const StudentDashboard = () => {
     const roomParam = params.get("room");
     const tabParam = params.get("tab") as Tab | null;
 
-    if (tabParam && !FEATURE_FLAGS.communityAndFriendsChat && ["community", "chat"].includes(tabParam)) return;
+    if (tabParam && !FEATURE_FLAGS.communityAndFriendsChat && ["community", "chat", "network", "invite"].includes(tabParam)) return;
     const legacyLearningTabs: Tab[] = ["materials", "ncert", "study-guide"];
     if (tabParam && (navItems.some(n => n.id === tabParam) || legacyLearningTabs.includes(tabParam) || tabParam === "rotational-results" || tabParam === "event-results")) {
       setActiveTab(tabParam);
@@ -873,7 +850,7 @@ const StudentDashboard = () => {
         fetchRecentActivities(),
         fetchMonthlyBooksRead(),
         fetchBadgesCount(),
-        fetchPendingFriendRequests(),
+        ...(FEATURE_FLAGS.communityAndFriendsChat ? [fetchPendingFriendRequests()] : []),
         supabase.from("library_fines").select("id", { count: "exact", head: true })
           .eq("user_id", user.id).eq("status", "pending")
           .then(({ count }) => setPendingFines(count || 0)),
@@ -1138,8 +1115,8 @@ const StudentDashboard = () => {
               schoolReadingGoal={schoolReadingGoal}
               badgesEarnedCount={badgesEarnedCount}
               recentActivities={recentActivities}
-              pendingFriendRequests={pendingFriendRequests}
-              handleRespondFriendRequest={handleRespondFriendRequest}
+              pendingFriendRequests={FEATURE_FLAGS.communityAndFriendsChat ? pendingFriendRequests : []}
+              handleRespondFriendRequest={FEATURE_FLAGS.communityAndFriendsChat ? handleRespondFriendRequest : undefined}
               bountyVisible={bountyVisible}
               activeBounty={activeBounty}
               uiReformVisible={uiReformVisible}
@@ -1372,7 +1349,6 @@ const StudentDashboard = () => {
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab as Tab)}
         onOpenMenu={() => setMobileNavOpen(true)}
-        onCatalog={() => navigate("/catalog")}
         showVacationCenter={Boolean(vacationCampaign && ["active", "paused"].includes(vacationCampaign.status))}
       />
     </div>

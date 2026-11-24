@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { FEATURE_FLAGS } from "@/config/featureFlags";
 import { getAvatarUrl } from "@/lib/utils";
 import LevelProgress from "./LevelProgress";
 import LoginStreakCard from "./LoginStreakCard";
@@ -249,11 +250,13 @@ export default function Overview({
   // Secondary Quick Navigation Chips
   const secondaryQuickChips = [
     { label: "Book Issued Hub", tab: "issued", icon: BookCheck },
-    { label: "Community Forum", tab: "community", icon: Users },
-    { label: "Classmates Network", tab: "network", icon: Network },
-    { label: "Friends Chat", tab: "chat", icon: MessageSquare },
+    ...(FEATURE_FLAGS.communityAndFriendsChat ? [
+      { label: "Community Forum", tab: "community", icon: Users },
+      { label: "Classmates Network", tab: "network", icon: Network },
+      { label: "Friends Chat", tab: "chat", icon: MessageSquare },
+    ] : []),
     { label: "Library Map", tab: "locator", icon: MapPin },
-    { label: "Study Materials", tab: "materials", icon: FileText },
+    { label: "Study", tab: "study-resources", icon: FileText },
   ];
 
   // Check if any secondary campaigns are active
@@ -493,7 +496,7 @@ export default function Overview({
         </div>
 
         {/* Invite Classmates Box */}
-        <InviteCard />
+        {FEATURE_FLAGS.communityAndFriendsChat && <InviteCard />}
       </div>
 
       {user?.id && <><StudentTaskInbox userId={user.id} setActiveTab={setActiveTab} /><StudentReadingAssignments userId={user.id} studentClass={user.student_class} /></>}
@@ -804,12 +807,10 @@ export default function Overview({
           </div>
 
           {/* Invite Classmates Box (Desktop) */}
-          <div className="hidden lg:block">
-            <InviteCard />
-          </div>
+          {FEATURE_FLAGS.communityAndFriendsChat && <div className="hidden lg:block"><InviteCard /></div>}
 
           {/* Pending Friend Requests (if any - Visible on both mobile and desktop) */}
-          {pendingFriendRequests && pendingFriendRequests.length > 0 && handleRespondFriendRequest && (
+          {FEATURE_FLAGS.communityAndFriendsChat && pendingFriendRequests && pendingFriendRequests.length > 0 && handleRespondFriendRequest && (
             <Card className="rounded-3xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/40 via-purple-50/20 to-card dark:from-indigo-950/20 dark:via-card dark:to-card shadow-sm hover:shadow-md transition-shadow p-4 sm:p-5">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-2">

@@ -51,7 +51,7 @@ const TeacherDashboard = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get("tab") as TeacherTab | null;
-    if (tabParam && (FEATURE_FLAGS.communityAndFriendsChat || tabParam !== "community")) {
+    if (tabParam && (FEATURE_FLAGS.communityAndFriendsChat || !["community", "network"].includes(tabParam))) {
       setActiveTab(tabParam);
     }
   }, [location.search]);
@@ -552,7 +552,7 @@ const TeacherDashboard = () => {
             <TabsTrigger value="recommendations" className="flex items-center gap-2"><Star className="h-4 w-4" /> Recommendations</TabsTrigger>
             <TabsTrigger value="vacation" className="flex items-center gap-2"><Sun className="h-4 w-4" /> Vacation</TabsTrigger>
             {FEATURE_FLAGS.communityAndFriendsChat && <TabsTrigger value="community" className="flex items-center gap-2"><Users className="h-4 w-4" /> Community</TabsTrigger>}
-            <TabsTrigger value="network" className="flex items-center gap-2"><Star className="h-4 w-4" /> Network</TabsTrigger>
+            {FEATURE_FLAGS.communityAndFriendsChat && <TabsTrigger value="network" className="flex items-center gap-2"><Star className="h-4 w-4" /> Network</TabsTrigger>}
             <TabsTrigger value="book-requests" className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> Requests</TabsTrigger>
             <TabsTrigger value="materials" className="flex items-center gap-2"><BookMarked className="h-4 w-4" /> Study Materials</TabsTrigger>
             <TabsTrigger value="support" className="flex items-center gap-2"><LifeBuoy className="h-4 w-4" /> Support</TabsTrigger>
@@ -786,9 +786,9 @@ const TeacherDashboard = () => {
             {teacher?.id && <Community currentUserId={teacher.id} isAdmin={false} />}
           </TabsContent>}
 
-          <TabsContent value="network">
+          {FEATURE_FLAGS.communityAndFriendsChat && <TabsContent value="network">
             {teacher?.id && <NetworkTab user={teacher} />}
-          </TabsContent>
+          </TabsContent>}
 
           <TabsContent value="book-requests">
             {teacher?.id && <MyRequests userId={teacher.id} />}

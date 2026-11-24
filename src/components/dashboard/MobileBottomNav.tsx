@@ -1,7 +1,7 @@
 import {
   Home, BookOpen, FileText, Menu, Brain, User, Trophy,
-  BookCheck, Compass, Timer, Award, Medal, CalendarDays, Users,
-  StickyNote, LifeBuoy, MessageSquare, Gamepad2, GraduationCap, Sparkles, Palette, Sun, UserPlus
+  BookCheck, Compass, Timer, Award, Medal, CalendarDays,
+  StickyNote, LifeBuoy, MessageSquare, Gamepad2, Sparkles, Palette, Sun
 } from "lucide-react";
 
 type Tab = string;
@@ -10,20 +10,20 @@ interface MobileBottomNavProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   onOpenMenu: () => void;
-  onCatalog: () => void;
   showVacationCenter?: boolean;
 }
 
 const primaryTabs: { id: Tab; label: string; icon: React.ElementType; center?: boolean }[] = [
   { id: "overview", label: "Home", icon: Home },
-  { id: "issued", label: "Books", icon: BookOpen },
+  { id: "study-resources", label: "Study", icon: BookOpen },
+  { id: "catalog", label: "Catalog", icon: BookCheck },
   { id: "quizzes", label: "Quizzes", icon: Brain },
-  { id: "games", label: "Games", icon: Gamepad2 },
 ];
 
 const vacationPrimaryTabs: { id: Tab; label: string; icon: React.ElementType; center?: boolean }[] = [
   { id: "overview", label: "Home", icon: Home },
-  { id: "games", label: "Games", icon: Gamepad2 },
+  { id: "study-resources", label: "Study", icon: BookOpen },
+  { id: "catalog", label: "Catalog", icon: BookCheck },
   { id: "vacation", label: "Vacation", icon: Sun, center: true },
 ];
 
@@ -33,7 +33,7 @@ export default function MobileBottomNav({ activeTab, onTabChange, onOpenMenu, sh
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border pb-[env(safe-area-inset-bottom)]">
-      <div className={`grid ${showVacationCenter ? "grid-cols-5" : "grid-cols-6"} h-16`}>
+      <div className="grid grid-cols-5 h-16">
         {tabs.map((item) => {
           const active = activeTab === item.id;
           if (item.center) {
@@ -109,11 +109,8 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
   {
     title: "Learning",
     items: [
-      { id: "materials", label: "Study Materials", icon: GraduationCap },
       { id: "study-resources", label: "Study", icon: BookOpen },
       { id: "doubt-solver", label: "Doubt Solver", icon: Sparkles },
-      { id: "ncert", label: "NCERT Books", icon: BookOpen },
-      { id: "study-guide", label: "Chapter Study", icon: Sparkles },
       { id: "study", label: "Study Tracker", icon: Timer },
       { id: "quizzes", label: "Quizzes", icon: Brain },
       { id: "badges", label: "Badge Cabinet", icon: Award },
@@ -126,12 +123,10 @@ export const mobileNavSections: { title: string; items: { id: Tab; label: string
     items: [
       { id: "events", label: "Events", icon: CalendarDays },
       { id: "periodicals", label: "Periodicals", icon: BookOpen },
-      { id: "invite", label: "Invite Friends", icon: UserPlus },
       { id: "vacation", label: "Vacation Campaign", icon: Sun },
       { id: "bounty", label: "Bug Bounty", icon: Trophy },
       { id: "ui-reform", label: "UI Reform", icon: Palette },
       { id: "games", label: "Games Corner", icon: Gamepad2 },
-      { id: "network", label: "Network", icon: Users },
     ],
   },
   {
