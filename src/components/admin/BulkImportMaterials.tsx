@@ -10,10 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 
-const SAMPLE_CSV = `title,description,subject,student_class,file_url
-Math Notes Chapter 1,Quadratic equations notes,Mathematics,10,https://example.com/math1.pdf
-Science Notes Chapter 1,Chemical reactions and equations,Science,10,https://example.com/sci1.pdf
-English Essay Tips,Essay writing guide,English,All,https://example.com/essay.pdf`;
+const SAMPLE_CSV = `title,description,subject,student_class,chapter_title,resource_type,academic_session,exam_year,marks,file_url,source_label,source_url,markdown_content
+"Class 6 Mathematics · Chapter 1 · Short Notes","Original explanation for teacher review","Mathematics","6","Chapter 1 – Patterns in Mathematics","short_notes","2026-27","","","","NCERT textbook for reference","https://ncert.nic.in/textbook.php","## Main idea\nAdd an original, age-appropriate explanation here. Do not copy textbook passages.\n\n## Worked example\nAdd a checked example and explain each step."`;
 
 interface ResultRow { title: string; success: boolean; error?: string }
 
@@ -50,21 +48,58 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
         return clean;
       },
       complete: (res) => {
-        const raw = (res.data as any[]).filter(r => r.title && r.file_url);
-        const cleaned = raw.map(r => ({
-          title: String(r.title).trim(),
-          description: String(r.description || "").trim() || null,
-          subject: String(r.subject || "General").trim(),
-          student_class: String(r.student_class || "All").trim(),
-          file_url: String(r.file_url).trim(),
-          file_name: String(r.file_url).split("/").pop() || "Document",
-          file_type: "application/pdf" // default fallback
-        }));
-        setRows(cleaned);
-        if (cleaned.length === 0) {
-          toast({ title: "No valid rows", description: "CSV must have 'title' and 'file_url' columns.", variant: "destructive" });
-        } else {
-          toast({ title: `${cleaned.length} materials ready`, description: "Review preview below then click Import." });
+        try {
+          const raw = (res.data as any[]).filter((r) => r.title && (r.file_url || r.markdown_content));
+          const allowedTypes = new Set(["short_notes", "formula_sheet", "pyq", "quick_revision", "textbook", "other"]);
+          const cleaned = raw.map((r) => {
+          const fileUrl = String(r.file_url || "").trim();
+          const markdown = String(r.markdown_content || "").trim();
+          const parsedClass = String(r.student_class || "All").trim().replace(/^class\s*/i, "");
+          const resourceType = String(r.resource_type || "short_notes").trim().toLowerCase();
+          const sourceUrl = String(r.source_url || "").trim();
+          if (parsedClass !== "All" && !/^(6|7|8|9|10|11|12)$/.test(parsedClass)) throw new Error(`Invalid class '${parsedClass}' for ${r.title}`);
+          if (!allowedTypes.has(resourceType)) throw new Error(`Invalid resource_type '${resourceType}' for ${r.title}`);
+          if (markdown && (!String(r.subject || "").trim() || !String(r.student_class || "").trim() || !String(r.chapter_title || "").trim() || !String(r.academic_session || "").trim() || !String(r.source_label || "").trim() || !sourceUrl)) {
+            throw new Error(`Markdown resource '${r.title}' needs class, subject, chapter, session, and source details.`);
+          }
+          for (const candidate of [fileUrl, sourceUrl]) {
+            if (!candidate) continue;
+            let parsed: URL;
+            try { parsed = new URL(candidate); } catch { throw new Error(`Invalid URL for ${r.title}`); }
+            if (!["http:", "https:"].includes(parsed.protocol)) throw new Error(`Only HTTP(S) URLs are allowed for ${r.title}`);
+          }
+          const examYear = r.exam_year ? Number(r.exam_year) : null;
+          const marks = r.marks ? Number(r.marks) : null;
+          if (examYear !== null && (!Number.isInteger(examYear) || examYear < 1900 || examYear > 2100)) throw new Error(`Invalid exam_year for ${r.title}`);
+          if (marks !== null && (!Number.isInteger(marks) || marks < 1 || marks > 100)) throw new Error(`Invalid marks for ${r.title}`);
+          if (resourceType === "pyq" && (examYear === null || marks === null || !sourceUrl)) throw new Error(`PYQ '${r.title}' needs its year, marks, and source URL.`);
+          return {
+            title: String(r.title).trim(),
+            description: String(r.description || "").trim() || null,
+            subject: String(r.subject || "General").trim(),
+            student_class: parsedClass,
+            chapter_title: String(r.chapter_title || "").trim() || null,
+            resource_type: resourceType,
+            academic_session: String(r.academic_session || "2026-27").trim(),
+            exam_year: examYear,
+            marks,
+            file_url: fileUrl,
+            file_name: fileUrl ? (fileUrl.split("/").pop() || "Document") : null,
+            file_type: fileUrl ? "application/pdf" : "text/markdown",
+            source_label: String(r.source_label || "").trim() || null,
+            source_url: sourceUrl || null,
+            markdown_content: markdown || null,
+          };
+          });
+          setRows(cleaned);
+          if (cleaned.length === 0) {
+            toast({ title: "No valid rows", description: "Each row needs a title and either a file_url or markdown_content.", variant: "destructive" });
+          } else {
+            toast({ title: `${cleaned.length} materials ready`, description: "Review preview below then click Import." });
+          }
+        } catch (error: any) {
+          setRows([]);
+          setServerError(error.message || "The CSV contains invalid material metadata.");
         }
       },
       error: (err) => toast({ title: "Parse error", description: err.message, variant: "destructive" }),
@@ -97,9 +132,18 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
         description: r.description,
         subject: r.subject,
         student_class: r.student_class,
+        chapter_title: r.chapter_title,
+        resource_type: r.resource_type,
+        academic_session: r.academic_session,
+        exam_year: r.exam_year,
+        marks: r.marks,
+        source_label: r.source_label,
+        source_url: r.source_url,
+        markdown_content: r.markdown_content,
         file_url: r.file_url,
         file_name: r.file_name,
         file_type: r.file_type,
+        review_status: "pending",
         uploaded_by: user.id
       }));
 
@@ -146,7 +190,7 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
             <Upload className="h-6 w-6 text-primary" /> Bulk Import Study Materials
           </DialogTitle>
           <DialogDescription>
-            Upload a CSV containing study material URLs to add them in bulk.
+            Upload PDF links or Markdown resources in a CSV. Every imported item enters teacher review before students can see it.
           </DialogDescription>
         </DialogHeader>
 
@@ -155,9 +199,10 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
           <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-3">
             <h4 className="font-bold text-sm text-slate-800">CSV Template Instructions:</h4>
             <ul className="list-disc pl-5 text-xs text-slate-600 space-y-1">
-              <li>Must contain: <code className="bg-slate-200 px-1 rounded font-mono font-bold">title</code> and <code className="bg-slate-200 px-1 rounded font-mono font-bold">file_url</code> columns.</li>
-              <li>Optional columns: <code className="bg-slate-200 px-1 rounded font-mono font-bold">description</code>, <code className="bg-slate-200 px-1 rounded font-mono font-bold">subject</code>, and <code className="bg-slate-200 px-1 rounded font-mono font-bold">student_class</code>.</li>
-              <li>Class formats: class number (e.g. <code className="font-mono">8</code>, <code className="font-mono">10</code>) or <code className="font-mono">All</code> for all classes.</li>
+              <li>Required: <code className="bg-slate-200 px-1 rounded font-mono font-bold">title</code> and either <code className="bg-slate-200 px-1 rounded font-mono font-bold">file_url</code> or <code className="bg-slate-200 px-1 rounded font-mono font-bold">markdown_content</code>.</li>
+              <li>Curriculum fields: <code className="font-mono">student_class</code>, <code className="font-mono">subject</code>, <code className="font-mono">chapter_title</code>, <code className="font-mono">resource_type</code>, and <code className="font-mono">academic_session</code>.</li>
+              <li>Use <code className="font-mono">source_label</code> and <code className="font-mono">source_url</code> for provenance. Imported rows are always pending review.</li>
+              <li>Class values: 6–12 or <code className="font-mono">All</code>. Resource types: short_notes, formula_sheet, pyq, quick_revision, textbook, other.</li>
             </ul>
             <Button size="sm" variant="outline" className="h-8 rounded-lg text-xs" onClick={downloadSample}>
               <FileDown className="h-3.5 w-3.5 mr-1" /> Download Sample CSV
@@ -223,7 +268,8 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
                       <th className="p-2 pl-3">Title</th>
                       <th className="p-2">Subject</th>
                       <th className="p-2">Class</th>
-                      <th className="p-2">File URL</th>
+                      <th className="p-2">Chapter / type</th>
+                      <th className="p-2">Content</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -232,7 +278,8 @@ const BulkImportMaterials = ({ onImported }: { onImported?: () => void }) => {
                         <td className="p-2 pl-3 font-semibold text-slate-800 truncate max-w-[120px]">{r.title}</td>
                         <td className="p-2 text-slate-600">{r.subject}</td>
                         <td className="p-2 text-slate-600">{r.student_class}</td>
-                        <td className="p-2 font-mono text-[10px] text-indigo-600 truncate max-w-[150px]">{r.file_url}</td>
+                        <td className="p-2 text-slate-600">{r.chapter_title || "—"} · {r.resource_type}</td>
+                        <td className="p-2 text-slate-600">{r.markdown_content ? "Markdown" : "File link"}</td>
                       </tr>
                     ))}
                   </tbody>

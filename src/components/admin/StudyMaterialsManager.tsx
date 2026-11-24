@@ -685,9 +685,44 @@ const StudyMaterialsManager = () => {
     });
   const totalCoverageRequirements = coverageRows.reduce((sum, row) => sum + row.requiredTypes.length, 0);
   const approvedCoverageRequirements = coverageRows.reduce((sum, row) => sum + row.completeCount, 0);
+  const missingCoverageResources = coverageRows.reduce((sum, row) => sum + row.requiredTypes.filter((type) => {
+    const counts = row.resourcesByType.get(type);
+    return !counts?.approved && !counts?.pending && !counts?.needsRevision;
+  }).length, 0);
   const teacherCoverageClass = currentUserClass.match(/\d+/)?.[0] || "";
   const resourceTypeLabels: Record<string, string> = {
     short_notes: "Short notes", formula_sheet: "Formula sheet", quick_revision: "Quick revision", pyq: "PYQs",
+  };
+  const downloadCoverageTemplate = () => {
+    const columns = ["title", "description", "subject", "student_class", "chapter_title", "resource_type", "academic_session", "exam_year", "marks", "file_url", "source_label", "source_url", "markdown_content"];
+    const lines = coverageRows.flatMap(({ chapter, requiredTypes, resourcesByType }) => requiredTypes
+      .filter((type) => {
+        const counts = resourcesByType.get(type);
+        return !counts?.approved && !counts?.pending && !counts?.needsRevision;
+      })
+      .map((type) => [
+        `Class ${chapter.class_number} ${chapter.subject} — ${chapter.chapter_title} — ${resourceTypeLabels[type]}`,
+        "Original DLMS draft. Verify facts and current syllabus before approval.",
+        chapter.subject,
+        chapter.class_number,
+        chapter.chapter_title,
+        type,
+        "2026-27",
+        "",
+        "",
+        "",
+        `Official NCERT reference: ${chapter.book_name}`,
+        chapter.file_url,
+        "",
+      ]));
+    const escapeCell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const csv = [columns, ...lines].map((line) => line.map(escapeCell).join(",")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `study-content-drafts-class-${coverageClass}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -750,6 +785,9 @@ const StudyMaterialsManager = () => {
                 <div className="flex min-h-11 items-center rounded-lg border bg-muted/30 px-3 text-sm font-medium">
                   {loadingNcert || loadingMats ? "Loading coverage…" : `${approvedCoverageRequirements} of ${totalCoverageRequirements} required resource types approved`}
                 </div>
+                <Button variant="outline" className="min-h-11 gap-2 sm:ml-auto" onClick={downloadCoverageTemplate} disabled={loadingNcert || loadingMats || missingCoverageResources === 0}>
+                  <Download className="h-4 w-4" /> Download missing-resource CSV
+                </Button>
               </div>
               {loadingNcert || loadingMats ? <div className="py-10 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />Reading chapter and review data…</div> : coverageRows.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-8 text-center">
