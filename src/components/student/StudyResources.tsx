@@ -242,11 +242,23 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
   const toggleBookmark = async (id: string) => {
     if (!userId) { toast.error("Sign in to save bookmarks"); return; }
     const saved = bookmarks.has(id);
-    setBookmarks((current) => { const next = new Set(current); saved ? next.delete(id) : next.add(id); return next; });
+    setBookmarks((current) => {
+      const next = new Set(current);
+      saved ? next.delete(id) : next.add(id);
+      const cached = studyDataCache.get(`${classFilter}:${userId}`);
+      if (cached) cached.bookmarks = Array.from(next);
+      return next;
+    });
     const result = saved
       ? await (supabase as any).from("study_resource_bookmarks").delete().eq("user_id", userId).eq("resource_id", id)
       : await (supabase as any).from("study_resource_bookmarks").insert({ user_id: userId, resource_id: id });
-    if (result.error) setBookmarks((current) => { const next = new Set(current); saved ? next.add(id) : next.delete(id); return next; });
+    if (result.error) setBookmarks((current) => {
+      const next = new Set(current);
+      saved ? next.add(id) : next.delete(id);
+      const cached = studyDataCache.get(`${classFilter}:${userId}`);
+      if (cached) cached.bookmarks = Array.from(next);
+      return next;
+    });
   };
 
   const updateChapterProgress = async (status: ChapterProgressStatus) => {
@@ -256,12 +268,23 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
     const now = new Date().toISOString();
     const next: ChapterProgress = { user_id: userId, class_number: classFilter, subject: selectedSubject, chapter_title: activeChapter.title, status, started_at: previous?.started_at || now, completed_at: status === "completed" ? now : null, updated_at: now };
     setSavingProgress(true); setProgressError("");
-    setChapterProgress((current) => ({ ...current, [key]: next }));
+    setChapterProgress((current) => {
+      const updated = { ...current, [key]: next };
+      const cached = studyDataCache.get(`${classFilter}:${userId}`);
+      if (cached) cached.chapterProgress = updated;
+      return updated;
+    });
     try {
       const { error } = await (supabase as any).from("study_chapter_progress").upsert(next, { onConflict: "user_id,class_number,subject,chapter_title" });
       if (error) throw error;
     } catch {
-      setChapterProgress((current) => { const restored = { ...current }; if (previous) restored[key] = previous; else delete restored[key]; return restored; });
+      setChapterProgress((current) => {
+        const restored = { ...current };
+        if (previous) restored[key] = previous; else delete restored[key];
+        const cached = studyDataCache.get(`${classFilter}:${userId}`);
+        if (cached) cached.chapterProgress = restored;
+        return restored;
+      });
       setProgressError("Progress could not be saved. Please try again.");
     } finally { setSavingProgress(false); }
   };

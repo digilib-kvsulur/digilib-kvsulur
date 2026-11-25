@@ -153,8 +153,7 @@ export type MockResultResponse = {
     max_score: number | null;
     submitted_at: string | null;
     section_scores: MockSectionScore[] | null;
-    answers: Record<string, string> | null;
-  };
+    answers: Record<string, string> | null;  };
   paper: MockPaperContent;
 };
 
@@ -165,6 +164,7 @@ export type MockAttemptRow = {
   status: "active" | "submitted" | "expired";
   score: number | null;
   max_score: number | null;
+  section_scores: MockSectionScore[] | null;
   started_at: string;
   expires_at: string;
   submitted_at: string | null;

@@ -1,9 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
 import { ArrowLeft, Brain, CheckCircle2, Layers, Loader2, Plus, RotateCcw, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { addFlashcards, claimFlashcardReward, fetchDueFlashcards, fetchLearningResources, reviewFlashcard, seedFlashcardsFromResource } from "./api";
+import MarkdownBlock from "./MarkdownBlock";
 import { useSpeech } from "./useSpeech";
 import type { DueFlashcards, FlashcardReward, StudyResource } from "./types";
 
@@ -27,11 +23,7 @@ const RATING_LABELS: Array<{ rating: 1 | 2 | 3 | 4; label: string; className: st
 ];
 
 function Markdown({ children }: { children: string }) {
-  return (
-    <div className="prose prose-sm max-w-none break-words dark:prose-invert">
-      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{children}</ReactMarkdown>
-    </div>
-  );
+  return <MarkdownBlock>{children}</MarkdownBlock>;
 }
 
 export default function FlashcardReview({ studentClass }: { studentClass: string }) {

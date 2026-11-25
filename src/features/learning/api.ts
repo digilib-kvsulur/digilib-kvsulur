@@ -99,7 +99,7 @@ export async function submitCheckpoint(resourceId: string, answers: number[]) {
 
 export const startMock = (paperId: string) => rpc<MockStartResponse>("study_mock_start", { p_paper: paperId });
 
-export async function submitMock(attemptId: string, answers: Record<string, number | null>) {
+export async function submitMock(attemptId: string, answers: Record<string, number | string | null>) {
   return rpc<MockSubmitResult>("study_mock_submit", { p_attempt: attemptId, p_answers: answers });
 }
 
@@ -143,7 +143,7 @@ export async function fetchLearningResources(classNumber: string, types: string[
 export async function fetchMockAttempts(): Promise<MockAttemptRow[]> {
   const { data, error } = await (supabase as any)
     .from("study_mock_attempts")
-    .select("id,paper_id,subject,status,score,max_score,started_at,expires_at,submitted_at")
+    .select("id,paper_id,subject,status,score,max_score,section_scores,started_at,expires_at,submitted_at")
     .order("created_at", { ascending: false })
     .limit(20);
   if (error) throw new Error(learningErrorMessage(error.message));
