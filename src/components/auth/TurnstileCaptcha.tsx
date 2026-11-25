@@ -50,6 +50,8 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
   const containerRef = useRef<HTMLDivElement>(null);
   const callbacksRef = useRef({ onToken, onError });
   const [loadError, setLoadError] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [localReset, setLocalReset] = useState(0);
   const [widgetSize, setWidgetSize] = useState<"flexible" | "compact">("flexible");
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim() || DEFAULT_TURNSTILE_SITE_KEY;
   callbacksRef.current = { onToken, onError };
@@ -57,9 +59,13 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
   useEffect(() => {
     const container = containerRef.current;
     if (!container || typeof ResizeObserver === "undefined") return;
+    const updateSize = (width: number) => {
+      // Cloudflare Turnstile "flexible" / "normal" needs >= 300px; switch to compact below 308px to prevent clipping on narrow phones.
+      setWidgetSize(width > 0 && width < 308 ? "compact" : "flexible");
+    };
+    updateSize(container.getBoundingClientRect().width);
     const observer = new ResizeObserver(([entry]) => {
-      // Keep rectangular ("flexible", 65px height) unless the container is narrower than 240px
-      setWidgetSize(entry.contentRect.width > 0 && entry.contentRect.width < 240 ? "compact" : "flexible");
+      updateSize(entry.contentRect.width);
     });
     observer.observe(container);
     return () => observer.disconnect();
@@ -70,10 +76,13 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
     let disposed = false;
     let widgetId: TurnstileWidgetId | undefined;
     setLoadError(false);
+    setReady(false);
     callbacksRef.current.onToken("");
 
     loadTurnstile().then(() => {
       if (disposed || !containerRef.current || !window.turnstile) return;
+      const isDark = document.documentElement.classList.contains("dark");
+      setReady(true);
       widgetId = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
         size: widgetSize,
@@ -85,7 +94,7 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
           callbacksRef.current.onError?.("Verification failed to load. Please try again.");
           return true;
         },
-        theme: "light",
+        theme: isDark ? "dark" : "light",
       });
     }).catch(() => {
       if (!disposed) {
@@ -99,22 +108,37 @@ export function TurnstileCaptcha({ onToken, onError, resetKey = 0 }: TurnstileCa
       disposed = true;
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
     };
-  }, [siteKey, resetKey, widgetSize]);
+  }, [siteKey, resetKey, localReset, widgetSize]);
 
   if (!siteKey) {
     return <p role="status" className="text-xs text-destructive">Verification is not configured. Please contact the site administrator.</p>;
   }
 
   return (
-    <div className="w-full min-w-0 overflow-hidden rounded-xl flex items-center justify-center py-0.5">
-      <div
-        ref={containerRef}
-        className="w-full min-h-[65px] min-w-0 overflow-hidden flex justify-center"
-      />
+    <div className="w-full min-w-0 overflow-hidden rounded-xl flex flex-col items-center justify-center py-0.5">
+      <div className="relative w-full min-h-[65px] min-w-0 overflow-hidden flex items-center justify-center">
+        {!ready && !loadError && (
+          <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/30 text-xs text-muted-foreground">
+            <ShieldCheck className="h-4 w-4 text-primary/70 animate-pulse" />
+            <span>Loading security check…</span>
+          </div>
+        )}
+        <div
+          ref={containerRef}
+          className="w-full min-h-[65px] min-w-0 overflow-hidden flex justify-center"
+        />
+      </div>
       {loadError && (
-        <p role="alert" className="mt-1 text-xs text-destructive text-center">
-          Verification could not be loaded. Please refresh and try again.
-        </p>
+        <div className="mt-1.5 flex items-center justify-center gap-2 text-xs text-destructive">
+          <span role="alert">Security check failed to load.</span>
+          <button
+            type="button"
+            onClick={() => setLocalReset((n) => n + 1)}
+            className="font-semibold text-primary hover:underline"
+          >
+            Retry
+          </button>
+        </div>
       )}
     </div>
   );

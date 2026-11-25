@@ -94,8 +94,33 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(() => {
+    try {
+      const hasToken = typeof window !== "undefined" && Object.keys(window.localStorage || {}).some(
+        (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+      );
+      if (!hasToken) return null;
+      const stored = localStorage.getItem("dlms_user_profile");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.id && parsed?.is_approved !== false) return parsed;
+      }
+    } catch {}
+    return null;
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const hasToken = typeof window !== "undefined" && Object.keys(window.localStorage || {}).some(
+        (k) => k.startsWith("sb-") && k.endsWith("-auth-token")
+      );
+      const stored = localStorage.getItem("dlms_user_profile");
+      if (hasToken && stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.id && parsed?.is_approved !== false) return false;
+      }
+    } catch {}
+    return true;
+  });
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [studyResumeTarget, setStudyResumeTarget] = useState<StudyChapterTarget | null>(null);
   const [hasEventWinnerRelease, setHasEventWinnerRelease] = useState(false);
@@ -586,7 +611,7 @@ const StudentDashboard = () => {
       }
 
       if (!profile) {
-        if (!hasStoredToken) navigate('/login');
+        navigate('/login', { replace: true });
         return;
       }
 
@@ -1148,7 +1173,7 @@ const StudentDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 pb-40 lg:pb-8 lg:ml-64 lg:pt-1">
+      <main className="h-dvh min-h-0 flex-1 overflow-y-auto pt-14 pb-36 lg:pb-20 lg:ml-64 lg:pt-1">
         <div key={activeTab} className="max-w-6xl mx-auto p-4 sm:p-5 lg:p-6 lg:pt-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {levelUpBanner && <LevelUpBanner newLevel={levelUpBanner} onClose={() => setLevelUpBanner(null)} />}
           <EventWinnerReleaseBanner onAvailabilityChange={setHasEventWinnerRelease} onOpen={() => { setActiveTab("event-results"); navigate("?tab=event-results", { replace: true }); }} />
@@ -1399,8 +1424,8 @@ const StudentDashboard = () => {
       {/* Celebratory Winner Popup (Rotational Badges & Event Winners) */}
       {user?.id && <RotationalBadgeWinningPopup userId={user.id} />}
 
-      {/* Keep the assistant out of social chat screens. */}
-      {activeTab !== "community" && activeTab !== "chat" && !mobileNavOpen && <LibraryBot />}
+      {/* Keep the assistant out of social chat and dedicated doubt solver screens. */}
+      {activeTab !== "community" && activeTab !== "chat" && activeTab !== "doubt-solver" && !mobileNavOpen && <LibraryBot />}
 
       <MobileBottomNav
         activeTab={activeTab}

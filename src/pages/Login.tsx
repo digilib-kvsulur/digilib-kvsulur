@@ -39,6 +39,8 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const [awaitingCaptchaSubmit, setAwaitingCaptchaSubmit] = useState(false);
+  const [captchaErrorMsg, setCaptchaErrorMsg] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showRegistrationNotice, setShowRegistrationNotice] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -256,21 +258,7 @@ const Login = () => {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthUnavailable(false);
-    const nextErrors = {
-      identifier: identifier ? "" : "Enter your admission number, email, or phone.",
-      password: password ? "" : "Enter your password.",
-    };
-    setFieldErrors(nextErrors);
-    if (nextErrors.identifier || nextErrors.password) {
-      return;
-    }
-    if (!captchaToken) {
-      toast({ title: "Verification required", description: "Complete the verification challenge before signing in.", variant: "destructive" });
-      return;
-    }
+  const performLogin = async (tokenToUse: string) => {
     setIsLoading(true);
     try {
       const { data: userData, error: userError } = await supabase.rpc('find_user_by_identifier', { identifier });
@@ -300,7 +288,7 @@ const Login = () => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: user.email,
         password,
-        options: { captchaToken },
+        options: { captchaToken: tokenToUse },
       });
       if (error) {
         setCaptchaToken("");
@@ -423,8 +411,36 @@ const Login = () => {
     setIsLoading(false);
   };
 
+  useEffect(() => {
+    if (awaitingCaptchaSubmit && captchaToken && !isLoading) {
+      setAwaitingCaptchaSubmit(false);
+      setCaptchaErrorMsg("");
+      void performLogin(captchaToken);
+    }
+  }, [awaitingCaptchaSubmit, captchaToken, isLoading]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthUnavailable(false);
+    setCaptchaErrorMsg("");
+    const nextErrors = {
+      identifier: identifier.trim() ? "" : "Enter your admission number, email, or phone.",
+      password: password ? "" : "Enter your password.",
+    };
+    setFieldErrors(nextErrors);
+    if (nextErrors.identifier || nextErrors.password) {
+      return;
+    }
+    if (!captchaToken) {
+      setAwaitingCaptchaSubmit(true);
+      setCaptchaErrorMsg("Completing security check — you'll sign in automatically once verified.");
+      return;
+    }
+    await performLogin(captchaToken);
+  };
+
   return (
-    <div className="flex h-dvh min-h-dvh w-full overflow-hidden bg-background">
+    <div className="flex min-h-dvh w-full overflow-x-hidden bg-background">
       {/* Left Panel - Premium Brand Showcase (Desktop >= lg) */}
       <div className="hidden lg:flex lg:w-[48%] xl:w-[50%] lg:h-full lg:overflow-hidden relative bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white select-none">
         {/* Subtle grid texture & glowing mesh background */}
@@ -542,7 +558,7 @@ const Login = () => {
       </div>
 
       {/* Right Panel - Sign In Form */}
-      <div className="flex-1 flex flex-col justify-center items-center px-4 py-4 sm:px-8 relative h-dvh overflow-hidden select-none bg-slate-50/70 dark:bg-slate-950/80">
+      <div className="flex-1 flex flex-col justify-center items-center px-4 py-6 sm:px-8 relative min-h-dvh overflow-y-auto select-none bg-slate-50/70 dark:bg-slate-950/80">
         {/* Subtle decorative radial glow behind form */}
         <div className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
 
@@ -719,25 +735,40 @@ const Login = () => {
                   </div>
 
                   {/* Turnstile Captcha */}
-                  <div className="py-1 flex justify-center">
-                    <TurnstileCaptcha onToken={setCaptchaToken} resetKey={captchaResetKey} />
+                  <div className="py-0.5 flex flex-col items-center">
+                    <TurnstileCaptcha
+                      onToken={(token) => {
+                        setCaptchaToken(token);
+                        if (token) setCaptchaErrorMsg("");
+                      }}
+                      onError={(msg) => {
+                        setAwaitingCaptchaSubmit(false);
+                        setCaptchaErrorMsg(msg);
+                      }}
+                      resetKey={captchaResetKey}
+                    />
+                    {captchaErrorMsg && (
+                      <p className="mt-1 text-[11px] font-medium text-muted-foreground text-center">
+                        {captchaErrorMsg}
+                      </p>
+                    )}
                   </div>
 
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    className="h-11 sm:h-11.5 w-full rounded-xl gradient-primary border-0 text-sm sm:text-base font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] text-white disabled:opacity-90"
-                    disabled={isLoading || !captchaToken}
+                    className="h-11 sm:h-11.5 w-full rounded-xl gradient-primary border-0 text-sm sm:text-base font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.99] text-white disabled:opacity-80"
+                    disabled={isLoading || awaitingCaptchaSubmit}
                   >
-                    {!captchaToken ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <span className="w-4 h-4 border-2 border-white/70 border-t-white rounded-full animate-spin" />
-                        Verifying security check…
-                      </span>
-                    ) : isLoading ? (
+                    {isLoading ? (
                       <span className="flex items-center justify-center gap-2">
                         <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         Signing in...
+                      </span>
+                    ) : awaitingCaptchaSubmit ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
+                        Verifying & signing in…
                       </span>
                     ) : (
                       "Sign In to DLMS →"
@@ -764,7 +795,7 @@ const Login = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate("/")}
-                  className="h-7 text-xs text-muted-foreground hover:text-foreground rounded-lg"
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg"
                 >
                   <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to Home
                 </Button>

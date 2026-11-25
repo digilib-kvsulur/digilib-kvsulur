@@ -14,6 +14,8 @@ export const SUBJECT_SHORT_NAMES: Record<string, string> = {
   "Accountancy": "Accounts",
   "English Language & Literature": "English",
   "Mathematics Standard": "Maths",
+  "Biotechnology": "Biotech",
+  "Entrepreneurship": "Entrepren.",
 };
 
 export function shortSubjectName(subject: string) {
@@ -47,6 +49,8 @@ const THEMES: Record<string, SubjectTheme> = {
   Physics: { icon: Atom, bg: "bg-[var(--subject-physics)]", fg: "text-violet-900", ring: "ring-violet-400", token: "var(--subject-physics)", color: "#7c3aed", tint: "#ede9fe" },
   Chemistry: { icon: FlaskConical, bg: "bg-[var(--subject-chemistry)]", fg: "text-amber-900", ring: "ring-amber-400", token: "var(--subject-chemistry)", color: "#d97706", tint: "#fef3c7" },
   Biology: { icon: Dna, bg: "bg-[var(--subject-biology)]", fg: "text-green-900", ring: "ring-green-400", token: "var(--subject-biology)", color: "#16a34a", tint: "#dcfce7" },
+  Biotechnology: { icon: Dna, bg: "bg-[var(--subject-biology)]", fg: "text-emerald-900", ring: "ring-emerald-400", token: "var(--subject-biology)", color: "#059669", tint: "#d1fae5" },
+  Entrepreneurship: { icon: Briefcase, bg: "bg-[var(--subject-bst)]", fg: "text-violet-900", ring: "ring-violet-400", token: "var(--subject-bst)", color: "#7c3aed", tint: "#ede9fe" },
   "Computer Science": { icon: Code2, bg: "bg-[var(--subject-cs)]", fg: "text-slate-900", ring: "ring-slate-400", token: "var(--subject-cs)", color: "#475569", tint: "#f1f5f9" },
   "Informatics Practices": { icon: Code2, bg: "bg-[var(--subject-cs)]", fg: "text-slate-900", ring: "ring-slate-400", token: "var(--subject-cs)", color: "#475569", tint: "#f1f5f9" },
   English: { icon: Languages, bg: "bg-[var(--subject-english)]", fg: "text-rose-900", ring: "ring-rose-400", token: "var(--subject-english)", color: "#e11d48", tint: "#ffe4e6" },

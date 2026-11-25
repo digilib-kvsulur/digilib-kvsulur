@@ -40,11 +40,20 @@ const Index = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [trendingBooks, setTrendingBooks] = useState<Book[]>([]);
-  const [statistics, setStatistics] = useState<Statistics>({
-    availableCopies: 0,
-    totalBooks: 0,
-    activeUsers: 0,
-    booksIssued: 0,
+  const [statistics, setStatistics] = useState<Statistics>(() => {
+    try {
+      const cached = localStorage.getItem("dlms_home_stats_v1");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed.totalBooks === "number") return parsed;
+      }
+    } catch {}
+    return {
+      availableCopies: 0,
+      totalBooks: 0,
+      activeUsers: 0,
+      booksIssued: 0,
+    };
   });
   const [dbEvents, setDbEvents] = useState<any[]>([]);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
@@ -267,12 +276,16 @@ const Index = () => {
         activeUsers = pCount || 0;
       }
 
-      setStatistics({
+      const nextStats: Statistics = {
         availableCopies: availableCopies > 0 ? availableCopies : totalCopies,
         totalBooks: totalCopies,
         activeUsers,
         booksIssued: totalHistoricalIssues,
-      });
+      };
+      setStatistics(nextStats);
+      try {
+        localStorage.setItem("dlms_home_stats_v1", JSON.stringify(nextStats));
+      } catch {}
     } catch (e) {
       console.error("Failed to load statistics:", e);
     }
@@ -506,8 +519,8 @@ const Index = () => {
                 <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-indigo-600 text-indigo-600" />
                 {settings.school_name || "PM SHRI KV SULUR"} DLMS
               </div>
-              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.15] max-w-xl">
-                {settings.home_hero_title ? (
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.12] max-w-xl">
+                {settings.home_hero_title && settings.home_hero_title !== "A Library That Grows With Every Reader." ? (
                   <span>{settings.home_hero_title}</span>
                 ) : (
                   <>
@@ -570,25 +583,25 @@ const Index = () => {
             {/* Right Column (Visual) */}
             <div className="lg:col-span-6 relative flex justify-center">
               <div className="relative w-full max-w-[520px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border border-slate-200 bg-white group p-1">
-                <div className="w-full h-full rounded-3xl overflow-hidden relative">
+                <div className="w-full h-full rounded-[20px] overflow-hidden relative">
                   <img
                     src={settings.school_banner_url || heroImg}
                     alt={`${settings.school_name || "KV"} library hall`}
                     width="1040"
                     height="780"
                     fetchPriority="high"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-slate-950/10 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-slate-950/10 to-transparent" />
                 </div>
-              </div>
-              <div className="absolute -bottom-6 -left-6 bg-white border border-slate-200/80 rounded-2xl p-5 flex items-center gap-4 shadow-xl hidden md:flex">
-                <div className="w-12 h-12 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
-                  <Trophy className="h-6 w-6 text-white" />
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">1st STUDENT CENTRIC</p>
-                  <p className="text-sm font-black text-slate-900">KVS DLMS</p>
+                <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-xl hidden sm:flex">
+                  <div className="w-10 h-10 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+                    <Trophy className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">1st STUDENT CENTRIC</p>
+                    <p className="text-sm font-black text-slate-900">KVS DLMS</p>
+                  </div>
                 </div>
               </div>
             </div>

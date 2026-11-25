@@ -650,9 +650,9 @@ export default function Overview({
             </span>
           </div>
           <div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{monthlyBooksRead}</span>
-              <span className="text-xs font-semibold text-muted-foreground">/{schoolReadingGoal} days</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-black text-foreground tracking-tight tabular-nums">{monthlyBooksRead}</span>
+              <span className="text-xs font-semibold text-muted-foreground tabular-nums">/ {schoolReadingGoal} days</span>
             </div>
             <p className="text-xs text-muted-foreground font-medium mt-1 truncate">
               Weekly reading goal: {monthlyBooksRead} of {schoolReadingGoal} days
@@ -734,7 +734,7 @@ export default function Overview({
                   {
                     id: "catalog",
                     label: "Books Catalog",
-                    description: "Browse 5,000+ library titles",
+                    description: "5,000+ books & e-books",
                     icon: Compass,
                     color: "text-indigo-600 dark:text-indigo-400",
                     bg: "bg-indigo-500/10 hover:bg-indigo-500/15",
@@ -744,7 +744,7 @@ export default function Overview({
                   {
                     id: "ncert",
                     label: "Study by Subject",
-                    description: "NCERT books and chapter resources",
+                    description: "NCERT & chapter notes",
                     icon: BookOpen,
                     color: "text-sky-600 dark:text-sky-400",
                     bg: "bg-sky-500/10 hover:bg-sky-500/15",
@@ -754,7 +754,7 @@ export default function Overview({
                   {
                     id: "quizzes",
                     label: "Daily Quizzes",
-                    description: "Compete in live quiz leagues",
+                    description: "Live quiz leagues & XP",
                     icon: Brain,
                     color: "text-purple-600 dark:text-purple-400",
                     bg: "bg-purple-500/10 hover:bg-purple-500/15",
@@ -764,7 +764,7 @@ export default function Overview({
                   {
                     id: "issued",
                     label: "My Books & Issues",
-                    description: "Active borrowings & requests",
+                    description: "Loans & book requests",
                     icon: BookCheck,
                     color: "text-emerald-600 dark:text-emerald-400",
                     bg: "bg-emerald-500/10 hover:bg-emerald-500/15",
@@ -777,15 +777,15 @@ export default function Overview({
                     <button
                       key={hub.id}
                       onClick={hub.action}
-                      className={`relative flex flex-col text-left p-3.5 sm:p-4 rounded-2xl border border-border/70 bg-card hover:bg-muted/40 ${hub.border} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95 group shadow-sm`}
+                      className={`relative flex flex-col text-left p-3.5 sm:p-4 rounded-2xl border border-border/70 bg-card hover:bg-muted/40 ${hub.border} transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-95 group shadow-sm`}
                     >
                       <div className={`w-9 h-9 rounded-xl ${hub.bg} ${hub.color} flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform`}>
                         <Icon className="h-4 w-4" />
                       </div>
-                      <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                      <p className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
                         {hub.label}
                       </p>
-                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 leading-snug mt-0.5">
                         {hub.description}
                       </p>
                     </button>

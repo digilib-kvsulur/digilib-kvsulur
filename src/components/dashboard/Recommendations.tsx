@@ -88,12 +88,12 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
       // 3. Candidate pool — popular + newest available books
       const [{ data: popular }, { data: fresh }] = await Promise.all([
         supabase.from("books")
-          .select("id, title, author, category, subject, class_level, issue_count")
+          .select("id, title, author, category, subject, class_level, issue_count, cover_url")
           .gt("available_copies", 0)
           .order("issue_count", { ascending: false })
           .limit(40),
         supabase.from("books")
-          .select("id, title, author, category, subject, class_level, issue_count")
+          .select("id, title, author, category, subject, class_level, issue_count, cover_url")
           .gt("available_copies", 0)
           .order("first_added_at", { ascending: false })
           .limit(30),
@@ -149,10 +149,17 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
 
   if (loading) {
     return (
-      <Card className="border-border/50">
-        <CardContent className="p-8 text-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />
-          <p className="mt-2 text-xs text-muted-foreground">Tailoring recommendations...</p>
+      <Card className="border border-border/70 rounded-3xl overflow-hidden bg-card/70 shadow-sm">
+        <CardHeader className="p-4 sm:p-5 pb-3">
+          <div className="h-5 w-52 rounded-md bg-muted animate-pulse" />
+          <div className="h-3 w-72 rounded-md bg-muted/70 animate-pulse mt-1.5" />
+        </CardHeader>
+        <CardContent className="p-4 sm:p-5 pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-32 rounded-2xl border border-border/50 bg-muted/30 animate-pulse" />
+            ))}
+          </div>
         </CardContent>
       </Card>
     );
@@ -225,46 +232,74 @@ export default function Recommendations({ userId, studentClass }: { userId: stri
           </CardHeader>
           <CardContent className="p-4 sm:p-5 pt-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {personalizedBooks.map(({ book: b, reasons }) => (
-                <div
-                  key={b.id}
-                  onClick={() => navigate(`/book/${b.id}`)}
-                  className="p-3.5 sm:p-4 rounded-2xl border border-border/60 bg-card hover:bg-muted/40 hover:border-primary/40 flex flex-col justify-between hover:shadow-md transition-all cursor-pointer group active:scale-[0.98]"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                        <BookOpen className="h-4 w-4" />
+              {personalizedBooks.map(({ book: b, reasons }) => {
+                const categoryLower = (b.category || "").trim().toLowerCase();
+                const uniqueReasons = reasons.filter(
+                  (r) => r.trim().toLowerCase() !== categoryLower
+                );
+                const palette = [
+                  "from-indigo-500 to-violet-600",
+                  "from-sky-500 to-blue-600",
+                  "from-emerald-500 to-teal-600",
+                  "from-amber-500 to-orange-600",
+                  "from-rose-500 to-pink-600",
+                ];
+                const tone = palette[(b.title || "").length % palette.length];
+                return (
+                  <div
+                    key={b.id}
+                    onClick={() => navigate(`/book/${b.id}`)}
+                    className="p-3.5 sm:p-4 rounded-2xl border border-border/60 bg-card hover:bg-muted/40 hover:border-primary/40 flex flex-col justify-between hover:shadow-md transition-all duration-150 cursor-pointer group active:scale-[0.98]"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2.5">
+                        {b.cover_url ? (
+                          <img
+                            src={b.cover_url}
+                            alt={b.title}
+                            loading="lazy"
+                            className="w-9 h-12 rounded-lg object-cover shrink-0 border border-border/60 shadow-2xs"
+                          />
+                        ) : (
+                          <div className={`w-9 h-12 rounded-lg bg-gradient-to-br ${tone} text-white flex items-center justify-center shrink-0 font-black text-xs shadow-2xs group-hover:scale-105 transition-transform`}>
+                            {(b.title || "B").slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                            {b.title}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                            by {b.author || "Unknown"}
+                          </p>
+                        </div>
                       </div>
-                      <p className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
-                        {b.title}
-                      </p>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground truncate pl-0.5">by {b.author || "Unknown"}</p>
 
-                    {/* Smart Reason Badge */}
-                    <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                      {reasons.slice(0, 2).map((r, rIdx) => (
-                        <span
-                          key={rIdx}
-                          className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20"
-                        >
-                          ✦ {r}
-                        </span>
-                      ))}
+                      {uniqueReasons.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {uniqueReasons.slice(0, 2).map((r, rIdx) => (
+                            <span
+                              key={rIdx}
+                              className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20"
+                            >
+                              ✦ {r}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-3 pt-2 flex items-center justify-between border-t border-border/40">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase truncate max-w-[110px]">
+                        {b.category || "General"}
+                      </span>
+                      <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-0.5 transition-transform shrink-0">
+                        View Details →
+                      </span>
                     </div>
                   </div>
-
-                  <div className="mt-3.5 pt-2.5 flex items-center justify-between border-t border-border/40">
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase">
-                      {b.category || "General"}
-                    </span>
-                    <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                      View Details →
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { readLastStudy } from "@/lib/subjectTheme";
+import { displayChapterTitle, readLastStudy } from "@/lib/subjectTheme";
 
 export interface StudyChapterTarget {
   classNumber: string;
@@ -80,7 +80,7 @@ export default function StudyResumeCard({
   if (loading || !chapter) return null;
 
   return (
-    <Card className="border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-white to-violet-50/50 shadow-xs hover:border-indigo-200 transition-all">
+    <Card className="border-indigo-200/80 dark:border-indigo-500/25 bg-gradient-to-r from-indigo-50/70 via-card to-violet-50/50 dark:from-indigo-950/35 dark:via-card dark:to-card shadow-xs hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all">
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
@@ -88,13 +88,13 @@ export default function StudyResumeCard({
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-bold text-slate-900 text-sm sm:text-base">Continue studying</h2>
+              <h2 className="font-bold text-foreground text-sm sm:text-base">Continue studying</h2>
               <Badge variant={chapter.status === "needs_revision" ? "outline" : "secondary"} className="text-[10px] font-semibold">
                 {chapter.status === "needs_revision" ? "Needs revision" : chapter.status === "in_progress" ? "In progress" : "Recently opened"}
               </Badge>
             </div>
-            <p className="mt-1 truncate text-xs sm:text-sm text-slate-600">
-              Class {chapter.classNumber} · {chapter.subject} · {chapter.chapterTitle}
+            <p className="mt-1 truncate text-xs sm:text-sm text-muted-foreground">
+              Class {chapter.classNumber} · {chapter.subject} · {displayChapterTitle(chapter.chapterTitle)}
             </p>
           </div>
         </div>

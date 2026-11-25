@@ -47,6 +47,8 @@ const GAME_CONTENT_CACHE_MS = 5 * 60 * 1000;
 const SERVER_ARCADE_KEYS = new Set(["logic-grid", "map-quest", "science-sprint", "code-breakers", "eco-sort"]);
 const LIVE_BOARD_KEYS = new Set(["tic-tac-toe", "snakes-ladders", "ludo-dash", "chess"]);
 const gameContentCache = new Map<string, { items: GameContentItem[]; cachedAt: number }>();
+let cachedGamesSnapshot: { games: GameDef[]; books: GameBook[]; ts: number } | null = null;
+const cachedPlaysByUser = new Map<string, { plays: any[]; progressStats: any; ts: number }>();
 
 const ICONS: Record<string, React.ElementType> = {
   Layers, Grid3x3, Shuffle, PuzzleIcon: Puzzle, Puzzle, Spade, Grid2x2, Gamepad2, Zap, Sparkles, Trophy, Users, Brain, Map: MapIcon, FlaskConical, Code2, Leaf, Flag,
@@ -129,13 +131,13 @@ const FALLBACK_GAMES: GameDef[] = [
 export default function GamesCorner({ userId, onPointsEarned }: { userId: string; onPointsEarned?: () => void }) {
   const { toast } = useToast();
   const { count: queueCount } = useQueueStatus();
-  const [games, setGames] = useState<GameDef[]>([]);
-  const [progressStats, setProgressStats] = useState({ total_xp: 0, today_xp: 0, total_plays: 0, wins: 0, current_streak: 0, level: 1, xp_to_next: 250 });
-  const [progressLoaded, setProgressLoaded] = useState(false);
-  const [books, setBooks] = useState<GameBook[]>([]);
-  const [plays, setPlays] = useState<any[]>([]);
+  const [games, setGames] = useState<GameDef[]>(() => cachedGamesSnapshot?.games || []);
+  const [progressStats, setProgressStats] = useState(() => cachedPlaysByUser.get(userId)?.progressStats || { total_xp: 0, today_xp: 0, total_plays: 0, wins: 0, current_streak: 0, level: 1, xp_to_next: 250 });
+  const [progressLoaded, setProgressLoaded] = useState(() => Boolean(cachedPlaysByUser.get(userId)));
+  const [books, setBooks] = useState<GameBook[]>(() => cachedGamesSnapshot?.books || []);
+  const [plays, setPlays] = useState<any[]>(() => cachedPlaysByUser.get(userId)?.plays || []);
   const [content, setContent] = useState<GameContentItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !cachedGamesSnapshot);
   const [loadingGameContent, setLoadingGameContent] = useState(false);
   const [active, setActive] = useState<GameDef | null>(null);
   const [startedAt, setStartedAt] = useState<number>(0);
@@ -172,8 +174,11 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
       ]);
       if (gamesError) throw gamesError;
       const fetched = (g || []) as GameDef[];
-      setGames(fetched.length ? fetched.filter((game) => game.is_enabled) : FALLBACK_GAMES);
-      setBooks((b || []) as GameBook[]);
+      const nextGames = fetched.length ? fetched.filter((game) => game.is_enabled) : FALLBACK_GAMES;
+      const nextBooks = (b || []) as GameBook[];
+      setGames(nextGames);
+      setBooks(nextBooks);
+      cachedGamesSnapshot = { games: nextGames, books: nextBooks, ts: Date.now() };
     } catch (e) {
       console.error(e);
       setGames(FALLBACK_GAMES);
@@ -190,8 +195,10 @@ export default function GamesCorner({ userId, onPointsEarned }: { userId: string
     setPlays(p || []);
     const row: any = Array.isArray(progress) ? progress[0] : progress;
     if (row) {
-      setProgressStats({ total_xp: Number(row.total_xp) || 0, today_xp: Number(row.today_xp) || 0, total_plays: Number(row.total_plays) || 0, wins: Number(row.wins) || 0, current_streak: Number(row.current_streak) || 0, level: Number(row.level) || 1, xp_to_next: Number(row.xp_to_next) || 0 });
+      const nextStats = { total_xp: Number(row.total_xp) || 0, today_xp: Number(row.today_xp) || 0, total_plays: Number(row.total_plays) || 0, wins: Number(row.wins) || 0, current_streak: Number(row.current_streak) || 0, level: Number(row.level) || 1, xp_to_next: Number(row.xp_to_next) || 0 };
+      setProgressStats(nextStats);
       setProgressLoaded(true);
+      cachedPlaysByUser.set(userId, { plays: p || [], progressStats: nextStats, ts: Date.now() });
     }
   }, [userId]);
 

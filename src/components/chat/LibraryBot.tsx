@@ -963,7 +963,7 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
   if (!isEnabled || isAuthOrQuizRoute) return null;
 
   return (
-    <div className={`fixed bottom-[calc(4rem+16px+env(safe-area-inset-bottom))] right-4 md:bottom-6 md:right-6 z-40 transition-all duration-200 ${!isScrollVisible && !isOpen ? "pointer-events-none translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
+    <div className={`fixed bottom-[calc(4.25rem+12px+env(safe-area-inset-bottom))] right-3 md:bottom-5 md:right-5 z-40 transition-all duration-150 ${!isScrollVisible && !isOpen ? "pointer-events-none translate-y-4 opacity-0" : "translate-y-0 opacity-100"}`}>
       {isOpen ? (
         <div className="bg-background border shadow-2xl rounded-2xl w-[360px] sm:w-[400px] max-w-[calc(100vw-1.5rem)] h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 border-border/60">
 
@@ -1136,16 +1136,14 @@ export const LibraryBot = ({ suggestedPrompts, context = "library" }: { suggeste
           </div>
         </div>
       ) : (
-        /* ── FAB with presence ring ─────────────────────── */
+        /* ── FAB with calm presence indicator ───────────── */
         <div className="relative">
           <Button onClick={() => setIsOpen(true)}
             aria-label="Open library assistant chat"
-            className="h-11 w-11 sm:h-14 sm:w-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-transform animate-in zoom-in border border-primary-foreground/20 p-0 flex items-center justify-center">
-            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
+            className="h-11 w-11 sm:h-12 sm:w-12 rounded-full shadow-lg bg-primary/95 hover:bg-primary text-primary-foreground hover:scale-105 active:scale-95 transition-transform border border-primary-foreground/20 p-0 flex items-center justify-center backdrop-blur-sm">
+            <MessageSquare className="h-5 w-5" />
           </Button>
-          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-emerald-500 border-2 border-background shadow-sm flex items-center justify-center">
-            <span className="h-full w-full rounded-full bg-emerald-400 animate-ping opacity-70" />
-          </span>
+          <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm" />
         </div>
       )}
     </div>

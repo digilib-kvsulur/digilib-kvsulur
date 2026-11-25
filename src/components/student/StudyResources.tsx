@@ -49,6 +49,14 @@ const normalizeChapter = (title: string) => title.replace(/^(chapter|unit|lesson
 const progressKey = (classNumber: string, subject: string, chapterTitle: string) => `${classNumber}|${subject.trim().toLocaleLowerCase()}|${chapterTitle.trim().toLocaleLowerCase()}`;
 const progressLabel: Record<ChapterProgressStatus, string> = { in_progress: "Studying", needs_revision: "Needs revision", completed: "Completed" };
 const SUBJECT_STORAGE_KEY = "dlms-study-last-subject";
+const STUDY_CACHE_TTL_MS = 3 * 60 * 1000;
+const studyDataCache = new Map<string, {
+  resources: Resource[];
+  ncertChapters: NcertChapter[];
+  bookmarks: string[];
+  chapterProgress: Record<string, ChapterProgress>;
+  ts: number;
+}>();
 
 function inferBoard(resource: Resource) {
   const text = `${resource.title} ${resource.source_label || ""} ${resource.description || ""}`.toLowerCase();
@@ -92,31 +100,63 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
   useEffect(() => { setClassFilter(ownClass); }, [ownClass]);
   useEffect(() => {
     let alive = true;
-    setLoading(true); setLoadError(""); setSelectedSubject(""); setSelectedChapter("");
+    const cacheKey = `${classFilter}:${userId || "anon"}`;
+    const cached = studyDataCache.get(cacheKey);
+    const hasFreshCache = Boolean(cached && Date.now() - cached.ts < STUDY_CACHE_TTL_MS);
+
+    if (cached) {
+      setResources(cached.resources);
+      setNcertChapters(cached.ncertChapters);
+      setBookmarks(new Set(cached.bookmarks));
+      setChapterProgress(cached.chapterProgress);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+    setLoadError("");
+    if (reloadKey > 0 || !cached) {
+      setSelectedSubject("");
+      setSelectedChapter("");
+    }
+
     (async () => {
+      if (hasFreshCache && reloadKey === 0) return;
       const [materialsResult, chaptersResult] = await Promise.all([
         (supabase as any).from("study_materials").select("id,title,description,subject,student_class,chapter_title,resource_type,academic_session,exam_year,marks,source_label,source_url,markdown_content,file_url,file_type,updated_at,created_at,review_status").eq("review_status", "approved").in("student_class", [classFilter, "All"]).order("subject").order("chapter_title"),
         supabase.from("ncert_books").select("id,subject,book_name,chapter_number,chapter_title,file_url").eq("class_number", classFilter).order("chapter_number", { ascending: true }),
       ]);
       if (!alive) return;
-      setResources(materialsResult.error ? [] : ((materialsResult.data || []) as Resource[]));
-      setNcertChapters(chaptersResult.error ? [] : ((chaptersResult.data || []) as NcertChapter[]));
-      if (materialsResult.error && chaptersResult.error) setLoadError("Study materials could not be loaded. Please try again in a moment.");
+      const nextResources = materialsResult.error ? [] : ((materialsResult.data || []) as Resource[]);
+      const nextChapters = chaptersResult.error ? [] : ((chaptersResult.data || []) as NcertChapter[]);
+      setResources(nextResources);
+      setNcertChapters(nextChapters);
+      if (materialsResult.error && chaptersResult.error && !cached) setLoadError("Study materials could not be loaded. Please try again in a moment.");
+      let nextBookmarks: string[] = [];
+      let nextProgress: Record<string, ChapterProgress> = {};
       if (userId) {
         const [bookmarksResult, progressResult] = await Promise.all([
           (supabase as any).from("study_resource_bookmarks").select("resource_id").eq("user_id", userId),
           (supabase as any).from("study_chapter_progress").select("user_id,class_number,subject,chapter_title,status,started_at,completed_at,updated_at").eq("user_id", userId).eq("class_number", classFilter).order("updated_at", { ascending: false }),
         ]);
         if (!alive) return;
-        setBookmarks(new Set((bookmarksResult.data || []).map((row: any) => row.resource_id)));
+        nextBookmarks = (bookmarksResult.data || []).map((row: any) => row.resource_id);
+        setBookmarks(new Set(nextBookmarks));
         if (progressResult.error) { setChapterProgress({}); setProgressError("Chapter progress could not be loaded. Your study materials are still available."); }
         else {
-          setChapterProgress((progressResult.data || []).reduce((map: Record<string, ChapterProgress>, row: ChapterProgress) => {
+          nextProgress = (progressResult.data || []).reduce((map: Record<string, ChapterProgress>, row: ChapterProgress) => {
             map[progressKey(row.class_number, row.subject, row.chapter_title)] = row; return map;
-          }, {}));
+          }, {});
+          setChapterProgress(nextProgress);
           setProgressError("");
         }
       } else { setBookmarks(new Set()); setChapterProgress({}); setProgressError(""); }
+      studyDataCache.set(cacheKey, {
+        resources: nextResources,
+        ncertChapters: nextChapters,
+        bookmarks: nextBookmarks,
+        chapterProgress: nextProgress,
+        ts: Date.now(),
+      });
       if (alive) setLoading(false);
     })();
     return () => { alive = false; };
@@ -367,11 +407,11 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
           <div className="flex gap-3 min-w-0">
             <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0"><BookOpen className="h-5 w-5" /></div>
             <div className="min-w-0">
-              <h3 className="font-semibold">Official NCERT chapter</h3>
-              <p className="text-sm text-muted-foreground mt-0.5">{activeChapter?.textbookUrl ? "Open the official NCERT chapter PDF." : "NCERT link is not added for this chapter yet. Use the official catalogue."}</p>
+              <h3 className="font-semibold text-foreground">{activeChapter?.bookName || "Official NCERT Chapter"}</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">{activeChapter?.textbookUrl ? "Read the official NCERT chapter PDF directly in a new tab." : "NCERT link is not added for this chapter yet. Browse the official NCERT portal."}</p>
             </div>
           </div>
-          <Button className="min-h-11 rounded-xl sm:shrink-0" onClick={openNcert}><ExternalLink className="h-4 w-4 mr-2" />{activeChapter?.textbookUrl ? "Open NCERT chapter" : "Open NCERT catalogue"}</Button>
+          <Button className="min-h-11 rounded-xl sm:shrink-0" onClick={openNcert}><ExternalLink className="h-4 w-4 mr-2" />{activeChapter?.textbookUrl ? "Open PDF" : "Open NCERT portal"}</Button>
         </CardContent>
       </Card>
       {visibleByType(["textbook"]).map((r) => (
@@ -393,41 +433,44 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
     ) : selectedChapter ? (
       <section aria-label={`${selectedChapter} chapter`} className="min-w-0">
         <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
-          <div className="px-4 py-3 flex items-center gap-2 sm:gap-3">
-            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl" aria-label="Back to chapters" onClick={() => { setSelectedChapter(""); setQuery(""); setBookmarkedOnly(false); }}>
+          <div className="px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3">
+            <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 rounded-xl" aria-label="Back to chapters" onClick={() => { setSelectedChapter(""); setQuery(""); setBookmarkedOnly(false); }}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-                <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium text-muted-foreground bg-muted/30">Class {classFilter}</span>
-                <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ color: subject.color, backgroundColor: subject.tint, borderColor: `${subject.color}22` }}>{selectedSubject}</span>
+                <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted/30">Class {classFilter}</span>
+                <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium" style={{ color: subject.color, backgroundColor: subject.tint, borderColor: `${subject.color}22` }}>{selectedSubject}</span>
               </div>
-              <h1 className="text-base sm:text-lg font-bold truncate text-foreground">{displayChapterTitle(selectedChapter, activeChapter?.chapterNumber)}</h1>
+              <h1 className="text-sm sm:text-base font-bold truncate text-foreground">{displayChapterTitle(selectedChapter, activeChapter?.chapterNumber)}</h1>
             </div>
             <div className="shrink-0 flex items-center gap-2">
               <Tooltip><TooltipTrigger asChild><span>{progressMenu}</span></TooltipTrigger><TooltipContent className="max-w-[220px] text-xs">Opening a chapter does not mark it complete.</TooltipContent></Tooltip>
             </div>
           </div>
-          <div className="px-4 pb-2 -mt-1"><p className="text-[11px] text-muted-foreground pl-[52px] sm:pl-[56px]">Opening a chapter does not mark it complete.</p></div>
         </header>
 
         <div className="px-4 pt-4 space-y-4">
-          <Card className="rounded-xl border-border/70 shadow-none overflow-hidden">
+          <Card className="rounded-2xl border-border/70 shadow-none overflow-hidden">
             <CardContent className="p-4 sm:p-5">
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: subject.color }}>Chapter {activeChapter?.chapterNumber || "??"}</p>
-                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight mt-1 text-foreground">{displayChapterTitle(selectedChapter, activeChapter?.chapterNumber)}</h2>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1"><NotebookText className="h-3.5 w-3.5" /> {counts.notes} notes</span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1"><Calculator className="h-3.5 w-3.5" /> {counts.formulas} formulas</span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1"><CircleHelp className="h-3.5 w-3.5" /> {counts.pyq} PYQs/practice</span>
-                    {heroUpdated && <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1"><Clock3 className="h-3.5 w-3.5" /> Updated {new Date(heroUpdated).toLocaleDateString()}</span>}
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: subject.color }}>
+                    {activeChapter?.chapterNumber ? `Chapter ${activeChapter.chapterNumber}` : "Chapter Topic"}
+                  </p>
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight mt-0.5 text-foreground">{displayChapterTitle(selectedChapter, activeChapter?.chapterNumber)}</h2>
+                  <div className="mt-2.5 flex flex-wrap gap-1.5 text-xs">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-muted-foreground"><NotebookText className="h-3.5 w-3.5" /> {counts.notes} notes</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-muted-foreground"><Calculator className="h-3.5 w-3.5" /> {counts.formulas} formulas</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-muted-foreground"><CircleHelp className="h-3.5 w-3.5" /> {counts.pyq} PYQs</span>
+                    {heroUpdated && <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-muted-foreground"><Clock3 className="h-3.5 w-3.5" /> Updated {new Date(heroUpdated).toLocaleDateString()}</span>}
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button className="min-h-11 rounded-xl font-semibold" onClick={openNcert}><BookOpen className="h-4 w-4 mr-2" />Open NCERT chapter</Button>
-                  {onOpenDoubt && <Button variant="outline" className="min-h-11 rounded-xl" onClick={askDoubt}><Sparkles className="h-4 w-4 mr-2" />Ask AI doubt</Button>}
+                <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                  {tab !== "ncert" && (
+                    <Button className="min-h-11 rounded-xl font-semibold" onClick={openNcert}><BookOpen className="h-4 w-4 mr-2" />Open NCERT chapter</Button>
+                  )}
+                  {onOpenDoubt && <Button variant={tab === "ncert" ? "default" : "outline"} className="min-h-11 rounded-xl font-semibold" onClick={askDoubt}><Sparkles className="h-4 w-4 mr-2" />Ask AI doubt</Button>}
                 </div>
               </div>
               {progressError && <p role="status" className="text-sm text-destructive mt-3">{progressError}</p>}
@@ -435,22 +478,24 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
           </Card>
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)} className="space-y-4">
-            <div className="sticky top-[73px] z-20 bg-background/95 backdrop-blur py-2 -mx-4 px-4 border-b border-border/60">
+            <div className="sticky top-[57px] z-20 bg-background/95 backdrop-blur py-2 -mx-4 px-4 border-b border-border/60">
               <div className="flex flex-col gap-2">
                 <TabsList className="h-auto w-full justify-start overflow-x-auto no-scrollbar rounded-xl bg-muted/50 p-1 gap-1">
                   {TAB_DEFS.map(({ value, label, icon: Icon }) => (
-                    <TabsTrigger key={value} value={value} className="min-h-11 rounded-lg px-3 sm:px-4 text-sm data-[state=active]:shadow-none data-[state=active]:bg-background">
+                    <TabsTrigger key={value} value={value} className="min-h-10 rounded-lg px-3 sm:px-4 text-xs sm:text-sm data-[state=active]:shadow-none data-[state=active]:bg-background shrink-0">
                       <Icon className="h-4 w-4 mr-1.5 shrink-0" /><span>{label}</span>
-                      <span className="ml-1.5 text-[11px] text-muted-foreground">{counts[value]}</span>
+                      <span className="ml-1.5 text-[11px] text-muted-foreground tabular-nums">{counts[value]}</span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search in this chapter" className="pl-9 min-h-11 rounded-xl" aria-label="Search chapter resources" /></div>
-                  <Button type="button" variant={bookmarkedOnly ? "default" : "outline"} size="icon" className="h-11 w-11 rounded-xl shrink-0" aria-label={bookmarkedOnly ? "Show all resources" : "Show bookmarked only"} aria-pressed={bookmarkedOnly} onClick={() => setBookmarkedOnly((v) => !v)}>
-                    {bookmarkedOnly ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                  </Button>
-                </div>
+                {chapterResources.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search in this chapter" className="pl-9 min-h-10 rounded-xl" aria-label="Search chapter resources" /></div>
+                    <Button type="button" variant={bookmarkedOnly ? "default" : "outline"} size="icon" className="h-10 w-10 rounded-xl shrink-0" aria-label={bookmarkedOnly ? "Show all resources" : "Show bookmarked only"} aria-pressed={bookmarkedOnly} onClick={() => setBookmarkedOnly((v) => !v)}>
+                      {bookmarkedOnly ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -462,7 +507,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
           </Tabs>
 
           <div className="text-[11px] text-muted-foreground pb-2">
-            Staff view: resources appear here after review. {activeProgress?.status === "completed" ? "You marked this chapter completed." : "Use the progress menu when you finish studying."}
+            Reviewed notes, formulas, and PYQs appear here once approved. {activeProgress?.status === "completed" ? "You marked this chapter completed." : "Opening a chapter doesn't mark it complete — update status in the menu above."}
           </div>
         </div>
       </section>
@@ -473,19 +518,19 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
             <h1 className="text-lg sm:text-xl font-black text-foreground">Study</h1>
             <Select value={classFilter} onValueChange={setClassFilter}>
               <SelectTrigger className="h-9 rounded-full bg-primary/10 hover:bg-primary/15 border-0 text-primary text-xs font-bold px-3 shadow-none gap-1 focus:ring-0" aria-label="Select class"><SelectValue placeholder={`Class ${classFilter}`} /></SelectTrigger>
-              <SelectContent className="rounded-xl">{Array.from({ length: 7 }, (_, i) => String(i + 6)).map((c) => <SelectItem key={c} value={c}>Class {c}{c === ownClass ? " ? My class" : ""}</SelectItem>)}</SelectContent>
+              <SelectContent className="rounded-xl">{Array.from({ length: 7 }, (_, i) => String(i + 6)).map((c) => <SelectItem key={c} value={c}>Class {c}{c === ownClass ? " · My class" : ""}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl text-muted-foreground hover:text-foreground" aria-label="Search chapters" onClick={() => setChapterSearchOpen((o) => !o)}><Search className="h-4.5 w-4.5" /></Button>
+          <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 rounded-xl text-muted-foreground hover:text-foreground" aria-label="Search chapters" onClick={() => setChapterSearchOpen((o) => !o)}><Search className="h-4.5 w-4.5" /></Button>
         </header>
 
         {chapterSearchOpen && <div className="px-4 pt-4"><div className="relative"><Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input autoFocus className="min-h-11 rounded-xl pl-11 text-sm" value={chapterSearch} onChange={(e) => setChapterSearch(e.target.value)} placeholder={`Search ${selectedSubject || "chapters"}`} aria-label="Search chapters" /></div></div>}
         <div className="study-v2-tabs no-scrollbar" role="tablist" aria-label="Subjects">
-          {subjects.map((s) => { const theme = subjectTheme(s); const Icon = theme.icon; const active = selectedSubject.toLowerCase() === s.toLowerCase(); return <button key={s} ref={active ? activeSubjectRef : undefined} type="button" role="tab" aria-selected={active} onClick={() => chooseSubject(s)} className={`study-v2-tab ${active ? "study-v2-tab-active" : ""}`}><span className="study-v2-subject-icon" style={{ backgroundColor: active ? theme.color : theme.tint, color: active ? "#fff" : theme.color }}><Icon className="h-5 w-5" /></span><span className="study-v2-tab-label">{shortSubjectName(s)}</span></button>; })}
+          {subjects.map((s) => { const theme = subjectTheme(s); const Icon = theme.icon; const active = selectedSubject.toLowerCase() === s.toLowerCase(); return <button key={s} ref={active ? activeSubjectRef : undefined} type="button" role="tab" aria-selected={active} onClick={() => chooseSubject(s)} className={`study-v2-tab ${active ? "study-v2-tab-active" : ""}`}><span className="study-v2-subject-icon" style={{ backgroundColor: active ? theme.color : theme.tint, color: active ? "#fff" : theme.color }}><Icon className="h-4.5 w-4.5" /></span><span className="study-v2-tab-label" title={s}>{shortSubjectName(s)}</span></button>; })}
         </div>
 
         {selectedSubject && <div className="mx-4 mt-3 mb-2 rounded-2xl border border-amber-200/80 bg-amber-50/80 dark:bg-amber-950/20 dark:border-amber-900/50 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2.5"><Sparkles className="h-4 w-4 text-amber-500 shrink-0" /><span>DLMS notes are being added. NCERT books are available now.</span></div>}
-        {selectedSubject && <div className="study-v2-action" style={{ backgroundColor: subjectTheme(selectedSubject).tint }}><div className="min-w-0"><p className="text-sm font-bold text-slate-800 dark:text-slate-100">Stuck on something?</p><p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Ask the AI Doubt Solver</p></div><Button type="button" disabled={!onOpenDoubt} onClick={() => onOpenDoubt?.()} className="h-11 shrink-0 rounded-xl bg-white px-4 text-xs font-bold text-slate-900 shadow-sm hover:bg-white/90">Ask a doubt</Button></div>}
+        {selectedSubject && <div className="study-v2-action" style={{ backgroundColor: subjectTheme(selectedSubject).tint }}><div className="min-w-0"><p className="text-sm font-bold text-slate-800 dark:text-slate-100">Stuck on something?</p><p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Ask the AI Doubt Solver</p></div><Button type="button" disabled={!onOpenDoubt} onClick={() => onOpenDoubt?.()} className="h-10 shrink-0 rounded-xl bg-white px-4 text-xs font-bold text-slate-900 shadow-sm hover:bg-white/90">Ask a doubt</Button></div>}
 
         {selectedSubject ? <div className="study-v2-chapter-grid">
           {filteredChapters.length ? filteredChapters.map((chapter, index) => {
@@ -502,15 +547,15 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
             const cleanTitle = displayChapterTitle(chapter.title, chapter.chapterNumber);
             return <button key={chapter.title} type="button" onClick={() => openChapter(chapter.title)} className="study-v2-chapter-card">
               <div className="flex min-w-0 items-start gap-3">
-                <span className="pt-0.5 text-sm font-black" style={{ color: theme.color }}>{String(chapter.chapterNumber || index + 1).padStart(2, "0")}</span>
-                <h2 className="min-w-0 line-clamp-2 text-left text-sm font-bold leading-5 text-slate-900 dark:text-slate-100">{cleanTitle}</h2>
+                <span className="pt-0.5 text-sm font-black tabular-nums" style={{ color: theme.color }}>{String(chapter.chapterNumber || index + 1).padStart(2, "0")}</span>
+                <h2 className="min-w-0 line-clamp-2 text-left text-sm font-bold leading-5 text-foreground">{cleanTitle}</h2>
               </div>
-              <div className="mt-3 flex min-h-6 flex-wrap gap-2">
-                {chips.length ? chips.map((chip) => { const ChipIcon = chip.icon; return <span key={chip.label} className="study-v2-content-chip"><ChipIcon className="h-3.5 w-3.5" />{chip.label} {chip.count}</span>; }) : chapter.textbookUrl ? <span className="study-v2-ncert-icon" title="NCERT chapter available"><BookOpen className="h-4 w-4" /></span> : null}
+              <div className="mt-2.5 flex min-h-6 flex-wrap gap-1.5">
+                {chips.length ? chips.map((chip) => { const ChipIcon = chip.icon; return <span key={chip.label} className="study-v2-content-chip"><ChipIcon className="h-3.5 w-3.5" />{chip.label} {chip.count}</span>; }) : chapter.textbookUrl ? <span className="study-v2-ncert-icon" title="NCERT chapter available"><BookOpen className="h-3.5 w-3.5" /> NCERT PDF</span> : null}
               </div>
-              <div className="mt-auto flex items-center gap-3 pt-3">
+              <div className="mt-auto flex items-center gap-3 pt-2.5">
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" role="progressbar" aria-label={`${cleanTitle} progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent}><div className="h-full rounded-full transition-all duration-300" style={{ width: `${progressPercent}%`, backgroundColor: theme.color }} /></div>
-                <span className="shrink-0 text-xs font-semibold text-slate-600 dark:text-slate-400">{progressText}</span>
+                <span className="shrink-0 text-xs font-semibold text-muted-foreground">{progressText}</span>
               </div>
             </button>;
           }) : <div className="study-v2-empty"><BookOpen className="mx-auto h-6 w-6 text-muted-foreground" /><p className="mt-3 text-sm font-semibold">No matching chapters</p><p className="mt-1 text-xs text-muted-foreground">Try another search or subject.</p></div>}
