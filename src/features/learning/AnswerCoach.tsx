@@ -138,16 +138,17 @@ export default function AnswerCoach({ studentClass, userId }: { studentClass: st
   const maxTotal = scores.reduce((sum, row) => sum + row.max, 0);
 
   return (
-    <div className="space-y-3">
-      <Card className="rounded-2xl border-primary/20 bg-primary/5 shadow-none">
-        <CardContent className="flex items-start gap-3 p-4">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><PenLine className="h-5 w-5" /></div>
+    <div className="space-y-4 animate-in fade-in duration-200">
+      <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-teal-500 p-5 text-white shadow-lg sm:p-6">
+        <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex items-start gap-3">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/15 text-white backdrop-blur-sm"><PenLine className="h-5 w-5" /></div>
           <div>
-            <p className="font-semibold">Answer-writing coach</p>
-            <p className="text-xs text-muted-foreground">Write a full answer, then get criterion-based feedback on content, structure, evidence, and language. The model answer is a sample, not the only correct answer.</p>
+            <p className="text-base sm:text-lg font-black tracking-tight">AI Answer-Writing Coach</p>
+            <p className="mt-0.5 text-xs sm:text-sm text-indigo-100">Write a full answer and get rubric-based feedback on content, structure, evidence, and language.</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </header>
 
       <Card className="rounded-2xl shadow-none">
         <CardHeader className="pb-2"><CardTitle className="text-base">Your answer</CardTitle></CardHeader>
