@@ -1,6 +1,9 @@
 -- Evergreen Skills Lab and Career Hub content.
 -- Safe to re-run: rows are matched by slug and updated in place.
 
+ALTER TABLE public.skill_tracks DROP CONSTRAINT IF EXISTS skill_tracks_check;
+ALTER TABLE public.skill_tracks ADD CONSTRAINT skill_tracks_check CHECK (min_class::integer <= max_class::integer);
+
 INSERT INTO public.skill_tracks (slug, title, summary, description, icon, accent, min_class, max_class, sort_order, published)
 VALUES
   ('digital-literacy', 'Digital Literacy & AI', 'Use the internet, AI tools, and your accounts safely and smartly.', 'A practical track for every class: how the web works, how to check what you read, how AI models behave, and how to protect your privacy.', 'ShieldCheck', '#0ea5e9', '6', '12', 1, true),

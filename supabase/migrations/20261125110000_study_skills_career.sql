@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.skill_tracks (
   published BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CHECK (min_class <= max_class)
+  CHECK (min_class::integer <= max_class::integer)
 );
 
 CREATE TABLE IF NOT EXISTS public.skill_lessons (

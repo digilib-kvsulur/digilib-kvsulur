@@ -246,7 +246,8 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
     const saved = bookmarks.has(id);
     setBookmarks((current) => {
       const next = new Set(current);
-      saved ? next.delete(id) : next.add(id);
+      if (saved) next.delete(id);
+      else next.add(id);
       const cached = studyDataCache.get(`${classFilter}:${userId}`);
       if (cached) cached.bookmarks = Array.from(next);
       return next;
@@ -256,7 +257,8 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
       : await (supabase as any).from("study_resource_bookmarks").insert({ user_id: userId, resource_id: id });
     if (result.error) setBookmarks((current) => {
       const next = new Set(current);
-      saved ? next.add(id) : next.delete(id);
+      if (saved) next.add(id);
+      else next.delete(id);
       const cached = studyDataCache.get(`${classFilter}:${userId}`);
       if (cached) cached.bookmarks = Array.from(next);
       return next;
@@ -324,7 +326,13 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
     else window.open("https://ncert.nic.in/textbook.php", "_blank", "noopener,noreferrer");
   };
   const askDoubt = () => { onOpenDoubt?.(); };
-  const markRead = (id: string) => setReadNotes((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); localStorage.setItem("dlms-study-read-notes", JSON.stringify(Array.from(next))); return next; });
+  const markRead = (id: string) => setReadNotes((current) => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    localStorage.setItem("dlms-study-read-notes", JSON.stringify(Array.from(next)));
+    return next;
+  });
 
   const subject = subjectTheme(selectedSubject || "General");
   const progressStatus = activeProgress?.status;

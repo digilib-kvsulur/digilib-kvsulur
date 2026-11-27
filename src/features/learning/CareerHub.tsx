@@ -83,7 +83,8 @@ export default function CareerHub({ studentClass, userId }: { studentClass: stri
     setBusy(resource.id);
     setBookmarks((current) => {
       const next = new Set(current);
-      saved ? next.delete(resource.id) : next.add(resource.id);
+      if (saved) next.delete(resource.id);
+      else next.add(resource.id);
       return next;
     });
     try {
@@ -91,7 +92,8 @@ export default function CareerHub({ studentClass, userId }: { studentClass: stri
     } catch (e: any) {
       setBookmarks((current) => {
         const next = new Set(current);
-        saved ? next.add(resource.id) : next.delete(resource.id);
+        if (saved) next.add(resource.id);
+        else next.delete(resource.id);
         return next;
       });
       toast.error(e?.message || "The bookmark could not be saved.");

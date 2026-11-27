@@ -29,6 +29,10 @@ entrypoint = "./functions/library-bot/index.ts"
 enabled = true
 verify_jwt = false
 
+[functions.study-answer-coach]
+enabled = true
+verify_jwt = false
+
 
 [functions.chess-duel]
 enabled = true

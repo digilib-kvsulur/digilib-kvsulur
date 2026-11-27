@@ -21,6 +21,7 @@ import { getAvatarUrl } from "@/lib/utils";
 import { BookOpen, LogOut, Users, Trophy, GraduationCap, TrendingUp, Calendar, Target, Plus, Trash2, ListChecks, Star, BookMarked, Brain, FileText, User, AlertTriangle, Sun } from "lucide-react";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import StudyMaterialsManager from "@/components/admin/StudyMaterialsManager";
+import ExamScheduleManager from "@/features/learning/ExamScheduleManager";
 import StudentProfile from "@/components/dashboard/StudentProfile";
 import Community from "@/components/community/Community";
 import ReadingAssignmentsManager from "@/components/teacher/ReadingAssignmentsManager";
@@ -35,7 +36,7 @@ import { VacationAdminPage } from "@/features/vacation";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { FEATURE_FLAGS } from "@/config/featureFlags";
 
-type TeacherTab = "progress" | "badges" | "reading-lists" | "recommendations" | "materials" | "community" | "network" | "book-requests" | "profile" | "vacation";
+type TeacherTab = "progress" | "badges" | "reading-lists" | "recommendations" | "materials" | "exam-schedule" | "community" | "network" | "book-requests" | "profile" | "vacation";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -555,6 +556,7 @@ const TeacherDashboard = () => {
             {FEATURE_FLAGS.communityAndFriendsChat && <TabsTrigger value="network" className="flex items-center gap-2"><Star className="h-4 w-4" /> Network</TabsTrigger>}
             <TabsTrigger value="book-requests" className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> Requests</TabsTrigger>
             <TabsTrigger value="materials" className="flex items-center gap-2"><BookMarked className="h-4 w-4" /> Study Materials</TabsTrigger>
+            <TabsTrigger value="exam-schedule" className="flex items-center gap-2"><Calendar className="h-4 w-4" /> Exam Schedule</TabsTrigger>
             <TabsTrigger value="support" className="flex items-center gap-2"><LifeBuoy className="h-4 w-4" /> Support</TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2"><User className="h-4 w-4" /> My Profile</TabsTrigger>
           </TabsList>
@@ -769,6 +771,10 @@ const TeacherDashboard = () => {
                 <StudyMaterialsManager />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="exam-schedule">
+            <ExamScheduleManager />
           </TabsContent>
 
           {/* TAB 6: Teacher Profile */}
