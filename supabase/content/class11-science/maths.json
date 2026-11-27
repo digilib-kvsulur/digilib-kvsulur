@@ -1,0 +1,3757 @@
+{
+ "class": 11,
+ "subject": "Mathematics",
+ "books": [
+  "NCERT Mathematics"
+ ],
+ "status": "needs_review",
+ "generated_by": "AI",
+ "chapters": [
+  {
+   "number": 1,
+   "title": "Sets",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Sets and their representation",
+     "body_md": "- A set is a well-defined collection of distinct objects; the objects are its elements, written $a\\in A$ or $a\\notin A$.\n- **Roster form** lists the elements, e.g. $\\{2,4,6\\}$; **set-builder form** gives a rule, e.g. $\\{x : x \\text{ is an even natural number} < 8\\}$.\n- Standard sets: $\\mathbb N, \\mathbb Z, \\mathbb Q, \\mathbb R$ and the positive/negative variants.\n- Order and repetition of elements do not matter: $\\{1,2,2,3\\}=\\{3,1,2\\}$."
+    },
+    {
+     "heading": "Kinds of sets",
+     "body_md": "- **Empty set** $\\varnothing$ has no element; **singleton** has exactly one element.\n- **Finite** sets have a countable end; **infinite** sets do not. $n(A)$ denotes the number of elements of a finite set.\n- **Equal sets** have the same elements; **equivalent sets** only have the same number of elements.\n- The **universal set** $U$ contains every set under discussion."
+    },
+    {
+     "heading": "Subsets and power set",
+     "body_md": "- $A\\subseteq B$ if each element of $A$ is in $B$. The empty set is a subset of every set and every set is a subset of itself.\n- A **proper subset** is a subset different from the set itself.\n- The **power set** $P(A)$ is the set of all subsets of $A$. If $n(A)=m$ then $n(P(A))=2^m$.\n- Number of proper subsets $=2^m-1$; number of non-empty proper subsets $=2^m-2$."
+    },
+    {
+     "heading": "Intervals as subsets of R",
+     "body_md": "- Open $(a,b)=\\{x: a<x<b\\}$, closed $[a,b]=\\{x: a\\le x\\le b\\}$, and half-open $[a,b)$, $(a,b]$.\n- The length of each interval above is $b-a$.\n- Inequalities such as $|x-c|<r$ translate to the interval $(c-r,c+r)$; $|x-c|\\ge r$ gives $(-\\infty,c-r]\\cup[c+r,\\infty)$."
+    },
+    {
+     "heading": "Venn diagrams and operations",
+     "body_md": "- **Union** $A\\cup B$: in $A$ or $B$ (or both). **Intersection** $A\\cap B$: in both.\n- **Difference** $A-B$: in $A$ but not in $B$. **Complement** $A'=U-A$.\n- Sets with $A\\cap B=\\varnothing$ are **disjoint**.\n- Venn diagrams draw $U$ as a rectangle and sets as circles; shading shows the region being described."
+    },
+    {
+     "heading": "Laws of set algebra",
+     "body_md": "- Commutative, associative, and idempotent laws hold for $\\cup$ and $\\cap$.\n- **Distributive**: $A\\cup(B\\cap C)=(A\\cup B)\\cap(A\\cup C)$ and $A\\cap(B\\cup C)=(A\\cap B)\\cup(A\\cap C)$.\n- **De Morgan**: $(A\\cup B)'=A'\\cap B'$ and $(A\\cap B)'=A'\\cup B'$.\n- Complement laws: $A\\cup A'=U$, $A\\cap A'=\\varnothing$, $(A')'=A$."
+    },
+    {
+     "heading": "Counting with sets",
+     "body_md": "- For two finite sets, add the sizes and subtract the overlap that was counted twice.\n- For three sets, subtract the pairwise overlaps and add back the triple overlap.\n- Exactly-one and exactly-two regions are found by peeling off the triple overlap region first.\n- Always draw a Venn diagram and fill from the innermost region (all three) outward."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Union of two sets",
+     "latex": "n(A\\cup B)=n(A)+n(B)-n(A\\cap B)",
+     "variables": "n = number of elements",
+     "note": "Finite sets; reduces to a sum when disjoint."
+    },
+    {
+     "name": "Union of three sets",
+     "latex": "n(A\\cup B\\cup C)=n(A)+n(B)+n(C)-n(A\\cap B)-n(B\\cap C)-n(A\\cap C)+n(A\\cap B\\cap C)",
+     "variables": "n = number of elements",
+     "note": "Inclusion-exclusion for three finite sets."
+    },
+    {
+     "name": "Number of subsets",
+     "latex": "n(P(A))=2^{m}",
+     "variables": "m = n(A)",
+     "note": "Includes the empty set and A itself."
+    },
+    {
+     "name": "De Morgan's laws",
+     "latex": "(A\\cup B)'=A'\\cap B',\\quad (A\\cap B)'=A'\\cup B'",
+     "variables": "A, B subsets of U",
+     "note": "Used to simplify complements."
+    },
+    {
+     "name": "Difference as intersection",
+     "latex": "A-B=A\\cap B'",
+     "variables": "A, B subsets of U",
+     "note": "Rewrites a difference using complements."
+    },
+    {
+     "name": "Distributive laws",
+     "latex": "A\\cap(B\\cup C)=(A\\cap B)\\cup(A\\cap C)",
+     "variables": "A, B, C = sets",
+     "note": "Dual form swaps union and intersection."
+    },
+    {
+     "name": "Complement count",
+     "latex": "n(A')=n(U)-n(A)",
+     "variables": "U = universal set",
+     "note": "Finite universal set."
+    },
+    {
+     "name": "Symmetric difference size",
+     "latex": "n(A\\,\\Delta\\, B)=n(A\\cup B)-n(A\\cap B)",
+     "variables": "Delta = elements in exactly one of A, B",
+     "note": "Counts elements belonging to exactly one set."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "A set has 4 elements. The number of its proper subsets is",
+     "options": [
+      "16",
+      "15",
+      "14",
+      "8"
+     ],
+     "answer": "(B) 15",
+     "solution_md": "A set of $m$ elements has $2^m$ subsets, so $2^4=16$; excluding the set itself gives $15$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "If $n(A)=20$, $n(B)=15$ and $n(A\\cap B)=7$, find $n(A\\cup B)$ and $n(A-B)$.",
+     "answer": "$n(A\\cup B)=28$, $n(A-B)=13$",
+     "solution_md": "$n(A\\cup B)=20+15-7=28$. $n(A-B)=n(A)-n(A\\cap B)=20-7=13$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Let $U=\\{1,2,3,4,5,6\\}$, $A=\\{1,2,3\\}$, $B=\\{3,4\\}$. Verify $(A\\cup B)'=A'\\cap B'$.",
+     "answer": "Both sides equal $\\{5,6\\}$",
+     "solution_md": "$A\\cup B=\\{1,2,3,4\\}$ so $(A\\cup B)'=\\{5,6\\}$. $A'=\\{4,5,6\\}$, $B'=\\{1,2,5,6\\}$, so $A'\\cap B'=\\{5,6\\}$. Hence verified.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "Of 100 students, 60 like tea, 45 like coffee and 20 like both. Find how many like only tea, only coffee, and neither.",
+     "answer": "Only tea 40, only coffee 25, neither 15",
+     "solution_md": "Only tea $=60-20=40$; only coffee $=45-20=25$. At least one drink: $60+45-20=85$. Neither $=100-85=15$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "In a survey of 120 people, 65 read newspaper A, 45 read B, 42 read C, 20 read A and B, 25 read A and C, 15 read B and C, and 8 read all three. Find how many read none, exactly one, and exactly two of the newspapers.",
+     "answer": "None 20, exactly one 56, exactly two 36",
+     "solution_md": "Union $=65+45+42-20-25-15+8=100$, so none $=120-100=20$. Exactly two $=(20-8)+(25-8)+(15-8)=12+17+7=36$. Exactly one $=100-36-8=56$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The number of subsets of $\\{1,2,3,4,5,6\\}$ that contain $2$ and $3$ but do not contain $5$ is",
+     "options": [
+      "4",
+      "8",
+      "16",
+      "32"
+     ],
+     "answer": "(B) 8",
+     "solution_md": "Elements 2 and 3 are fixed in, 5 is fixed out. The remaining elements $1,4,6$ are free, giving $2^3=8$ subsets.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the number of subsets of $\\{1,2,\\dots,10\\}$ (including the empty set) whose elements add up to an even number.",
+     "answer": "512",
+     "solution_md": "Pair each subset with the one obtained by toggling element 1; this changes the parity of the sum. So exactly half of the $2^{10}$ subsets are even: $2^9=512$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "If $A=\\{x\\in\\mathbb R: |x-2|<3\\}$ and $B=\\{x\\in\\mathbb R: |x+1|\\ge 2\\}$, then $A\\cap B$ equals",
+     "options": [
+      "$(-1,5)$",
+      "$[1,5)$",
+      "$[1,5]$",
+      "$(-1,1]$"
+     ],
+     "answer": "(B) $[1,5)$",
+     "solution_md": "$A=(-1,5)$. $|x+1|\\ge2$ gives $x\\le-3$ or $x\\ge1$. Intersection with $(-1,5)$ is $[1,5)$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "If $n(A)=30$, $n(B)=35$ and $n(A\\cup B)=50$, find the number of elements that belong to exactly one of $A$ and $B$.",
+     "answer": "35",
+     "solution_md": "$n(A\\cap B)=30+35-50=15$. Exactly one $=n(A\\cup B)-n(A\\cap B)=50-15=35$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The power set of the empty set has exactly one element. Reason (R): The empty set is a subset of every set.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(A) Both A and R are true and R is the correct explanation of A",
+     "solution_md": "$P(\\varnothing)=\\{\\varnothing\\}$, which has one element. This is true precisely because $\\varnothing\\subseteq\\varnothing$, so R explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Number of subsets of an m-element set",
+     "back": "$2^m$; proper subsets $2^m-1$."
+    },
+    {
+     "front": "Roster vs set-builder form",
+     "back": "Roster lists elements; set-builder states a defining property."
+    },
+    {
+     "front": "Is the empty set a subset of every set?",
+     "back": "Yes, and $\\varnothing\\in P(A)$ for any $A$."
+    },
+    {
+     "front": "Equal vs equivalent sets",
+     "back": "Equal: same elements. Equivalent: same cardinality."
+    },
+    {
+     "front": "Formula for $n(A\\cup B)$",
+     "back": "$n(A)+n(B)-n(A\\cap B)$."
+    },
+    {
+     "front": "State De Morgan's laws",
+     "back": "$(A\\cup B)'=A'\\cap B'$ and $(A\\cap B)'=A'\\cup B'$."
+    },
+    {
+     "front": "How is $A-B$ written with complement?",
+     "back": "$A-B=A\\cap B'$."
+    },
+    {
+     "front": "Interval for $|x-c|<r$",
+     "back": "$(c-r,\\,c+r)$."
+    },
+    {
+     "front": "When are sets disjoint?",
+     "back": "When $A\\cap B=\\varnothing$."
+    },
+    {
+     "front": "Exactly two of three sets (counting)",
+     "back": "Sum of pairwise overlaps $-\\,3\\times$ triple overlap."
+    }
+   ]
+  },
+  {
+   "number": 2,
+   "title": "Relations and Functions",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Cartesian product and ordered pairs",
+     "body_md": "- An ordered pair $(a,b)$ has a first and second component; $(a,b)=(c,d)$ only if $a=c$ and $b=d$.\n- $A\\times B=\\{(a,b): a\\in A, b\\in B\\}$. In general $A\\times B\\ne B\\times A$.\n- If $n(A)=p$ and $n(B)=q$, then $n(A\\times B)=pq$.\n- $A\\times\\varnothing=\\varnothing$, and $A\\times(B\\cup C)=(A\\times B)\\cup(A\\times C)$."
+    },
+    {
+     "heading": "Relations",
+     "body_md": "- A relation $R$ from $A$ to $B$ is any subset of $A\\times B$; $(a,b)\\in R$ is also written $aRb$.\n- **Domain** = set of first components; **codomain** = $B$; **range** = set of second components that actually occur.\n- With $n(A)=p$, $n(B)=q$, the number of relations from $A$ to $B$ is $2^{pq}$.\n- A relation can be shown as a roster, a rule (set-builder), an arrow diagram or a table."
+    },
+    {
+     "heading": "Functions",
+     "body_md": "- A function $f:A\\to B$ is a relation in which every element of $A$ has **exactly one** image in $B$.\n- Domain is all of $A$; range is $\\{f(x):x\\in A\\}\\subseteq B$.\n- A relation fails to be a function if some input has no image or has two different images.\n- A vertical line meets the graph of a function at most once."
+    },
+    {
+     "heading": "Real functions: domain and range",
+     "body_md": "- A real function has $f:X\\to\\mathbb R$ with $X\\subseteq\\mathbb R$.\n- For the domain: denominator $\\neq0$, expression under an even root $\\ge0$, and argument of a logarithm $>0$.\n- To find the range, solve $y=f(x)$ for $x$ and find which $y$ allow a real $x$ in the domain.\n- Example: $f(x)=\\sqrt{9-x^2}$ has domain $[-3,3]$ and range $[0,3]$."
+    },
+    {
+     "heading": "Standard real functions",
+     "body_md": "- **Identity** $f(x)=x$; **constant** $f(x)=c$; **modulus** $|x|$ (range $[0,\\infty)$).\n- **Signum**: $1$ for $x>0$, $0$ at $0$, $-1$ for $x<0$.\n- **Greatest integer** $[x]$: largest integer $\\le x$; range is $\\mathbb Z$ and $x-1<[x]\\le x$.\n- Polynomial, rational, and reciprocal functions are built from these; each has a characteristic graph shape."
+    },
+    {
+     "heading": "Algebra of real functions",
+     "body_md": "- $(f\\pm g)(x)=f(x)\\pm g(x)$, $(fg)(x)=f(x)g(x)$, $(cf)(x)=cf(x)$ on the common domain $D_f\\cap D_g$.\n- $\\left(\\frac fg\\right)(x)=\\frac{f(x)}{g(x)}$ on $D_f\\cap D_g$ with the points where $g(x)=0$ removed.\n- Composition is introduced only informally at this level; always check domains before simplifying.\n- Simplifying an expression can enlarge the domain, so state the domain from the original form."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Size of Cartesian product",
+     "latex": "n(A\\times B)=n(A)\\,n(B)",
+     "variables": "n = number of elements",
+     "note": "Finite sets."
+    },
+    {
+     "name": "Number of relations",
+     "latex": "2^{pq}",
+     "variables": "p = n(A), q = n(B)",
+     "note": "Counts all subsets of A x B."
+    },
+    {
+     "name": "Number of functions",
+     "latex": "q^{p}",
+     "variables": "p = n(A), q = n(B)",
+     "note": "Each of p inputs picks one of q images."
+    },
+    {
+     "name": "Equality of ordered pairs",
+     "latex": "(a,b)=(c,d)\\iff a=c,\\ b=d",
+     "variables": "a, b, c, d = components",
+     "note": "Order matters."
+    },
+    {
+     "name": "Modulus function",
+     "latex": "|x|=\\begin{cases}x,&x\\ge0\\\\-x,&x<0\\end{cases}",
+     "variables": "x = real number",
+     "note": "Piecewise definition used for graphs and equations."
+    },
+    {
+     "name": "Greatest integer bounds",
+     "latex": "x-1<[x]\\le x",
+     "variables": "[x] = floor of x",
+     "note": "Also [x+n]=[x]+n for integer n."
+    },
+    {
+     "name": "Quotient of functions",
+     "latex": "\\left(\\frac fg\\right)(x)=\\frac{f(x)}{g(x)},\\ g(x)\\ne0",
+     "variables": "f, g = real functions",
+     "note": "Domain excludes zeros of g."
+    },
+    {
+     "name": "Domain of sum/product",
+     "latex": "D_{f\\pm g}=D_{fg}=D_f\\cap D_g",
+     "variables": "D = domain",
+     "note": "Common domain."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "If $n(A)=3$ and $n(B)=4$, the number of relations from $A$ to $B$ is",
+     "options": [
+      "12",
+      "144",
+      "4096",
+      "81"
+     ],
+     "answer": "(C) 4096",
+     "solution_md": "A relation is a subset of $A\\times B$, which has $12$ elements, so there are $2^{12}=4096$ relations.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Let $A=\\{1,2,3,4\\}$ and $R=\\{(x,y): y=2x,\\ x,y\\in A\\}$. Write $R$ in roster form and give its domain and range.",
+     "answer": "$R=\\{(1,2),(2,4)\\}$; domain $\\{1,2\\}$; range $\\{2,4\\}$",
+     "solution_md": "$x=1\\Rightarrow y=2$ and $x=2\\Rightarrow y=4$ are in $A$. For $x=3,4$ the value $2x=6,8\\notin A$. So $R=\\{(1,2),(2,4)\\}$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Find the domain and range of $f(x)=\\sqrt{9-x^2}$.",
+     "answer": "Domain $[-3,3]$; range $[0,3]$",
+     "solution_md": "Need $9-x^2\\ge0\\Rightarrow -3\\le x\\le3$. On this interval $9-x^2\\in[0,9]$, so $f(x)\\in[0,3]$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "Let $f(x)=\\sqrt{x-1}$ and $g(x)=\\sqrt{5-x}$. Find $f+g$, $fg$ and $f/g$ with their domains.",
+     "answer": "$(f+g)(x)=\\sqrt{x-1}+\\sqrt{5-x}$ on $[1,5]$; $(fg)(x)=\\sqrt{(x-1)(5-x)}$ on $[1,5]$; $(f/g)(x)=\\sqrt{\\frac{x-1}{5-x}}$ on $[1,5)$",
+     "solution_md": "$D_f=[1,\\infty)$, $D_g=(-\\infty,5]$, so the common domain is $[1,5]$. For $f/g$ remove $x=5$ where $g(x)=0$, leaving $[1,5)$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "For $f(x)=\\dfrac{2x+1}{x-3}$, find the domain, the range, $f(4)$ and the value of $x$ for which $f(x)=5$.",
+     "answer": "Domain $\\mathbb R\\setminus\\{3\\}$; range $\\mathbb R\\setminus\\{2\\}$; $f(4)=9$; $x=\\frac{16}{3}$",
+     "solution_md": "Denominator zero at $x=3$, so domain is $\\mathbb R\\setminus\\{3\\}$. Put $y=\\frac{2x+1}{x-3}$, then $x=\\frac{3y+1}{y-2}$ which exists exactly when $y\\ne2$. $f(4)=9/1=9$. Setting $2x+1=5(x-3)$ gives $3x=16$, $x=16/3$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The domain of $f(x)=\\dfrac{1}{\\sqrt{|x|-x}}$ is",
+     "options": [
+      "$\\mathbb R$",
+      "$(0,\\infty)$",
+      "$(-\\infty,0)$",
+      "$\\mathbb R\\setminus\\{0\\}$"
+     ],
+     "answer": "(C) $(-\\infty,0)$",
+     "solution_md": "Need $|x|-x>0$. For $x\\ge0$, $|x|-x=0$, not allowed. For $x<0$, $|x|-x=-2x>0$. Domain is $(-\\infty,0)$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Let $A=\\{x\\in\\mathbb Z:|x|\\le2\\}$ and $B=\\{1,2,3\\}$. How many relations from $A$ to $B$ have exactly $2$ elements?",
+     "answer": "105",
+     "solution_md": "$A=\\{-2,-1,0,1,2\\}$ has 5 elements, so $n(A\\times B)=15$. Choose any 2 of the 15 ordered pairs: $\\binom{15}{2}=105$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The range of $f(x)=\\dfrac{x}{1+x^2}$ is",
+     "options": [
+      "$\\mathbb R$",
+      "$[-1,1]$",
+      "$\\left[-\\tfrac12,\\tfrac12\\right]$",
+      "$[0,\\tfrac12]$"
+     ],
+     "answer": "(C) $\\left[-\\tfrac12,\\tfrac12\\right]$",
+     "solution_md": "$y(1+x^2)=x\\Rightarrow yx^2-x+y=0$. For real $x$ the discriminant $1-4y^2\\ge0$ (and $y=0$ works at $x=0$), so $-\\tfrac12\\le y\\le\\tfrac12$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "How many integers lie in the domain of $f(x)=\\sqrt{16-x^2}+\\dfrac{1}{\\sqrt{x^2-1}}$?",
+     "answer": "6",
+     "solution_md": "Need $16-x^2\\ge0$, i.e. $-4\\le x\\le4$, and $x^2-1>0$, i.e. $|x|>1$. Integers: $-4,-3,-2,2,3,4$, so 6.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): $\\{(1,2),(1,3)\\}$ is not a function from $\\{1,2,3\\}$ to $\\{1,2,3\\}$. Reason (R): In a function every element of the domain has exactly one image.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(A) Both A and R are true and R is the correct explanation of A",
+     "solution_md": "Element 1 has two images and elements 2 and 3 have none, so the rule of exactly one image is violated. R explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Define a function",
+     "back": "A relation where each input in the domain has exactly one output."
+    },
+    {
+     "front": "$n(A\\times B)$",
+     "back": "$n(A)\\cdot n(B)$."
+    },
+    {
+     "front": "Number of relations from A to B",
+     "back": "$2^{pq}$ with $p=n(A)$, $q=n(B)$."
+    },
+    {
+     "front": "Number of functions from A to B",
+     "back": "$q^p$."
+    },
+    {
+     "front": "Domain vs range vs codomain",
+     "back": "Domain: inputs. Codomain: allowed outputs. Range: outputs actually reached."
+    },
+    {
+     "front": "Domain rules to remember",
+     "back": "Denominator $\\ne0$, even-root argument $\\ge0$, log argument $>0$."
+    },
+    {
+     "front": "Range of $|x|$",
+     "back": "$[0,\\infty)$."
+    },
+    {
+     "front": "Range of the greatest integer function",
+     "back": "All integers $\\mathbb Z$."
+    },
+    {
+     "front": "Domain of $f/g$",
+     "back": "$D_f\\cap D_g$ minus points where $g=0$."
+    },
+    {
+     "front": "Is $A\\times B=B\\times A$?",
+     "back": "No, in general; equality only if $A=B$ or one is empty."
+    }
+   ]
+  },
+  {
+   "number": 3,
+   "title": "Trigonometric Functions",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Angles and measures",
+     "body_md": "- An angle is the amount of rotation of a ray; anticlockwise is positive and clockwise is negative.\n- One **radian** is the angle at the centre of a circle subtended by an arc equal in length to the radius.\n- $\\pi$ radians $=180^\\circ$, so $1^\\circ=\\frac{\\pi}{180}$ rad and $1\\text{ rad}\\approx57.3^\\circ$.\n- Arc length $s=r\\theta$ holds only when $\\theta$ is in radians."
+    },
+    {
+     "heading": "Trigonometric functions on the unit circle",
+     "body_md": "- For a point $(\\cos x,\\sin x)$ on the unit circle, $\\tan x=\\frac{\\sin x}{\\cos x}$, $\\sec x=\\frac1{\\cos x}$, $\\csc x=\\frac1{\\sin x}$, $\\cot x=\\frac{\\cos x}{\\sin x}$.\n- Signs follow the quadrants: all positive in I, only $\\sin$ in II, only $\\tan$ in III, only $\\cos$ in IV.\n- Functions are periodic: $\\sin,\\cos$ with period $2\\pi$; $\\tan,\\cot$ with period $\\pi$.\n- $\\sin$ is odd, $\\cos$ is even, and $\\tan$ is odd."
+    },
+    {
+     "heading": "Domain, range and standard values",
+     "body_md": "- $\\sin x,\\cos x$: domain $\\mathbb R$, range $[-1,1]$.\n- $\\tan x$ is undefined at odd multiples of $\\frac\\pi2$; its range is $\\mathbb R$. $\\cot x$ is undefined at multiples of $\\pi$.\n- $\\sec x,\\csc x$ take values in $(-\\infty,-1]\\cup[1,\\infty)$.\n- Standard angles $0,\\frac\\pi6,\\frac\\pi4,\\frac\\pi3,\\frac\\pi2$ give $\\sin=0,\\frac12,\\frac1{\\sqrt2},\\frac{\\sqrt3}2,1$ and $\\cos$ in the reverse order."
+    },
+    {
+     "heading": "Fundamental and compound-angle identities",
+     "body_md": "- $\\sin^2x+\\cos^2x=1$, $1+\\tan^2x=\\sec^2x$, $1+\\cot^2x=\\csc^2x$.\n- Reduction: $\\sin(\\frac\\pi2-x)=\\cos x$, $\\sin(\\pi-x)=\\sin x$, $\\cos(\\pi-x)=-\\cos x$, and so on.\n- Compound angle formulas expand $\\sin(x\\pm y)$, $\\cos(x\\pm y)$, $\\tan(x\\pm y)$.\n- These give exact values such as $\\sin15^\\circ=\\frac{\\sqrt6-\\sqrt2}{4}$ and $\\tan75^\\circ=2+\\sqrt3$."
+    },
+    {
+     "heading": "Multiple and half angles",
+     "body_md": "- $\\sin2x=2\\sin x\\cos x$; $\\cos2x=\\cos^2x-\\sin^2x=2\\cos^2x-1=1-2\\sin^2x$.\n- $\\tan2x=\\frac{2\\tan x}{1-\\tan^2x}$; also $\\sin2x=\\frac{2\\tan x}{1+\\tan^2x}$.\n- Triple angle: $\\sin3x=3\\sin x-4\\sin^3x$, $\\cos3x=4\\cos^3x-3\\cos x$.\n- Half angle: $\\cos^2\\frac x2=\\frac{1+\\cos x}2$ and $\\sin^2\\frac x2=\\frac{1-\\cos x}2$."
+    },
+    {
+     "heading": "Sum and product conversions",
+     "body_md": "- $\\sin x+\\sin y=2\\sin\\frac{x+y}2\\cos\\frac{x-y}2$ and $\\sin x-\\sin y=2\\cos\\frac{x+y}2\\sin\\frac{x-y}2$.\n- $\\cos x+\\cos y=2\\cos\\frac{x+y}2\\cos\\frac{x-y}2$ and $\\cos x-\\cos y=-2\\sin\\frac{x+y}2\\sin\\frac{x-y}2$.\n- The reverse form $2\\sin A\\cos B=\\sin(A+B)+\\sin(A-B)$ turns products into sums.\n- Use these to factorise expressions like $\\sin x+\\sin3x+\\sin5x$ before solving."
+    },
+    {
+     "heading": "Trigonometric equations",
+     "body_md": "- $\\sin x=\\sin y\\Rightarrow x=n\\pi+(-1)^ny$; $\\cos x=\\cos y\\Rightarrow x=2n\\pi\\pm y$; $\\tan x=\\tan y\\Rightarrow x=n\\pi+y$.\n- Special cases: $\\sin x=0\\Rightarrow x=n\\pi$; $\\cos x=0\\Rightarrow x=(2n+1)\\frac\\pi2$.\n- Reduce to a single function (quadratic in $\\sin x$ or $\\cos x$) or factorise, then apply the general solution.\n- Discard values outside the range of the function, e.g. $\\sin x=2$ has no solution; here $n\\in\\mathbb Z$."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Degree-radian relation",
+     "latex": "\\pi\\text{ rad}=180^\\circ",
+     "variables": "rad = radian",
+     "note": "Conversion factor: multiply degrees by pi/180."
+    },
+    {
+     "name": "Arc length",
+     "latex": "s=r\\theta",
+     "variables": "s = arc, r = radius, theta = angle in radians",
+     "note": "Radians only."
+    },
+    {
+     "name": "Pythagorean identities",
+     "latex": "\\sin^2x+\\cos^2x=1,\\ 1+\\tan^2x=\\sec^2x,\\ 1+\\cot^2x=\\csc^2x",
+     "variables": "x = angle",
+     "note": "Where the functions are defined."
+    },
+    {
+     "name": "Sine of sum/difference",
+     "latex": "\\sin(x\\pm y)=\\sin x\\cos y\\pm\\cos x\\sin y",
+     "variables": "x, y = angles",
+     "note": "Compound angle."
+    },
+    {
+     "name": "Cosine of sum/difference",
+     "latex": "\\cos(x\\pm y)=\\cos x\\cos y\\mp\\sin x\\sin y",
+     "variables": "x, y = angles",
+     "note": "Note the sign flip."
+    },
+    {
+     "name": "Tangent of sum/difference",
+     "latex": "\\tan(x\\pm y)=\\dfrac{\\tan x\\pm\\tan y}{1\\mp\\tan x\\tan y}",
+     "variables": "x, y = angles",
+     "note": "Valid where all tangents are defined."
+    },
+    {
+     "name": "Double angle",
+     "latex": "\\sin2x=2\\sin x\\cos x,\\ \\cos2x=2\\cos^2x-1=1-2\\sin^2x",
+     "variables": "x = angle",
+     "note": "The three forms of cos 2x are interchangeable."
+    },
+    {
+     "name": "Double angle tangent",
+     "latex": "\\tan2x=\\dfrac{2\\tan x}{1-\\tan^2x}",
+     "variables": "x = angle",
+     "note": "Needs tan x defined and tan^2 x not 1."
+    },
+    {
+     "name": "Triple angle",
+     "latex": "\\sin3x=3\\sin x-4\\sin^3x,\\ \\cos3x=4\\cos^3x-3\\cos x",
+     "variables": "x = angle",
+     "note": "Useful for exact values and equations."
+    },
+    {
+     "name": "Sum to product",
+     "latex": "\\sin x+\\sin y=2\\sin\\tfrac{x+y}2\\cos\\tfrac{x-y}2",
+     "variables": "x, y = angles",
+     "note": "Similar formulas exist for sin-diff, cos-sum, cos-diff."
+    },
+    {
+     "name": "Product to sum",
+     "latex": "2\\sin A\\cos B=\\sin(A+B)+\\sin(A-B)",
+     "variables": "A, B = angles",
+     "note": "Also 2cosAcosB and 2sinAsinB forms."
+    },
+    {
+     "name": "General solution of sine equation",
+     "latex": "\\sin x=\\sin y\\Rightarrow x=n\\pi+(-1)^ny",
+     "variables": "n = integer",
+     "note": "Includes all solutions."
+    },
+    {
+     "name": "General solution of cosine equation",
+     "latex": "\\cos x=\\cos y\\Rightarrow x=2n\\pi\\pm y",
+     "variables": "n = integer",
+     "note": "Includes all solutions."
+    },
+    {
+     "name": "General solution of tangent equation",
+     "latex": "\\tan x=\\tan y\\Rightarrow x=n\\pi+y",
+     "variables": "n = integer",
+     "note": "Includes all solutions."
+    },
+    {
+     "name": "Half-angle",
+     "latex": "\\sin^2\\tfrac x2=\\tfrac{1-\\cos x}2,\\ \\cos^2\\tfrac x2=\\tfrac{1+\\cos x}2",
+     "variables": "x = angle",
+     "note": "Sign of sin(x/2), cos(x/2) depends on the quadrant."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "$75^\\circ$ expressed in radians is",
+     "options": [
+      "$\\frac{5\\pi}{12}$",
+      "$\\frac{7\\pi}{12}$",
+      "$\\frac{5\\pi}{6}$",
+      "$\\frac{3\\pi}{8}$"
+     ],
+     "answer": "(A) $\\frac{5\\pi}{12}$",
+     "solution_md": "$75\\times\\frac{\\pi}{180}=\\frac{5\\pi}{12}$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Find the length of the arc of a circle of radius $15$ cm that subtends an angle of $60^\\circ$ at the centre.",
+     "answer": "$5\\pi$ cm (about $15.7$ cm)",
+     "solution_md": "$\\theta=60^\\circ=\\frac{\\pi}{3}$ rad. Arc $=r\\theta=15\\cdot\\frac\\pi3=5\\pi$ cm.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Find the exact value of $\\tan75^\\circ+\\cot75^\\circ$.",
+     "answer": "4",
+     "solution_md": "$\\tan x+\\cot x=\\frac{\\sin^2x+\\cos^2x}{\\sin x\\cos x}=\\frac{2}{\\sin2x}$. With $x=75^\\circ$, $\\sin150^\\circ=\\frac12$, so the value is $4$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "Prove that $\\cos20^\\circ\\cos40^\\circ\\cos60^\\circ\\cos80^\\circ=\\dfrac1{16}$.",
+     "answer": "Proved; value $=\\frac1{16}$",
+     "solution_md": "Use $\\cos60^\\circ=\\frac12$. Let $P=\\cos20^\\circ\\cos40^\\circ\\cos80^\\circ$. Then $8\\sin20^\\circ P=(2\\sin20^\\circ\\cos20^\\circ)(2\\cos40^\\circ)(2\\cos80^\\circ)=\\sin40^\\circ\\cdot2\\cos40^\\circ\\cdot2\\cos80^\\circ\\cdot\\tfrac{1}{1}\\cdot\\tfrac{1}{1}$ simplified stepwise: $\\sin40^\\circ\\cdot2\\cos40^\\circ=\\sin80^\\circ$, then $\\sin80^\\circ\\cdot2\\cos80^\\circ=\\sin160^\\circ=\\sin20^\\circ$. So $8\\sin20^\\circ P=\\sin20^\\circ$ and $P=\\frac18$. Multiplying by $\\cos60^\\circ=\\frac12$ gives $\\frac1{16}$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Find the general solution of $\\sin x+\\sin3x+\\sin5x=0$.",
+     "answer": "$x=\\dfrac{n\\pi}{3},\\ n\\in\\mathbb Z$",
+     "solution_md": "Group $\\sin5x+\\sin x=2\\sin3x\\cos2x$. The equation becomes $\\sin3x(2\\cos2x+1)=0$. Case 1: $\\sin3x=0\\Rightarrow x=\\frac{n\\pi}3$. Case 2: $\\cos2x=-\\frac12=\\cos\\frac{2\\pi}3\\Rightarrow 2x=2n\\pi\\pm\\frac{2\\pi}3\\Rightarrow x=n\\pi\\pm\\frac\\pi3$, which already lies in the family $\\frac{n\\pi}3$. So $x=\\frac{n\\pi}{3}$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The number of solutions of $2\\sin^2x-3\\sin x+1=0$ in $[0,2\\pi]$ is",
+     "options": [
+      "2",
+      "3",
+      "4",
+      "5"
+     ],
+     "answer": "(B) 3",
+     "solution_md": "Factor: $(2\\sin x-1)(\\sin x-1)=0$, so $\\sin x=\\frac12$ or $1$. $\\sin x=\\frac12$ gives $x=\\frac\\pi6,\\frac{5\\pi}6$; $\\sin x=1$ gives $x=\\frac\\pi2$. Total 3.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "If $\\tan x+\\cot x=4$, find $\\tan^2x+\\cot^2x$.",
+     "answer": "14",
+     "solution_md": "Square: $\\tan^2x+2+\\cot^2x=16$ since $\\tan x\\cot x=1$. So $\\tan^2x+\\cot^2x=14$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The value of $\\sin10^\\circ\\sin30^\\circ\\sin50^\\circ\\sin70^\\circ$ is",
+     "options": [
+      "$\\frac18$",
+      "$\\frac1{16}$",
+      "$\\frac1{32}$",
+      "$\\frac{\\sqrt3}{16}$"
+     ],
+     "answer": "(B) $\\frac1{16}$",
+     "solution_md": "$\\sin10^\\circ\\sin50^\\circ\\sin70^\\circ=\\frac14\\sin30^\\circ=\\frac18$ (using $\\sin x\\sin(60^\\circ-x)\\sin(60^\\circ+x)=\\frac14\\sin3x$ with $x=10^\\circ$). Multiplying by $\\sin30^\\circ=\\frac12$ gives $\\frac1{16}$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "How many integers lie in the range of $f(x)=3\\sin x+4\\cos x+7$?",
+     "answer": "11",
+     "solution_md": "$3\\sin x+4\\cos x$ has amplitude $\\sqrt{9+16}=5$, so it ranges over $[-5,5]$. Then $f$ ranges over $[2,12]$, containing integers $2,3,\\dots,12$: 11 of them.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): $\\tan x$ is not defined at $x=\\frac\\pi2$. Reason (R): $\\cos\\frac\\pi2=0$.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(A) Both A and R are true and R is the correct explanation of A",
+     "solution_md": "Since $\\tan x=\\frac{\\sin x}{\\cos x}$ and $\\cos\\frac\\pi2=0$, the quotient is undefined. R explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Radian-degree link",
+     "back": "$\\pi$ rad $=180^\\circ$; arc $s=r\\theta$."
+    },
+    {
+     "front": "Signs by quadrant (ASTC)",
+     "back": "I: all; II: sin; III: tan; IV: cos."
+    },
+    {
+     "front": "Periods of the six functions",
+     "back": "$\\sin,\\cos,\\sec,\\csc$: $2\\pi$; $\\tan,\\cot$: $\\pi$."
+    },
+    {
+     "front": "$\\cos2x$ in three forms",
+     "back": "$\\cos^2x-\\sin^2x=2\\cos^2x-1=1-2\\sin^2x$."
+    },
+    {
+     "front": "$\\tan(x+y)$",
+     "back": "$\\dfrac{\\tan x+\\tan y}{1-\\tan x\\tan y}$."
+    },
+    {
+     "front": "Triple-angle formulas",
+     "back": "$\\sin3x=3\\sin x-4\\sin^3x$; $\\cos3x=4\\cos^3x-3\\cos x$."
+    },
+    {
+     "front": "$\\sin x+\\sin y$ as product",
+     "back": "$2\\sin\\frac{x+y}2\\cos\\frac{x-y}2$."
+    },
+    {
+     "front": "General solution of $\\sin x=\\sin y$",
+     "back": "$x=n\\pi+(-1)^ny$."
+    },
+    {
+     "front": "General solution of $\\cos x=\\cos y$",
+     "back": "$x=2n\\pi\\pm y$."
+    },
+    {
+     "front": "Range of $a\\sin x+b\\cos x$",
+     "back": "$[-\\sqrt{a^2+b^2},\\sqrt{a^2+b^2}]$."
+    }
+   ]
+  },
+  {
+   "number": 4,
+   "title": "Complex Numbers and Quadratic Equations",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Imaginary unit and algebra of complex numbers",
+     "body_md": "- Define $i$ by $i^2=-1$; a complex number is $z=a+ib$ with $a,b\\in\\mathbb R$, where $a=\\operatorname{Re}z$ and $b=\\operatorname{Im}z$.\n- Two complex numbers are equal only when both real parts and both imaginary parts match.\n- Add, subtract and multiply like binomials, replacing $i^2$ by $-1$; addition and multiplication are commutative, associative and distributive.\n- Powers of $i$ repeat in a cycle of four: $i,-1,-i,1$, so $i^n$ depends only on $n\\bmod 4$.\n- Complex numbers cannot be ordered: statements like $z_1>z_2$ make sense only for real numbers."
+    },
+    {
+     "heading": "Conjugate, modulus and reciprocal",
+     "body_md": "- The conjugate of $z=a+ib$ is $\\bar z=a-ib$; then $z\\bar z=a^2+b^2=|z|^2$ is always real and non-negative.\n- The modulus is $|z|=\\sqrt{a^2+b^2}$, and $|z_1z_2|=|z_1||z_2|$, $\\left|\\frac{z_1}{z_2}\\right|=\\frac{|z_1|}{|z_2|}$.\n- The reciprocal is $\\frac1z=\\frac{\\bar z}{|z|^2}$; to divide, multiply numerator and denominator by the conjugate of the denominator.\n- $z$ is real iff $z=\\bar z$; it is purely imaginary iff $z=-\\bar z$ (and $z\\ne0$).\n- Also $\\overline{z_1\\pm z_2}=\\bar z_1\\pm\\bar z_2$ and $\\overline{z_1z_2}=\\bar z_1\\bar z_2$."
+    },
+    {
+     "heading": "Argand plane and geometry of complex numbers",
+     "body_md": "- $z=a+ib$ is plotted as the point $(a,b)$; the horizontal axis is the real axis and the vertical axis the imaginary axis.\n- $|z|$ is the distance of the point from the origin and $|z_1-z_2|$ is the distance between two points.\n- $\\bar z$ is the mirror image of $z$ in the real axis; $-z$ is its reflection through the origin.\n- Triangle inequality: $|z_1+z_2|\\le|z_1|+|z_2|$ and $\\big||z_1|-|z_2|\\big|\\le|z_1-z_2|$."
+    },
+    {
+     "heading": "Polar form",
+     "body_md": "- Write $z=r(\\cos\\theta+i\\sin\\theta)$ with $r=|z|$ and $\\theta=\\arg z$ satisfying $\\tan\\theta=\\frac ba$ with the quadrant of $(a,b)$ respected.\n- The principal argument lies in $(-\\pi,\\pi]$.\n- Multiplication multiplies moduli and adds arguments; division divides moduli and subtracts arguments.\n- Euler notation $z=re^{i\\theta}$ gives de Moivre's idea $z^n=r^n(\\cos n\\theta+i\\sin n\\theta)$, which makes high powers easy."
+    },
+    {
+     "heading": "Quadratic equations with complex roots",
+     "body_md": "- For $ax^2+bx+c=0$ with real coefficients, the discriminant is $D=b^2-4ac$.\n- If $D<0$ the roots are the conjugate pair $\\frac{-b\\pm i\\sqrt{|D|}}{2a}$.\n- Sum of roots is $-\\frac ba$ and product is $\\frac ca$ even when the roots are complex.\n- Complex roots of a real-coefficient equation occur in conjugate pairs; this is not guaranteed if coefficients are non-real."
+    },
+    {
+     "heading": "Square roots and cube roots of unity",
+     "body_md": "- To find $\\sqrt{a+ib}$, set $(x+iy)^2=a+ib$, then equate real and imaginary parts and use $x^2+y^2=\\sqrt{a^2+b^2}$.\n- The cube roots of unity are $1,\\omega,\\omega^2$ with $\\omega=\\frac{-1+i\\sqrt3}2$.\n- They satisfy $1+\\omega+\\omega^2=0$ and $\\omega^3=1$, so $\\omega^n$ depends on $n\\bmod3$.\n- Useful in JEE problems: $x^2+x+1=(x-\\omega)(x-\\omega^2)$."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Powers of i",
+     "latex": "i^{4k}=1,\\ i^{4k+1}=i,\\ i^{4k+2}=-1,\\ i^{4k+3}=-i",
+     "variables": "k = integer",
+     "note": "Reduce the exponent modulo 4."
+    },
+    {
+     "name": "Modulus",
+     "latex": "|a+ib|=\\sqrt{a^2+b^2}",
+     "variables": "a, b = real and imaginary parts",
+     "note": "Distance from the origin."
+    },
+    {
+     "name": "Conjugate product",
+     "latex": "z\\bar z=|z|^2",
+     "variables": "z = complex number",
+     "note": "Always real."
+    },
+    {
+     "name": "Reciprocal",
+     "latex": "\\frac1z=\\frac{\\bar z}{|z|^2}",
+     "variables": "z = non-zero complex number",
+     "note": "Used for division."
+    },
+    {
+     "name": "Polar form",
+     "latex": "z=r(\\cos\\theta+i\\sin\\theta)",
+     "variables": "r = modulus, theta = argument",
+     "note": "Mind the quadrant."
+    },
+    {
+     "name": "Product in polar form",
+     "latex": "z_1z_2=r_1r_2[\\cos(\\theta_1+\\theta_2)+i\\sin(\\theta_1+\\theta_2)]",
+     "variables": "r, theta = moduli and arguments",
+     "note": "Arguments add."
+    },
+    {
+     "name": "de Moivre form",
+     "latex": "(\\cos\\theta+i\\sin\\theta)^n=\\cos n\\theta+i\\sin n\\theta",
+     "variables": "n = integer",
+     "note": "Standard for powers."
+    },
+    {
+     "name": "Triangle inequality",
+     "latex": "|z_1+z_2|\\le|z_1|+|z_2|",
+     "variables": "z1, z2 = complex numbers",
+     "note": "Equality when they have the same direction."
+    },
+    {
+     "name": "Quadratic formula",
+     "latex": "x=\\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}",
+     "variables": "a, b, c = real coefficients, a not 0",
+     "note": "Negative discriminant gives conjugate complex roots."
+    },
+    {
+     "name": "Roots and coefficients",
+     "latex": "\\alpha+\\beta=-\\frac ba,\\ \\alpha\\beta=\\frac ca",
+     "variables": "alpha, beta = roots",
+     "note": "Holds for complex roots too."
+    },
+    {
+     "name": "Cube roots of unity",
+     "latex": "1+\\omega+\\omega^2=0,\\ \\omega^3=1",
+     "variables": "omega = (-1+i sqrt3)/2",
+     "note": "Reduce powers mod 3."
+    },
+    {
+     "name": "Argument of conjugate",
+     "latex": "\\arg\\bar z=-\\arg z",
+     "variables": "z = complex number, not on the negative real axis",
+     "note": "Reflection in the real axis."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The value of $i^{35}$ is",
+     "options": [
+      "$i$",
+      "$-i$",
+      "$1$",
+      "$-1$"
+     ],
+     "answer": "(B) $-i$",
+     "solution_md": "$35=4\\cdot8+3$, so $i^{35}=i^3=-i$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Find the conjugate of $\\dfrac{2+i}{1-3i}$.",
+     "answer": "$\\dfrac{-1-7i}{10}$",
+     "solution_md": "$\\dfrac{2+i}{1-3i}\\cdot\\dfrac{1+3i}{1+3i}=\\dfrac{2+6i+i+3i^2}{10}=\\dfrac{-1+7i}{10}$. Its conjugate is $\\dfrac{-1-7i}{10}$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Find the modulus and principal argument of $-1+i\\sqrt3$ and write it in polar form.",
+     "answer": "$r=2$, $\\theta=\\frac{2\\pi}3$; $z=2\\left(\\cos\\frac{2\\pi}3+i\\sin\\frac{2\\pi}3\\right)$",
+     "solution_md": "$r=\\sqrt{1+3}=2$. The point $(-1,\\sqrt3)$ lies in quadrant II with reference angle $\\tan^{-1}\\sqrt3=\\frac\\pi3$, so $\\theta=\\pi-\\frac\\pi3=\\frac{2\\pi}3$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "Find the square root of $5-12i$.",
+     "answer": "$\\pm(3-2i)$",
+     "solution_md": "Let $(x+iy)^2=5-12i$. Then $x^2-y^2=5$ and $2xy=-12$. Also $x^2+y^2=|5-12i|=13$. Adding and subtracting: $x^2=9$, $y^2=4$. Since $xy<0$, the roots are $3-2i$ and $-3+2i$. Check: $(3-2i)^2=9-12i-4=5-12i$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Find all complex numbers $z$ satisfying $z^2=\\bar z$.",
+     "answer": "$z=0,\\ 1,\\ \\frac{-1+i\\sqrt3}2,\\ \\frac{-1-i\\sqrt3}2$",
+     "solution_md": "Take moduli: $|z|^2=|z|$, so $|z|=0$ or $1$. For $|z|=1$ write $z=e^{i\\theta}$; then $e^{2i\\theta}=e^{-i\\theta}$, so $e^{3i\\theta}=1$ and $\\theta=0,\\frac{2\\pi}3,\\frac{4\\pi}3$. These give $1,\\omega,\\omega^2$. Together with $z=0$ there are four solutions.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "If $z+\\dfrac1z=1$, then $z^{100}+\\dfrac1{z^{100}}$ equals",
+     "options": [
+      "$1$",
+      "$-1$",
+      "$2$",
+      "$0$"
+     ],
+     "answer": "(B) $-1$",
+     "solution_md": "$z=e^{\\pm i\\pi/3}$, so the expression is $2\\cos\\frac{100\\pi}3$. Since $\\frac{100\\pi}3=33\\pi+\\frac\\pi3$, the cosine equals $-\\cos\\frac\\pi3=-\\frac12$, giving $-1$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "If $\\alpha,\\beta$ are the roots of $x^2-2x+5=0$, find $\\alpha^4+\\beta^4$.",
+     "answer": "-14",
+     "solution_md": "$\\alpha+\\beta=2$, $\\alpha\\beta=5$. Then $\\alpha^2+\\beta^2=4-10=-6$ and $\\alpha^4+\\beta^4=36-2\\cdot25=-14$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "If $\\left|z-\\dfrac4z\\right|=2$, the greatest possible value of $|z|$ is",
+     "options": [
+      "$\\sqrt5-1$",
+      "$\\sqrt5+1$",
+      "$2$",
+      "$4$"
+     ],
+     "answer": "(B) $\\sqrt5+1$",
+     "solution_md": "$|z|\\le\\left|z-\\frac4z\\right|+\\frac4{|z|}=2+\\frac4{|z|}$. With $r=|z|$: $r^2-2r-4\\le0$, so $r\\le1+\\sqrt5$. Equality holds at the real root of $z^2-2z-4=0$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the number of complex numbers $z$ with $z^2+|z|=0$.",
+     "answer": "3",
+     "solution_md": "Write $z^2=-|z|\\le0$ (a real number), so $z$ is purely imaginary or zero. For $z=iy$: $-y^2+|y|=0$ gives $|y|=0$ or $1$. Solutions: $0,\\ i,\\ -i$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The equation $x^2+x+1=0$ has two non-real roots that are conjugates of each other. Reason (R): A quadratic with real coefficients and negative discriminant has non-real roots occurring in conjugate pairs.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(A) Both A and R are true and R is the correct explanation of A",
+     "solution_md": "Here $D=1-4=-3<0$ and the roots are $\\frac{-1\\pm i\\sqrt3}2$. R states the general principle that explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Cycle of powers of $i$",
+     "back": "$i,-1,-i,1$ repeating; $i^n=i^{n\\bmod4}$."
+    },
+    {
+     "front": "$z\\bar z$",
+     "back": "$|z|^2$, a non-negative real number."
+    },
+    {
+     "front": "How to divide complex numbers",
+     "back": "Multiply top and bottom by the conjugate of the denominator."
+    },
+    {
+     "front": "Modulus of a product",
+     "back": "$|z_1z_2|=|z_1||z_2|$."
+    },
+    {
+     "front": "Polar form",
+     "back": "$z=r(\\cos\\theta+i\\sin\\theta)$ with $r=|z|$; choose $\\theta$ by the quadrant."
+    },
+    {
+     "front": "Argument of a product",
+     "back": "Arguments add: $\\arg(z_1z_2)=\\arg z_1+\\arg z_2$ (mod $2\\pi$)."
+    },
+    {
+     "front": "Nature of roots when $D<0$",
+     "back": "A conjugate pair $\\frac{-b\\pm i\\sqrt{-D}}{2a}$ for real coefficients."
+    },
+    {
+     "front": "Triangle inequality",
+     "back": "$|z_1+z_2|\\le|z_1|+|z_2|$."
+    },
+    {
+     "front": "Cube roots of unity",
+     "back": "$1,\\omega,\\omega^2$ with $1+\\omega+\\omega^2=0$, $\\omega^3=1$."
+    },
+    {
+     "front": "Is $2+i>1+i$ meaningful?",
+     "back": "No. Complex numbers have no ordering; only moduli or real parts can be compared."
+    }
+   ]
+  },
+  {
+   "number": 5,
+   "title": "Linear Inequalities",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Linear inequalities in one variable",
+     "body_md": "- An inequality such as $ax+b<0$ uses $<,\\ \\le,\\ >,\\ \\ge$; its solution set is all values making it true.\n- Adding or subtracting the same number on both sides keeps the inequality sign.\n- Multiplying or dividing by a positive number keeps the sign; by a **negative** number it reverses the sign.\n- When the replacement set is $\\mathbb N$ or $\\mathbb Z$, list only the allowed values; for $\\mathbb R$ the answer is an interval."
+    },
+    {
+     "heading": "Interval notation and number line",
+     "body_md": "- Round bracket means the endpoint is excluded and square bracket means included: $(a,b)$, $[a,b]$, $[a,b)$, $(a,b]$.\n- On the number line use an open circle for excluded and a filled circle for included endpoints.\n- A system of inequalities in one variable has as its solution the **intersection** of the individual solution sets.\n- If the intersection is empty the system has no solution."
+    },
+    {
+     "heading": "Absolute value and rational inequalities",
+     "body_md": "- $|x|<a$ (with $a>0$) means $-a<x<a$; $|x|>a$ means $x<-a$ or $x>a$.\n- For $|f(x)|\\le a$ solve $-a\\le f(x)\\le a$.\n- For $\\frac{p(x)}{q(x)}\\ge0$ do not multiply by $q(x)$ blindly; find the sign of the quotient on each interval and exclude zeros of $q$.\n- Quadratic inequalities are handled by factorising and checking signs of the product on the intervals between roots."
+    },
+    {
+     "heading": "Graph of a linear inequality in two variables",
+     "body_md": "- $ax+by\\le c$ describes a **half-plane** bounded by the line $ax+by=c$.\n- Draw the line (dashed for strict inequality, solid for $\\le$ or $\\ge$).\n- Pick a test point, usually the origin if it is not on the line, and shade the side where the inequality holds.\n- Points on a solid line belong to the solution region."
+    },
+    {
+     "heading": "Systems of inequalities in two variables",
+     "body_md": "- The solution region is the overlap of all the shaded half-planes.\n- Conditions $x\\ge0$, $y\\ge0$ restrict the region to the first quadrant.\n- Corner points are found by solving pairs of boundary lines.\n- The region may be bounded (a polygon) or unbounded; area of a polygon region uses its vertices."
+    },
+    {
+     "heading": "Modelling with inequalities",
+     "body_md": "- Translate phrases: \"at least\" means $\\ge$, \"at most\" means $\\le$, \"more than\" means $>$.\n- Define a variable, form the inequality, solve it, then interpret the result within the context (for example, whole numbers only).\n- Average and budget problems usually reduce to a single linear inequality."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Sign reversal rule",
+     "latex": "a<b,\\ c<0\\Rightarrow ac>bc",
+     "variables": "a, b, c = real numbers",
+     "note": "Multiplying by a negative flips the sign."
+    },
+    {
+     "name": "Modulus less than",
+     "latex": "|x|<a\\iff -a<x<a",
+     "variables": "a = positive real",
+     "note": "Interval solution."
+    },
+    {
+     "name": "Modulus greater than",
+     "latex": "|x|>a\\iff x<-a\\ \\text{or}\\ x>a",
+     "variables": "a = positive real",
+     "note": "Union of two rays."
+    },
+    {
+     "name": "Shifted modulus",
+     "latex": "|x-c|\\le r\\iff c-r\\le x\\le c+r",
+     "variables": "c = centre, r = radius",
+     "note": "Distance from c is at most r."
+    },
+    {
+     "name": "Half-plane",
+     "latex": "ax+by\\le c",
+     "variables": "a, b, c = real constants",
+     "note": "Shade the side containing the test point that satisfies it."
+    },
+    {
+     "name": "Quotient inequality",
+     "latex": "\\frac{p(x)}{q(x)}\\ge0",
+     "variables": "p, q = polynomials",
+     "note": "Sign analysis; exclude roots of q."
+    },
+    {
+     "name": "Quadratic inequality (distinct roots)",
+     "latex": "(x-\\alpha)(x-\\beta)<0\\iff \\alpha<x<\\beta",
+     "variables": "alpha < beta = roots",
+     "note": "Reverse for > 0: outside the roots."
+    },
+    {
+     "name": "Triangle area from vertices",
+     "latex": "\\text{Area}=\\tfrac12\\left|x_1(y_2-y_3)+x_2(y_3-y_1)+x_3(y_1-y_2)\\right|",
+     "variables": "(xi, yi) = vertices",
+     "note": "Used for bounded feasible regions."
+    },
+    {
+     "name": "Average condition",
+     "latex": "\\frac{s_1+s_2+\\dots+s_n}{n}\\ge m",
+     "variables": "s = scores, m = required average",
+     "note": "Gives a lower bound for the last score."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The solution set of $4-3x\\ge10$ is",
+     "options": [
+      "$(-\\infty,-2]$",
+      "$[-2,\\infty)$",
+      "$(-\\infty,2]$",
+      "$(-\\infty,-2)$"
+     ],
+     "answer": "(A) $(-\\infty,-2]$",
+     "solution_md": "$-3x\\ge6$; dividing by $-3$ reverses the sign, so $x\\le-2$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Solve $3(2-x)\\ge2(1+x)$ for real $x$ and state whether any natural number satisfies it.",
+     "answer": "$x\\le\\frac45$; no natural number",
+     "solution_md": "$6-3x\\ge2+2x\\Rightarrow4\\ge5x\\Rightarrow x\\le\\frac45$. The smallest natural number is 1, which exceeds $\\frac45$, so none qualifies.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Solve the system $2x+1\\ge-3$ and $5-x>1$ and write the answer as an interval.",
+     "answer": "$[-2,4)$",
+     "solution_md": "First: $2x\\ge-4$, so $x\\ge-2$. Second: $-x>-4$, so $x<4$. The common solution is $[-2,4)$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "A student scored $68,72,80$ in three tests. What must the score in the fourth test (out of 100) be for the average of the four to be at least $75$?",
+     "answer": "Between $80$ and $100$ inclusive",
+     "solution_md": "Let the fourth score be $s$. Then $\\frac{68+72+80+s}4\\ge75$, so $220+s\\ge300$ and $s\\ge80$. The maximum possible is $100$, so $80\\le s\\le100$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Draw (describe) the region $x+y\\le6,\\ x\\ge1,\\ y\\ge1$, find its corner points and its area.",
+     "answer": "Corners $(1,1),(5,1),(1,5)$; area $8$ sq. units",
+     "solution_md": "The boundaries $x=1$, $y=1$ and $x+y=6$ form a triangle. $x=1,y=1$ meet at $(1,1)$; $y=1$ with $x+y=6$ gives $(5,1)$; $x=1$ with $x+y=6$ gives $(1,5)$. The legs are $4$ and $4$, so area $=\\frac12\\cdot4\\cdot4=8$. The origin fails $x\\ge1$, so the region lies on the far side of those lines and below $x+y=6$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The sum of all integers satisfying $|2x-3|\\le5$ is",
+     "options": [
+      "$6$",
+      "$9$",
+      "$10$",
+      "$4$"
+     ],
+     "answer": "(B) $9$",
+     "solution_md": "$-5\\le2x-3\\le5\\Rightarrow-1\\le x\\le4$. Integers $-1,0,1,2,3,4$ sum to $9$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the number of integers satisfying $x^2-6x+5\\le0$.",
+     "answer": "5",
+     "solution_md": "$(x-1)(x-5)\\le0$ gives $1\\le x\\le5$, so the integers are $1,2,3,4,5$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The solution set of $\\dfrac{2x-1}{x+3}\\ge1$ is",
+     "options": [
+      "$(-\\infty,-3)\\cup[4,\\infty)$",
+      "$(-3,4]$",
+      "$(-\\infty,-3]\\cup[4,\\infty)$",
+      "$[4,\\infty)$"
+     ],
+     "answer": "(A) $(-\\infty,-3)\\cup[4,\\infty)$",
+     "solution_md": "Subtract 1: $\\frac{x-4}{x+3}\\ge0$. The quotient is non-negative for $x<-3$ or $x\\ge4$; $x=-3$ is excluded since the denominator vanishes.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the number of ordered pairs $(x,y)$ of positive integers with $x+y\\le5$.",
+     "answer": "10",
+     "solution_md": "Since $1\\le y\\le5-x$, there are $4,3,2,1$ choices of $y$ for $x=1,2,3,4$. Total $4+3+2+1=10$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The solution set of $|x|>3$ is $(-\\infty,-3)\\cup(3,\\infty)$. Reason (R): Multiplying both sides of an inequality by a negative number reverses the inequality sign.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(B) Both A and R are true but R is not the correct explanation of A",
+     "solution_md": "A is true because distance from 0 exceeds 3 on both sides. R is also a true rule, but it is not what produces the two-ray solution, so it does not explain A.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Rule for multiplying an inequality",
+     "back": "Positive number keeps the sign; negative number reverses it."
+    },
+    {
+     "front": "$|x|<a$ means",
+     "back": "$-a<x<a$."
+    },
+    {
+     "front": "$|x|>a$ means",
+     "back": "$x<-a$ or $x>a$."
+    },
+    {
+     "front": "Solution of a system in one variable",
+     "back": "Intersection of the solution sets of the separate inequalities."
+    },
+    {
+     "front": "Solid vs dashed boundary",
+     "back": "Solid for $\\le,\\ge$ (line included); dashed for $<,>$."
+    },
+    {
+     "front": "Test point for half-planes",
+     "back": "Use the origin (if not on the line) and shade the side where the inequality is true."
+    },
+    {
+     "front": "Quadratic $(x-\\alpha)(x-\\beta)>0$, $\\alpha<\\beta$",
+     "back": "$x<\\alpha$ or $x>\\beta$."
+    },
+    {
+     "front": "Rational inequality caution",
+     "back": "Never cross-multiply by an expression of unknown sign; analyse signs and exclude zeros of the denominator."
+    },
+    {
+     "front": "Interval bracket meaning",
+     "back": "Square includes the endpoint, round excludes it."
+    },
+    {
+     "front": "At least / at most",
+     "back": "At least means $\\ge$; at most means $\\le$."
+    }
+   ]
+  },
+  {
+   "number": 6,
+   "title": "Permutations and Combinations",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Fundamental principle of counting",
+     "body_md": "- **Multiplication principle:** if a task has two stages done in $m$ and $n$ ways, the whole task can be done in $m\\times n$ ways.\n- **Addition principle:** if two tasks cannot occur together and can be done in $m$ and $n$ ways, either one can be done in $m+n$ ways.\n- Break a problem into independent stages and handle restrictions (such as a non-zero first digit) first."
+    },
+    {
+     "heading": "Factorial and permutations",
+     "body_md": "- $n!=n(n-1)\\cdots2\\cdot1$ with $0!=1$.\n- A permutation is an **ordered** arrangement; arranging $r$ out of $n$ distinct objects gives $^nP_r=\\frac{n!}{(n-r)!}$.\n- Arranging all $n$ distinct objects: $n!$.\n- If repetition of objects is allowed, each of $r$ places can be filled in $n$ ways, giving $n^r$."
+    },
+    {
+     "heading": "Permutations when objects are alike",
+     "body_md": "- For $n$ objects with $p$ of one kind, $q$ of another and the rest distinct, arrangements $=\\frac{n!}{p!\\,q!}$.\n- Words from a given word: count total letters and divide by the factorial of each repeated letter count.\n- For restrictions such as \"vowels together\", treat the group as one block, arrange the blocks, then arrange inside the block.\n- For \"no two together\", first place the unrestricted items and then insert the restricted ones in the gaps."
+    },
+    {
+     "heading": "Combinations",
+     "body_md": "- A combination is an **unordered** selection: $^nC_r=\\frac{n!}{r!(n-r)!}$.\n- Relation: $^nP_r=\\,^nC_r\\cdot r!$, since each selection can be arranged in $r!$ ways.\n- $^nC_r=\\,^nC_{n-r}$; choosing $r$ items is the same as leaving out $n-r$.\n- Pascal's rule: $^nC_r+\\,^nC_{r-1}=\\,^{n+1}C_r$."
+    },
+    {
+     "heading": "Selection with conditions",
+     "body_md": "- \"At least\" cases are often easiest by complement: total minus the unwanted selections.\n- Committees with a given composition multiply independent combinations, such as $^6C_2\\cdot\\,^4C_3$.\n- Geometry: lines from $n$ points, no three collinear, is $^nC_2$; triangles $^nC_3$; diagonals of an $n$-gon $^nC_2-n$.\n- If $k$ of the points are collinear, subtract the combinations that lie entirely on that line."
+    },
+    {
+     "heading": "Digit problems and distributions",
+     "body_md": "- Digit-formation: fix the restricted place (first digit not 0, last digit for divisibility) first, then fill the other places.\n- Divisibility by 5 needs last digit 0 or 5; by 2 needs an even last digit.\n- Number of non-negative integer solutions of $x_1+\\dots+x_r=n$ is $^{n+r-1}C_{r-1}$ (stars and bars).\n- Dividing identical objects among distinct people uses this formula; dividing distinct objects uses powers."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Factorial",
+     "latex": "n!=n(n-1)(n-2)\\cdots2\\cdot1,\\ 0!=1",
+     "variables": "n = non-negative integer",
+     "note": "Basis of all counting formulas."
+    },
+    {
+     "name": "Permutations of n objects, r at a time",
+     "latex": "^nP_r=\\frac{n!}{(n-r)!}",
+     "variables": "n, r = integers, r <= n",
+     "note": "Order matters."
+    },
+    {
+     "name": "Combinations",
+     "latex": "^nC_r=\\frac{n!}{r!(n-r)!}",
+     "variables": "n, r = integers, r <= n",
+     "note": "Order does not matter."
+    },
+    {
+     "name": "Permutation-combination link",
+     "latex": "^nP_r=r!\\,^nC_r",
+     "variables": "n, r = integers",
+     "note": "Select, then arrange."
+    },
+    {
+     "name": "Symmetry of combinations",
+     "latex": "^nC_r=\\,^nC_{n-r}",
+     "variables": "n, r = integers",
+     "note": "Choose r or leave out n-r."
+    },
+    {
+     "name": "Pascal's rule",
+     "latex": "^nC_r+\\,^nC_{r-1}=\\,^{n+1}C_r",
+     "variables": "n, r = integers",
+     "note": "Basis of Pascal's triangle."
+    },
+    {
+     "name": "Arrangements with repetition of objects",
+     "latex": "\\frac{n!}{p!\\,q!\\,r!}",
+     "variables": "n = total, p,q,r = counts of alike objects",
+     "note": "Used for words with repeated letters."
+    },
+    {
+     "name": "Arrangements with repetition allowed",
+     "latex": "n^r",
+     "variables": "n = choices per place, r = places",
+     "note": "Each place filled independently."
+    },
+    {
+     "name": "Ratio of consecutive combinations",
+     "latex": "\\frac{^nC_r}{^nC_{r-1}}=\\frac{n-r+1}{r}",
+     "variables": "n, r = integers",
+     "note": "Helps solve equations."
+    },
+    {
+     "name": "Diagonals of a polygon",
+     "latex": "^nC_2-n",
+     "variables": "n = number of sides",
+     "note": "Polygon with n vertices."
+    },
+    {
+     "name": "Stars and bars",
+     "latex": "^{n+r-1}C_{r-1}",
+     "variables": "n = total, r = variables",
+     "note": "Non-negative integer solutions."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The value of $^8P_3$ is",
+     "options": [
+      "$56$",
+      "$336$",
+      "$512$",
+      "$24$"
+     ],
+     "answer": "(B) $336$",
+     "solution_md": "$^8P_3=8\\cdot7\\cdot6=336$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "How many even four-digit numbers can be formed from the digits $1,2,3,4,5$ without repetition?",
+     "answer": "$48$",
+     "solution_md": "The last digit must be $2$ or $4$ (2 ways). The remaining three places are filled from the other 4 digits in $4\\cdot3\\cdot2=24$ ways. Total $2\\times24=48$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Find the number of arrangements of the letters of the word MATHEMATICS.",
+     "answer": "$4989600$",
+     "solution_md": "There are 11 letters with M, A, T each occurring twice. Arrangements $=\\frac{11!}{2!\\,2!\\,2!}=\\frac{39916800}{8}=4989600$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "A committee of 5 is to be chosen from 6 men and 4 women so that it has at least 2 women. In how many ways can this be done?",
+     "answer": "$186$",
+     "solution_md": "Total committees $=\\,^{10}C_5=252$. Unwanted: no women $=\\,^6C_5=6$; exactly one woman $=\\,^4C_1\\cdot\\,^6C_4=4\\cdot15=60$. Required $=252-6-60=186$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "In how many ways can the letters of the word EQUATION be arranged so that all the vowels stay together?",
+     "answer": "$2880$",
+     "solution_md": "The vowels are E, U, A, I, O (5) and consonants Q, T, N (3). Treat the vowels as one block; the block and 3 consonants make 4 units arranged in $4!=24$ ways. The vowels can be arranged inside the block in $5!=120$ ways. Total $24\\times120=2880$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The number of four-digit numbers with all digits distinct that are divisible by $5$ is",
+     "options": [
+      "$504$",
+      "$952$",
+      "$896$",
+      "$1008$"
+     ],
+     "answer": "(B) $952$",
+     "solution_md": "Last digit 0: the first three places can be filled in $9\\cdot8\\cdot7=504$ ways. Last digit 5: the first digit has 8 choices (not 0 or 5), the second 8 (can be 0), the third 7, giving $8\\cdot8\\cdot7=448$. Total $952$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the number of non-negative integer solutions of $a+b+c=10$.",
+     "answer": "66",
+     "solution_md": "Stars and bars: $^{10+3-1}C_{3-1}=\\,^{12}C_2=66$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Ten points lie in a plane and exactly four of them are collinear (no other three are collinear). The number of triangles formed is",
+     "options": [
+      "$120$",
+      "$116$",
+      "$110$",
+      "$126$"
+     ],
+     "answer": "(B) $116$",
+     "solution_md": "All triples give $^{10}C_3=120$; the 4 collinear points contribute $^4C_3=4$ degenerate triples. $120-4=116$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the number of arrangements of the letters of SUCCESS in which the three S's are together.",
+     "answer": "60",
+     "solution_md": "Treat SSS as a block. The units are block, U, C, C, E: 5 units with C repeated twice, so $\\frac{5!}{2!}=60$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The number of distinct arrangements of the letters of the word NOON is $4!$. Reason (R): When some of the objects are alike, the number of arrangements is $n!$ divided by the factorial of each repeat count.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(D) A is false but R is true",
+     "solution_md": "A is false: the correct number is $\\frac{4!}{2!\\,2!}=6$. R is a correct statement. Hence A false, R true.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Multiplication vs addition principle",
+     "back": "Stages done one after another multiply; mutually exclusive alternatives add."
+    },
+    {
+     "front": "$^nP_r$",
+     "back": "$\\frac{n!}{(n-r)!}$; ordered arrangements."
+    },
+    {
+     "front": "$^nC_r$",
+     "back": "$\\frac{n!}{r!(n-r)!}$; unordered selections."
+    },
+    {
+     "front": "Link between $P$ and $C$",
+     "back": "$^nP_r=r!\\cdot\\,^nC_r$."
+    },
+    {
+     "front": "$^nC_r$ symmetry",
+     "back": "$^nC_r=\\,^nC_{n-r}$."
+    },
+    {
+     "front": "Arrangements with alike objects",
+     "back": "Divide $n!$ by the factorial of each repeat count."
+    },
+    {
+     "front": "'Together' trick",
+     "back": "Treat the group as one block, then arrange inside the block."
+    },
+    {
+     "front": "'At least' selections",
+     "back": "Use complement: total minus the unwanted cases."
+    },
+    {
+     "front": "Diagonals of an $n$-gon",
+     "back": "$^nC_2-n$."
+    },
+    {
+     "front": "Value of $0!$",
+     "back": "$0!=1$."
+    }
+   ]
+  },
+  {
+   "number": 7,
+   "title": "Binomial Theorem",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Binomial theorem for positive integer index",
+     "body_md": "- $(a+b)^n=\\sum_{r=0}^{n}{}^nC_r\\,a^{n-r}b^r$ for any positive integer $n$.\n- The expansion has $n+1$ terms; the powers of $a$ fall from $n$ to $0$ while the powers of $b$ rise from $0$ to $n$, and each term has total degree $n$.\n- Replacing $b$ by $-b$ alternates the signs: $(a-b)^n=\\sum(-1)^r\\,{}^nC_ra^{n-r}b^r$.\n- The numbers $^nC_r$ are the binomial coefficients and form row $n$ of Pascal's triangle."
+    },
+    {
+     "heading": "General term",
+     "body_md": "- The $(r+1)$th term is $T_{r+1}={}^nC_r\\,a^{n-r}b^r$.\n- To find the coefficient of a particular power $x^k$, write $T_{r+1}$, collect the power of $x$ and solve for $r$ (it must be an integer in $[0,n]$).\n- The **term independent of $x$** is found by setting the exponent of $x$ equal to zero.\n- Counting terms with a rational coefficient requires the exponents of the radicals to be integers."
+    },
+    {
+     "heading": "Middle term",
+     "body_md": "- If $n$ is even there is a single middle term, the $\\left(\\frac n2+1\\right)$th.\n- If $n$ is odd there are two middle terms, the $\\frac{n+1}2$th and $\\frac{n+3}2$th.\n- For $(a+b)^n$ with $n$ even, the middle term is $^nC_{n/2}\\,a^{n/2}b^{n/2}$.\n- The binomial coefficients are largest at the middle."
+    },
+    {
+     "heading": "Properties of binomial coefficients",
+     "body_md": "- $^nC_0+{}^nC_1+\\cdots+{}^nC_n=2^n$ (put $x=1$ in $(1+x)^n$).\n- $^nC_0-{}^nC_1+{}^nC_2-\\cdots=0$ (put $x=-1$), so the even-indexed and odd-indexed sums are each $2^{n-1}$.\n- $^nC_r=\\,^nC_{n-r}$: coefficients equidistant from the ends are equal.\n- $^nC_r+\\,^nC_{r-1}=\\,^{n+1}C_r$ gives each Pascal entry as the sum of the two above."
+    },
+    {
+     "heading": "Pascal's triangle",
+     "body_md": "- Row $n$ lists $^nC_0,\\dots,{}^nC_n$; each entry is the sum of the two entries above it and the edges are 1.\n- Rows begin $1;\\ 1,1;\\ 1,2,1;\\ 1,3,3,1;\\ 1,4,6,4,1$.\n- Use it to expand small powers quickly without computing combinations."
+    },
+    {
+     "heading": "Applications: approximation and divisibility",
+     "body_md": "- For small $x$, $(1+x)^n\\approx1+nx$ when higher powers are negligible; for example $(1.01)^{10}\\approx1.1046$ with a few terms.\n- Remainders: write the base as a multiple of the divisor plus or minus 1, e.g. $25=26-1$, so $25^k$ leaves remainder $(-1)^k$ on division by 13.\n- Show that $a^n-b^n$ is divisible by $a-b$ using $a=(a-b)+b$."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Binomial theorem",
+     "latex": "(a+b)^n=\\sum_{r=0}^{n}{}^nC_r\\,a^{n-r}b^r",
+     "variables": "n = positive integer",
+     "note": "n+1 terms."
+    },
+    {
+     "name": "General term",
+     "latex": "T_{r+1}={}^nC_r\\,a^{n-r}b^r",
+     "variables": "r = 0,1,...,n",
+     "note": "Use it to locate coefficients."
+    },
+    {
+     "name": "Expansion of (1+x)^n",
+     "latex": "(1+x)^n=\\sum_{r=0}^n{}^nC_rx^r",
+     "variables": "n = positive integer",
+     "note": "Standard generating form."
+    },
+    {
+     "name": "Middle term (n even)",
+     "latex": "T_{\\frac n2+1}={}^nC_{n/2}\\,a^{n/2}b^{n/2}",
+     "variables": "n = even",
+     "note": "One middle term."
+    },
+    {
+     "name": "Middle terms (n odd)",
+     "latex": "T_{\\frac{n+1}2},\\ T_{\\frac{n+3}2}",
+     "variables": "n = odd",
+     "note": "Two middle terms."
+    },
+    {
+     "name": "Sum of coefficients",
+     "latex": "\\sum_{r=0}^n{}^nC_r=2^n",
+     "variables": "n = positive integer",
+     "note": "Put x = 1."
+    },
+    {
+     "name": "Alternating sum",
+     "latex": "\\sum_{r=0}^n(-1)^r\\,{}^nC_r=0",
+     "variables": "n = positive integer",
+     "note": "Put x = -1."
+    },
+    {
+     "name": "Even and odd index sums",
+     "latex": "\\sum{}^nC_{2k}=\\sum{}^nC_{2k+1}=2^{n-1}",
+     "variables": "n = positive integer",
+     "note": "Each equals half the total."
+    },
+    {
+     "name": "Symmetry",
+     "latex": "{}^nC_r={}^nC_{n-r}",
+     "variables": "n, r = integers",
+     "note": "Equidistant terms have equal coefficients."
+    },
+    {
+     "name": "Term ratio",
+     "latex": "\\frac{T_{r+1}}{T_r}=\\frac{n-r+1}{r}\\cdot\\frac ba",
+     "variables": "n, r = integers; a, b = terms of the binomial",
+     "note": "Used to find the greatest term."
+    },
+    {
+     "name": "Small-x approximation",
+     "latex": "(1+x)^n\\approx1+nx",
+     "variables": "|x| much less than 1",
+     "note": "Valid for negligible higher powers."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The number of terms in the expansion of $(2x-y)^6$ is",
+     "options": [
+      "$6$",
+      "$7$",
+      "$8$",
+      "$12$"
+     ],
+     "answer": "(B) $7$",
+     "solution_md": "A binomial expansion with index $n$ has $n+1$ terms, so $7$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Expand $\\left(x+\\dfrac1x\\right)^4$.",
+     "answer": "$x^4+4x^2+6+\\dfrac4{x^2}+\\dfrac1{x^4}$",
+     "solution_md": "Coefficients $1,4,6,4,1$: $x^4+4x^3\\cdot\\frac1x+6x^2\\cdot\\frac1{x^2}+4x\\cdot\\frac1{x^3}+\\frac1{x^4}=x^4+4x^2+6+\\frac4{x^2}+\\frac1{x^4}$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Find the coefficient of $x^5$ in the expansion of $(1+2x)^8$.",
+     "answer": "$1792$",
+     "solution_md": "$T_{r+1}={}^8C_r(2x)^r$. For $r=5$: $^8C_5\\cdot2^5=56\\cdot32=1792$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "Find the middle terms of $(x+2y)^7$.",
+     "answer": "$280x^4y^3$ and $560x^3y^4$",
+     "solution_md": "$n=7$ is odd, so the middle terms are $T_4$ and $T_5$. $T_4={}^7C_3x^4(2y)^3=35\\cdot8\\,x^4y^3=280x^4y^3$. $T_5={}^7C_4x^3(2y)^4=35\\cdot16\\,x^3y^4=560x^3y^4$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Find the term independent of $x$ in the expansion of $\\left(2x^2-\\dfrac1x\\right)^9$.",
+     "answer": "$672$",
+     "solution_md": "$T_{r+1}={}^9C_r(2x^2)^{9-r}\\left(-\\frac1x\\right)^r={}^9C_r2^{9-r}(-1)^rx^{18-3r}$. The exponent is zero when $r=6$. Then $T_7={}^9C_6\\cdot2^3\\cdot(-1)^6=84\\cdot8=672$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The remainder when $5^{99}$ is divided by $13$ is",
+     "options": [
+      "$5$",
+      "$8$",
+      "$3$",
+      "$12$"
+     ],
+     "answer": "(B) $8$",
+     "solution_md": "$5^{99}=5\\cdot(25)^{49}=5(26-1)^{49}$. Every term of the expansion except the last is a multiple of 13, and the last is $(-1)^{49}=-1$. So the remainder is $\\equiv-5\\equiv8\\pmod{13}$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "If the coefficients of $x^2$ and $x^3$ in the expansion of $(3+ax)^9$ are equal, find $7a$.",
+     "answer": "9",
+     "solution_md": "Coefficients: $^9C_2\\,3^7a^2$ and $^9C_3\\,3^6a^3$. Equating (with $a\\ne0$): $36\\cdot3=84a$, so $a=\\frac{108}{84}=\\frac97$ and $7a=9$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The number of irrational terms in the expansion of $\\left(\\sqrt2+\\sqrt[3]{3}\\right)^{10}$ is",
+     "options": [
+      "$2$",
+      "$9$",
+      "$8$",
+      "$11$"
+     ],
+     "answer": "(B) $9$",
+     "solution_md": "$T_{r+1}={}^{10}C_r\\,2^{(10-r)/2}3^{r/3}$. It is rational when $r$ is a multiple of 3 and $10-r$ is even, so $r=0,6$: 2 rational terms. Irrational terms $=11-2=9$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Evaluate $^{10}C_0+{}^{10}C_2+{}^{10}C_4+\\cdots+{}^{10}C_{10}$.",
+     "answer": "512",
+     "solution_md": "The sum of even-indexed coefficients is half of $2^{10}$, i.e. $2^9=512$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The expansion of $(1+x)^{12}$ has two middle terms. Reason (R): When $n$ is odd, the expansion of $(a+b)^n$ has two middle terms.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(D) A is false but R is true",
+     "solution_md": "$n=12$ is even, so there is only one middle term ($T_7$); A is false. R is a correct rule for odd $n$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "General term of $(a+b)^n$",
+     "back": "$T_{r+1}={}^nC_ra^{n-r}b^r$."
+    },
+    {
+     "front": "Number of terms in $(a+b)^n$",
+     "back": "$n+1$."
+    },
+    {
+     "front": "Middle term(s)",
+     "back": "$n$ even: $T_{n/2+1}$; $n$ odd: $T_{(n+1)/2}$ and $T_{(n+3)/2}$."
+    },
+    {
+     "front": "Sum of all binomial coefficients",
+     "back": "$2^n$."
+    },
+    {
+     "front": "Sum of even-indexed (or odd-indexed) coefficients",
+     "back": "$2^{n-1}$ each."
+    },
+    {
+     "front": "Term independent of $x$",
+     "back": "Set the exponent of $x$ in $T_{r+1}$ to $0$ and solve for $r$."
+    },
+    {
+     "front": "Symmetry of coefficients",
+     "back": "$^nC_r={}^nC_{n-r}$."
+    },
+    {
+     "front": "Pascal rule",
+     "back": "$^nC_r+{}^nC_{r-1}={}^{n+1}C_r$."
+    },
+    {
+     "front": "Remainder trick",
+     "back": "Write the base as multiple of divisor $\\pm1$ and expand."
+    },
+    {
+     "front": "Approximation for small $x$",
+     "back": "$(1+x)^n\\approx1+nx$."
+    }
+   ]
+  },
+  {
+   "number": 8,
+   "title": "Sequences and Series",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Sequences and series",
+     "body_md": "- A sequence is a list of numbers $a_1,a_2,a_3,\\dots$ following a rule; a series is the sum of its terms.\n- A finite sequence has a last term; an infinite one does not.\n- The general term $a_n$ is a function of $n$; the sum of the first $n$ terms is $S_n$, and $a_n=S_n-S_{n-1}$ for $n\\ge2$."
+    },
+    {
+     "heading": "Arithmetic progression",
+     "body_md": "- Each term differs from the previous by a constant common difference $d$: $a_n=a+(n-1)d$.\n- $S_n=\\frac n2[2a+(n-1)d]=\\frac n2(a+l)$ where $l$ is the last term.\n- Three numbers are in AP iff the middle one is the average of the other two.\n- Inserting $m$ arithmetic means between $p$ and $q$ gives a common difference $\\frac{q-p}{m+1}$."
+    },
+    {
+     "heading": "Geometric progression",
+     "body_md": "- Each term is the previous times a constant ratio $r$: $a_n=ar^{n-1}$.\n- $S_n=\\frac{a(r^n-1)}{r-1}$ for $r\\ne1$, and $S_n=na$ if $r=1$.\n- If $|r|<1$ the infinite sum converges: $S_\\infty=\\frac a{1-r}$; otherwise it does not exist.\n- Three numbers $x,y,z$ are in GP iff $y^2=xz$."
+    },
+    {
+     "heading": "Arithmetic, geometric and harmonic means",
+     "body_md": "- For positive numbers $a,b$: $A=\\frac{a+b}2$, $G=\\sqrt{ab}$, and $H=\\frac{2ab}{a+b}$.\n- They satisfy $A\\ge G\\ge H$, with equality only when $a=b$, and $G^2=AH$.\n- For $n$ positive numbers $\\frac{x_1+\\cdots+x_n}n\\ge\\sqrt[n]{x_1\\cdots x_n}$.\n- A fixed sum gives the maximum product when all numbers are equal; a fixed product gives the minimum sum likewise."
+    },
+    {
+     "heading": "Special series",
+     "body_md": "- $\\sum k=\\frac{n(n+1)}2$, $\\sum k^2=\\frac{n(n+1)(2n+1)}6$, $\\sum k^3=\\left[\\frac{n(n+1)}2\\right]^2$.\n- To sum a series like $1\\cdot2+2\\cdot3+\\cdots$, write the general term as a polynomial in $k$ and use these results.\n- Telescoping: when the general term is a difference $f(k)-f(k+1)$, most terms cancel."
+    },
+    {
+     "heading": "Arithmetico-geometric and mixed problems",
+     "body_md": "- A series whose terms are products of AP and GP terms is summed by computing $S-rS$ and using the GP formula on the remainder.\n- Choose symmetric forms for unknown terms: three terms of an AP as $a-d,\\,a,\\,a+d$; of a GP as $\\frac ar,\\,a,\\,ar$.\n- A repeating decimal can be written as an infinite GP and summed."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "nth term of AP",
+     "latex": "a_n=a+(n-1)d",
+     "variables": "a = first term, d = common difference",
+     "note": "Linear in n."
+    },
+    {
+     "name": "Sum of AP",
+     "latex": "S_n=\\frac n2[2a+(n-1)d]",
+     "variables": "n = number of terms",
+     "note": "Equivalent to n(a+l)/2."
+    },
+    {
+     "name": "nth term of GP",
+     "latex": "a_n=ar^{n-1}",
+     "variables": "r = common ratio",
+     "note": "Exponential in n."
+    },
+    {
+     "name": "Sum of GP",
+     "latex": "S_n=\\frac{a(r^n-1)}{r-1}",
+     "variables": "r not 1",
+     "note": "For r = 1, S_n = na."
+    },
+    {
+     "name": "Infinite GP",
+     "latex": "S_\\infty=\\frac a{1-r}",
+     "variables": "|r| < 1",
+     "note": "Does not exist otherwise."
+    },
+    {
+     "name": "Arithmetic mean",
+     "latex": "A=\\frac{a+b}2",
+     "variables": "a, b = numbers",
+     "note": "Mean of an AP."
+    },
+    {
+     "name": "Geometric mean",
+     "latex": "G=\\sqrt{ab}",
+     "variables": "a, b > 0",
+     "note": "Mean of a GP."
+    },
+    {
+     "name": "Harmonic mean",
+     "latex": "H=\\frac{2ab}{a+b}",
+     "variables": "a, b > 0",
+     "note": "Reciprocals are in AP."
+    },
+    {
+     "name": "AM-GM-HM relation",
+     "latex": "A\\ge G\\ge H,\\ G^2=AH",
+     "variables": "a, b > 0",
+     "note": "Equality iff a = b."
+    },
+    {
+     "name": "Sum of first n naturals",
+     "latex": "\\sum_{k=1}^nk=\\frac{n(n+1)}2",
+     "variables": "n = positive integer",
+     "note": "Also an AP sum."
+    },
+    {
+     "name": "Sum of squares",
+     "latex": "\\sum_{k=1}^nk^2=\\frac{n(n+1)(2n+1)}6",
+     "variables": "n = positive integer",
+     "note": "Used to sum quadratics."
+    },
+    {
+     "name": "Sum of cubes",
+     "latex": "\\sum_{k=1}^nk^3=\\left[\\frac{n(n+1)}2\\right]^2",
+     "variables": "n = positive integer",
+     "note": "Square of the sum of naturals."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The 10th term of the AP $3,7,11,\\dots$ is",
+     "options": [
+      "$39$",
+      "$43$",
+      "$40$",
+      "$36$"
+     ],
+     "answer": "(A) $39$",
+     "solution_md": "$a_{10}=3+9\\cdot4=39$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Find the sum of the first 20 terms of the AP with first term $5$ and common difference $3$.",
+     "answer": "$670$",
+     "solution_md": "$S_{20}=\\frac{20}2[2\\cdot5+19\\cdot3]=10\\cdot67=670$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Which term of the GP $2,6,18,\\dots$ equals $1458$?",
+     "answer": "The 7th term",
+     "solution_md": "$2\\cdot3^{n-1}=1458\\Rightarrow3^{n-1}=729=3^6$, so $n-1=6$ and $n=7$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "The first term of a GP is $3$ and its ratio is $2$. How many terms must be added to get the sum $189$?",
+     "answer": "$6$ terms",
+     "solution_md": "$S_n=3\\cdot\\frac{2^n-1}{2-1}=189$, so $2^n-1=63$ and $2^n=64$, giving $n=6$. Check: $3+6+12+24+48+96=189$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Find the sum of $1\\cdot2+2\\cdot3+3\\cdot4+\\cdots+n(n+1)$ and evaluate it for $n=10$.",
+     "answer": "$\\dfrac{n(n+1)(n+2)}3$; $440$ for $n=10$",
+     "solution_md": "The general term is $k(k+1)=k^2+k$. So $S=\\frac{n(n+1)(2n+1)}6+\\frac{n(n+1)}2=\\frac{n(n+1)}6[(2n+1)+3]=\\frac{n(n+1)(n+2)}3$. For $n=10$: $\\frac{10\\cdot11\\cdot12}3=440$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The arithmetic mean of two positive numbers is $10$ and their geometric mean is $8$. Their harmonic mean is",
+     "options": [
+      "$6$",
+      "$6.4$",
+      "$6.5$",
+      "$7$"
+     ],
+     "answer": "(B) $6.4$",
+     "solution_md": "Using $G^2=AH$: $H=\\frac{64}{10}=6.4$. (The numbers are 4 and 16: $H=\\frac{2\\cdot64}{20}=6.4$.)",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the sum of all integers between $100$ and $400$ that are divisible by $7$.",
+     "answer": "10836",
+     "solution_md": "The multiples are $105,112,\\dots,399$. Number of terms: $\\frac{399-105}7+1=43$. Sum $=\\frac{43}2(105+399)=43\\cdot252=10836$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The sum of the infinite series $\\dfrac12+\\dfrac16+\\dfrac1{18}+\\cdots$ is",
+     "options": [
+      "$\\frac34$",
+      "$\\frac23$",
+      "$1$",
+      "$\\frac32$"
+     ],
+     "answer": "(A) $\\frac34$",
+     "solution_md": "First term $\\frac12$ and ratio $\\frac13$, with $|r|<1$. Sum $=\\frac{1/2}{1-1/3}=\\frac34$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "If $x,y,z$ are positive and $x+y+z=12$, find the maximum value of $xyz$.",
+     "answer": "64",
+     "solution_md": "By AM-GM, $\\frac{x+y+z}3\\ge\\sqrt[3]{xyz}$, so $xyz\\le4^3=64$, attained at $x=y=z=4$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The sum to infinity of the GP $3,6,12,\\dots$ equals $\\frac{3}{1-2}=-3$. Reason (R): The formula $S_\\infty=\\frac{a}{1-r}$ is valid only when $|r|<1$.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(D) A is false but R is true",
+     "solution_md": "The ratio is $2$, so the terms grow and the series diverges; A is false. R is the correct condition.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "nth term of AP",
+     "back": "$a+(n-1)d$."
+    },
+    {
+     "front": "Sum of AP",
+     "back": "$\\frac n2[2a+(n-1)d]=\\frac n2(a+l)$."
+    },
+    {
+     "front": "nth term and sum of GP",
+     "back": "$ar^{n-1}$; $S_n=\\frac{a(r^n-1)}{r-1}$."
+    },
+    {
+     "front": "Infinite GP sum",
+     "back": "$\\frac a{1-r}$, only for $|r|<1$."
+    },
+    {
+     "front": "AM, GM, HM of two numbers",
+     "back": "$\\frac{a+b}2,\\ \\sqrt{ab},\\ \\frac{2ab}{a+b}$."
+    },
+    {
+     "front": "Order of means and link",
+     "back": "$A\\ge G\\ge H$ and $G^2=AH$."
+    },
+    {
+     "front": "$\\sum k,\\ \\sum k^2,\\ \\sum k^3$",
+     "back": "$\\frac{n(n+1)}2$; $\\frac{n(n+1)(2n+1)}6$; $\\left[\\frac{n(n+1)}2\\right]^2$."
+    },
+    {
+     "front": "Three terms in AP / GP (symmetric)",
+     "back": "AP: $a-d,a,a+d$; GP: $\\frac ar,a,ar$."
+    },
+    {
+     "front": "$a_n$ from sums",
+     "back": "$a_n=S_n-S_{n-1}$ for $n\\ge2$."
+    },
+    {
+     "front": "AM-GM use",
+     "back": "Fixed sum gives maximum product at equal values; fixed product gives minimum sum."
+    }
+   ]
+  },
+  {
+   "number": 9,
+   "title": "Straight Lines",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Slope and inclination",
+     "body_md": "- The inclination $\\theta$ of a line is the angle it makes with the positive $x$-axis, and its slope is $m=\\tan\\theta$.\n- Through $(x_1,y_1)$ and $(x_2,y_2)$ the slope is $m=\\frac{y_2-y_1}{x_2-x_1}$; a vertical line has no slope.\n- Parallel lines have equal slopes; perpendicular lines satisfy $m_1m_2=-1$.\n- Three points are collinear iff the slopes of any two pairs are equal."
+    },
+    {
+     "heading": "Distance and section formulas",
+     "body_md": "- Distance between points: $\\sqrt{(x_2-x_1)^2+(y_2-y_1)^2}$.\n- A point dividing the segment joining $(x_1,y_1),(x_2,y_2)$ internally in ratio $m:n$ is $\\left(\\frac{mx_2+nx_1}{m+n},\\frac{my_2+ny_1}{m+n}\\right)$.\n- The midpoint takes $m=n$, and the centroid of a triangle is the average of the three vertices.\n- Area of a triangle from vertices uses the determinant form; area zero means the points are collinear."
+    },
+    {
+     "heading": "Equations of a line",
+     "body_md": "- Horizontal and vertical lines: $y=b$ and $x=a$.\n- Point-slope: $y-y_1=m(x-x_1)$; slope-intercept: $y=mx+c$.\n- Two-point form uses the slope between the two points.\n- Intercept form $\\frac xa+\\frac yb=1$ with intercepts $a,b$ on the axes; normal form $x\\cos\\alpha+y\\sin\\alpha=p$."
+    },
+    {
+     "heading": "General equation of a line",
+     "body_md": "- $Ax+By+C=0$ with $A,B$ not both zero; its slope is $-\\frac AB$.\n- Intercepts are $-\\frac CA$ on the $x$-axis and $-\\frac CB$ on the $y$-axis.\n- Convert to any other form by rearranging; the normal form divides by $\\sqrt{A^2+B^2}$ with the sign chosen so $p>0$.\n- Lines through the intersection of $L_1=0$ and $L_2=0$ are $L_1+\\lambda L_2=0$."
+    },
+    {
+     "heading": "Angle between two lines",
+     "body_md": "- For slopes $m_1,m_2$ the acute angle satisfies $\\tan\\theta=\\left|\\frac{m_1-m_2}{1+m_1m_2}\\right|$.\n- Lines are parallel if $m_1=m_2$ and perpendicular if $1+m_1m_2=0$.\n- For $A_1x+B_1y+C_1=0$ and $A_2x+B_2y+C_2=0$: parallel if $A_1B_2=A_2B_1$ and perpendicular if $A_1A_2+B_1B_2=0$."
+    },
+    {
+     "heading": "Distance of a point from a line",
+     "body_md": "- The distance of $(x_1,y_1)$ from $Ax+By+C=0$ is $\\frac{|Ax_1+By_1+C|}{\\sqrt{A^2+B^2}}$.\n- Distance between parallel lines $Ax+By+C_1=0$ and $Ax+By+C_2=0$ is $\\frac{|C_1-C_2|}{\\sqrt{A^2+B^2}}$, after making the coefficients of $x,y$ identical.\n- The reflection of a point in a line lies along the perpendicular from the point and is equidistant from the line."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Slope from two points",
+     "latex": "m=\\frac{y_2-y_1}{x_2-x_1}",
+     "variables": "(x1,y1), (x2,y2) = points",
+     "note": "x2 not equal to x1."
+    },
+    {
+     "name": "Slope and inclination",
+     "latex": "m=\\tan\\theta",
+     "variables": "theta = inclination",
+     "note": "Measured from the positive x-axis."
+    },
+    {
+     "name": "Distance formula",
+     "latex": "d=\\sqrt{(x_2-x_1)^2+(y_2-y_1)^2}",
+     "variables": "(x1,y1), (x2,y2) = points",
+     "note": "Pythagoras in the plane."
+    },
+    {
+     "name": "Section formula (internal)",
+     "latex": "\\left(\\frac{mx_2+nx_1}{m+n},\\frac{my_2+ny_1}{m+n}\\right)",
+     "variables": "m:n = ratio",
+     "note": "Midpoint when m = n."
+    },
+    {
+     "name": "Point-slope form",
+     "latex": "y-y_1=m(x-x_1)",
+     "variables": "m = slope; (x1,y1) = point on line",
+     "note": "Most used form."
+    },
+    {
+     "name": "Slope-intercept form",
+     "latex": "y=mx+c",
+     "variables": "m = slope, c = y-intercept",
+     "note": "Reads slope directly."
+    },
+    {
+     "name": "Intercept form",
+     "latex": "\\frac xa+\\frac yb=1",
+     "variables": "a, b = intercepts",
+     "note": "a, b not 0."
+    },
+    {
+     "name": "Normal form",
+     "latex": "x\\cos\\alpha+y\\sin\\alpha=p",
+     "variables": "p = perpendicular distance from origin",
+     "note": "p positive."
+    },
+    {
+     "name": "General line",
+     "latex": "Ax+By+C=0",
+     "variables": "A, B, C = constants",
+     "note": "Slope = -A/B."
+    },
+    {
+     "name": "Angle between lines",
+     "latex": "\\tan\\theta=\\left|\\frac{m_1-m_2}{1+m_1m_2}\\right|",
+     "variables": "m1, m2 = slopes",
+     "note": "Acute angle."
+    },
+    {
+     "name": "Point to line distance",
+     "latex": "d=\\frac{|Ax_1+By_1+C|}{\\sqrt{A^2+B^2}}",
+     "variables": "(x1,y1) = point",
+     "note": "Perpendicular distance."
+    },
+    {
+     "name": "Distance between parallel lines",
+     "latex": "d=\\frac{|C_1-C_2|}{\\sqrt{A^2+B^2}}",
+     "variables": "Same A, B in both equations",
+     "note": "Normalise coefficients first."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The slope of the line through $(2,3)$ and $(5,9)$ is",
+     "options": [
+      "$1$",
+      "$2$",
+      "$\\frac12$",
+      "$3$"
+     ],
+     "answer": "(B) $2$",
+     "solution_md": "$m=\\frac{9-3}{5-2}=2$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Find the equation of the line through $(1,4)$ with slope $-2$.",
+     "answer": "$2x+y-6=0$",
+     "solution_md": "Point-slope: $y-4=-2(x-1)\\Rightarrow y-4=-2x+2\\Rightarrow2x+y-6=0$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Find the distance of the point $(2,3)$ from the line $4x+3y-5=0$.",
+     "answer": "$\\frac{12}5$ units",
+     "solution_md": "$d=\\frac{|4\\cdot2+3\\cdot3-5|}{\\sqrt{16+9}}=\\frac{12}5$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "Find the acute angle between the lines $y=2x+1$ and $y=\\frac13x-2$.",
+     "answer": "$45^\\circ$",
+     "solution_md": "Slopes $m_1=2$, $m_2=\\frac13$. $\\tan\\theta=\\left|\\frac{2-\\frac13}{1+\\frac23}\\right|=\\frac{5/3}{5/3}=1$, so $\\theta=45^\\circ$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Find the equation of the line through the point of intersection of $x+y=5$ and $2x-y=1$ and perpendicular to $3x+4y=7$.",
+     "answer": "$4x-3y+1=0$",
+     "solution_md": "Adding the two equations gives $3x=6$, so $x=2$, $y=3$: the point is $(2,3)$. The given line has slope $-\\frac34$, so the required slope is $\\frac43$. Then $y-3=\\frac43(x-2)$, i.e. $3y-9=4x-8$ and $4x-3y+1=0$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The distance between the parallel lines $3x+4y+5=0$ and $6x+8y-15=0$ is",
+     "options": [
+      "$2$",
+      "$\\frac52$",
+      "$4$",
+      "$\\frac{10}{3}$"
+     ],
+     "answer": "(B) $\\frac52$",
+     "solution_md": "Rewrite the second as $3x+4y-\\frac{15}2=0$. Distance $=\\frac{|5-(-\\frac{15}2)|}{5}=\\frac{25/2}{5}=\\frac52$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the area (in square units) of the triangle bounded by the lines $y=x$, $x+y=8$ and the $x$-axis.",
+     "answer": "16",
+     "solution_md": "Vertices: $(0,0)$ from $y=x$ and $y=0$; $(8,0)$ from $x+y=8$ and $y=0$; $(4,4)$ from $y=x$ and $x+y=8$. Base $8$, height $4$: area $=\\frac12\\cdot8\\cdot4=16$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The reflection of the point $(2,3)$ in the line $x-y-1=0$ is",
+     "options": [
+      "$(3,2)$",
+      "$(4,1)$",
+      "$(1,4)$",
+      "$(0,5)$"
+     ],
+     "answer": "(B) $(4,1)$",
+     "solution_md": "The perpendicular from $(2,3)$ has direction $(1,-1)$. With $t=\\frac{2-3-1}{2}=-1$ the reflection is $(2,3)-2t(1,-1)=(4,1)$. The midpoint $(3,2)$ satisfies $3-2-1=0$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "The points $(a,a^3),(1,1),(2,8)$ are collinear and $a$ differs from $1$ and $2$. Find $a$.",
+     "answer": "-3",
+     "solution_md": "Slope between $(1,1)$ and $(2,8)$ is $7$. Slope from $(1,1)$ to $(a,a^3)$ is $\\frac{a^3-1}{a-1}=a^2+a+1$. Setting it to $7$: $a^2+a-6=0$, so $a=2$ or $a=-3$. Rejecting $a=2$ leaves $a=-3$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): Two lines with slopes $m_1$ and $m_2$ are perpendicular exactly when $m_1+m_2=0$. Reason (R): Two non-vertical lines are perpendicular exactly when $m_1m_2=-1$.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(D) A is false but R is true",
+     "solution_md": "For example, slopes $2$ and $-\\frac12$ give perpendicular lines but $m_1+m_2\\ne0$. A is false and R is correct.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Slope formula",
+     "back": "$m=\\frac{y_2-y_1}{x_2-x_1}=\\tan\\theta$."
+    },
+    {
+     "front": "Parallel and perpendicular slopes",
+     "back": "Parallel: $m_1=m_2$; perpendicular: $m_1m_2=-1$."
+    },
+    {
+     "front": "Collinearity test",
+     "back": "Equal slopes between pairs of points, or triangle area $=0$."
+    },
+    {
+     "front": "Section formula",
+     "back": "$\\left(\\frac{mx_2+nx_1}{m+n},\\frac{my_2+ny_1}{m+n}\\right)$ for internal ratio $m:n$."
+    },
+    {
+     "front": "Intercept form",
+     "back": "$\\frac xa+\\frac yb=1$."
+    },
+    {
+     "front": "Slope of $Ax+By+C=0$",
+     "back": "$-\\frac AB$."
+    },
+    {
+     "front": "Angle between lines",
+     "back": "$\\tan\\theta=\\left|\\frac{m_1-m_2}{1+m_1m_2}\\right|$."
+    },
+    {
+     "front": "Point to line distance",
+     "back": "$\\frac{|Ax_1+By_1+C|}{\\sqrt{A^2+B^2}}$."
+    },
+    {
+     "front": "Family of lines through an intersection",
+     "back": "$L_1+\\lambda L_2=0$."
+    },
+    {
+     "front": "Distance between parallels",
+     "back": "$\\frac{|C_1-C_2|}{\\sqrt{A^2+B^2}}$ after equalising coefficients."
+    }
+   ]
+  },
+  {
+   "number": 10,
+   "title": "Conic Sections",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Sections of a cone",
+     "body_md": "- Slicing a double right circular cone by a plane gives the **conic sections**.\n- A plane perpendicular to the axis gives a circle; tilted but cutting one nappe, an ellipse; parallel to a generator, a parabola; cutting both nappes, a hyperbola.\n- Degenerate cases are a point, a straight line and a pair of intersecting lines.\n- Every non-circular conic is the locus of a point whose distance from a fixed point (focus) has a constant ratio $e$ (eccentricity) to its distance from a fixed line (directrix)."
+    },
+    {
+     "heading": "Circle",
+     "body_md": "- The locus of points at a fixed distance $r$ from a centre $(h,k)$: $(x-h)^2+(y-k)^2=r^2$.\n- General form $x^2+y^2+2gx+2fy+c=0$ has centre $(-g,-f)$ and radius $\\sqrt{g^2+f^2-c}$; it is real only if $g^2+f^2-c\\ge0$.\n- A circle through three non-collinear points is found by substituting them into the general form and solving for $g,f,c$.\n- With the centre at the origin the equation is $x^2+y^2=r^2$."
+    },
+    {
+     "heading": "Parabola",
+     "body_md": "- A parabola is the set of points equidistant from a focus and a directrix ($e=1$).\n- Standard forms: $y^2=4ax$ (opens right, focus $(a,0)$, directrix $x=-a$), $y^2=-4ax$, $x^2=4ay$, $x^2=-4ay$.\n- The latus rectum is the focal chord perpendicular to the axis; its length is $4a$.\n- A point on the parabola has focal distance equal to its distance from the directrix."
+    },
+    {
+     "heading": "Ellipse",
+     "body_md": "- The sum of the distances from the two foci is constant, equal to $2a$.\n- Standard form $\\frac{x^2}{a^2}+\\frac{y^2}{b^2}=1$ with $a>b$: major axis along the $x$-axis, foci $(\\pm c,0)$ where $c^2=a^2-b^2$.\n- Eccentricity $e=\\frac ca<1$; latus rectum length is $\\frac{2b^2}a$.\n- If $b>a$ the major axis lies along the $y$-axis and the roles of $x,y$ are swapped."
+    },
+    {
+     "heading": "Hyperbola",
+     "body_md": "- The difference of the distances from two foci is constant, equal to $2a$.\n- Standard form $\\frac{x^2}{a^2}-\\frac{y^2}{b^2}=1$: foci $(\\pm c,0)$ with $c^2=a^2+b^2$; transverse axis $2a$, conjugate axis $2b$.\n- Eccentricity $e=\\frac ca>1$; latus rectum length is $\\frac{2b^2}a$.\n- The form $\\frac{y^2}{a^2}-\\frac{x^2}{b^2}=1$ opens up and down; an equation with $x^2$ and $y^2$ having opposite signs is a hyperbola."
+    },
+    {
+     "heading": "Comparison and identification",
+     "body_md": "- By eccentricity: circle $e=0$, ellipse $0<e<1$, parabola $e=1$, hyperbola $e>1$.\n- For $Ax^2+By^2=C$: same signs and $A=B$ gives a circle; same signs with $A\\ne B$ gives an ellipse; opposite signs gives a hyperbola.\n- To read off the features, complete the square to reach a standard form, then read $a$, $b$, $c$.\n- In all forms, check which denominator is larger to decide which axis is major."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Circle (centre-radius form)",
+     "latex": "(x-h)^2+(y-k)^2=r^2",
+     "variables": "(h,k) = centre, r = radius",
+     "note": "Standard form."
+    },
+    {
+     "name": "Circle (general form)",
+     "latex": "x^2+y^2+2gx+2fy+c=0",
+     "variables": "Centre (-g,-f)",
+     "note": "Radius = sqrt(g^2+f^2-c)."
+    },
+    {
+     "name": "Parabola",
+     "latex": "y^2=4ax",
+     "variables": "a = focal length",
+     "note": "Focus (a,0), directrix x = -a."
+    },
+    {
+     "name": "Parabola latus rectum",
+     "latex": "\\text{LR}=4a",
+     "variables": "a = focal length",
+     "note": "Ends at (a, 2a) and (a, -2a)."
+    },
+    {
+     "name": "Parabola (vertical)",
+     "latex": "x^2=4ay",
+     "variables": "a = focal length",
+     "note": "Focus (0,a), directrix y = -a."
+    },
+    {
+     "name": "Ellipse",
+     "latex": "\\frac{x^2}{a^2}+\\frac{y^2}{b^2}=1\\ (a>b)",
+     "variables": "a = semi-major, b = semi-minor",
+     "note": "Foci (+-c,0)."
+    },
+    {
+     "name": "Ellipse focal relation",
+     "latex": "c^2=a^2-b^2,\\ e=\\frac ca",
+     "variables": "c = focal distance, e < 1",
+     "note": "Eccentricity is below 1."
+    },
+    {
+     "name": "Ellipse latus rectum",
+     "latex": "\\text{LR}=\\frac{2b^2}a",
+     "variables": "a, b = semi-axes",
+     "note": "Same for both foci."
+    },
+    {
+     "name": "Hyperbola",
+     "latex": "\\frac{x^2}{a^2}-\\frac{y^2}{b^2}=1",
+     "variables": "a = semi-transverse, b = semi-conjugate",
+     "note": "Foci (+-c,0)."
+    },
+    {
+     "name": "Hyperbola focal relation",
+     "latex": "c^2=a^2+b^2,\\ e=\\frac ca",
+     "variables": "c = focal distance, e > 1",
+     "note": "Eccentricity exceeds 1."
+    },
+    {
+     "name": "Hyperbola latus rectum",
+     "latex": "\\text{LR}=\\frac{2b^2}a",
+     "variables": "a, b = semi-axes",
+     "note": "Same form as the ellipse."
+    },
+    {
+     "name": "Focus-directrix property",
+     "latex": "\\frac{PF}{PD}=e",
+     "variables": "P = point on conic, F = focus, D = foot on directrix",
+     "note": "Defines every conic."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The focus of the parabola $y^2=12x$ is",
+     "options": [
+      "$(12,0)$",
+      "$(6,0)$",
+      "$(3,0)$",
+      "$(0,3)$"
+     ],
+     "answer": "(C) $(3,0)$",
+     "solution_md": "$4a=12$ gives $a=3$, so the focus is $(a,0)=(3,0)$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Find the centre and radius of the circle $x^2+y^2-4x+6y-12=0$.",
+     "answer": "Centre $(2,-3)$, radius $5$",
+     "solution_md": "Complete squares: $(x-2)^2+(y+3)^2=12+4+9=25$. So the centre is $(2,-3)$ and $r=5$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "For the ellipse $\\frac{x^2}{25}+\\frac{y^2}9=1$ find the foci, eccentricity and length of the latus rectum.",
+     "answer": "Foci $(\\pm4,0)$; $e=\\frac45$; LR $=\\frac{18}5$",
+     "solution_md": "$a=5,b=3$, so $c=\\sqrt{25-9}=4$. Foci $(\\pm4,0)$, $e=\\frac45$, latus rectum $\\frac{2b^2}a=\\frac{18}5$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "For the hyperbola $\\frac{x^2}{16}-\\frac{y^2}9=1$ find the vertices, foci, eccentricity and latus rectum length.",
+     "answer": "Vertices $(\\pm4,0)$; foci $(\\pm5,0)$; $e=\\frac54$; LR $=\\frac92$",
+     "solution_md": "$a=4$, $b=3$, so $c=\\sqrt{16+9}=5$. Vertices $(\\pm a,0)=(\\pm4,0)$, foci $(\\pm5,0)$, $e=\\frac ca=\\frac54$ and latus rectum $\\frac{2b^2}a=\\frac{18}4=\\frac92$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Find the equation of the circle passing through $(0,0)$, $(4,0)$ and $(0,6)$, and state its centre and radius.",
+     "answer": "$x^2+y^2-4x-6y=0$; centre $(2,3)$, radius $\\sqrt{13}$",
+     "solution_md": "Let the circle be $x^2+y^2+Dx+Ey+F=0$. $(0,0)$ gives $F=0$. $(4,0)$ gives $16+4D=0$, so $D=-4$. $(0,6)$ gives $36+6E=0$, so $E=-6$. The equation is $x^2+y^2-4x-6y=0$, i.e. $(x-2)^2+(y-3)^2=13$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "An ellipse has foci $(\\pm3,0)$ and its minor axis has length $8$. Its eccentricity is",
+     "options": [
+      "$\\frac35$",
+      "$\\frac45$",
+      "$\\frac34$",
+      "$\\frac13$"
+     ],
+     "answer": "(A) $\\frac35$",
+     "solution_md": "$c=3$ and $b=4$, so $a=\\sqrt{b^2+c^2}=5$. $e=\\frac ca=\\frac35$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the area of the triangle formed by the vertex and the two ends of the latus rectum of the parabola $y^2=16x$.",
+     "answer": "32",
+     "solution_md": "$a=4$. The latus rectum ends are $(4,\\pm8)$; the base has length $16$ and the vertex $(0,0)$ is at distance $4$ from it. Area $=\\frac12\\cdot16\\cdot4=32$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A parabola has its vertex at the origin, axis along the $y$-axis and passes through $(4,-2)$. Its equation is",
+     "options": [
+      "$y^2=-8x$",
+      "$x^2=-8y$",
+      "$x^2=8y$",
+      "$y^2=8x$"
+     ],
+     "answer": "(B) $x^2=-8y$",
+     "solution_md": "A parabola opening down has form $x^2=-4ay$. Substituting $(4,-2)$: $16=-4a(-2)=8a$, so $a=2$ and the equation is $x^2=-8y$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the distance between the foci of $\\frac{x^2}{36}+\\frac{y^2}{20}=1$.",
+     "answer": "8",
+     "solution_md": "$a^2=36$, $b^2=20$, so $c=\\sqrt{16}=4$. The foci are $(\\pm4,0)$ and the distance is $2c=8$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The eccentricity of a hyperbola is less than $1$. Reason (R): The eccentricity of a hyperbola is $\\frac ca$ with $c^2=a^2+b^2$, which exceeds $1$.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(D) A is false but R is true",
+     "solution_md": "For a hyperbola $c>a$, so $e>1$; A is false and R is true.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Eccentricity ranges",
+     "back": "Circle $0$; ellipse $<1$; parabola $1$; hyperbola $>1$."
+    },
+    {
+     "front": "Circle general form",
+     "back": "$x^2+y^2+2gx+2fy+c=0$: centre $(-g,-f)$, $r=\\sqrt{g^2+f^2-c}$."
+    },
+    {
+     "front": "Parabola $y^2=4ax$",
+     "back": "Focus $(a,0)$, directrix $x=-a$, LR $=4a$."
+    },
+    {
+     "front": "Ellipse relations",
+     "back": "$c^2=a^2-b^2$, $e=\\frac ca$, LR $=\\frac{2b^2}a$, sum of focal distances $2a$."
+    },
+    {
+     "front": "Hyperbola relations",
+     "back": "$c^2=a^2+b^2$, $e=\\frac ca$, LR $=\\frac{2b^2}a$, difference of focal distances $2a$."
+    },
+    {
+     "front": "Which axis is major?",
+     "back": "The one under the larger denominator in the ellipse equation."
+    },
+    {
+     "front": "Focus-directrix definition",
+     "back": "$PF=e\\cdot PD$."
+    },
+    {
+     "front": "Identify $Ax^2+By^2=C$",
+     "back": "Opposite signs: hyperbola; equal: circle; unequal same sign: ellipse."
+    },
+    {
+     "front": "Parabola $x^2=-4ay$",
+     "back": "Opens downward; focus $(0,-a)$."
+    },
+    {
+     "front": "Circle through three points",
+     "back": "Substitute into $x^2+y^2+Dx+Ey+F=0$ and solve."
+    }
+   ]
+  },
+  {
+   "number": 11,
+   "title": "Introduction to Three Dimensional Geometry",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Coordinate axes, planes and octants",
+     "body_md": "- Three mutually perpendicular axes $Ox,Oy,Oz$ meet at the origin, giving a right-handed system.\n- The coordinate planes $xy,\\ yz,\\ zx$ divide space into **eight octants**, and the sign pattern of $(x,y,z)$ identifies the octant.\n- Any point is $(x,y,z)$, the signed distances from the three coordinate planes.\n- On the $x$-axis a point is $(x,0,0)$; on the $xy$-plane it is $(x,y,0)$; the $yz$-plane has $x=0$ and the $zx$-plane has $y=0$."
+    },
+    {
+     "heading": "Coordinates and octant signs",
+     "body_md": "- Octant I is $(+,+,+)$ and the others follow by sign change, such as $(-,-,-)$ for the octant opposite to it.\n- Reflection in the $xy$-plane changes the sign of $z$, in the $yz$-plane the sign of $x$, and in the $zx$-plane the sign of $y$.\n- The distance of $(x,y,z)$ from the $xy$-plane is $|z|$; from the $x$-axis it is $\\sqrt{y^2+z^2}$."
+    },
+    {
+     "heading": "Distance formula in space",
+     "body_md": "- Distance between $P(x_1,y_1,z_1)$ and $Q(x_2,y_2,z_2)$: $PQ=\\sqrt{(x_2-x_1)^2+(y_2-y_1)^2+(z_2-z_1)^2}$.\n- From the origin the distance is $\\sqrt{x^2+y^2+z^2}$.\n- It follows from using Pythagoras twice: first in the base plane, then vertically.\n- Use it to test whether points form isosceles, equilateral or right triangles by comparing squared lengths."
+    },
+    {
+     "heading": "Section formula",
+     "body_md": "- The point dividing $P,Q$ internally in the ratio $m:n$ is $\\left(\\frac{mx_2+nx_1}{m+n},\\frac{my_2+ny_1}{m+n},\\frac{mz_2+nz_1}{m+n}\\right)$.\n- For external division replace $n$ by $-n$.\n- The midpoint takes $m=n$.\n- A coordinate plane divides the join of two points in the ratio found by setting the relevant coordinate of the division point to zero."
+    },
+    {
+     "heading": "Centroid and collinearity",
+     "body_md": "- The centroid of a triangle with vertices $(x_i,y_i,z_i)$ is $\\left(\\frac{x_1+x_2+x_3}3,\\frac{y_1+y_2+y_3}3,\\frac{z_1+z_2+z_3}3\\right)$.\n- The centroid of a tetrahedron is the average of its four vertices.\n- Three points are collinear if the largest of the three distances equals the sum of the other two."
+    },
+    {
+     "heading": "Locus and equal-distance problems",
+     "body_md": "- A point equidistant from two given points lies on the perpendicular bisector plane of their join.\n- To find such a point on an axis, put the unknown into the coordinates, equate the squared distances and solve the resulting linear equation.\n- The set of points at distance $r$ from a fixed point is a sphere; its equation is $(x-a)^2+(y-b)^2+(z-c)^2=r^2$."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Distance between two points",
+     "latex": "PQ=\\sqrt{(x_2-x_1)^2+(y_2-y_1)^2+(z_2-z_1)^2}",
+     "variables": "P, Q = points in space",
+     "note": "Pythagoras in 3D."
+    },
+    {
+     "name": "Distance from origin",
+     "latex": "OP=\\sqrt{x^2+y^2+z^2}",
+     "variables": "(x, y, z) = coordinates",
+     "note": "Special case."
+    },
+    {
+     "name": "Section formula (internal)",
+     "latex": "\\left(\\frac{mx_2+nx_1}{m+n},\\frac{my_2+ny_1}{m+n},\\frac{mz_2+nz_1}{m+n}\\right)",
+     "variables": "m:n = ratio",
+     "note": "m + n not 0."
+    },
+    {
+     "name": "External division",
+     "latex": "\\left(\\frac{mx_2-nx_1}{m-n},\\frac{my_2-ny_1}{m-n},\\frac{mz_2-nz_1}{m-n}\\right)",
+     "variables": "m:n = ratio, m not n",
+     "note": "Replace n by -n."
+    },
+    {
+     "name": "Midpoint",
+     "latex": "\\left(\\frac{x_1+x_2}2,\\frac{y_1+y_2}2,\\frac{z_1+z_2}2\\right)",
+     "variables": "Endpoints (xi, yi, zi)",
+     "note": "Ratio 1:1."
+    },
+    {
+     "name": "Centroid of a triangle",
+     "latex": "\\left(\\frac{\\sum x_i}3,\\frac{\\sum y_i}3,\\frac{\\sum z_i}3\\right)",
+     "variables": "Vertices (xi, yi, zi)",
+     "note": "Average of the vertices."
+    },
+    {
+     "name": "Centroid of a tetrahedron",
+     "latex": "\\left(\\frac{\\sum x_i}4,\\frac{\\sum y_i}4,\\frac{\\sum z_i}4\\right)",
+     "variables": "Four vertices",
+     "note": "Average of the vertices."
+    },
+    {
+     "name": "Distance from a coordinate plane",
+     "latex": "d_{xy}=|z|,\\ d_{yz}=|x|,\\ d_{zx}=|y|",
+     "variables": "(x, y, z) = point",
+     "note": "Perpendicular distances."
+    },
+    {
+     "name": "Distance from an axis",
+     "latex": "d_x=\\sqrt{y^2+z^2}",
+     "variables": "(x, y, z) = point",
+     "note": "Similarly for the other axes."
+    },
+    {
+     "name": "Sphere",
+     "latex": "(x-a)^2+(y-b)^2+(z-c)^2=r^2",
+     "variables": "(a,b,c) = centre, r = radius",
+     "note": "Locus of equidistant points."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The distance between $(1,2,3)$ and $(4,6,15)$ is",
+     "options": [
+      "$11$",
+      "$12$",
+      "$13$",
+      "$14$"
+     ],
+     "answer": "(C) $13$",
+     "solution_md": "$\\sqrt{3^2+4^2+12^2}=\\sqrt{169}=13$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "In which octant does the point $(-2,3,-5)$ lie?",
+     "answer": "Octant VI",
+     "solution_md": "The signs are $(-,+,-)$. With octants numbered I $(+,+,+)$, II $(-,+,+)$, III $(-,-,+)$, IV $(+,-,+)$, V $(+,+,-)$, VI $(-,+,-)$, this is octant VI.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Find the midpoint of the segment joining $A(2,-4,6)$ and $B(-4,8,2)$.",
+     "answer": "$(-1,2,4)$",
+     "solution_md": "Midpoint $=\\left(\\frac{2-4}2,\\frac{-4+8}2,\\frac{6+2}2\\right)=(-1,2,4)$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "Find the points that divide the segment joining $P(1,-2,3)$ and $Q(4,4,-3)$ in the ratio $2:1$ internally and externally.",
+     "answer": "Internal $(3,2,-1)$; external $(7,10,-9)$",
+     "solution_md": "Internal ($m=2,n=1$): $\\left(\\frac{8+1}3,\\frac{8-2}3,\\frac{-6+3}3\\right)=(3,2,-1)$. External: $\\left(\\frac{8-1}1,\\frac{8+2}1,\\frac{-6-3}1\\right)=(7,10,-9)$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Show that $A(2,3,3)$, $B(1,1,1)$ and $C(3,2,-1)$ are the vertices of a right-angled isosceles triangle.",
+     "answer": "Right angle at $B$ with $BA=BC=3$",
+     "solution_md": "$AB^2=1+4+4=9$, $BC^2=4+1+4=9$ and $CA^2=1+1+16=18$. Since $AB=BC$ the triangle is isosceles, and $AB^2+BC^2=18=CA^2$ so by the converse of Pythagoras the angle at $B$ is a right angle.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The point on the $x$-axis equidistant from $A(1,2,3)$ and $B(3,-1,4)$ is",
+     "options": [
+      "$(2,0,0)$",
+      "$(3,0,0)$",
+      "$(4,0,0)$",
+      "$(1,0,0)$"
+     ],
+     "answer": "(B) $(3,0,0)$",
+     "solution_md": "Let the point be $(t,0,0)$. $(t-1)^2+4+9=(t-3)^2+1+16$ gives $t^2-2t+14=t^2-6t+26$, so $t=3$. Both distances squared equal $17$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "The centroid of the triangle with vertices $(1,2,3)$, $(4,5,6)$ and $(a,b,c)$ is $(3,4,6)$. Find $a+b+c$.",
+     "answer": "18",
+     "solution_md": "Equate coordinate averages: $\\frac{5+a}3=3\\Rightarrow a=4$; $\\frac{7+b}3=4\\Rightarrow b=5$; $\\frac{9+c}3=6\\Rightarrow c=9$. So $a+b+c=18$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The $xy$-plane divides the segment joining $(1,2,-4)$ and $(2,5,8)$ in the ratio",
+     "options": [
+      "$1:2$",
+      "$2:1$",
+      "$1:1$",
+      "$3:2$"
+     ],
+     "answer": "(A) $1:2$",
+     "solution_md": "On the $xy$-plane $z=0$. If the ratio is $m:n$, $\\frac{8m-4n}{m+n}=0$ gives $2m=n$, i.e. $m:n=1:2$ (internal).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the number of points with integer coordinates at distance $3$ from the origin.",
+     "answer": "30",
+     "solution_md": "We need $x^2+y^2+z^2=9$. Types: $(\\pm3,0,0)$ and permutations give $6$ points; $(\\pm1,\\pm2,\\pm2)$ and permutations give $3\\cdot8=24$ points. Total $30$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The point $(3,0,-2)$ lies in the $zx$-plane. Reason (R): Every point of the $zx$-plane has $y$-coordinate $0$.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(A) Both A and R are true and R is the correct explanation of A",
+     "solution_md": "A point with $y=0$ lies on the plane containing the $x$ and $z$ axes. R states exactly this defining property.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Number of octants",
+     "back": "Eight, fixed by the sign pattern of $(x,y,z)$."
+    },
+    {
+     "front": "Distance formula (3D)",
+     "back": "$\\sqrt{(x_2-x_1)^2+(y_2-y_1)^2+(z_2-z_1)^2}$."
+    },
+    {
+     "front": "Section formula",
+     "back": "$\\left(\\frac{mx_2+nx_1}{m+n},\\dots\\right)$; use $-n$ for external division."
+    },
+    {
+     "front": "Midpoint",
+     "back": "Average of the corresponding coordinates."
+    },
+    {
+     "front": "Centroid of a triangle",
+     "back": "Average of the three vertices."
+    },
+    {
+     "front": "Points on the axes",
+     "back": "$x$-axis: $(x,0,0)$; $y$-axis: $(0,y,0)$; $z$-axis: $(0,0,z)$."
+    },
+    {
+     "front": "Equation of the $xy$-plane",
+     "back": "$z=0$; similarly $yz$: $x=0$, $zx$: $y=0$."
+    },
+    {
+     "front": "Distance from $x$-axis",
+     "back": "$\\sqrt{y^2+z^2}$."
+    },
+    {
+     "front": "Right-triangle test",
+     "back": "Squared sides satisfy $a^2+b^2=c^2$."
+    },
+    {
+     "front": "Sphere equation",
+     "back": "$(x-a)^2+(y-b)^2+(z-c)^2=r^2$."
+    }
+   ]
+  },
+  {
+   "number": 12,
+   "title": "Limits and Derivatives",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Idea of a limit",
+     "body_md": "- $\\lim_{x\\to a}f(x)=L$ means $f(x)$ gets as close as we like to $L$ when $x$ is close to $a$ (but not necessarily equal to $a$).\n- The **left-hand limit** (from $x<a$) and **right-hand limit** (from $x>a$) must both exist and agree for the limit to exist.\n- The value $f(a)$ may differ from, or not exist even when, the limit exists.\n- Example: $\\frac{|x|}x$ tends to $-1$ from the left and $+1$ from the right at $0$, so no limit exists."
+    },
+    {
+     "heading": "Algebra of limits",
+     "body_md": "- If $\\lim f=l$ and $\\lim g=m$ then $\\lim(f\\pm g)=l\\pm m$, $\\lim(fg)=lm$, $\\lim\\frac fg=\\frac lm$ when $m\\ne0$.\n- Substituting $x=a$ works if the result is a definite number; if it gives $\\frac00$, simplify first.\n- Common simplifications: factorise and cancel, rationalise radicals, or use standard limits.\n- For polynomial $p$, $\\lim_{x\\to a}p(x)=p(a)$."
+    },
+    {
+     "heading": "Standard limits",
+     "body_md": "- $\\lim_{x\\to a}\\frac{x^n-a^n}{x-a}=na^{n-1}$ for rational $n$.\n- $\\lim_{x\\to0}\\frac{\\sin x}x=1$ and $\\lim_{x\\to0}\\frac{1-\\cos x}{x^2}=\\frac12$ (angles in radians).\n- $\\lim_{x\\to0}\\frac{\\tan x}x=1$.\n- Scaling: $\\lim_{x\\to0}\\frac{\\sin kx}{x}=k$ and $\\lim_{x\\to0}\\frac{\\sin kx}{\\sin mx}=\\frac km$."
+    },
+    {
+     "heading": "Derivative from first principles",
+     "body_md": "- The derivative of $f$ at $x$ is $f'(x)=\\lim_{h\\to0}\\frac{f(x+h)-f(x)}h$, when the limit exists.\n- Geometrically it is the slope of the tangent to the curve at $x$.\n- Physically it is the instantaneous rate of change, such as velocity as the derivative of position.\n- If the limit does not exist at a point (a corner, for instance, as with $|x|$ at 0) the function is not differentiable there."
+    },
+    {
+     "heading": "Rules of differentiation",
+     "body_md": "- Sum and constant multiple: $(cf\\pm g)'=cf'\\pm g'$.\n- Product rule: $(uv)'=u'v+uv'$.\n- Quotient rule: $\\left(\\frac uv\\right)'=\\frac{u'v-uv'}{v^2}$, $v\\ne0$.\n- Power rule: $\\frac d{dx}x^n=nx^{n-1}$.\n- A differentiable function is continuous, but a continuous function need not be differentiable."
+    },
+    {
+     "heading": "Derivatives of standard functions",
+     "body_md": "- $\\frac d{dx}\\sin x=\\cos x$ and $\\frac d{dx}\\cos x=-\\sin x$.\n- $\\frac d{dx}\\tan x=\\sec^2x$, $\\frac d{dx}\\cot x=-\\csc^2x$, $\\frac d{dx}\\sec x=\\sec x\\tan x$, $\\frac d{dx}\\csc x=-\\csc x\\cot x$.\n- The derivative of a constant is $0$.\n- Simplify the expression before differentiating when possible; the quotient rule is often avoidable."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Definition of limit (sides)",
+     "latex": "\\lim_{x\\to a}f(x)=L\\iff\\lim_{x\\to a^-}f=\\lim_{x\\to a^+}f=L",
+     "variables": "a, L = real numbers",
+     "note": "Both one-sided limits must agree."
+    },
+    {
+     "name": "Power limit",
+     "latex": "\\lim_{x\\to a}\\frac{x^n-a^n}{x-a}=na^{n-1}",
+     "variables": "n = rational, a not 0 if needed",
+     "note": "Key factorisation limit."
+    },
+    {
+     "name": "Sine limit",
+     "latex": "\\lim_{x\\to0}\\frac{\\sin x}x=1",
+     "variables": "x in radians",
+     "note": "Fundamental trig limit."
+    },
+    {
+     "name": "Scaled sine limit",
+     "latex": "\\lim_{x\\to0}\\frac{\\sin kx}{mx}=\\frac km",
+     "variables": "k, m = non-zero constants",
+     "note": "From the basic sine limit."
+    },
+    {
+     "name": "Cosine limit",
+     "latex": "\\lim_{x\\to0}\\frac{1-\\cos x}{x^2}=\\frac12",
+     "variables": "x in radians",
+     "note": "Follows from 1 - cos x = 2 sin^2(x/2)."
+    },
+    {
+     "name": "First principle",
+     "latex": "f'(x)=\\lim_{h\\to0}\\frac{f(x+h)-f(x)}h",
+     "variables": "h = small increment",
+     "note": "Definition of the derivative."
+    },
+    {
+     "name": "Power rule",
+     "latex": "\\frac d{dx}x^n=nx^{n-1}",
+     "variables": "n = real constant",
+     "note": "Basic differentiation rule."
+    },
+    {
+     "name": "Product rule",
+     "latex": "(uv)'=u'v+uv'",
+     "variables": "u, v = differentiable functions",
+     "note": "Do not multiply derivatives."
+    },
+    {
+     "name": "Quotient rule",
+     "latex": "\\left(\\frac uv\\right)'=\\frac{u'v-uv'}{v^2}",
+     "variables": "v not 0",
+     "note": "Order of terms in the numerator matters."
+    },
+    {
+     "name": "Derivative of sin and cos",
+     "latex": "(\\sin x)'=\\cos x,\\ (\\cos x)'=-\\sin x",
+     "variables": "x in radians",
+     "note": "Sign change for cos."
+    },
+    {
+     "name": "Derivative of tan",
+     "latex": "(\\tan x)'=\\sec^2x",
+     "variables": "x not an odd multiple of pi/2",
+     "note": "From the quotient rule."
+    },
+    {
+     "name": "Derivative of sec and csc",
+     "latex": "(\\sec x)'=\\sec x\\tan x,\\ (\\csc x)'=-\\csc x\\cot x",
+     "variables": "Domain where defined",
+     "note": "Standard results."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "$\\displaystyle\\lim_{x\\to2}\\frac{x^2-4}{x-2}$ equals",
+     "options": [
+      "$0$",
+      "$2$",
+      "$4$",
+      "does not exist"
+     ],
+     "answer": "(C) $4$",
+     "solution_md": "Factorise: $\\frac{(x-2)(x+2)}{x-2}=x+2\\to4$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Evaluate $\\displaystyle\\lim_{x\\to0}\\frac{\\sin5x}{\\sin2x}$.",
+     "answer": "$\\frac52$",
+     "solution_md": "$\\frac{\\sin5x}{\\sin2x}=\\frac{\\sin5x}{5x}\\cdot\\frac{2x}{\\sin2x}\\cdot\\frac52\\to1\\cdot1\\cdot\\frac52=\\frac52$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Differentiate $x^2\\cos x$ with respect to $x$.",
+     "answer": "$2x\\cos x-x^2\\sin x$",
+     "solution_md": "By the product rule, $(x^2)'\\cos x+x^2(\\cos x)'=2x\\cos x-x^2\\sin x$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "Using the first principle, find the derivative of $f(x)=\\dfrac1x$.",
+     "answer": "$-\\dfrac1{x^2}$",
+     "solution_md": "$f'(x)=\\lim_{h\\to0}\\frac{\\frac1{x+h}-\\frac1x}h=\\lim_{h\\to0}\\frac{x-(x+h)}{hx(x+h)}=\\lim_{h\\to0}\\frac{-1}{x(x+h)}=-\\frac1{x^2}$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Differentiate $y=\\dfrac{x^2+1}{x-1}$ and find the slope of the tangent at $x=2$.",
+     "answer": "$y'=\\dfrac{x^2-2x-1}{(x-1)^2}$; slope $=-1$",
+     "solution_md": "Quotient rule: $y'=\\frac{2x(x-1)-(x^2+1)\\cdot1}{(x-1)^2}=\\frac{x^2-2x-1}{(x-1)^2}$. At $x=2$: $\\frac{4-4-1}{1}=-1$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "$\\displaystyle\\lim_{x\\to0}\\frac{\\tan x-\\sin x}{x^3}$ equals",
+     "options": [
+      "$1$",
+      "$\\frac12$",
+      "$0$",
+      "$\\frac13$"
+     ],
+     "answer": "(B) $\\frac12$",
+     "solution_md": "$\\tan x-\\sin x=\\tan x(1-\\cos x)$. So the ratio is $\\frac{\\tan x}x\\cdot\\frac{1-\\cos x}{x^2}\\to1\\cdot\\frac12=\\frac12$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Evaluate $\\displaystyle\\lim_{x\\to1}\\frac{x^{10}-1}{x^2-1}$.",
+     "answer": "5",
+     "solution_md": "Divide numerator and denominator by $x-1$: $\\frac{(x^{10}-1)/(x-1)}{(x^2-1)/(x-1)}\\to\\frac{10}{2}=5$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "If $y=\\dfrac{\\sin x}{1+\\cos x}$, then $\\dfrac{dy}{dx}$ equals",
+     "options": [
+      "$\\dfrac1{1+\\cos x}$",
+      "$\\dfrac{1}{1-\\cos x}$",
+      "$\\dfrac{\\cos x}{1+\\cos x}$",
+      "$\\sec^2\\frac x2$"
+     ],
+     "answer": "(A) $\\dfrac1{1+\\cos x}$",
+     "solution_md": "Quotient rule: $\\frac{\\cos x(1+\\cos x)+\\sin^2x}{(1+\\cos x)^2}=\\frac{\\cos x+1}{(1+\\cos x)^2}=\\frac1{1+\\cos x}$. (Option D is wrong by a factor of $\\frac12$, since $y=\\tan\\frac x2$.)",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Evaluate $\\displaystyle\\lim_{x\\to0}\\frac{1-\\cos4x}{x^2}$.",
+     "answer": "8",
+     "solution_md": "$1-\\cos4x=2\\sin^22x$, so the ratio is $2\\left(\\frac{\\sin2x}{x}\\right)^2\\to2\\cdot2^2=8$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): $\\displaystyle\\lim_{x\\to0}\\frac{|x|}x$ exists and equals $1$. Reason (R): A limit exists only if the left-hand and right-hand limits are equal.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(D) A is false but R is true",
+     "solution_md": "The right-hand limit is $1$ and the left-hand limit is $-1$, so the limit does not exist and A is false. R is the correct criterion.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Existence of a limit",
+     "back": "Left-hand and right-hand limits both exist and are equal."
+    },
+    {
+     "front": "$\\frac00$ form",
+     "back": "Factorise, rationalise or use a standard limit before substituting."
+    },
+    {
+     "front": "$\\lim\\frac{x^n-a^n}{x-a}$",
+     "back": "$na^{n-1}$."
+    },
+    {
+     "front": "$\\lim_{x\\to0}\\frac{\\sin x}x$",
+     "back": "$1$ (radians)."
+    },
+    {
+     "front": "$\\lim_{x\\to0}\\frac{1-\\cos x}{x^2}$",
+     "back": "$\\frac12$."
+    },
+    {
+     "front": "First principle",
+     "back": "$f'(x)=\\lim_{h\\to0}\\frac{f(x+h)-f(x)}h$."
+    },
+    {
+     "front": "Product and quotient rules",
+     "back": "$(uv)'=u'v+uv'$; $\\left(\\frac uv\\right)'=\\frac{u'v-uv'}{v^2}$."
+    },
+    {
+     "front": "$(\\sin x)',\\ (\\cos x)',\\ (\\tan x)'$",
+     "back": "$\\cos x,\\ -\\sin x,\\ \\sec^2x$."
+    },
+    {
+     "front": "Differentiable vs continuous",
+     "back": "Differentiable implies continuous, not conversely (e.g. $|x|$ at 0)."
+    },
+    {
+     "front": "Derivative as slope",
+     "back": "$f'(a)$ is the slope of the tangent at $x=a$."
+    }
+   ]
+  },
+  {
+   "number": 13,
+   "title": "Statistics",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Measures of dispersion",
+     "body_md": "- Dispersion measures how widely data is spread around a central value; two sets can have the same mean but different spread.\n- The simplest is the **range** $=$ maximum $-$ minimum, which uses only two values.\n- Better measures use deviations from the mean or median: mean deviation, variance and standard deviation.\n- The coefficient of range $\\frac{\\max-\\min}{\\max+\\min}$ allows comparison without units."
+    },
+    {
+     "heading": "Mean deviation",
+     "body_md": "- Mean deviation about a point $a$ is $\\text{MD}(a)=\\frac{\\sum|x_i-a|}n$ for raw data, or $\\frac{\\sum f_i|x_i-a|}{\\sum f_i}$ for a frequency table.\n- Use $a=\\bar x$ for mean deviation about the mean and $a=$ median for about the median; the latter is the smaller.\n- For grouped data replace $x_i$ by the class marks.\n- Mean deviation has the same units as the data."
+    },
+    {
+     "heading": "Variance and standard deviation",
+     "body_md": "- Variance $\\sigma^2=\\frac{\\sum(x_i-\\bar x)^2}n$ and standard deviation $\\sigma=\\sqrt{\\sigma^2}$.\n- Frequency data: $\\sigma^2=\\frac{\\sum f_i(x_i-\\bar x)^2}{N}$ with $N=\\sum f_i$.\n- Computational form: $\\sigma^2=\\frac{\\sum x_i^2}n-\\bar x^2$, which avoids computing each deviation.\n- The standard deviation has the same units as the data; variance has squared units and is never negative."
+    },
+    {
+     "heading": "Effect of change of origin and scale",
+     "body_md": "- Adding a constant to every observation shifts the mean by that constant but leaves the variance and SD unchanged.\n- Multiplying every observation by $k$ multiplies the mean by $k$, the SD by $|k|$ and the variance by $k^2$.\n- For $y=ax+b$: $\\sigma_y=|a|\\sigma_x$.\n- Step-deviation method uses $u=\\frac{x-A}h$ for grouped data with equal class width $h$ and assumed mean $A$."
+    },
+    {
+     "heading": "Grouped data",
+     "body_md": "- Use class marks (mid-values) as representatives of each class.\n- Mean $\\bar x=\\frac{\\sum f_ix_i}N$; then compute $\\sum f_i(x_i-\\bar x)^2$, or use $\\frac{\\sum f_ix_i^2}N-\\bar x^2$.\n- With step deviations, $\\sigma^2=h^2\\left[\\frac{\\sum f_iu_i^2}N-\\left(\\frac{\\sum f_iu_i}N\\right)^2\\right]$."
+    },
+    {
+     "heading": "Comparing series: coefficient of variation",
+     "body_md": "- Coefficient of variation $\\text{CV}=\\frac\\sigma{\\bar x}\\times100$, expressed as a percentage.\n- It is unit-free, so it can compare variability of series with different means or units.\n- The series with the **smaller CV** is more consistent (more stable).\n- Do not compare standard deviations directly when the means differ greatly."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Range",
+     "latex": "\\text{Range}=x_{\\max}-x_{\\min}",
+     "variables": "x = observations",
+     "note": "Simplest dispersion measure."
+    },
+    {
+     "name": "Mean deviation about a",
+     "latex": "\\text{MD}(a)=\\frac{\\sum|x_i-a|}n",
+     "variables": "a = mean or median",
+     "note": "For frequency data use f_i weights."
+    },
+    {
+     "name": "Mean (frequency)",
+     "latex": "\\bar x=\\frac{\\sum f_ix_i}{N}",
+     "variables": "N = sum of frequencies",
+     "note": "Use class marks for grouped data."
+    },
+    {
+     "name": "Variance",
+     "latex": "\\sigma^2=\\frac{\\sum(x_i-\\bar x)^2}n",
+     "variables": "n = number of observations",
+     "note": "Mean squared deviation."
+    },
+    {
+     "name": "Variance (frequency)",
+     "latex": "\\sigma^2=\\frac{\\sum f_i(x_i-\\bar x)^2}N",
+     "variables": "N = total frequency",
+     "note": "Weighted form."
+    },
+    {
+     "name": "Computational form",
+     "latex": "\\sigma^2=\\frac{\\sum x_i^2}n-\\bar x^2",
+     "variables": "n = number of observations",
+     "note": "Quicker for raw data."
+    },
+    {
+     "name": "Standard deviation",
+     "latex": "\\sigma=\\sqrt{\\sigma^2}",
+     "variables": "sigma^2 = variance",
+     "note": "Same units as data."
+    },
+    {
+     "name": "Step-deviation variance",
+     "latex": "\\sigma^2=h^2\\left[\\frac{\\sum f_iu_i^2}N-\\left(\\frac{\\sum f_iu_i}N\\right)^2\\right]",
+     "variables": "u = (x-A)/h, h = class width",
+     "note": "Equal class widths."
+    },
+    {
+     "name": "Linear change",
+     "latex": "y=ax+b\\Rightarrow\\bar y=a\\bar x+b,\\ \\sigma_y=|a|\\sigma_x",
+     "variables": "a, b = constants",
+     "note": "Shift does not affect SD."
+    },
+    {
+     "name": "Coefficient of variation",
+     "latex": "\\text{CV}=\\frac\\sigma{\\bar x}\\times100",
+     "variables": "mean not 0",
+     "note": "Smaller CV, greater consistency."
+    },
+    {
+     "name": "Sum of squares from mean and SD",
+     "latex": "\\sum x_i^2=n(\\sigma^2+\\bar x^2)",
+     "variables": "n = number of observations",
+     "note": "Rearranged computational form."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The mean deviation about the mean of $2,4,6,8$ is",
+     "options": [
+      "$1$",
+      "$2$",
+      "$2.5$",
+      "$5$"
+     ],
+     "answer": "(B) $2$",
+     "solution_md": "The mean is $5$; the absolute deviations are $3,1,1,3$ with sum $8$. $\\frac84=2$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Find the variance of $5,7,9,11,13$.",
+     "answer": "$8$",
+     "solution_md": "Mean $=9$. Squared deviations: $16,4,0,4,16$ sum to $40$, so $\\sigma^2=\\frac{40}5=8$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Find the mean deviation about the median for $3,5,8,10,14$.",
+     "answer": "$3.2$",
+     "solution_md": "The median is $8$. Absolute deviations: $5,3,0,2,6$ with sum $16$. $\\text{MD}=\\frac{16}5=3.2$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "For the data with $x=2,4,6,8,10$ and frequencies $1,3,6,3,1$, find the mean, variance and standard deviation.",
+     "answer": "Mean $6$; variance $4$; SD $2$",
+     "solution_md": "$N=14$ and $\\sum fx=2+12+36+24+10=84$, so $\\bar x=6$. Deviations $-4,-2,0,2,4$ give $\\sum f(x-\\bar x)^2=16+12+0+12+16=56$. $\\sigma^2=\\frac{56}{14}=4$, $\\sigma=2$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "The classes $0$-$10,\\ 10$-$20,\\ 20$-$30,\\ 30$-$40,\\ 40$-$50$ have frequencies $1,6,6,6,1$. Find the mean, standard deviation and coefficient of variation.",
+     "answer": "Mean $25$; SD $10$; CV $=40\\%$",
+     "solution_md": "Class marks $5,15,25,35,45$; $N=20$. $\\sum fx=5+90+150+210+45=500$, so $\\bar x=25$. Deviations $-20,-10,0,10,20$ give $\\sum f(x-\\bar x)^2=1\\cdot400+6\\cdot100+0+6\\cdot100+1\\cdot400=2000$. So $\\sigma^2=\\frac{2000}{20}=100$ and $\\sigma=10$. $\\text{CV}=\\frac{10}{25}\\times100=40\\%$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Ten observations have mean $12$ and standard deviation $3$. The sum of their squares is",
+     "options": [
+      "$1440$",
+      "$1530$",
+      "$1450$",
+      "$1620$"
+     ],
+     "answer": "(B) $1530$",
+     "solution_md": "$\\sum x_i^2=n(\\sigma^2+\\bar x^2)=10(9+144)=1530$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the variance of the first $11$ natural numbers.",
+     "answer": "10",
+     "solution_md": "For the first $n$ naturals $\\sigma^2=\\frac{n^2-1}{12}$. With $n=11$: $\\frac{120}{12}=10$. Direct check: $\\frac{\\sum k^2}{11}-6^2=\\frac{506}{11}-36=46-36=10$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Series A has mean $50$ and SD $5$; series B has mean $80$ and SD $10$. Which statement is correct?",
+     "options": [
+      "B is more consistent, since its SD is larger",
+      "A is more consistent, since its CV is $10\\%$ against $12.5\\%$",
+      "Both are equally consistent",
+      "A is more consistent, since its mean is smaller"
+     ],
+     "answer": "(B) A is more consistent, since its CV is $10\\%$ against $12.5\\%$",
+     "solution_md": "$\\text{CV}_A=\\frac5{50}\\times100=10\\%$ and $\\text{CV}_B=\\frac{10}{80}\\times100=12.5\\%$. The smaller CV means greater consistency, so A.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "For $8$ observations, $\\sum x_i=48$ and $\\sum x_i^2=400$. Find the variance.",
+     "answer": "14",
+     "solution_md": "$\\bar x=6$. $\\sigma^2=\\frac{400}8-6^2=50-36=14$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): Adding $5$ to every observation of a data set changes its standard deviation. Reason (R): Standard deviation measures the spread of data and does not depend on the choice of origin.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(D) A is false but R is true",
+     "solution_md": "Every deviation $x_i-\\bar x$ is unchanged when all values shift together, so $\\sigma$ is unchanged. A is false and R is true.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Range",
+     "back": "Maximum minus minimum."
+    },
+    {
+     "front": "Mean deviation about $a$",
+     "back": "$\\frac{\\sum f_i|x_i-a|}{\\sum f_i}$; smallest when $a$ is the median."
+    },
+    {
+     "front": "Variance formula",
+     "back": "$\\sigma^2=\\frac{\\sum x_i^2}n-\\bar x^2$."
+    },
+    {
+     "front": "Effect of $y=ax+b$",
+     "back": "$\\bar y=a\\bar x+b$, $\\sigma_y=|a|\\sigma_x$."
+    },
+    {
+     "front": "Variance after adding a constant",
+     "back": "Unchanged."
+    },
+    {
+     "front": "Coefficient of variation",
+     "back": "$\\frac\\sigma{\\bar x}\\times100$; smaller means more consistent."
+    },
+    {
+     "front": "Grouped data representative",
+     "back": "Class mark (mid-value)."
+    },
+    {
+     "front": "Variance of first $n$ naturals",
+     "back": "$\\frac{n^2-1}{12}$."
+    },
+    {
+     "front": "Units of variance and SD",
+     "back": "Variance: squared units; SD: same units as data."
+    },
+    {
+     "front": "Sum of squares from mean and SD",
+     "back": "$\\sum x_i^2=n(\\sigma^2+\\bar x^2)$."
+    }
+   ]
+  },
+  {
+   "number": 14,
+   "title": "Probability",
+   "ncert_part": "",
+   "notes": [
+    {
+     "heading": "Random experiments and sample space",
+     "body_md": "- A random experiment has outcomes that cannot be predicted with certainty although all possible outcomes are known, such as tossing a coin or rolling a die.\n- The set of all possible outcomes is the **sample space** $S$; each element is a sample point.\n- Tossing two coins gives $S=\\{HH,HT,TH,TT\\}$; rolling two dice gives 36 ordered pairs.\n- Be careful to count ordered outcomes; $(2,5)$ and $(5,2)$ are different."
+    },
+    {
+     "heading": "Events",
+     "body_md": "- An event is a subset of the sample space; a simple event has one outcome, and a compound event has more.\n- The sure event is $S$ and the impossible event is $\\varnothing$.\n- Complement $A'$ means \"not $A$\"; $A\\cup B$ means \"$A$ or $B$\"; $A\\cap B$ means \"$A$ and $B$\"; $A-B$ means $A$ but not $B$.\n- Events are **mutually exclusive** if $A\\cap B=\\varnothing$, and **exhaustive** if their union is $S$."
+    },
+    {
+     "heading": "Probability of an event",
+     "body_md": "- For equally likely outcomes, $P(E)=\\frac{\\text{number of favourable outcomes}}{\\text{total number of outcomes}}$.\n- Always $0\\le P(E)\\le1$, with $P(S)=1$ and $P(\\varnothing)=0$.\n- The probabilities of all simple events in $S$ sum to $1$.\n- Counting favourable outcomes often needs permutations and combinations, for example drawing balls or cards."
+    },
+    {
+     "heading": "Axiomatic approach",
+     "body_md": "- Assign a probability $P(\\omega_i)\\ge0$ to each sample point with $\\sum P(\\omega_i)=1$; the probability of an event is the sum for its points.\n- The classical equally-likely rule is a special case of these axioms.\n- Unequal outcomes (a loaded die, a biased coin) are handled by assigning the given probabilities directly.\n- The probability of an event $E$ is the sum of probabilities of the outcomes in $E$."
+    },
+    {
+     "heading": "Addition rule and complement",
+     "body_md": "- $P(A\\cup B)=P(A)+P(B)-P(A\\cap B)$.\n- If $A,B$ are mutually exclusive then $P(A\\cup B)=P(A)+P(B)$.\n- Complement rule: $P(A')=1-P(A)$; useful for \"at least one\" problems.\n- Also $P(\\text{neither }A\\text{ nor }B)=1-P(A\\cup B)$ and $P(A-B)=P(A)-P(A\\cap B)$."
+    },
+    {
+     "heading": "Problem-solving strategies",
+     "body_md": "- List the sample space systematically (table or tree) before counting.\n- \"At least one\" problems: compute $1-P(\\text{none})$.\n- For random selections, use combinations: favourable $=\\,^aC_x\\cdot\\,^bC_y$, total $=\\,^nC_r$.\n- Check that the final answer lies in $[0,1]$ and that exclusive cases are not double-counted."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Classical probability",
+     "latex": "P(E)=\\frac{n(E)}{n(S)}",
+     "variables": "n(E) = favourable, n(S) = total outcomes",
+     "note": "Equally likely outcomes only."
+    },
+    {
+     "name": "Range of probability",
+     "latex": "0\\le P(E)\\le1",
+     "variables": "E = any event",
+     "note": "P(S) = 1 and P(empty) = 0."
+    },
+    {
+     "name": "Complement rule",
+     "latex": "P(A')=1-P(A)",
+     "variables": "A' = not A",
+     "note": "Useful for at-least-one events."
+    },
+    {
+     "name": "Addition rule",
+     "latex": "P(A\\cup B)=P(A)+P(B)-P(A\\cap B)",
+     "variables": "A, B = events",
+     "note": "General form."
+    },
+    {
+     "name": "Exclusive events",
+     "latex": "P(A\\cup B)=P(A)+P(B)",
+     "variables": "A, B mutually exclusive",
+     "note": "The intersection is empty."
+    },
+    {
+     "name": "Neither event",
+     "latex": "P(A'\\cap B')=1-P(A\\cup B)",
+     "variables": "A, B = events",
+     "note": "De Morgan's law."
+    },
+    {
+     "name": "Difference of events",
+     "latex": "P(A-B)=P(A)-P(A\\cap B)",
+     "variables": "A, B = events",
+     "note": "A but not B."
+    },
+    {
+     "name": "Sum of simple events",
+     "latex": "\\sum_{i}P(\\omega_i)=1",
+     "variables": "omega_i = sample points",
+     "note": "Axiom of probability."
+    },
+    {
+     "name": "Selection probability",
+     "latex": "P=\\frac{{}^aC_x\\cdot{}^bC_y}{{}^{a+b}C_{x+y}}",
+     "variables": "a, b = group sizes; x, y = numbers chosen",
+     "note": "Draws without replacement."
+    },
+    {
+     "name": "Size of sample space (dice)",
+     "latex": "n(S)=6^k",
+     "variables": "k = number of dice",
+     "note": "Ordered outcomes."
+    },
+    {
+     "name": "Size of sample space (coins)",
+     "latex": "n(S)=2^k",
+     "variables": "k = number of coins",
+     "note": "Ordered outcomes."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "Two fair dice are rolled. The probability that the sum is $8$ is",
+     "options": [
+      "$\\frac1{6}$",
+      "$\\frac5{36}$",
+      "$\\frac4{36}$",
+      "$\\frac7{36}$"
+     ],
+     "answer": "(B) $\\frac5{36}$",
+     "solution_md": "Favourable pairs: $(2,6),(3,5),(4,4),(5,3),(6,2)$, i.e. $5$ out of $36$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "A fair coin is tossed three times. Find the probability of getting at least one head.",
+     "answer": "$\\frac78$",
+     "solution_md": "$n(S)=8$ and the only outcome with no head is $TTT$. $P=1-\\frac18=\\frac78$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "If $P(A)=0.4$, $P(B)=0.5$ and $P(A\\cap B)=0.2$, find $P(A\\cup B)$ and the probability that neither $A$ nor $B$ occurs.",
+     "answer": "$P(A\\cup B)=0.7$; $P(\\text{neither})=0.3$",
+     "solution_md": "$P(A\\cup B)=0.4+0.5-0.2=0.7$. Neither occurs with probability $1-0.7=0.3$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 4,
+     "question": "One card is drawn at random from a standard pack of 52. Find the probability that it is (i) a king or a heart, (ii) not a face card (jack, queen, king).",
+     "answer": "(i) $\\frac4{13}$; (ii) $\\frac{10}{13}$",
+     "solution_md": "(i) $P(K)=\\frac4{52}$, $P(H)=\\frac{13}{52}$, $P(K\\cap H)=\\frac1{52}$. So $P=\\frac{4+13-1}{52}=\\frac{16}{52}=\\frac4{13}$. (ii) There are $12$ face cards, so $P=\\frac{52-12}{52}=\\frac{40}{52}=\\frac{10}{13}$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "A bag has 5 red, 4 blue and 3 green balls. Three balls are drawn at random without replacement. Find the probability that (i) all three are of different colours, (ii) at least one is red.",
+     "answer": "(i) $\\frac3{11}$; (ii) $\\frac{37}{44}$",
+     "solution_md": "$n(S)=\\,^{12}C_3=220$. (i) One of each colour: $5\\cdot4\\cdot3=60$, so $P=\\frac{60}{220}=\\frac3{11}$. (ii) No red means all three from the other $7$ balls: $^7C_3=35$. $P=1-\\frac{35}{220}=\\frac{185}{220}=\\frac{37}{44}$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Two fair dice are thrown. The probability that the sum is a prime number is",
+     "options": [
+      "$\\frac7{18}$",
+      "$\\frac5{12}$",
+      "$\\frac{4}{9}$",
+      "$\\frac{11}{36}$"
+     ],
+     "answer": "(B) $\\frac5{12}$",
+     "solution_md": "Prime sums are $2,3,5,7,11$ with $1,2,4,6,2$ ways respectively, total $15$. $P=\\frac{15}{36}=\\frac5{12}$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A number is chosen at random from $1,2,\\dots,100$. If $p$ is the probability that it is divisible by $6$ or $8$, find $100p$.",
+     "answer": "24",
+     "solution_md": "Multiples of $6$: $16$; of $8$: $12$; of $24$ (both): $4$. Count $=16+12-4=24$, so $p=0.24$ and $100p=24$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "If $P(A')=\\frac23$, $P(A\\cup B)=\\frac34$ and $P(A\\cap B)=\\frac14$, then $P(B)$ is",
+     "options": [
+      "$\\frac12$",
+      "$\\frac23$",
+      "$\\frac34$",
+      "$\\frac13$"
+     ],
+     "answer": "(B) $\\frac23$",
+     "solution_md": "$P(A)=1-\\frac23=\\frac13$. From $P(A\\cup B)=P(A)+P(B)-P(A\\cap B)$: $P(B)=\\frac34-\\frac13+\\frac14=\\frac23$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A three-digit number is chosen at random. If $p$ is the probability that its digits are all different, find $25p$.",
+     "answer": "18",
+     "solution_md": "Three-digit numbers: $900$. With distinct digits: $9\\cdot9\\cdot8=648$. $p=\\frac{648}{900}=\\frac{18}{25}$, so $25p=18$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The sum of the probabilities of all simple events in a sample space is $1$. Reason (R): The probability of an impossible event is $0$.",
+     "options": [
+      "Both A and R are true and R is the correct explanation of A",
+      "Both A and R are true but R is not the correct explanation of A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "(B) Both A and R are true but R is not the correct explanation of A",
+     "solution_md": "Both statements are true, but the zero probability of the impossible event does not explain why the total is $1$; that comes from the axiom $P(S)=1$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Classical probability",
+     "back": "$\\frac{\\text{favourable}}{\\text{total}}$ for equally likely outcomes."
+    },
+    {
+     "front": "Bounds on probability",
+     "back": "$0\\le P(E)\\le1$; $P(S)=1$; $P(\\varnothing)=0$."
+    },
+    {
+     "front": "Addition rule",
+     "back": "$P(A\\cup B)=P(A)+P(B)-P(A\\cap B)$."
+    },
+    {
+     "front": "Mutually exclusive events",
+     "back": "$A\\cap B=\\varnothing$, so $P(A\\cup B)=P(A)+P(B)$."
+    },
+    {
+     "front": "Complement",
+     "back": "$P(A')=1-P(A)$."
+    },
+    {
+     "front": "'At least one'",
+     "back": "$1-P(\\text{none})$."
+    },
+    {
+     "front": "Two dice: size of sample space",
+     "back": "$36$ ordered pairs."
+    },
+    {
+     "front": "Three coins: sample space size",
+     "back": "$8$ outcomes."
+    },
+    {
+     "front": "Neither A nor B",
+     "back": "$1-P(A\\cup B)$."
+    },
+    {
+     "front": "Exhaustive events",
+     "back": "Their union is the whole sample space."
+    }
+   ]
+  }
+ ]
+}

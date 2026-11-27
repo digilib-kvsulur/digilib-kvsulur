@@ -1,0 +1,3690 @@
+{
+ "class": 11,
+ "subject": "Physics",
+ "books": [
+  "NCERT Physics Part I",
+  "NCERT Physics Part II"
+ ],
+ "status": "needs_review",
+ "generated_by": "AI",
+ "chapters": [
+  {
+   "number": 1,
+   "title": "Units and Measurements",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Physical quantities and units",
+     "body_md": "- A physical quantity is anything measurable; it is stated as a number times a unit.\n- Fundamental (base) quantities are chosen independently; derived quantities are built from them.\n- The SI system has seven base quantities: length (m), mass (kg), time (s), electric current (A), temperature (K), amount of substance (mol), luminous intensity (cd).\n- Radian (plane angle) and steradian (solid angle) are supplementary/dimensionless units.\n- Prefixes: milli = $10^{-3}$, micro = $10^{-6}$, nano = $10^{-9}$, kilo = $10^{3}$, mega = $10^{6}$, giga = $10^{9}$."
+    },
+    {
+     "heading": "Measuring length, mass and time",
+     "body_md": "- Small lengths: 1 angstrom = $10^{-10}$ m, 1 fermi = $10^{-15}$ m. Large: 1 light year = $9.46\\times10^{15}$ m, 1 parsec is about $3.08\\times10^{16}$ m.\n- Indirect methods (parallax, triangulation) are used for distant or very small objects.\n- Atomic mass unit: 1 u = $1.66\\times10^{-27}$ kg.\n- Time is measured with periodic phenomena; atomic clocks give the best precision.\n- Orders of magnitude help compare scales, from the nucleus ($10^{-15}$ m) to the universe ($10^{26}$ m)."
+    },
+    {
+     "heading": "Accuracy, precision and errors",
+     "body_md": "- Accuracy: closeness to the true value. Precision: closeness of repeated readings to each other.\n- Systematic errors (instrument, personal, method) push results one way; random errors scatter results and are reduced by averaging.\n- Least count error is the smallest division an instrument can read.\n- Absolute error = |measured - mean|; mean absolute error is the average of these.\n- Relative error = mean absolute error / mean value; percentage error = relative error x 100."
+    },
+    {
+     "heading": "Combination of errors",
+     "body_md": "- Sum or difference: absolute errors add, $\\Delta Z=\\Delta A+\\Delta B$.\n- Product or quotient: relative errors add, $\\Delta Z/Z=\\Delta A/A+\\Delta B/B$.\n- Power $Z=A^{p}B^{q}$: $\\Delta Z/Z = p\\,\\Delta A/A + q\\,\\Delta B/B$ (the powers are used with positive sign).\n- Worst case is assumed in school problems, so errors are always added."
+    },
+    {
+     "heading": "Significant figures",
+     "body_md": "- All non-zero digits are significant; zeros between non-zero digits are significant.\n- Leading zeros are not significant ($0.0045$ has 2).\n- Trailing zeros after a decimal point are significant ($2.500$ has 4).\n- In multiplication/division, the result keeps as many significant figures as the least precise factor.\n- In addition/subtraction, the result keeps as many decimal places as the least precise term.\n- Scientific notation removes ambiguity in trailing zeros."
+    },
+    {
+     "heading": "Dimensions of physical quantities",
+     "body_md": "- Dimensions show how a quantity depends on M, L, T (and others) written as $[M^aL^bT^c]$.\n- Examples: velocity $[LT^{-1}]$, acceleration $[LT^{-2}]$, force $[MLT^{-2}]$, work/energy $[ML^2T^{-2}]$, power $[ML^2T^{-3}]$, pressure $[ML^{-1}T^{-2}]$, density $[ML^{-3}]$.\n- Pure numbers, angles, strain and trigonometric arguments are dimensionless.\n- Only quantities with the same dimensions can be added, subtracted or equated."
+    },
+    {
+     "heading": "Dimensional analysis and its limits",
+     "body_md": "- Uses: (1) check the correctness of an equation, (2) convert units between systems, (3) derive relations between quantities.\n- The principle of homogeneity: every term in a valid equation has the same dimensions.\n- Limits: it cannot give dimensionless constants (such as $1/2$ or $2\\pi$); it fails for relations involving sums of terms like $\\sin$ or exponentials; it needs the right set of variables to be guessed.\n- A dimensionally correct equation may still be physically wrong."
+    },
+    {
+     "heading": "Instruments: vernier callipers and screw gauge",
+     "body_md": "- Vernier least count = 1 main scale division - 1 vernier division.\n- Screw gauge least count = pitch / number of circular scale divisions.\n- Reading = main scale reading + (division coinciding x least count).\n- Zero error must be subtracted: corrected reading = observed - zero error (with correct sign).\n- Repeating readings at different places reduces random error."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Percentage error",
+     "latex": "\\frac{\\Delta x}{x}\\times 100\\%",
+     "variables": "Δx = mean absolute error; x = mean value",
+     "note": "Reports the quality of a single measurement."
+    },
+    {
+     "name": "Error in sum/difference",
+     "latex": "\\Delta Z=\\Delta A+\\Delta B",
+     "variables": "ΔA, ΔB = absolute errors in A and B",
+     "note": "For Z = A ± B."
+    },
+    {
+     "name": "Error in product/quotient",
+     "latex": "\\frac{\\Delta Z}{Z}=\\frac{\\Delta A}{A}+\\frac{\\Delta B}{B}",
+     "variables": "ΔZ/Z = relative error in Z",
+     "note": "For Z = AB or A/B."
+    },
+    {
+     "name": "Error in power law",
+     "latex": "\\frac{\\Delta Z}{Z}=p\\frac{\\Delta A}{A}+q\\frac{\\Delta B}{B}",
+     "variables": "p, q = powers of A and B",
+     "note": "For Z = A^p B^q."
+    },
+    {
+     "name": "Vernier least count",
+     "latex": "\\mathrm{LC}=1\\,\\mathrm{MSD}-1\\,\\mathrm{VSD}",
+     "variables": "MSD = main scale division; VSD = vernier scale division",
+     "note": "Smallest reading of a vernier instrument."
+    },
+    {
+     "name": "Screw gauge least count",
+     "latex": "\\mathrm{LC}=\\frac{\\text{pitch}}{\\text{number of circular divisions}}",
+     "variables": "pitch = distance moved per full turn (mm)",
+     "note": "Used for wire diameter and thickness."
+    },
+    {
+     "name": "Time period of pendulum (by dimensional analysis)",
+     "latex": "T=k\\sqrt{\\frac{l}{g}}",
+     "variables": "T = period (s); l = length (m); g = acceleration due to gravity (m/s^2); k = dimensionless constant",
+     "note": "k is found by experiment (it is 2π)."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The dimensional formula of pressure is:",
+     "options": [
+      "(A) $MLT^{-2}$",
+      "(B) $ML^{-1}T^{-2}$",
+      "(C) $ML^{2}T^{-2}$",
+      "(D) $ML^{-3}$"
+     ],
+     "answer": "(B)",
+     "solution_md": "Pressure = force/area = $MLT^{-2}/L^2 = ML^{-1}T^{-2}$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Using dimensions, check whether the equation $s=ut+\\tfrac12 at^2$ is correct.",
+     "answer": "Dimensionally correct.",
+     "solution_md": "$[s]=L$. $[ut]=LT^{-1}\\cdot T=L$. $[at^2]=LT^{-2}\\cdot T^2=L$. Every term has dimension $L$, so the equation is dimensionally consistent (the factor 1/2 cannot be verified by this method).",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "The mass and volume of a body are measured as $50.0\\pm0.5$ g and $10.0\\pm0.2$ cm$^3$. Find the density and its percentage error.",
+     "answer": "5.0 g/cm^3 with 3% error (±0.15 g/cm^3)",
+     "solution_md": "Density $\\rho=m/V=5.0$ g/cm$^3$.\n\n$\\dfrac{\\Delta\\rho}{\\rho}=\\dfrac{\\Delta m}{m}+\\dfrac{\\Delta V}{V}=\\dfrac{0.5}{50}+\\dfrac{0.2}{10}=0.01+0.02=0.03$.\n\nPercentage error = 3%, i.e. $\\rho=5.0\\pm0.15$ g/cm$^3$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "State the number of significant figures in (i) 0.04050 and (ii) $3.200\\times10^{5}$.",
+     "answer": "(i) 4, (ii) 4",
+     "solution_md": "(i) Leading zeros are not counted; digits 4, 0, 5, 0 are significant (zero between and the trailing zero after the decimal point) so 4.\n(ii) In 3.200 the trailing zeros after the decimal point are significant, so 4.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Using dimensional analysis, derive an expression for the time period $T$ of a simple pendulum, assuming it depends on its mass $m$, length $l$ and acceleration due to gravity $g$. State one limitation of the method.",
+     "answer": "T = k sqrt(l/g)",
+     "solution_md": "Assume $T=k\\,m^{a}l^{b}g^{c}$.\n\nDimensions: $[T]=T$, $[m]=M$, $[l]=L$, $[g]=LT^{-2}$.\n\n$T^1 = M^{a}L^{b}(LT^{-2})^{c}=M^{a}L^{b+c}T^{-2c}$.\n\nComparing: $a=0$; $b+c=0$; $-2c=1\\Rightarrow c=-\\tfrac12,\\ b=\\tfrac12$.\n\nHence $T=k\\sqrt{l/g}$, independent of mass.\n\nLimitation: the dimensionless constant $k$ (actually $2\\pi$) cannot be found by dimensional analysis.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Which of the following has the dimensions of velocity? ($P$ = pressure, $\\rho$ = density)",
+     "options": [
+      "(A) $P/\\rho$",
+      "(B) $\\sqrt{P/\\rho}$",
+      "(C) $\\rho/P$",
+      "(D) $P\\rho$"
+     ],
+     "answer": "(B)",
+     "solution_md": "$P/\\rho = ML^{-1}T^{-2}/ML^{-3}=L^2T^{-2}$, so $\\sqrt{P/\\rho}=LT^{-1}$, the dimension of velocity.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "$g$ is measured with a simple pendulum using $g=4\\pi^2 l/T^2$. Length $l=1.00$ m is measured with error 1 mm and period $T=2.0$ s with error 0.02 s. Find the percentage error in $g$.",
+     "answer": "2.1%",
+     "solution_md": "$\\dfrac{\\Delta g}{g}=\\dfrac{\\Delta l}{l}+2\\dfrac{\\Delta T}{T}=\\dfrac{0.001}{1.00}+2\\times\\dfrac{0.02}{2.0}=0.001+0.02=0.021$.\n\nPercentage error = 2.1%.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A screw gauge has pitch 0.5 mm and 50 circular divisions. With no zero error, the main scale reads 2.5 mm and the 27th circular division coincides with the reference line. The reading is:",
+     "options": [
+      "(A) 2.27 mm",
+      "(B) 2.77 mm",
+      "(C) 2.54 mm",
+      "(D) 2.52 mm"
+     ],
+     "answer": "(B)",
+     "solution_md": "Least count = 0.5/50 = 0.01 mm.\nReading = 2.5 + 27 x 0.01 = 2.77 mm.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A quantity is $Q=\\dfrac{a^{2}\\sqrt{b}}{c^{3}}$. The percentage errors in $a$, $b$, $c$ are 2%, 4% and 1%. Find the percentage error in $Q$.",
+     "answer": "9%",
+     "solution_md": "$\\dfrac{\\Delta Q}{Q}=2(2\\%)+\\tfrac12(4\\%)+3(1\\%)=4+2+3=9\\%$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): Dimensional analysis cannot give the numerical value of dimensionless constants in a formula.\nReason (R): Constants such as 1/2 and $2\\pi$ have no dimensions, so they do not affect the dimensional equation.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Dimensional equations compare powers of M, L, T only; a dimensionless number contributes nothing, so it cannot be determined. R is true and explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Name the seven SI base quantities.",
+     "back": "Length, mass, time, electric current, temperature, amount of substance, luminous intensity."
+    },
+    {
+     "front": "Dimensional formula of force",
+     "back": "[MLT^-2]"
+    },
+    {
+     "front": "Dimensional formula of work/energy",
+     "back": "[ML^2T^-2]"
+    },
+    {
+     "front": "Accuracy vs precision",
+     "back": "Accuracy: closeness to true value. Precision: closeness of repeated readings to each other."
+    },
+    {
+     "front": "Rule for error in a product or quotient",
+     "back": "Add the relative (fractional) errors."
+    },
+    {
+     "front": "Rule for error in a sum or difference",
+     "back": "Add the absolute errors."
+    },
+    {
+     "front": "Significant figures in 0.0450",
+     "back": "3 (leading zeros do not count; trailing zero after decimal counts)."
+    },
+    {
+     "front": "Three uses of dimensional analysis",
+     "back": "Check equations, convert units, derive relations between quantities."
+    },
+    {
+     "front": "Main limitation of dimensional analysis",
+     "back": "Cannot give dimensionless constants and cannot handle sums of functions such as sin or exp."
+    },
+    {
+     "front": "Least count of a screw gauge",
+     "back": "Pitch divided by number of circular scale divisions."
+    }
+   ]
+  },
+  {
+   "number": 2,
+   "title": "Motion in a Straight Line",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Position, path length and displacement",
+     "body_md": "- Motion is described relative to a reference frame; in 1-D we use a single axis with a chosen origin and positive direction.\n- Path length is the total distance travelled (scalar, never negative or decreasing).\n- Displacement is final position minus initial position (vector), so it can be zero or negative.\n- Magnitude of displacement is at most the path length."
+    },
+    {
+     "heading": "Speed and velocity",
+     "body_md": "- Average speed = total path length / total time.\n- Average velocity = displacement / time interval.\n- Instantaneous velocity $v=\\dfrac{dx}{dt}$, the slope of the position-time graph.\n- Instantaneous speed is the magnitude of instantaneous velocity.\n- For a round trip, average velocity is zero but average speed is not."
+    },
+    {
+     "heading": "Acceleration",
+     "body_md": "- Average acceleration = change in velocity / time; instantaneous $a=\\dfrac{dv}{dt}=\\dfrac{d^2x}{dt^2}$.\n- Speeding up occurs when $v$ and $a$ have the same sign, slowing down when opposite.\n- A body can have zero velocity at an instant and non-zero acceleration (top of a vertical throw).\n- Slope of the velocity-time graph gives acceleration."
+    },
+    {
+     "heading": "Equations of uniformly accelerated motion",
+     "body_md": "- $v=u+at$, $s=ut+\\tfrac12at^2$, $v^2=u^2+2as$.\n- Distance in the $n$th second: $s_n=u+\\tfrac{a}{2}(2n-1)$.\n- These apply only for constant acceleration along a line, with signs taken from the chosen positive direction.\n- They can be derived by integration: $a=dv/dt$ and $a=v\\,dv/dx$."
+    },
+    {
+     "heading": "Graphs of motion",
+     "body_md": "- x-t graph: slope = velocity; a straight line means uniform velocity, a parabola means uniform acceleration.\n- v-t graph: slope = acceleration; area under the graph = displacement.\n- a-t graph: area under the graph = change in velocity.\n- Area below the time axis counts as negative displacement, so total distance needs absolute areas."
+    },
+    {
+     "heading": "Free fall",
+     "body_md": "- Under gravity alone, every body has acceleration $g=9.8$ m/s$^2$ downward, independent of mass (air resistance neglected).\n- Taking up as positive, use $a=-g$.\n- Time to maximum height $=u/g$; maximum height $=u^2/2g$; time of flight (back to start) $=2u/g$.\n- Speed at any height on the way up equals speed at the same height on the way down."
+    },
+    {
+     "heading": "Relative velocity in one dimension",
+     "body_md": "- Velocity of A relative to B: $v_{AB}=v_A-v_B$.\n- Objects moving in the same direction: subtract speeds. Opposite directions: add speeds.\n- Two objects approaching each other cover their separation at the relative speed.\n- Always convert km/h to m/s by multiplying by $5/18$."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Average velocity",
+     "latex": "\\bar v=\\frac{\\Delta x}{\\Delta t}",
+     "variables": "Δx = displacement (m); Δt = time interval (s)",
+     "note": "Over any interval."
+    },
+    {
+     "name": "Instantaneous velocity",
+     "latex": "v=\\frac{dx}{dt}",
+     "variables": "x = position (m); t = time (s)",
+     "note": "Slope of the x-t graph."
+    },
+    {
+     "name": "Instantaneous acceleration",
+     "latex": "a=\\frac{dv}{dt}=v\\frac{dv}{dx}",
+     "variables": "v = velocity (m/s); a = acceleration (m/s^2)",
+     "note": "Second form is useful when a is given as a function of position."
+    },
+    {
+     "name": "First equation of motion",
+     "latex": "v=u+at",
+     "variables": "u = initial velocity; v = final velocity; a = constant acceleration; t = time",
+     "note": "Constant acceleration only."
+    },
+    {
+     "name": "Second equation of motion",
+     "latex": "s=ut+\\frac12at^2",
+     "variables": "s = displacement (m)",
+     "note": "Constant acceleration only."
+    },
+    {
+     "name": "Third equation of motion",
+     "latex": "v^2=u^2+2as",
+     "variables": "s = displacement (m)",
+     "note": "Used when time is not given."
+    },
+    {
+     "name": "Distance in nth second",
+     "latex": "s_n=u+\\frac{a}{2}(2n-1)",
+     "variables": "n = the nth second (integer)",
+     "note": "Displacement in the interval t = n-1 to t = n."
+    },
+    {
+     "name": "Maximum height (vertical throw)",
+     "latex": "H=\\frac{u^2}{2g}",
+     "variables": "u = speed of projection (m/s); g = 9.8 m/s^2",
+     "note": "Time to reach the top is u/g."
+    },
+    {
+     "name": "Relative velocity",
+     "latex": "v_{AB}=v_A-v_B",
+     "variables": "v_A, v_B = velocities in a common frame",
+     "note": "Along a straight line with signs."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The slope of a position-time graph at an instant gives:",
+     "options": [
+      "(A) acceleration",
+      "(B) velocity",
+      "(C) displacement",
+      "(D) distance"
+     ],
+     "answer": "(B)",
+     "solution_md": "Slope of x-t graph is $dx/dt$, the instantaneous velocity.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "A car moving at 20 m/s is braked with a uniform deceleration of 5 m/s$^2$. Find the stopping distance and the time taken.",
+     "answer": "40 m, 4 s",
+     "solution_md": "$v^2=u^2+2as\\Rightarrow 0=400-2(5)s\\Rightarrow s=40$ m.\n$v=u+at\\Rightarrow 0=20-5t\\Rightarrow t=4$ s.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A ball is thrown vertically upward with speed 29.4 m/s. Find the maximum height reached and the total time before it returns to the thrower's hand ($g=9.8$ m/s$^2$).",
+     "answer": "44.1 m, 6 s",
+     "solution_md": "$H=u^2/2g=(29.4)^2/(2\\times9.8)=864.36/19.6=44.1$ m.\nTime of flight $=2u/g=2\\times29.4/9.8=6$ s.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Starting from $a=v\\,dv/dx$ for constant acceleration, derive $v^2=u^2+2as$.",
+     "answer": "v^2 = u^2 + 2as",
+     "solution_md": "$a=v\\dfrac{dv}{dx}\\Rightarrow a\\,dx=v\\,dv$.\n\nIntegrate from $x=0$ ($v=u$) to $x=s$ ($v=v$): $a\\int_0^s dx=\\int_u^v v\\,dv$.\n\n$as=\\dfrac{v^2-u^2}{2}\\Rightarrow v^2=u^2+2as$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "A body starts from rest and accelerates uniformly at 2 m/s$^2$ for 10 s, then moves at constant velocity for 20 s, and finally decelerates uniformly to rest in 5 s. Draw the v-t graph in words and find (i) the total distance, (ii) the average speed, (iii) the final deceleration.",
+     "answer": "(i) 550 m (ii) 15.7 m/s (iii) 4 m/s^2",
+     "solution_md": "Stage 1: $v=at=20$ m/s; distance $=\\tfrac12(2)(10)^2=100$ m.\nStage 2: constant 20 m/s for 20 s: $400$ m.\nStage 3: deceleration $=20/5=4$ m/s$^2$; distance $=\\tfrac12(20)(5)=50$ m.\n\nTotal distance $=100+400+50=550$ m; total time $=35$ s.\nAverage speed $=550/35\\approx15.7$ m/s.\n\nGraph: a straight line rising from 0 to 20 m/s (0-10 s), flat (10-30 s), falling to 0 (30-35 s): a trapezium whose area is 550 m.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The position of a particle is $x=2t^3-9t^2+12t$ (SI units). Its acceleration when it comes to momentary rest for the second time is:",
+     "options": [
+      "(A) -6 m/s^2",
+      "(B) 0",
+      "(C) 6 m/s^2",
+      "(D) 12 m/s^2"
+     ],
+     "answer": "(C)",
+     "solution_md": "$v=6t^2-18t+12=0\\Rightarrow t^2-3t+2=0\\Rightarrow t=1,2$ s.\n$a=12t-18$; at $t=2$ s, $a=6$ m/s$^2$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A stone dropped from rest from the top of a tower covers 44.1 m in the last second of its fall (this is exactly its $n$th second). Find the height of the tower ($g=9.8$ m/s$^2$).",
+     "answer": "122.5 m",
+     "solution_md": "$s_n=\\tfrac{g}{2}(2n-1)=4.9(2n-1)=44.1\\Rightarrow 2n-1=9\\Rightarrow n=5$ s.\nHeight $=\\tfrac12g t^2=\\tfrac12(9.8)(25)=122.5$ m.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Two trains, each 175 m long, move on parallel tracks in opposite directions at 72 km/h and 54 km/h. The time they take to completely cross each other is:",
+     "options": [
+      "(A) 5 s",
+      "(B) 10 s",
+      "(C) 7 s",
+      "(D) 14 s"
+     ],
+     "answer": "(B)",
+     "solution_md": "Relative speed $=72+54=126$ km/h $=35$ m/s.\nDistance to cover $=175+175=350$ m.\nTime $=350/35=10$ s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A ball is thrown vertically upward at 20 m/s from the top of a 25 m high building. Find the speed with which it hits the ground and the total time in air ($g=9.8$ m/s$^2$).",
+     "answer": "29.8 m/s; 5.09 s",
+     "solution_md": "Take up as positive, displacement $=-25$ m.\n$v^2=u^2+2gh_{down}$: $v^2=400+2(9.8)(25)=890\\Rightarrow v=29.8$ m/s.\nFrom $-25=20t-4.9t^2$: $4.9t^2-20t-25=0$, $t=\\dfrac{20+\\sqrt{400+490}}{9.8}=\\dfrac{20+29.83}{9.8}\\approx5.09$ s.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): A body can have zero velocity and non-zero acceleration at the same instant.\nReason (R): Acceleration is the rate of change of velocity, not the value of velocity.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "At the top of a vertical throw $v=0$ but $a=g$. Since acceleration depends on how $v$ changes, R correctly explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Distance vs displacement",
+     "back": "Distance is total path length (scalar); displacement is the shortest straight-line change in position (vector)."
+    },
+    {
+     "front": "What does the slope of an x-t graph give?",
+     "back": "Velocity."
+    },
+    {
+     "front": "What does the area under a v-t graph give?",
+     "back": "Displacement."
+    },
+    {
+     "front": "Three equations of uniformly accelerated motion",
+     "back": "v = u + at; s = ut + (1/2)at^2; v^2 = u^2 + 2as."
+    },
+    {
+     "front": "Acceleration due to gravity near Earth's surface",
+     "back": "About 9.8 m/s^2 downward, same for all bodies in vacuum."
+    },
+    {
+     "front": "Maximum height of a body thrown up with speed u",
+     "back": "u^2 / (2g)."
+    },
+    {
+     "front": "Convert 36 km/h to m/s",
+     "back": "10 m/s (multiply by 5/18)."
+    },
+    {
+     "front": "Average speed vs average velocity over a round trip",
+     "back": "Average velocity is zero; average speed is not zero."
+    },
+    {
+     "front": "Formula for distance in the nth second",
+     "back": "s_n = u + a(2n - 1)/2."
+    },
+    {
+     "front": "Relative velocity of A with respect to B",
+     "back": "v_AB = v_A - v_B."
+    }
+   ]
+  },
+  {
+   "number": 3,
+   "title": "Motion in a Plane",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Scalars and vectors",
+     "body_md": "- Scalars have magnitude only (mass, time, speed, energy); vectors have magnitude and direction (displacement, velocity, force).\n- Equal vectors have the same magnitude and direction; a unit vector $\\hat n$ has magnitude 1.\n- A vector can be written as $\\vec A=A_x\\hat i+A_y\\hat j$ with magnitude $\\sqrt{A_x^2+A_y^2}$.\n- Multiplying by a scalar changes the magnitude (and reverses direction if the scalar is negative)."
+    },
+    {
+     "heading": "Vector addition and resolution",
+     "body_md": "- Triangle and parallelogram laws give the resultant of two vectors.\n- Magnitude $R=\\sqrt{A^2+B^2+2AB\\cos\\theta}$ where $\\theta$ is the angle between the vectors placed tail to tail.\n- Direction: $\\tan\\alpha=\\dfrac{B\\sin\\theta}{A+B\\cos\\theta}$ measured from $\\vec A$.\n- Resolution: $A_x=A\\cos\\theta$, $A_y=A\\sin\\theta$.\n- Subtraction is addition of the negative vector."
+    },
+    {
+     "heading": "Motion in a plane: velocity and acceleration",
+     "body_md": "- Position vector $\\vec r=x\\hat i+y\\hat j$; velocity $\\vec v=d\\vec r/dt$; acceleration $\\vec a=d\\vec v/dt$.\n- With constant acceleration, x and y motions are independent and each follows the equations of motion.\n- Velocity is always tangent to the path."
+    },
+    {
+     "heading": "Projectile motion",
+     "body_md": "- Horizontal motion: uniform velocity $u\\cos\\theta$. Vertical motion: uniformly accelerated with $a=-g$.\n- Time of flight $T=\\dfrac{2u\\sin\\theta}{g}$; maximum height $H=\\dfrac{u^2\\sin^2\\theta}{2g}$; range $R=\\dfrac{u^2\\sin2\\theta}{g}$.\n- Range is maximum at $45^\\circ$; angles $\\theta$ and $90^\\circ-\\theta$ give the same range.\n- Path is a parabola; speed is minimum at the top, where velocity is purely horizontal.\n- Horizontal projection from height $h$: $t=\\sqrt{2h/g}$."
+    },
+    {
+     "heading": "Relative velocity in two dimensions",
+     "body_md": "- $\\vec v_{AB}=\\vec v_A-\\vec v_B$.\n- River-boat problems: if the boat heads straight across, crossing time is $d/v_b$ (minimum) and drift is $v_r\\,t$.\n- To reach the point directly opposite, steer upstream at angle with $\\sin\\theta=v_r/v_b$.\n- Rain-umbrella problems: tilt in the direction of the rain's velocity relative to the person."
+    },
+    {
+     "heading": "Uniform circular motion",
+     "body_md": "- Speed is constant but velocity changes direction, so there is acceleration directed to the centre.\n- $a_c=\\dfrac{v^2}{r}=\\omega^2r$ with $v=\\omega r$ and $\\omega=\\dfrac{2\\pi}{T}=2\\pi\\nu$.\n- Centripetal acceleration is perpendicular to velocity and does no work.\n- In non-uniform circular motion there is also a tangential component of acceleration."
+    },
+    {
+     "heading": "Dot and cross products",
+     "body_md": "- Scalar product: $\\vec A\\cdot\\vec B=AB\\cos\\theta$ (commutative); used in work and power.\n- Vector product: $|\\vec A\\times\\vec B|=AB\\sin\\theta$, direction by right-hand rule; anti-commutative; used in torque and angular momentum.\n- Dot product is zero for perpendicular vectors; cross product is zero for parallel vectors."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Resultant of two vectors",
+     "latex": "R=\\sqrt{A^2+B^2+2AB\\cos\\theta}",
+     "variables": "A, B = magnitudes; θ = angle between them",
+     "note": "Parallelogram law."
+    },
+    {
+     "name": "Time of flight",
+     "latex": "T=\\frac{2u\\sin\\theta}{g}",
+     "variables": "u = launch speed (m/s); θ = launch angle; g = 9.8 m/s^2",
+     "note": "Level ground projectile."
+    },
+    {
+     "name": "Maximum height",
+     "latex": "H=\\frac{u^2\\sin^2\\theta}{2g}",
+     "variables": "symbols as above",
+     "note": "Level ground projectile."
+    },
+    {
+     "name": "Horizontal range",
+     "latex": "R=\\frac{u^2\\sin2\\theta}{g}",
+     "variables": "symbols as above",
+     "note": "Level ground projectile; maximum at 45 degrees."
+    },
+    {
+     "name": "Trajectory equation",
+     "latex": "y=x\\tan\\theta-\\frac{gx^2}{2u^2\\cos^2\\theta}",
+     "variables": "x, y = coordinates (m)",
+     "note": "Shows the path is a parabola."
+    },
+    {
+     "name": "Centripetal acceleration",
+     "latex": "a_c=\\frac{v^2}{r}=\\omega^2r",
+     "variables": "v = speed (m/s); r = radius (m); ω = angular speed (rad/s)",
+     "note": "Directed towards the centre."
+    },
+    {
+     "name": "Angular speed and period",
+     "latex": "\\omega=\\frac{2\\pi}{T}=2\\pi\\nu",
+     "variables": "T = period (s); ν = frequency (Hz)",
+     "note": "Uniform circular motion."
+    },
+    {
+     "name": "Scalar product",
+     "latex": "\\vec A\\cdot\\vec B=AB\\cos\\theta=A_xB_x+A_yB_y+A_zB_z",
+     "variables": "θ = angle between vectors",
+     "note": "Gives a scalar."
+    },
+    {
+     "name": "Vector product magnitude",
+     "latex": "|\\vec A\\times\\vec B|=AB\\sin\\theta",
+     "variables": "θ = angle between vectors",
+     "note": "Gives a vector perpendicular to both."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "Two forces of 3 N and 4 N act on a body at right angles. The magnitude of the resultant is:",
+     "options": [
+      "(A) 1 N",
+      "(B) 7 N",
+      "(C) 5 N",
+      "(D) 12 N"
+     ],
+     "answer": "(C)",
+     "solution_md": "$R=\\sqrt{3^2+4^2}=5$ N.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Show that for a given speed the horizontal range of a projectile is maximum when the angle of projection is $45^\\circ$.",
+     "answer": "Maximum at 45 degrees; R_max = u^2/g",
+     "solution_md": "$R=\\dfrac{u^2\\sin2\\theta}{g}$. For fixed $u$, $R$ is largest when $\\sin2\\theta=1$, i.e. $2\\theta=90^\\circ$, so $\\theta=45^\\circ$, and $R_{max}=u^2/g$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A projectile is fired at 50 m/s at $30^\\circ$ above the horizontal. Find the time of flight, maximum height and range ($g=9.8$ m/s$^2$).",
+     "answer": "5.10 s; 31.9 m; 221 m",
+     "solution_md": "$T=\\dfrac{2(50)\\sin30^\\circ}{9.8}=\\dfrac{50}{9.8}=5.10$ s.\n$H=\\dfrac{2500\\times0.25}{2\\times9.8}=31.9$ m.\n$R=\\dfrac{2500\\sin60^\\circ}{9.8}=\\dfrac{2165.1}{9.8}\\approx221$ m.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A particle moves on a circle of radius 2 m with a constant speed of 4 m/s. Find its centripetal acceleration, angular speed and time period.",
+     "answer": "8 m/s^2; 2 rad/s; 3.14 s",
+     "solution_md": "$a_c=v^2/r=16/2=8$ m/s$^2$.\n$\\omega=v/r=4/2=2$ rad/s.\n$T=2\\pi/\\omega=\\pi\\approx3.14$ s.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Derive the expression $a=v^2/r$ for the centripetal acceleration of a particle in uniform circular motion. State its direction.",
+     "answer": "a = v^2/r towards the centre",
+     "solution_md": "Let the particle move from P to Q on a circle of radius $r$, turning through a small angle $\\Delta\\theta$ in time $\\Delta t$ with speed $v$.\n\nVelocity vectors at P and Q have equal magnitude $v$ and differ in direction by $\\Delta\\theta$. The triangle of $\\vec v_P$, $\\vec v_Q$ and $\\Delta\\vec v$ is similar to the triangle formed by the radii OP, OQ and chord PQ.\n\n$\\dfrac{|\\Delta\\vec v|}{v}=\\dfrac{|\\Delta\\vec r|}{r}\\Rightarrow|\\Delta\\vec v|=\\dfrac{v}{r}|\\Delta\\vec r|$.\n\nDividing by $\\Delta t$: $\\dfrac{|\\Delta\\vec v|}{\\Delta t}=\\dfrac{v}{r}\\dfrac{|\\Delta\\vec r|}{\\Delta t}$. As $\\Delta t\\to0$, $|\\Delta\\vec r|/\\Delta t\\to v$.\n\nThus $a=v^2/r$. As $\\Delta t\\to0$, $\\Delta\\vec v$ becomes perpendicular to $\\vec v$ and points towards the centre.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Two projectiles are launched with the same speed at angles $30^\\circ$ and $60^\\circ$. The ratio of their maximum heights is:",
+     "options": [
+      "(A) 1 : 3",
+      "(B) 1 : 1",
+      "(C) 3 : 1",
+      "(D) 1 : $\\sqrt3$"
+     ],
+     "answer": "(A)",
+     "solution_md": "$H\\propto\\sin^2\\theta$. Ratio $=\\sin^2 30^\\circ:\\sin^2 60^\\circ=\\tfrac14:\\tfrac34=1:3$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A boat can move at 5 m/s in still water. It crosses a 200 m wide river flowing at 3 m/s while always heading perpendicular to the bank. Find the crossing time and the distance it is carried downstream.",
+     "answer": "40 s; 120 m",
+     "solution_md": "Crossing time $=d/v_b=200/5=40$ s (the river does not affect this).\nDrift $=v_r t=3\\times40=120$ m.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "If $|\\vec A\\times\\vec B|=\\sqrt3\\,\\vec A\\cdot\\vec B$, the angle between $\\vec A$ and $\\vec B$ is:",
+     "options": [
+      "(A) $30^\\circ$",
+      "(B) $45^\\circ$",
+      "(C) $60^\\circ$",
+      "(D) $90^\\circ$"
+     ],
+     "answer": "(C)",
+     "solution_md": "$AB\\sin\\theta=\\sqrt3AB\\cos\\theta\\Rightarrow\\tan\\theta=\\sqrt3\\Rightarrow\\theta=60^\\circ$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A stone is thrown horizontally at 15 m/s from the edge of an 80 m high cliff. Find the time to reach the ground and the horizontal distance covered ($g=9.8$ m/s$^2$).",
+     "answer": "4.04 s; 60.6 m",
+     "solution_md": "$t=\\sqrt{2h/g}=\\sqrt{160/9.8}=\\sqrt{16.33}=4.04$ s.\nRange $=u t=15\\times4.04\\approx60.6$ m.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): At the highest point of its path, a projectile launched at an angle has minimum speed but not zero speed.\nReason (R): At the highest point the vertical component of velocity is zero while the horizontal component stays constant.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Horizontal velocity $u\\cos\\theta$ never changes, and vertical velocity is zero at the top, so speed $=u\\cos\\theta$, the minimum. R explains A.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Triangle law of vector addition",
+     "back": "If two vectors are drawn head to tail, their resultant is the vector from the first tail to the last head."
+    },
+    {
+     "front": "Resultant of two vectors at angle θ",
+     "back": "R = sqrt(A^2 + B^2 + 2AB cosθ)"
+    },
+    {
+     "front": "Components of vector A at angle θ with x-axis",
+     "back": "A_x = A cosθ, A_y = A sinθ"
+    },
+    {
+     "front": "Projectile range formula",
+     "back": "R = u^2 sin2θ / g"
+    },
+    {
+     "front": "Angles giving equal range",
+     "back": "θ and (90° - θ)"
+    },
+    {
+     "front": "Shape of projectile path",
+     "back": "Parabola"
+    },
+    {
+     "front": "Centripetal acceleration",
+     "back": "v^2/r = ω^2 r, directed towards the centre."
+    },
+    {
+     "front": "Does centripetal force do work?",
+     "back": "No, it is perpendicular to the velocity."
+    },
+    {
+     "front": "Dot product of perpendicular vectors",
+     "back": "Zero"
+    },
+    {
+     "front": "Cross product of parallel vectors",
+     "back": "Zero vector"
+    }
+   ]
+  },
+  {
+   "number": 4,
+   "title": "Laws of Motion",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Aristotle's fallacy and Galileo's idea",
+     "body_md": "- It is wrongly believed that a force is needed to keep a body moving; in fact a force is needed only to change its velocity.\n- On a smooth surface a body keeps moving because the net force is zero.\n- Friction and air drag are external forces that slow bodies in everyday life."
+    },
+    {
+     "heading": "Newton's first law and inertia",
+     "body_md": "- A body stays at rest or in uniform motion in a straight line unless acted on by a net external force.\n- Inertia is the property of resisting change in state; mass is its measure.\n- Inertial frames are those in which the first law holds; frames accelerating relative to them are non-inertial.\n- Examples: passengers jerk backward when a bus starts and forward when it stops suddenly."
+    },
+    {
+     "heading": "Momentum and Newton's second law",
+     "body_md": "- Linear momentum $\\vec p=m\\vec v$ (kg m/s).\n- Net force equals rate of change of momentum: $\\vec F=d\\vec p/dt$, which is $m\\vec a$ for constant mass.\n- Force is a vector; components along each axis obey $F_x=ma_x$ etc.\n- 1 newton is the force that gives 1 kg an acceleration of 1 m/s$^2$."
+    },
+    {
+     "heading": "Impulse",
+     "body_md": "- Impulse $\\vec J=\\vec F\\,\\Delta t=\\Delta\\vec p$ for a constant force; in general the area under the F-t graph.\n- A large force acting for a very short time (bat hitting a ball) is an impulsive force.\n- Increasing contact time reduces the force for the same change in momentum (cricketer pulling hands back)."
+    },
+    {
+     "heading": "Newton's third law and momentum conservation",
+     "body_md": "- Forces between two bodies are equal in magnitude, opposite in direction, and act on different bodies.\n- Action and reaction never cancel because they act on different objects.\n- If net external force is zero, total momentum is conserved: $m_1u_1+m_2u_2=m_1v_1+m_2v_2$.\n- Applications: recoil of a gun, rocket propulsion, collisions."
+    },
+    {
+     "heading": "Free body diagrams and common cases",
+     "body_md": "- Draw only forces on the chosen body: weight, normal, tension, friction, applied force.\n- Tension in a light string is the same throughout if the pulley is smooth and massless.\n- Apparent weight in a lift: $N=m(g+a)$ going up with acceleration $a$, $N=m(g-a)$ when accelerating down; zero in free fall.\n- Atwood machine and blocks connected by strings are solved by writing $F=ma$ for each block."
+    },
+    {
+     "heading": "Friction",
+     "body_md": "- Static friction adjusts to the applied force up to a maximum: $f_s\\le\\mu_sN$.\n- Kinetic friction $f_k=\\mu_kN$, nearly independent of speed and area; $\\mu_k<\\mu_s$ usually.\n- Angle of friction $\\lambda$ satisfies $\\tan\\lambda=\\mu_s$; a block just begins to slide on an incline of angle of repose $\\theta=\\lambda$.\n- Rolling friction is much smaller than sliding friction."
+    },
+    {
+     "heading": "Circular motion and banked roads",
+     "body_md": "- Centripetal force $F=mv^2/r$ is provided by tension, friction, gravity or a component of normal force.\n- On a flat road the maximum safe speed is $v_{max}=\\sqrt{\\mu_s rg}$.\n- On a road banked at angle $\\theta$ with no friction, the design speed satisfies $\\tan\\theta=v^2/rg$.\n- Centripetal force is not an extra force; it is the net force towards the centre."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Momentum",
+     "latex": "\\vec p=m\\vec v",
+     "variables": "m = mass (kg); v = velocity (m/s)",
+     "note": "Vector quantity."
+    },
+    {
+     "name": "Newton's second law",
+     "latex": "\\vec F=\\frac{d\\vec p}{dt}=m\\vec a",
+     "variables": "F = net force (N); a = acceleration (m/s^2)",
+     "note": "Second form for constant mass."
+    },
+    {
+     "name": "Impulse",
+     "latex": "\\vec J=\\vec F\\,\\Delta t=\\Delta\\vec p",
+     "variables": "Δt = contact time (s)",
+     "note": "Constant force; otherwise area under F-t."
+    },
+    {
+     "name": "Limiting static friction",
+     "latex": "f_s\\le\\mu_sN",
+     "variables": "μ_s = coefficient of static friction; N = normal force (N)",
+     "note": "Equality when about to slide."
+    },
+    {
+     "name": "Kinetic friction",
+     "latex": "f_k=\\mu_kN",
+     "variables": "μ_k = coefficient of kinetic friction",
+     "note": "Body sliding."
+    },
+    {
+     "name": "Acceleration down a rough incline",
+     "latex": "a=g(\\sin\\theta-\\mu_k\\cos\\theta)",
+     "variables": "θ = incline angle; g = 9.8 m/s^2",
+     "note": "Block sliding down."
+    },
+    {
+     "name": "Centripetal force",
+     "latex": "F=\\frac{mv^2}{r}=m\\omega^2r",
+     "variables": "r = radius (m)",
+     "note": "Net force towards the centre."
+    },
+    {
+     "name": "Maximum speed on a flat curve",
+     "latex": "v_{max}=\\sqrt{\\mu_s rg}",
+     "variables": "r = radius of the curve (m)",
+     "note": "Friction provides centripetal force."
+    },
+    {
+     "name": "Banking angle (no friction)",
+     "latex": "\\tan\\theta=\\frac{v^2}{rg}",
+     "variables": "θ = banking angle; v = design speed",
+     "note": "Ideal speed on a banked road."
+    },
+    {
+     "name": "Atwood machine",
+     "latex": "a=\\frac{(m_1-m_2)g}{m_1+m_2},\\quad T=\\frac{2m_1m_2g}{m_1+m_2}",
+     "variables": "m_1 > m_2 = masses (kg); T = string tension (N)",
+     "note": "Light string, smooth massless pulley."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The quantitative measure of inertia of a body is its:",
+     "options": [
+      "(A) mass",
+      "(B) volume",
+      "(C) velocity",
+      "(D) density"
+     ],
+     "answer": "(A)",
+     "solution_md": "Greater mass means greater resistance to change in motion.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "The velocity of a 2 kg body changes from 4 m/s to 10 m/s in 3 s under a constant force. Find the force.",
+     "answer": "4 N",
+     "solution_md": "$a=(10-4)/3=2$ m/s$^2$. $F=ma=2\\times2=4$ N.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A gun of mass 4 kg fires a 50 g bullet with a muzzle speed of 400 m/s. Find the recoil speed of the gun.",
+     "answer": "5 m/s",
+     "solution_md": "Momentum conservation (initially at rest): $0=m_bv_b-Mv_g$.\n$v_g=\\dfrac{0.05\\times400}{4}=5$ m/s opposite to the bullet.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A 10 kg block slides down a $30^\\circ$ incline with coefficient of kinetic friction 0.2. Find its acceleration ($g=9.8$ m/s$^2$).",
+     "answer": "3.20 m/s^2",
+     "solution_md": "$a=g(\\sin30^\\circ-\\mu\\cos30^\\circ)=9.8(0.5-0.2\\times0.866)=9.8\\times0.3268\\approx3.20$ m/s$^2$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Explain why roads are banked at curves and derive the relation between the banking angle, speed and radius for a frictionless road. Find the angle for a 50 m radius curve designed for 14 m/s.",
+     "answer": "tan(theta) = v^2/(rg); theta approx 21.8 degrees",
+     "solution_md": "On a banked road the horizontal component of the normal force $N\\sin\\theta$ supplies the centripetal force, so tyres need not rely on friction.\n\nVertical: $N\\cos\\theta=mg$. Horizontal: $N\\sin\\theta=mv^2/r$.\n\nDividing: $\\tan\\theta=v^2/(rg)$.\n\nNumerically $\\tan\\theta=\\dfrac{14^2}{50\\times9.8}=\\dfrac{196}{490}=0.4\\Rightarrow\\theta\\approx21.8^\\circ$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Masses 3 kg and 5 kg are connected by a light string over a smooth light pulley (Atwood machine). The tension in the string is ($g=9.8$ m/s$^2$):",
+     "options": [
+      "(A) 24.5 N",
+      "(B) 36.75 N",
+      "(C) 49 N",
+      "(D) 29.4 N"
+     ],
+     "answer": "(B)",
+     "solution_md": "$T=\\dfrac{2m_1m_2g}{m_1+m_2}=\\dfrac{2\\times3\\times5\\times9.8}{8}=36.75$ N.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A 5 kg block rests on a rough horizontal surface with $\\mu_s=0.4$ and $\\mu_k=0.3$. A horizontal force of 25 N is applied. Find the acceleration of the block ($g=9.8$ m/s$^2$).",
+     "answer": "2.06 m/s^2",
+     "solution_md": "Maximum static friction $=0.4\\times5\\times9.8=19.6$ N $<25$ N, so the block slides.\nKinetic friction $=0.3\\times5\\times9.8=14.7$ N.\n$a=(25-14.7)/5=2.06$ m/s$^2$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A 60 kg person stands on a weighing machine in a lift accelerating upward at 2 m/s$^2$. The reading is ($g=9.8$ m/s$^2$):",
+     "options": [
+      "(A) 588 N",
+      "(B) 708 N",
+      "(C) 480 N",
+      "(D) 600 N"
+     ],
+     "answer": "(B)",
+     "solution_md": "$N=m(g+a)=60(9.8+2)=708$ N.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A car travels on a flat circular road of radius 40 m. If $\\mu_s=0.5$ between tyres and road, find the maximum speed with which it can turn without skidding ($g=9.8$ m/s$^2$).",
+     "answer": "14 m/s",
+     "solution_md": "$v_{max}=\\sqrt{\\mu_s rg}=\\sqrt{0.5\\times40\\times9.8}=\\sqrt{196}=14$ m/s.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): A person standing in a bus falls backward when the bus suddenly starts.\nReason (R): The lower part of the body moves with the bus but the upper part tends to stay at rest due to inertia.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Feet are carried forward by friction with the floor while the upper body, by inertia of rest, lags behind, so the person appears to fall backward. R correctly explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "State Newton's first law",
+     "back": "A body remains at rest or in uniform straight-line motion unless a net external force acts on it."
+    },
+    {
+     "front": "Newton's second law",
+     "back": "Net force = rate of change of momentum, F = dp/dt = ma."
+    },
+    {
+     "front": "Newton's third law",
+     "back": "Every action has an equal and opposite reaction acting on a different body."
+    },
+    {
+     "front": "SI unit of impulse",
+     "back": "N s (same as kg m/s)."
+    },
+    {
+     "front": "Condition for momentum conservation",
+     "back": "Zero net external force on the system."
+    },
+    {
+     "front": "Apparent weight in lift accelerating up",
+     "back": "m(g + a)"
+    },
+    {
+     "front": "Maximum static friction",
+     "back": "μ_s N"
+    },
+    {
+     "front": "Angle of friction",
+     "back": "tan λ = μ_s"
+    },
+    {
+     "front": "Maximum speed on a flat curve",
+     "back": "sqrt(μ r g)"
+    },
+    {
+     "front": "Ideal banking angle",
+     "back": "tan θ = v^2/(rg)"
+    }
+   ]
+  },
+  {
+   "number": 5,
+   "title": "Work, Energy and Power",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Work done by a force",
+     "body_md": "- Work $W=\\vec F\\cdot\\vec d=Fd\\cos\\theta$ (joule); it is a scalar and can be positive, negative or zero.\n- Zero work: force perpendicular to displacement (centripetal force, normal force on level motion) or zero displacement.\n- Negative work: force opposite to displacement (friction, braking force).\n- For a variable force $W=\\int F\\,dx$, the area under the F-x graph."
+    },
+    {
+     "heading": "Kinetic energy and the work-energy theorem",
+     "body_md": "- Kinetic energy $K=\\tfrac12mv^2=\\dfrac{p^2}{2m}$; it is never negative.\n- Work-energy theorem: the net work done on a body equals its change in kinetic energy, $W_{net}=K_f-K_i$.\n- It holds for constant and variable forces and for all kinds of forces, including friction."
+    },
+    {
+     "heading": "Potential energy and conservative forces",
+     "body_md": "- A force is conservative if the work done depends only on end points (gravity, spring force) and is zero over a closed path.\n- Gravitational potential energy near the Earth $U=mgh$ (relative to a chosen reference).\n- Spring potential energy $U=\\tfrac12kx^2$, where $x$ is the extension or compression.\n- Friction and drag are non-conservative; they dissipate mechanical energy as heat."
+    },
+    {
+     "heading": "Conservation of mechanical energy",
+     "body_md": "- If only conservative forces do work, $K+U=$ constant.\n- A freely falling body: loss of $U$ equals gain of $K$, $v=\\sqrt{2gh}$.\n- A pendulum or a block on a smooth curve exchanges $K$ and $U$ while total energy stays constant.\n- With friction, the energy lost equals the work done against friction."
+    },
+    {
+     "heading": "Spring and the work-energy method",
+     "body_md": "- Spring force $F=-kx$ (Hooke's law) is restoring and conservative.\n- Work done in stretching a spring from 0 to $x$: $\\tfrac12kx^2$.\n- A block released from a compressed spring on a smooth surface leaves with $v=x\\sqrt{k/m}$.\n- Total energy in a mass-spring system is $\\tfrac12kA^2$."
+    },
+    {
+     "heading": "Power",
+     "body_md": "- Average power $P=W/t$; instantaneous power $P=\\vec F\\cdot\\vec v$.\n- SI unit watt (1 W = 1 J/s); 1 horsepower is about 746 W; 1 kWh = $3.6\\times10^6$ J.\n- A vehicle at constant power: $F=P/v$, so the pulling force falls as speed rises.\n- Maximum speed occurs when driving force equals resistive force."
+    },
+    {
+     "heading": "Collisions",
+     "body_md": "- Momentum is conserved in every collision (isolated system).\n- Elastic: kinetic energy also conserved. Inelastic: some kinetic energy is lost. Perfectly inelastic: bodies stick together, maximum loss.\n- Coefficient of restitution $e=\\dfrac{\\text{speed of separation}}{\\text{speed of approach}}$; $e=1$ elastic, $e=0$ perfectly inelastic.\n- In a 1-D elastic collision of equal masses the velocities are exchanged.\n- A ball dropped from $h_1$ rebounding to $h_2$ has $e=\\sqrt{h_2/h_1}$."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Work done by constant force",
+     "latex": "W=Fd\\cos\\theta",
+     "variables": "F = force (N); d = displacement (m); θ = angle between them",
+     "note": "Scalar product of force and displacement."
+    },
+    {
+     "name": "Work done by variable force",
+     "latex": "W=\\int_{x_1}^{x_2}F\\,dx",
+     "variables": "F(x) = force as function of position",
+     "note": "Area under the F-x curve."
+    },
+    {
+     "name": "Kinetic energy",
+     "latex": "K=\\frac12mv^2=\\frac{p^2}{2m}",
+     "variables": "m = mass (kg); v = speed (m/s); p = momentum",
+     "note": "Translational motion."
+    },
+    {
+     "name": "Work-energy theorem",
+     "latex": "W_{net}=K_f-K_i",
+     "variables": "K_f, K_i = final and initial kinetic energies (J)",
+     "note": "All forces included."
+    },
+    {
+     "name": "Gravitational potential energy",
+     "latex": "U=mgh",
+     "variables": "h = height above reference (m)",
+     "note": "Near Earth's surface."
+    },
+    {
+     "name": "Elastic potential energy",
+     "latex": "U=\\frac12kx^2",
+     "variables": "k = spring constant (N/m); x = deformation (m)",
+     "note": "Ideal spring."
+    },
+    {
+     "name": "Power",
+     "latex": "P=\\frac{W}{t}=\\vec F\\cdot\\vec v",
+     "variables": "t = time (s)",
+     "note": "Average and instantaneous forms."
+    },
+    {
+     "name": "Elastic collision in 1-D (target at rest)",
+     "latex": "v_1=\\frac{m_1-m_2}{m_1+m_2}u_1,\\quad v_2=\\frac{2m_1}{m_1+m_2}u_1",
+     "variables": "m_1, m_2 = masses; u_1 = initial speed of m_1",
+     "note": "Second body initially at rest."
+    },
+    {
+     "name": "Coefficient of restitution",
+     "latex": "e=\\frac{v_2-v_1}{u_1-u_2}",
+     "variables": "u = speeds before; v = speeds after collision",
+     "note": "1-D collision."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The work done by the centripetal force on a particle in uniform circular motion in one full revolution is:",
+     "options": [
+      "(A) $mv^2$",
+      "(B) $2\\pi r F$",
+      "(C) zero",
+      "(D) $\\tfrac12mv^2$"
+     ],
+     "answer": "(C)",
+     "solution_md": "The force is always perpendicular to the displacement, so $W=Fd\\cos90^\\circ=0$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "By what factor does the kinetic energy of a body change if its momentum is increased by 50%?",
+     "answer": "2.25 times",
+     "solution_md": "$K=p^2/2m$. New momentum $=1.5p$, so $K'=(1.5)^2K=2.25K$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A spring of constant 200 N/m is compressed by 0.10 m and used to launch a 0.05 kg block on a smooth horizontal surface. Find the stored energy and the launch speed.",
+     "answer": "1 J; 6.32 m/s",
+     "solution_md": "$U=\\tfrac12kx^2=\\tfrac12(200)(0.1)^2=1$ J.\n$\\tfrac12mv^2=1\\Rightarrow v=\\sqrt{2/0.05}=\\sqrt{40}=6.32$ m/s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A pump raises 600 kg of water per minute from a well 20 m deep. Find the minimum power required ($g=9.8$ m/s$^2$).",
+     "answer": "1960 W",
+     "solution_md": "Work per minute $=mgh=600\\times9.8\\times20=1.176\\times10^5$ J.\nPower $=1.176\\times10^5/60=1960$ W.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Prove the work-energy theorem for a constant force acting along a line. A 0.2 kg ball dropped from 5 m rebounds to 3.2 m. Find the coefficient of restitution and the mechanical energy lost in the bounce.",
+     "answer": "e = 0.8; 3.53 J lost",
+     "solution_md": "For constant $a$: $v^2-u^2=2as$. Multiply by $m/2$: $\\tfrac12mv^2-\\tfrac12mu^2=mas=Fs=W$. Hence $W_{net}=K_f-K_i$.\n\nBall: impact speed $v_1=\\sqrt{2g(5)}$, rebound speed $v_2=\\sqrt{2g(3.2)}$.\n$e=v_2/v_1=\\sqrt{3.2/5}=0.8$.\n\nEnergy lost $=mg(h_1-h_2)=0.2\\times9.8\\times1.8=3.53$ J.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A 2 kg body is acted on by a force $F=3x$ N along the x-axis. The work done in moving it from $x=0$ to $x=4$ m is:",
+     "options": [
+      "(A) 12 J",
+      "(B) 24 J",
+      "(C) 48 J",
+      "(D) 6 J"
+     ],
+     "answer": "(B)",
+     "solution_md": "$W=\\int_0^43x\\,dx=\\tfrac32(16)=24$ J.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A 2 kg ball moving at 6 m/s collides head-on elastically with a 4 kg ball at rest. Find the velocities of both balls after the collision.",
+     "answer": "-2 m/s and +4 m/s",
+     "solution_md": "$v_1=\\dfrac{2-4}{6}(6)=-2$ m/s (rebounds).\n$v_2=\\dfrac{2(2)}{6}(6)=4$ m/s.\nCheck KE: before $=36$ J; after $=\\tfrac12(2)(4)+\\tfrac12(4)(16)=4+32=36$ J.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A pendulum bob of length 0.9 m is released from the horizontal position. Its speed at the lowest point is ($g=9.8$ m/s$^2$):",
+     "options": [
+      "(A) 3.0 m/s",
+      "(B) 4.2 m/s",
+      "(C) 6.3 m/s",
+      "(D) 8.8 m/s"
+     ],
+     "answer": "(B)",
+     "solution_md": "$v=\\sqrt{2gL}=\\sqrt{2\\times9.8\\times0.9}=\\sqrt{17.64}=4.2$ m/s.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A 1000 kg car has an engine of constant power 20 kW and a constant resistive force of 500 N. Find its maximum speed and its acceleration when moving at 10 m/s.",
+     "answer": "40 m/s; 1.5 m/s^2",
+     "solution_md": "At maximum speed, driving force = resistance: $v_{max}=P/F=20000/500=40$ m/s.\nAt 10 m/s: driving force $=20000/10=2000$ N; net $=1500$ N; $a=1500/1000=1.5$ m/s$^2$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): In an inelastic collision, the total kinetic energy of the colliding bodies decreases although total momentum is conserved.\nReason (R): Part of the kinetic energy is converted into other forms such as heat and sound.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Momentum is conserved because no external force acts. Deformation and sound convert some kinetic energy to other forms, so R explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Work done formula",
+     "back": "W = F d cosθ"
+    },
+    {
+     "front": "Work-energy theorem",
+     "back": "Net work done equals change in kinetic energy."
+    },
+    {
+     "front": "Define conservative force",
+     "back": "Work done depends only on end points; zero over a closed path (gravity, spring)."
+    },
+    {
+     "front": "Gravitational PE near Earth",
+     "back": "mgh"
+    },
+    {
+     "front": "Spring potential energy",
+     "back": "(1/2) k x^2"
+    },
+    {
+     "front": "SI unit of power and 1 kWh in joules",
+     "back": "Watt = J/s; 1 kWh = 3.6 x 10^6 J."
+    },
+    {
+     "front": "Power in terms of force and velocity",
+     "back": "P = F · v"
+    },
+    {
+     "front": "Elastic vs inelastic collision",
+     "back": "Elastic conserves KE too; inelastic loses some KE. Momentum is conserved in both."
+    },
+    {
+     "front": "Coefficient of restitution for elastic and perfectly inelastic",
+     "back": "e = 1 and e = 0 respectively."
+    },
+    {
+     "front": "Result when two equal masses collide elastically head-on",
+     "back": "They exchange velocities."
+    }
+   ]
+  },
+  {
+   "number": 6,
+   "title": "System of Particles and Rotational Motion",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Rigid bodies and types of motion",
+     "body_md": "- A rigid body keeps fixed distances between its particles.\n- Pure translation: all particles have the same velocity. Pure rotation about a fixed axis: every particle moves in a circle with the same angular velocity.\n- Rolling is a combination of translation of the centre of mass and rotation about it."
+    },
+    {
+     "heading": "Centre of mass",
+     "body_md": "- For particles: $\\vec R=\\dfrac{\\sum m_i\\vec r_i}{\\sum m_i}$.\n- The centre of mass of a symmetric uniform body lies at its geometric centre (it may lie outside the body, as for a ring).\n- Motion of the centre of mass: $M\\vec a_{cm}=\\vec F_{ext}$; internal forces do not affect it.\n- If the net external force is zero, the centre of mass moves with constant velocity (an exploding shell's CM keeps following the original path)."
+    },
+    {
+     "heading": "Angular velocity, angular acceleration and kinematics",
+     "body_md": "- $\\omega=d\\theta/dt$, $\\alpha=d\\omega/dt$; linear speed $v=r\\omega$, tangential acceleration $a_t=r\\alpha$.\n- For constant $\\alpha$: $\\omega=\\omega_0+\\alpha t$, $\\theta=\\omega_0t+\\tfrac12\\alpha t^2$, $\\omega^2=\\omega_0^2+2\\alpha\\theta$.\n- These mirror the linear equations with $x\\to\\theta$, $v\\to\\omega$, $a\\to\\alpha$."
+    },
+    {
+     "heading": "Torque and angular momentum",
+     "body_md": "- Torque $\\vec\\tau=\\vec r\\times\\vec F$, magnitude $rF\\sin\\theta$ (force times perpendicular distance from the axis).\n- Angular momentum $\\vec L=\\vec r\\times\\vec p$; for a rigid body about its axis $L=I\\omega$.\n- Rotational form of the second law: $\\tau=\\dfrac{dL}{dt}=I\\alpha$.\n- Equilibrium of a rigid body needs zero net force and zero net torque."
+    },
+    {
+     "heading": "Moment of inertia",
+     "body_md": "- $I=\\sum m_ir_i^2$; it depends on mass, its distribution, and the axis.\n- Ring (axis through centre, perpendicular): $MR^2$. Disc: $\\tfrac12MR^2$. Solid sphere (diameter): $\\tfrac25MR^2$. Hollow sphere: $\\tfrac23MR^2$.\n- Rod about centre perpendicular: $\\tfrac{1}{12}ML^2$; about end: $\\tfrac13ML^2$.\n- Radius of gyration $k$: $I=Mk^2$."
+    },
+    {
+     "heading": "Theorems of parallel and perpendicular axes",
+     "body_md": "- Parallel axes: $I=I_{cm}+Md^2$, where $d$ is the distance between the parallel axes.\n- Perpendicular axes (planar bodies only): $I_z=I_x+I_y$.\n- The parallel axes theorem gives the smallest moment of inertia for the axis through the centre of mass.\n- Example: disc about a diameter $=\\tfrac14MR^2$ (using the perpendicular axes theorem)."
+    },
+    {
+     "heading": "Conservation of angular momentum and rotational energy",
+     "body_md": "- If net external torque is zero, $L=I\\omega$ is constant. A skater spins faster on pulling arms in because $I$ decreases.\n- Rotational kinetic energy $\\tfrac12I\\omega^2$; power $P=\\tau\\omega$; work $W=\\tau\\theta$.\n- Note that kinetic energy changes when $I$ changes even though $L$ is conserved (work is done by the skater)."
+    },
+    {
+     "heading": "Rolling motion",
+     "body_md": "- Rolling without slipping: $v_{cm}=R\\omega$; the contact point is momentarily at rest.\n- Total kinetic energy $=\\tfrac12Mv^2\\left(1+\\dfrac{k^2}{R^2}\\right)$.\n- Acceleration down an incline $a=\\dfrac{g\\sin\\theta}{1+k^2/R^2}$; bodies with smaller $k^2/R^2$ reach the bottom first (sphere before disc before ring).\n- Friction at the contact point is static and does no work in pure rolling."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Centre of mass",
+     "latex": "\\vec R_{cm}=\\frac{\\sum m_i\\vec r_i}{\\sum m_i}",
+     "variables": "m_i = masses (kg); r_i = position vectors (m)",
+     "note": "Discrete particles."
+    },
+    {
+     "name": "Torque",
+     "latex": "\\vec\\tau=\\vec r\\times\\vec F,\\ \\ \\tau=rF\\sin\\theta",
+     "variables": "r = position vector (m); F = force (N)",
+     "note": "About a chosen point or axis."
+    },
+    {
+     "name": "Angular momentum",
+     "latex": "\\vec L=\\vec r\\times\\vec p,\\ \\ L=I\\omega",
+     "variables": "I = moment of inertia (kg m^2); ω = angular velocity (rad/s)",
+     "note": "Second form for rotation about a fixed axis."
+    },
+    {
+     "name": "Rotational Newton's law",
+     "latex": "\\tau=I\\alpha=\\frac{dL}{dt}",
+     "variables": "α = angular acceleration (rad/s^2)",
+     "note": "Fixed axis."
+    },
+    {
+     "name": "Rotational kinetic energy",
+     "latex": "K_{rot}=\\frac12I\\omega^2",
+     "variables": "symbols as above",
+     "note": "Rigid body about a fixed axis."
+    },
+    {
+     "name": "Parallel axes theorem",
+     "latex": "I=I_{cm}+Md^2",
+     "variables": "M = mass (kg); d = separation of the axes (m)",
+     "note": "Axes must be parallel."
+    },
+    {
+     "name": "Perpendicular axes theorem",
+     "latex": "I_z=I_x+I_y",
+     "variables": "I_x, I_y = moments about in-plane perpendicular axes",
+     "note": "Planar (lamina) bodies only."
+    },
+    {
+     "name": "Moment of inertia of a rod about its end",
+     "latex": "I=\\frac13ML^2",
+     "variables": "L = length (m)",
+     "note": "Axis perpendicular to the rod."
+    },
+    {
+     "name": "Total KE in rolling",
+     "latex": "K=\\frac12Mv^2\\left(1+\\frac{k^2}{R^2}\\right)",
+     "variables": "k = radius of gyration; R = radius",
+     "note": "Rolling without slipping."
+    },
+    {
+     "name": "Acceleration on incline (rolling)",
+     "latex": "a=\\frac{g\\sin\\theta}{1+k^2/R^2}",
+     "variables": "θ = incline angle",
+     "note": "Rolling without slipping."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The moment of inertia of a uniform ring of mass $M$ and radius $R$ about an axis through its centre and perpendicular to its plane is:",
+     "options": [
+      "(A) $\\tfrac12MR^2$",
+      "(B) $\\tfrac25MR^2$",
+      "(C) $MR^2$",
+      "(D) $\\tfrac13MR^2$"
+     ],
+     "answer": "(C)",
+     "solution_md": "All mass is at distance $R$ from the axis, so $I=MR^2$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Define torque. A force of 10 N acts perpendicular to a spanner 0.3 m long. Find the torque.",
+     "answer": "3 N m",
+     "solution_md": "Torque is the turning effect of a force, $\\vec\\tau=\\vec r\\times\\vec F$. Here $\\tau=rF\\sin90^\\circ=0.3\\times10=3$ N m.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A 2 kg mass is at $x=0$ and a 3 kg mass is at $x=5$ m. Find the position of their centre of mass.",
+     "answer": "3 m from the 2 kg mass",
+     "solution_md": "$X_{cm}=\\dfrac{2(0)+3(5)}{2+3}=\\dfrac{15}{5}=3$ m.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A skater spinning at 2 rad/s with moment of inertia 4 kg m$^2$ pulls her arms in so that $I$ becomes 2 kg m$^2$. Find the new angular speed and the initial and final kinetic energies.",
+     "answer": "4 rad/s; 8 J; 16 J",
+     "solution_md": "$L$ conserved: $4\\times2=2\\omega\\Rightarrow\\omega=4$ rad/s.\n$K_i=\\tfrac12(4)(2)^2=8$ J; $K_f=\\tfrac12(2)(4)^2=16$ J.\nThe extra 8 J comes from work done by the skater's muscles.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "State and prove the theorem of parallel axes for a rigid body. Use it to find the moment of inertia of a 3 kg, 2 m uniform rod about an axis through one end perpendicular to the rod.",
+     "answer": "I = I_cm + M d^2; 4 kg m^2",
+     "solution_md": "Let the axis through the centre of mass be CM, and a parallel axis be at distance $d$. For a particle of mass $m$ at perpendicular distance $r$ from the CM axis, its distance from the parallel axis is $r'$ with $r'^2=r^2+d^2+2\\vec r\\cdot\\vec d$.\n\n$I=\\sum m r'^2=\\sum mr^2+d^2\\sum m+2\\vec d\\cdot\\sum m\\vec r$.\n\nThe last sum is zero because $\\sum m\\vec r=0$ about the centre of mass. Hence $I=I_{cm}+Md^2$.\n\nRod: $I_{cm}=\\tfrac{1}{12}(3)(2)^2=1$ kg m$^2$; $d=1$ m. $I=1+3(1)^2=4$ kg m$^2$ (agrees with $\\tfrac13ML^2$).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A solid sphere and a thin ring of equal mass and radius roll without slipping down the same incline. The ratio of their accelerations (sphere : ring) is:",
+     "options": [
+      "(A) 10 : 7",
+      "(B) 7 : 10",
+      "(C) 5 : 7",
+      "(D) 1 : 1"
+     ],
+     "answer": "(A)",
+     "solution_md": "$a_{sphere}=\\dfrac{g\\sin\\theta}{1+2/5}=\\tfrac57g\\sin\\theta$; $a_{ring}=\\dfrac{g\\sin\\theta}{2}$.\nRatio $=\\tfrac57\\div\\tfrac12=10:7$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A uniform disc of mass 2 kg and radius 0.5 m rolls without slipping with a centre-of-mass speed of 4 m/s. Find its total kinetic energy.",
+     "answer": "24 J",
+     "solution_md": "For a disc $k^2/R^2=\\tfrac12$.\n$K=\\tfrac12Mv^2(1+\\tfrac12)=\\tfrac12(2)(16)(1.5)=24$ J.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A wheel with moment of inertia 0.5 kg m$^2$ rotating at 20 rad/s is brought uniformly to rest in 10 s. The magnitude of the retarding torque is:",
+     "options": [
+      "(A) 0.5 N m",
+      "(B) 1 N m",
+      "(C) 2 N m",
+      "(D) 10 N m"
+     ],
+     "answer": "(B)",
+     "solution_md": "$\\alpha=20/10=2$ rad/s$^2$; $\\tau=I\\alpha=0.5\\times2=1$ N m.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A solid cylinder rolls without slipping from rest down an incline, falling through a vertical height of 1.5 m. Find its speed at the bottom ($g=9.8$ m/s$^2$).",
+     "answer": "4.43 m/s",
+     "solution_md": "Energy conservation: $mgh=\\tfrac12mv^2(1+\\tfrac12)\\Rightarrow v^2=\\tfrac{4gh}{3}=\\tfrac{4\\times9.8\\times1.5}{3}=19.6$.\n$v=4.43$ m/s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The moment of inertia of a body is not a fixed property of the body alone but depends on the chosen axis.\nReason (R): $I=\\sum m_ir_i^2$, where $r_i$ is measured from the axis of rotation.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Changing the axis changes every $r_i$ and hence $I$. R states the definition that explains this.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Centre of mass of two particles",
+     "back": "X = (m1 x1 + m2 x2)/(m1 + m2)"
+    },
+    {
+     "front": "Torque in terms of force",
+     "back": "τ = r F sinθ = r × F"
+    },
+    {
+     "front": "Relation between torque and angular acceleration",
+     "back": "τ = I α"
+    },
+    {
+     "front": "Moment of inertia of a disc about its axis",
+     "back": "(1/2) M R^2"
+    },
+    {
+     "front": "Moment of inertia of a solid sphere about its diameter",
+     "back": "(2/5) M R^2"
+    },
+    {
+     "front": "Parallel axes theorem",
+     "back": "I = I_cm + M d^2"
+    },
+    {
+     "front": "Perpendicular axes theorem and its condition",
+     "back": "I_z = I_x + I_y, for planar bodies only."
+    },
+    {
+     "front": "Law of conservation of angular momentum",
+     "back": "If net external torque is zero, L = Iω stays constant."
+    },
+    {
+     "front": "Condition for pure rolling",
+     "back": "v_cm = Rω, contact point instantaneously at rest."
+    },
+    {
+     "front": "Rolling race down an incline: who wins?",
+     "back": "The body with smallest k^2/R^2: solid sphere, then disc, then ring."
+    }
+   ]
+  },
+  {
+   "number": 7,
+   "title": "Gravitation",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Kepler's laws of planetary motion",
+     "body_md": "- Law of orbits: planets move in ellipses with the Sun at one focus.\n- Law of areas: the line joining the Sun and a planet sweeps equal areas in equal times (conservation of angular momentum), so a planet moves faster when nearer the Sun.\n- Law of periods: $T^2\\propto a^3$, where $a$ is the semi-major axis."
+    },
+    {
+     "heading": "Universal law of gravitation",
+     "body_md": "- Every pair of point masses attracts with force $F=\\dfrac{Gm_1m_2}{r^2}$ along the line joining them.\n- $G=6.67\\times10^{-11}$ N m$^2$/kg$^2$; it is a universal constant.\n- Gravity is always attractive, acts at a distance and obeys the third law.\n- For spherical bodies, the mass can be taken to be concentrated at the centre (shell theorem)."
+    },
+    {
+     "heading": "Acceleration due to gravity",
+     "body_md": "- At the surface, $g=\\dfrac{GM}{R^2}$ and the mass of the Earth follows from $M=gR^2/G$.\n- Height $h\\ll R$: $g_h\\approx g\\left(1-\\dfrac{2h}{R}\\right)$; exact $g_h=g\\left(\\dfrac{R}{R+h}\\right)^2$.\n- Depth $d$: $g_d=g\\left(1-\\dfrac{d}{R}\\right)$, zero at the centre.\n- Rotation and the Earth's shape make $g$ vary with latitude: minimum at the equator, maximum at the poles."
+    },
+    {
+     "heading": "Gravitational potential energy",
+     "body_md": "- Taking $U=0$ at infinity, the potential energy of two masses is $U=-\\dfrac{Gm_1m_2}{r}$.\n- Gravitational potential $V=-\\dfrac{GM}{r}$ (energy per unit mass).\n- Near the surface, $mgh$ is the change of $U$ for small heights.\n- Force is the negative gradient of potential energy: $F=-dU/dr$."
+    },
+    {
+     "heading": "Escape speed",
+     "body_md": "- Minimum speed needed to leave the Earth's gravity without further propulsion.\n- $v_e=\\sqrt{\\dfrac{2GM}{R}}=\\sqrt{2gR}\\approx11.2$ km/s for Earth.\n- It does not depend on the mass or direction of the projectile.\n- $v_e=\\sqrt2\\,v_o$, where $v_o$ is the orbital speed just above the surface.\n- For the Moon $v_e\\approx2.4$ km/s, so it has no atmosphere."
+    },
+    {
+     "heading": "Earth satellites",
+     "body_md": "- Orbital speed at radius $r$: $v_o=\\sqrt{\\dfrac{GM}{r}}$ (about 7.9 km/s near the surface).\n- Time period $T=2\\pi\\sqrt{\\dfrac{r^3}{GM}}$; about 84 minutes near the surface.\n- A geostationary satellite has $T=24$ h, orbits in the equatorial plane at about 36,000 km above the surface (radius about 42,400 km).\n- A polar satellite passes over the poles and scans the whole Earth over time."
+    },
+    {
+     "heading": "Energy of an orbiting satellite",
+     "body_md": "- $K=\\dfrac{GMm}{2r}$, $U=-\\dfrac{GMm}{r}$, total $E=-\\dfrac{GMm}{2r}$.\n- Total energy is negative, which means the satellite is bound; binding energy is $+GMm/2r$.\n- Moving to a higher orbit increases the total energy (less negative) but decreases the speed.\n- Weightlessness in an orbit: the satellite and its contents are in free fall with the same acceleration."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Newton's law of gravitation",
+     "latex": "F=\\frac{Gm_1m_2}{r^2}",
+     "variables": "G = 6.67e-11 N m^2/kg^2; m_1, m_2 = masses (kg); r = separation (m)",
+     "note": "Point masses or spherical bodies."
+    },
+    {
+     "name": "Acceleration due to gravity",
+     "latex": "g=\\frac{GM}{R^2}",
+     "variables": "M = mass of the planet (kg); R = radius (m)",
+     "note": "On the planet's surface."
+    },
+    {
+     "name": "g at height h",
+     "latex": "g_h=g\\left(\\frac{R}{R+h}\\right)^2\\approx g\\left(1-\\frac{2h}{R}\\right)",
+     "variables": "h = height above surface (m)",
+     "note": "Approximation valid for h much less than R."
+    },
+    {
+     "name": "g at depth d",
+     "latex": "g_d=g\\left(1-\\frac{d}{R}\\right)",
+     "variables": "d = depth below surface (m)",
+     "note": "Uniform Earth density assumed."
+    },
+    {
+     "name": "Gravitational potential energy",
+     "latex": "U=-\\frac{GMm}{r}",
+     "variables": "r = distance from the centre of M (m)",
+     "note": "Zero at infinity."
+    },
+    {
+     "name": "Escape speed",
+     "latex": "v_e=\\sqrt{\\frac{2GM}{R}}=\\sqrt{2gR}",
+     "variables": "R = radius of the planet (m)",
+     "note": "Independent of the mass of the object."
+    },
+    {
+     "name": "Orbital speed",
+     "latex": "v_o=\\sqrt{\\frac{GM}{r}}",
+     "variables": "r = orbital radius (m) measured from the centre",
+     "note": "Circular orbit."
+    },
+    {
+     "name": "Time period of a satellite",
+     "latex": "T=2\\pi\\sqrt{\\frac{r^3}{GM}}",
+     "variables": "T = period (s)",
+     "note": "Kepler's third law: T^2 proportional to r^3."
+    },
+    {
+     "name": "Total energy of a satellite",
+     "latex": "E=-\\frac{GMm}{2r}",
+     "variables": "m = mass of the satellite (kg)",
+     "note": "Circular orbit."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "Kepler's second law (equal areas in equal times) is a consequence of conservation of:",
+     "options": [
+      "(A) linear momentum",
+      "(B) angular momentum",
+      "(C) energy",
+      "(D) mass"
+     ],
+     "answer": "(B)",
+     "solution_md": "The gravitational force is central, so torque about the Sun is zero and angular momentum is conserved.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Find the acceleration due to gravity at a height equal to the radius of the Earth above its surface ($g=9.8$ m/s$^2$ at the surface).",
+     "answer": "2.45 m/s^2",
+     "solution_md": "$g_h=g\\left(\\dfrac{R}{2R}\\right)^2=g/4=2.45$ m/s$^2$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "A planet has 1/8 the mass and 1/2 the radius of the Earth. Find its escape speed if that of the Earth is 11.2 km/s.",
+     "answer": "5.6 km/s",
+     "solution_md": "$v_e\\propto\\sqrt{M/R}$. Ratio $=\\sqrt{(1/8)/(1/2)}=\\sqrt{1/4}=\\tfrac12$.\n$v_e=11.2/2=5.6$ km/s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A person of mass 60 kg is at a depth equal to half the Earth's radius. Find the weight there ($g=9.8$ m/s$^2$).",
+     "answer": "294 N",
+     "solution_md": "$g_d=g(1-d/R)=g(1-\\tfrac12)=4.9$ m/s$^2$.\nWeight $=60\\times4.9=294$ N.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Derive the expression for the orbital speed and the time period of a satellite in a circular orbit of radius $r$. A satellite orbits at $r=1.0\\times10^7$ m; find its speed and period (take $g=9.8$ m/s$^2$, $R=6.4\\times10^6$ m).",
+     "answer": "v = sqrt(GM/r); 6.34 km/s; about 9.9e3 s (2.75 h)",
+     "solution_md": "Gravity provides the centripetal force: $\\dfrac{GMm}{r^2}=\\dfrac{mv^2}{r}\\Rightarrow v=\\sqrt{GM/r}$.\n\n$T=\\dfrac{2\\pi r}{v}=2\\pi\\sqrt{\\dfrac{r^3}{GM}}$.\n\nNumerics: $GM=gR^2=9.8\\times(6.4\\times10^6)^2=4.01\\times10^{14}$.\n$v=\\sqrt{4.01\\times10^{14}/10^{7}}=6.34\\times10^3$ m/s.\n$T=\\dfrac{2\\pi\\times10^7}{6.34\\times10^3}\\approx9.9\\times10^3$ s $\\approx2.75$ h.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "At what height above the surface does $g$ decrease by 1% (use the small-height approximation; $R=6400$ km)?",
+     "options": [
+      "(A) 16 km",
+      "(B) 32 km",
+      "(C) 64 km",
+      "(D) 128 km"
+     ],
+     "answer": "(B)",
+     "solution_md": "$\\Delta g/g\\approx2h/R=0.01\\Rightarrow h=0.005R=0.005\\times6400=32$ km.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the binding energy of a 1000 kg satellite in a circular orbit of radius $2R$ ($R=6.4\\times10^6$ m, $g=9.8$ m/s$^2$).",
+     "answer": "1.57e10 J",
+     "solution_md": "$E=-\\dfrac{GMm}{2r}=-\\dfrac{gR^2m}{4R}=-\\dfrac{gRm}{4}$.\n$=-\\dfrac{9.8\\times6.4\\times10^6\\times1000}{4}=-1.568\\times10^{10}$ J.\nBinding energy $=1.57\\times10^{10}$ J.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Two planets orbit the Sun at radii in the ratio 1 : 4. The ratio of their time periods is:",
+     "options": [
+      "(A) 1 : 2",
+      "(B) 1 : 4",
+      "(C) 1 : 8",
+      "(D) 1 : 16"
+     ],
+     "answer": "(C)",
+     "solution_md": "$T^2\\propto r^3$, so $T_1/T_2=(1/4)^{3/2}=1/8$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the escape speed from the Earth's surface and the minimum energy needed to take a 1 kg mass to infinity ($g=9.8$ m/s$^2$, $R=6.4\\times10^6$ m).",
+     "answer": "11.2 km/s; 6.27e7 J",
+     "solution_md": "$v_e=\\sqrt{2gR}=\\sqrt{2\\times9.8\\times6.4\\times10^6}=\\sqrt{1.2544\\times10^8}=1.12\\times10^4$ m/s.\nEnergy $=\\tfrac12mv_e^2=mgR=9.8\\times6.4\\times10^6=6.27\\times10^7$ J.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The escape speed of a body from the Earth does not depend on the mass of the body.\nReason (R): $v_e=\\sqrt{2GM/R}$ contains only the mass and radius of the Earth.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Equating $\\tfrac12mv^2=GMm/R$, the mass $m$ cancels. R gives the formula that shows this.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "State Kepler's third law",
+     "back": "The square of the orbital period is proportional to the cube of the semi-major axis."
+    },
+    {
+     "front": "Value of the gravitational constant G",
+     "back": "6.67 x 10^-11 N m^2 kg^-2"
+    },
+    {
+     "front": "Expression for g on the Earth's surface",
+     "back": "g = GM/R^2"
+    },
+    {
+     "front": "g at depth d",
+     "back": "g(1 - d/R); zero at the centre of the Earth."
+    },
+    {
+     "front": "Where is g maximum on Earth's surface?",
+     "back": "At the poles (minimum at the equator)."
+    },
+    {
+     "front": "Escape speed of the Earth",
+     "back": "sqrt(2gR), about 11.2 km/s."
+    },
+    {
+     "front": "Orbital speed near Earth's surface",
+     "back": "About 7.9 km/s."
+    },
+    {
+     "front": "Total energy of a satellite in circular orbit",
+     "back": "-GMm/(2r) (negative, bound system)."
+    },
+    {
+     "front": "Time period of a geostationary satellite",
+     "back": "24 hours, equatorial orbit, about 36,000 km above the surface."
+    },
+    {
+     "front": "Why astronauts feel weightless in orbit",
+     "back": "They and the spacecraft are in free fall with the same acceleration."
+    }
+   ]
+  },
+  {
+   "number": 8,
+   "title": "Mechanical Properties of Solids",
+   "ncert_part": "Part II",
+   "notes": [
+    {
+     "heading": "Elasticity and plasticity",
+     "body_md": "- Elasticity is the tendency of a body to regain its original shape and size after the deforming force is removed.\n- Plasticity is the tendency to retain the deformation (putty, lead).\n- Steel is more elastic than rubber, because for the same strain it develops a larger restoring stress."
+    },
+    {
+     "heading": "Stress and strain",
+     "body_md": "- Stress = restoring force per unit area, $\\sigma=F/A$ (N/m$^2$ = Pa); dimension $ML^{-1}T^{-2}$.\n- Types: longitudinal (tensile or compressive), shear (tangential), hydraulic (uniform pressure).\n- Strain = fractional deformation, dimensionless: longitudinal $\\Delta L/L$, shear $\\theta=\\Delta x/L$, volume $\\Delta V/V$."
+    },
+    {
+     "heading": "Hooke's law and the stress-strain curve",
+     "body_md": "- Within the proportional limit, stress is proportional to strain; the ratio is the modulus of elasticity.\n- Curve: proportional region, elastic limit, yield point, plastic region, ultimate tensile strength, fracture.\n- Materials that fracture soon after the elastic limit are brittle; those with a long plastic region are ductile.\n- Elastomers (rubber) show large strain with no proper proportionality and a hysteresis loop."
+    },
+    {
+     "heading": "Young's modulus",
+     "body_md": "- $Y=\\dfrac{\\text{longitudinal stress}}{\\text{longitudinal strain}}=\\dfrac{FL}{A\\,\\Delta L}$.\n- It depends only on the material; steel $\\approx2\\times10^{11}$ Pa, copper $\\approx1.1\\times10^{11}$ Pa, aluminium $\\approx7\\times10^{10}$ Pa.\n- Extension of a wire: $\\Delta L\\propto FL/(r^2Y)$; a wire acts like a spring of constant $k=YA/L$.\n- The same force stretches a thinner or longer wire more."
+    },
+    {
+     "heading": "Shear modulus and bulk modulus",
+     "body_md": "- Shear modulus $G=\\dfrac{F/A}{\\theta}$ where $\\theta$ is the angle of shear; liquids and gases have $G=0$.\n- Bulk modulus $B=-\\dfrac{p}{\\Delta V/V}$; the negative sign shows that volume decreases as pressure increases.\n- Compressibility $=1/B$.\n- Solids have a high $B$; gases are the most compressible."
+    },
+    {
+     "heading": "Poisson's ratio",
+     "body_md": "- When a wire is stretched it becomes thinner. Poisson's ratio $\\sigma=\\dfrac{\\text{lateral strain}}{\\text{longitudinal strain}}$ in magnitude.\n- It is a pure number; its theoretical limits are $-1$ and $0.5$, and for most materials $0$ to $0.5$.\n- Lateral strain is $\\Delta d/d$ (change in diameter over original diameter)."
+    },
+    {
+     "heading": "Elastic potential energy",
+     "body_md": "- Work done in stretching a wire is stored as elastic potential energy: $U=\\tfrac12F\\,\\Delta L=\\tfrac12k(\\Delta L)^2$.\n- Energy per unit volume $u=\\tfrac12\\times\\text{stress}\\times\\text{strain}=\\dfrac{\\sigma^2}{2Y}=\\tfrac12Y\\varepsilon^2$.\n- Energy lost in rubber appears as heat (hysteresis), making it useful in shock absorbers."
+    },
+    {
+     "heading": "Applications of elastic behaviour",
+     "body_md": "- Cranes use steel ropes with a safe load far below the breaking stress.\n- Bridges and beams are made with an I-shaped cross section to resist bending with less material.\n- A beam of length $l$, breadth $b$ and depth $d$ has deflection proportional to $l^3/(bd^3Y)$, so depth matters most.\n- Mountains have a limited height because the base rock must withstand the weight above it."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Stress",
+     "latex": "\\sigma=\\frac{F}{A}",
+     "variables": "F = force (N); A = cross-sectional area (m^2)",
+     "note": "Unit pascal."
+    },
+    {
+     "name": "Longitudinal strain",
+     "latex": "\\varepsilon=\\frac{\\Delta L}{L}",
+     "variables": "ΔL = change in length (m); L = original length (m)",
+     "note": "Dimensionless."
+    },
+    {
+     "name": "Young's modulus",
+     "latex": "Y=\\frac{FL}{A\\,\\Delta L}",
+     "variables": "Y = Young's modulus (Pa)",
+     "note": "Within the proportional limit."
+    },
+    {
+     "name": "Extension of a wire",
+     "latex": "\\Delta L=\\frac{FL}{AY}",
+     "variables": "symbols as above",
+     "note": "Wire under tension."
+    },
+    {
+     "name": "Shear modulus",
+     "latex": "G=\\frac{F/A}{\\Delta x/L}=\\frac{F}{A\\theta}",
+     "variables": "θ = shear angle (rad); Δx = displacement of the top face",
+     "note": "A = area of the face parallel to force."
+    },
+    {
+     "name": "Bulk modulus",
+     "latex": "B=-\\frac{\\Delta p}{\\Delta V/V}",
+     "variables": "Δp = pressure change (Pa); ΔV/V = volume strain",
+     "note": "Uniform compression."
+    },
+    {
+     "name": "Poisson's ratio",
+     "latex": "\\sigma=\\frac{\\Delta d/d}{\\Delta L/L}",
+     "variables": "Δd/d = lateral strain",
+     "note": "Magnitude of the ratio."
+    },
+    {
+     "name": "Elastic potential energy of a stretched wire",
+     "latex": "U=\\frac12F\\,\\Delta L=\\frac12\\frac{YA}{L}(\\Delta L)^2",
+     "variables": "U = stored energy (J)",
+     "note": "Within the elastic limit."
+    },
+    {
+     "name": "Energy density",
+     "latex": "u=\\frac12\\sigma\\varepsilon=\\frac{\\sigma^2}{2Y}",
+     "variables": "u = energy per unit volume (J/m^3)",
+     "note": "Within the elastic limit."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The SI unit of Young's modulus is:",
+     "options": [
+      "(A) N",
+      "(B) N m",
+      "(C) N/m$^2$",
+      "(D) N/m"
+     ],
+     "answer": "(C)",
+     "solution_md": "$Y$ = stress/strain, and strain is dimensionless, so its unit is that of stress, N/m$^2$ (pascal).",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "State Hooke's law and define the elastic limit.",
+     "answer": "Stress is proportional to strain within the elastic limit.",
+     "solution_md": "Hooke's law: within the elastic limit, stress is directly proportional to strain; the constant is the modulus of elasticity.\nElastic limit: the maximum stress up to which the body fully regains its original dimensions on removing the load.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A steel wire of length 2 m and diameter 1 mm carries a 10 kg load. Find the extension ($Y=2\\times10^{11}$ Pa, $g=9.8$ m/s$^2$).",
+     "answer": "1.25 mm",
+     "solution_md": "$A=\\pi(0.5\\times10^{-3})^2=7.85\\times10^{-7}$ m$^2$; $F=98$ N.\n$\\Delta L=\\dfrac{FL}{AY}=\\dfrac{98\\times2}{7.85\\times10^{-7}\\times2\\times10^{11}}=1.25\\times10^{-3}$ m.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Two wires of the same material have lengths in the ratio 1 : 2 and radii in the ratio 2 : 1. They carry the same load. Find the ratio of their extensions.",
+     "answer": "1 : 8",
+     "solution_md": "$\\Delta L\\propto\\dfrac{L}{r^2}$.\n$\\dfrac{\\Delta L_1}{\\Delta L_2}=\\dfrac{L_1}{L_2}\\left(\\dfrac{r_2}{r_1}\\right)^2=\\dfrac12\\times\\dfrac14=\\dfrac18$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Draw and explain the stress-strain curve for a ductile metal wire. Water has bulk modulus $2.2\\times10^{9}$ Pa; find the fractional compression when the pressure increases by $2\\times10^{7}$ Pa.",
+     "answer": "0.91%",
+     "solution_md": "Curve (strain on x-axis, stress on y-axis):\n- OA: straight line, Hooke's law valid; A is the proportional limit.\n- AB: stress and strain no longer proportional but the wire still returns to its original length; B is the elastic limit.\n- Beyond B: the wire shows permanent set; C is the yield point where strain rises rapidly.\n- CD: plastic region; D is the ultimate tensile strength (maximum stress).\n- DE: the wire thins (necking) and breaks at E (fracture point).\n\nNumerical: $\\dfrac{\\Delta V}{V}=\\dfrac{\\Delta p}{B}=\\dfrac{2\\times10^7}{2.2\\times10^9}=9.1\\times10^{-3}$, i.e. 0.91%.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A wire is stressed to $4\\times10^{7}$ Pa. If $Y=2\\times10^{11}$ Pa, the elastic energy stored per unit volume is:",
+     "options": [
+      "(A) 2000 J/m$^3$",
+      "(B) 4000 J/m$^3$",
+      "(C) 8000 J/m$^3$",
+      "(D) 1000 J/m$^3$"
+     ],
+     "answer": "(B)",
+     "solution_md": "$u=\\dfrac{\\sigma^2}{2Y}=\\dfrac{(4\\times10^7)^2}{2\\times2\\times10^{11}}=\\dfrac{1.6\\times10^{15}}{4\\times10^{11}}=4000$ J/m$^3$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A wire of length 1 m and cross-section $10^{-6}$ m$^2$ has $Y=2\\times10^{11}$ Pa. What tension is needed to stretch it by 1 mm?",
+     "answer": "200 N (about a 20.4 kg weight)",
+     "solution_md": "$F=\\dfrac{YA\\,\\Delta L}{L}=\\dfrac{2\\times10^{11}\\times10^{-6}\\times10^{-3}}{1}=200$ N.\nEquivalent mass $=200/9.8\\approx20.4$ kg.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A wire of length $L$ extends by $\\Delta L$ under a force $F$. If the same wire is cut to half its length and the same force is applied, the extension is:",
+     "options": [
+      "(A) $\\Delta L/2$",
+      "(B) $\\Delta L$",
+      "(C) $2\\Delta L$",
+      "(D) $\\Delta L/4$"
+     ],
+     "answer": "(A)",
+     "solution_md": "$\\Delta L=FL/AY\\propto L$. Halving the length halves the extension: $\\Delta L/2$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A cube of side 10 cm is subjected to a tangential force so that its top face is displaced 0.5 mm relative to the bottom. If $G=8\\times10^{10}$ Pa, find the force.",
+     "answer": "4e6 N",
+     "solution_md": "Shear angle $\\theta=\\Delta x/L=5\\times10^{-4}/0.1=5\\times10^{-3}$.\nArea $=0.01$ m$^2$.\n$F=GA\\theta=8\\times10^{10}\\times0.01\\times5\\times10^{-3}=4\\times10^{6}$ N.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): Steel is more elastic than rubber.\nReason (R): Steel has a larger Young's modulus than rubber.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Elasticity is judged by the restoring stress for a given strain; a larger $Y$ means a larger restoring stress per unit strain, so R explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Define stress",
+     "back": "Restoring force per unit area, F/A (unit pascal)."
+    },
+    {
+     "front": "Define strain",
+     "back": "Fractional change in dimension; it has no unit."
+    },
+    {
+     "front": "Hooke's law",
+     "back": "Within the elastic limit, stress is proportional to strain."
+    },
+    {
+     "front": "Young's modulus formula",
+     "back": "Y = FL / (A ΔL)"
+    },
+    {
+     "front": "Which has Y = 0, shear modulus of liquids or solids?",
+     "back": "Liquids and gases have zero shear modulus."
+    },
+    {
+     "front": "Bulk modulus formula",
+     "back": "B = -Δp / (ΔV/V)"
+    },
+    {
+     "front": "Poisson's ratio",
+     "back": "Lateral strain divided by longitudinal strain."
+    },
+    {
+     "front": "Elastic energy per unit volume",
+     "back": "(1/2) × stress × strain = σ²/2Y"
+    },
+    {
+     "front": "Ductile vs brittle",
+     "back": "Ductile materials have a large plastic region (copper); brittle ones break soon after the elastic limit (glass)."
+    },
+    {
+     "front": "Why are beams I-shaped?",
+     "back": "It resists bending using less material, since deflection varies as 1/(b d^3)."
+    }
+   ]
+  },
+  {
+   "number": 9,
+   "title": "Mechanical Properties of Fluids",
+   "ncert_part": "Part II",
+   "notes": [
+    {
+     "heading": "Pressure in a fluid",
+     "body_md": "- Pressure $p=F/A$ (pascal, Pa); atmospheric pressure is about $1.013\\times10^5$ Pa.\n- Pressure at depth $h$: $p=p_0+\\rho gh$; gauge pressure is $\\rho gh$.\n- Pressure depends on depth, not on the shape of the container (hydrostatic paradox).\n- Pressure is a scalar, acting equally in all directions at a point.\n- Barometer: the height of a mercury column (76 cm) balances atmospheric pressure."
+    },
+    {
+     "heading": "Pascal's law and hydraulic machines",
+     "body_md": "- A pressure change applied to an enclosed fluid is transmitted undiminished to every part of it.\n- Hydraulic lift: $F_2=F_1\\dfrac{A_2}{A_1}$, giving a mechanical advantage.\n- Energy is conserved: the smaller piston moves a larger distance.\n- Applications: hydraulic jacks, brakes, presses."
+    },
+    {
+     "heading": "Buoyancy and Archimedes' principle",
+     "body_md": "- A body in a fluid experiences an upward force equal to the weight of the fluid it displaces.\n- A body floats if its average density is less than the fluid's; the submerged fraction is $\\rho_{body}/\\rho_{fluid}$.\n- Apparent weight in a fluid = true weight - buoyant force.\n- A floating body is in stable equilibrium when its centre of gravity lies below the centre of buoyancy (or the metacentre is above the C.G.)."
+    },
+    {
+     "heading": "Streamline flow, continuity and Bernoulli's principle",
+     "body_md": "- Streamline (steady) flow: velocity at a point is constant; streamlines never cross.\n- Equation of continuity (incompressible): $A_1v_1=A_2v_2$.\n- Bernoulli: $p+\\tfrac12\\rho v^2+\\rho gh=$ constant along a streamline (non-viscous, incompressible, steady flow).\n- Where speed is high, pressure is low.\n- Applications: Torricelli's law $v=\\sqrt{2gh}$, Venturi meter, atomiser, lift on an aerofoil, why ships moving close attract."
+    },
+    {
+     "heading": "Viscosity",
+     "body_md": "- Viscosity is the internal friction of a fluid opposing relative motion between layers: $F=\\eta A\\dfrac{dv}{dx}$.\n- Unit of $\\eta$: pascal second (Pa s); poise = 0.1 Pa s.\n- Viscosity of liquids decreases with temperature; that of gases increases.\n- Stokes' law: drag on a sphere $F=6\\pi\\eta rv$.\n- Terminal velocity: $v_t=\\dfrac{2r^2(\\rho-\\sigma)g}{9\\eta}$, where $\\sigma$ is the density of the fluid."
+    },
+    {
+     "heading": "Reynolds number and turbulence",
+     "body_md": "- $Re=\\dfrac{\\rho vd}{\\eta}$ decides flow type: below about 1000 flow is laminar; above about 2000 it becomes turbulent.\n- Turbulent flow is irregular, with eddies, and has higher resistance.\n- Streamlined shapes delay turbulence in vehicles and aircraft."
+    },
+    {
+     "heading": "Surface tension",
+     "body_md": "- Surface tension $S=F/l$, the force per unit length on a line drawn in the surface (N/m); it is also surface energy per unit area (J/m$^2$).\n- It arises from unbalanced cohesive forces on surface molecules, and decreases as temperature rises or with detergents.\n- Work to increase the area of a surface: $W=S\\,\\Delta A$.\n- Droplets and bubbles tend to be spherical to minimise area."
+    },
+    {
+     "heading": "Excess pressure, angle of contact and capillarity",
+     "body_md": "- Excess pressure inside a liquid drop $=\\dfrac{2S}{r}$; inside a soap bubble (two surfaces) $=\\dfrac{4S}{r}$.\n- Angle of contact is acute for wetting liquids (water on glass) and obtuse for non-wetting ones (mercury on glass).\n- Capillary rise: $h=\\dfrac{2S\\cos\\theta}{\\rho gr}$; mercury is depressed.\n- Practical examples: oil rising in a wick, ink absorbed by blotting paper."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Pressure at depth",
+     "latex": "p=p_0+\\rho gh",
+     "variables": "p_0 = surface pressure (Pa); ρ = density (kg/m^3); h = depth (m)",
+     "note": "Incompressible fluid at rest."
+    },
+    {
+     "name": "Hydraulic lift",
+     "latex": "\\frac{F_1}{A_1}=\\frac{F_2}{A_2}",
+     "variables": "F = force (N); A = piston area (m^2)",
+     "note": "Pascal's law."
+    },
+    {
+     "name": "Buoyant force",
+     "latex": "F_B=\\rho_{f}V_{disp}\\,g",
+     "variables": "ρ_f = fluid density; V_disp = displaced volume (m^3)",
+     "note": "Archimedes' principle."
+    },
+    {
+     "name": "Equation of continuity",
+     "latex": "A_1v_1=A_2v_2",
+     "variables": "A = cross-section (m^2); v = speed (m/s)",
+     "note": "Steady incompressible flow."
+    },
+    {
+     "name": "Bernoulli's equation",
+     "latex": "p+\\frac12\\rho v^2+\\rho gh=\\text{constant}",
+     "variables": "p = pressure (Pa); v = speed; h = height (m)",
+     "note": "Steady, non-viscous, incompressible flow."
+    },
+    {
+     "name": "Torricelli's theorem",
+     "latex": "v=\\sqrt{2gh}",
+     "variables": "h = depth of the hole below the free surface (m)",
+     "note": "Speed of efflux."
+    },
+    {
+     "name": "Stokes' law",
+     "latex": "F=6\\pi\\eta rv",
+     "variables": "η = viscosity (Pa s); r = radius of sphere (m); v = speed",
+     "note": "Small spheres in viscous fluids."
+    },
+    {
+     "name": "Terminal velocity",
+     "latex": "v_t=\\frac{2r^2(\\rho-\\sigma)g}{9\\eta}",
+     "variables": "ρ = density of sphere; σ = density of fluid",
+     "note": "When weight = buoyancy + drag."
+    },
+    {
+     "name": "Reynolds number",
+     "latex": "Re=\\frac{\\rho vd}{\\eta}",
+     "variables": "d = pipe diameter (m)",
+     "note": "Dimensionless; indicates laminar or turbulent flow."
+    },
+    {
+     "name": "Excess pressure in a drop",
+     "latex": "\\Delta p=\\frac{2S}{r}",
+     "variables": "S = surface tension (N/m); r = radius (m)",
+     "note": "Soap bubble: 4S/r."
+    },
+    {
+     "name": "Capillary rise",
+     "latex": "h=\\frac{2S\\cos\\theta}{\\rho gr}",
+     "variables": "θ = angle of contact; r = tube radius (m)",
+     "note": "Narrow tube."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The SI unit of coefficient of viscosity is:",
+     "options": [
+      "(A) N s",
+      "(B) Pa s",
+      "(C) N/m",
+      "(D) kg/m^3"
+     ],
+     "answer": "(B)",
+     "solution_md": "From $F=\\eta A\\,dv/dx$, $\\eta=\\dfrac{N}{m^2\\cdot s^{-1}}=\\text{Pa s}$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "State Bernoulli's theorem and list the conditions under which it holds.",
+     "answer": "p + (1/2)ρv^2 + ρgh = constant",
+     "solution_md": "For steady, incompressible and non-viscous flow, along a streamline the sum of pressure, kinetic energy per unit volume and potential energy per unit volume is constant: $p+\\tfrac12\\rho v^2+\\rho gh=$ constant. It is energy conservation per unit volume.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "Find the gauge and absolute pressure at a depth of 10 m in water ($\\rho=1000$ kg/m$^3$, $p_0=1.013\\times10^5$ Pa, $g=9.8$ m/s$^2$).",
+     "answer": "Gauge 9.8e4 Pa; absolute 1.99e5 Pa",
+     "solution_md": "Gauge pressure $=\\rho gh=1000\\times9.8\\times10=9.8\\times10^4$ Pa.\nAbsolute $=1.013\\times10^5+0.98\\times10^5=1.99\\times10^5$ Pa.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "Water rises in a capillary tube of radius 0.5 mm with zero angle of contact. Find the height ($S=0.072$ N/m, $\\rho=1000$ kg/m$^3$, $g=9.8$ m/s$^2$).",
+     "answer": "2.94 cm",
+     "solution_md": "$h=\\dfrac{2S}{\\rho gr}=\\dfrac{2\\times0.072}{1000\\times9.8\\times0.5\\times10^{-3}}=\\dfrac{0.144}{4.9}=2.94\\times10^{-2}$ m.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Derive Torricelli's theorem for the speed of efflux from a small hole. Water flows from a horizontal pipe of cross-section A to a narrower section of A/4. If the speed in the wide part is 2 m/s, find the speed in the narrow part and the pressure difference.",
+     "answer": "v = sqrt(2gh); 8 m/s; 3e4 Pa",
+     "solution_md": "Take the free surface (point 1, pressure $p_0$, speed about 0) and the hole (point 2, $p_0$, speed $v$) at depth $h$ lower. Bernoulli: $p_0+\\rho gh=p_0+\\tfrac12\\rho v^2\\Rightarrow v=\\sqrt{2gh}$.\n\nPipe: continuity $A v_1=\\tfrac{A}{4}v_2\\Rightarrow v_2=4v_1=8$ m/s.\nBernoulli (same height): $p_1-p_2=\\tfrac12\\rho(v_2^2-v_1^2)=500(64-4)=3\\times10^{4}$ Pa.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A soap bubble of radius 2 cm has surface tension 0.03 N/m. The excess pressure inside it is:",
+     "options": [
+      "(A) 3 Pa",
+      "(B) 6 Pa",
+      "(C) 12 Pa",
+      "(D) 1.5 Pa"
+     ],
+     "answer": "(B)",
+     "solution_md": "$\\Delta p=\\dfrac{4S}{r}=\\dfrac{4\\times0.03}{0.02}=6$ Pa.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A steel ball of radius 1 mm ($\\rho=7800$ kg/m$^3$) falls in glycerine ($\\sigma=1260$ kg/m$^3$, $\\eta=0.83$ Pa s). Find its terminal velocity ($g=9.8$ m/s$^2$).",
+     "answer": "1.72 cm/s",
+     "solution_md": "$v_t=\\dfrac{2r^2(\\rho-\\sigma)g}{9\\eta}=\\dfrac{2\\times10^{-6}\\times6540\\times9.8}{9\\times0.83}=\\dfrac{0.1282}{7.47}=1.72\\times10^{-2}$ m/s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The speeds of efflux from small holes at depths $h$ and $4h$ below the surface of water in a tank are in the ratio:",
+     "options": [
+      "(A) 1 : 4",
+      "(B) 1 : 16",
+      "(C) 1 : 2",
+      "(D) 1 : 1"
+     ],
+     "answer": "(C)",
+     "solution_md": "$v=\\sqrt{2gh}\\propto\\sqrt h$. Ratio $=\\sqrt h:\\sqrt{4h}=1:2$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A cube of side 10 cm and density 800 kg/m$^3$ floats in water. Find the height of the cube above the water and the extra mass that must be placed on it to just submerge it.",
+     "answer": "2 cm; 0.2 kg",
+     "solution_md": "Submerged fraction $=800/1000=0.8$, so 8 cm is below and 2 cm above water.\nTo submerge it fully, extra buoyant force needed corresponds to the extra volume 20% of $10^{-3}$ m$^3$: $\\Delta m=1000\\times0.2\\times10^{-3}=0.2$ kg.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): Two ships moving close and parallel to each other tend to be pulled together.\nReason (R): The water between them flows faster, so by Bernoulli's principle the pressure there is lower than outside.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "The higher pressure outside pushes the ships towards each other. R is the cause given by Bernoulli's principle.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Pressure at depth h",
+     "back": "p = p0 + ρ g h"
+    },
+    {
+     "front": "State Pascal's law",
+     "back": "Pressure applied to an enclosed fluid is transmitted undiminished everywhere in it."
+    },
+    {
+     "front": "State Archimedes' principle",
+     "back": "A body immersed in a fluid experiences an upward buoyant force equal to the weight of fluid displaced."
+    },
+    {
+     "front": "Equation of continuity",
+     "back": "A1 v1 = A2 v2"
+    },
+    {
+     "front": "Where is pressure lowest in a flowing fluid?",
+     "back": "Where the speed is highest."
+    },
+    {
+     "front": "Stokes' law",
+     "back": "F = 6π η r v"
+    },
+    {
+     "front": "Terminal velocity formula",
+     "back": "2 r^2 (ρ - σ) g / (9 η)"
+    },
+    {
+     "front": "Excess pressure in a soap bubble",
+     "back": "4S / r (two surfaces)."
+    },
+    {
+     "front": "Capillary rise formula",
+     "back": "h = 2 S cosθ / (ρ g r)"
+    },
+    {
+     "front": "Effect of temperature on viscosity",
+     "back": "Liquids: decreases with temperature. Gases: increases."
+    }
+   ]
+  },
+  {
+   "number": 10,
+   "title": "Thermal Properties of Matter",
+   "ncert_part": "Part II",
+   "notes": [
+    {
+     "heading": "Temperature and heat",
+     "body_md": "- Temperature measures the degree of hotness; heat is energy transferred because of a temperature difference (SI unit joule; 1 cal = 4.186 J).\n- Scales: $\\dfrac{C}{5}=\\dfrac{F-32}{9}=\\dfrac{K-273.15}{5}$.\n- Celsius and Fahrenheit readings coincide at $-40$.\n- Ideal gas thermometer: $T\\propto p$ at constant volume; absolute zero is $0$ K ($-273.15^\\circ$C)."
+    },
+    {
+     "heading": "Thermal expansion",
+     "body_md": "- Linear: $\\Delta L=\\alpha L\\,\\Delta T$; area: $\\Delta A=\\beta A\\,\\Delta T$ with $\\beta=2\\alpha$; volume: $\\Delta V=\\gamma V\\,\\Delta T$ with $\\gamma=3\\alpha$.\n- Liquids expand more than solids; the apparent expansion in a vessel is $\\gamma_{app}=\\gamma_{liquid}-\\gamma_{vessel}$.\n- Water contracts from $0^\\circ$C to $4^\\circ$C (anomalous expansion) and has maximum density at $4^\\circ$C, so lakes freeze from the top.\n- A rod prevented from expanding develops thermal stress $=Y\\alpha\\Delta T$."
+    },
+    {
+     "heading": "Specific heat and calorimetry",
+     "body_md": "- Heat required $Q=mc\\,\\Delta T$; heat capacity $C=mc$; molar specific heat is per mole.\n- Water has a high specific heat $\\approx4200$ J/(kg K), so it is a good coolant and moderates climate.\n- Calorimetry principle: heat lost by hot bodies = heat gained by cold bodies (no losses).\n- Include the calorimeter's water equivalent if it is given."
+    },
+    {
+     "heading": "Change of state and latent heat",
+     "body_md": "- During a change of state the temperature stays constant while heat is absorbed or released: $Q=mL$.\n- Latent heat of fusion of ice $=3.36\\times10^5$ J/kg; of vaporisation of water $=2.26\\times10^6$ J/kg.\n- The heating curve of ice has sloped parts (single phase) and flat parts (phase change).\n- Boiling point rises with pressure; melting point of ice falls slightly with pressure (regelation).\n- Sublimation: solid to vapour directly (dry ice, camphor)."
+    },
+    {
+     "heading": "Heat transfer: conduction",
+     "body_md": "- Conduction needs a material medium and no bulk motion of matter.\n- Steady state rate: $H=\\dfrac{Q}{t}=KA\\dfrac{T_1-T_2}{L}$, where $K$ is the thermal conductivity (W/(m K)).\n- Thermal resistance $R=\\dfrac{L}{KA}$; resistances add in series and conductances add in parallel.\n- For slabs in series, the same heat flows through each, which fixes the interface temperature."
+    },
+    {
+     "heading": "Heat transfer: convection and radiation",
+     "body_md": "- Convection: heat transfer by actual movement of a fluid (sea breeze, boiling water, ocean currents).\n- Radiation: transfer by electromagnetic waves, needing no medium (sunlight).\n- Good absorbers are good emitters; a perfect black body absorbs all radiation.\n- Stefan-Boltzmann law: power radiated $P=\\sigma AeT^4$."
+    },
+    {
+     "heading": "Newton's law of cooling",
+     "body_md": "- The rate of fall of temperature is proportional to the excess temperature over the surroundings for small differences: $\\dfrac{dT}{dt}=-k(T-T_s)$.\n- Solution: $T-T_s=(T_0-T_s)e^{-kt}$.\n- Approximation for short intervals: $\\dfrac{T_1-T_2}{t}=k\\left(\\dfrac{T_1+T_2}{2}-T_s\\right)$.\n- Cooling curve is exponential, dropping fast at first and then slowing."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Temperature conversion",
+     "latex": "\\frac{C}{5}=\\frac{F-32}{9}=\\frac{K-273.15}{5}",
+     "variables": "C, F, K = readings in Celsius, Fahrenheit, kelvin",
+     "note": "Scale conversions."
+    },
+    {
+     "name": "Linear expansion",
+     "latex": "\\Delta L=\\alpha L\\,\\Delta T",
+     "variables": "α = coefficient of linear expansion (1/K); L = length (m)",
+     "note": "Solids; for area use 2α and volume use 3α."
+    },
+    {
+     "name": "Volume expansion coefficient",
+     "latex": "\\gamma=3\\alpha,\\ \\ \\beta=2\\alpha",
+     "variables": "γ, β = volume and area coefficients",
+     "note": "Isotropic solids."
+    },
+    {
+     "name": "Heat for temperature change",
+     "latex": "Q=mc\\,\\Delta T",
+     "variables": "m = mass (kg); c = specific heat (J/(kg K))",
+     "note": "No phase change."
+    },
+    {
+     "name": "Heat for phase change",
+     "latex": "Q=mL",
+     "variables": "L = latent heat (J/kg)",
+     "note": "Temperature stays constant."
+    },
+    {
+     "name": "Thermal conduction",
+     "latex": "H=\\frac{Q}{t}=\\frac{KA(T_1-T_2)}{L}",
+     "variables": "K = thermal conductivity (W/(m K)); A = area (m^2); L = thickness (m)",
+     "note": "Steady state."
+    },
+    {
+     "name": "Thermal resistance",
+     "latex": "R=\\frac{L}{KA}",
+     "variables": "R in K/W",
+     "note": "Series: R_total = R1 + R2."
+    },
+    {
+     "name": "Stefan-Boltzmann law",
+     "latex": "P=e\\sigma AT^4",
+     "variables": "σ = 5.67e-8 W/(m^2 K^4); e = emissivity; T = absolute temperature (K)",
+     "note": "Radiated power of a body."
+    },
+    {
+     "name": "Net radiated power",
+     "latex": "P_{net}=e\\sigma A\\left(T^4-T_s^4\\right)",
+     "variables": "T_s = surroundings temperature (K)",
+     "note": "Body in surroundings."
+    },
+    {
+     "name": "Newton's law of cooling",
+     "latex": "T-T_s=(T_0-T_s)e^{-kt}",
+     "variables": "k = cooling constant (1/s); T_0 = initial temperature",
+     "note": "Small temperature differences."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The temperature at which the Celsius and Fahrenheit scales give the same reading is:",
+     "options": [
+      "(A) 0",
+      "(B) -40",
+      "(C) 40",
+      "(D) -273"
+     ],
+     "answer": "(B)",
+     "solution_md": "$C=F\\Rightarrow\\dfrac{C}{5}=\\dfrac{C-32}{9}\\Rightarrow9C=5C-160\\Rightarrow C=-40$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Find the heat required to raise the temperature of 2 kg of water from 20 C to 50 C ($c=4200$ J/(kg K)).",
+     "answer": "2.52e5 J",
+     "solution_md": "$Q=mc\\Delta T=2\\times4200\\times30=2.52\\times10^5$ J.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A steel rod of length 2 m is heated through 50 K. Find the increase in its length ($\\alpha=1.2\\times10^{-5}$ K$^{-1}$).",
+     "answer": "1.2 mm",
+     "solution_md": "$\\Delta L=\\alpha L\\Delta T=1.2\\times10^{-5}\\times2\\times50=1.2\\times10^{-3}$ m.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "50 g of ice at 0 C is dropped into 200 g of water at 40 C. Find the final temperature ($L_f=3.36\\times10^5$ J/kg, $c_w=4200$ J/(kg K); ignore losses).",
+     "answer": "16 C",
+     "solution_md": "Heat released by water cooling to 0 C: $0.2\\times4200\\times40=33600$ J.\nHeat to melt ice: $0.05\\times3.36\\times10^5=16800$ J (so all ice melts).\nRemaining $16800$ J heats $0.25$ kg: $\\Delta T=\\dfrac{16800}{0.25\\times4200}=16$ C.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Derive the interface temperature for two slabs of equal area and thickness and conductivities $2K$ and $K$ in contact, with outer faces at 100 C and 0 C. State the formula for conduction and define thermal resistance.",
+     "answer": "66.7 C",
+     "solution_md": "Conduction: $H=KA(T_1-T_2)/L$; thermal resistance $R=L/KA$ (series resistances add).\n\nIn steady state, the same $H$ flows through both slabs. Let the interface be at $T$:\n$\\dfrac{2KA(100-T)}{d}=\\dfrac{KA(T-0)}{d}\\Rightarrow2(100-T)=T\\Rightarrow T=\\dfrac{200}{3}=66.7$ C.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A body cools from 80 C to 60 C in 10 min in surroundings at 20 C. Using Newton's law of cooling, the time it takes to cool from 60 C to 40 C is closest to:",
+     "options": [
+      "(A) 10 min",
+      "(B) 15 min",
+      "(C) 17 min",
+      "(D) 20 min"
+     ],
+     "answer": "(C)",
+     "solution_md": "$T-T_s\\propto e^{-kt}$: $\\ln\\dfrac{60}{40}=10k\\Rightarrow k=0.0405$ min$^{-1}$.\nFor 60 C to 40 C: $t=\\dfrac1k\\ln\\dfrac{40}{20}=\\dfrac{0.693}{0.0405}\\approx17$ min.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A spherical black body of radius 0.1 m is at 500 K in surroundings at 300 K. Find the net power it radiates ($\\sigma=5.67\\times10^{-8}$ W m$^{-2}$ K$^{-4}$).",
+     "answer": "About 388 W",
+     "solution_md": "$A=4\\pi r^2=0.1257$ m$^2$.\n$T^4-T_s^4=6.25\\times10^{10}-8.1\\times10^{9}=5.44\\times10^{10}$.\n$P=\\sigma A(\\ldots)=5.67\\times10^{-8}\\times0.1257\\times5.44\\times10^{10}\\approx388$ W.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "If the absolute temperature of a black body is doubled, the power it radiates increases by a factor of:",
+     "options": [
+      "(A) 2",
+      "(B) 4",
+      "(C) 8",
+      "(D) 16"
+     ],
+     "answer": "(D)",
+     "solution_md": "$P\\propto T^4\\Rightarrow2^4=16$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A 0.5 kg metal block at 100 C is dropped into 1 kg of water at 20 C and the final temperature is 25 C. Find the specific heat of the metal (take $c_w=4200$ J/(kg K); ignore losses).",
+     "answer": "560 J/(kg K)",
+     "solution_md": "Heat gained by water $=1\\times4200\\times5=21000$ J.\nHeat lost by metal $=0.5\\,c\\,(100-25)=37.5\\,c$.\n$c=21000/37.5=560$ J/(kg K).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): A metal spoon feels colder than a wooden spoon at the same room temperature.\nReason (R): Metals have a higher thermal conductivity than wood.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Metal conducts heat away from the hand faster, so it feels colder even though both are at the same temperature.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Relation between Celsius and Fahrenheit",
+     "back": "C/5 = (F - 32)/9"
+    },
+    {
+     "front": "Relations among α, β and γ",
+     "back": "β = 2α, γ = 3α"
+    },
+    {
+     "front": "Anomalous expansion of water",
+     "back": "Water contracts on heating from 0 to 4 C; density is maximum at 4 C."
+    },
+    {
+     "front": "Heat required to change temperature",
+     "back": "Q = m c ΔT"
+    },
+    {
+     "front": "Heat required to change state",
+     "back": "Q = m L"
+    },
+    {
+     "front": "Latent heat of fusion of ice",
+     "back": "3.36 x 10^5 J/kg"
+    },
+    {
+     "front": "Law of calorimetry",
+     "back": "Heat lost by hot bodies = heat gained by cold bodies."
+    },
+    {
+     "front": "Rate of heat conduction",
+     "back": "H = K A (T1 - T2)/L"
+    },
+    {
+     "front": "Stefan-Boltzmann law",
+     "back": "Power radiated P = e σ A T^4"
+    },
+    {
+     "front": "Newton's law of cooling",
+     "back": "Rate of cooling is proportional to the temperature excess over surroundings."
+    }
+   ]
+  },
+  {
+   "number": 11,
+   "title": "Thermodynamics",
+   "ncert_part": "Part II",
+   "notes": [
+    {
+     "heading": "Thermal equilibrium and zeroth law",
+     "body_md": "- Two systems in thermal equilibrium have the same temperature.\n- Zeroth law: if A and B are each in equilibrium with C, then A and B are in equilibrium with each other; this makes thermometry possible.\n- State variables (P, V, T, U) describe the state of a system; heat and work are path functions, not state functions."
+    },
+    {
+     "heading": "Heat, internal energy and work",
+     "body_md": "- Internal energy $U$ is the sum of molecular kinetic and potential energies; for an ideal gas it depends only on temperature.\n- Work done by a gas $W=\\int P\\,dV$, the area under the P-V curve; positive in expansion, negative in compression.\n- Heat is energy transferred because of a temperature difference."
+    },
+    {
+     "heading": "First law of thermodynamics",
+     "body_md": "- $\\Delta Q=\\Delta U+\\Delta W$: heat supplied goes into raising internal energy and doing work.\n- Sign convention: $Q>0$ heat absorbed by the gas; $W>0$ work done by the gas.\n- It is the law of conservation of energy for thermal systems.\n- Over a complete cycle $\\Delta U=0$, so net heat equals net work, the area enclosed in the P-V diagram."
+    },
+    {
+     "heading": "Specific heats of a gas",
+     "body_md": "- $C_v$: molar specific heat at constant volume, $\\Delta U=nC_v\\Delta T$ for any process of an ideal gas.\n- $C_p$: at constant pressure; $C_p-C_v=R$ (Mayer's relation); $\\gamma=C_p/C_v$.\n- Monatomic gas: $C_v=\\tfrac32R$, $\\gamma=\\tfrac53$. Diatomic (rigid): $C_v=\\tfrac52R$, $\\gamma=\\tfrac75$.\n- $C_p>C_v$ because at constant pressure some heat goes into expansion work."
+    },
+    {
+     "heading": "Thermodynamic processes",
+     "body_md": "- Isothermal ($T$ constant): $PV=$ constant, $\\Delta U=0$, $Q=W=nRT\\ln\\dfrac{V_2}{V_1}$.\n- Adiabatic ($Q=0$): $PV^\\gamma=$ constant, $TV^{\\gamma-1}=$ constant, $W=\\dfrac{nR(T_1-T_2)}{\\gamma-1}$.\n- Isochoric ($V$ constant): $W=0$, $Q=\\Delta U=nC_v\\Delta T$.\n- Isobaric ($P$ constant): $W=P\\Delta V$, $Q=nC_p\\Delta T$.\n- On a P-V diagram an adiabat is steeper than an isotherm."
+    },
+    {
+     "heading": "Second law of thermodynamics",
+     "body_md": "- Kelvin-Planck: no engine can convert heat from a single reservoir entirely into work in a cycle.\n- Clausius: heat cannot flow by itself from a colder to a hotter body without external work.\n- Hence no heat engine has 100% efficiency and no refrigerator works without work input.\n- Spontaneous processes in nature are irreversible."
+    },
+    {
+     "heading": "Heat engines and Carnot cycle",
+     "body_md": "- Efficiency $\\eta=\\dfrac{W}{Q_1}=1-\\dfrac{Q_2}{Q_1}$.\n- Carnot cycle: two isothermal and two adiabatic steps, all reversible.\n- Carnot engine efficiency $\\eta=1-\\dfrac{T_2}{T_1}$ (temperatures in kelvin) is the maximum possible between two reservoirs; it depends only on the temperatures.\n- Efficiency rises by raising the source temperature or lowering the sink temperature."
+    },
+    {
+     "heading": "Refrigerators and reversibility",
+     "body_md": "- A refrigerator takes heat $Q_2$ from a cold space, receives work $W$, and rejects $Q_1=Q_2+W$ to the surroundings.\n- Coefficient of performance $\\text{COP}=\\dfrac{Q_2}{W}=\\dfrac{T_2}{T_1-T_2}$ for a reversible refrigerator.\n- A process is reversible only if it is quasi-static and free of dissipative effects such as friction.\n- Real processes are irreversible."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "First law of thermodynamics",
+     "latex": "\\Delta Q=\\Delta U+\\Delta W",
+     "variables": "Q = heat absorbed (J); U = internal energy (J); W = work done by the gas (J)",
+     "note": "Energy conservation."
+    },
+    {
+     "name": "Work done by a gas",
+     "latex": "W=\\int_{V_1}^{V_2}P\\,dV",
+     "variables": "P = pressure (Pa); V = volume (m^3)",
+     "note": "Area under the P-V curve."
+    },
+    {
+     "name": "Isobaric work",
+     "latex": "W=P\\,(V_2-V_1)",
+     "variables": "P constant",
+     "note": "Constant-pressure process."
+    },
+    {
+     "name": "Isothermal work",
+     "latex": "W=nRT\\ln\\frac{V_2}{V_1}",
+     "variables": "n = moles; R = 8.314 J/(mol K); T = temperature (K)",
+     "note": "Ideal gas."
+    },
+    {
+     "name": "Adiabatic relation",
+     "latex": "PV^{\\gamma}=\\text{constant},\\ \\ TV^{\\gamma-1}=\\text{constant}",
+     "variables": "γ = C_p/C_v",
+     "note": "Reversible adiabatic of an ideal gas."
+    },
+    {
+     "name": "Adiabatic work",
+     "latex": "W=\\frac{P_1V_1-P_2V_2}{\\gamma-1}=\\frac{nR(T_1-T_2)}{\\gamma-1}",
+     "variables": "subscripts 1, 2 = initial, final states",
+     "note": "Ideal gas."
+    },
+    {
+     "name": "Change in internal energy",
+     "latex": "\\Delta U=nC_v\\Delta T",
+     "variables": "C_v = molar specific heat at constant volume",
+     "note": "Any process of an ideal gas."
+    },
+    {
+     "name": "Mayer's relation",
+     "latex": "C_p-C_v=R",
+     "variables": "C_p, C_v = molar specific heats",
+     "note": "Ideal gas."
+    },
+    {
+     "name": "Carnot efficiency",
+     "latex": "\\eta=1-\\frac{T_2}{T_1}",
+     "variables": "T_1 = source temperature (K); T_2 = sink temperature (K)",
+     "note": "Reversible engine; temperatures in kelvin."
+    },
+    {
+     "name": "Coefficient of performance",
+     "latex": "\\text{COP}=\\frac{Q_2}{W}=\\frac{T_2}{T_1-T_2}",
+     "variables": "Q_2 = heat extracted from the cold body",
+     "note": "Refrigerator; second form for a reversible one."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "In an adiabatic process, which of the following is zero?",
+     "options": [
+      "(A) heat exchanged",
+      "(B) change in internal energy",
+      "(C) work done",
+      "(D) change in temperature"
+     ],
+     "answer": "(A)",
+     "solution_md": "In an adiabatic process there is no heat exchange with the surroundings, so $\\Delta Q=0$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "500 J of heat is supplied to a gas, and the gas does 200 J of work. Find the change in its internal energy.",
+     "answer": "300 J",
+     "solution_md": "$\\Delta U=\\Delta Q-\\Delta W=500-200=300$ J.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "One mole of an ideal gas expands isothermally at 300 K to double its volume. Find the work done by the gas ($R=8.314$ J/(mol K)).",
+     "answer": "1.73 kJ",
+     "solution_md": "$W=RT\\ln2=8.314\\times300\\times0.693=1729$ J $\\approx1.73$ kJ.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A Carnot engine works between 500 K and 300 K and absorbs 1000 J from the source per cycle. Find its efficiency, the work done and the heat rejected.",
+     "answer": "40%; 400 J; 600 J",
+     "solution_md": "$\\eta=1-300/500=0.4=40\\%$.\n$W=\\eta Q_1=400$ J.\n$Q_2=Q_1-W=600$ J.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Derive Mayer's relation $C_p-C_v=R$ for an ideal gas. Find the change in internal energy of 2 mol of a monatomic ideal gas heated at constant volume from 300 K to 400 K.",
+     "answer": "2.49 kJ",
+     "solution_md": "Heat 1 mole at constant volume: $\\Delta Q=C_v\\Delta T=\\Delta U$.\nHeat 1 mole at constant pressure: $C_p\\Delta T=\\Delta U+P\\Delta V$. Since $\\Delta U=C_v\\Delta T$ (depends only on $T$) and $P\\Delta V=R\\Delta T$ from $PV=RT$:\n$C_p\\Delta T=C_v\\Delta T+R\\Delta T\\Rightarrow C_p-C_v=R$.\n\nNumerical: $C_v=\\tfrac32R$; $\\Delta U=nC_v\\Delta T=2\\times1.5\\times8.314\\times100=2494$ J $\\approx2.49$ kJ (all of it is the heat supplied since $W=0$).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A refrigerator works with its inside at 270 K in a room at 300 K. Its maximum coefficient of performance is:",
+     "options": [
+      "(A) 9",
+      "(B) 10",
+      "(C) 0.11",
+      "(D) 8"
+     ],
+     "answer": "(A)",
+     "solution_md": "$\\text{COP}=\\dfrac{T_2}{T_1-T_2}=\\dfrac{270}{300-270}=9$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A monatomic ideal gas ($\\gamma=5/3$) is compressed adiabatically to one-eighth of its original volume. Find the ratios $T_2/T_1$ and $P_2/P_1$.",
+     "answer": "4; 32",
+     "solution_md": "$TV^{\\gamma-1}=$ const: $T_2/T_1=(V_1/V_2)^{2/3}=8^{2/3}=4$.\n$PV^\\gamma=$ const: $P_2/P_1=8^{5/3}=32$.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A gas at constant pressure $2\\times10^5$ Pa expands from 2 L to 5 L. The work done by the gas is:",
+     "options": [
+      "(A) 300 J",
+      "(B) 600 J",
+      "(C) 1000 J",
+      "(D) 1200 J"
+     ],
+     "answer": "(B)",
+     "solution_md": "$W=P\\Delta V=2\\times10^5\\times3\\times10^{-3}=600$ J.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "One mole of a rigid diatomic ideal gas is heated at constant pressure through 100 K. Find the heat absorbed, the change in internal energy and the work done ($R=8.314$ J/(mol K)).",
+     "answer": "2910 J; 2079 J; 831 J",
+     "solution_md": "$Q=C_p\\Delta T=\\tfrac72R(100)=2910$ J.\n$\\Delta U=C_v\\Delta T=\\tfrac52R(100)=2079$ J.\n$W=R\\Delta T=831$ J (check: $2079+831=2910$ J).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The efficiency of a heat engine can never be 100%.\nReason (R): The Kelvin-Planck statement of the second law forbids complete conversion of heat from a single reservoir into work in a cycle.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Some heat must always be rejected to a colder sink, as stated by the second law, so R explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "State the zeroth law",
+     "back": "If two systems are each in thermal equilibrium with a third, they are in equilibrium with each other."
+    },
+    {
+     "front": "First law of thermodynamics",
+     "back": "ΔQ = ΔU + ΔW"
+    },
+    {
+     "front": "Isothermal process for an ideal gas",
+     "back": "T constant, ΔU = 0, so Q = W."
+    },
+    {
+     "front": "Adiabatic process condition",
+     "back": "Q = 0, and PV^γ = constant."
+    },
+    {
+     "front": "Mayer's relation",
+     "back": "C_p - C_v = R"
+    },
+    {
+     "front": "γ for monatomic and diatomic gases",
+     "back": "5/3 and 7/5 respectively."
+    },
+    {
+     "front": "Kelvin-Planck statement",
+     "back": "No cyclic engine can convert all heat from one reservoir into work."
+    },
+    {
+     "front": "Carnot engine efficiency",
+     "back": "1 - T2/T1 (kelvin)."
+    },
+    {
+     "front": "COP of a refrigerator",
+     "back": "Q2/W = T2/(T1 - T2) for a reversible refrigerator."
+    },
+    {
+     "front": "Work done in a cycle on a P-V diagram",
+     "back": "Equals the area enclosed by the cycle."
+    }
+   ]
+  },
+  {
+   "number": 12,
+   "title": "Kinetic Theory",
+   "ncert_part": "Part II",
+   "notes": [
+    {
+     "heading": "Molecular nature of matter and gas laws",
+     "body_md": "- Matter is made of molecules in constant motion; in a gas they are far apart with negligible forces except during collisions.\n- Boyle's law: $PV=$ const at constant $T$. Charles' law: $V/T=$ const at constant $P$. Gay-Lussac: $P/T=$ const at constant $V$.\n- Combined: $PV=nRT=NkT$, with $R=8.314$ J/(mol K), $k=1.38\\times10^{-23}$ J/K, $N_A=6.02\\times10^{23}$ mol$^{-1}$.\n- Avogadro's law: equal volumes of gases at the same $T$ and $P$ contain equal numbers of molecules."
+    },
+    {
+     "heading": "Assumptions of the kinetic theory",
+     "body_md": "- A gas contains a very large number of identical, tiny molecules in random motion.\n- The size of molecules is negligible compared with the separation between them.\n- No forces act except during elastic collisions with each other and the walls.\n- Collision time is negligible compared with the time between collisions.\n- Molecules obey Newton's laws and move in straight lines between collisions."
+    },
+    {
+     "heading": "Pressure of an ideal gas",
+     "body_md": "- Pressure arises from the momentum transferred to the walls by molecular collisions.\n- $P=\\tfrac13\\dfrac{N}{V}m\\overline{v^2}=\\tfrac13\\rho\\overline{v^2}$.\n- Equivalently $P=\\tfrac23\\dfrac NV\\left(\\tfrac12m\\overline{v^2}\\right)$, so pressure is two-thirds of the translational energy per unit volume.\n- Combining with $PV=NkT$ gives the kinetic interpretation of temperature."
+    },
+    {
+     "heading": "Kinetic interpretation of temperature",
+     "body_md": "- Average translational kinetic energy per molecule $=\\tfrac32kT$; it depends only on temperature.\n- $v_{rms}=\\sqrt{\\dfrac{3kT}{m}}=\\sqrt{\\dfrac{3RT}{M}}$, with $M$ the molar mass.\n- Most probable speed $=\\sqrt{2kT/m}$ and mean speed $=\\sqrt{8kT/\\pi m}$; $v_{mp}<\\bar v<v_{rms}$.\n- At the same temperature lighter molecules move faster (hydrogen faster than oxygen).\n- Dalton's law: total pressure of a gas mixture is the sum of partial pressures."
+    },
+    {
+     "heading": "Degrees of freedom and equipartition of energy",
+     "body_md": "- Degrees of freedom $f$ are independent ways a molecule can store energy: monatomic 3; diatomic 5 at ordinary temperatures (3 translational + 2 rotational), plus 2 vibrational at high temperature.\n- Law of equipartition: each quadratic degree of freedom has average energy $\\tfrac12kT$ per molecule.\n- Internal energy of $n$ moles: $U=\\tfrac f2nRT$.\n- Vibrational modes carry $kT$ each (kinetic and potential)."
+    },
+    {
+     "heading": "Specific heat capacities of gases",
+     "body_md": "- $C_v=\\tfrac f2R$ and $C_p=\\left(\\tfrac f2+1\\right)R$, hence $\\gamma=1+\\dfrac2f$.\n- Monatomic: $C_v=\\tfrac32R$, $\\gamma=1.67$. Diatomic (rigid): $C_v=\\tfrac52R$, $\\gamma=1.40$. Non-linear polyatomic: $f=6$.\n- For a mixture, $C_v^{mix}=\\dfrac{n_1C_{v1}+n_2C_{v2}}{n_1+n_2}$.\n- Specific heat of solids at room temperature: $3R$ (Dulong-Petit law), which includes both kinetic and potential energy of vibration."
+    },
+    {
+     "heading": "Mean free path",
+     "body_md": "- Mean free path is the average distance a molecule travels between two successive collisions: $\\lambda=\\dfrac{1}{\\sqrt2\\,\\pi d^2n}$.\n- Here $d$ is the molecular diameter and $n=N/V$ is the number density.\n- $\\lambda$ decreases with higher pressure and larger molecular size; at room temperature and 1 atm it is of order $10^{-7}$ m, which is about a thousand times the molecular diameter.\n- Equivalent form: $\\lambda=\\dfrac{kT}{\\sqrt2\\pi d^2P}$."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Ideal gas equation",
+     "latex": "PV=nRT=NkT",
+     "variables": "P = pressure (Pa); V = volume (m^3); n = moles; N = molecules; T = temperature (K)",
+     "note": "Ideal gas."
+    },
+    {
+     "name": "Pressure from kinetic theory",
+     "latex": "P=\\frac13\\frac{N}{V}m\\overline{v^2}=\\frac13\\rho\\overline{v^2}",
+     "variables": "m = molecular mass (kg); ρ = density (kg/m^3)",
+     "note": "Ideal gas."
+    },
+    {
+     "name": "Average kinetic energy per molecule",
+     "latex": "\\overline{E}=\\frac32kT",
+     "variables": "k = 1.38e-23 J/K",
+     "note": "Translational energy only."
+    },
+    {
+     "name": "Root mean square speed",
+     "latex": "v_{rms}=\\sqrt{\\frac{3RT}{M}}=\\sqrt{\\frac{3kT}{m}}",
+     "variables": "M = molar mass (kg/mol)",
+     "note": "Ideal gas."
+    },
+    {
+     "name": "Mean speed and most probable speed",
+     "latex": "\\bar v=\\sqrt{\\frac{8kT}{\\pi m}},\\ \\ v_{mp}=\\sqrt{\\frac{2kT}{m}}",
+     "variables": "m = molecular mass",
+     "note": "v_mp < mean < v_rms."
+    },
+    {
+     "name": "Internal energy of an ideal gas",
+     "latex": "U=\\frac f2nRT",
+     "variables": "f = degrees of freedom",
+     "note": "Equipartition."
+    },
+    {
+     "name": "Molar specific heats",
+     "latex": "C_v=\\frac f2R,\\ \\ C_p=\\left(\\frac f2+1\\right)R,\\ \\ \\gamma=1+\\frac2f",
+     "variables": "R = 8.314 J/(mol K)",
+     "note": "Ideal gas."
+    },
+    {
+     "name": "Mean free path",
+     "latex": "\\lambda=\\frac{1}{\\sqrt2\\,\\pi d^2 n}",
+     "variables": "d = molecular diameter (m); n = number density (m^-3)",
+     "note": "Dilute gas."
+    },
+    {
+     "name": "Number density from gas law",
+     "latex": "n=\\frac{P}{kT}",
+     "variables": "n = molecules per cubic metre",
+     "note": "Ideal gas."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The average translational kinetic energy of a molecule of an ideal gas at absolute temperature $T$ is:",
+     "options": [
+      "(A) $kT$",
+      "(B) $\\tfrac12kT$",
+      "(C) $\\tfrac32kT$",
+      "(D) $3kT$"
+     ],
+     "answer": "(C)",
+     "solution_md": "By the kinetic theory, $\\overline{E}=\\tfrac32kT$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "By what factor does the rms speed of the molecules of a gas change if the absolute temperature is made four times?",
+     "answer": "2 times",
+     "solution_md": "$v_{rms}\\propto\\sqrt T$, so $v'/v=\\sqrt4=2$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "Find the rms speed of oxygen molecules at 27 C ($M=32$ g/mol, $R=8.314$ J/(mol K)).",
+     "answer": "484 m/s",
+     "solution_md": "$T=300$ K, $M=0.032$ kg/mol.\n$v_{rms}=\\sqrt{\\dfrac{3\\times8.314\\times300}{0.032}}=\\sqrt{2.338\\times10^5}\\approx484$ m/s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "State the law of equipartition of energy. Find the internal energy of 2 mol of a rigid diatomic gas at 300 K.",
+     "answer": "12.5 kJ",
+     "solution_md": "Law: for a gas in thermal equilibrium at temperature $T$, each degree of freedom has an average energy of $\\tfrac12kT$ per molecule.\nA rigid diatomic gas has $f=5$: $U=\\tfrac52nRT=2.5\\times2\\times8.314\\times300=1.247\\times10^4$ J.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Derive the expression $P=\\tfrac13\\rho\\overline{v^2}$ for the pressure of an ideal gas. A gas of density 1.2 kg/m$^3$ has an rms speed of 500 m/s; find its pressure.",
+     "answer": "1.0e5 Pa",
+     "solution_md": "Consider a cubical box of side $L$. A molecule with velocity component $v_x$ hits a wall and rebounds, changing its momentum by $2mv_x$. It strikes the same wall every $2L/v_x$.\n\nForce from one molecule $=\\dfrac{2mv_x}{2L/v_x}=\\dfrac{mv_x^2}{L}$.\n\nFor $N$ molecules, $F=\\dfrac{m}{L}\\sum v_x^2=\\dfrac{mN\\overline{v_x^2}}{L}$. By symmetry $\\overline{v_x^2}=\\tfrac13\\overline{v^2}$.\n\nPressure $P=\\dfrac{F}{L^2}=\\dfrac13\\dfrac{N}{V}m\\overline{v^2}=\\tfrac13\\rho\\overline{v^2}$.\n\nNumerical: $P=\\tfrac13(1.2)(500)^2=1.0\\times10^5$ Pa.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The ratio of the rms speeds of hydrogen and oxygen molecules at the same temperature is:",
+     "options": [
+      "(A) 4 : 1",
+      "(B) 1 : 4",
+      "(C) 16 : 1",
+      "(D) 1 : 16"
+     ],
+     "answer": "(A)",
+     "solution_md": "$v_{rms}\\propto1/\\sqrt M$: $\\sqrt{32/2}=4$, so 4 : 1.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the number of molecules in one litre of an ideal gas at 1 atm ($1.013\\times10^5$ Pa) and 300 K ($k=1.38\\times10^{-23}$ J/K).",
+     "answer": "2.45e22",
+     "solution_md": "$n=\\dfrac{P}{kT}=\\dfrac{1.013\\times10^5}{1.38\\times10^{-23}\\times300}=2.45\\times10^{25}$ m$^{-3}$.\nFor $10^{-3}$ m$^3$: $2.45\\times10^{22}$ molecules.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A mixture contains 2 mol of helium (monatomic) and 1 mol of hydrogen (rigid diatomic). The value of $\\gamma$ for the mixture is:",
+     "options": [
+      "(A) 1.67",
+      "(B) 1.40",
+      "(C) 17/11",
+      "(D) 1.50"
+     ],
+     "answer": "(C)",
+     "solution_md": "$C_v=\\dfrac{2(1.5R)+1(2.5R)}{3}$, so total $nC_v=5.5R$. $nC_p=5.5R+3R=8.5R$.\n$\\gamma=8.5/5.5=17/11\\approx1.55$.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Estimate the mean free path of a gas with molecular diameter $3\\times10^{-10}$ m and $n=2.45\\times10^{25}$ m$^{-3}$.",
+     "answer": "1.0e-7 m",
+     "solution_md": "$\\lambda=\\dfrac{1}{\\sqrt2\\pi d^2n}=\\dfrac{1}{1.414\\times3.142\\times9\\times10^{-20}\\times2.45\\times10^{25}}=\\dfrac{1}{9.8\\times10^6}\\approx1.0\\times10^{-7}$ m.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The temperature of an ideal gas is a measure of the average translational kinetic energy of its molecules.\nReason (R): The average translational kinetic energy per molecule is $\\tfrac32kT$.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Since $\\overline E=\\tfrac32kT$ with $k$ constant, $T$ is directly proportional to the average kinetic energy, so R explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Ideal gas equation in terms of N and k",
+     "back": "PV = N k T"
+    },
+    {
+     "front": "Value of Boltzmann constant",
+     "back": "1.38 x 10^-23 J/K"
+    },
+    {
+     "front": "Average KE per molecule",
+     "back": "(3/2) k T"
+    },
+    {
+     "front": "rms speed in terms of molar mass",
+     "back": "sqrt(3RT/M)"
+    },
+    {
+     "front": "Pressure from kinetic theory",
+     "back": "P = (1/3) ρ v_rms^2"
+    },
+    {
+     "front": "Degrees of freedom of monatomic and rigid diatomic gas",
+     "back": "3 and 5."
+    },
+    {
+     "front": "Law of equipartition of energy",
+     "back": "Each quadratic degree of freedom has average energy (1/2) k T per molecule."
+    },
+    {
+     "front": "γ in terms of f",
+     "back": "γ = 1 + 2/f"
+    },
+    {
+     "front": "Mean free path formula",
+     "back": "1 / (√2 π d^2 n)"
+    },
+    {
+     "front": "Order of speeds",
+     "back": "Most probable < mean < rms."
+    }
+   ]
+  },
+  {
+   "number": 13,
+   "title": "Oscillations",
+   "ncert_part": "Part II",
+   "notes": [
+    {
+     "heading": "Periodic and oscillatory motion",
+     "body_md": "- Periodic motion repeats at regular intervals; oscillatory motion is back-and-forth about a mean position.\n- Period $T$ is the time for one cycle; frequency $\\nu=1/T$ (hertz); angular frequency $\\omega=2\\pi\\nu=2\\pi/T$.\n- Every oscillation is periodic, but not every periodic motion is oscillatory (e.g. uniform circular motion)."
+    },
+    {
+     "heading": "Simple harmonic motion",
+     "body_md": "- SHM: the restoring force (or acceleration) is proportional to displacement and directed toward the mean position, $F=-kx$, $a=-\\omega^2x$.\n- Displacement $x=A\\cos(\\omega t+\\phi)$ where $A$ is amplitude and $\\phi$ the initial phase.\n- Projection of uniform circular motion on a diameter is SHM (reference circle).\n- Period does not depend on amplitude for ideal SHM."
+    },
+    {
+     "heading": "Velocity and acceleration in SHM",
+     "body_md": "- $v=-A\\omega\\sin(\\omega t+\\phi)=\\pm\\omega\\sqrt{A^2-x^2}$.\n- Maximum speed $A\\omega$ occurs at the mean position; speed is zero at the extremes.\n- $a=-\\omega^2x$, maximum $A\\omega^2$ at the extremes and zero at the mean position.\n- Velocity leads displacement by $\\pi/2$ in phase, and acceleration is opposite in phase to displacement."
+    },
+    {
+     "heading": "Energy in SHM",
+     "body_md": "- $K=\\tfrac12m\\omega^2(A^2-x^2)$ and $U=\\tfrac12m\\omega^2x^2=\\tfrac12kx^2$.\n- Total energy $E=\\tfrac12kA^2=\\tfrac12m\\omega^2A^2$, constant when there is no damping.\n- Kinetic and potential energies each oscillate at twice the frequency of the motion; their averages over a cycle are each $E/2$.\n- $K=U$ at $x=\\pm A/\\sqrt2$."
+    },
+    {
+     "heading": "Spring-mass system",
+     "body_md": "- $\\omega=\\sqrt{k/m}$, $T=2\\pi\\sqrt{m/k}$.\n- For a vertical spring, the equilibrium shifts by $mg/k$ but the period is unchanged: $T=2\\pi\\sqrt{x_0/g}$ where $x_0$ is the static extension.\n- Parallel springs: $k_{eq}=k_1+k_2$. Series springs: $\\dfrac{1}{k_{eq}}=\\dfrac1{k_1}+\\dfrac1{k_2}$.\n- Cutting a spring into $n$ equal pieces increases each piece's spring constant by a factor of $n$."
+    },
+    {
+     "heading": "Simple pendulum",
+     "body_md": "- For small angles (less than about $10^\\circ$), $T=2\\pi\\sqrt{l/g}$, independent of the mass and amplitude.\n- A seconds pendulum has $T=2$ s, which needs $l\\approx0.99$ m at the Earth's surface.\n- $T$ increases on hills or on the Moon (smaller $g$), and increases with temperature as $l$ increases.\n- In a lift accelerating upward $g_{eff}=g+a$ and the period decreases; in free fall it becomes infinite."
+    },
+    {
+     "heading": "Phase and phase difference",
+     "body_md": "- Phase $\\omega t+\\phi$ gives the state of motion at time $t$.\n- Two SHMs of the same frequency differ by phase difference $\\Delta\\phi$; $0$ means in phase, $\\pi$ means opposite phase.\n- Initial phase is fixed by the initial conditions: at $t=0$ with $x=A$, $\\phi=0$.\n- $\\sin(\\omega t)$ equals $\\cos(\\omega t-\\pi/2)$, which shifts the phase."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Angular frequency",
+     "latex": "\\omega=\\frac{2\\pi}{T}=2\\pi\\nu",
+     "variables": "T = period (s); ν = frequency (Hz)",
+     "note": "All periodic motion."
+    },
+    {
+     "name": "SHM displacement",
+     "latex": "x=A\\cos(\\omega t+\\phi)",
+     "variables": "A = amplitude (m); φ = initial phase (rad)",
+     "note": "SHM."
+    },
+    {
+     "name": "Velocity in SHM",
+     "latex": "v=\\pm\\omega\\sqrt{A^2-x^2}",
+     "variables": "x = displacement (m)",
+     "note": "Maximum Aω at the mean position."
+    },
+    {
+     "name": "Acceleration in SHM",
+     "latex": "a=-\\omega^2x",
+     "variables": "a = acceleration (m/s^2)",
+     "note": "Maximum Aω^2 at the extremes."
+    },
+    {
+     "name": "Total energy",
+     "latex": "E=\\frac12kA^2=\\frac12m\\omega^2A^2",
+     "variables": "k = force constant (N/m); m = mass (kg)",
+     "note": "No damping."
+    },
+    {
+     "name": "Kinetic energy in SHM",
+     "latex": "K=\\frac12k\\left(A^2-x^2\\right)",
+     "variables": "x = displacement",
+     "note": "At displacement x."
+    },
+    {
+     "name": "Spring-mass period",
+     "latex": "T=2\\pi\\sqrt{\\frac{m}{k}}",
+     "variables": "m = mass (kg); k = spring constant (N/m)",
+     "note": "Horizontal or vertical."
+    },
+    {
+     "name": "Simple pendulum period",
+     "latex": "T=2\\pi\\sqrt{\\frac{l}{g}}",
+     "variables": "l = length (m); g = 9.8 m/s^2",
+     "note": "Small amplitude."
+    },
+    {
+     "name": "Springs in parallel and series",
+     "latex": "k_{p}=k_1+k_2,\\quad\\frac1{k_s}=\\frac1{k_1}+\\frac1{k_2}",
+     "variables": "k_1, k_2 = spring constants (N/m)",
+     "note": "Equivalent spring constants."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "In simple harmonic motion the acceleration of the particle is:",
+     "options": [
+      "(A) constant",
+      "(B) proportional to the displacement and directed towards the mean position",
+      "(C) proportional to the velocity",
+      "(D) maximum at the mean position"
+     ],
+     "answer": "(B)",
+     "solution_md": "$a=-\\omega^2x$: proportional to displacement and directed towards the mean position.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "A 0.5 kg block is attached to a spring of constant 200 N/m. Find its time period.",
+     "answer": "0.314 s",
+     "solution_md": "$T=2\\pi\\sqrt{m/k}=2\\pi\\sqrt{0.5/200}=2\\pi\\times0.05=0.314$ s.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A particle executes SHM with amplitude 0.1 m and angular frequency 10 rad/s. Find the maximum speed, the maximum acceleration, and the speed when its displacement is 0.06 m.",
+     "answer": "1 m/s; 10 m/s^2; 0.8 m/s",
+     "solution_md": "$v_{max}=A\\omega=1$ m/s; $a_{max}=A\\omega^2=10$ m/s$^2$.\n$v=\\omega\\sqrt{A^2-x^2}=10\\sqrt{0.01-0.0036}=10\\times0.08=0.8$ m/s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Find the length of a seconds pendulum at a place where $g=9.8$ m/s$^2$, and the time period of a 1 m pendulum on the Moon where $g=1.6$ m/s$^2$.",
+     "answer": "0.993 m; 4.97 s",
+     "solution_md": "Seconds pendulum: $T=2=2\\pi\\sqrt{l/g}\\Rightarrow l=\\dfrac{g}{\\pi^2}=\\dfrac{9.8}{9.87}=0.993$ m.\nOn the Moon: $T=2\\pi\\sqrt{1/1.6}=2\\pi\\times0.791=4.97$ s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Show that the total energy of a particle in SHM is $\\tfrac12kA^2$ and is independent of time. A mass on a spring with $k=100$ N/m has amplitude 0.2 m; find its kinetic and potential energy at $x=0.1$ m.",
+     "answer": "E = 2 J; PE = 0.5 J; KE = 1.5 J",
+     "solution_md": "$x=A\\cos\\omega t$, $v=-A\\omega\\sin\\omega t$, $k=m\\omega^2$.\n\n$U=\\tfrac12kx^2=\\tfrac12kA^2\\cos^2\\omega t$; $K=\\tfrac12mv^2=\\tfrac12kA^2\\sin^2\\omega t$.\n\n$E=K+U=\\tfrac12kA^2(\\sin^2+\\cos^2)=\\tfrac12kA^2$, constant.\n\nNumerical: $E=\\tfrac12(100)(0.04)=2$ J; $U=\\tfrac12(100)(0.01)=0.5$ J; $K=E-U=1.5$ J.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "At what displacement from the mean position are the kinetic and potential energies of a particle in SHM equal?",
+     "options": [
+      "(A) $A/2$",
+      "(B) $A/4$",
+      "(C) $A/\\sqrt2$",
+      "(D) $A\\sqrt2$"
+     ],
+     "answer": "(C)",
+     "solution_md": "$\\tfrac12k(A^2-x^2)=\\tfrac12kx^2\\Rightarrow x^2=A^2/2\\Rightarrow x=\\pm A/\\sqrt2$.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A 0.5 kg mass is attached to two springs of constants 200 N/m and 300 N/m. Find the time period when the springs are (a) in parallel, (b) in series.",
+     "answer": "(a) 0.199 s; (b) 0.406 s",
+     "solution_md": "(a) $k=500$ N/m: $T=2\\pi\\sqrt{0.5/500}=2\\pi(0.03162)=0.199$ s.\n(b) $k=\\dfrac{200\\times300}{500}=120$ N/m: $T=2\\pi\\sqrt{0.5/120}=2\\pi(0.06455)=0.406$ s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A particle's displacement is $x=5\\sin\\left(4\\pi t+\\tfrac\\pi3\\right)$ (in cm, t in s). Its time period is:",
+     "options": [
+      "(A) 0.5 s",
+      "(B) 2 s",
+      "(C) 4 s",
+      "(D) $\\pi/3$ s"
+     ],
+     "answer": "(A)",
+     "solution_md": "$\\omega=4\\pi$, so $T=2\\pi/\\omega=0.5$ s.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A body hung from a vertical spring stretches it by 4.9 cm in equilibrium. Find the period of its vertical oscillations ($g=9.8$ m/s$^2$).",
+     "answer": "0.444 s",
+     "solution_md": "$k/m=g/x_0$, so $T=2\\pi\\sqrt{x_0/g}=2\\pi\\sqrt{0.049/9.8}=2\\pi\\sqrt{0.005}=2\\pi(0.0707)=0.444$ s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): A pendulum clock runs slow when taken to the top of a mountain.\nReason (R): The value of $g$ decreases with height, so the time period $T=2\\pi\\sqrt{l/g}$ increases.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "A larger period means fewer swings per hour, so the clock loses time. R explains the cause.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Condition for SHM",
+     "back": "Restoring acceleration proportional to displacement and directed toward the mean position: a = -ω²x."
+    },
+    {
+     "front": "Relation among T, ν and ω",
+     "back": "T = 1/ν; ω = 2π/T = 2πν"
+    },
+    {
+     "front": "Maximum speed in SHM",
+     "back": "Aω, at the mean position."
+    },
+    {
+     "front": "Maximum acceleration in SHM",
+     "back": "Aω², at the extreme positions."
+    },
+    {
+     "front": "Total energy of SHM",
+     "back": "(1/2) k A² = (1/2) m ω² A²"
+    },
+    {
+     "front": "Spring-mass time period",
+     "back": "2π sqrt(m/k)"
+    },
+    {
+     "front": "Simple pendulum time period",
+     "back": "2π sqrt(l/g) for small angles; independent of mass."
+    },
+    {
+     "front": "Effective k for two springs in parallel",
+     "back": "k1 + k2"
+    },
+    {
+     "front": "Effective k for two springs in series",
+     "back": "k1 k2/(k1 + k2)"
+    },
+    {
+     "front": "KE = PE at what displacement?",
+     "back": "x = A/√2"
+    }
+   ]
+  },
+  {
+   "number": 14,
+   "title": "Waves",
+   "ncert_part": "Part II",
+   "notes": [
+    {
+     "heading": "Wave motion and types of waves",
+     "body_md": "- A wave transfers energy and momentum without bulk transport of matter.\n- Transverse waves: particle motion perpendicular to propagation (waves on a string, light); they travel in solids and on liquid surfaces.\n- Longitudinal waves: particle motion parallel to propagation (sound), forming compressions and rarefactions; they travel in all media.\n- Mechanical waves need a medium; electromagnetic waves do not."
+    },
+    {
+     "heading": "Displacement relation of a progressive wave",
+     "body_md": "- $y(x,t)=A\\sin(kx-\\omega t+\\phi)$ travels in the $+x$ direction; $\\sin(kx+\\omega t)$ travels in the $-x$ direction.\n- Wave number $k=\\dfrac{2\\pi}{\\lambda}$; angular frequency $\\omega=2\\pi\\nu$; speed $v=\\nu\\lambda=\\dfrac{\\omega}{k}$.\n- Phase difference between two points separated by $\\Delta x$: $\\Delta\\phi=\\dfrac{2\\pi}{\\lambda}\\Delta x$.\n- Particle velocity $\\partial y/\\partial t$ is different from wave speed."
+    },
+    {
+     "heading": "Speed of waves",
+     "body_md": "- Transverse wave on a string: $v=\\sqrt{T/\\mu}$ with $T$ the tension and $\\mu$ the mass per unit length.\n- Longitudinal wave in a solid rod: $v=\\sqrt{Y/\\rho}$; in a fluid: $v=\\sqrt{B/\\rho}$.\n- Sound in a gas: Newton $v=\\sqrt{P/\\rho}$ (isothermal, gives wrong result); Laplace correction $v=\\sqrt{\\gamma P/\\rho}$ (adiabatic, correct).\n- Speed of sound in air $\\propto\\sqrt T$; about 332 m/s at $0^\\circ$C and 343 m/s at $20^\\circ$C; it does not depend on pressure at constant temperature."
+    },
+    {
+     "heading": "Superposition, reflection and interference",
+     "body_md": "- Principle of superposition: the net displacement is the algebraic sum of the individual displacements.\n- Reflection from a fixed (rigid) end inverts the pulse (phase change of $\\pi$); reflection from a free end does not.\n- Constructive interference: in-phase waves give amplitude $A_1+A_2$; destructive: out of phase give $|A_1-A_2|$.\n- Intensity is proportional to the square of the amplitude."
+    },
+    {
+     "heading": "Standing waves on strings",
+     "body_md": "- Formed by superposition of two identical waves travelling in opposite directions; nodes (zero amplitude) and antinodes (maximum amplitude) alternate, spaced $\\lambda/2$.\n- String fixed at both ends of length $L$: $\\nu_n=\\dfrac{nv}{2L}$, $n=1,2,3,\\ldots$ (all harmonics).\n- The fundamental ($n=1$) has $\\lambda=2L$; overtones are integer multiples.\n- No energy is transported by a standing wave."
+    },
+    {
+     "heading": "Standing waves in air columns",
+     "body_md": "- Open pipe (both ends open): $\\nu_n=\\dfrac{nv}{2L}$, all harmonics; antinodes at both ends.\n- Closed pipe (one end closed): $\\nu=\\dfrac{(2n-1)v}{4L}$, only odd harmonics; node at the closed end and antinode at the open end.\n- Fundamental of a closed pipe is half that of an open pipe of the same length.\n- Resonance occurs when the air column length fits the driving frequency."
+    },
+    {
+     "heading": "Beats",
+     "body_md": "- Superposition of two waves of slightly different frequencies $\\nu_1,\\nu_2$ produces periodic variations in loudness.\n- Beat frequency $=|\\nu_1-\\nu_2|$ (beats per second).\n- Loading a tuning fork with wax lowers its frequency; filing raises it.\n- Beats are used to tune musical instruments."
+    },
+    {
+     "heading": "Doppler effect",
+     "body_md": "- The observed frequency changes when the source or observer moves relative to the medium.\n- $\\nu'=\\nu\\left(\\dfrac{v\\pm v_o}{v\\mp v_s}\\right)$: use $+v_o$ when the observer moves towards the source and $-v_s$ in the denominator when the source moves towards the observer.\n- Approach raises the frequency; recession lowers it.\n- Only the component of velocity along the line joining source and observer matters."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Wave speed relation",
+     "latex": "v=\\nu\\lambda=\\frac{\\omega}{k}",
+     "variables": "ν = frequency (Hz); λ = wavelength (m); k = 2π/λ",
+     "note": "All waves."
+    },
+    {
+     "name": "Progressive wave",
+     "latex": "y=A\\sin(kx-\\omega t+\\phi)",
+     "variables": "A = amplitude (m); k = wave number (rad/m); ω = angular frequency (rad/s)",
+     "note": "Travelling in +x direction."
+    },
+    {
+     "name": "Speed on a stretched string",
+     "latex": "v=\\sqrt{\\frac{T}{\\mu}}",
+     "variables": "T = tension (N); μ = mass per unit length (kg/m)",
+     "note": "Transverse waves."
+    },
+    {
+     "name": "Speed of sound in a gas (Laplace)",
+     "latex": "v=\\sqrt{\\frac{\\gamma P}{\\rho}}",
+     "variables": "γ = C_p/C_v; P = pressure (Pa); ρ = density (kg/m^3)",
+     "note": "Sound in an ideal gas."
+    },
+    {
+     "name": "Speed in a solid rod / fluid",
+     "latex": "v=\\sqrt{\\frac{Y}{\\rho}},\\ \\ v=\\sqrt{\\frac{B}{\\rho}}",
+     "variables": "Y = Young's modulus; B = bulk modulus",
+     "note": "Longitudinal waves."
+    },
+    {
+     "name": "Harmonics on a string fixed at both ends",
+     "latex": "\\nu_n=\\frac{nv}{2L}",
+     "variables": "L = length (m); n = 1, 2, 3...",
+     "note": "Also open pipe."
+    },
+    {
+     "name": "Closed pipe frequencies",
+     "latex": "\\nu=\\frac{(2n-1)v}{4L}",
+     "variables": "n = 1, 2, 3...",
+     "note": "Only odd harmonics."
+    },
+    {
+     "name": "Beat frequency",
+     "latex": "\\nu_{beat}=|\\nu_1-\\nu_2|",
+     "variables": "ν_1, ν_2 = frequencies of the two sources (Hz)",
+     "note": "Slightly different frequencies."
+    },
+    {
+     "name": "Doppler effect",
+     "latex": "\\nu'=\\nu\\,\\frac{v+v_o}{v-v_s}",
+     "variables": "v = speed of sound; v_o = observer speed towards the source; v_s = source speed towards the observer",
+     "note": "Reverse the sign when moving away."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "Sound waves travelling in air are:",
+     "options": [
+      "(A) longitudinal",
+      "(B) transverse",
+      "(C) electromagnetic",
+      "(D) both transverse and longitudinal"
+     ],
+     "answer": "(A)",
+     "solution_md": "In air, particles oscillate along the direction of propagation, forming compressions and rarefactions: longitudinal waves.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "A wave has frequency 500 Hz and wavelength 0.68 m. Find its speed.",
+     "answer": "340 m/s",
+     "solution_md": "$v=\\nu\\lambda=500\\times0.68=340$ m/s.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A string of length 2 m and mass 0.01 kg is under a tension of 80 N. Find the wave speed and the fundamental frequency.",
+     "answer": "126 m/s; 31.6 Hz",
+     "solution_md": "$\\mu=0.01/2=0.005$ kg/m.\n$v=\\sqrt{T/\\mu}=\\sqrt{80/0.005}=\\sqrt{16000}=126.5$ m/s.\n$\\nu_1=\\dfrac{v}{2L}=\\dfrac{126.5}{4}=31.6$ Hz.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "A closed organ pipe is 0.85 m long and the speed of sound is 340 m/s. Find its first two resonant frequencies. What is the fundamental of an open pipe of the same length?",
+     "answer": "100 Hz and 300 Hz; 200 Hz",
+     "solution_md": "Closed: $\\nu=\\dfrac{(2n-1)v}{4L}$. $\\nu_1=\\dfrac{340}{3.4}=100$ Hz; next allowed is the 3rd harmonic $=300$ Hz.\nOpen: $\\nu_1=\\dfrac{v}{2L}=\\dfrac{340}{1.7}=200$ Hz.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "What are beats? Derive the beat frequency for two waves of frequencies $\\nu_1$ and $\\nu_2$. A source of 440 Hz moves towards a stationary observer at 20 m/s (speed of sound 340 m/s); find the apparent frequency and the beat frequency heard with an identical stationary 440 Hz source.",
+     "answer": "|ν1 - ν2|; 467.5 Hz; 27.5 beats/s",
+     "solution_md": "Beats are periodic rises and falls in loudness when two waves of nearly equal frequency superpose.\n\nAt a point, $y_1=A\\cos2\\pi\\nu_1t$ and $y_2=A\\cos2\\pi\\nu_2t$:\n$y=2A\\cos\\left[\\pi(\\nu_1-\\nu_2)t\\right]\\cos\\left[\\pi(\\nu_1+\\nu_2)t\\right]$.\nThe amplitude factor $|2A\\cos\\pi(\\nu_1-\\nu_2)t|$ reaches its maximum $\\nu_1-\\nu_2$ times per second, giving beat frequency $|\\nu_1-\\nu_2|$.\n\nDoppler: $\\nu'=440\\times\\dfrac{340}{340-20}=440\\times1.0625=467.5$ Hz.\nBeats $=467.5-440=27.5$ per second.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A wave is described by $y=0.01\\sin(20\\pi t-4\\pi x)$ in SI units. Its speed is:",
+     "options": [
+      "(A) 2 m/s",
+      "(B) 5 m/s",
+      "(C) 10 m/s",
+      "(D) 80 m/s"
+     ],
+     "answer": "(B)",
+     "solution_md": "$v=\\omega/k=20\\pi/4\\pi=5$ m/s.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "A source of frequency 500 Hz is at rest and an observer moves towards it at 17 m/s. Find the apparent frequency, and the frequency heard when the observer moves away at the same speed ($v=340$ m/s).",
+     "answer": "525 Hz; 475 Hz",
+     "solution_md": "Towards: $\\nu'=500\\times\\dfrac{340+17}{340}=500\\times1.05=525$ Hz.\nAway: $\\nu'=500\\times\\dfrac{340-17}{340}=475$ Hz.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A tuning fork A of unknown frequency gives 4 beats per second with a 256 Hz fork. When A is loaded with a little wax, the beat frequency becomes 2 per second. The frequency of A was:",
+     "options": [
+      "(A) 252 Hz",
+      "(B) 258 Hz",
+      "(C) 260 Hz",
+      "(D) 264 Hz"
+     ],
+     "answer": "(C)",
+     "solution_md": "A is either 252 or 260 Hz. Loading lowers A's frequency. If A were 252 Hz, going lower would increase the beats. If A were 260 Hz, a lower frequency (e.g. 258 Hz) gives 2 beats. So A = 260 Hz.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "The speed of sound in air at $0^\\circ$C is 332 m/s. Find its speed at $27^\\circ$C.",
+     "answer": "348 m/s",
+     "solution_md": "$v\\propto\\sqrt T$: $v_{300}=332\\sqrt{\\dfrac{300}{273}}=332\\times1.048=348$ m/s.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): Sound cannot travel through a vacuum.\nReason (R): Sound is a mechanical wave that needs a material medium for propagation.",
+     "options": [
+      "(A) Both A and R are true and R is the correct explanation of A",
+      "(B) Both A and R are true but R is not the correct explanation of A",
+      "(C) A is true but R is false",
+      "(D) A is false but R is true"
+     ],
+     "answer": "(A)",
+     "solution_md": "Sound propagates through compressions and rarefactions of the medium's particles; with no particles there is no propagation, so R explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Transverse vs longitudinal waves",
+     "back": "Transverse: particles oscillate perpendicular to propagation. Longitudinal: parallel to propagation."
+    },
+    {
+     "front": "Relation among v, ν and λ",
+     "back": "v = ν λ"
+    },
+    {
+     "front": "Speed of transverse wave on a string",
+     "back": "sqrt(T/μ)"
+    },
+    {
+     "front": "Laplace's correction to Newton's formula",
+     "back": "Sound in air is adiabatic, so v = sqrt(γP/ρ)."
+    },
+    {
+     "front": "Dependence of sound speed in air on temperature",
+     "back": "v is proportional to sqrt(T); independent of pressure at constant T."
+    },
+    {
+     "front": "Frequencies of a string fixed at both ends",
+     "back": "ν_n = n v/(2L), n = 1, 2, 3, ..."
+    },
+    {
+     "front": "Harmonics present in a closed pipe",
+     "back": "Only odd harmonics: ν = (2n - 1) v/(4L)."
+    },
+    {
+     "front": "Distance between adjacent nodes",
+     "back": "λ/2"
+    },
+    {
+     "front": "Beat frequency",
+     "back": "|ν1 - ν2|"
+    },
+    {
+     "front": "Doppler formula: source approaching a stationary observer",
+     "back": "ν' = ν v/(v - v_s)"
+    }
+   ]
+  }
+ ]
+}

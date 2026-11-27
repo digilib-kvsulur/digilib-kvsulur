@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  BarChart3, BookOpen, Download, FileText, Layers, PenLine, Target,
+  Accessibility, BarChart3, BookOpen, Download, FileText, Layers, PenLine, Target,
 } from "lucide-react";
 import StudyResources from "@/components/student/StudyResources";
 import type { StudyChapterTarget } from "@/components/student/StudyResumeCard";
@@ -11,9 +11,11 @@ import LearningReport from "./LearningReport";
 import MasteryPanel from "./MasteryPanel";
 import MockTestRunner from "./MockTestRunner";
 import OfflinePacks from "./OfflinePacks";
+import ReadingSettings from "./ReadingSettings";
+import { useReadingPrefs } from "./useReadingPrefs";
 import type { LearningTool } from "./types";
 
-type Tool = "study" | "flashcards" | "mocks" | "mastery" | "coach" | "report" | "offline";
+type Tool = "study" | "flashcards" | "mocks" | "mastery" | "coach" | "report" | "offline" | "reading";
 
 const TOOLS: Array<{ value: Tool; label: string; icon: typeof BookOpen }> = [
   { value: "study", label: "Study", icon: BookOpen },
@@ -23,6 +25,7 @@ const TOOLS: Array<{ value: Tool; label: string; icon: typeof BookOpen }> = [
   { value: "coach", label: "Answer coach", icon: PenLine },
   { value: "report", label: "Report", icon: BarChart3 },
   { value: "offline", label: "Offline", icon: Download },
+  { value: "reading", label: "Reading", icon: Accessibility },
 ];
 
 const TOOL_VALUES = new Set<string>(TOOLS.map((item) => item.value));
@@ -72,6 +75,7 @@ export default function StudyHub({
     return isTool(initialTool) ? initialTool : "study";
   });
   const [chapterTarget, setChapterTarget] = useState<StudyChapterTarget | null>(initialChapter || null);
+  const { dataSaver } = useReadingPrefs(userId);
 
   useEffect(() => {
     setChapterTarget(initialChapter || null);
@@ -130,6 +134,7 @@ export default function StudyHub({
             onInitialChapterOpened?.();
           }}
           onOpenDoubt={onOpenDoubt}
+          dataSaver={dataSaver}
         />
       )}
       {tool === "flashcards" && <FlashcardReview studentClass={ownClass} />}
@@ -143,6 +148,7 @@ export default function StudyHub({
       {tool === "coach" && <AnswerCoach studentClass={ownClass} userId={userId} />}
       {tool === "report" && <LearningReport studentName={studentName} studentClass={ownClass} />}
       {tool === "offline" && <OfflinePacks studentClass={ownClass} userId={userId} />}
+      {tool === "reading" && <ReadingSettings userId={userId} />}
     </div>
   );
 }

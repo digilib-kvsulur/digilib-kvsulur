@@ -6,8 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { fetchLearningResources } from "./api";
 import MarkdownBlock from "./MarkdownBlock";
-import ReadingPreferences from "./ReadingPreferences";
-import { useReadingPrefs } from "./useReadingPrefs";
 import { useSpeech } from "./useSpeech";
 import {
   deleteOfflinePack,
@@ -18,7 +16,7 @@ import {
   saveOfflinePack,
   type OfflinePack,
   type OfflinePackItem,
-} from "./offlinePacks";
+} from "./offlinePackStore";
 import type { StudyResource } from "./types";
 
 const PACK_TYPES = ["chapter_lesson", "short_notes", "formula_sheet", "quick_revision"];
@@ -36,7 +34,6 @@ function toItem(resource: StudyResource): OfflinePackItem {
 }
 
 export default function OfflinePacks({ studentClass, userId }: { studentClass: string; userId?: string }) {
-  const { prefs, update, dataSaver, setDataSaver, error: prefsError } = useReadingPrefs(userId);
   const [resources, setResources] = useState<StudyResource[]>([]);
   const [packs, setPacks] = useState<OfflinePack[]>([]);
   const [storage, setStorage] = useState<{ usage: number; quota: number } | null>(null);
@@ -252,8 +249,6 @@ export default function OfflinePacks({ studentClass, userId }: { studentClass: s
           )}
         </>
       )}
-
-      <ReadingPreferences prefs={prefs} update={update} dataSaver={dataSaver} setDataSaver={setDataSaver} error={prefsError || undefined} />
     </div>
   );
 }

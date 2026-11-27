@@ -67,7 +67,7 @@ function inferBoard(resource: Resource) {
   return resource.source_label || "PYQ";
 }
 
-export default function StudyResources({ studentClass, userId, onOpenDoubt, initialChapter, onInitialChapterOpened }: { studentClass?: string | number | null; userId?: string; onOpenDoubt?: () => void; initialChapter?: { classNumber: string; subject: string; chapterTitle: string } | null; onInitialChapterOpened?: () => void }) {
+export default function StudyResources({ studentClass, userId, onOpenDoubt, initialChapter, onInitialChapterOpened, dataSaver = false }: { studentClass?: string | number | null; userId?: string; onOpenDoubt?: () => void; initialChapter?: { classNumber: string; subject: string; chapterTitle: string } | null; onInitialChapterOpened?: () => void; dataSaver?: boolean }) {
   const parsedClass = Number(String(studentClass ?? "").match(/\d+/)?.[0] || 6);
   const ownClass = String(Math.min(12, Math.max(6, parsedClass)));
   const [classFilter, setClassFilter] = useState(ownClass);
@@ -314,8 +314,15 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
 
   const chooseSubject = (subject: string) => { setSelectedSubject(subject); setSelectedChapter(""); setChapterSearch(""); window.localStorage.setItem(SUBJECT_STORAGE_KEY, subject); };
   const openChapter = (title: string) => { setSelectedChapter(title); setTab("notes"); setQuery(""); setBookmarkedOnly(false); setTwoMinuteMode(false); writeLastStudy({ classNumber: classFilter, subject: selectedSubject, chapterTitle: title, ts: Date.now() }); };
-  const openResourceFile = async (url: string) => { try { await openStudyMaterial(url); } catch { toast.error("Could not open this resource"); } };
-  const openNcert = () => { if (activeChapter?.textbookUrl) window.open(activeChapter.textbookUrl, "_blank", "noopener,noreferrer"); else window.open("https://ncert.nic.in/textbook.php", "_blank", "noopener,noreferrer"); };
+  const openResourceFile = async (url: string) => {
+    if (dataSaver && !window.confirm("Low-data mode is on. Opening this file may use mobile data. Continue?")) return;
+    try { await openStudyMaterial(url); } catch { toast.error("Could not open this resource"); }
+  };
+  const openNcert = () => {
+    if (dataSaver && !window.confirm("Low-data mode is on. Opening the NCERT PDF may use mobile data. Continue?")) return;
+    if (activeChapter?.textbookUrl) window.open(activeChapter.textbookUrl, "_blank", "noopener,noreferrer");
+    else window.open("https://ncert.nic.in/textbook.php", "_blank", "noopener,noreferrer");
+  };
   const askDoubt = () => { onOpenDoubt?.(); };
   const markRead = (id: string) => setReadNotes((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); localStorage.setItem("dlms-study-read-notes", JSON.stringify(Array.from(next))); return next; });
 

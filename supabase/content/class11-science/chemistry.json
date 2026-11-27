@@ -1,0 +1,2469 @@
+{
+ "class": 11,
+ "subject": "Chemistry",
+ "books": [
+  "NCERT Chemistry Part I",
+  "NCERT Chemistry Part II"
+ ],
+ "status": "needs_review",
+ "generated_by": "AI",
+ "chapters": [
+  {
+   "number": 1,
+   "title": "Some Basic Concepts of Chemistry",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Matter and its classification",
+     "body_md": "- Matter has mass and occupies space. It exists as solid, liquid or gas, differing in particle arrangement and freedom of movement.\n- **Pure substances**: elements (one kind of atom) and compounds (fixed ratio of elements, separable only by chemical methods).\n- **Mixtures**: homogeneous (uniform, e.g. air, brine) or heterogeneous (non-uniform, e.g. sand in water); components can be separated physically.\n- Physical properties (colour, density, melting point) are observed without changing identity; chemical properties involve a change of composition."
+    },
+    {
+     "heading": "Units, SI system and measurement",
+     "body_md": "- Seven SI base quantities: length (m), mass (kg), time (s), temperature (K), amount of substance (mol), electric current (A), luminous intensity (cd).\n- Prefixes: nano 10^-9, micro 10^-6, milli 10^-3, centi 10^-2, kilo 10^3, mega 10^6.\n- Volume is commonly 1 L = 1 dm^3 = 1000 cm^3. Temperature: K = degC + 273.15.\n- Mass is constant everywhere; weight depends on gravity."
+    },
+    {
+     "heading": "Uncertainty, significant figures and dimensional analysis",
+     "body_md": "- **Precision** = closeness of repeated values; **accuracy** = closeness to the true value.\n- Rules for significant figures: all non-zero digits count; zeros between digits count; leading zeros do not; trailing zeros after a decimal point count. Exact numbers have unlimited significant figures.\n- Addition/subtraction: answer keeps the fewest decimal places. Multiplication/division: answer keeps the fewest significant figures.\n- Dimensional analysis (factor-label method) converts units by multiplying with conversion factors equal to 1."
+    },
+    {
+     "heading": "Laws of chemical combination",
+     "body_md": "- **Conservation of mass**: total mass of reactants equals total mass of products in a chemical change.\n- **Definite proportions**: a pure compound always contains the same elements in the same mass ratio, regardless of source.\n- **Multiple proportions**: if two elements form more than one compound, the masses of one element combining with a fixed mass of the other are in a simple whole-number ratio (e.g. CO and CO2).\n- **Gay-Lussac**: gases combine in simple volume ratios at the same temperature and pressure.\n- **Avogadro**: equal volumes of gases at the same T and P contain equal numbers of molecules."
+    },
+    {
+     "heading": "Dalton's atomic theory and atomic/molecular mass",
+     "body_md": "- Matter consists of indivisible atoms; atoms of one element are identical; compounds form by combination of atoms in fixed whole-number ratios; atoms are neither created nor destroyed in reactions.\n- Modern view: atoms are divisible into subatomic particles, and isotopes of an element differ in mass.\n- Atomic mass is expressed in unified mass unit u (1/12 of the mass of a carbon-12 atom, 1.66 x 10^-27 kg).\n- Average atomic mass = sum of (isotopic mass x fractional abundance). Molecular mass = sum of atomic masses; formula mass is used for ionic solids."
+    },
+    {
+     "heading": "Mole concept and molar mass",
+     "body_md": "- One mole contains 6.022 x 10^23 entities (Avogadro constant) and has a mass in grams equal to the atomic/molecular/formula mass.\n- Molar mass of a species is its mass of one mole (g/mol).\n- Moles = mass / molar mass = number of particles / N_A = volume at STP / 22.4 L (for ideal gases at 273.15 K and 1 atm; 22.7 L at 1 bar).\n- Number of atoms in a molecule times number of molecules gives total atoms."
+    },
+    {
+     "heading": "Percentage composition and molecular formula",
+     "body_md": "- Mass % of an element = (mass of element in one mole of compound / molar mass) x 100.\n- **Empirical formula**: simplest whole-number ratio of atoms. Steps: percent to grams, divide by atomic mass, divide by smallest, convert to whole numbers.\n- **Molecular formula** = (empirical formula) x n, where n = molar mass / empirical formula mass.\n- Combustion analysis gives C and H from CO2 and H2O masses."
+    },
+    {
+     "heading": "Stoichiometry and limiting reagent",
+     "body_md": "- A balanced equation gives mole ratios of reactants and products; coefficients are mole ratios, not mass ratios.\n- Limiting reagent is the reactant that is consumed first and decides the amount of product. The other is in excess.\n- Find limiting reagent by dividing available moles by the stoichiometric coefficient; the smaller quotient identifies it.\n- Percentage yield = (actual yield / theoretical yield) x 100."
+    },
+    {
+     "heading": "Concentration of solutions",
+     "body_md": "- Mass percent = (mass of solute / mass of solution) x 100.\n- Mole fraction x_A = n_A / total moles; sum of all mole fractions is 1.\n- Molarity (M) = moles of solute per litre of solution (changes with temperature).\n- Molality (m) = moles of solute per kg of solvent (independent of temperature).\n- Dilution: M1V1 = M2V2 as moles of solute are unchanged."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Moles",
+     "latex": "n=\\dfrac{m}{M}=\\dfrac{N}{N_A}=\\dfrac{V_{\\mathrm{STP}}}{22.4\\ \\mathrm{L}}",
+     "variables": "n = moles (mol); m = mass (g); M = molar mass (g/mol); N = number of particles; N_A = 6.022 x 10^23 per mol",
+     "note": "Basic mole conversions; 22.4 L applies to ideal gases at 273.15 K, 1 atm."
+    },
+    {
+     "name": "Mass percent of element",
+     "latex": "\\%\\ \\mathrm{element}=\\dfrac{\\text{mass of element in 1 mol}}{\\text{molar mass of compound}}\\times100",
+     "variables": "mass in g; molar mass in g/mol",
+     "note": "Percentage composition of a compound."
+    },
+    {
+     "name": "Molecular formula relation",
+     "latex": "n=\\dfrac{\\text{molar mass}}{\\text{empirical formula mass}}",
+     "variables": "n = whole number multiplier",
+     "note": "Molecular formula = (empirical formula)n."
+    },
+    {
+     "name": "Molarity",
+     "latex": "M=\\dfrac{n_{\\mathrm{solute}}}{V_{\\mathrm{solution}}(\\mathrm{L})}",
+     "variables": "M = molarity (mol/L); n = moles; V = volume (L)",
+     "note": "Temperature dependent."
+    },
+    {
+     "name": "Molality",
+     "latex": "m=\\dfrac{n_{\\mathrm{solute}}}{W_{\\mathrm{solvent}}(\\mathrm{kg})}",
+     "variables": "m = molality (mol/kg); W = mass of solvent (kg)",
+     "note": "Temperature independent."
+    },
+    {
+     "name": "Mole fraction",
+     "latex": "x_A=\\dfrac{n_A}{n_A+n_B}",
+     "variables": "x = mole fraction; n = moles",
+     "note": "x_A + x_B = 1."
+    },
+    {
+     "name": "Dilution equation",
+     "latex": "M_1V_1=M_2V_2",
+     "variables": "M = molarity; V = volume (same unit on both sides)",
+     "note": "Valid when only solvent is added."
+    },
+    {
+     "name": "Mixing of solutions",
+     "latex": "M_{\\mathrm{mix}}=\\dfrac{M_1V_1+M_2V_2}{V_1+V_2}",
+     "variables": "M = molarity; V = volume",
+     "note": "Same solute, volumes assumed additive."
+    },
+    {
+     "name": "Percentage yield",
+     "latex": "\\%\\ \\mathrm{yield}=\\dfrac{\\text{actual yield}}{\\text{theoretical yield}}\\times100",
+     "variables": "yields in g or mol",
+     "note": "Real reactions give less than 100%."
+    },
+    {
+     "name": "Molarity-molality link (mass percent)",
+     "latex": "M=\\dfrac{10\\,w\\,d}{M_{\\mathrm{solute}}}",
+     "variables": "w = mass percent of solute; d = density of solution (g/mL); M_solute = molar mass (g/mol)",
+     "note": "Converts mass percent to molarity."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The number of significant figures in the measurement 0.00450 g is:",
+     "options": [
+      "2",
+      "3",
+      "4",
+      "5"
+     ],
+     "answer": "3",
+     "solution_md": "Leading zeros are not significant; the digits 4, 5 and the trailing 0 after a non-zero digit in a decimal are significant, giving 3.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "A compound has 40.0% carbon, 6.7% hydrogen and 53.3% oxygen by mass and molar mass 180 g/mol. Find its empirical and molecular formula.",
+     "answer": "CH2O; C6H12O6",
+     "solution_md": "Moles per 100 g: C = 40/12 = 3.33, H = 6.7/1 = 6.7, O = 53.3/16 = 3.33. Divide by 3.33: C : H : O = 1 : 2 : 1, so the empirical formula is CH2O (mass 30). n = 180/30 = 6, so the molecular formula is C6H12O6.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Calculate the mass percentage of carbon in glucose (C6H12O6) and the number of molecules in 5.3 g of sodium carbonate (Na2CO3).",
+     "answer": "40%; 3.011 x 10^22 molecules",
+     "solution_md": "Glucose molar mass = 180 g/mol; carbon mass = 72 g, so % C = 72/180 x 100 = 40%. Na2CO3 molar mass = 2(23)+12+3(16) = 106 g/mol; moles = 5.3/106 = 0.05; molecules = 0.05 x 6.022 x 10^23 = 3.011 x 10^22.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "28 g of nitrogen reacts with 8 g of hydrogen: N2 + 3H2 -> 2NH3. Identify the limiting reagent and find the mass of ammonia formed.",
+     "answer": "N2 is limiting; 34 g NH3",
+     "solution_md": "Moles N2 = 28/28 = 1; moles H2 = 8/2 = 4. H2 needed for 1 mol N2 = 3 mol, and 4 mol is available, so N2 is limiting. NH3 formed = 2 x 1 = 2 mol; mass = 2 x 17 = 34 g.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "State the law of multiple proportions with an example, and explain how Dalton's atomic theory accounts for the law of conservation of mass.",
+     "answer": "See solution",
+     "solution_md": "**Law**: when two elements combine to form more than one compound, the different masses of one element that combine with a fixed mass of the other are in a simple whole-number ratio.\n\n**Example**: carbon forms CO and CO2. For 12 g of carbon, oxygen is 16 g in CO and 32 g in CO2; the ratio 16 : 32 = 1 : 2.\n\n**Conservation of mass**: Dalton proposed that atoms are neither created nor destroyed in a reaction; they are only rearranged. Since the number and type of atoms stays the same, and each atom has a fixed mass, total mass before and after the reaction is the same.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "10 g of pure CaCO3 is completely decomposed on heating (CaCO3 -> CaO + CO2). Taking molar volume as 22.4 L at STP, the volume of CO2 evolved at STP (in L) is:",
+     "answer": "2.24 L",
+     "solution_md": "Moles CaCO3 = 10/100 = 0.1. One mole CaCO3 gives one mole CO2, so CO2 = 0.1 mol. Volume = 0.1 x 22.4 = 2.24 L.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "18 g of glucose is dissolved in 200 g of water. Find the molality of the solution and the mole fraction of glucose (water molar mass 18).",
+     "answer": "Molality 0.5 m; x(glucose) = 0.1/(0.1+11.11) = 0.0089",
+     "solution_md": "Moles glucose = 18/180 = 0.1; molality = 0.1/0.2 kg = 0.5 mol/kg. Moles water = 200/18 = 11.11; x = 0.1/11.21 = 0.0089.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "200 mL of 0.5 M HCl is mixed with 300 mL of 1 M HCl. Assuming additive volumes, the molarity of the mixture is:",
+     "options": [
+      "0.75 M",
+      "0.8 M",
+      "0.9 M",
+      "1.5 M"
+     ],
+     "answer": "0.8 M",
+     "solution_md": "Moles = 0.2 x 0.5 + 0.3 x 1 = 0.1 + 0.3 = 0.4 mol; volume = 0.5 L; M = 0.4/0.5 = 0.8 M.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "100 mL of a 2 M solution is diluted until it is 0.5 M. The final volume of the solution is:",
+     "options": [
+      "200 mL",
+      "300 mL",
+      "400 mL",
+      "500 mL"
+     ],
+     "answer": "400 mL",
+     "solution_md": "M1V1 = M2V2 gives V2 = (2 x 100)/0.5 = 400 mL.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): Molality of a solution does not change with temperature. Reason (R): Molality is defined using the mass of solvent, which does not vary with temperature.",
+     "options": [
+      "Both A and R true, R explains A",
+      "Both A and R true, R does not explain A",
+      "A true, R false",
+      "A false, R true"
+     ],
+     "answer": "Both A and R are true and R is the correct explanation of A",
+     "solution_md": "Molality = moles of solute per kg of solvent. Mass does not depend on temperature, unlike volume (which governs molarity). Hence R correctly explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Define one mole.",
+     "back": "The amount of substance containing 6.022 x 10^23 elementary entities."
+    },
+    {
+     "front": "State the law of definite proportions.",
+     "back": "A pure compound always has the same elements combined in the same mass ratio."
+    },
+    {
+     "front": "State Avogadro's law.",
+     "back": "Equal volumes of gases at the same T and P contain equal numbers of molecules."
+    },
+    {
+     "front": "How many significant figures in 0.0230?",
+     "back": "Three (2, 3 and the trailing 0)."
+    },
+    {
+     "front": "Difference between empirical and molecular formula?",
+     "back": "Empirical is the simplest whole-number ratio; molecular shows actual atoms; molecular = n x empirical."
+    },
+    {
+     "front": "Which concentration term is temperature independent?",
+     "back": "Molality (and mole fraction, mass percent)."
+    },
+    {
+     "front": "Molar volume of ideal gas at STP?",
+     "back": "22.4 L (273.15 K, 1 atm); 22.7 L at 1 bar."
+    },
+    {
+     "front": "What is a limiting reagent?",
+     "back": "The reactant consumed first, which fixes the amount of product."
+    },
+    {
+     "front": "Value of 1 u in kg?",
+     "back": "1.66 x 10^-27 kg (1/12 of a C-12 atom)."
+    },
+    {
+     "front": "Dilution formula?",
+     "back": "M1V1 = M2V2"
+    }
+   ]
+  },
+  {
+   "number": 2,
+   "title": "Structure of Atom",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Subatomic particles and early models",
+     "body_md": "- Electron (discovered via cathode rays, charge -1.602 x 10^-19 C, mass 9.11 x 10^-31 kg), proton (+1, 1.673 x 10^-27 kg) and neutron (neutral, 1.675 x 10^-27 kg) are the basic particles.\n- Thomson model: a positive sphere with embedded electrons (plum-pudding); it failed to explain scattering results.\n- Rutherford alpha-scattering: most alpha particles pass straight, a few deflect strongly, very few rebound. This showed a tiny, dense, positive nucleus with electrons around it.\n- Weakness of the nuclear model: an orbiting electron should radiate energy and spiral into the nucleus."
+    },
+    {
+     "heading": "Atomic number, mass number, isotopes",
+     "body_md": "- Atomic number Z = number of protons; mass number A = protons + neutrons.\n- Isotopes: same Z, different A (H-1, H-2, H-3). Isobars: same A, different Z. Isotones: same neutron count.\n- Isotopes have nearly identical chemical behaviour because electron arrangement is the same."
+    },
+    {
+     "heading": "Electromagnetic radiation and quantum theory",
+     "body_md": "- Wave properties: wavelength (lambda), frequency (nu), wavenumber; c = nu x lambda = 3 x 10^8 m/s in vacuum.\n- Black-body radiation and the photoelectric effect cannot be explained by wave theory. Planck: energy is exchanged in quanta, E = h nu.\n- Photoelectric effect: electrons are ejected only if the frequency exceeds a threshold; kinetic energy rises with frequency, not intensity; number of electrons rises with intensity.\n- Einstein: light behaves as photons of energy h nu, so h nu = work function + kinetic energy."
+    },
+    {
+     "heading": "Atomic spectra and Bohr's model",
+     "body_md": "- Hydrogen emits a line spectrum: series Lyman (to n=1, UV), Balmer (n=2, visible), Paschen, Brackett, Pfund (IR).\n- Bohr postulates: electrons move in fixed circular orbits without radiating; angular momentum is quantised, mvr = nh/2pi; energy is absorbed or emitted only when jumping between orbits, with Delta E = h nu.\n- For hydrogen-like species: r_n = 52.9 pm x n^2/Z and E_n = -2.18 x 10^-18 J x Z^2/n^2.\n- Limits: works only for one-electron species, cannot explain fine splitting, Zeeman or Stark effects, and conflicts with the uncertainty principle."
+    },
+    {
+     "heading": "Dual nature and uncertainty principle",
+     "body_md": "- de Broglie: every moving particle has a wavelength lambda = h/mv; significant only for microscopic particles.\n- Davisson-Germer experiment confirmed electron diffraction.\n- Heisenberg: the position and momentum of a microscopic particle cannot both be known exactly, Delta x . Delta p >= h/4pi.\n- This ends the idea of definite orbits and leads to probability-based orbitals."
+    },
+    {
+     "heading": "Quantum mechanical model and quantum numbers",
+     "body_md": "- Schrodinger equation yields wave functions (orbitals); psi squared gives probability density.\n- **Principal (n)**: shell and size, n = 1, 2, 3... **Azimuthal (l)**: subshell and shape, l = 0 to n-1 (s, p, d, f). **Magnetic (m_l)**: orientation, -l to +l. **Spin (m_s)**: +1/2 or -1/2.\n- Number of orbitals in a shell = n^2; electrons = 2n^2. A subshell with l holds 2(2l+1) electrons.\n- Radial nodes = n - l - 1; angular nodes = l; total nodes = n - 1."
+    },
+    {
+     "heading": "Shapes of orbitals",
+     "body_md": "- s orbital: spherical; p orbitals: dumbbell, three orientations (px, py, pz); d: four double-dumbbell and one dumbbell with a ring (dz2).\n- Size increases with n. Orbital boundary diagrams enclose about 90% probability.\n- Energy within a shell for multi-electron atoms increases s < p < d < f because of shielding and penetration."
+    },
+    {
+     "heading": "Filling of electrons",
+     "body_md": "- **Aufbau principle**: fill orbitals in increasing order of (n + l); if equal, lower n first (1s, 2s, 2p, 3s, 3p, 4s, 3d, 4p, 5s, 4d...).\n- **Pauli exclusion**: no two electrons share all four quantum numbers; an orbital holds at most two electrons of opposite spin.\n- **Hund's rule**: degenerate orbitals fill singly with parallel spins before pairing.\n- Exceptions: Cr is [Ar] 3d5 4s1 and Cu is [Ar] 3d10 4s1 because half-filled and fully-filled subshells have extra stability (symmetry and exchange energy)."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Wave relation",
+     "latex": "c=\\nu\\lambda",
+     "variables": "c = speed of light (3 x 10^8 m/s); nu = frequency (Hz); lambda = wavelength (m)",
+     "note": "Wavenumber = 1/lambda."
+    },
+    {
+     "name": "Planck energy",
+     "latex": "E=h\\nu=\\dfrac{hc}{\\lambda}",
+     "variables": "E = energy of photon (J); h = 6.626 x 10^-34 J s",
+     "note": "Energy per photon."
+    },
+    {
+     "name": "Photoelectric equation",
+     "latex": "h\\nu=h\\nu_0+\\tfrac12 m_ev^2",
+     "variables": "nu_0 = threshold frequency (Hz); m_e v^2/2 = kinetic energy (J)",
+     "note": "Valid when nu > nu_0."
+    },
+    {
+     "name": "Bohr radius",
+     "latex": "r_n=52.9\\ \\mathrm{pm}\\times\\dfrac{n^2}{Z}",
+     "variables": "n = orbit number; Z = atomic number",
+     "note": "For H-like species."
+    },
+    {
+     "name": "Bohr energy",
+     "latex": "E_n=-2.18\\times10^{-18}\\,\\dfrac{Z^2}{n^2}\\ \\mathrm{J}=-13.6\\,\\dfrac{Z^2}{n^2}\\ \\mathrm{eV}",
+     "variables": "n = orbit; Z = atomic number",
+     "note": "Only one-electron species."
+    },
+    {
+     "name": "Rydberg equation",
+     "latex": "\\dfrac{1}{\\lambda}=R_H\\left(\\dfrac{1}{n_1^2}-\\dfrac{1}{n_2^2}\\right)",
+     "variables": "R_H = 1.097 x 10^7 per m; n_2 > n_1",
+     "note": "Spectral lines of hydrogen."
+    },
+    {
+     "name": "de Broglie wavelength",
+     "latex": "\\lambda=\\dfrac{h}{mv}=\\dfrac{h}{p}",
+     "variables": "m = mass (kg); v = velocity (m/s)",
+     "note": "Matter waves."
+    },
+    {
+     "name": "Heisenberg uncertainty",
+     "latex": "\\Delta x\\cdot\\Delta p\\ge\\dfrac{h}{4\\pi}",
+     "variables": "Delta x = position uncertainty (m); Delta p = momentum uncertainty (kg m/s)",
+     "note": "Microscopic particles."
+    },
+    {
+     "name": "Number of nodes",
+     "latex": "\\text{radial}=n-l-1,\\quad\\text{angular}=l",
+     "variables": "n = principal; l = azimuthal quantum number",
+     "note": "Total nodes = n - 1."
+    },
+    {
+     "name": "Electrons in shell/subshell",
+     "latex": "\\text{shell}=2n^2,\\quad\\text{subshell}=2(2l+1)",
+     "variables": "n, l = quantum numbers",
+     "note": "Maximum capacity."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The maximum number of electrons that can be accommodated in the shell with n = 3 is:",
+     "options": [
+      "8",
+      "9",
+      "18",
+      "32"
+     ],
+     "answer": "18",
+     "solution_md": "Maximum electrons = 2n^2 = 2 x 9 = 18.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Write the electronic configurations of Cr (Z = 24) and Cu (Z = 29) and explain why they are exceptions.",
+     "answer": "Cr: [Ar] 3d5 4s1; Cu: [Ar] 3d10 4s1",
+     "solution_md": "Expected configurations 3d4 4s2 and 3d9 4s2 are not seen. Half-filled (d5) and fully-filled (d10) subshells are extra stable because of symmetrical distribution and greater exchange energy, so one 4s electron shifts to 3d.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "Calculate the de Broglie wavelength of an electron moving at 1.0 x 10^6 m/s (m = 9.11 x 10^-31 kg, h = 6.626 x 10^-34 J s).",
+     "answer": "7.27 x 10^-10 m",
+     "solution_md": "lambda = h/mv = 6.626 x 10^-34 / (9.11 x 10^-31 x 1.0 x 10^6) = 7.27 x 10^-10 m (about 7.27 angstrom).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "Light of wavelength 600 nm is used. Find its frequency and the energy of one photon.",
+     "answer": "nu = 5.0 x 10^14 Hz; E = 3.31 x 10^-19 J",
+     "solution_md": "nu = c/lambda = 3 x 10^8 / 600 x 10^-9 = 5.0 x 10^14 Hz. E = h nu = 6.626 x 10^-34 x 5.0 x 10^14 = 3.31 x 10^-19 J.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "State the postulates of Bohr's model of the hydrogen atom and list two of its limitations.",
+     "answer": "See solution",
+     "solution_md": "**Postulates**: (1) electrons revolve in certain fixed circular orbits (stationary states) without radiating energy; (2) only orbits with angular momentum mvr = nh/2pi are allowed; (3) energy is emitted or absorbed only when an electron jumps between orbits, Delta E = E2 - E1 = h nu; (4) energy of the electron in orbit n is E_n = -2.18 x 10^-18 / n^2 J.\n\n**Limitations**: (1) fails for multi-electron atoms; (2) cannot explain splitting of spectral lines in magnetic or electric fields; also ignores wave nature and uncertainty principle.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the wavelength (in nm) of the first line of the Balmer series of hydrogen (R_H = 1.097 x 10^7 per m).",
+     "answer": "656 nm",
+     "solution_md": "The first Balmer line is the 3 to 2 transition. 1/lambda = 1.097 x 10^7 (1/4 - 1/9) = 1.097 x 10^7 x 5/36 = 1.524 x 10^6 per m, so lambda = 6.56 x 10^-7 m = 656 nm.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Light of wavelength 300 nm falls on a metal of work function 2.5 eV. Using hc = 1240 eV nm, find the maximum kinetic energy of the photoelectrons.",
+     "answer": "1.63 eV",
+     "solution_md": "Photon energy = 1240/300 = 4.13 eV. KE = 4.13 - 2.5 = 1.63 eV.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The number of radial nodes in a 3p orbital is:",
+     "options": [
+      "0",
+      "1",
+      "2",
+      "3"
+     ],
+     "answer": "1",
+     "solution_md": "Radial nodes = n - l - 1 = 3 - 1 - 1 = 1.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The minimum uncertainty in the position of an electron whose velocity is uncertain by 1 x 10^5 m/s is about (h = 6.626 x 10^-34 J s, m = 9.11 x 10^-31 kg):",
+     "options": [
+      "5.8 x 10^-10 m",
+      "5.8 x 10^-8 m",
+      "1.2 x 10^-9 m",
+      "2.9 x 10^-10 m"
+     ],
+     "answer": "5.8 x 10^-10 m",
+     "solution_md": "Delta x >= h/(4 pi m Delta v) = 6.626 x 10^-34 / (4 x 3.1416 x 9.11 x 10^-31 x 10^5) = 5.79 x 10^-10 m.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): The configuration of chromium is [Ar] 3d5 4s1 and not [Ar] 3d4 4s2. Reason (R): Half-filled subshells have extra stability due to symmetry and exchange energy.",
+     "options": [
+      "Both A and R true, R explains A",
+      "Both A and R true, R does not explain A",
+      "A true, R false",
+      "A false, R true"
+     ],
+     "answer": "Both A and R true and R explains A",
+     "solution_md": "The extra stability of half-filled d5 outweighs the small energy gap between 3d and 4s, so one 4s electron moves into 3d. R correctly explains A.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Rutherford's key conclusion?",
+     "back": "Atom has a small, dense, positively charged nucleus with electrons outside."
+    },
+    {
+     "front": "What are isotopes?",
+     "back": "Atoms of same Z but different mass number."
+    },
+    {
+     "front": "Energy of a photon?",
+     "back": "E = h nu = hc/lambda"
+    },
+    {
+     "front": "Which series of H is in the visible region?",
+     "back": "Balmer series (n to 2)."
+    },
+    {
+     "front": "Bohr radius of H-like species?",
+     "back": "r_n = 52.9 pm x n^2/Z"
+    },
+    {
+     "front": "State the uncertainty principle.",
+     "back": "Delta x . Delta p >= h/4pi."
+    },
+    {
+     "front": "Four quantum numbers?",
+     "back": "n, l, m_l, m_s."
+    },
+    {
+     "front": "State Aufbau principle.",
+     "back": "Orbitals fill in increasing order of n + l."
+    },
+    {
+     "front": "State Hund's rule.",
+     "back": "Degenerate orbitals are filled singly with parallel spin before pairing."
+    },
+    {
+     "front": "Number of nodes in an orbital?",
+     "back": "Radial n - l - 1, angular l, total n - 1."
+    }
+   ]
+  },
+  {
+   "number": 3,
+   "title": "Classification of Elements and Periodicity in Properties",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Development of the periodic table",
+     "body_md": "- Early attempts: Dobereiner's triads, Newlands' octaves, Lothar Meyer's curves.\n- Mendeleev arranged elements by increasing atomic mass and left gaps for undiscovered elements (predicting eka-aluminium, eka-silicon); but some pairs were out of mass order.\n- **Modern periodic law**: properties of elements are periodic functions of their atomic numbers (Moseley).\n- The long form has 18 groups and 7 periods (period 7 now complete)."
+    },
+    {
+     "heading": "IUPAC naming of elements with Z > 100",
+     "body_md": "- Temporary names are built from numerical roots: 0 nil, 1 un, 2 bi, 3 tri, 4 quad, 5 pent, 6 hex, 7 sept, 8 oct, 9 enn, joined and ending in -ium.\n- Symbol uses the first letters of each root. Example: Z = 120 is unbinilium (Ubn); Z = 119 is ununennium (Uue).\n- Elements up to Z = 118 now have permanent approved names."
+    },
+    {
+     "heading": "Electronic configuration and blocks",
+     "body_md": "- Period number = principal quantum number of the outermost shell. Number of elements in a period equals the orbitals available to fill: 2, 8, 8, 18, 18, 32, 32.\n- **s-block**: groups 1, 2; **p-block**: groups 13 to 18; **d-block**: groups 3 to 12 (transition elements); **f-block**: lanthanoids and actinoids.\n- Group number for s-block = valence electrons; for p-block = 10 + valence electrons; for d-block = ns + (n-1)d electrons.\n- Noble gases (group 18) have complete octets (He has 2) and are largely inert."
+    },
+    {
+     "heading": "Atomic and ionic radii",
+     "body_md": "- Covalent radius = half the bond length between two like atoms; metallic radius = half the distance between adjacent metal nuclei; van der Waals radius is the largest of these.\n- Across a period, radius decreases because effective nuclear charge increases with the same shell. Down a group it increases as new shells are added.\n- Cation is smaller than parent atom; anion is larger than parent atom.\n- In isoelectronic species, radius falls as nuclear charge increases (O2- > F- > Na+ > Mg2+)."
+    },
+    {
+     "heading": "Ionisation enthalpy",
+     "body_md": "- Energy needed to remove the outermost electron from an isolated gaseous atom; IE1 < IE2 < IE3 always.\n- It increases across a period and decreases down a group, since size and shielding dominate.\n- Exceptions: Be > B (2s is more penetrating than 2p) and N > O (half-filled 2p3 stability, repulsion in the paired oxygen 2p4).\n- Large jump in successive IE signals removal from an inner shell, which reveals the valence electron count."
+    },
+    {
+     "heading": "Electron gain enthalpy and electronegativity",
+     "body_md": "- Electron gain enthalpy is the enthalpy change when a gaseous atom accepts an electron; more negative means greater affinity. Halogens have the most negative values; noble gases are positive.\n- Chlorine has a more negative value than fluorine because the small 2p shell of F suffers strong electron-electron repulsion.\n- Electronegativity measures the tendency of a bonded atom to attract shared electrons; Pauling scale gives F = 4.0 (highest). It increases across a period and decreases down a group.\n- Mulliken: electronegativity is proportional to the average of IE and electron affinity."
+    },
+    {
+     "heading": "Valence and anomalous behaviour of second period",
+     "body_md": "- Valence is the combining capacity; for main-group elements it follows the group (or 8 minus group).\n- First element of each group (Li, Be, B...) behaves differently because of small size, high charge density and no d-orbitals, so the maximum covalency is 4.\n- Diagonal relationships: Li-Mg, Be-Al, B-Si, from similar charge/radius ratios."
+    },
+    {
+     "heading": "Periodic trends in chemical reactivity",
+     "body_md": "- Metallic character falls across a period and rises down a group; non-metals show the opposite.\n- Oxides: basic for left-side elements (Na2O), amphoteric in the middle (Al2O3, ZnO), acidic on the right (SO3, Cl2O7). Acidity of oxides increases across a period.\n- Reactivity of metals increases down a group (alkali metals); reactivity of non-metals decreases down a group (halogens).\n- Most reactive metals: Cs/Fr; most reactive non-metal: F."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Effective nuclear charge",
+     "latex": "Z_{\\mathrm{eff}}=Z-\\sigma",
+     "variables": "Z_eff = effective nuclear charge; Z = atomic number; sigma = shielding constant",
+     "note": "Slater: 0.35 same shell (0.30 for 1s), 0.85 for n-1 shell, 1.00 for n-2 and lower."
+    },
+    {
+     "name": "Group number rule (p-block)",
+     "latex": "\\text{Group}=10+n_{\\mathrm{valence}}",
+     "variables": "n_valence = electrons in ns and np",
+     "note": "For s-block group = n_valence."
+    },
+    {
+     "name": "Successive ionisation",
+     "latex": "\\mathrm{IE}_1<\\mathrm{IE}_2<\\mathrm{IE}_3",
+     "variables": "IE = ionisation enthalpy (kJ/mol)",
+     "note": "Because removing e- from a positive ion is harder."
+    },
+    {
+     "name": "Ionisation reaction",
+     "latex": "\\mathrm{M(g)}\\rightarrow\\mathrm{M^+(g)}+e^-\\quad\\Delta_{i}H>0",
+     "variables": "Delta_i H = ionisation enthalpy",
+     "note": "Always endothermic."
+    },
+    {
+     "name": "Electron gain",
+     "latex": "\\mathrm{X(g)}+e^-\\rightarrow\\mathrm{X^-(g)}\\quad\\Delta_{eg}H",
+     "variables": "Delta_eg H = electron gain enthalpy",
+     "note": "Negative for most; second gain is positive."
+    },
+    {
+     "name": "Mulliken electronegativity",
+     "latex": "\\chi_M=\\dfrac{\\mathrm{IE}+\\mathrm{EA}}{2}",
+     "variables": "chi = Mulliken electronegativity; IE = ionisation energy; EA = electron affinity (same unit)",
+     "note": "Use eV; divide by 2.8 to get Pauling-like scale."
+    },
+    {
+     "name": "Isoelectronic radius trend",
+     "latex": "r\\propto\\dfrac{1}{Z_{\\mathrm{eff}}}",
+     "variables": "r = radius; Z_eff = effective nuclear charge",
+     "note": "Same electron count, higher nuclear charge, smaller radius."
+    },
+    {
+     "name": "Period length",
+     "latex": "\\text{elements in period}=2,\\,8,\\,8,\\,18,\\,18,\\,32",
+     "variables": "Fixed by orbitals filling",
+     "note": "Based on available orbitals."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "Which of the following has the largest radius?",
+     "options": [
+      "O2-",
+      "F-",
+      "Na+",
+      "Mg2+"
+     ],
+     "answer": "O2-",
+     "solution_md": "All four species have 10 electrons. The one with the least nuclear charge (O, Z = 8) holds the electron cloud least tightly, so O2- is largest.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Why is the first ionisation enthalpy of nitrogen higher than that of oxygen even though oxygen has a higher nuclear charge?",
+     "answer": "Nitrogen has a stable half-filled 2p3 configuration",
+     "solution_md": "N: 2s2 2p3 (half-filled, extra exchange stability). O: 2s2 2p4 has one paired 2p orbital where electron-electron repulsion makes removal of one electron easier, so IE1(O) < IE1(N).",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Explain why chlorine has a more negative electron gain enthalpy than fluorine.",
+     "answer": "Small 2p shell of F causes strong inter-electronic repulsion",
+     "solution_md": "Fluorine's compact 2p subshell already holds seven electrons in a small space; an added electron experiences large repulsion, partly cancelling the energy released. Chlorine's larger 3p shell has more room, so the net released energy is greater.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "State and explain how atomic radius varies across the second period and down group 1.",
+     "answer": "Decreases across period; increases down group",
+     "solution_md": "**Across period**: electrons enter the same shell while nuclear charge rises, so effective nuclear charge increases and radius falls (Li to F). **Down group**: each new element adds an extra shell and shielding increases, which outweighs the added charge; radius rises (Li to Cs).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Define ionisation enthalpy. Discuss the factors affecting it and explain its variation along a period and down a group, mentioning two exceptions.",
+     "answer": "See solution",
+     "solution_md": "**Definition**: energy required to remove the most loosely held electron from an isolated gaseous atom.\n\n**Factors**: atomic size (larger, lower IE), nuclear charge (higher, greater IE), shielding by inner electrons (more shielding, lower IE), penetration of the orbital (s > p > d > f), and stability of half/fully filled subshells.\n\n**Trend**: increases across a period due to increasing Z_eff and decreasing size; decreases down a group because of larger size and more shielding.\n\n**Exceptions**: Be (2s2) > B (2s2 2p1) since 2s penetrates more than 2p; N > O due to half-filled 2p3 stability.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "An element with atomic number 119 would be placed in which group, period and block of the extended periodic table?",
+     "options": [
+      "Group 1, period 8, s-block",
+      "Group 2, period 8, s-block",
+      "Group 1, period 7, s-block",
+      "Group 17, period 8, p-block"
+     ],
+     "answer": "Group 1, period 8, s-block",
+     "solution_md": "Its configuration would be [Og] 8s1: one valence electron in an s orbital, 8th shell outermost.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Using Slater's rules, calculate the effective nuclear charge on a 3s electron of sodium (Z = 11).",
+     "answer": "2.2",
+     "solution_md": "Configuration 1s2 2s2 2p6 3s1. Shielding: eight electrons in the n-1 shell x 0.85 = 6.8; two electrons in n-2 shell x 1.00 = 2.0; total sigma = 8.8. Z_eff = 11 - 8.8 = 2.2.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The correct order of first ionisation enthalpy for Be, B, C, N, O is:",
+     "options": [
+      "Be < B < C < N < O",
+      "B < Be < C < O < N",
+      "B < Be < C < N < O",
+      "Be < B < N < C < O"
+     ],
+     "answer": "B < Be < C < O < N",
+     "solution_md": "Generally increases across the period; Be > B because of 2s penetration and N > O due to half-filled stability. Hence B < Be < C < O < N.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Taking IE1 = 738 kJ/mol and IE2 = 1451 kJ/mol for magnesium, find the energy needed to convert 2.4 g of gaseous Mg atoms into Mg2+ ions (Mg = 24 g/mol).",
+     "answer": "218.9 kJ",
+     "solution_md": "Moles of Mg = 2.4/24 = 0.1 mol. Energy per mole to form Mg2+ = 738 + 1451 = 2189 kJ. Energy = 0.1 x 2189 = 218.9 kJ.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): Noble gases have large positive electron gain enthalpies. Reason (R): Their valence shells are completely filled, so an incoming electron must enter a higher energy shell.",
+     "options": [
+      "Both A and R true, R explains A",
+      "Both A and R true, R does not explain A",
+      "A true, R false",
+      "A false, R true"
+     ],
+     "answer": "Both A and R true and R explains A",
+     "solution_md": "A stable octet means any added electron goes to the next principal shell, which is high in energy and needs energy input, giving a positive value. R explains A.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Modern periodic law?",
+     "back": "Properties of elements are periodic functions of atomic number."
+    },
+    {
+     "front": "Number of elements in the 6th period?",
+     "back": "32."
+    },
+    {
+     "front": "Which block contains groups 3 to 12?",
+     "back": "d-block."
+    },
+    {
+     "front": "Atomic radius trend across a period?",
+     "back": "Decreases (Z_eff increases)."
+    },
+    {
+     "front": "Isoelectronic order of radius: O2-, F-, Na+, Mg2+?",
+     "back": "O2- > F- > Na+ > Mg2+."
+    },
+    {
+     "front": "Why is IE of Be higher than B?",
+     "back": "2s electrons penetrate more than 2p, so 2s2 is held more firmly."
+    },
+    {
+     "front": "Which element has the most negative electron gain enthalpy?",
+     "back": "Chlorine."
+    },
+    {
+     "front": "Most electronegative element?",
+     "back": "Fluorine (4.0 Pauling)."
+    },
+    {
+     "front": "Nature of oxides across a period?",
+     "back": "Basic to amphoteric to acidic."
+    },
+    {
+     "front": "Diagonal pairs?",
+     "back": "Li-Mg, Be-Al, B-Si."
+    }
+   ]
+  },
+  {
+   "number": 4,
+   "title": "Chemical Bonding and Molecular Structure",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Why atoms bond; ionic bond",
+     "body_md": "- Atoms combine to lower their energy and usually reach a stable octet (Kossel-Lewis idea). Lewis dot symbols show valence electrons.\n- Ionic bond: complete transfer of electrons from a metal to a non-metal, giving cations and anions held by electrostatic attraction.\n- Favoured by low ionisation enthalpy of the metal, high electron gain enthalpy of the non-metal and, above all, high lattice enthalpy.\n- Ionic solids have high melting points, are brittle, conduct only when molten or dissolved."
+    },
+    {
+     "heading": "Covalent bond, Lewis structures, formal charge",
+     "body_md": "- Covalent bond: sharing of electron pairs, giving single, double or triple bonds.\n- Steps for Lewis structures: count total valence electrons, place the least electronegative atom centrally, join atoms by single bonds, complete octets, then form multiple bonds if electrons are short.\n- Formal charge = valence electrons - non-bonding electrons - half the bonding electrons. The structure with formal charges nearest zero is the more stable.\n- Exceptions to octet: incomplete (BF3, BeCl2), expanded (PCl5, SF6) and odd-electron species (NO, NO2)."
+    },
+    {
+     "heading": "Polarity, dipole moment, Fajans' rules",
+     "body_md": "- A bond between unlike atoms is polar; dipole moment = charge x distance, in debye (1 D = 3.336 x 10^-30 C m).\n- Molecular dipole moment is the vector sum of bond dipoles: CO2, BF3, CH4 are non-polar, H2O and NH3 are polar.\n- Fajans' rules: covalent character in an ionic bond increases with small cation, large anion, high charge on either ion."
+    },
+    {
+     "heading": "VSEPR theory",
+     "body_md": "- Electron pairs around the central atom arrange themselves to minimise repulsion; lone pair-lone pair > lone pair-bond pair > bond pair-bond pair.\n- Electron-pair geometry: 2 pairs linear, 3 trigonal planar, 4 tetrahedral, 5 trigonal bipyramidal, 6 octahedral.\n- Lone pairs shrink bond angles: CH4 109.5 degrees, NH3 about 107, H2O about 104.5.\n- Shapes: SF4 see-saw, ClF3 T-shaped, XeF2 linear, BrF5 square pyramidal, XeF4 square planar."
+    },
+    {
+     "heading": "Valence bond theory and hybridisation",
+     "body_md": "- A covalent bond forms by overlap of half-filled orbitals; head-on overlap gives a sigma bond, sideways overlap of p orbitals gives a pi bond. Greater overlap means a stronger bond.\n- Hybridisation: mixing of atomic orbitals of similar energy to give equivalent hybrid orbitals. sp is linear (180), sp2 trigonal planar (120), sp3 tetrahedral (109.5), sp3d trigonal bipyramidal, sp3d2 octahedral.\n- A double bond has one sigma and one pi; a triple bond has one sigma and two pi.\n- Hybridisation = (valence electrons of central atom + monovalent atoms - charge)/2 as the number of hybrid orbitals."
+    },
+    {
+     "heading": "Molecular orbital theory",
+     "body_md": "- Atomic orbitals combine linearly into bonding (lower energy) and antibonding (higher energy) molecular orbitals; electrons fill by Aufbau, Pauli and Hund.\n- Order up to N2: sigma1s, sigma*1s, sigma2s, sigma*2s, (pi2px = pi2py), sigma2pz, (pi*2px = pi*2py), sigma*2pz. From O2 onwards sigma2pz lies below the pi2p pair.\n- Bond order = (Nb - Na)/2; higher bond order means shorter, stronger bond; zero means no stable molecule (He2).\n- Unpaired electrons make a species paramagnetic (O2); all paired is diamagnetic (N2)."
+    },
+    {
+     "heading": "Resonance and hydrogen bonding",
+     "body_md": "- Resonance: when one Lewis structure cannot describe a molecule, the real structure is a hybrid of canonical forms (O3, CO3^2-, benzene). All bonds in the hybrid are of equal length with intermediate bond order.\n- Hydrogen bond: attraction between H bonded to N, O or F and a lone pair on another such atom. It is intermolecular (raises boiling point, as in H2O, HF) or intramolecular (o-nitrophenol, lowers boiling point and solubility in water).\n- Hydrogen bonding explains the low density of ice and the high boiling point of water."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Formal charge",
+     "latex": "FC=V-L-\\dfrac{B}{2}",
+     "variables": "V = valence electrons of free atom; L = lone-pair electrons; B = bonding electrons",
+     "note": "Sum equals charge of species."
+    },
+    {
+     "name": "Dipole moment",
+     "latex": "\\mu=q\\times d",
+     "variables": "q = charge (C); d = bond length (m)",
+     "note": "1 D = 3.336 x 10^-30 C m."
+    },
+    {
+     "name": "Percentage ionic character",
+     "latex": "\\%\\text{ ionic}=\\dfrac{\\mu_{\\text{observed}}}{\\mu_{\\text{ionic}}}\\times100",
+     "variables": "mu_ionic = e x bond length",
+     "note": "Assumes full charge separation."
+    },
+    {
+     "name": "Bond order (MO theory)",
+     "latex": "BO=\\dfrac{N_b-N_a}{2}",
+     "variables": "Nb = electrons in bonding MOs; Na = electrons in antibonding MOs",
+     "note": "Higher BO, shorter bond."
+    },
+    {
+     "name": "Bond order (Lewis)",
+     "latex": "BO=\\dfrac{\\text{bonds between two atoms}}{\\text{number of resonance forms' bonding positions}}",
+     "variables": "Total bonds / number of linkages",
+     "note": "E.g. 4/3 for each C-O in carbonate."
+    },
+    {
+     "name": "Hybrid orbital count",
+     "latex": "H=\\dfrac{1}{2}(V+M-C+A)",
+     "variables": "V = valence electrons of central atom; M = monovalent atoms; C = cation charge; A = anion charge",
+     "note": "2 sp, 3 sp2, 4 sp3, 5 sp3d, 6 sp3d2."
+    },
+    {
+     "name": "Sigma and pi bonds",
+     "latex": "\\text{single}=1\\sigma,\\ \\text{double}=1\\sigma+1\\pi,\\ \\text{triple}=1\\sigma+2\\pi",
+     "variables": "Counting rule",
+     "note": "Used for molecules like C2H2."
+    },
+    {
+     "name": "Magnetic moment (spin only)",
+     "latex": "\\mu=\\sqrt{n(n+2)}\\ \\text{BM}",
+     "variables": "n = number of unpaired electrons",
+     "note": "Useful for MO paramagnetism."
+    },
+    {
+     "name": "Bond angle trend",
+     "latex": "\\text{LP-LP}>\\text{LP-BP}>\\text{BP-BP}",
+     "variables": "LP = lone pair; BP = bond pair",
+     "note": "Order of repulsion in VSEPR."
+    },
+    {
+     "name": "Electron pairs and geometry",
+     "latex": "\\text{steric number}=\\text{bond pairs}+\\text{lone pairs}",
+     "variables": "Steric number 2 to 6",
+     "note": "Fixes electron-pair geometry."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The shape of the ammonia molecule is:",
+     "options": [
+      "Tetrahedral",
+      "Trigonal planar",
+      "Trigonal pyramidal",
+      "Bent"
+     ],
+     "answer": "Trigonal pyramidal",
+     "solution_md": "Nitrogen has three bond pairs and one lone pair (steric number 4, sp3). The lone pair is not part of the shape, so the molecule is pyramidal.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Define bond order. Calculate it for the O2 molecule and state its magnetic nature.",
+     "answer": "Bond order 2; paramagnetic",
+     "solution_md": "O2 has 10 electrons in bonding MOs and 6 in antibonding MOs, so bond order = (10 - 6)/2 = 2. Two unpaired electrons sit in the pi* orbitals, so O2 is paramagnetic.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "The H-Cl bond length is 127 pm and the measured dipole moment of HCl is 1.03 D. Find the percentage ionic character (e = 1.602 x 10^-19 C, 1 D = 3.336 x 10^-30 C m).",
+     "answer": "About 16.9 %",
+     "solution_md": "Dipole moment for a full charge separation = 1.602 x 10^-19 x 127 x 10^-12 = 2.03 x 10^-29 C m = 6.10 D. Ionic character = 1.03/6.10 x 100 = 16.9 %.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "numerical",
+     "marks": 3,
+     "question": "Draw the Lewis structure of the nitrate ion and calculate the formal charge on each atom, giving the average N-O bond order.",
+     "answer": "N +1, double-bonded O 0, two single-bonded O -1 each; bond order 1.33",
+     "solution_md": "Total valence electrons = 5 + 18 + 1 = 24. Structure: N with one N=O and two N-O^-. Formal charge on N = 5 - 0 - 4 = +1; on =O = 6 - 4 - 2 = 0; on each O^- = 6 - 6 - 1 = -1. Three resonance forms spread the double bond, so bond order = 4/3 = 1.33.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 5,
+     "question": "Explain the formation of the ethene molecule using hybridisation, stating the number of sigma and pi bonds and the H-C-H bond angle.",
+     "answer": "See solution",
+     "solution_md": "Each carbon is sp2 hybridised (three sp2 orbitals in a plane at 120 degrees, one unhybridised p orbital). Two sp2 orbitals of each carbon overlap with 1s orbitals of H to form four C-H sigma bonds, and the remaining sp2 orbitals overlap head-on to form one C-C sigma bond. The unhybridised p orbitals overlap sideways above and below the plane to form one pi bond. Total: 5 sigma and 1 pi bond. The molecule is planar with H-C-H angle about 120 degrees.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Find the total number of sigma and pi bonds in CH2=CH-C#CH (but-1-en-3-yne). Give sigma and pi separately.",
+     "answer": "7 sigma, 3 pi",
+     "solution_md": "C-H bonds: 4 sigma. C=C: 1 sigma + 1 pi. C-C single: 1 sigma. C#C: 1 sigma + 2 pi. Sigma = 4 + 1 + 1 + 1 = 7; pi = 1 + 2 = 3.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "numerical",
+     "marks": 4,
+     "question": "Calculate the dipole moment, in debye, of a hypothetical diatomic molecule with charges +1.602 x 10^-19 C and -1.602 x 10^-19 C separated by 100 pm.",
+     "answer": "4.80 D",
+     "solution_md": "mu = 1.602 x 10^-19 x 100 x 10^-12 = 1.602 x 10^-29 C m. Dividing by 3.336 x 10^-30 gives 4.80 D.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Which species has the highest bond order?",
+     "options": [
+      "O2",
+      "N2",
+      "O2^2-",
+      "N2^2-"
+     ],
+     "answer": "N2",
+     "solution_md": "Bond orders: N2 = 3, O2 = 2, O2^2- = 1, N2^2- (isoelectronic with O2) = 2. N2 has the highest.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The hybridisation and shape of SF4 are respectively:",
+     "options": [
+      "sp3, tetrahedral",
+      "sp3d, see-saw",
+      "sp3d2, square planar",
+      "sp3d, trigonal bipyramidal"
+     ],
+     "answer": "sp3d, see-saw",
+     "solution_md": "Sulphur has 4 bond pairs and 1 lone pair, so steric number 5 (sp3d). The lone pair occupies an equatorial position of the trigonal bipyramid, giving a see-saw shape.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): NH3 has a larger dipole moment than NF3. Reason (R): In NF3 the N-F bond dipoles act opposite to the dipole of the lone pair.",
+     "answer": "Both A and R true and R explains A",
+     "solution_md": "Fluorine is more electronegative than nitrogen, so N-F bond dipoles point toward F, opposing the lone-pair dipole of N. In NH3 the N-H dipoles point toward N and add to the lone-pair dipole. R explains A.",
+     "difficulty": "medium",
+     "status": "needs_review",
+     "options": [
+      "Both A and R true, R explains A",
+      "Both A and R true, R does not explain A",
+      "A true, R false",
+      "A false, R true"
+     ]
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Formal charge formula?",
+     "back": "V - L - B/2."
+    },
+    {
+     "front": "Shape of H2O and bond angle?",
+     "back": "Bent (V-shaped), about 104.5 degrees."
+    },
+    {
+     "front": "Order of repulsion in VSEPR?",
+     "back": "LP-LP > LP-BP > BP-BP."
+    },
+    {
+     "front": "Hybridisation of carbon in CH4, C2H4, C2H2?",
+     "back": "sp3, sp2, sp."
+    },
+    {
+     "front": "Bond order formula (MO)?",
+     "back": "(Nb - Na)/2."
+    },
+    {
+     "front": "Which of N2 and O2 is paramagnetic?",
+     "back": "O2 (two unpaired electrons in pi*)."
+    },
+    {
+     "front": "Shape of XeF4?",
+     "back": "Square planar (sp3d2, two lone pairs)."
+    },
+    {
+     "front": "Define resonance.",
+     "back": "Real structure is a hybrid of two or more canonical Lewis forms; none exists individually."
+    },
+    {
+     "front": "Effect of intramolecular H-bonding?",
+     "back": "Lowers boiling point and water solubility (e.g. o-nitrophenol)."
+    },
+    {
+     "front": "Fajans' rule for more covalent character?",
+     "back": "Small, highly charged cation and large anion."
+    }
+   ]
+  },
+  {
+   "number": 5,
+   "title": "Thermodynamics",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "System, surroundings and state functions",
+     "body_md": "- System is the part under study; everything else is surroundings. Open systems exchange matter and energy, closed systems exchange only energy, isolated systems exchange neither.\n- State functions (U, H, S, G, P, V, T) depend only on the present state; heat q and work w are path functions.\n- Extensive properties depend on amount (mass, volume, U, H); intensive ones do not (T, P, density).\n- Isothermal means constant T, isobaric constant P, isochoric constant V, adiabatic no heat exchange."
+    },
+    {
+     "heading": "First law and internal energy",
+     "body_md": "- Energy can be neither created nor destroyed: Delta U = q + w (IUPAC sign convention: heat absorbed and work done on the system are positive).\n- For an isolated system Delta U = 0. For an adiabatic change Delta U = w. For an isochoric change Delta U = q_v.\n- Internal energy of an ideal gas depends only on temperature."
+    },
+    {
+     "heading": "Work and pressure-volume expansion",
+     "body_md": "- Expansion work against constant external pressure: w = -p_ex Delta V.\n- Free expansion into vacuum: w = 0.\n- Reversible isothermal change of an ideal gas: w = -2.303 nRT log(V2/V1); this is the maximum work obtainable.\n- 1 L atm = 101.3 J."
+    },
+    {
+     "heading": "Enthalpy and heat capacity",
+     "body_md": "- Enthalpy H = U + pV. At constant pressure q_p = Delta H; at constant volume q_v = Delta U.\n- Delta H = Delta U + Delta n_g RT, where Delta n_g is the change in moles of gaseous species.\n- Heat capacity C = q/Delta T; molar heat capacities obey C_p - C_v = R for an ideal gas.\n- Exothermic reactions have Delta H < 0, endothermic ones Delta H > 0."
+    },
+    {
+     "heading": "Enthalpy changes of reactions",
+     "body_md": "- Standard enthalpy of formation: formation of 1 mol of a compound from its elements in their standard (reference) states; it is zero for an element in its reference state.\n- Enthalpy of combustion, atomisation, bond dissociation, sublimation, fusion, vaporisation, solution and neutralisation are the other named changes.\n- Strong acid with strong base releases about 57 kJ per mole of water formed.\n- Reaction enthalpy from formation data: Delta H = sum of products minus sum of reactants (each times its coefficient)."
+    },
+    {
+     "heading": "Hess's law and bond enthalpy",
+     "body_md": "- Hess's law: the total enthalpy change of a reaction is the same whether it occurs in one step or several, because H is a state function.\n- Use it by adding, reversing (change sign) or scaling (multiply Delta H) known equations.\n- Bond enthalpy estimate: Delta H = sum of bond enthalpies of bonds broken minus sum of bonds formed.\n- Lattice enthalpy is found indirectly through the Born-Haber cycle."
+    },
+    {
+     "heading": "Spontaneity and entropy",
+     "body_md": "- A spontaneous process proceeds on its own; energy lowering alone does not decide it.\n- Entropy S measures disorder; it rises when solid melts, liquid vaporises or gas moles increase.\n- Second law: for a spontaneous process the total entropy of system plus surroundings increases.\n- Delta S = q_rev/T; for a phase change at its transition point Delta S = Delta H/T.\n- Third law: entropy of a perfect crystal is zero at 0 K."
+    },
+    {
+     "heading": "Gibbs energy and equilibrium",
+     "body_md": "- Delta G = Delta H - T Delta S at constant T and P. Spontaneous if Delta G < 0, at equilibrium if Delta G = 0.\n- Delta H negative and Delta S positive: always spontaneous. Delta H positive and Delta S negative: never. The mixed cases depend on temperature, with crossover T = Delta H/Delta S.\n- Delta G standard = -RT ln K = -2.303 RT log K, linking thermodynamics to equilibrium.\n- Delta G is also the maximum non-expansion (useful) work available."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "First law",
+     "latex": "\\Delta U=q+w",
+     "variables": "q = heat absorbed (J); w = work done on system (J)",
+     "note": "IUPAC sign convention."
+    },
+    {
+     "name": "Expansion work (constant pressure)",
+     "latex": "w=-p_{ex}\\Delta V",
+     "variables": "p_ex = external pressure; Delta V = V_final - V_initial",
+     "note": "Use 1 L atm = 101.3 J."
+    },
+    {
+     "name": "Reversible isothermal work",
+     "latex": "w=-2.303\\,nRT\\log\\dfrac{V_2}{V_1}",
+     "variables": "n = moles; R = 8.314 J/mol/K; T = temperature (K)",
+     "note": "Equals -nRT ln(p1/p2) as well."
+    },
+    {
+     "name": "Enthalpy definition",
+     "latex": "H=U+pV",
+     "variables": "p = pressure; V = volume",
+     "note": "At constant p, Delta H = q_p."
+    },
+    {
+     "name": "Delta H and Delta U",
+     "latex": "\\Delta H=\\Delta U+\\Delta n_g RT",
+     "variables": "Delta n_g = gaseous moles of products minus reactants",
+     "note": "Zero difference when Delta n_g = 0."
+    },
+    {
+     "name": "Heat capacity relation",
+     "latex": "C_p-C_v=R",
+     "variables": "C_p, C_v = molar heat capacities at constant p and v",
+     "note": "Ideal gas only."
+    },
+    {
+     "name": "Heat from temperature change",
+     "latex": "q=mc\\Delta T",
+     "variables": "m = mass; c = specific heat capacity; Delta T = temperature change",
+     "note": "Basis of calorimetry."
+    },
+    {
+     "name": "Entropy of phase change",
+     "latex": "\\Delta S=\\dfrac{\\Delta H_{trans}}{T_{trans}}",
+     "variables": "T_trans = melting or boiling temperature (K)",
+     "note": "Reversible transition."
+    },
+    {
+     "name": "Gibbs-Helmholtz form",
+     "latex": "\\Delta G=\\Delta H-T\\Delta S",
+     "variables": "T in kelvin; Delta S in J/K (convert to kJ)",
+     "note": "Negative Delta G means spontaneous."
+    },
+    {
+     "name": "Gibbs energy and K",
+     "latex": "\\Delta G^\\circ=-RT\\ln K=-2.303RT\\log K",
+     "variables": "K = equilibrium constant",
+     "note": "Link between thermodynamics and equilibrium."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "Which of the following is an intensive property?",
+     "options": [
+      "Volume",
+      "Enthalpy",
+      "Density",
+      "Internal energy"
+     ],
+     "answer": "Density",
+     "solution_md": "Density does not change with the amount of substance, whereas volume, enthalpy and internal energy scale with amount.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "A gas expands from 1 L to 6 L against a constant external pressure of 2 atm. Calculate the work done on the gas in joules.",
+     "answer": "-1013 J",
+     "solution_md": "w = -p_ex Delta V = -2 atm x 5 L = -10 L atm. Multiply by 101.3 J per L atm to get about -1013 J. The negative sign means the system loses energy as work.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "A system absorbs 300 J of heat and does 120 J of work on the surroundings. Find the change in its internal energy.",
+     "answer": "180 J",
+     "solution_md": "q = +300 J. Work done BY the system means w = -120 J. Delta U = q + w = 300 - 120 = +180 J.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "Given C(graphite) + O2 -> CO2, Delta H = -393.5 kJ and CO + 1/2 O2 -> CO2, Delta H = -283.0 kJ, find Delta H for C(graphite) + 1/2 O2 -> CO.",
+     "answer": "-110.5 kJ",
+     "solution_md": "Keep the first equation and reverse the second: CO2 -> CO + 1/2 O2, Delta H = +283.0 kJ. Adding gives C + 1/2 O2 -> CO with Delta H = -393.5 + 283.0 = -110.5 kJ (Hess's law).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 3,
+     "question": "For N2(g) + 3H2(g) -> 2NH3(g), Delta H = -92.2 kJ at 300 K. Calculate Delta U.",
+     "answer": "-87.2 kJ",
+     "solution_md": "Delta n_g = 2 - 4 = -2. Delta H - Delta U = Delta n_g RT = -2 x 8.314 x 300 = -4988 J = -4.99 kJ. So Delta U = -92.2 + 4.99 = -87.2 kJ.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "For a reaction with Delta H = +40 kJ/mol and Delta S = +125 J/mol/K, the minimum temperature above which it becomes spontaneous is:",
+     "options": [
+      "250 K",
+      "300 K",
+      "320 K",
+      "400 K"
+     ],
+     "answer": "320 K",
+     "solution_md": "Spontaneous when T Delta S > Delta H, so T > 40000/125 = 320 K.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The work done when 2 mol of an ideal gas expands reversibly and isothermally at 300 K from 2 L to 20 L is closest to:",
+     "options": [
+      "-5.0 kJ",
+      "-11.5 kJ",
+      "-23.0 kJ",
+      "+11.5 kJ"
+     ],
+     "answer": "-11.5 kJ",
+     "solution_md": "w = -2.303 nRT log(V2/V1) = -2.303 x 2 x 8.314 x 300 x log 10 = -11486 J, about -11.5 kJ.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The molar enthalpy of fusion of ice is 6.01 kJ/mol at 273 K. The entropy change when 1 mol of ice melts at this temperature is about:",
+     "options": [
+      "2.2 J/mol/K",
+      "22.0 J/mol/K",
+      "220 J/mol/K",
+      "-22.0 J/mol/K"
+     ],
+     "answer": "22.0 J/mol/K",
+     "solution_md": "Delta S = Delta H/T = 6010/273 = 22.0 J/mol/K, positive because the liquid is more disordered.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "assertion_reason",
+     "marks": 4,
+     "question": "Assertion (A): For H2(g) + I2(g) -> 2HI(g) the enthalpy change equals the internal energy change. Reason (R): The number of moles of gas does not change in this reaction.",
+     "options": [
+      "Both A and R are true and R explains A",
+      "Both A and R are true but R does not explain A",
+      "A is true but R is false",
+      "A is false but R is true"
+     ],
+     "answer": "Both A and R are true and R explains A",
+     "solution_md": "Delta n_g = 2 - 2 = 0, so Delta H = Delta U + 0 x RT. R is the direct reason for A.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Using bond enthalpies H-H 436, Cl-Cl 242 and H-Cl 431 kJ/mol, Delta H for H2 + Cl2 -> 2HCl is:",
+     "options": [
+      "+184 kJ",
+      "-184 kJ",
+      "-92 kJ",
+      "+678 kJ"
+     ],
+     "answer": "-184 kJ",
+     "solution_md": "Bonds broken: 436 + 242 = 678. Bonds formed: 2 x 431 = 862. Delta H = 678 - 862 = -184 kJ.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "State the first law mathematically.",
+     "back": "Delta U = q + w."
+    },
+    {
+     "front": "Which are path functions?",
+     "back": "Heat q and work w; U, H, S, G are state functions."
+    },
+    {
+     "front": "Work done in free expansion?",
+     "back": "Zero, since external pressure is zero."
+    },
+    {
+     "front": "Relation between Delta H and Delta U?",
+     "back": "Delta H = Delta U + Delta n_g RT."
+    },
+    {
+     "front": "State Hess's law.",
+     "back": "Total enthalpy change is independent of the route, depending only on initial and final states."
+    },
+    {
+     "front": "What is the enthalpy of formation of an element in its standard state?",
+     "back": "Zero."
+    },
+    {
+     "front": "Condition for spontaneity in terms of Gibbs energy?",
+     "back": "Delta G < 0 at constant T and P."
+    },
+    {
+     "front": "When is a process spontaneous at all temperatures?",
+     "back": "When Delta H < 0 and Delta S > 0."
+    },
+    {
+     "front": "Link between Delta G standard and K?",
+     "back": "Delta G standard = -2.303 RT log K."
+    },
+    {
+     "front": "Entropy of a perfect crystal at 0 K?",
+     "back": "Zero (third law)."
+    }
+   ]
+  },
+  {
+   "number": 6,
+   "title": "Equilibrium",
+   "ncert_part": "Part I",
+   "notes": [
+    {
+     "heading": "Static and dynamic equilibrium",
+     "body_md": "- Equilibrium is the state in which forward and backward rates of a process become equal, so observable properties stay constant.\n- Physical examples: solid-liquid at melting point, liquid-vapour in a closed vessel, solute dissolved-undissolved in a saturated solution.\n- Chemical equilibrium is dynamic: both reactions keep going at equal rate. It can be reached from either side and needs a closed system.\n- A catalyst speeds up both directions equally; it shortens the time to reach equilibrium but does not change the position."
+    },
+    {
+     "heading": "Law of mass action and Kc",
+     "body_md": "- For aA + bB <=> cC + dD, Kc = [C]^c[D]^d / ([A]^a[B]^b) using equilibrium molar concentrations.\n- Pure solids and pure liquids are left out of the expression (their activity is 1).\n- Reversing a reaction gives 1/K; multiplying the equation by n raises K to the power n; adding reactions multiplies their K values.\n- K depends only on temperature, not on starting amounts or catalyst."
+    },
+    {
+     "heading": "Kp and the link with Kc",
+     "body_md": "- For gases, Kp is written with partial pressures: Kp = Kc (RT)^(delta n), where delta n = moles of gaseous products - moles of gaseous reactants.\n- Kp = Kc when delta n = 0 (for example H2 + I2 <=> 2HI).\n- Units of K depend on delta n; many texts treat K as dimensionless."
+    },
+    {
+     "heading": "Reaction quotient and direction",
+     "body_md": "- Q has the same form as K but uses concentrations at any instant.\n- Q < K: net forward reaction. Q > K: net backward reaction. Q = K: equilibrium.\n- Large K (greater than 10^3) means products dominate; small K (below 10^-3) means reactants dominate."
+    },
+    {
+     "heading": "Le Chatelier's principle",
+     "body_md": "- If a stress is applied to a system at equilibrium, it shifts to partly oppose the change.\n- Adding reactant or removing product shifts forward. Raising pressure favours the side with fewer gas moles. Inert gas at constant volume has no effect.\n- Raising temperature favours the endothermic direction and changes the value of K; the other factors do not change K.\n- Industrial use: for N2 + 3H2 <=> 2NH3 (exothermic), high pressure, moderate temperature and an iron catalyst are used."
+    },
+    {
+     "heading": "Ionic equilibrium: acids, bases and pH",
+     "body_md": "- Arrhenius, Bronsted-Lowry (proton donor/acceptor, conjugate pairs) and Lewis (electron-pair acceptor/donor) concepts of acids and bases.\n- Water: Kw = [H+][OH-] = 1.0 x 10^-14 at 298 K; pH = -log[H+], pH + pOH = 14.\n- Weak acid: Ka = [H+][A-]/[HA]; degree of ionisation alpha = sqrt(Ka/C) for small alpha (Ostwald dilution law). Ka x Kb = Kw for a conjugate pair.\n- Polyprotic acids ionise stepwise, K1 > K2 > K3."
+    },
+    {
+     "heading": "Buffers, hydrolysis and common ion effect",
+     "body_md": "- Common ion effect: adding an ion common to the weak electrolyte suppresses its ionisation.\n- A buffer resists pH change; acidic buffer = weak acid + its salt, basic buffer = weak base + its salt. Henderson equation: pH = pKa + log([salt]/[acid]).\n- Salt hydrolysis: salt of strong acid + strong base is neutral; strong acid + weak base is acidic; weak acid + strong base is basic."
+    },
+    {
+     "heading": "Solubility equilibrium",
+     "body_md": "- For a sparingly soluble salt AxBy, Ksp = [A]^x[B]^y at saturation.\n- For a salt giving 1:1 ions, Ksp = s^2; for AB2 or A2B, Ksp = 4s^3.\n- Precipitation occurs when the ionic product exceeds Ksp. A common ion lowers the solubility."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Equilibrium constant",
+     "latex": "K_c=\\dfrac{[C]^c[D]^d}{[A]^a[B]^b}",
+     "variables": "square brackets = equilibrium molar concentration",
+     "note": "Solids and pure liquids omitted."
+    },
+    {
+     "name": "Kp and Kc",
+     "latex": "K_p=K_c(RT)^{\\Delta n}",
+     "variables": "R = 0.0821 L atm/(mol K) when pressure in atm; T in K; delta n = gaseous moles of products - reactants",
+     "note": "Kp = Kc if delta n = 0."
+    },
+    {
+     "name": "Reaction quotient",
+     "latex": "Q=\\dfrac{[C]^c[D]^d}{[A]^a[B]^b}\\ (\\text{at any instant})",
+     "variables": "same as Kc but non-equilibrium values",
+     "note": "Compare Q with K to find direction."
+    },
+    {
+     "name": "Ionic product of water",
+     "latex": "K_w=[H^+][OH^-]=10^{-14}\\ (298\\,\\mathrm{K})",
+     "variables": "concentrations in mol/L",
+     "note": "Rises with temperature."
+    },
+    {
+     "name": "pH",
+     "latex": "\\mathrm{pH}=-\\log[H^+],\\ \\ \\mathrm{pH}+\\mathrm{pOH}=14",
+     "variables": "[H+] in mol/L",
+     "note": "At 298 K."
+    },
+    {
+     "name": "Weak acid ionisation",
+     "latex": "\\alpha=\\sqrt{K_a/C},\\ \\ [H^+]=\\sqrt{K_aC}",
+     "variables": "Ka = acid dissociation constant; C = concentration",
+     "note": "Valid when alpha is small."
+    },
+    {
+     "name": "Conjugate pair",
+     "latex": "K_a\\times K_b=K_w",
+     "variables": "Ka of acid, Kb of its conjugate base",
+     "note": "At 298 K, pKa + pKb = 14."
+    },
+    {
+     "name": "Henderson equation (acidic buffer)",
+     "latex": "\\mathrm{pH}=\\mathrm{p}K_a+\\log\\dfrac{[\\text{salt}]}{[\\text{acid}]}",
+     "variables": "pKa = -log Ka",
+     "note": "Basic buffer: pOH = pKb + log([salt]/[base])."
+    },
+    {
+     "name": "Solubility product",
+     "latex": "K_{sp}=(xs)^x(ys)^y\\ \\text{for}\\ A_xB_y",
+     "variables": "s = molar solubility",
+     "note": "AB: s^2; AB2: 4s^3."
+    },
+    {
+     "name": "Gibbs energy link",
+     "latex": "\\Delta G^\\circ=-RT\\ln K",
+     "variables": "R = 8.314 J/(mol K)",
+     "note": "Negative delta G gives K greater than 1."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "For the reaction 2A + B <=> 3C, the expression for Kc is:",
+     "options": [
+      "[C]^3 / ([A]^2[B])",
+      "[A]^2[B] / [C]^3",
+      "[C] / ([A][B])",
+      "3[C] / (2[A][B])"
+     ],
+     "answer": "[C]^3 / ([A]^2[B])",
+     "solution_md": "Powers of concentrations equal stoichiometric coefficients, products over reactants.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The conjugate base of HSO4^- is:",
+     "options": [
+      "H2SO4",
+      "SO4^2-",
+      "SO3^2-",
+      "HSO3^-"
+     ],
+     "answer": "SO4^2-",
+     "solution_md": "Removing a proton from HSO4^- gives SO4^2-.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "For N2(g) + 3H2(g) <=> 2NH3(g), predict the effect of (i) raising the pressure by compression and (ii) adding argon at constant volume.",
+     "answer": "(i) shifts forward; (ii) no effect",
+     "solution_md": "(i) Left side has 4 gas moles, right side has 2, so higher pressure favours NH3 formation. (ii) Argon at constant volume does not change partial pressures of the reacting gases, so Q stays equal to K and there is no shift.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Write the relation between Kp and Kc for 2SO2(g) + O2(g) <=> 2SO3(g) and find delta n.",
+     "answer": "delta n = -1; Kp = Kc (RT)^-1",
+     "solution_md": "Gas moles: products 2, reactants 3, so delta n = 2 - 3 = -1. Hence Kp = Kc (RT)^-1 = Kc/RT.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 3,
+     "question": "1 mol of PCl5 is placed in a 2 L vessel and 40% dissociates at equilibrium: PCl5 <=> PCl3 + Cl2. Calculate Kc.",
+     "answer": "0.133 mol/L",
+     "solution_md": "Initial [PCl5] = 0.5 M. Dissociated = 0.5 x 0.4 = 0.2 M, so [PCl5] = 0.3 M, [PCl3] = [Cl2] = 0.2 M. Kc = (0.2 x 0.2)/0.3 = 0.133 mol/L.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "For N2 + 3H2 <=> 2NH3, Kc = 0.5 at 400 K. Kp (atm) is about (R = 0.0821 L atm/mol/K):",
+     "options": [
+      "4.6 x 10^-4",
+      "1.5 x 10^-2",
+      "5.0 x 10^-1",
+      "2.4 x 10^-4"
+     ],
+     "answer": "4.6 x 10^-4",
+     "solution_md": "delta n = -2. RT = 0.0821 x 400 = 32.84. Kp = 0.5/(32.84)^2 = 4.6 x 10^-4.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "1 mol each of H2 and I2 in a 1 L flask form HI; at equilibrium 0.2 mol of H2 remains. Kc for H2 + I2 <=> 2HI is:",
+     "options": [
+      "16",
+      "32",
+      "64",
+      "128"
+     ],
+     "answer": "64",
+     "solution_md": "H2 reacted = 0.8, so HI = 1.6 mol; [H2] = [I2] = 0.2. Kc = 1.6^2/(0.2 x 0.2) = 2.56/0.04 = 64.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The pH of 0.1 M NH3 (Kb = 1.8 x 10^-5) is closest to:",
+     "options": [
+      "11.13",
+      "9.87",
+      "2.87",
+      "12.00"
+     ],
+     "answer": "11.13",
+     "solution_md": "[OH-] = sqrt(1.8 x 10^-5 x 0.1) = 1.34 x 10^-3. pOH = 2.87, pH = 14 - 2.87 = 11.13.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "A buffer has 0.2 M acetic acid (pKa 4.74) and 0.1 M sodium acetate. Its pH is:",
+     "options": [
+      "4.44",
+      "4.74",
+      "5.04",
+      "4.14"
+     ],
+     "answer": "4.44",
+     "solution_md": "pH = 4.74 + log(0.1/0.2) = 4.74 - 0.30 = 4.44.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The molar solubility of Mg(OH)2 is 1 x 10^-4 mol/L. Its Ksp is:",
+     "options": [
+      "1 x 10^-12",
+      "4 x 10^-12",
+      "1 x 10^-8",
+      "4 x 10^-8"
+     ],
+     "answer": "4 x 10^-12",
+     "solution_md": "Mg(OH)2 gives s of Mg2+ and 2s of OH-: Ksp = s(2s)^2 = 4s^3 = 4 x 10^-12.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "What does K depend on?",
+     "back": "Only temperature (for a given reaction)."
+    },
+    {
+     "front": "Effect of catalyst on equilibrium?",
+     "back": "Reaches equilibrium faster; K and position unchanged."
+    },
+    {
+     "front": "Kp = Kc when?",
+     "back": "delta n = 0."
+    },
+    {
+     "front": "Q greater than K means?",
+     "back": "Net reaction proceeds backward."
+    },
+    {
+     "front": "Le Chatelier on heating an exothermic reaction?",
+     "back": "Shifts backward; K decreases."
+    },
+    {
+     "front": "Kw at 298 K?",
+     "back": "1.0 x 10^-14."
+    },
+    {
+     "front": "Conjugate acid of NH3?",
+     "back": "NH4+."
+    },
+    {
+     "front": "Henderson equation?",
+     "back": "pH = pKa + log([salt]/[acid])."
+    },
+    {
+     "front": "Ksp of AB2 in terms of s?",
+     "back": "4s^3."
+    },
+    {
+     "front": "Which salt solution is basic?",
+     "back": "Salt of a strong base and weak acid, e.g. sodium acetate."
+    }
+   ]
+  },
+  {
+   "number": 7,
+   "title": "Redox Reactions",
+   "ncert_part": "Part II",
+   "notes": [
+    {
+     "heading": "Classical and electron-transfer view",
+     "body_md": "- Oxidation: gain of oxygen, loss of hydrogen, or loss of electrons. Reduction: the reverse.\n- Oxidation and reduction always occur together (redox).\n- Oxidising agent: accepts electrons and is itself reduced. Reducing agent: donates electrons and is itself oxidised.\n- Zn + Cu2+ -> Zn2+ + Cu: Zn is oxidised (reducing agent), Cu2+ is reduced (oxidising agent)."
+    },
+    {
+     "heading": "Oxidation number rules",
+     "body_md": "- Free elements: 0. Simple ion: its charge. Sum over a neutral compound is 0; over an ion equals its charge.\n- F is always -1. O is usually -2 (peroxide -1, superoxide -1/2, OF2 +2). H is +1 (-1 in metal hydrides).\n- Group 1 metals +1, group 2 metals +2.\n- Fractional values are averages (Fe in Fe3O4 = +8/3; S in Na2S4O6 = +2.5) - structure decides the real values."
+    },
+    {
+     "heading": "Types of redox reactions",
+     "body_md": "- Combination, decomposition, displacement (metal or non-metal), and disproportionation.\n- Disproportionation: one element in one species is simultaneously oxidised and reduced, e.g. 2H2O2 -> 2H2O + O2, Cl2 + OH-.\n- Reverse of this is comproportionation.\n- Displacement: a more reactive metal displaces a less reactive one from solution (activity series)."
+    },
+    {
+     "heading": "Balancing by oxidation-number method",
+     "body_md": "- Assign oxidation numbers, find the change per atom and multiply to equalise total gain and loss.\n- Balance remaining atoms, then O with H2O and H with H+ (acidic) or OH- (basic).\n- Check atom balance and charge balance."
+    },
+    {
+     "heading": "Ion-electron (half-reaction) method",
+     "body_md": "- Split into oxidation and reduction half-reactions.\n- Balance atoms other than O, H; balance O with water; H with H+; charge with electrons.\n- In basic medium add OH- equal to the H+ present to both sides and cancel water.\n- Multiply halves to equalise electrons, add, and cancel common species."
+    },
+    {
+     "heading": "Redox titrations and equivalents",
+     "body_md": "- KMnO4 in acid: MnO4- + 8H+ + 5e- -> Mn2+ + 4H2O (self-indicator).\n- Dichromate: Cr2O7^2- + 14H+ + 6e- -> 2Cr3+ + 7H2O (needs an indicator).\n- Equivalents = moles x n-factor (electrons transferred per formula unit); at the end point equivalents of both sides are equal."
+    },
+    {
+     "heading": "Electrochemical cells and electrode potential",
+     "body_md": "- A Daniell cell: Zn anode (oxidation) and Cu cathode (reduction) joined by salt bridge; electrons flow from anode to cathode externally.\n- Standard electrode potential is measured against the standard hydrogen electrode (SHE = 0 V) at 1 M, 1 bar, 298 K.\n- E(cell) = E(cathode) - E(anode); a positive value means a spontaneous reaction.\n- A more negative E value means a stronger reducing agent; a more positive value means a stronger oxidising agent."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Oxidation number sum",
+     "latex": "\\sum(\\text{oxidation numbers})=\\text{charge on species}",
+     "variables": "sum over all atoms",
+     "note": "Zero for neutral molecule."
+    },
+    {
+     "name": "Change in oxidation number",
+     "latex": "\\Delta(\\mathrm{ox.\\ no.})=\\text{electrons lost or gained per atom}",
+     "variables": "final minus initial",
+     "note": "Positive = oxidation."
+    },
+    {
+     "name": "n-factor",
+     "latex": "n\\text{-factor}=\\text{electrons exchanged per formula unit}",
+     "variables": "for KMnO4 in acid n = 5; Fe2+ n = 1; C2O4^2- n = 2",
+     "note": "Used to find equivalent weight."
+    },
+    {
+     "name": "Equivalent weight",
+     "latex": "E=\\dfrac{M}{n\\text{-factor}}",
+     "variables": "M = molar mass",
+     "note": "Gram equivalents = mass/E."
+    },
+    {
+     "name": "Titration relation",
+     "latex": "N_1V_1=N_2V_2\\ \\ \\text{or}\\ \\ n_1M_1V_1=n_2M_2V_2",
+     "variables": "N = normality; M = molarity; V = volume",
+     "note": "At the end point."
+    },
+    {
+     "name": "Cell potential",
+     "latex": "E^\\circ_{cell}=E^\\circ_{cathode}-E^\\circ_{anode}",
+     "variables": "values are reduction potentials (V)",
+     "note": "Positive means spontaneous."
+    },
+    {
+     "name": "Nernst equation",
+     "latex": "E=E^\\circ-\\dfrac{0.059}{n}\\log Q\\ (298\\,\\mathrm{K})",
+     "variables": "n = electrons transferred; Q = reaction quotient",
+     "note": "Beyond the core Class 11 text; useful reference."
+    },
+    {
+     "name": "Free energy and cell potential",
+     "latex": "\\Delta G^\\circ=-nFE^\\circ",
+     "variables": "F = 96500 C/mol",
+     "note": "Negative delta G means spontaneous."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The oxidation number of chromium in K2Cr2O7 is:",
+     "options": [
+      "+3",
+      "+6",
+      "+7",
+      "+2"
+     ],
+     "answer": "+6",
+     "solution_md": "2(+1) + 2x + 7(-2) = 0, so 2x = 12 and x = +6.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "In Zn + CuSO4 -> ZnSO4 + Cu, the oxidising agent is:",
+     "options": [
+      "Zn",
+      "Cu2+",
+      "SO4^2-",
+      "Zn2+"
+     ],
+     "answer": "Cu2+",
+     "solution_md": "Cu2+ gains electrons (reduced), so it is the oxidising agent; Zn is oxidised.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Define disproportionation and give one example.",
+     "answer": "Same element simultaneously oxidised and reduced",
+     "solution_md": "In 2H2O2 -> 2H2O + O2, oxygen goes from -1 to -2 (reduced) and to 0 (oxidised).",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Find the oxidation number of sulphur in (i) H2SO4 (ii) Na2S4O6.",
+     "answer": "(i) +6; (ii) +2.5 average",
+     "solution_md": "(i) 2 + x - 8 = 0 gives +6. (ii) 2 + 4x - 12 = 0 gives x = +2.5 (average of two S at +5 and two at 0).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 3,
+     "question": "Balance MnO4^- + Fe2+ -> Mn2+ + Fe3+ in acidic medium by the ion-electron method.",
+     "answer": "MnO4- + 5Fe2+ + 8H+ -> Mn2+ + 5Fe3+ + 4H2O",
+     "solution_md": "Reduction: MnO4- + 8H+ + 5e- -> Mn2+ + 4H2O. Oxidation: Fe2+ -> Fe3+ + e- (multiply by 5). Add: MnO4- + 5Fe2+ + 8H+ -> Mn2+ + 5Fe3+ + 4H2O. Charge: left -1+10+8 = +17, right 2+15 = +17.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Moles of KMnO4 (in acid) needed to oxidise 1 mol of FeC2O4 completely:",
+     "options": [
+      "0.2",
+      "0.4",
+      "0.6",
+      "1.0"
+     ],
+     "answer": "0.6",
+     "solution_md": "Fe2+ -> Fe3+ gives 1 e-; C2O4^2- -> 2CO2 gives 2 e-; total 3 e-. MnO4- takes 5 e-, so 3/5 = 0.6 mol.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Volume of 0.1 M KMnO4 (acidic) needed to oxidise 25 mL of 0.5 M Fe2+ is:",
+     "options": [
+      "5 mL",
+      "12.5 mL",
+      "25 mL",
+      "50 mL"
+     ],
+     "answer": "25 mL",
+     "solution_md": "Moles Fe2+ = 0.025 x 0.5 = 0.0125; moles MnO4- = 0.0125/5 = 0.0025; volume = 0.0025/0.1 = 0.025 L = 25 mL.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The average oxidation number of iron in Fe3O4 is:",
+     "options": [
+      "+2",
+      "+3",
+      "+8/3",
+      "+4"
+     ],
+     "answer": "+8/3",
+     "solution_md": "3x + 4(-2) = 0, so x = 8/3.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The oxidation number of sulphur in peroxodisulphuric acid H2S2O8 (which has one O-O link) is:",
+     "options": [
+      "+7",
+      "+6",
+      "+8",
+      "+4"
+     ],
+     "answer": "+6",
+     "solution_md": "Two peroxide O at -1 and six O at -2: 2 + 2x + 2(-1) + 6(-2) = 0 gives 2x = 12, x = +6.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "In 3Cl2 + 6OH- -> 5Cl- + ClO3- + 3H2O, the ratio of Cl- to ClO3- formed is, and electrons lost per ClO3- formed are:",
+     "options": [
+      "5:1 and 5",
+      "1:5 and 5",
+      "5:1 and 1",
+      "3:1 and 6"
+     ],
+     "answer": "5:1 and 5",
+     "solution_md": "Cl goes 0 -> +5 in ClO3- (5 e- lost) and 0 -> -1 in Cl-. Balance needs 5 Cl- per ClO3-.",
+     "difficulty": "hard",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Oxidation in electron terms?",
+     "back": "Loss of electrons."
+    },
+    {
+     "front": "Oxidation state of O in peroxides?",
+     "back": "-1."
+    },
+    {
+     "front": "Oxidation state of H in NaH?",
+     "back": "-1."
+    },
+    {
+     "front": "Oxidising agent gets...?",
+     "back": "Reduced (gains electrons)."
+    },
+    {
+     "front": "Which species is a self-indicator in titration?",
+     "back": "KMnO4 (pink to colourless in acid)."
+    },
+    {
+     "front": "n-factor of KMnO4 in acid?",
+     "back": "5."
+    },
+    {
+     "front": "SHE potential?",
+     "back": "0 V by convention."
+    },
+    {
+     "front": "E cell formula?",
+     "back": "E cathode - E anode."
+    },
+    {
+     "front": "Spontaneous reaction has E cell...?",
+     "back": "Positive (delta G negative)."
+    },
+    {
+     "front": "Highest oxidation state of Mn in compounds?",
+     "back": "+7 (as in KMnO4)."
+    }
+   ]
+  },
+  {
+   "number": 8,
+   "title": "Organic Chemistry: Some Basic Principles and Techniques",
+   "ncert_part": "Part II",
+   "notes": [
+    {
+     "heading": "Tetravalence and shapes of carbon compounds",
+     "body_md": "- Carbon forms four covalent bonds; sp3 (tetrahedral, 109.5 deg), sp2 (trigonal planar, 120 deg) and sp (linear, 180 deg) hybridisation.\n- Sigma bonds form by head-on overlap; pi bonds by sideways overlap of p orbitals. Double bond = 1 sigma + 1 pi; triple = 1 sigma + 2 pi.\n- Representations: complete, condensed, bond-line and 3D wedge formulas."
+    },
+    {
+     "heading": "Classification and functional groups",
+     "body_md": "- Open-chain (acyclic) vs closed-chain (alicyclic, aromatic); saturated vs unsaturated.\n- Homologous series: members differ by CH2 and share a functional group and general formula.\n- Common groups: -OH, -CHO, >C=O, -COOH, -NH2, -X, -COOR, -CONH2."
+    },
+    {
+     "heading": "IUPAC nomenclature",
+     "body_md": "- Choose the longest chain containing the principal functional group; number to give it the lowest locant.\n- Name = prefix (substituents, alphabetical) + root + suffix. Priority order: -COOH > -SO3H > ester > amide > -CN > -CHO > >C=O > -OH > -NH2 > C=C > C#C.\n- Root names: meth, eth, prop, but, pent, hex, hept, oct, non, dec."
+    },
+    {
+     "heading": "Isomerism",
+     "body_md": "- Structural: chain, position, functional group, metamerism, tautomerism (ring-chain).\n- Stereoisomerism: geometrical (cis-trans) and optical (chiral centre with four different groups).\n- Isomers have the same molecular formula but different arrangement."
+    },
+    {
+     "heading": "Electronic effects",
+     "body_md": "- Inductive effect: permanent polarisation of sigma bonds; -I groups (NO2, CN, halogens) withdraw, +I groups (alkyl) donate. Decreases quickly with distance.\n- Resonance (mesomeric) effect: delocalisation of pi electrons or lone pairs; +R (OH, NH2) and -R (NO2, C=O). More resonance structures give more stability.\n- Hyperconjugation: delocalisation of sigma C-H electrons into an adjacent empty p or pi orbital; stabilises alkenes and carbocations, with more alpha C-H bonds giving more effect.\n- Electromeric effect is temporary, appearing only in the presence of an attacking reagent."
+    },
+    {
+     "heading": "Reaction intermediates and bond fission",
+     "body_md": "- Homolytic fission gives free radicals; heterolytic fission gives ions.\n- Carbocation: sp2, planar, electron-deficient; stability 3 > 2 > 1 > methyl. Carbanion: sp3, pyramidal; stability methyl > 1 > 2 > 3.\n- Free radical stability follows the same order as carbocations.\n- Nucleophiles are electron-rich (OH-, NH3); electrophiles are electron-poor (H+, NO2+, carbocations)."
+    },
+    {
+     "heading": "Types of organic reactions",
+     "body_md": "- Substitution, addition, elimination and rearrangement.\n- Free radical, nucleophilic or electrophilic mechanisms decide the products."
+    },
+    {
+     "heading": "Purification and qualitative analysis",
+     "body_md": "- Methods: crystallisation, sublimation, distillation (simple, fractional, steam, reduced pressure), differential extraction, chromatography (adsorption and partition).\n- Lassaigne test: sodium fusion extract detects N (Prussian blue), S (violet with nitroprusside, or black PbS) and halogens (AgX precipitate).\n- Rf = distance moved by solute / distance moved by solvent front, always below 1."
+    },
+    {
+     "heading": "Quantitative analysis",
+     "body_md": "- Carbon and hydrogen: Liebig method (CO2 absorbed in KOH, H2O in CaCl2).\n- Nitrogen: Dumas (volume of N2) and Kjeldahl (as ammonium sulfate; not for nitro, azo, or ring N).\n- Halogens: Carius method (AgX); Sulphur: Carius (BaSO4); Phosphorus as magnesium pyrophosphate; oxygen by difference."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "Degree of unsaturation",
+     "latex": "\\mathrm{DoU}=\\dfrac{2C+2+N-H-X}{2}",
+     "variables": "C, N, H, X = number of carbon, nitrogen, hydrogen and halogen atoms",
+     "note": "Counts rings plus pi bonds."
+    },
+    {
+     "name": "Rf value",
+     "latex": "R_f=\\dfrac{\\text{distance moved by solute}}{\\text{distance moved by solvent}}",
+     "variables": "distances in same unit",
+     "note": "Always less than 1."
+    },
+    {
+     "name": "Percentage of carbon",
+     "latex": "\\%C=\\dfrac{12}{44}\\times\\dfrac{m_{CO_2}}{m}\\times100",
+     "variables": "m_CO2 = mass of CO2 formed; m = mass of compound",
+     "note": "Liebig method."
+    },
+    {
+     "name": "Percentage of hydrogen",
+     "latex": "\\%H=\\dfrac{2}{18}\\times\\dfrac{m_{H_2O}}{m}\\times100",
+     "variables": "m_H2O = mass of water formed",
+     "note": "Liebig method."
+    },
+    {
+     "name": "Kjeldahl nitrogen",
+     "latex": "\\%N=\\dfrac{1.4\\,N\\,V}{m}",
+     "variables": "N = normality of acid; V = volume of acid neutralised by NH3 (mL); m = mass (g)",
+     "note": "Acid consumed by ammonia."
+    },
+    {
+     "name": "Halogen (Carius)",
+     "latex": "\\%X=\\dfrac{\\text{at. mass of X}}{\\text{mol. mass of AgX}}\\times\\dfrac{m_{AgX}}{m}\\times100",
+     "variables": "m_AgX = mass of silver halide",
+     "note": "Br: 80/188; Cl: 35.5/143.5."
+    },
+    {
+     "name": "Sulphur (Carius)",
+     "latex": "\\%S=\\dfrac{32}{233}\\times\\dfrac{m_{BaSO_4}}{m}\\times100",
+     "variables": "m_BaSO4 = mass of barium sulphate",
+     "note": "Standard method."
+    },
+    {
+     "name": "Empirical to molecular formula",
+     "latex": "\\text{Molecular formula}=n\\times\\text{empirical formula},\\ n=\\dfrac{M}{\\text{empirical mass}}",
+     "variables": "M = molar mass",
+     "note": "Whole number n."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The IUPAC name of CH3-CH(CH3)-CH2-CH3 is:",
+     "options": [
+      "2-methylbutane",
+      "3-methylbutane",
+      "isopentane (IUPAC)",
+      "2-ethylpropane"
+     ],
+     "answer": "2-methylbutane",
+     "solution_md": "The longest chain has four carbons with a methyl on C-2.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The central carbon in allene (CH2=C=CH2) is hybridised as:",
+     "options": [
+      "sp",
+      "sp2",
+      "sp3",
+      "dsp2"
+     ],
+     "answer": "sp",
+     "solution_md": "It forms two sigma bonds and two pi bonds, so it needs two hybrid orbitals: sp.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Arrange methyl, primary, secondary and tertiary carbocations in decreasing stability and explain.",
+     "answer": "3 > 2 > 1 > methyl",
+     "solution_md": "More alkyl groups give more +I effect and more hyperconjugation, which spread the positive charge and stabilise the cation.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Distinguish chain isomerism from position isomerism with one example each.",
+     "answer": "Chain: different carbon skeleton; position: different location of group",
+     "solution_md": "Chain: butane and 2-methylpropane. Position: propan-1-ol and propan-2-ol, where the -OH group sits at different carbons.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 3,
+     "question": "0.5 g of an organic compound was processed by Kjeldahl's method and the ammonia evolved neutralised 20 mL of 0.5 N H2SO4. Find the percentage of nitrogen.",
+     "answer": "28%",
+     "solution_md": "%N = 1.4 x N x V / m = 1.4 x 0.5 x 20 / 0.5 = 28.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The number of sigma and pi bonds in CH2=CH-C#CH are respectively:",
+     "options": [
+      "6 and 3",
+      "7 and 3",
+      "7 and 2",
+      "8 and 2"
+     ],
+     "answer": "7 and 3",
+     "solution_md": "C-H bonds: 4; C-C sigma: 3; total sigma 7. Pi: 1 (double) + 2 (triple) = 3.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "0.2 g of a bromo-compound gave 0.376 g of AgBr in the Carius method. Percentage of bromine is (Ag = 108, Br = 80):",
+     "options": [
+      "40%",
+      "60%",
+      "80%",
+      "90%"
+     ],
+     "answer": "80%",
+     "solution_md": "Moles AgBr = 0.376/188 = 0.002; Br = 0.16 g; 0.16/0.2 x 100 = 80%.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The degree of unsaturation of benzoic acid C7H6O2 is:",
+     "options": [
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "answer": "5",
+     "solution_md": "DoU = (2 x 7 + 2 - 6)/2 = 5 (a ring, three C=C and one C=O).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "In paper chromatography a spot travels 3.6 cm while the solvent front travels 9.0 cm. Its Rf value is:",
+     "options": [
+      "0.25",
+      "0.40",
+      "0.60",
+      "2.5"
+     ],
+     "answer": "0.40",
+     "solution_md": "Rf = 3.6/9.0 = 0.40.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The number of hyperconjugative (no-bond) structures of the tert-butyl cation is:",
+     "options": [
+      "3",
+      "6",
+      "9",
+      "12"
+     ],
+     "answer": "9",
+     "solution_md": "Nine alpha C-H bonds are available (3 on each methyl group).",
+     "difficulty": "medium",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "Hybridisation in ethene carbon?",
+     "back": "sp2."
+    },
+    {
+     "front": "Bond angle of sp3 carbon?",
+     "back": "109.5 degrees."
+    },
+    {
+     "front": "Which is a -I group?",
+     "back": "NO2, CN, halogens."
+    },
+    {
+     "front": "Most stable carbocation type?",
+     "back": "Tertiary."
+    },
+    {
+     "front": "Homolytic fission gives?",
+     "back": "Free radicals."
+    },
+    {
+     "front": "Lassaigne's test is for?",
+     "back": "N, S, halogens."
+    },
+    {
+     "front": "Prussian blue indicates?",
+     "back": "Nitrogen."
+    },
+    {
+     "front": "What is a nucleophile?",
+     "back": "Electron-rich species that donates a pair."
+    },
+    {
+     "front": "Rf range?",
+     "back": "0 to 1."
+    },
+    {
+     "front": "Kjeldahl cannot analyse?",
+     "back": "Nitro, azo compounds and ring nitrogen (e.g. pyridine)."
+    }
+   ]
+  },
+  {
+   "number": 9,
+   "title": "Hydrocarbons",
+   "ncert_part": "Part II",
+   "notes": [
+    {
+     "heading": "Classification and alkanes: structure",
+     "body_md": "- Hydrocarbons: alkanes (CnH2n+2), alkenes (CnH2n), alkynes (CnH2n-2), arenes.\n- Alkanes are sp3, nonpolar, with conformations from rotation about C-C: staggered is more stable than eclipsed (about 12.5 kJ/mol more in ethane).\n- Chain isomers rise quickly: C4 has 2, C5 has 3, C6 has 5.\n- Boiling point increases with chain length and falls with branching."
+    },
+    {
+     "heading": "Preparation and reactions of alkanes",
+     "body_md": "- Preparation: hydrogenation of alkenes and alkynes (Ni, Pt, Pd), Wurtz reaction (2R-X + 2Na in dry ether), decarboxylation of sodium salts, Kolbe electrolysis.\n- Substitution: halogenation by free radical chain (initiation, propagation, termination); reactivity Cl2 > Br2, and 3 > 2 > 1 hydrogens.\n- Combustion gives CO2 and water; incomplete burning gives carbon or CO.\n- Other reactions: controlled oxidation, isomerisation, aromatisation, pyrolysis (cracking)."
+    },
+    {
+     "heading": "Alkenes: preparation",
+     "body_md": "- Dehydration of alcohols (conc. H2SO4), dehydrohalogenation with alcoholic KOH (Saytzeff: more substituted alkene is major), partial hydrogenation of alkynes (Lindlar gives cis, Na/liq. NH3 gives trans).\n- Geometrical (cis-trans) isomerism arises from restricted rotation about C=C."
+    },
+    {
+     "heading": "Alkenes: reactions",
+     "body_md": "- Electrophilic addition: halogens (Br2 test), hydrogen halides, water (acid-catalysed).\n- Markovnikov rule: the hydrogen of HX adds to the carbon with more hydrogens; the more stable carbocation forms. Peroxide effect (anti-Markovnikov) is only for HBr.\n- Oxidation: cold dilute KMnO4 gives a diol (Baeyer test); hot KMnO4 or ozonolysis breaks the C=C.\n- Ozonolysis then Zn/H2O gives aldehydes or ketones and locates the double bond."
+    },
+    {
+     "heading": "Alkynes",
+     "body_md": "- Prepared from calcium carbide with water, or by double dehydrohalogenation of vicinal dihalides.\n- Terminal alkynes are weakly acidic (sp C-H) and give precipitates with ammoniacal AgNO3 or Cu2Cl2; this distinguishes them from alkenes and internal alkynes.\n- Addition of HX, X2 and water (Hg2+ catalyst gives a carbonyl through keto-enol shift); polymerisation: three ethyne molecules give benzene."
+    },
+    {
+     "heading": "Aromatic hydrocarbons: benzene",
+     "body_md": "- Planar, regular hexagon, all C-C bonds equal (139 pm), sp2 carbons; resonance hybrid of Kekule structures with resonance energy about 150 kJ/mol.\n- Huckel rule: planar, cyclic, fully conjugated, with (4n + 2) pi electrons is aromatic.\n- Preparation: ethyne trimerisation, decarboxylation of sodium benzoate, reduction of phenol with zinc dust."
+    },
+    {
+     "heading": "Electrophilic substitution in benzene",
+     "body_md": "- Aromatic ring prefers substitution (keeps aromaticity) over addition.\n- Nitration (HNO3 + H2SO4 gives NO2+), halogenation (Lewis acid FeCl3 or FeBr3), sulphonation (fuming H2SO4), Friedel-Crafts alkylation and acylation (anhydrous AlCl3).\n- Activating o,p-directing groups: -CH3, -OH, -NH2, -OR. Deactivating m-directing groups: -NO2, -CN, -COOH, -CHO. Halogens are deactivating but o,p-directing.\n- Addition under forcing conditions: Ni/H2 gives cyclohexane; Cl2 with light gives hexachlorocyclohexane."
+    },
+    {
+     "heading": "Carcinogenicity and toxicity",
+     "body_md": "- Polynuclear aromatic hydrocarbons (benzopyrene, from incomplete combustion) are carcinogenic.\n- Benzene is toxic; handle with care."
+    }
+   ],
+   "formulas": [
+    {
+     "name": "General formula: alkane",
+     "latex": "C_nH_{2n+2}",
+     "variables": "n = number of carbon atoms",
+     "note": "Saturated acyclic."
+    },
+    {
+     "name": "General formula: alkene",
+     "latex": "C_nH_{2n}",
+     "variables": "n = number of carbon atoms",
+     "note": "Also true for cycloalkanes."
+    },
+    {
+     "name": "General formula: alkyne",
+     "latex": "C_nH_{2n-2}",
+     "variables": "n = number of carbon atoms",
+     "note": "Also true for dienes."
+    },
+    {
+     "name": "Combustion of a hydrocarbon",
+     "latex": "C_xH_y+\\left(x+\\dfrac{y}{4}\\right)O_2\\to xCO_2+\\dfrac{y}{2}H_2O",
+     "variables": "x = carbon atoms; y = hydrogen atoms",
+     "note": "Gives oxygen demand per mole."
+    },
+    {
+     "name": "Wurtz reaction",
+     "latex": "2R{-}X+2Na\\xrightarrow{\\text{dry ether}}R{-}R+2NaX",
+     "variables": "R = alkyl group; X = halogen",
+     "note": "Doubles carbon chain."
+    },
+    {
+     "name": "Markovnikov addition",
+     "latex": "CH_3CH{=}CH_2+HBr\\to CH_3CHBrCH_3",
+     "variables": "H adds to carbon with more H",
+     "note": "Peroxide reverses it for HBr only."
+    },
+    {
+     "name": "Hydrogenation",
+     "latex": "C_nH_{2n}+H_2\\xrightarrow{Ni}C_nH_{2n+2}",
+     "variables": "Ni = catalyst",
+     "note": "1 mole of H2 per C=C."
+    },
+    {
+     "name": "Huckel rule",
+     "latex": "\\pi\\text{ electrons}=4n+2\\ (n=0,1,2,\\dots)",
+     "variables": "n = integer",
+     "note": "Benzene has 6 (n = 1)."
+    }
+   ],
+   "pyqs": [
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The major product of addition of HBr to propene (no peroxide) is:",
+     "options": [
+      "1-bromopropane",
+      "2-bromopropane",
+      "1,2-dibromopropane",
+      "bromoethane"
+     ],
+     "answer": "2-bromopropane",
+     "solution_md": "H goes to the carbon already holding more hydrogens, forming the more stable secondary carbocation, then Br- adds to the middle carbon.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "mcq",
+     "marks": 1,
+     "question": "The number of chain isomers of C5H12 is:",
+     "options": [
+      "2",
+      "3",
+      "4",
+      "5"
+     ],
+     "answer": "3",
+     "solution_md": "n-pentane, isopentane (2-methylbutane) and neopentane (2,2-dimethylpropane).",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Write the Wurtz reaction for the preparation of ethane and state one limitation.",
+     "answer": "2CH3Br + 2Na -> C2H6 + 2NaBr; fails for methane and gives mixtures with two different halides",
+     "solution_md": "Two alkyl halides combine through sodium in dry ether. Using two different halides gives a mixture of alkanes that is hard to separate.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "short",
+     "marks": 2,
+     "question": "Why does benzene undergo substitution rather than addition? State Huckel's rule.",
+     "answer": "Substitution keeps the stable aromatic pi system",
+     "solution_md": "Benzene has delocalised 6 pi electrons with high resonance energy; addition would destroy this. Huckel: a planar, cyclic, conjugated species with (4n + 2) pi electrons is aromatic.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "board",
+     "format": "long",
+     "marks": 3,
+     "question": "Calculate the mass of CO2 and H2O formed on complete combustion of 0.1 mol of butane (C = 12, H = 1, O = 16).",
+     "answer": "17.6 g CO2 and 9.0 g H2O",
+     "solution_md": "C4H10 + 13/2 O2 -> 4CO2 + 5H2O. 0.1 mol gives 0.4 mol CO2 = 0.4 x 44 = 17.6 g and 0.5 mol H2O = 0.5 x 18 = 9.0 g.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Volume of oxygen (same conditions) needed to burn 20 mL of propane completely is:",
+     "options": [
+      "60 mL",
+      "80 mL",
+      "100 mL",
+      "120 mL"
+     ],
+     "answer": "100 mL",
+     "solution_md": "C3H8 + 5O2 -> 3CO2 + 4H2O; volumes are proportional to moles, so 20 x 5 = 100 mL.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Reductive ozonolysis (O3, then Zn/H2O) of 2-methylbut-2-ene gives:",
+     "options": [
+      "Propanone and ethanal",
+      "Two molecules of propanone",
+      "Ethanal and methanal",
+      "Butanone and methanal"
+     ],
+     "answer": "Propanone and ethanal",
+     "solution_md": "(CH3)2C=CHCH3 splits at C=C: the (CH3)2C end becomes acetone and the CHCH3 end becomes ethanal.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "Moles of Br2 consumed by one mole of propyne with excess Br2 are:",
+     "options": [
+      "1",
+      "2",
+      "3",
+      "4"
+     ],
+     "answer": "2",
+     "solution_md": "One pi bond per Br2 in each step; a triple bond has two pi bonds, giving CH3CBr2CHBr2.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The number of structural monochloro isomers of 2-methylbutane is:",
+     "options": [
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "answer": "4",
+     "solution_md": "Distinct H types: the two CH3 on C-2 (equivalent), C-2 H, C-3 CH2 and C-4 CH3.",
+     "difficulty": "medium",
+     "status": "needs_review"
+    },
+    {
+     "type": "jee_style",
+     "format": "mcq",
+     "marks": 4,
+     "question": "The volume of H2 at STP needed to hydrogenate 2.8 g of ethene completely is (22.4 L per mole):",
+     "options": [
+      "1.12 L",
+      "2.24 L",
+      "4.48 L",
+      "5.6 L"
+     ],
+     "answer": "2.24 L",
+     "solution_md": "Moles C2H4 = 2.8/28 = 0.1; 1 mole H2 per mole alkene gives 0.1 x 22.4 = 2.24 L.",
+     "difficulty": "easy",
+     "status": "needs_review"
+    }
+   ],
+   "quick_revision": [
+    {
+     "front": "General formula of alkyne?",
+     "back": "CnH2n-2."
+    },
+    {
+     "front": "Which conformation of ethane is more stable?",
+     "back": "Staggered."
+    },
+    {
+     "front": "Markovnikov's rule?",
+     "back": "In HX addition, H goes to the carbon with more hydrogens."
+    },
+    {
+     "front": "Peroxide effect applies to?",
+     "back": "HBr only."
+    },
+    {
+     "front": "Baeyer's reagent?",
+     "back": "Cold dilute alkaline KMnO4, tests for unsaturation."
+    },
+    {
+     "front": "Test for terminal alkyne?",
+     "back": "White or red precipitate with ammoniacal AgNO3 or Cu2Cl2."
+    },
+    {
+     "front": "Lindlar catalyst gives?",
+     "back": "Cis-alkene from alkyne."
+    },
+    {
+     "front": "Huckel number for benzene?",
+     "back": "6 pi electrons."
+    },
+    {
+     "front": "-NO2 directs to which position?",
+     "back": "Meta."
+    },
+    {
+     "front": "Friedel-Crafts catalyst?",
+     "back": "Anhydrous AlCl3."
+    }
+   ]
+  }
+ ]
+}
