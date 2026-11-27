@@ -105,26 +105,38 @@ export default function StudyGuide({ userId, studentClass }: { userId?: string; 
   };
 
   return (
-    <div className="space-y-5 p-1">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-indigo-500" />
-            Chapter Study
-          </h2>
-          <p className="text-sm text-muted-foreground">Study available DLMS chapter guides, review key facts, and practise with feedback.</p>
+    <div className="mx-auto max-w-5xl space-y-5 p-1 animate-in fade-in duration-200">
+      {/* Hero Header */}
+      <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-cyan-600 p-5 text-white shadow-lg sm:p-7">
+        <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-wide text-indigo-50 backdrop-blur-sm">
+              <Sparkles className="h-3.5 w-3.5" /> CHAPTER STUDY GUIDE
+            </div>
+            <h2 className="mt-2.5 text-2xl font-black tracking-tight sm:text-3xl">
+              Master every chapter faster
+            </h2>
+            <p className="mt-1 text-xs sm:text-sm text-indigo-100 max-w-xl">
+              Structured chapter summaries, key concepts, formulas, and quick self-check MCQs tailored to your class.
+            </p>
+          </div>
+          {selectedClass && (
+            <Badge className="w-fit shrink-0 bg-white/20 text-white hover:bg-white/25 border-0 rounded-full px-3.5 py-1 text-xs font-bold">
+              Class {selectedClass}
+            </Badge>
+          )}
         </div>
-      </div>
+      </header>
 
       {/* Selector Card */}
-      <Card className="border-indigo-200 dark:border-indigo-800/40 bg-indigo-50/50 dark:bg-indigo-950/20">
-        <CardContent className="p-4 space-y-4">
+      <Card className="rounded-2xl border-border/70 bg-card/90 shadow-sm">
+        <CardContent className="p-4 sm:p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">Class</Label>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Class</Label>
               <Select value={selectedClass} onValueChange={v => { setSelectedClass(v); setSelectedSubject(""); setSelectedChapter(""); setCustomChapter(""); }}>
-                <SelectTrigger className="bg-white dark:bg-slate-900">
+                <SelectTrigger className="h-10 rounded-xl bg-background">
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
@@ -133,9 +145,9 @@ export default function StudyGuide({ userId, studentClass }: { userId?: string; 
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">Subject</Label>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Subject</Label>
               <Select value={selectedSubject} onValueChange={v => { setSelectedSubject(v); setSelectedChapter(""); setCustomChapter(""); }}>
-                <SelectTrigger className="bg-white dark:bg-slate-900">
+                <SelectTrigger className="h-10 rounded-xl bg-background">
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
@@ -144,10 +156,10 @@ export default function StudyGuide({ userId, studentClass }: { userId?: string; 
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">Chapter</Label>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Chapter</Label>
               {chapters.length > 0 ? (
                 <Select value={selectedChapter} onValueChange={setSelectedChapter}>
-                  <SelectTrigger className="bg-white dark:bg-slate-900">
+                  <SelectTrigger className="h-10 rounded-xl bg-background">
                     <SelectValue placeholder="Select chapter" />
                   </SelectTrigger>
                   <SelectContent>
@@ -155,15 +167,15 @@ export default function StudyGuide({ userId, studentClass }: { userId?: string; 
                   </SelectContent>
                 </Select>
               ) : (
-                <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">No authored chapter guides are available for this class and subject yet.</div>
+                <div className="rounded-xl border border-dashed p-2.5 text-xs text-muted-foreground">No authored chapter guides are available for this class and subject yet.</div>
               )}
             </div>
           </div>
-          {chapters.length > 0 && <p className="text-xs text-muted-foreground">Showing chapters with guide content currently available in DLMS. Coverage will expand as reviewed material is added.</p>}
+          {chapters.length > 0 && <p className="text-xs text-muted-foreground">Showing chapters with guide content currently available in DLMS.</p>}
           <Button
             onClick={generateGuide}
             disabled={loading || !selectedSubject || !chapterToUse}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 gap-2 font-bold"
+            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:opacity-95 text-white gap-2 font-bold shadow-sm transition-all active:scale-[0.99]"
             size="lg"
           >
             {loading ? (
