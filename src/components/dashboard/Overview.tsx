@@ -16,6 +16,10 @@ import { UpcomingQuizLeagueCard } from "@/components/quiz/UpcomingQuizLeagueCard
 import { LiveQuizAlert } from "@/components/quiz/LiveQuizAlert";
 import { VacationOverviewBanner } from "@/features/vacation";
 import StudentTaskInbox from "@/components/student/StudentTaskInbox";
+import MyDay from "@/features/learning/MyDay";
+import ExamCountdownCard from "@/features/learning/ExamCountdownCard";
+import WeeklyGoalsCard from "@/features/learning/WeeklyGoalsCard";
+import type { LearningTarget } from "@/features/learning/types";
 import StudentReadingAssignments from "@/components/student/StudentReadingAssignments";
 import StudyResumeCard, { type StudyChapterTarget } from "@/components/student/StudyResumeCard";
 import {
@@ -54,6 +58,7 @@ export interface OverviewProps {
   handleJoinQuizLeague?: (session: any) => Promise<void>;
   setActiveTab: (tab: any) => void;
   onResumeChapter?: (target: StudyChapterTarget) => void;
+  onOpenLearning?: (target: LearningTarget) => void;
 }
 
 export default function Overview({
@@ -79,6 +84,7 @@ export default function Overview({
   handleJoinQuizLeague,
   setActiveTab,
   onResumeChapter,
+  onOpenLearning,
 }: OverviewProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -504,7 +510,17 @@ export default function Overview({
         {FEATURE_FLAGS.communityAndFriendsChat && <InviteCard />}
       </div>
 
-      {user?.id && <><StudentTaskInbox userId={user.id} setActiveTab={setActiveTab} /><StudentReadingAssignments userId={user.id} studentClass={user.student_class} /></>}
+      {user?.id && (
+        <>
+          <MyDay setActiveTab={setActiveTab} onOpenLearning={onOpenLearning} />
+          <div className="grid gap-3 md:grid-cols-2">
+            <ExamCountdownCard onOpenChapter={(target) => onOpenLearning?.({ subject: target.subject, chapterTitle: target.chapterTitle })} />
+            <WeeklyGoalsCard />
+          </div>
+          <StudentTaskInbox userId={user.id} setActiveTab={setActiveTab} />
+          <StudentReadingAssignments userId={user.id} studentClass={user.student_class} />
+        </>
+      )}
 
       {/* 4. LIVE QUIZ LEAGUE NOTICES (if available) */}
       {handleJoinQuizLeague && (

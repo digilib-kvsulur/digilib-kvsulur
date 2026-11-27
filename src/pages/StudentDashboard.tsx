@@ -85,10 +85,12 @@ import { InviteTab } from "@/features/invite";
 import EventWinnerReleasePage, { EventWinnerReleaseBanner } from "@/components/dashboard/EventWinnerReleasePage";
 import RotationalWinnerReleasePage, { RotationalWinnerReleaseBanner } from "@/components/dashboard/RotationalWinnerReleasePage";
 import { FEATURE_FLAGS } from "@/config/featureFlags";
-const StudyResources = lazy(() => import("@/components/student/StudyResources"));
+const StudyHub = lazy(() => import("@/features/learning/StudyHub"));
+const SkillsLab = lazy(() => import("@/features/learning/SkillsLab"));
+const CareerHub = lazy(() => import("@/features/learning/CareerHub"));
 const StudyDoubtSolver = lazy(() => import("@/components/student/StudyDoubtSolver"));
 
-type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "event-results" | "rotational-results" | "ncert" | "materials" | "study-resources" | "doubt-solver" | "study" | "study-guide" | "games" | "notes" | "community" | "chat" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation" | "invite";
+type Tab = "overview" | "catalog" | "books" | "issued" | "events" | "event-results" | "rotational-results" | "ncert" | "materials" | "study-resources" | "doubt-solver" | "study" | "study-guide" | "games" | "notes" | "community" | "chat" | "quizzes" | "challenges" | "badges" | "certificates" | "rankings" | "network" | "support" | "profile" | "periodicals" | "portfolio" | "feedback" | "locator" | "bounty" | "ui-reform" | "vacation" | "invite" | "skills-lab" | "career-hub";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -123,6 +125,7 @@ const StudentDashboard = () => {
   });
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [studyResumeTarget, setStudyResumeTarget] = useState<StudyChapterTarget | null>(null);
+  const [studyTool, setStudyTool] = useState<string | null>(null);
   const [hasEventWinnerRelease, setHasEventWinnerRelease] = useState(false);
   const [hasRotationalRelease, setHasRotationalRelease] = useState(false);
   const loadedStudentTabData = useRef(new Set<string>());
@@ -448,6 +451,8 @@ const StudentDashboard = () => {
       title: "Study",
       items: [
         { id: "study-resources" as Tab, label: "Study (NCERT & Notes)", icon: BookMarked },
+        { id: "skills-lab" as Tab, label: "Skills Lab", icon: Sparkles },
+        { id: "career-hub" as Tab, label: "Career Hub", icon: GraduationCap },
         { id: "doubt-solver" as Tab, label: "AI Doubt Solver", icon: Sparkles },
         { id: "notes" as Tab, label: "My Notes", icon: StickyNote },
       ],
@@ -494,6 +499,30 @@ const StudentDashboard = () => {
   const navItems = useMemo(() => {
     return navSections.flatMap((s) => s.items);
   }, [navSections]);
+
+  useEffect(() => {
+    if (activeTab !== "study-resources") setStudyTool(null);
+  }, [activeTab]);
+
+  const openLearning = (target: { tool?: string; classNumber?: string; subject?: string; chapterTitle?: string }) => {
+    if (target.tool === "skills") { setActiveTab("skills-lab"); return; }
+    if (target.tool === "careers") { setActiveTab("career-hub"); return; }
+    if (target.tool) {
+      setStudyTool(target.tool);
+      setStudyResumeTarget(null);
+      setActiveTab("study-resources");
+      return;
+    }
+    if (target.subject || target.chapterTitle) {
+      const extracted = Number(String(user?.student_class || "").match(/\d+/)?.[0] || 10);
+      const classNumber = target.classNumber || String(Math.min(12, Math.max(6, extracted)));
+      setStudyResumeTarget({ classNumber, subject: target.subject || "", chapterTitle: target.chapterTitle || "" });
+      setStudyTool(null);
+      setActiveTab("study-resources");
+      return;
+    }
+    setActiveTab("study-resources");
+  };
 
   useEffect(() => {
     checkAuth();
@@ -1207,6 +1236,7 @@ const StudentDashboard = () => {
               handleJoinQuizLeague={handleJoinQuizLeague}
               setActiveTab={setActiveTab}
               onResumeChapter={(target) => { setStudyResumeTarget(target); setActiveTab("study-resources"); }}
+              onOpenLearning={openLearning}
             />
           )}
 
@@ -1281,7 +1311,9 @@ const StudentDashboard = () => {
 
           {/* Study Materials */}
           {activeTab === "materials" && <StudyMaterials studentClass={user?.student_class} />}
-          {activeTab === "study-resources" && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading Study…</div>}><StudyResources studentClass={user?.student_class} userId={user?.id} initialChapter={studyResumeTarget} onInitialChapterOpened={() => setStudyResumeTarget(null)} onOpenDoubt={() => setActiveTab("doubt-solver")} /></Suspense>}
+          {activeTab === "study-resources" && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading Study…</div>}><StudyHub studentClass={user?.student_class} userId={user?.id} studentName={`${user?.first_name || ""} ${user?.last_name || ""}`.trim()} initialChapter={studyResumeTarget} initialTool={studyTool as any} onInitialChapterOpened={() => setStudyResumeTarget(null)} onOpenDoubt={() => setActiveTab("doubt-solver")} /></Suspense>}
+          {activeTab === "skills-lab" && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading Skills Lab…</div>}><SkillsLab studentClass={user?.student_class} userId={user?.id} /></Suspense>}
+          {activeTab === "career-hub" && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading Career Hub…</div>}><CareerHub studentClass={user?.student_class} userId={user?.id} /></Suspense>}
           {activeTab === "doubt-solver" && user?.id && <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading doubt solver…</div>}><StudyDoubtSolver userId={user.id} studentClass={user?.student_class} onOpenResources={() => setActiveTab("study-resources")} /></Suspense>}
 
           {/* NCERT Books */}

@@ -23,6 +23,7 @@ import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 
 const Community = lazy(() => import("@/components/community/Community"));
 const StudyMaterialsManager = lazy(() => import("@/components/admin/StudyMaterialsManager"));
+const ExamScheduleManager = lazy(() => import("@/features/learning/ExamScheduleManager"));
 const UserApproval = lazy(() => import("@/components/admin/UserApproval"));
 const BookManager = lazy(() => import("@/components/admin/BookManager"));
 const BookIssueRegister = lazy(() => import("@/components/admin/BookIssueRegister"));
@@ -76,7 +77,7 @@ const KVSComplianceDossier = lazy(() => import("@/components/admin/KVSCompliance
 const StockVerificationScanner = lazy(() => import("@/components/admin/StockVerificationScanner"));
 const OverdueEmailDispatcher = lazy(() => import("@/components/admin/OverdueEmailDispatcher"));
 
-type Tab = "overview" | "catalog" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "chat" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "book-suggestions" | "reservations" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor" | "invite-instagram" | "kvs-dossier" | "stock-audit" | "overdue-dispatcher";
+type Tab = "overview" | "catalog" | "users" | "academic-rollover" | "books" | "express-circulation" | "metadata-hub" | "book-requests" | "book-issues" | "overdue" | "renewals" | "reviews" | "book-of-the-week" | "points" | "quizzes" | "badges" | "wishlist" | "levels" | "events" | "event-winners" | "analytics" | "notifications" | "email" | "community" | "chat" | "materials" | "profile" | "circulation" | "audit" | "reports" | "gallery" | "shelf-data" | "cover-data" | "condemnation" | "barcodes" | "student-barcodes" | "support" | "settings" | "certificates" | "fines" | "lost-books" | "periodicals" | "clubs" | "games" | "feedback" | "book-suggestions" | "reservations" | "bug-bounty" | "ui-reform" | "vacation" | "branding" | "home-editor" | "invite-instagram" | "kvs-dossier" | "stock-audit" | "overdue-dispatcher" | "exam-schedule";
 
 const SYSTEM_SIZE_CACHE_KEY = "dlms_admin_system_sizes_v1";
 const SYSTEM_SIZE_CACHE_TTL_MS = 60 * 60 * 1000;
@@ -129,6 +130,7 @@ const navSections = [
       { id: "reviews" as Tab, label: "Moderation & Reports", icon: ShieldAlert },
       { id: "book-of-the-week" as Tab, label: "Book of the Week", icon: Star },
       { id: "materials" as Tab, label: "Study Materials", icon: FileText },
+      { id: "exam-schedule" as Tab, label: "Exam Calendar", icon: Calendar },
       { id: "wishlist" as Tab, label: "Wishlists", icon: Star },
     ],
   },
@@ -703,6 +705,7 @@ const AdminDashboard = () => {
           {FEATURE_FLAGS.communityAndFriendsChat && activeTab === "community" && user?.id && <Community currentUserId={user.id} isAdmin={true} />}
           {FEATURE_FLAGS.communityAndFriendsChat && activeTab === "chat" && <FriendsChatAdmin />}
           {activeTab === "materials" && <StudyMaterialsManager />}
+          {activeTab === "exam-schedule" && <ExamScheduleManager />}
           {activeTab === "barcodes" && <BarcodeGenerator />}
           {activeTab === "student-barcodes" && <StudentBarcodeGenerator />}
           {activeTab === "support" && <SupportTicketsManager />}

@@ -7,7 +7,7 @@ import "katex/dist/katex.min.css";
 import {
   ArrowLeft, Bookmark, BookmarkCheck, BookOpen, Calculator, CheckCircle2,
   ChevronRight, CircleHelp, Clock3, ExternalLink, FileText, FlaskConical,
-  NotebookText, Plus, Search, Sparkles, TimerReset,
+  NotebookText, Plus, Search, Sparkles, TimerReset, Volume2, VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ import PyqCard, { type PyqItem } from "@/components/student/study/PyqCard";
 import RevisionCards from "@/components/student/study/RevisionCards";
 import StudyEmptyState from "@/components/student/study/StudyEmptyState";
 import { displayChapterTitle, shortSubjectName, subjectTheme, writeLastStudy } from "@/lib/subjectTheme";
+import { useSpeech } from "@/features/learning/useSpeech";
 import { toast } from "sonner";
 
 type Resource = { id: string; title: string; description: string | null; subject: string | null; student_class: string | null; chapter_title: string | null; resource_type: string; academic_session: string; exam_year: number | null; marks: number | null; source_label: string | null; source_url: string | null; markdown_content: string | null; file_url: string; file_type: string | null; updated_at?: string | null; created_at?: string | null; review_status?: string | null };
@@ -34,7 +35,7 @@ type Chapter = { title: string; chapterNumber?: number | null; textbookUrl?: str
 type ChapterProgressStatus = "in_progress" | "needs_revision" | "completed";
 type ChapterProgress = { user_id: string; class_number: string; subject: string; chapter_title: string; status: ChapterProgressStatus; started_at: string; completed_at: string | null; updated_at: string };
 
-const KIND: Record<string, string> = { chapter_lesson: "Chapter Lesson", short_notes: "Short Notes", formula_sheet: "Formula Sheet", quick_revision: "Quick Revision", chapter_practice: "Practice", pyq: "PYQ", textbook: "Textbook / Syllabus", other: "Other" };
+const KIND: Record<string, string> = { chapter_lesson: "Chapter Lesson", short_notes: "Short Notes", formula_sheet: "Formula Sheet", quick_revision: "Quick Revision", chapter_practice: "Practice", pyq: "PYQ", textbook: "Textbook / Syllabus", flashcards: "Flashcards", mock_paper: "Mock Paper", checkpoint: "Checkpoint", other: "Other" };
 const TAB_DEFS = [
   { value: "notes", label: "Notes", icon: NotebookText, types: ["chapter_lesson", "short_notes", "other"] },
   { value: "formulas", label: "Formulas", icon: Calculator, types: ["formula_sheet"] },
@@ -95,6 +96,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
     try { return new Set(JSON.parse(localStorage.getItem("dlms-study-read-notes") || "[]")); } catch { return new Set(); }
   });
   const activeSubjectRef = useRef<HTMLButtonElement>(null);
+  const { speak, stop, speaking, supported } = useSpeech();
 
   useEffect(() => { activeSubjectRef.current?.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" }); }, [selectedSubject, classFilter]);
   useEffect(() => { setClassFilter(ownClass); }, [ownClass]);
@@ -356,12 +358,17 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
               {r.description && <p className="text-sm text-muted-foreground mt-1 leading-6">{r.description}</p>}
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              {supported && r.markdown_content && (
+                <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-xl" aria-label={speaking ? "Stop reading aloud" : "Read this note aloud"} onClick={() => (speaking ? stop() : speak(r.markdown_content || ""))}>
+                  {speaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </Button>
+              )}
               <Button type="button" variant="ghost" size="icon" className="h-11 w-11 rounded-xl" aria-label={bookmarks.has(r.id) ? "Remove bookmark" : "Bookmark"} onClick={() => toggleBookmark(r.id)}>{bookmarks.has(r.id) ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}</Button>
             </div>
           </div>
           {r.markdown_content ? <details className="rounded-lg border bg-muted/20 p-3 group">
             <summary className="cursor-pointer text-sm font-medium min-h-11 flex items-center">Read notes</summary>
-            <div className="prose prose-sm mt-3 max-w-none dark:prose-invert"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{r.markdown_content}</ReactMarkdown></div>
+            <div className="prose prose-sm mt-3 max-w-none dark:prose-invert reading-content"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{r.markdown_content}</ReactMarkdown></div>
           </details> : null}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <label className="inline-flex items-center gap-2 text-sm min-h-11 px-1 cursor-pointer">

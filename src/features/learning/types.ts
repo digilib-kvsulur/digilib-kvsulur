@@ -1,4 +1,4 @@
-export type LearningTool = "flashcards" | "mocks" | "mastery" | "report" | "offline" | "skills" | "careers";
+export type LearningTool = "flashcards" | "mocks" | "mastery" | "coach" | "report" | "offline" | "skills" | "careers";
 
 export type LearningTarget = {
   tool?: LearningTool;

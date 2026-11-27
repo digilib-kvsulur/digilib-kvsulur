@@ -465,3 +465,44 @@
   .study-v2 *, .study-v2-skeleton { animation: none !important; transition: none !important; }
 }
 
+/* Reading accessibility preferences (Study Hub) */
+.reading-content {
+  font-size: calc(1rem * var(--reading-font-scale, 1));
+  line-height: var(--reading-line-height, 1.6);
+}
+.reading-content p,
+.reading-content li,
+.reading-content td,
+.reading-content th {
+  line-height: inherit;
+}
+.reading-dyslexia .reading-content,
+.reading-dyslexia .reading-content p,
+.reading-dyslexia .reading-content li,
+.reading-dyslexia .reading-content h1,
+.reading-dyslexia .reading-content h2,
+.reading-dyslexia .reading-content h3,
+.reading-dyslexia .reading-content h4 {
+  font-family: Verdana, "Trebuchet MS", Tahoma, sans-serif;
+  letter-spacing: 0.02em;
+  word-spacing: 0.12em;
+}
+.reading-high-contrast .reading-content {
+  color: #111111;
+  background: #ffffff;
+  border-color: #333333;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+}
+.reading-high-contrast .reading-content a {
+  color: #0000cc;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.reading-high-contrast .reading-content code {
+  color: #111111;
+  background: #f2f2f2;
+  border: 1px solid #cccccc;
+}
+
+

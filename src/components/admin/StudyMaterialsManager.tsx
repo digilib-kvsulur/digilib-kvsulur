@@ -17,6 +17,60 @@ import NcertCbseReview from "./NcertCbseReview";
 import { formatGoogleDriveUrl, isGoogleDriveUrl, isGoogleDriveFolder } from "@/lib/utils";
 import { getStudyMaterialAccessUrl, openStudyMaterial } from "@/lib/studyMaterialAccess";
 import { parseChapterPracticeSet } from "@/lib/chapterPractice";
+import { parseFlashcardSet } from "@/lib/flashcardSet";
+import { parseMockPaper } from "@/lib/mockPaper";
+
+const JSON_RESOURCE_TYPES = new Set(["chapter_practice", "checkpoint", "flashcards", "mock_paper"]);
+
+function validateAuthoringContent(type: string, content: string | null | undefined, hasFile: boolean): string | null {
+  if (type === "chapter_practice" || type === "checkpoint") {
+    if (hasFile) return "Interactive practice and checkpoints must be entered as JSON, not a file.";
+    return parseChapterPracticeSet(content).error || null;
+  }
+  if (type === "flashcards") {
+    if (hasFile) return "Flashcard sets must be entered as JSON, not a file.";
+    return parseFlashcardSet(content).error || null;
+  }
+  if (type === "mock_paper") {
+    if (hasFile) return "Mock papers must be entered as JSON, not a file.";
+    return parseMockPaper(content).error || null;
+  }
+  return null;
+}
+
+function contentFieldLabel(type: string) {
+  if (type === "chapter_practice") return "Practice Set JSON";
+  if (type === "checkpoint") return "Checkpoint JSON";
+  if (type === "flashcards") return "Flashcard Set JSON";
+  if (type === "mock_paper") return "Mock Paper JSON";
+  return "Markdown Content";
+}
+
+function contentFieldPlaceholder(type: string) {
+  if (type === "chapter_practice" || type === "checkpoint") {
+    return '{ "questions": [{ "prompt": "Question", "options": ["A", "B"], "correct_index": 0, "explanation": "Explain why." }] }';
+  }
+  if (type === "flashcards") {
+    return '{ "cards": [{ "front": "What is photosynthesis?", "back": "The process plants use to convert light into chemical energy." }] }';
+  }
+  if (type === "mock_paper") {
+    return '{ "duration_minutes": 60, "sections": [{ "name": "Section A", "marks_per_question": 1, "questions": [{ "prompt": "Question", "options": ["A", "B"], "correct_index": 0, "explanation": "Explain why." }] }] }';
+  }
+  return "Optional: author a chapter lesson, short notes, formula sheet, or quick revision in Markdown. Add either this or a file.";
+}
+
+function contentFieldHelp(type: string) {
+  if (type === "chapter_practice" || type === "checkpoint") {
+    return "Use 1–20 original multiple-choice questions, 2–6 options each, a zero-based correct_index, and an explanation. The set remains pending review.";
+  }
+  if (type === "flashcards") {
+    return 'Use { "cards": [{ "front": "...", "back": "..." }] } with up to 200 cards. Students can also turn approved notes into cards.';
+  }
+  if (type === "mock_paper") {
+    return "Add a duration, 1–6 sections, and objective questions with options + correct_index. Questions without options become written questions and are saved but not auto-graded.";
+  }
+  return "";
+}
 
 interface Material {
   id: string;
@@ -249,9 +303,9 @@ const StudyMaterialsManager = () => {
   const saveMaterialEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!materialToEdit) return;
-    if (editMaterialForm.resource_type === "chapter_practice") {
-      const practice = parseChapterPracticeSet(editMaterialForm.markdown_content);
-      if (practice.error) { toast({ title: "Invalid practice set", description: practice.error, variant: "destructive" }); return; }
+    if (materialToEdit) {
+      const validationError = validateAuthoringContent(editMaterialForm.resource_type || "short_notes", editMaterialForm.markdown_content, false);
+      if (validationError) { toast({ title: "Invalid resource content", description: validationError, variant: "destructive" }); return; }
     }
     const { error } = await (supabase as any).from("study_materials").update({
       title: editMaterialForm.title.trim(), description: editMaterialForm.description?.trim() || null,
@@ -448,12 +502,10 @@ const StudyMaterialsManager = () => {
       toast({ title: "Missing info", description: "Add a title and either a file or Markdown content", variant: "destructive" });
       return;
     }
-    if (matsForm.resource_type === "chapter_practice") {
-      const practice = parseChapterPracticeSet(matsForm.markdown_content);
-      if (practice.error || matsFile) {
-        toast({ title: "Invalid practice set", description: practice.error || "Interactive practice must be entered as JSON, not a file.", variant: "destructive" });
-        return;
-      }
+    const authoringError = validateAuthoringContent(matsForm.resource_type, matsForm.markdown_content, Boolean(matsFile));
+    if (authoringError) {
+      toast({ title: "Invalid resource content", description: authoringError, variant: "destructive" });
+      return;
     }
     setUploadingMats(true);
     try {
@@ -704,6 +756,7 @@ const StudyMaterialsManager = () => {
   const teacherCoverageClass = currentUserClass.match(/\d+/)?.[0] || "";
   const resourceTypeLabels: Record<string, string> = {
     chapter_lesson: "Chapter lesson", chapter_practice: "Practice set", short_notes: "Short notes", formula_sheet: "Formula sheet", quick_revision: "Quick revision", pyq: "PYQs",
+    flashcards: "Flashcards", mock_paper: "Mock paper", checkpoint: "Checkpoint",
   };
   const downloadCoverageTemplate = () => {
     const columns = ["title", "description", "subject", "student_class", "chapter_title", "resource_type", "academic_session", "exam_year", "marks", "file_url", "source_label", "source_url", "markdown_content"];
@@ -756,14 +809,14 @@ const StudyMaterialsManager = () => {
             <div><Label>Class</Label><Select value={editMaterialForm.student_class || "All"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, student_class: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CLASSES.filter((c) => currentUserRole !== "teacher" || c === "All" || c === currentUserClass).map((c) => <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Subject</Label><Select value={editMaterialForm.subject || "General"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, subject: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{SUBJECTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Chapter</Label><Input value={editMaterialForm.chapter_title || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, chapter_title: e.target.value })} /></div>
-            <div><Label>Resource type</Label><Select value={editMaterialForm.resource_type || "short_notes"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, resource_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[["chapter_lesson","Chapter Lesson"],["chapter_practice","Chapter Practice"],["short_notes","Short Notes"],["formula_sheet","Formula Sheet"],["pyq","PYQ"],["quick_revision","Quick Revision"],["textbook","Textbook / Syllabus"],["other","Other"]].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Resource type</Label><Select value={editMaterialForm.resource_type || "short_notes"} onValueChange={(v) => setEditMaterialForm({ ...editMaterialForm, resource_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[["chapter_lesson","Chapter Lesson"],["chapter_practice","Chapter Practice"],["checkpoint","Chapter Checkpoint"],["flashcards","Flashcard Set"],["mock_paper","Mock Paper"],["short_notes","Short Notes"],["formula_sheet","Formula Sheet"],["pyq","PYQ"],["quick_revision","Quick Revision"],["textbook","Textbook / Syllabus"],["other","Other"]].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Session</Label><Input value={editMaterialForm.academic_session || "2026-27"} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, academic_session: e.target.value })} /></div>
             <div><Label>Exam year</Label><Input type="number" value={editMaterialForm.exam_year || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, exam_year: e.target.value })} /></div>
             <div><Label>Marks</Label><Input type="number" value={editMaterialForm.marks || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, marks: e.target.value })} /></div>
             <div><Label>Source label</Label><Input value={editMaterialForm.source_label || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, source_label: e.target.value })} /></div>
             <div><Label>Source URL</Label><Input type="url" value={editMaterialForm.source_url || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, source_url: e.target.value })} /></div>
             <div className="sm:col-span-2"><Label>Description</Label><Textarea value={editMaterialForm.description || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, description: e.target.value })} rows={2} /></div>
-            <div className="sm:col-span-2"><Label>{editMaterialForm.resource_type === "chapter_practice" ? "Practice Set JSON" : "Markdown content"}</Label><Textarea value={editMaterialForm.markdown_content || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, markdown_content: e.target.value })} placeholder={editMaterialForm.resource_type === "chapter_practice" ? '{ "questions": [{ "prompt": "Question", "options": ["A", "B"], "correct_index": 0, "explanation": "Explain why." }] }' : "Markdown content"} rows={8} />{editMaterialForm.resource_type === "chapter_practice" && <p className="text-xs text-muted-foreground">Use 1–20 original multiple-choice questions, 2–6 options each, a zero-based correct_index, and an explanation.</p>}</div>
+            <div className="sm:col-span-2"><Label>{contentFieldLabel(editMaterialForm.resource_type || "short_notes")}</Label><Textarea value={editMaterialForm.markdown_content || ""} onChange={(e) => setEditMaterialForm({ ...editMaterialForm, markdown_content: e.target.value })} placeholder={contentFieldPlaceholder(editMaterialForm.resource_type || "short_notes")} rows={8} />{contentFieldHelp(editMaterialForm.resource_type || "short_notes") && <p className="text-xs text-muted-foreground">{contentFieldHelp(editMaterialForm.resource_type || "short_notes")}</p>}</div>
             <div className="sm:col-span-2 flex justify-end"><Button type="submit">Save resource</Button></div>
           </form>
         </DialogContent>
@@ -881,6 +934,9 @@ const StudyMaterialsManager = () => {
                     <SelectContent>
                       <SelectItem value="chapter_lesson">Chapter Lesson</SelectItem>
                       <SelectItem value="chapter_practice">Chapter Practice</SelectItem>
+                      <SelectItem value="checkpoint">Chapter Checkpoint</SelectItem>
+                      <SelectItem value="flashcards">Flashcard Set</SelectItem>
+                      <SelectItem value="mock_paper">Mock Paper</SelectItem>
                       <SelectItem value="short_notes">Short Notes</SelectItem>
                       <SelectItem value="formula_sheet">Formula Sheet</SelectItem>
                       <SelectItem value="pyq">Previous Year Question</SelectItem>
@@ -898,13 +954,14 @@ const StudyMaterialsManager = () => {
                 <div><Label>Source Label</Label><Input value={matsForm.source_label} onChange={e => setMatsForm({ ...matsForm, source_label: e.target.value })} placeholder="CBSE 2025 board paper" /></div>
                 <div><Label>Source URL</Label><Input type="url" value={matsForm.source_url} onChange={e => setMatsForm({ ...matsForm, source_url: e.target.value })} placeholder="Official source page" /></div>
                 <div className="md:col-span-2">
-                  <Label>{matsForm.resource_type === "chapter_practice" ? "Practice Set JSON" : "Markdown Content"}</Label>
-                  <Textarea value={matsForm.markdown_content} onChange={e => setMatsForm({ ...matsForm, markdown_content: e.target.value })} placeholder={matsForm.resource_type === "chapter_practice" ? '{ "questions": [{ "prompt": "Question", "options": ["A", "B"], "correct_index": 0, "explanation": "Explain why." }] }' : "Optional: author a chapter lesson, short notes, formula sheet, or quick revision in Markdown. Add either this or a file."} rows={7} />
-                  {matsForm.resource_type === "chapter_practice" && <p className="text-xs text-muted-foreground md:col-span-2">Use 1–20 original multiple-choice questions, 2–6 options each, a zero-based correct_index, and an explanation. The set remains pending review.</p>}
+                  <Label>{contentFieldLabel(matsForm.resource_type)}</Label>
+                  <Textarea value={matsForm.markdown_content} onChange={e => setMatsForm({ ...matsForm, markdown_content: e.target.value })} placeholder={contentFieldPlaceholder(matsForm.resource_type)} rows={7} />
+                  {contentFieldHelp(matsForm.resource_type) && <p className="text-xs text-muted-foreground md:col-span-2">{contentFieldHelp(matsForm.resource_type)}</p>}
                 </div>
                 <div className="md:col-span-2">
                   <Label>Resource File (PDF, Word doc, image, etc.)</Label>
-                  <Input id="sm-file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" onChange={e => setMatsFile(e.target.files?.[0] || null)} />
+                  <Input id="sm-file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" disabled={JSON_RESOURCE_TYPES.has(matsForm.resource_type)} onChange={e => setMatsFile(e.target.files?.[0] || null)} />
+                  {JSON_RESOURCE_TYPES.has(matsForm.resource_type) && <p className="text-xs text-muted-foreground">This resource type is stored as JSON in the text area, so a file upload is not used.</p>}
                 </div>
                 <div className="md:col-span-2">
                   <Button type="submit" disabled={uploadingMats} className="gradient-primary border-0 font-bold">
