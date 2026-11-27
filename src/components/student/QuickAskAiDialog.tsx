@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import MathText from "@/components/student/MathText";
+import { StudyAnswerMarkdown, StudyAnswerSources } from "@/components/student/StudyAnswerMarkdown";
 
 const SUBJECTS = ["Mathematics", "Science", "Physics", "Chemistry", "Biology", "Social Science", "English", "Hindi"];
 
@@ -15,6 +16,7 @@ type DoubtAnswer = {
   final_answer?: string;
   formulas?: string[];
   confidence_note?: string;
+  sources?: { id: string; title: string; source_label?: string }[];
 };
 
 export interface QuickAskAiDialogProps {
@@ -175,7 +177,7 @@ export default function QuickAskAiDialog({
 
           {answer && (
             <div className="space-y-3 rounded-2xl border bg-muted/20 p-4">
-              <MathText text={answer.answer || ""} className="block break-words text-sm leading-7" />
+              <StudyAnswerMarkdown text={answer.answer || ""} sources={answer.sources} />
               {answer.formulas?.length ? (
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Formulas</p>
@@ -189,12 +191,11 @@ export default function QuickAskAiDialog({
               {answer.final_answer && (
                 <div className="rounded-xl border-l-4 border-primary bg-primary/5 p-3">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Key takeaway</p>
-                  <p className="mt-1 text-sm font-semibold"><MathText text={answer.final_answer} /></p>
+                  <div className="mt-1 text-sm font-semibold"><StudyAnswerMarkdown text={answer.final_answer} sources={answer.sources} className="[&_p]:my-0" /></div>
                 </div>
               )}
-              {answer.confidence_note && (
-                <p className="text-xs text-muted-foreground">{answer.confidence_note}</p>
-              )}
+              {answer.confidence_note && <StudyAnswerMarkdown text={answer.confidence_note} sources={answer.sources} className="text-xs text-muted-foreground [&_p]:my-0" />}
+              <StudyAnswerSources sources={answer.sources} />
               <div className="flex flex-wrap gap-2 border-t pt-2.5">
                 <Button type="button" variant="outline" size="sm" onClick={() => ask("simpler")} disabled={loading}>
                   <Lightbulb className="mr-1.5 h-3.5 w-3.5" /> Explain simpler

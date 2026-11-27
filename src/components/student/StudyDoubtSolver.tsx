@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import MathText from "@/components/student/MathText";
+import { StudyAnswerMarkdown, StudyAnswerSources } from "@/components/student/StudyAnswerMarkdown";
 import { openStudyMaterial } from "@/lib/studyMaterialAccess";
 
 type Answer = {
@@ -262,7 +263,7 @@ export default function StudyDoubtSolver({ userId, studentClass, onOpenResources
               </div>
 
               {/* Main answer */}
-              <MathText text={answer.answer || ""} className="block break-words text-sm leading-7" />
+              <StudyAnswerMarkdown text={answer.answer || ""} sources={answer.sources} />
 
               {/* Formulas */}
               {answer.formulas?.length ? (
@@ -281,24 +282,13 @@ export default function StudyDoubtSolver({ userId, studentClass, onOpenResources
               {/* Final answer callout */}
               <div className="rounded-xl border-l-4 border-primary bg-primary/5 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-primary">Final answer</p>
-                <p className="mt-1 text-base font-bold"><MathText text={answer.final_answer || ""} /></p>
+                <div className="mt-1 text-base font-bold"><StudyAnswerMarkdown text={answer.final_answer || ""} sources={answer.sources} className="[&_p]:my-0" /></div>
               </div>
 
-              {answer.confidence_note && (
-                <p className="text-xs text-muted-foreground">{answer.confidence_note}</p>
-              )}
+              {answer.confidence_note && <StudyAnswerMarkdown text={answer.confidence_note} sources={answer.sources} className="text-xs text-muted-foreground [&_p]:my-0" />}
 
               {/* DLMS Sources */}
-              {answer.sources?.length ? (
-                <div className="space-y-1.5 border-t pt-3">
-                  <h3 className="text-sm font-semibold">DLMS sources used</h3>
-                  {answer.sources.map((source) =>
-                    source.source_url
-                      ? <a key={source.id} href={source.source_url} target="_blank" rel="noreferrer" className="block text-sm text-primary hover:underline">{source.title}{source.source_label ? ` · ${source.source_label}` : ""}</a>
-                      : <p key={source.id} className="text-sm text-muted-foreground">{source.title}{source.source_label ? ` · ${source.source_label}` : " · DLMS reviewed resource"}</p>
-                  )}
-                </div>
-              ) : null}
+              <StudyAnswerSources sources={answer.sources} />
 
               {/* Follow-up actions */}
               <div className="flex flex-wrap gap-2 border-t pt-3">

@@ -134,7 +134,7 @@ ${answer}
 DLMS resource excerpts:
 ${sourceContext || "No matching reviewed resource text is stored for this class and subject."}`;
 
-    let model = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
+    let model = Deno.env.get("GROQ_MODEL") || "openai/gpt-oss-120b";
     let raw = "";
     if (groqKey) {
       try {

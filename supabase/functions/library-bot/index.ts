@@ -159,7 +159,7 @@ serve(async (req) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
           body: JSON.stringify({
-            model: Deno.env.get('GROQ_MODEL')?.trim() || 'llama-3.3-70b-versatile',
+            model: Deno.env.get('GROQ_MODEL')?.trim() || 'openai/gpt-oss-120b',
             temperature: 0.7,
             messages: [
               { role: 'system', content: SYSTEM_PROMPT },

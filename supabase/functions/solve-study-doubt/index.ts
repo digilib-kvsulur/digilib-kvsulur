@@ -88,7 +88,7 @@ Previous explanation to clarify (if any):\n${previousAnswer || "None."}\n\nDLMS 
 
     let raw = "";
     let usedModel = Deno.env.get("GEMINI_VISION_MODEL") || "gemini-3.8-flash";
-    const groqModel = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
+    const groqModel = Deno.env.get("GROQ_MODEL") || "openai/gpt-oss-120b";
     const geminiModel = Deno.env.get("GEMINI_VISION_MODEL") || "gemini-3.8-flash";
     const requestGemini = async () => {
       if (!geminiKey) return "";
