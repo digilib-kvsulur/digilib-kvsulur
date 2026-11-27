@@ -40,7 +40,8 @@ Deno.serve(async (req) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const geminiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!supabaseUrl || !anonKey || !serviceKey || !geminiKey) {
+  const groqKey = Deno.env.get("GROQ_API_KEY");
+  if (!supabaseUrl || !anonKey || !serviceKey || (!geminiKey && !groqKey)) {
     return json({ error: "The answer coach is not configured yet. Ask your teacher to enable AI feedback." }, 503);
   }
 
@@ -133,19 +134,38 @@ ${answer}
 DLMS resource excerpts:
 ${sourceContext || "No matching reviewed resource text is stored for this class and subject."}`;
 
-    const model = Deno.env.get("GEMINI_TEXT_MODEL") || Deno.env.get("GEMINI_VISION_MODEL") || "gemini-2.5-flash";
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
-      }),
-      signal: AbortSignal.timeout(35000),
-    });
-    const result = await response.json();
-    const raw = result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
-    if (!response.ok || !raw) return json({ error: "The answer coach is unavailable right now. Please try again." }, 502);
+    let model = Deno.env.get("GEMINI_TEXT_MODEL") || Deno.env.get("GEMINI_VISION_MODEL") || "gemini-2.5-flash";
+    let raw = "";
+    if (geminiKey) {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
+        }),
+        signal: AbortSignal.timeout(35000),
+      });
+      const result = await response.json();
+      raw = result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
+    }
+    if (!raw && groqKey) {
+      model = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
+      const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model,
+          temperature: 0.2,
+          response_format: { type: "json_object" },
+          messages: [{ role: "user", content: prompt }],
+        }),
+        signal: AbortSignal.timeout(35000),
+      });
+      const groqData = await groqRes.json();
+      raw = groqData?.choices?.[0]?.message?.content || "";
+    }
+    if (!raw) return json({ error: "The answer coach is unavailable right now. Please try again." }, 502);
 
     let parsed: Record<string, unknown>;
     try {
