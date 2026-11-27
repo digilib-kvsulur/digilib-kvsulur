@@ -379,13 +379,17 @@
   padding: 14px 16px;
   box-shadow: var(--shadow-card);
   text-align: left;
-  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  transition: border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .study-v2-chapter-card:hover {
   border-color: hsl(var(--primary) / 0.45);
   box-shadow: var(--shadow-elevated);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+}
+
+.study-v2-chapter-card:active {
+  transform: scale(0.985);
 }
 
 .study-v2-content-chip {
@@ -427,6 +431,11 @@
 @keyframes studySkeleton {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+@media (min-width: 640px) {
+  .study-v2-chapter-grid,
+  .study-v2-skeletons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (min-width: 1024px) {

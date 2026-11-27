@@ -149,10 +149,10 @@ const StudentDashboard = () => {
   const [capsuleMonth, setCapsuleMonth] = useState<string | undefined>(undefined);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
     Home: false,
-    Study: true,
-    Library: true,
-    Rewards: true,
-    Profile: true,
+    Study: false,
+    Library: false,
+    Rewards: false,
+    Profile: false,
   });
 
   // Track tab history stack

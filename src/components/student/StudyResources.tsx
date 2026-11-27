@@ -492,7 +492,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
     ) : loadError ? (
       <Card className="m-4 rounded-xl"><CardContent className="p-6 text-center"><p role="alert" className="text-sm text-destructive">{loadError}</p><Button className="mt-4 min-h-11 rounded-xl" variant="outline" onClick={() => setReloadKey((k) => k + 1)}>Try again</Button></CardContent></Card>
     ) : selectedChapter ? (
-      <section aria-label={`${selectedChapter} chapter`} className="min-w-0">
+      <section aria-label={`${selectedChapter} chapter`} className="min-w-0 animate-in fade-in slide-in-from-right-2 duration-200">
         <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
           <div className="px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3">
             <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 rounded-xl" aria-label="Back to chapters" onClick={() => { setSelectedChapter(""); setQuery(""); setBookmarkedOnly(false); }}>
@@ -579,7 +579,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
         </div>
       </section>
     ) : (
-      <section aria-label="Study subjects and chapters" className="study-v2-list">
+      <section aria-label="Study subjects and chapters" className="study-v2-list animate-in fade-in duration-200">
         <header className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border bg-card/40">
           <div className="flex items-center gap-2.5 min-w-0">
             <h1 className="text-lg sm:text-xl font-black text-foreground">Study</h1>
@@ -596,10 +596,9 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
           {subjects.map((s) => { const theme = subjectTheme(s); const Icon = theme.icon; const active = selectedSubject.toLowerCase() === s.toLowerCase(); return <button key={s} ref={active ? activeSubjectRef : undefined} type="button" role="tab" aria-selected={active} onClick={() => chooseSubject(s)} className={`study-v2-tab ${active ? "study-v2-tab-active" : ""}`}><span className="study-v2-subject-icon" style={{ backgroundColor: active ? theme.color : theme.tint, color: active ? "#fff" : theme.color }}><Icon className="h-4.5 w-4.5" /></span><span className="study-v2-tab-label" title={s}>{shortSubjectName(s)}</span></button>; })}
         </div>
 
-        {selectedSubject && <div className="mx-4 mt-3 mb-2 rounded-2xl border border-amber-200/80 bg-amber-50/80 dark:bg-amber-950/20 dark:border-amber-900/50 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2.5"><Sparkles className="h-4 w-4 text-amber-500 shrink-0" /><span>DLMS notes are being added. NCERT books are available now.</span></div>}
-        {selectedSubject && <div className="study-v2-action" style={{ backgroundColor: subjectTheme(selectedSubject).tint }}><div className="min-w-0"><p className="text-sm font-bold text-slate-800 dark:text-slate-100">Stuck on something?</p><p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Ask the AI Doubt Solver</p></div><Button type="button" disabled={!onOpenDoubt} onClick={() => onOpenDoubt?.()} className="h-10 shrink-0 rounded-xl bg-white px-4 text-xs font-bold text-slate-900 shadow-sm hover:bg-white/90">Ask a doubt</Button></div>}
+        {selectedSubject && <div className="study-v2-action border border-border/50 transition-all duration-200" style={{ backgroundColor: subjectTheme(selectedSubject).tint }}><div className="min-w-0"><p className="text-sm font-bold text-slate-800 dark:text-slate-100">Stuck on something?</p><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">Ask the AI Doubt Solver</p></div><Button type="button" disabled={!onOpenDoubt} onClick={() => onOpenDoubt?.()} className="h-10 shrink-0 rounded-xl bg-white px-4 text-xs font-bold text-slate-900 shadow-sm transition-transform hover:bg-white/90 active:scale-[0.97]">Ask a doubt</Button></div>}
 
-        {selectedSubject ? <div className="study-v2-chapter-grid">
+        {selectedSubject ? <div key={selectedSubject} className="study-v2-chapter-grid animate-in fade-in slide-in-from-bottom-2 duration-200">
           {filteredChapters.length ? filteredChapters.map((chapter, index) => {
             const theme = subjectTheme(selectedSubject);
             const progress = chapterProgress[progressKey(classFilter, selectedSubject, chapter.title)];
@@ -629,9 +628,9 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
         </div> : <div className="study-v2-empty"><BookOpen className="mx-auto h-6 w-6 text-muted-foreground" /><p className="mt-3 text-sm font-semibold">Class chapter list is not available yet</p><a className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline" href="https://ncert.nic.in/textbook.php" target="_blank" rel="noreferrer">Open NCERT textbook catalogue</a></div>}
 
         {continueChapter && !selectedChapter && (
-          <div className="sticky bottom-20 md:bottom-6 z-20 mx-4 mt-4 rounded-2xl border border-border bg-card/95 p-3.5 shadow-lg backdrop-blur flex items-center justify-between gap-3">
+          <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-5 left-3 right-3 md:left-[calc(16rem+1.5rem)] md:right-6 z-30 mx-auto max-w-4xl rounded-2xl border border-border/80 bg-card/95 p-3.5 shadow-xl backdrop-blur-md flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Continue studying</p><p className="truncate text-sm font-bold text-foreground">{displayChapterTitle(continueChapter.title, continueChapter.chapterNumber)}</p></div>
-            <Button size="sm" className="h-11 shrink-0 rounded-xl gradient-primary text-white font-bold" onClick={() => openChapter(continueChapter.title)}>Resume <ChevronRight className="ml-1 h-4 w-4" /></Button>
+            <Button size="sm" className="h-11 shrink-0 rounded-xl gradient-primary text-white font-bold shadow-sm transition-transform active:scale-[0.97]" onClick={() => openChapter(continueChapter.title)}>Resume <ChevronRight className="ml-1 h-4 w-4" /></Button>
           </div>
         )}
       </section>

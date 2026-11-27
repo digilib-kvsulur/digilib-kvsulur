@@ -97,11 +97,11 @@ export default function StudyHub({
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1200px]">
-      <div className="mb-2 flex flex-col gap-2 rounded-2xl border border-border/70 bg-card/60 p-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-2 px-1">
-          <span className="text-sm font-bold">Study Hub</span>
-          <Badge variant="outline" className="rounded-full">Class {ownClass}</Badge>
+    <div className="mx-auto w-full max-w-[1200px] space-y-3">
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-border/70 bg-card/85 p-2.5 shadow-sm backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2 px-1.5">
+          <span className="text-sm font-extrabold tracking-tight">Study Hub</span>
+          <Badge variant="secondary" className="rounded-full font-semibold">Class {ownClass}</Badge>
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar sm:pb-0" role="toolbar" aria-label="Study tools">
           {TOOLS.map((item) => {
@@ -113,8 +113,10 @@ export default function StudyHub({
                 type="button"
                 aria-pressed={active}
                 onClick={() => chooseTool(item.value)}
-                className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-colors sm:text-sm ${
-                  active ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all duration-200 active:scale-[0.97] sm:text-sm ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                 }`}
               >
                 <Icon className="h-4 w-4" /> {item.label}
@@ -124,31 +126,33 @@ export default function StudyHub({
         </div>
       </div>
 
-      {tool === "study" && (
-        <StudyResources
-          studentClass={studentClass}
-          userId={userId}
-          initialChapter={chapterTarget}
-          onInitialChapterOpened={() => {
-            setChapterTarget(null);
-            onInitialChapterOpened?.();
-          }}
-          onOpenDoubt={onOpenDoubt}
-          dataSaver={dataSaver}
-        />
-      )}
-      {tool === "flashcards" && <FlashcardReview studentClass={ownClass} />}
-      {tool === "mocks" && <MockTestRunner studentClass={ownClass} />}
-      {tool === "mastery" && (
-        <MasteryPanel
-          studentClass={ownClass}
-          onOpenChapter={(target) => openChapter({ classNumber: ownClass, subject: target.subject, chapterTitle: target.chapterTitle })}
-        />
-      )}
-      {tool === "coach" && <AnswerCoach studentClass={ownClass} userId={userId} />}
-      {tool === "report" && <LearningReport studentName={studentName} studentClass={ownClass} />}
-      {tool === "offline" && <OfflinePacks studentClass={ownClass} userId={userId} />}
-      {tool === "reading" && <ReadingSettings userId={userId} />}
+      <div key={tool} className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+        {tool === "study" && (
+          <StudyResources
+            studentClass={studentClass}
+            userId={userId}
+            initialChapter={chapterTarget}
+            onInitialChapterOpened={() => {
+              setChapterTarget(null);
+              onInitialChapterOpened?.();
+            }}
+            onOpenDoubt={onOpenDoubt}
+            dataSaver={dataSaver}
+          />
+        )}
+        {tool === "flashcards" && <FlashcardReview studentClass={ownClass} />}
+        {tool === "mocks" && <MockTestRunner studentClass={ownClass} />}
+        {tool === "mastery" && (
+          <MasteryPanel
+            studentClass={ownClass}
+            onOpenChapter={(target) => openChapter({ classNumber: ownClass, subject: target.subject, chapterTitle: target.chapterTitle })}
+          />
+        )}
+        {tool === "coach" && <AnswerCoach studentClass={ownClass} userId={userId} />}
+        {tool === "report" && <LearningReport studentName={studentName} studentClass={ownClass} />}
+        {tool === "offline" && <OfflinePacks studentClass={ownClass} userId={userId} />}
+        {tool === "reading" && <ReadingSettings userId={userId} />}
+      </div>
     </div>
   );
 }
