@@ -43,6 +43,7 @@ export default function FlashcardReview({ studentClass }: { studentClass: string
   const [back, setBack] = useState("");
   const [subject, setSubject] = useState("");
   const [chapter, setChapter] = useState("");
+  const [deckSubject, setDeckSubject] = useState("all");
   const { speak, stop, speaking, supported } = useSpeech();
 
   const load = useCallback(async () => {
@@ -51,7 +52,7 @@ export default function FlashcardReview({ studentClass }: { studentClass: string
     try {
       const [dueData, resourceData] = await Promise.all([
         fetchDueFlashcards(30),
-        fetchLearningResources(studentClass, ["flashcards", "quick_revision", "formula_sheet", "short_notes", "chapter_lesson"]),
+        fetchLearningResources(studentClass, ["flashcards", "quick_revision", "formula_sheet"]),
       ]);
       setDue(dueData);
       setResources(resourceData.filter((resource) => Boolean(resource.markdown_content?.trim())));
@@ -70,14 +71,21 @@ export default function FlashcardReview({ studentClass }: { studentClass: string
   const current = cards[index];
   const totalReviewed = session.again + session.hard + session.good + session.easy;
 
+  const deckSubjects = useMemo(
+    () => Array.from(new Set(resources.map((r) => r.subject || "General"))).sort((a, b) => a.localeCompare(b)),
+    [resources],
+  );
+
   const groupedResources = useMemo(() => {
     const map = new Map<string, StudyResource[]>();
-    resources.forEach((resource) => {
-      const key = resource.subject || "General";
-      map.set(key, [...(map.get(key) || []), resource]);
-    });
+    resources
+      .filter((resource) => deckSubject === "all" || (resource.subject || "General") === deckSubject)
+      .forEach((resource) => {
+        const key = resource.subject || "General";
+        map.set(key, [...(map.get(key) || []), resource]);
+      });
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [resources]);
+  }, [resources, deckSubject]);
 
   const startReview = () => {
     if (!cards.length) return;
@@ -350,8 +358,32 @@ export default function FlashcardReview({ studentClass }: { studentClass: string
             </div>
           )}
 
+          {deckSubjects.length > 1 && (
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter deck sources by subject">
+              <button
+                type="button"
+                aria-pressed={deckSubject === "all"}
+                onClick={() => setDeckSubject("all")}
+                className={`min-h-8 rounded-full border px-3 text-xs font-medium transition-colors ${deckSubject === "all" ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted/50"}`}
+              >
+                All subjects
+              </button>
+              {deckSubjects.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  aria-pressed={deckSubject === s}
+                  onClick={() => setDeckSubject(s)}
+                  className={`min-h-8 rounded-full border px-3 text-xs font-medium transition-colors ${deckSubject === s ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted/50"}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
           {groupedResources.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No approved notes are available yet. Ask a teacher to publish revision notes for your class.</p>
+            <p className="text-sm text-muted-foreground">No approved flashcards or quick-revision sets are available yet.</p>
           ) : (
             groupedResources.map(([group, items]) => (
               <div key={group} className="space-y-2">

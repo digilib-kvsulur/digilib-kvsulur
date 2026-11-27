@@ -454,11 +454,19 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
       <button type="button" onClick={onClick} className={`min-h-11 px-3 rounded-full border text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted/50 text-foreground"}`} aria-pressed={active}>{label}</button>
     );
     return <div className="space-y-4">
-      <div className="space-y-2" aria-label="PYQ filters">
-        <div className="flex flex-wrap gap-2">{[["all","All years"], ...years.sort((a,b)=>b-a).map((y)=>[String(y),String(y)])].map(([v,l]) => <Chip key={`y-${v}`} active={pyqYear===v} label={l} onClick={()=>setPyqYear(v)} />)}</div>
-        <div className="flex flex-wrap gap-2">{[["all","All boards"], ...boards.map((b)=>[b,b])].map(([v,l]) => <Chip key={`b-${v}`} active={pyqBoard===v} label={l} onClick={()=>setPyqBoard(v)} />)}</div>
-        <div className="flex flex-wrap gap-2">{[["all","All marks"], ...marksVals.sort((a,b)=>a-b).map((m)=>[String(m),`${m} marks`])].map(([v,l]) => <Chip key={`m-${v}`} active={pyqMarks===v} label={l} onClick={()=>setPyqMarks(v)} />)}</div>
-      </div>
+      {(years.length > 0 || boards.length > 1 || marksVals.length > 1) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2" aria-label="PYQ filters">
+          {years.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">{[["all","All years"], ...years.sort((a,b)=>b-a).map((y)=>[String(y),String(y)])].map(([v,l]) => <Chip key={`y-${v}`} active={pyqYear===v} label={l} onClick={()=>setPyqYear(v)} />)}</div>
+          )}
+          {boards.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5">{[["all","All boards"], ...boards.map((b)=>[b,b])].map(([v,l]) => <Chip key={`b-${v}`} active={pyqBoard===v} label={l} onClick={()=>setPyqBoard(v)} />)}</div>
+          )}
+          {marksVals.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5">{[["all","All marks"], ...marksVals.sort((a,b)=>a-b).map((m)=>[String(m),`${m} marks`])].map(([v,l]) => <Chip key={`m-${v}`} active={pyqMarks===v} label={l} onClick={()=>setPyqMarks(v)} />)}</div>
+          )}
+        </div>
+      )}
       {!filtered.length ? <StudyEmptyState title="No questions match these filters." description="Try clearing a filter or ask AI for help with this chapter." onOpenNcert={openNcert} onAskDoubt={onOpenDoubt ? askDoubt : undefined} onRequestNotes={userId ? requestNotes : undefined} requesting={requestingNotes} /> : null}
       {items.map((item) => <PyqCard key={item.id} item={item} onExplain={onOpenDoubt ? () => { window.sessionStorage.setItem("dlms-doubt-prefill", item.question.slice(0, 1000)); onOpenDoubt(); } : undefined} />)}
       {practice.map((r) => <Card key={r.id} className="rounded-xl border-border/70 shadow-none"><CardContent className="p-4 sm:p-5 space-y-3"><div className="flex items-center justify-between gap-2"><h3 className="font-semibold">{r.title}</h3><Badge variant="secondary" className="rounded-full">Practice</Badge></div><ChapterPracticeSet resourceId={r.id} content={r.markdown_content} /></CardContent></Card>)}
@@ -514,7 +522,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
     ) : selectedChapter ? (
       <section aria-label={`${selectedChapter} chapter`} className="min-w-0 animate-in fade-in slide-in-from-right-2 duration-200">
         <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
-          <div className="px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3">
+          <div className="px-3 sm:px-0 py-2.5 flex items-center gap-2 sm:gap-3">
             <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 rounded-xl" aria-label="Back to chapters" onClick={() => { setSelectedChapter(""); setQuery(""); setBookmarkedOnly(false); }}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -531,7 +539,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
           </div>
         </header>
 
-        <div className="px-4 pt-4 space-y-4">
+        <div className="px-3 sm:px-0 pt-4 space-y-4">
           <Card className="rounded-2xl border-border/70 shadow-none overflow-hidden">
             <CardContent className="p-4 sm:p-5">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

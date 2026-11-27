@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { fetchCareerBookmarks, fetchCareerResources, toggleCareerBookmark } from "./api";
+import CareerPathFinder from "./CareerPathFinder";
 import MarkdownBlock from "./MarkdownBlock";
 import { useSpeech } from "./useSpeech";
 import type { CareerCategory, CareerResource } from "./types";
@@ -43,6 +44,7 @@ export default function CareerHub({ studentClass, userId }: { studentClass: stri
   const [expanded, setExpanded] = useState("");
   const [onlySaved, setOnlySaved] = useState(false);
   const [busy, setBusy] = useState("");
+  const [mode, setMode] = useState<"finder" | "library">("finder");
   const { speak, stop, speaking, supported } = useSpeech();
 
   const load = useCallback(async () => {
@@ -108,21 +110,43 @@ export default function CareerHub({ studentClass, userId }: { studentClass: stri
   };
 
   return (
-    <div className="space-y-3">
-      <Card className="rounded-2xl border-primary/20 bg-primary/5 shadow-none">
+    <div className="space-y-4">
+      <Card className="rounded-2xl border-primary/20 bg-gradient-to-br from-indigo-600/10 via-card to-teal-500/10 shadow-none">
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Briefcase className="h-5 w-5" /></div>
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-teal-500 text-white shadow-sm"><Briefcase className="h-5 w-5" /></div>
             <div>
-              <p className="font-semibold">Career & guidance hub</p>
-              <p className="text-xs text-muted-foreground">Streams, entrance exams, scholarships, and honest descriptions of the work. Always verify dates and eligibility on official sites.</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-bold">Career Hub · CareerPath AI</p>
+                <Badge variant="outline" className="rounded-full text-[11px]">Class {classNumber}</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">Discover your best stream, entrance exams, and career roadmap, or browse curated guides.</p>
             </div>
           </div>
-          <Badge variant="outline" className="w-fit shrink-0 rounded-full">Class {classNumber}</Badge>
+          <div className="flex shrink-0 rounded-xl border bg-background/80 p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => setMode("finder")}
+              className={`min-h-9 rounded-lg px-3 text-xs font-semibold transition-all ${mode === "finder" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Sparkles className="mr-1.5 inline h-3.5 w-3.5" /> CareerPath AI
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("library")}
+              className={`min-h-9 rounded-lg px-3 text-xs font-semibold transition-all ${mode === "library" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <GraduationCap className="mr-1.5 inline h-3.5 w-3.5" /> Guides & Exams
+            </button>
+          </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-2">
+      {mode === "finder" ? (
+        <CareerPathFinder studentClass={classNumber} userId={userId} />
+      ) : (
+        <>
+          <div className="space-y-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search exams, careers, scholarships…" aria-label="Search career resources" className="min-h-11 rounded-xl pl-9" />
@@ -220,6 +244,8 @@ export default function CareerHub({ studentClass, userId }: { studentClass: stri
             );
           })}
         </div>
+      )}
+        </>
       )}
     </div>
   );

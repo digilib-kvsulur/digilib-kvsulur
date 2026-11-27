@@ -439,7 +439,7 @@
 }
 
 @media (min-width: 1024px) {
-  .study-v2 { padding-inline: var(--space-5); }
+  .study-v2 { padding-inline: 0; }
   .study-v2-tabs { padding: 12px 0; gap: 8px; }
   .study-v2-tab {
     flex-direction: row;

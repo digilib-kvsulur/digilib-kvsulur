@@ -126,18 +126,26 @@ export async function logLearningEvent(event: string, entityType?: string, entit
 }
 
 export async function fetchLearningResources(classNumber: string, types: string[], subject?: string): Promise<StudyResource[]> {
-  let query = (supabase as any)
-    .from("study_materials")
-    .select("id,title,description,subject,student_class,chapter_title,topic,resource_type,marks,source_label,source_url,markdown_content,file_url,updated_at")
-    .eq("review_status", "approved")
-    .in("student_class", [classNumber, "All"])
-    .in("resource_type", types)
-    .order("subject", { ascending: true })
-    .order("chapter_title", { ascending: true });
-  if (subject) query = query.eq("subject", subject);
-  const { data, error } = await query;
-  if (error) throw new Error(learningErrorMessage(error.message));
-  return (data || []) as StudyResource[];
+  const pageSize = 1000;
+  const all: StudyResource[] = [];
+  for (let from = 0; ; from += pageSize) {
+    let query = (supabase as any)
+      .from("study_materials")
+      .select("id,title,description,subject,student_class,chapter_title,topic,resource_type,marks,source_label,source_url,markdown_content,file_url,updated_at")
+      .eq("review_status", "approved")
+      .in("student_class", [classNumber, "All"])
+      .in("resource_type", types)
+      .order("subject", { ascending: true })
+      .order("chapter_title", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (subject) query = query.eq("subject", subject);
+    const { data, error } = await query;
+    if (error) throw new Error(learningErrorMessage(error.message));
+    const rows = (data || []) as StudyResource[];
+    all.push(...rows);
+    if (rows.length < pageSize) return all;
+  }
 }
 
 export async function fetchMockAttempts(): Promise<MockAttemptRow[]> {
