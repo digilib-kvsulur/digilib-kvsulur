@@ -47,7 +47,27 @@ const TAB_DEFS = [
 type TabValue = typeof TAB_DEFS[number]["value"];
 
 const normalizeSubject = (subject: string) => subject.replace(/(_Part\d| Part \d)/gi, "").replace(/_/g, " ").trim();
-const normalizeChapter = (title: string) => title.replace(/^(chapter|unit|lesson)\s*\d+\s*[-:.)]?\s*/i, "").trim().toLocaleLowerCase();
+const normalizeChapter = (title: string) => title.replace(/^(chapter|unit|lesson)\s*\d+\s*[–—\-:.)]?\s*/i, "").trim().toLocaleLowerCase();
+
+async function fetchAllApprovedMaterials(classFilter: string): Promise<{ data: Resource[]; error: any }> {
+  const pageSize = 1000;
+  const all: Resource[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await (supabase as any)
+      .from("study_materials")
+      .select("id,title,description,subject,student_class,chapter_title,resource_type,academic_session,exam_year,marks,source_label,source_url,markdown_content,file_url,file_type,updated_at,created_at,review_status")
+      .eq("review_status", "approved")
+      .in("student_class", [classFilter, "All"])
+      .order("subject")
+      .order("chapter_title")
+      .order("id")
+      .range(from, from + pageSize - 1);
+    if (error) return { data: all, error };
+    const rows = (data || []) as Resource[];
+    all.push(...rows);
+    if (rows.length < pageSize) return { data: all, error: null };
+  }
+}
 const progressKey = (classNumber: string, subject: string, chapterTitle: string) => `${classNumber}|${subject.trim().toLocaleLowerCase()}|${chapterTitle.trim().toLocaleLowerCase()}`;
 const progressLabel: Record<ChapterProgressStatus, string> = { in_progress: "Studying", needs_revision: "Needs revision", completed: "Completed" };
 const SUBJECT_STORAGE_KEY = "dlms-study-last-subject";
@@ -126,7 +146,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
     (async () => {
       if (hasFreshCache && reloadKey === 0) return;
       const [materialsResult, chaptersResult] = await Promise.all([
-        (supabase as any).from("study_materials").select("id,title,description,subject,student_class,chapter_title,resource_type,academic_session,exam_year,marks,source_label,source_url,markdown_content,file_url,file_type,updated_at,created_at,review_status").eq("review_status", "approved").in("student_class", [classFilter, "All"]).order("subject").order("chapter_title"),
+        fetchAllApprovedMaterials(classFilter),
         supabase.from("ncert_books").select("id,subject,book_name,chapter_number,chapter_title,file_url").eq("class_number", classFilter).order("chapter_number", { ascending: true }),
       ]);
       if (!alive) return;
