@@ -134,23 +134,10 @@ ${answer}
 DLMS resource excerpts:
 ${sourceContext || "No matching reviewed resource text is stored for this class and subject."}`;
 
-    let model = Deno.env.get("GEMINI_TEXT_MODEL") || Deno.env.get("GEMINI_VISION_MODEL") || "gemini-2.5-flash";
+    let model = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
     let raw = "";
-    if (geminiKey) {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
-        }),
-        signal: AbortSignal.timeout(35000),
-      });
-      const result = await response.json();
-      raw = result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
-    }
-    if (!raw && groqKey) {
-      model = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
+    if (groqKey) {
+      try {
       const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${groqKey}` },
@@ -163,7 +150,27 @@ ${sourceContext || "No matching reviewed resource text is stored for this class 
         signal: AbortSignal.timeout(35000),
       });
       const groqData = await groqRes.json();
-      raw = groqData?.choices?.[0]?.message?.content || "";
+      if (groqRes.ok) raw = groqData?.choices?.[0]?.message?.content || "";
+      else console.error("Answer coach Groq request failed", groqRes.status, groqData?.error?.message || "No provider details");
+      } catch (error) {
+        console.error("Answer coach Groq request failed", error instanceof Error ? error.message : "Network error");
+      }
+    }
+    if (!raw && geminiKey) {
+      model = Deno.env.get("GEMINI_TEXT_MODEL") || Deno.env.get("GEMINI_VISION_MODEL") || "gemini-3.8-flash";
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
+          body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, responseMimeType: "application/json" } }),
+          signal: AbortSignal.timeout(35000),
+        });
+        const result = await response.json();
+        if (response.ok) raw = result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
+        else console.error("Answer coach Gemini request failed", response.status, result?.error?.message || "No provider details");
+      } catch (error) {
+        console.error("Answer coach Gemini request failed", error instanceof Error ? error.message : "Network error");
+      }
     }
     if (!raw) return json({ error: "The answer coach is unavailable right now. Please try again." }, 502);
 

@@ -132,7 +132,8 @@ serve(async (req) => {
     }
 
     const apiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!apiKey) {
+    const groqKey = Deno.env.get('GROQ_API_KEY');
+    if (!apiKey && !groqKey) {
       return new Response(JSON.stringify({ error: 'The assistant is not configured yet.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 });
     }
 
@@ -142,7 +143,7 @@ serve(async (req) => {
       parts: [{ text: msg.content }]
     }));
 
-    const result = await generateGeminiContent(apiKey, {
+    let result = apiKey ? await generateGeminiContent(apiKey, {
       systemInstruction: {
         parts: [{ text: SYSTEM_PROMPT }]
       },
@@ -150,7 +151,31 @@ serve(async (req) => {
       generationConfig: {
         temperature: 0.7,
       }
-    });
+    }) : { reply: '', error: 'Gemini is not configured.' };
+
+    if (result.error && groqKey) {
+      try {
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: Deno.env.get('GROQ_MODEL')?.trim() || 'llama-3.3-70b-versatile',
+            temperature: 0.7,
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              ...messages.map((msg: any) => ({ role: msg.role, content: msg.content })),
+            ],
+          }),
+          signal: AbortSignal.timeout(25000),
+        });
+        const groqData = await groqRes.json();
+        const reply = groqData?.choices?.[0]?.message?.content?.trim();
+        if (groqRes.ok && reply) result = { reply };
+        else console.error('Library bot Groq request failed', groqRes.status, groqData?.error?.message || 'No provider details');
+      } catch (error) {
+        console.error('Library bot Groq request failed', error instanceof Error ? error.message : 'Network error');
+      }
+    }
 
     if (result.error) {
       return new Response(JSON.stringify({ error: result.error }), {

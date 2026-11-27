@@ -7,7 +7,7 @@ const corsHeaders = {
 
 async function generateGeminiContent(apiKey: string, body: any): Promise<{ reply: string; error?: string }> {
   const apiVersions = ["v1", "v1beta"];
-  const primaryModel = "gemini-3.6-flash";
+  const primaryModel = Deno.env.get("GEMINI_TEXT_MODEL") || "gemini-3.8-flash";
   let lastError = "";
 
   for (const apiVer of apiVersions) {
@@ -73,9 +73,8 @@ serve(async (req) => {
     const { title, author, description, numQuestions = 5 } = await req.json();
 
     const apiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY is not set');
-    }
+    const groqKey = Deno.env.get('GROQ_API_KEY');
+    if (!apiKey && !groqKey) throw new Error('Configure GEMINI_API_KEY or GROQ_API_KEY');
 
     const prompt = `Generate a ${numQuestions}-question multiple choice quiz for the book "${title}" by ${author || 'unknown'}. 
     ${description ? `Context about the book: ${description}` : ''}
@@ -88,16 +87,39 @@ serve(async (req) => {
     
     Do not wrap the JSON in markdown code blocks, just return the raw JSON array.`;
 
-    const result = await generateGeminiContent(apiKey, {
+    const promptBody = {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.7,
       }
-    });
+    };
 
-    if (result.error) {
-      throw new Error(result.error);
+    let result = apiKey ? await generateGeminiContent(apiKey, promptBody) : { reply: "", error: "Gemini is not configured" };
+    if (!result.reply && groqKey) {
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: Deno.env.get('GROQ_MODEL') || 'llama-3.3-70b-versatile',
+          temperature: 0.7,
+          response_format: { type: 'json_object' },
+          messages: [{ role: 'user', content: `${prompt}\nReturn an object with a single key "questions" containing the quiz array.` }],
+        }),
+      });
+      const groqData = await groqRes.json();
+      if (groqRes.ok) {
+        const content = groqData?.choices?.[0]?.message?.content || '';
+        try {
+          const parsed = JSON.parse(content);
+          result = { reply: JSON.stringify(Array.isArray(parsed) ? parsed : parsed.questions || []) };
+        } catch {
+          console.error('Groq quiz returned invalid JSON');
+        }
+      } else {
+        console.error('Groq quiz request failed', groqRes.status, groqData?.error?.message || 'No provider details');
+      }
     }
+    if (result.error && !result.reply) throw new Error('AI quiz generation failed. Check provider configuration and try again.');
 
     let textResponse = result.reply || '[]';
     
@@ -107,6 +129,8 @@ serve(async (req) => {
     let questions;
     try {
       questions = JSON.parse(textResponse);
+      if (!Array.isArray(questions)) questions = questions?.questions;
+      if (!Array.isArray(questions)) throw new Error('Quiz was not an array');
     } catch (e) {
       throw new Error('Failed to parse AI response as JSON');
     }

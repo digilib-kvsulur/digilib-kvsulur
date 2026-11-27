@@ -87,26 +87,34 @@ Previous explanation to clarify (if any):\n${previousAnswer || "None."}\n\nDLMS 
     if (imagePart) parts.push(imagePart);
 
     let raw = "";
-    let usedModel = Deno.env.get("GEMINI_VISION_MODEL") || "gemini-2.5-flash";
-
-    if (geminiKey) {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(usedModel)}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
-        body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig: { temperature: 0.2, responseMimeType: "application/json" } }),
-        signal: AbortSignal.timeout(30000),
-      });
-      const result = await response.json();
-      raw = result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
-    }
-
-    if (!raw && groqKey && !imagePart) {
-      usedModel = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
+    let usedModel = Deno.env.get("GEMINI_VISION_MODEL") || "gemini-3.8-flash";
+    const groqModel = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
+    const geminiModel = Deno.env.get("GEMINI_VISION_MODEL") || "gemini-3.8-flash";
+    const requestGemini = async () => {
+      if (!geminiKey) return "";
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
+          body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig: { temperature: 0.2, responseMimeType: "application/json" } }),
+          signal: AbortSignal.timeout(30000),
+        });
+        const result = await response.json();
+        if (!response.ok) console.error("Study doubt Gemini request failed", response.status, result?.error?.message || "No provider details");
+        return response.ok ? result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "" : "";
+      } catch (error) {
+        console.error("Study doubt Gemini request failed", error instanceof Error ? error.message : "Network error");
+        return "";
+      }
+    };
+    const requestGroq = async () => {
+      if (!groqKey || imagePart) return "";
+      try {
       const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${groqKey}` },
         body: JSON.stringify({
-          model: usedModel,
+          model: groqModel,
           temperature: 0.2,
           response_format: { type: "json_object" },
           messages: [{ role: "user", content: prompt }],
@@ -114,11 +122,34 @@ Previous explanation to clarify (if any):\n${previousAnswer || "None."}\n\nDLMS 
         signal: AbortSignal.timeout(30000),
       });
       const groqData = await groqRes.json();
-      raw = groqData?.choices?.[0]?.message?.content || "";
-    }
+      if (!groqRes.ok) console.error("Study doubt Groq request failed", groqRes.status, groqData?.error?.message || "No provider details");
+      const content = groqRes.ok ? groqData?.choices?.[0]?.message?.content || "" : "";
+      if (content) usedModel = groqModel;
+      return content;
+      } catch (error) {
+        console.error("Study doubt Groq request failed", error instanceof Error ? error.message : "Network error");
+        return "";
+      }
+    };
+
+    // Prefer the configured Groq text model. Gemini remains the image-capable path;
+    // if either provider fails, try the other provider where the request is supported.
+    if (!imagePart && groqKey) raw = await requestGroq();
+    if (!raw) raw = await requestGemini();
+    if (raw && usedModel !== groqModel) usedModel = geminiModel;
 
     if (!raw) return json({ error: "The study assistant is unavailable. Please try again." }, 502);
-    const answer = JSON.parse(raw);
+    let answer: Record<string, unknown>;
+    try {
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start < 0 || end <= start) throw new Error("Missing JSON object");
+      answer = JSON.parse(cleaned.slice(start, end + 1));
+    } catch {
+      console.error("Study doubt provider returned unreadable JSON", usedModel);
+      return json({ error: "The AI returned an unreadable answer. Please try again." }, 502);
+    }
     const citedIds = Array.isArray(answer.source_ids) ? answer.source_ids.map(String) : [];
     const citedSources = scoredResources.map(({ resource }) => resource).filter((resource) => citedIds.includes(resource.id));
     const extractedQuestion = String(answer.extracted_question || question || "").slice(0, 8000);
