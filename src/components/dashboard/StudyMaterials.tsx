@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExternalLink, BookOpen, Search, FileText, Download, Loader2, ChevronRight, GraduationCap, Timer } from "lucide-react";
+import { ExternalLink, BookOpen, Search, FileText, Download, Loader2, ChevronRight, GraduationCap, Timer, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatGoogleDriveUrl, isGoogleDriveFolder } from "@/lib/utils";
 import { getStudyMaterialAccessUrl, openStudyMaterial } from "@/lib/studyMaterialAccess";
+import QuickAskAiDialog from "@/components/student/QuickAskAiDialog";
 
 interface Material {
   id: string;
@@ -372,10 +373,11 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
   const [filterSubject, setFilterSubject] = useState("all");
   const [ncertBook, setNcertBook] = useState<{ name: string; chapters: { title: string; url: string }[] } | null>(null);
   const [cbseBook, setCbseBook] = useState<{ name: string; chapters: { title: string; url: string }[] } | null>(null);
-  const [viewMaterial, setViewMaterial] = useState<{title: string, url: string, id?: string | null} | null>(null);
+  const [viewMaterial, setViewMaterial] = useState<{title: string, url: string, id?: string | null, subject?: string | null} | null>(null);
   const [readSeconds, setReadSeconds] = useState(0);
   const [readAward, setReadAward] = useState<number | null>(null);
   const [dbCbse, setDbCbse] = useState<any[]>([]);
+  const [askAiOpen, setAskAiOpen] = useState(false);
 
   // Reading timer — awards XP for time spent studying a material
   useEffect(() => {
@@ -732,8 +734,8 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                     toast({ title: "Resource Updating", description: "The digital textbook chapter is being linked." });
                     return;
                   }
-                  if (ch.url.includes("ncert.nic.in")) window.open(ch.url, "_blank");
-                  else setViewMaterial({ title: `${ncertBook.name} - ${ch.title}`, url: ch.url });
+                  setNcertBook(null);
+                  setViewMaterial({ title: `${ncertBook.name} - ${ch.title}`, url: ch.url });
                 }}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/60 transition-colors group border border-transparent hover:border-border/60 text-left w-full"
               >
@@ -766,8 +768,8 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                     toast({ title: "Resource Updating", description: "The syllabus resource is being updated." });
                     return;
                   }
-                  if (ch.url.includes("ncert.nic.in") || ch.url.includes("cbseacademic.nic.in")) window.open(ch.url, "_blank");
-                  else setViewMaterial({ title: `${cbseBook.name} - ${ch.title}`, url: ch.url });
+                  setCbseBook(null);
+                  setViewMaterial({ title: `${cbseBook.name} - ${ch.title}`, url: ch.url });
                 }}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50/60 transition-colors group border border-transparent hover:border-indigo-200 text-left w-full"
               >
@@ -791,6 +793,15 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
                 <span className="leading-snug text-left">{viewMaterial?.title}</span>
               </DialogTitle>
               <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setAskAiOpen(true)}
+                  className="h-8 gap-1.5 font-semibold"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">ASK DLMS AI</span>
+                </Button>
                 <Badge variant="secondary" className="h-8 px-2.5 gap-1.5 font-mono text-xs">
                   <Timer className="h-3.5 w-3.5 text-primary" />
                   {String(Math.floor(readSeconds / 60)).padStart(2, "0")}:{String(readSeconds % 60).padStart(2, "0")}
@@ -835,6 +846,13 @@ const StudyMaterials = ({ studentClass }: { studentClass?: string }) => {
           </div>
         </DialogContent>
       </Dialog>
+      <QuickAskAiDialog
+        open={askAiOpen}
+        onOpenChange={setAskAiOpen}
+        studentClass={studentClass}
+        subject={viewMaterial?.subject || undefined}
+        chapterTitle={viewMaterial?.title}
+      />
     </div>
   );
 };

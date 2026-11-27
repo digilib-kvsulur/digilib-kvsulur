@@ -19,7 +19,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { openStudyMaterial } from "@/lib/studyMaterialAccess";
+import AskAiSelectionLayer from "@/components/student/AskAiSelectionLayer";
+import InAppReaderDialog, { type InAppReaderItem } from "@/components/student/InAppReaderDialog";
 import ChapterPracticeSet from "@/components/student/ChapterPracticeSet";
 import FormulaCard from "@/components/student/study/FormulaCard";
 import PyqCard, { type PyqItem } from "@/components/student/study/PyqCard";
@@ -95,6 +96,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
   const [readNotes, setReadNotes] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem("dlms-study-read-notes") || "[]")); } catch { return new Set(); }
   });
+  const [readerItem, setReaderItem] = useState<InAppReaderItem | null>(null);
   const activeSubjectRef = useRef<HTMLButtonElement>(null);
   const { speak, stop, speaking, supported } = useSpeech();
 
@@ -316,14 +318,28 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
 
   const chooseSubject = (subject: string) => { setSelectedSubject(subject); setSelectedChapter(""); setChapterSearch(""); window.localStorage.setItem(SUBJECT_STORAGE_KEY, subject); };
   const openChapter = (title: string) => { setSelectedChapter(title); setTab("notes"); setQuery(""); setBookmarkedOnly(false); setTwoMinuteMode(false); writeLastStudy({ classNumber: classFilter, subject: selectedSubject, chapterTitle: title, ts: Date.now() }); };
-  const openResourceFile = async (url: string) => {
+  const openResourceFile = (url: string, title?: string) => {
     if (dataSaver && !window.confirm("Low-data mode is on. Opening this file may use mobile data. Continue?")) return;
-    try { await openStudyMaterial(url); } catch { toast.error("Could not open this resource"); }
+    setReaderItem({
+      title: title || displayChapterTitle(selectedChapter, activeChapter?.chapterNumber) || "Study Resource",
+      url,
+      subject: selectedSubject,
+      studentClass: classFilter,
+      chapterTitle: displayChapterTitle(selectedChapter, activeChapter?.chapterNumber),
+    });
   };
   const openNcert = () => {
     if (dataSaver && !window.confirm("Low-data mode is on. Opening the NCERT PDF may use mobile data. Continue?")) return;
-    if (activeChapter?.textbookUrl) window.open(activeChapter.textbookUrl, "_blank", "noopener,noreferrer");
-    else window.open("https://ncert.nic.in/textbook.php", "_blank", "noopener,noreferrer");
+    const url = activeChapter?.textbookUrl || "https://ncert.nic.in/textbook.php";
+    setReaderItem({
+      title: activeChapter?.bookName
+        ? `${activeChapter.bookName} — ${displayChapterTitle(selectedChapter, activeChapter?.chapterNumber)}`
+        : displayChapterTitle(selectedChapter, activeChapter?.chapterNumber) || "NCERT Chapter",
+      url,
+      subject: selectedSubject,
+      studentClass: classFilter,
+      chapterTitle: displayChapterTitle(selectedChapter, activeChapter?.chapterNumber),
+    });
   };
   const askDoubt = () => { onOpenDoubt?.(); };
   const markRead = (id: string) => setReadNotes((current) => {
@@ -390,7 +406,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
               <input type="checkbox" className="h-4 w-4 accent-primary" checked={read} onChange={() => markRead(r.id)} />
               <span className={read ? "text-muted-foreground line-through" : ""}>Mark as read</span>
             </label>
-            {r.file_url && <Button size="sm" variant="outline" className="min-h-11 rounded-xl ml-auto" onClick={() => openResourceFile(r.file_url)}>Open resource <ExternalLink className="ml-1.5 h-3.5 w-3.5" /></Button>}
+            {r.file_url && <Button size="sm" variant="outline" className="min-h-11 rounded-xl ml-auto" onClick={() => openResourceFile(r.file_url, r.title)}>Open resource <ExternalLink className="ml-1.5 h-3.5 w-3.5" /></Button>}
           </div>
         </CardContent>
       </Card>;
@@ -453,14 +469,14 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
             <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0"><BookOpen className="h-5 w-5" /></div>
             <div className="min-w-0">
               <h3 className="font-semibold text-foreground">{activeChapter?.bookName || "Official NCERT Chapter"}</h3>
-              <p className="text-sm text-muted-foreground mt-0.5">{activeChapter?.textbookUrl ? "Read the official NCERT chapter PDF directly in a new tab." : "NCERT link is not added for this chapter yet. Browse the official NCERT portal."}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">{activeChapter?.textbookUrl ? "Read the official NCERT chapter PDF right inside DLMS." : "NCERT link is not added for this chapter yet. Browse the official NCERT portal."}</p>
             </div>
           </div>
           <Button className="min-h-11 rounded-xl sm:shrink-0" onClick={openNcert}><ExternalLink className="h-4 w-4 mr-2" />{activeChapter?.textbookUrl ? "Open PDF" : "Open NCERT portal"}</Button>
         </CardContent>
       </Card>
       {visibleByType(["textbook"]).map((r) => (
-        <Card key={r.id} className="rounded-xl border-border/70 shadow-none"><CardContent className="p-4 flex items-center justify-between gap-3"><div><p className="font-medium text-sm">{r.title}</p><p className="text-xs text-muted-foreground">{r.source_label || "Textbook resource"}</p></div>{r.file_url && <Button variant="outline" size="sm" className="min-h-11 rounded-xl" onClick={() => openResourceFile(r.file_url)}>Open</Button>}</CardContent></Card>
+        <Card key={r.id} className="rounded-xl border-border/70 shadow-none"><CardContent className="p-4 flex items-center justify-between gap-3"><div><p className="font-medium text-sm">{r.title}</p><p className="text-xs text-muted-foreground">{r.source_label || "Textbook resource"}</p></div>{r.file_url && <Button variant="outline" size="sm" className="min-h-11 rounded-xl" onClick={() => openResourceFile(r.file_url, r.title)}>Open</Button>}</CardContent></Card>
       ))}
     </div>
   );
@@ -544,11 +560,17 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
               </div>
             </div>
 
-            <TabsContent value="notes" className="mt-0 focus-visible:ring-0">{tabContentNotes()}</TabsContent>
-            <TabsContent value="formulas" className="mt-0 focus-visible:ring-0">{tabContentFormulas()}</TabsContent>
-            <TabsContent value="pyq" className="mt-0 focus-visible:ring-0">{tabContentPyq()}</TabsContent>
-            <TabsContent value="revision" className="mt-0 focus-visible:ring-0">{tabContentRevision()}</TabsContent>
-            <TabsContent value="ncert" className="mt-0 focus-visible:ring-0">{tabContentNcert()}</TabsContent>
+            <AskAiSelectionLayer
+              studentClass={classFilter}
+              subject={selectedSubject}
+              chapterTitle={displayChapterTitle(selectedChapter, activeChapter?.chapterNumber)}
+            >
+              <TabsContent value="notes" className="mt-0 focus-visible:ring-0">{tabContentNotes()}</TabsContent>
+              <TabsContent value="formulas" className="mt-0 focus-visible:ring-0">{tabContentFormulas()}</TabsContent>
+              <TabsContent value="pyq" className="mt-0 focus-visible:ring-0">{tabContentPyq()}</TabsContent>
+              <TabsContent value="revision" className="mt-0 focus-visible:ring-0">{tabContentRevision()}</TabsContent>
+              <TabsContent value="ncert" className="mt-0 focus-visible:ring-0">{tabContentNcert()}</TabsContent>
+            </AskAiSelectionLayer>
           </Tabs>
 
           <div className="text-[11px] text-muted-foreground pb-2">
@@ -614,5 +636,7 @@ export default function StudyResources({ studentClass, userId, onOpenDoubt, init
         )}
       </section>
     )}
-  </div></TooltipProvider>;
+  </div>
+  <InAppReaderDialog item={readerItem} onClose={() => setReaderItem(null)} />
+  </TooltipProvider>;
 }

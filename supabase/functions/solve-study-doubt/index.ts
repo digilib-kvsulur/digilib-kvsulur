@@ -22,7 +22,8 @@ Deno.serve(async (req) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const geminiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!supabaseUrl || !anonKey || !serviceKey || !geminiKey) return json({ error: "The study assistant is not configured." }, 503);
+  const groqKey = Deno.env.get("GROQ_API_KEY");
+  if (!supabaseUrl || !anonKey || !serviceKey || (!geminiKey && !groqKey)) return json({ error: "The study assistant is not configured." }, 503);
 
   try {
     const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } } });
@@ -84,22 +85,46 @@ The following DLMS class/subject resources are the only local sources available.
 Previous explanation to clarify (if any):\n${previousAnswer || "None."}\n\nDLMS RESOURCE CONTEXT:\n${sourceContext || "No matching reviewed resource text is currently stored for this class and subject."}`;
     const parts: Record<string, unknown>[] = [{ text: prompt }];
     if (imagePart) parts.push(imagePart);
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(Deno.env.get("GEMINI_VISION_MODEL") || "gemini-2.5-flash")}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
-      body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig: { temperature: 0.2, responseMimeType: "application/json" } }),
-      signal: AbortSignal.timeout(30000),
-    });
-    const result = await response.json();
-    const raw = result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
-    if (!response.ok || !raw) return json({ error: "The study assistant is unavailable. Please try again." }, 502);
+
+    let raw = "";
+    let usedModel = Deno.env.get("GEMINI_VISION_MODEL") || "gemini-2.5-flash";
+
+    if (geminiKey) {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(usedModel)}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
+        body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig: { temperature: 0.2, responseMimeType: "application/json" } }),
+        signal: AbortSignal.timeout(30000),
+      });
+      const result = await response.json();
+      raw = result?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("") || "";
+    }
+
+    if (!raw && groqKey && !imagePart) {
+      usedModel = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
+      const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: usedModel,
+          temperature: 0.2,
+          response_format: { type: "json_object" },
+          messages: [{ role: "user", content: prompt }],
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      const groqData = await groqRes.json();
+      raw = groqData?.choices?.[0]?.message?.content || "";
+    }
+
+    if (!raw) return json({ error: "The study assistant is unavailable. Please try again." }, 502);
     const answer = JSON.parse(raw);
     const citedIds = Array.isArray(answer.source_ids) ? answer.source_ids.map(String) : [];
     const citedSources = scoredResources.map(({ resource }) => resource).filter((resource) => citedIds.includes(resource.id));
     const extractedQuestion = String(answer.extracted_question || question || "").slice(0, 8000);
     const answerText = `${String(answer.answer || "").slice(0, 14000)}\n\nFinal answer: ${String(answer.final_answer || "").slice(0, 1500)}\n\n${String(answer.confidence_note || "")}`.slice(0, 16000);
     const formulas = Array.isArray(answer.formulas) ? answer.formulas.map((item: unknown) => String(item).slice(0, 500)).slice(0, 20) : [];
-    const { error: saveError } = await serviceClient.from("study_doubt_history").insert({ user_id: user.id, student_class: studentClass, subject, question_text: extractedQuestion, answer_text: answerText, formulas, related_resource_ids: citedSources.map((resource) => resource.id), model_id: Deno.env.get("GEMINI_VISION_MODEL") || "gemini-2.5-flash" });
+    const { error: saveError } = await serviceClient.from("study_doubt_history").insert({ user_id: user.id, student_class: studentClass, subject, question_text: extractedQuestion, answer_text: answerText, formulas, related_resource_ids: citedSources.map((resource) => resource.id), model_id: usedModel });
     if (saveError) console.error("Could not save study doubt history", saveError.message);
     return json({ ...answer, extracted_question: extractedQuestion, formulas, sources: citedSources.map((resource) => ({ id: resource.id, title: resource.title, source_label: resource.source_label, source_url: resource.source_url || undefined })) });
   } catch (error) {

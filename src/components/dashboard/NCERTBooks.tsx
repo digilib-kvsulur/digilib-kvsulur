@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BookOpen, Search, ExternalLink, FileText, LoaderCircle } from "lucide-react";
+import InAppReaderDialog, { type InAppReaderItem } from "@/components/student/InAppReaderDialog";
 
 interface NCERTBooksProps {
   studentClass?: string | number | null;
@@ -36,6 +37,7 @@ export default function NCERTBooks({ studentClass }: NCERTBooksProps) {
   const [chapters, setChapters] = useState<NCERTChapter[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [readerItem, setReaderItem] = useState<InAppReaderItem | null>(null);
 
   useEffect(() => {
     setClassFilter(studentClassNumber);
@@ -208,15 +210,21 @@ export default function NCERTBooks({ studentClass }: NCERTBooksProps) {
                             <span className="text-sm leading-snug">{chapter.chapter_title}</span>
                           </div>
                           {chapter.file_url && (
-                            <a
-                              href={chapter.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`Open ${chapter.chapter_title} from NCERT`}
-                              className="shrink-0 rounded-lg p-2 text-primary transition-colors hover:bg-primary/10"
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setReaderItem({
+                                title: `${collection.title} — ${chapter.chapter_title}`,
+                                url: chapter.file_url!,
+                                subject: collection.subject,
+                                studentClass: collection.classNumber,
+                                chapterTitle: chapter.chapter_title,
+                              })}
+                              className="shrink-0 rounded-lg px-2.5 text-primary hover:bg-primary/10"
                             >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
+                              Read
+                            </Button>
                           )}
                         </div>
                       ))}
@@ -243,8 +251,9 @@ export default function NCERTBooks({ studentClass }: NCERTBooksProps) {
       )}
 
       <p className="text-center text-xs text-muted-foreground">
-        Textbooks are provided by NCERT. This site links to the official source and does not host textbook files.
+        Textbooks are provided by NCERT. Read inside DLMS or open in a new tab if your browser blocks inline PDFs.
       </p>
+      <InAppReaderDialog item={readerItem} onClose={() => setReaderItem(null)} />
     </div>
   );
 }
